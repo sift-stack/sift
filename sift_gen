@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+
+err_and_exit() {
+  printf "$2\n" >&2
+  exit $1
+}
+
+if [[ ! -f $(which buf) ]]; then
+  err_and_exit 2 "Could not find 'buf' executable. Ensure that it is installed in your path."
+fi
+
+
+script=$(realpath "$0")
+script_path=$(dirname "$SCRIPT")
+gen_dir="$script_path/gen"
+
+printf "Compiling protocol buffers...\n"
+rm -rf "$gen_dir"
+buf generate "$script_path/protos" --include-imports
+
+targets=""
+
+for target in $(ls $gen_dir); do
+  targets+="- $target\n"
+done
+
+printf "Successfully generated code for the following targets:\n$targets"

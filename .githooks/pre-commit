@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+if [[ ! -f $(which buf) ]]; then
+  echo "Could not find 'buf' executable. Ensure that it is installed in your path."
+  exit 2
+fi
+
+# cd back to repo root
+cd ../../
+
+changed_files=($(git diff --cached --name-only --diff-filter=ACM | grep '^protos/' | grep '**.proto$'))
+
+if [[ -n "$changed_files" ]]; then
+    echo "running buf lint protos"
+    buf lint protos || {
+        echo -e "ERROR! protos linting failed. Please fix the errors and recommit.\n"
+        exit 1
+    }
+    echo "running buf format protos"
+    buf format protos -w --exit-code || {
+        echo -e "ERROR! protos file were reformatted. Please stage the changes and recommit.\n"
+        exit 1
+    }
+fi
+
+exit 0
