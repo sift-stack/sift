@@ -5,9 +5,6 @@ if [[ ! -f $(which buf) ]]; then
   exit 2
 fi
 
-# cd back to repo root
-cd ../../
-
 changed_files=($(git diff --cached --name-only --diff-filter=ACM | grep '^protos/' | grep '**.proto$'))
 
 if [[ -n "$changed_files" ]]; then
