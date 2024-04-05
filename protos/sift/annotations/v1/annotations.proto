@@ -9,7 +9,6 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
 option go_package = "github.com/sift-stack/protobufs/gen/protos/go/sift/annotations/v1;annotationsv1pb";
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Annotation service"}
 };
@@ -65,6 +64,7 @@ message Annotation {
 }
 
 enum AnnotationState {
+  ANNOTATION_STATE_UNSPECIFIED = 0;
   ANNOTATION_STATE_OPEN = 1;
   ANNOTATION_STATE_FLAGGED = 2;
   ANNOTATION_STATE_RESOLVED = 3;
