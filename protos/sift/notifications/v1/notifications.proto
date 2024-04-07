@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package sift.notifications.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "github.com/sift-stack/protobufs/gen/protos/go/sift/notifications/v1;notificationsv1pb";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Notification Service"}
+};
+
+service NotificationService {
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse) {
+    option (google.api.http) = {get: "/api/v1/notifications"};
+  }
+  rpc BatchUpdateNotifications(BatchUpdateNotificationsRequest) returns (BatchUpdateNotificationsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/notifications:batchUpdate"
+      body: "*"
+    };
+  }
+}
+
+message Notification {
+  string notification_id = 1;
+  google.protobuf.Timestamp created_date = 2;
+  google.protobuf.Timestamp modified_date = 3;
+  string created_by_user_id = 4;
+  string modified_by_user_id = 5;
+  string organization_id = 6;
+  string recipient_user_id = 7;
+  bool is_read = 8;
+  string full_link = 9;
+  NotificationKind notification_type = 10;
+  string contents = 11;
+  string entity_id = 12;
+}
+
+enum NotificationKind {
+  NOTIFICATION_KIND_UNSPECIFIED = 0;
+  NOTIFICATION_KIND_TEXT = 1;
+  NOTIFICATION_KIND_ANNOTATION_ASSIGNED = 2;
+  NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT = 3;
+  NOTIFICATION_KIND_CONDITION_TRIGGERED = 4;
+}
+
+// The request for a call to `NotificationService_ListNotifications` to retrieve notifications.
+message ListNotificationsRequest {
+  // The maximum number of notifications to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 notifications will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListNotifications` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListNotifications` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `notification_id`, `created_by_user_id`, `recipient_user_id`,
+  // `created_date`, `notification_type`, and `is_read`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_notifications_v1_notifications-proto). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `NotificationService_ListNotifications`.
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  string next_page_token = 2;
+}
+
+// The request for a call to `NotificationService_BatchUpdateNotifications` to update notifications.
+// A maximum of 1000 notifications can be modified in a batch.
+message BatchUpdateNotificationsRequest {
+  repeated UpdateNotificationRequest requests = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateNotificationRequest {
+  // The notification to update. The notification's `notification_id` field is used to identify the notification to update
+  // and must be provided.
+  Notification notification = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to be updated. Currently, the only field that can be updated is `is_read`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `NotificationService_BatchUpdateNotifications` containing the updated notifications.
+message BatchUpdateNotificationsResponse {
+  // The updated notifications.
+  repeated Notification notifications = 1;
+}
