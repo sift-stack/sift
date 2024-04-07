@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package sift.tags.v1;
+
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+message Tag {
+  string tag_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 4 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = REQUIRED];
+}

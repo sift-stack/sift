@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package sift.common.type.v1;
+
+message Organization {
+  string organization_id = 1;
+  string organization_name = 2;
+}
