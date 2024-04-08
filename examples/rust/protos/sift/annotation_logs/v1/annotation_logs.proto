@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package sift.annotation_logs.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+service AnnotationLogService {
+  rpc CreateAnnotationLog(CreateAnnotationLogRequest) returns (CreateAnnotationLogResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/annotations/{annotation_id}/logs"
+      body: "*"
+    };
+  }
+  rpc ListAnnotationLogs(ListAnnotationLogsRequest) returns (ListAnnotationLogsResponse) {
+    option (google.api.http) = {get: "/api/v1/annotations/{annotation_id}/logs"};
+  }
+  rpc DeleteAnnotationLog(DeleteAnnotationLogRequest) returns (DeleteAnnotationLogResponse) {
+    option (google.api.http) = {delete: "/api/v1/annotations/{annotation_id}/logs/{annotation_log_id}"};
+  }
+}
+
+// The request for a call to `AnnotationLogService_CreateAnnotationLog` to create an annotation log.
+message CreateAnnotationLogRequest {
+  // The ID of the parent annotation associated to associate with the new annotation log.
+  string annotation_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The kind of annotation log to create.
+  AnnotationLogKind kind = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // The properties associated with the specific kind of annotation log.
+  oneof properties {
+    AnnotationLogAssignedProperties assigned = 3;
+    AnnotationLogStateUpdateProperties state_update = 4;
+    AnnotationLogCommentProperties comment = 5;
+  }
+}
+
+// The response of a call to `AnnotationLogService_CreateAnnotationLog`.
+message CreateAnnotationLogResponse {
+  AnnotationLogSearchResult annotation_log = 1;
+}
+
+// The request for a call to `AnnotationLogService_ListAnnotationLogs` to retrieve annotation logs.
+message ListAnnotationLogsRequest {
+  // The ID of the parent annotation associated with the annotation logs.
+  string annotation_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of annotation logs to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 annotation logs will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListAnnotationLogs` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListAnnotationLogs` must match
+  // the call that provided the page token.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `annotation_log_id`, `annotation_id`, `created_by_user_id`,
+  // `created_date`, `modified_date`, and `kind`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_annotation_logs_v1_annotation_logs-proto). Optional.
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `AnnotationLogService_ListAnnotationLogs`.
+message ListAnnotationLogsResponse {
+  repeated AnnotationLogSearchResult annotation_logs = 1;
+  string next_page_token = 2;
+}
+
+// The request for a call to `AnnotationLogService_DeleteAnnotationLog` to delete an annotation log.
+message DeleteAnnotationLogRequest {
+  // The ID of the parent annotation associated with the annotation log to be deleted.
+  string annotation_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // ID of the annotation log to be deleted.
+  string annotation_log_id = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The Response of a call to `AnnotationLogService_DeleteAnnotationLog`.
+message DeleteAnnotationLogResponse {}
+
+message AnnotationLogSearchResult {
+  string annotation_log_id = 1 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 2 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 3 [(google.api.field_behavior) = REQUIRED];
+  string annotation_id = 4 [(google.api.field_behavior) = REQUIRED];
+  AnnotationLogKind kind = 5 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 6 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_name = 7 [(google.api.field_behavior) = REQUIRED];
+  oneof properties {
+    AnnotationLogAssignedProperties assigned = 8;
+    AnnotationLogStateUpdateProperties state_update = 9;
+    AnnotationLogCommentProperties comment = 10;
+  }
+}
+
+enum AnnotationLogKind {
+  ANNOTATION_LOG_KIND_UNSPECIFIED = 0;
+  ANNOTATION_LOG_KIND_COMMENT = 1;
+  ANNOTATION_LOG_KIND_STATE_UPDATE = 2;
+  ANNOTATION_LOG_KIND_ASSIGNED = 3;
+}
+
+message AnnotationLogAssignedProperties {
+  string assigned_to_user_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string assigned_to_user_email = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message AnnotationLogStateUpdateProperties {
+  AnnotationLogState state = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+enum AnnotationLogState {
+  ANNOTATION_LOG_STATE_UNSPECIFIED = 0;
+  ANNOTATION_LOG_STATE_CREATED = 1;
+  ANNOTATION_LOG_STATE_OPEN = 2;
+  ANNOTATION_LOG_STATE_FLAGGED = 3;
+  ANNOTATION_LOG_STATE_RESOLVED = 4;
+}
+
+message AnnotationLogCommentProperties {
+  repeated AnnotationCommentBodyElement body = 1;
+}
+
+message AnnotationCommentBodyElement {
+  AnnotationCommentBodyElementType type = 1 [(google.api.field_behavior) = REQUIRED];
+  string text = 2 [(google.api.field_behavior) = OPTIONAL];
+  AnnotationCommentUserMention user_mention = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message AnnotationCommentUserMention {
+  string user_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_email = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+enum AnnotationCommentBodyElementType {
+  ANNOTATION_COMMENT_BODY_ELEMENT_TYPE_UNSPECIFIED = 0;
+  ANNOTATION_COMMENT_BODY_ELEMENT_TYPE_TEXT = 1;
+  ANNOTATION_COMMENT_BODY_ELEMENT_TYPE_USER_MENTION = 2;
+}

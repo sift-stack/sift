@@ -1,15 +1,9 @@
 # Sift Protobufs Examples
 
-Currently there are recommended installation instructions and example usages for the following languages:
-- [Go](go/)
-- [Rust](rust/)
+This directory contains examples on how to use code generated from Sift protobufs for various programming languages.
 
-Each example will cover how to manually compile the protobufs into the user's target language such that it's ready for immediate use in the user's project.
-Users are by no means obligated to follow these instructions exactly and are instead encouraged to do what makes the most sense for their project.
-
-In addition to covering installation the examples will also contain code that demonstrates how to use the compiled protobufs by building a basic CLI
-that allows users to query annotations by name via a case-insensitive partial substring match:
-
+Each example is a small CLI that allows users to query annotations by doing a case-insensitive substring match against the name of each annotation which
+will behave like so:
 
 ```
 $ sift_cli voltage
