@@ -1,7 +1,7 @@
 # Sift Protobufs
 
-This repository contains protobufs (protocol buffers) for clients of Sift to interact directly with our gRPC service. If certain protobufs are not yet available for a particular API, please refer to the documentation for our
-[REST API](https://docs.siftstack.com/api-docs/rest) which may expose those services via gRPC gateway.
+This repository contains protobufs (protocol buffers) for clients of Sift to interact directly with our gRPC service. Documentation for our protobufs can be found [here](https://docs.siftstack.com/ingestion/api).
+If certain protobufs are not yet available for a particular API, please refer to the documentation for our [REST API](https://docs.siftstack.com/api-docs/rest) which may expose those services via gRPC gateway.
 
 For manual installation instructions for a particular programming language, click on one of the following links:
 - [Go](/docs/go.md)
