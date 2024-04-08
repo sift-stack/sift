@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package sift.common.type.v1;
+
+import "google/api/field_behavior.proto";
+import "sift/common/type/v1/organization.proto";
+
+message User {
+  string user_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_name = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.Organization organizations = 3;
+}

@@ -1,2 +1,4 @@
 examples/rust/target/**/*
 **/.env
+examples/rust/src/gen/*
+!examples/rust/src/gen/mod.rs
