@@ -1,7 +1,7 @@
 # Sift Protobufs Examples
 
 Currently there are recommended installation instructions and example usages for the following languages:
-- [Go](/go)
+- [Go](go/)
 
 Each example will cover how to manually compile the protobufs into the user's target language such that it's ready for immediate use in the user's project.
 Users are by no means obligated to follow these instructions exactly and are instead encouraged to do what makes the most sense for their project.

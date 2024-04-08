@@ -8,4 +8,4 @@ For manual installation instructions and usage examples for various languages pl
 - Compile the protobufs manually.
 - Use our [REST API](https://docs.siftstack.com/api-docs/rest).
 
-In the near future we will provide more installation options,
+In the near future we will provide more installation options.
