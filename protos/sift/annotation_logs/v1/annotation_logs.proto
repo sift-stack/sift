@@ -6,6 +6,8 @@ import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/annotation_logs/v1;annotation_logsv1pb";
+
 service AnnotationLogService {
   rpc CreateAnnotationLog(CreateAnnotationLogRequest) returns (CreateAnnotationLogResponse) {
     option (google.api.http) = {
