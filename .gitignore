@@ -5,4 +5,5 @@ examples/go/gen/**/*
 examples/python/gen/**/*
 examples/python/build/**/*
 examples/python/venv/**/*
+examples/python/dist/**/*
 !examples/rust/src/gen/mod.rs
