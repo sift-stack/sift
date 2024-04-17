@@ -2,4 +2,7 @@ examples/rust/target/**/*
 **/.env
 examples/rust/src/gen/**/*
 examples/go/gen/**/*
+examples/python/gen/**/*
+examples/python/build/**/*
+examples/python/venv/**/*
 !examples/rust/src/gen/mod.rs

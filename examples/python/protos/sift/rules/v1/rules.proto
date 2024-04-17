@@ -1,0 +1,280 @@
+syntax = "proto3";
+
+// INTERNAL NOTES FOR MAINTAINERS:
+// This protobuf package serves proxying layer for underlying services which still depend on
+// protobufs from the `azimuth.rules.v1` package. Any updates to this file need to be ported
+// in copy-paste fashion to `azimuth.rules.v1`.
+//
+// Also, be sure to update the following Go package to convert between the new and legacy types.:
+// - azimuth.services.repo.rule.v1.pbmapper
+package sift.rules.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/annotations/v1/annotations.proto";
+
+option go_package = "azimuth/gen/protos/go/sift/rules/v1;rulesv1pb";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Rule service"}
+};
+
+service RuleService {
+  rpc SearchRules(SearchRulesRequest) returns (SearchRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/search"
+      body: "*"
+    };
+  }
+  rpc GetRule(GetRuleRequest) returns (GetRuleResponse) {
+    option (google.api.http) = {get: "/api/v1/rules"};
+  }
+  rpc BatchGetRules(BatchGetRulesRequest) returns (BatchGetRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules:batchGet"
+      body: "*"
+    };
+  }
+  rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules"
+      body: "*"
+    };
+  }
+  rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/rules"
+      body: "*"
+    };
+  }
+  rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/delete"
+      body: "*"
+    };
+  }
+  rpc EvaluateRules(EvaluateRulesRequest) returns (EvaluateRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/evaluate"
+      body: "*"
+    };
+  }
+  rpc ViewHumanFriendlyRules(ViewHumanFriendlyRulesRequest) returns (ViewHumanFriendlyRulesResponse) {
+    option (google.api.http) = {get: "/api/v1/rules:viewHumanFriendly"};
+  }
+  rpc UpdateHumanFriendlyRules(UpdateHumanFriendlyRulesRequest) returns (UpdateHumanFriendlyRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules:updateHumanFriendly"
+      body: "*"
+    };
+  }
+}
+
+message Rule {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string asset_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  string description = 4 [(google.api.field_behavior) = REQUIRED];
+  string current_status = 5 [(google.api.field_behavior) = REQUIRED];
+  bool is_enabled = 6 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 7 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 8 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 9 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 10 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 11 [(google.api.field_behavior) = REQUIRED];
+  repeated RuleCondition conditions = 12 [(google.api.field_behavior) = REQUIRED];
+}
+message RuleCondition {
+  string rule_condition_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rule_id = 2 [(google.api.field_behavior) = REQUIRED];
+  RuleConditionExpression expression = 3 [(google.api.field_behavior) = REQUIRED];
+  string status = 4 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 6 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+  repeated RuleAction actions = 9 [(google.api.field_behavior) = REQUIRED];
+}
+message RuleAction {
+  string rule_action_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rule_condition_id = 2 [(google.api.field_behavior) = REQUIRED];
+  ActionKind action_type = 3 [(google.api.field_behavior) = REQUIRED];
+  RuleActionConfiguration configuration = 4 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 6 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+}
+
+message SearchRulesRequest {
+  // Max number of rules to return (returns all if omitted).
+  optional uint32 limit = 1;
+  // Only applies if limit provided.
+  uint32 offset = 2;
+  // Order to sort results by (defaults to ascending).
+  optional SearchOrder order = 3;
+  string name_matches = 4;
+  bool case_sensitive = 5;
+  bool regexp = 6;
+  optional string order_by = 7;
+  // If provided, only returns rules with the given ids
+  repeated string rule_ids = 8;
+  // If provided, only returns rules with the given asset ids
+  repeated string asset_ids = 9;
+}
+enum SearchOrder {
+  SEARCH_ORDER_UNSPECIFIED = 0 [deprecated = true];
+  SEARCH_ORDER_ASC = 1;
+  SEARCH_ORDER_DESC = 2;
+}
+message SearchRulesResponse {
+  uint32 count = 1 [(google.api.field_behavior) = REQUIRED];
+  // Conditions are not included in the search response
+  repeated Rule rules = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetRuleRequest {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+message GetRuleResponse {
+  Rule rule = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchGetRulesRequest {
+  repeated string rule_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+message BatchGetRulesResponse {
+  repeated Rule rules = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateRuleRequest {
+  UpdateRuleRequest update = 1 [(google.api.field_behavior) = REQUIRED];
+}
+message CreateRuleResponse {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+message UpdateRuleRequest {
+  optional string rule_id = 1;
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string description = 3 [(google.api.field_behavior) = REQUIRED];
+  string asset_id = 4 [(google.api.field_behavior) = REQUIRED];
+  bool is_enabled = 5 [(google.api.field_behavior) = REQUIRED];
+  repeated UpdateConditionRequest conditions = 6 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 7;
+}
+message UpdateConditionRequest {
+  optional string rule_condition_id = 1;
+  string status = 2 [(google.api.field_behavior) = REQUIRED];
+  RuleConditionExpression expression = 3 [(google.api.field_behavior) = REQUIRED];
+  repeated UpdateActionRequest actions = 4 [(google.api.field_behavior) = REQUIRED];
+}
+message UpdateActionRequest {
+  optional string rule_action_id = 1;
+  ActionKind action_type = 2 [(google.api.field_behavior) = REQUIRED];
+  RuleActionConfiguration configuration = 3 [(google.api.field_behavior) = REQUIRED];
+}
+enum ActionKind {
+  ACTION_KIND_UNSPECIFIED = 0 [deprecated = true];
+  NOTIFICATION = 1;
+  ANNOTATION = 2;
+}
+message UpdateRuleResponse {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DeleteRuleRequest {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+message DeleteRuleResponse {}
+
+message ViewHumanFriendlyRulesRequest {
+  string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ViewHumanFriendlyRulesResponse {
+  string rules_json = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateHumanFriendlyRulesRequest {
+  string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rules_json = 2 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateHumanFriendlyRulesResponse {
+  bool success = 1 [(google.api.field_behavior) = REQUIRED];
+  int32 rules_count = 2 [(google.api.field_behavior) = REQUIRED];
+  string messages = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+message RuleConditionExpression {
+  oneof expression {
+    SingleChannelComparisonExpression single_channel_comparison = 1;
+    CalculatedChannelConfig calculated_channel = 2;
+  }
+}
+message SingleChannelComparisonExpression {
+  string channel_component = 1 [(google.api.field_behavior) = REQUIRED];
+  string channel_name = 2 [(google.api.field_behavior) = REQUIRED];
+  ConditionComparator comparator = 3 [(google.api.field_behavior) = REQUIRED];
+  // Threshold can be either a double or a string. Boolean values are encoded as 1 or 0. Enum values are stored as the string representation.
+  oneof threshold {
+    double double = 4;
+    string string = 5;
+    LastValueThreshold last_value = 6;
+  }
+}
+message LastValueThreshold {}
+enum ConditionComparator {
+  CONDITION_COMPARATOR_UNSPECIFIED = 0 [deprecated = true];
+  LESS_THAN = 1;
+  LESS_THAN_OR_EQUAL = 2;
+  GREATER_THAN = 3;
+  GREATER_THAN_OR_EQUAL = 4;
+  EQUAL = 5;
+  NOT_EQUAL = 6;
+}
+message CalculatedChannelConfig {
+  map<string, ChannelReference> channel_references = 1 [(google.api.field_behavior) = REQUIRED];
+  string expression = 2 [(google.api.field_behavior) = REQUIRED];
+}
+message ChannelReference {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  string component = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message RuleActionConfiguration {
+  oneof configuration {
+    NotificationActionConfiguration notification = 1;
+    AnnotationActionConfiguration annotation = 2;
+  }
+}
+message NotificationActionConfiguration {
+  repeated string recipient_user_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+message AnnotationActionConfiguration {
+  repeated string tag_ids = 1 [(google.api.field_behavior) = REQUIRED];
+  sift.annotations.v1.AnnotationType annotation_type = 2;
+  optional string assigned_to_user_id = 3;
+}
+
+message EvaluateRulesRequest {
+  repeated string rule_ids = 1 [(google.api.field_behavior) = REQUIRED];
+  EvaluatedAnnotationOptions annotation_options = 2;
+  oneof time {
+    string run_id = 3;
+    TimeRangeQuery time_range = 4;
+  }
+}
+message EvaluatedAnnotationOptions {
+  repeated string tag_ids = 1;
+}
+message TimeRangeQuery {
+  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+}
+
+message EvaluateRulesResponse {
+  int32 created_annotation_count = 1;
+}
