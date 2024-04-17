@@ -123,7 +123,7 @@ $  pip install build protobuf grpcio
 $ python -m build --sdist && python -m build --wheel
 ```
 
-11. Once that is complete, you should now have a `dist` in `$PACKAGE_DIR` which contains your Python package. For a given `setup.py` that looks like this:
+12. Once that is complete, you should now have a `dist` in `$PACKAGE_DIR` which contains your Python package. For a given `setup.py` that looks like this:
 
 ```python
 from setuptools import setup, find_packages
@@ -141,10 +141,10 @@ setup(
 
 the generated wheel file should be outputted into `$PACKAGE_DIR/dist/sift_protos-0.1-py3-none-any.whl`.
 
-12. Now from your actual Python project, you can install the newly generated package via `pip`:
+13. Now from your actual Python project, you can install the newly generated package via `pip`:
 
 ```bash
 $ pip install $PACKAGE_DIR/sift_protos-0.1-py3-none-any.whl
 ```
 
-8. Now your project should be ready to use the generated Python code to interact with Sift's gRPC API. Please refer to the [example code](/examples/python) for usage.
+14. Now your project should be ready to use the generated Python code to interact with Sift's gRPC API. Please refer to the [example code](/examples/python) for usage.
