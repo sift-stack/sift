@@ -5,6 +5,9 @@ breaking:
 lint:
   use:
     - DEFAULT
+  ignore_only:
+    ENUM_VALUE_PREFIX:
+      - sift/rules/v1/rules.proto
 deps:
   - buf.build/googleapis/googleapis
   - buf.build/grpc-ecosystem/grpc-gateway
