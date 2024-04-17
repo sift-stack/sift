@@ -19,7 +19,7 @@ $ source venv/bin/activate
 Install dependencies:
 
 ```bash
-$  pip install build protobuf grpcio
+$  pip install build protobuf grpcio python-dotenv
 ```
 
 Build the generated code as a Python package:
