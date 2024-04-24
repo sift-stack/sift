@@ -1,0 +1,15 @@
+[package]
+name = "sift"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait = "0.1.79"
+prost = "0.12.4"
+prost-types = "0.12.4"
+tonic = { version = "0.11.0", features = ["tls", "tls-roots", "tls-webpki-roots"] }
+
+[features]
+default = []
