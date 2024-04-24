@@ -1,0 +1,15 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: "github.com/sift-stack/sift/go/gen/protos/go"
+plugins:
+  - plugin: buf.build/protocolbuffers/go:v1.28.1
+    out: gen/protos/go
+    opt: paths=source_relative
+  - plugin: go-vtproto
+    out: gen/protos/go
+    opt: paths=source_relative
+  - plugin: buf.build/grpc-ecosystem/gateway:v2.16.2
+    out: gen/protos/go
+    opt: paths=source_relative
