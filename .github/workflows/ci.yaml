@@ -3,8 +3,10 @@ name: ci
 on:
   release:
     types: [created]
-  push:
   pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   lint-protos:
@@ -32,3 +34,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --manifest-path rust/Cargo.toml
