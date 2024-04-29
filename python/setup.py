@@ -9,6 +9,6 @@ setup(
         "grpcio",
         "protobuf",
     ],
-    packages=find_packages('lib'),
-    package_dir={'': 'lib'},
+    packages=find_packages('sift'),
+    package_dir={'': 'sift'},
 )
