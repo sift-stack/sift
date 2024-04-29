@@ -5,6 +5,10 @@ setup(
     version='0.1',
     author='Sift Stack',
     description='Python Sift generated client from protobufs',
+    install_requires = [
+        "grpcio",
+        "protobuf",
+    ],
     packages=find_packages('sift'),
     package_dir={'': 'sift'},
 )
