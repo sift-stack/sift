@@ -1,11 +1,11 @@
 gen:
-	scripts/gen
+	bash scripts/gen.sh
 
 gen-go:
-	scripts/gen go
+	bash scripts/gen.sh go
 
 gen-python:
-	scripts/gen python
+	bash scripts/gen.sh python
 
 gen-rust:
-	scripts/gen rust 
+	bash scripts/gen.sh rust 
