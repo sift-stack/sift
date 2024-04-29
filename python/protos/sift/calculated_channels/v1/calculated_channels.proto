@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package sift.calculated_channels.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/channel_data_type.proto";
+
+option go_package = "azimuth/gen/protos/go/sift/calculated_channels/v1;calculatedchannelsv1pb";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Calculated Channels Service"}
+};
+
+service CalculatedChannelsService {
+  rpc ListExpressionIdentifiers(ListExpressionIdentifiersRequest) returns (ListExpressionIdentifiersResponse) {
+    option (google.api.http) = {get: "/api/v1/calculated-channels:expression-identifiers"};
+  }
+  rpc ValidateExpression(ValidateExpressionRequest) returns (ValidateExpressionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/calculated-channels:validate-expression"
+      body: "*"
+    };
+  }
+}
+
+message ExpressionRequest {
+  // A map from the channel reference in the expression string (e.g. $1) to the channel id (uuid).
+  map<string, string> channel_references = 1 [(google.api.field_behavior) = REQUIRED];
+  string expression = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListExpressionIdentifiersRequest {
+  // Defaults to 1000. Max of 10,000.
+  uint32 page_size = 1;
+
+  string page_token = 2;
+}
+
+message ListExpressionIdentifiersResponse {
+  repeated ExpressionIdentifier identifiers = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ExpressionIdentifier {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  string description = 2 [(google.api.field_behavior) = REQUIRED];
+  ExpressionIdentifierType type = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+enum ExpressionIdentifierType {
+  EXPRESSION_IDENTIFIER_TYPE_UNSPECIFIED = 0 [deprecated = true];
+  EXPRESSION_IDENTIFIER_TYPE_FUNCTION = 1;
+  EXPRESSION_IDENTIFIER_TYPE_CHANNEL = 2;
+}
+
+message ValidateExpressionRequest {
+  ExpressionRequest expression = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ValidateExpressionResponse {
+  oneof result {
+    ErrorValidatingExpressionResult error = 1;
+    SuccessValidatingExpressionResult success = 2;
+  }
+}
+
+message ErrorValidatingExpressionResult {
+  string error_message = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message SuccessValidatingExpressionResult {
+  sift.common.type.v1.ChannelDataType data_type = 1 [(google.api.field_behavior) = REQUIRED];
+}
