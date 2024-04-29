@@ -1,5 +1,7 @@
 # Sift
 
+[![Build status](https://github.com/sift-stack/sift/actions/workflows/ci.yml/badge.svg)](https://github.com/sift-stack/sift/actions)
+
 This repository contains utilities to interface with Sift's API. Currently, the primary way to interact with our API is through the code generated via our protobufs (protocol buffers). Comprehensive documentation
 for our protobufs can be found at [this link](https://docs.siftstack.com/ingestion/api) or in the actual proto files themselves as doc-comments.
 If certain protobufs are not yet available for a particular API, please refer to the documentation for our [REST API](https://docs.siftstack.com/api-docs/rest) which may expose those services via gRPC gateway.
