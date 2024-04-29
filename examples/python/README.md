@@ -1,13 +1,7 @@
 # Sift Python Example
 
-To run this example ensure that you have Python and the [buf CLI](https://buf.build/docs/installation) installed as well as having your
+To run this example proceed with the following steps and be sure to have your
 Sift API key ready. If you need a Sift API key please refer to [these instructions](https://help.siftstack.com/en/articles/8600475-api-keys).
-
-Once those are installed and your working directory is this project's root, compile the protobufs:
-
-```bash
-$ buf generate protos
-```
 
 Activate your virtual environment:
 
@@ -19,19 +13,8 @@ $ source venv/bin/activate
 Install dependencies:
 
 ```bash
-$  pip install build protobuf grpcio python-dotenv
-```
+$ pip install python-dotenv 'git+https://github.com/sift-stack/sift.git#subdirectory=python'
 
-Build the generated code as a Python package:
-
-```bash
-$ python -m build --sdist && python -m build --wheel
-```
-
-Install the package:
-
-```bash
-$ pip install dist/sift_protos-0.1-py3-none-any.whl
 ```
 
 Create your `.env` file:

@@ -789,6 +789,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sift"
+version = "0.1.0"
+source = "git+https://github.com/sift-stack/sift#2d2177e474d6f5cad95dcaddbd06a351dd726e18"
+dependencies = [
+ "async-trait",
+ "prost",
+ "prost-types",
+ "tonic",
+]
+
+[[package]]
 name = "sift_cli"
 version = "0.1.0"
 dependencies = [
@@ -798,6 +809,7 @@ dependencies = [
  "indoc",
  "prost",
  "prost-types",
+ "sift",
  "thiserror",
  "tokio",
  "tonic",
