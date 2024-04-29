@@ -24,7 +24,7 @@ how the protobufs should be generated.
 
 ### Installation via Package Managers
 
-The following demonstrate how to install Sift's client utilities for each supported language using their respective official package managers. The source is currently hosted only on Github, but in the future we may move
+The following demonstrates how to install Sift's client utilities for each supported language using their respective official package managers. The source is currently hosted only on Github, but in the future we may move
 these to the official package repositories for each language.
 
 #### Go
