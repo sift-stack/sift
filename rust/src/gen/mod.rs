@@ -1,4 +1,22 @@
 // @generated
+pub mod google {
+    // @@protoc_insertion_point(attribute:google.api)
+    pub mod api {
+        include!("google.api.rs");
+        // @@protoc_insertion_point(google.api)
+    }
+}
+pub mod grpc {
+    pub mod gateway {
+        pub mod protoc_gen_openapiv2 {
+            // @@protoc_insertion_point(attribute:grpc.gateway.protoc_gen_openapiv2.options)
+            pub mod options {
+                include!("grpc.gateway.protoc_gen_openapiv2.options.rs");
+                // @@protoc_insertion_point(grpc.gateway.protoc_gen_openapiv2.options)
+            }
+        }
+    }
+}
 pub mod sift {
     pub mod annotation_logs {
         // @@protoc_insertion_point(attribute:sift.annotation_logs.v1)
