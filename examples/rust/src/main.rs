@@ -5,8 +5,7 @@ use std::{env, io::Write, process::ExitCode, str::FromStr};
 use tonic::{metadata::MetadataValue, transport::Channel, Request};
 
 /// Sift generated protos
-mod gen;
-use gen::annotations::{
+use sift::gen::sift::annotations::v1::{
     annotation_service_client::AnnotationServiceClient, ListAnnotationsRequest,
     ListAnnotationsResponse,
 };

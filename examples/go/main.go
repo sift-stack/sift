@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/sift-go-cli/gen/protos/go/sift/annotations/v1"
+	"github.com/sift-stack/sift/go/gen/protos/go/sift/annotations/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
