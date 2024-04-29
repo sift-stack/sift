@@ -1,9 +1,9 @@
 import sys
 from dotenv import load_dotenv
+import grpc
 import os
 from sift.annotations.v1.annotations_pb2_grpc import AnnotationServiceStub
 from sift.annotations.v1.annotations_pb2 import ListAnnotationsRequest
-from util.grpc import create_authenticated_connection
 
 if __name__ == "__main__":
     load_dotenv()
@@ -17,9 +17,14 @@ if __name__ == "__main__":
         sys.exit(1)
 
     name = sys.argv[1]
-    channel = create_authenticated_connection(BASE_URI, authorization_header, authorization_value)
-    annotation_service = AnnotationServiceStub(channel)
-    request = ListAnnotationsRequest(filter=f"name.matches(\"(?i){name}\")")
-    response = annotation_service.ListAnnotations(request)
-    print(response)
-    channel.close()
+
+    credentials = grpc.ssl_channel_credentials()
+    call_credentials = grpc.access_token_call_credentials(os.getenv("SIFT_API_KEY"))
+    composite_credentials = grpc.composite_channel_credentials(credentials, call_credentials) 
+
+    with grpc.secure_channel(BASE_URI, composite_credentials) as channel:
+        annotation_service = AnnotationServiceStub(channel)
+        request = ListAnnotationsRequest(filter=f"name.matches(\"(?i){name}\")")
+        response = annotation_service.ListAnnotations(request)
+        print(response)
+        channel.close()

@@ -9,3 +9,6 @@ gen-python:
 
 gen-rust:
 	bash scripts/gen.sh rust 
+
+git-hooks:
+	git config core.hooksPath .githooks
