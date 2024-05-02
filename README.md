@@ -47,7 +47,7 @@ $ cargo add --git https://github.com/sift-stack/sift sift
 $ pip install 'git+https://github.com/sift-stack/sift.git#subdirectory=python'
 ```
 
-#### Manual Installation
+### Manual Installation
 
 For manual installation instructions for a particular supported programming language, click on one of the following links:
 - [Go](/docs/go.md)
