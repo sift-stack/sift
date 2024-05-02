@@ -12,3 +12,6 @@ gen-rust:
 
 git-hooks:
 	git config core.hooksPath .githooks
+
+sync:
+	bash scripts/sync_protos.sh

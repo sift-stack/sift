@@ -35,6 +35,8 @@ message ListExpressionIdentifiersRequest {
   uint32 page_size = 1;
 
   string page_token = 2;
+
+  ExpressionMode mode = 3 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ListExpressionIdentifiersResponse {
@@ -45,6 +47,7 @@ message ExpressionIdentifier {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
   string description = 2 [(google.api.field_behavior) = REQUIRED];
   ExpressionIdentifierType type = 3 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 4 [(google.api.field_behavior) = REQUIRED];
 }
 
 enum ExpressionIdentifierType {
@@ -53,8 +56,15 @@ enum ExpressionIdentifierType {
   EXPRESSION_IDENTIFIER_TYPE_CHANNEL = 2;
 }
 
+enum ExpressionMode {
+  EXPRESSION_MODE_UNSPECIFIED = 0 [deprecated = true];
+  EXPRESSION_MODE_RULES = 1;
+  EXPRESSION_MODE_CALCULATED_CHANNELS = 2;
+}
+
 message ValidateExpressionRequest {
   ExpressionRequest expression = 1 [(google.api.field_behavior) = REQUIRED];
+  ExpressionMode mode = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ValidateExpressionResponse {
