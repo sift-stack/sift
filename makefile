@@ -15,3 +15,5 @@ git-hooks:
 
 sync:
 	bash scripts/sync_protos.sh
+
+sync-gen: sync gen

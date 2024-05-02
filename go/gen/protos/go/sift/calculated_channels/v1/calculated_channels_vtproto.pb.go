@@ -56,6 +56,7 @@ func (m *ListExpressionIdentifiersRequest) CloneVT() *ListExpressionIdentifiersR
 	r := new(ListExpressionIdentifiersRequest)
 	r.PageSize = m.PageSize
 	r.PageToken = m.PageToken
+	r.Mode = m.Mode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -98,6 +99,7 @@ func (m *ExpressionIdentifier) CloneVT() *ExpressionIdentifier {
 	r.Name = m.Name
 	r.Description = m.Description
 	r.Type = m.Type
+	r.DisplayName = m.DisplayName
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -115,6 +117,7 @@ func (m *ValidateExpressionRequest) CloneVT() *ValidateExpressionRequest {
 	}
 	r := new(ValidateExpressionRequest)
 	r.Expression = m.Expression.CloneVT()
+	r.Mode = m.Mode
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -242,6 +245,9 @@ func (this *ListExpressionIdentifiersRequest) EqualVT(that *ListExpressionIdenti
 	if this.PageToken != that.PageToken {
 		return false
 	}
+	if this.Mode != that.Mode {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -300,6 +306,9 @@ func (this *ExpressionIdentifier) EqualVT(that *ExpressionIdentifier) bool {
 	if this.Type != that.Type {
 		return false
 	}
+	if this.DisplayName != that.DisplayName {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -317,6 +326,9 @@ func (this *ValidateExpressionRequest) EqualVT(that *ValidateExpressionRequest) 
 		return false
 	}
 	if !this.Expression.EqualVT(that.Expression) {
+		return false
+	}
+	if this.Mode != that.Mode {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -663,6 +675,11 @@ func (m *ListExpressionIdentifiersRequest) MarshalToSizedBufferVT(dAtA []byte) (
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Mode != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Mode))
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.PageToken) > 0 {
 		i -= len(m.PageToken)
 		copy(dAtA[i:], m.PageToken)
@@ -753,6 +770,13 @@ func (m *ExpressionIdentifier) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.DisplayName) > 0 {
+		i -= len(m.DisplayName)
+		copy(dAtA[i:], m.DisplayName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DisplayName)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.Type != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Type))
 		i--
@@ -804,6 +828,11 @@ func (m *ValidateExpressionRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Mode != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Mode))
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.Expression != nil {
 		size, err := m.Expression.MarshalToSizedBufferVT(dAtA[:i])
@@ -1065,6 +1094,11 @@ func (m *ListExpressionIdentifiersRequest) MarshalToSizedBufferVTStrict(dAtA []b
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Mode != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Mode))
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.PageToken) > 0 {
 		i -= len(m.PageToken)
 		copy(dAtA[i:], m.PageToken)
@@ -1155,6 +1189,13 @@ func (m *ExpressionIdentifier) MarshalToSizedBufferVTStrict(dAtA []byte) (int, e
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.DisplayName) > 0 {
+		i -= len(m.DisplayName)
+		copy(dAtA[i:], m.DisplayName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DisplayName)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if m.Type != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Type))
 		i--
@@ -1206,6 +1247,11 @@ func (m *ValidateExpressionRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (i
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Mode != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Mode))
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.Expression != nil {
 		size, err := m.Expression.MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -1418,6 +1464,9 @@ func (m *ListExpressionIdentifiersRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.Mode != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Mode))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1455,6 +1504,10 @@ func (m *ExpressionIdentifier) SizeVT() (n int) {
 	if m.Type != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Type))
 	}
+	l = len(m.DisplayName)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1468,6 +1521,9 @@ func (m *ValidateExpressionRequest) SizeVT() (n int) {
 	if m.Expression != nil {
 		l = m.Expression.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Mode != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Mode))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1827,6 +1883,25 @@ func (m *ListExpressionIdentifiersRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PageToken = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			m.Mode = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Mode |= ExpressionMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -2046,6 +2121,38 @@ func (m *ExpressionIdentifier) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DisplayName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -2133,6 +2240,25 @@ func (m *ValidateExpressionRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			m.Mode = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Mode |= ExpressionMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -2747,6 +2873,25 @@ func (m *ListExpressionIdentifiersRequest) UnmarshalVTUnsafe(dAtA []byte) error 
 			}
 			m.PageToken = stringValue
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			m.Mode = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Mode |= ExpressionMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -2974,6 +3119,42 @@ func (m *ExpressionIdentifier) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.DisplayName = stringValue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -3061,6 +3242,25 @@ func (m *ValidateExpressionRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			m.Mode = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Mode |= ExpressionMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
