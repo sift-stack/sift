@@ -13,8 +13,7 @@ $ source venv/bin/activate
 Install dependencies:
 
 ```bash
-$ pip install python-dotenv 'git+https://github.com/sift-stack/sift.git#subdirectory=python'
-
+$ pip install -r requirements.txt
 ```
 
 Create your `.env` file:
