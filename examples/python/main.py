@@ -9,8 +9,6 @@ if __name__ == "__main__":
     load_dotenv()
     API_KEY = os.getenv("SIFT_API_KEY")
     BASE_URI = os.getenv("BASE_URI")
-    authorization_header = "authorization"
-    authorization_value = f"Bearer {API_KEY}"
 
     if len(sys.argv) < 2:
         print("Please provide a name.")
@@ -19,7 +17,7 @@ if __name__ == "__main__":
     name = sys.argv[1]
 
     credentials = grpc.ssl_channel_credentials()
-    call_credentials = grpc.access_token_call_credentials(os.getenv("SIFT_API_KEY"))
+    call_credentials = grpc.access_token_call_credentials(API_KEY)
     composite_credentials = grpc.composite_channel_credentials(credentials, call_credentials) 
 
     with grpc.secure_channel(BASE_URI, composite_credentials) as channel:
