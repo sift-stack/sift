@@ -46,6 +46,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.calculated_channels.v1)
         }
     }
+    pub mod channels {
+        // @@protoc_insertion_point(attribute:sift.channels.v2)
+        pub mod v2 {
+            include!("sift.channels.v2.rs");
+            // @@protoc_insertion_point(sift.channels.v2)
+        }
+    }
     pub mod common {
         pub mod r#type {
             // @@protoc_insertion_point(attribute:sift.common.type.v1)

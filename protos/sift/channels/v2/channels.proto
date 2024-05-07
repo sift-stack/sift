@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package sift.channels.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/channel_bit_field_element.proto";
+import "sift/common/type/v1/channel_data_type.proto";
+import "sift/common/type/v1/channel_enum_type.proto";
+
+option go_package = "azimuth/gen/protos/go/sift/channels/v2;channelsv2pb";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Channel service"}
+};
+
+service ChannelService {
+  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {
+    option (google.api.http) = {get: "/api/v2/channels/{channel_id}"};
+  }
+  rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse) {
+    option (google.api.http) = {get: "/api/v2/channels"};
+  }
+}
+
+message Channel {
+  string channel_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string component = 3 [(google.api.field_behavior) = REQUIRED];
+  string asset_id = 4 [(google.api.field_behavior) = REQUIRED];
+  string description = 5 [(google.api.field_behavior) = REQUIRED];
+  string unit_id = 6 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 7 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 8 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 9 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 10 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 11 [(google.api.field_behavior) = REQUIRED];
+  sift.common.type.v1.ChannelDataType data_type = 12 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.ChannelEnumType enum_types = 13;
+  repeated sift.common.type.v1.ChannelBitFieldElement bit_field_elements = 14;
+}
+
+// The request for a call to `ChannelService_GetChannel`.
+message GetChannelRequest {
+  string channel_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `ChannelService_GetChannel`.
+message GetChannelResponse {
+  Channel channel = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `ChannelService_ListChannels` to retrieve channels.
+message ListChannelsRequest {
+  // The maximum number of channels to return. The service may return fewer than this value.
+  // If unspecified, at most 50 channels will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListChannels` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListChannels` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `channel_id`, `asset_id`, `name`, `component`, `description`, `active`, `created_date`, and `modified_date`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_channels_v1_channels-proto). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The result of a call to `ChannelService_ListChannels`.
+message ListChannelsResponse {
+  repeated Channel channels = 1;
+  string next_page_token = 2;
+}
