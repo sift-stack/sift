@@ -10,9 +10,8 @@ pub struct GetDataRequest {
     /// Required. The end timestamp of the data to retrieve. This is an exclusive bound.
     #[prost(message, optional, tag="3")]
     pub end_time: ::core::option::Option<::prost_types::Timestamp>,
-    /// The rate to sample the returned data at. The data is sampled using LTTB (<https://github.com/sveinn-steinarsson/flot-downsample>)
+    /// The rate to sample the returned data at. The data is sampled using [LTTB](<https://github.com/sveinn-steinarsson/flot-downsample>)
     /// which will return one point approximately every sample_ms milliseconds that retains the shape of the raw data.
-    ///
     /// Sampling is only supported for numeric data types, if sample_ms is provided for non-numeric data, it will be
     /// ignored and the full-fidelity data will be returned.
     #[prost(uint32, tag="4")]
@@ -21,14 +20,12 @@ pub struct GetDataRequest {
     /// The service may return fewer than this value.
     /// If unspecified, at most 10,000 values will be returned.
     /// The maximum value is 100,000; values above 100,000 will be coerced to 100,000.
-    ///
     /// For variable data types (i.e. string channels), at most page_size elements
     /// will be read, or 1MB, whichever occurs first.
     #[prost(uint32, tag="5")]
     pub page_size: u32,
     /// A page token, received from a previous `GetData` call.
     /// Provide this to retrieve the subsequent page.
-    ///
     /// When paginating, all other parameters provided to `GetData` must match
     /// the call that provided the page token.
     #[prost(string, tag="6")]
@@ -87,9 +84,7 @@ pub struct GetDataResponse {
     /// For example, if run_id is omitted from a ChannelQuery, the query returns
     /// data for all runs containing that channel. Channel data for each run is
     /// returned in a separate data object.
-    ///
     /// Possible message types:
-    ///
     ///    sift.data.v1.DoubleValues
     ///    sift.data.v1.FloatValues
     ///    sift.data.v1.StringValues

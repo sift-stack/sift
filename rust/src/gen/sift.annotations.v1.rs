@@ -181,7 +181,7 @@ pub struct ListAnnotationsRequest {
     /// `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_condition_id`,
     /// and `annotation_type`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_annotations_v1_annotations-proto). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#annotation). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
 }
@@ -203,7 +203,6 @@ pub struct UpdateAnnotationRequest {
     pub annotation: ::core::option::Option<Annotation>,
     /// The list of fields to be updated. The fields available to be updated are `name`, `description`, `start_time`,
     /// `end_time`, `assigned_to_user_id`, `state`, and `tags`.
-    ///
     /// Important Note: if `tags` is specified in the update mask and `annotation.tags` is an empty list then all associated tags on the annotation
     /// will be removed.
     #[prost(message, optional, tag="2")]

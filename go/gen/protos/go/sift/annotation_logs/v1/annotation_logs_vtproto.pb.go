@@ -806,8 +806,11 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AnnotationLogServiceClient interface {
+	// Creates an annotation log on an annotation.
 	CreateAnnotationLog(ctx context.Context, in *CreateAnnotationLogRequest, opts ...grpc.CallOption) (*CreateAnnotationLogResponse, error)
+	// Retrieves annotation logs using an optional filter.
 	ListAnnotationLogs(ctx context.Context, in *ListAnnotationLogsRequest, opts ...grpc.CallOption) (*ListAnnotationLogsResponse, error)
+	// Deletes an annotation log.
 	DeleteAnnotationLog(ctx context.Context, in *DeleteAnnotationLogRequest, opts ...grpc.CallOption) (*DeleteAnnotationLogResponse, error)
 }
 
@@ -850,8 +853,11 @@ func (c *annotationLogServiceClient) DeleteAnnotationLog(ctx context.Context, in
 // All implementations must embed UnimplementedAnnotationLogServiceServer
 // for forward compatibility
 type AnnotationLogServiceServer interface {
+	// Creates an annotation log on an annotation.
 	CreateAnnotationLog(context.Context, *CreateAnnotationLogRequest) (*CreateAnnotationLogResponse, error)
+	// Retrieves annotation logs using an optional filter.
 	ListAnnotationLogs(context.Context, *ListAnnotationLogsRequest) (*ListAnnotationLogsResponse, error)
+	// Deletes an annotation log.
 	DeleteAnnotationLog(context.Context, *DeleteAnnotationLogRequest) (*DeleteAnnotationLogResponse, error)
 	mustEmbedUnimplementedAnnotationLogServiceServer()
 }

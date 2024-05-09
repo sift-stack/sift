@@ -340,8 +340,11 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AssetServiceClient interface {
+	// Deletes an asset.
 	DeleteAsset(ctx context.Context, in *DeleteAssetRequest, opts ...grpc.CallOption) (*DeleteAssetResponse, error)
+	// Retrieves an asset.
 	GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*GetAssetResponse, error)
+	// Retrieves assets using an optional filter.
 	ListAssets(ctx context.Context, in *ListAssetsRequest, opts ...grpc.CallOption) (*ListAssetsResponse, error)
 }
 
@@ -384,8 +387,11 @@ func (c *assetServiceClient) ListAssets(ctx context.Context, in *ListAssetsReque
 // All implementations must embed UnimplementedAssetServiceServer
 // for forward compatibility
 type AssetServiceServer interface {
+	// Deletes an asset.
 	DeleteAsset(context.Context, *DeleteAssetRequest) (*DeleteAssetResponse, error)
+	// Retrieves an asset.
 	GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error)
+	// Retrieves assets using an optional filter.
 	ListAssets(context.Context, *ListAssetsRequest) (*ListAssetsResponse, error)
 	mustEmbedUnimplementedAssetServiceServer()
 }

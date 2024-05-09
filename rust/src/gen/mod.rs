@@ -69,6 +69,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.data.v1)
         }
     }
+    pub mod ingestion_configs {
+        // @@protoc_insertion_point(attribute:sift.ingestion_configs.v1)
+        pub mod v1 {
+            include!("sift.ingestion_configs.v1.rs");
+            // @@protoc_insertion_point(sift.ingestion_configs.v1)
+        }
+    }
     pub mod notifications {
         // @@protoc_insertion_point(attribute:sift.notifications.v1)
         pub mod v1 {

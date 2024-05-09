@@ -17,7 +17,7 @@ pub struct Asset {
     #[prost(string, tag="8")]
     pub modified_by_user_id: ::prost::alloc::string::String,
 }
-/// The request for a call to `AssetService_ListAssets` to retrieve asset(s).
+/// The request for a call to `AssetService_ListAssets`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListAssetsRequest {
@@ -37,7 +37,7 @@ pub struct ListAssetsRequest {
     /// Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
     /// `created_date`, `modified_date`, and `name`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_assets_v1_assets-proto). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#asset). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
 }

@@ -35,19 +35,22 @@ class AssetServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def DeleteAsset(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Deletes an asset.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetAsset(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieves an asset.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListAssets(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieves assets using an optional filter.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')

@@ -18,7 +18,7 @@ from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapi
 from sift.common.type.v1 import user_pb2 as sift_dot_common_dot_type_dot_v1_dot_user__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19sift/users/v2/users.proto\x12\rsift.users.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1esift/common/type/v1/user.proto\"\x7f\n#UpdateUserOrganizationActiveRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\x12\'\n\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x16\n\x06\x61\x63tive\x18\x03 \x01(\x08R\x06\x61\x63tive\"&\n$UpdateUserOrganizationActiveResponse\".\n\x0eGetUserRequest\x12\x1c\n\x07user_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x06userId\"@\n\x0fGetUserResponse\x12-\n\x04user\x18\x01 \x01(\x0b\x32\x19.sift.common.type.v1.UserR\x04user2\xad\x02\n\x0bUserService\x12\xb2\x01\n\x1cUpdateUserOrganizationActive\x12\x32.sift.users.v2.UpdateUserOrganizationActiveRequest\x1a\x33.sift.users.v2.UpdateUserOrganizationActiveResponse\")\x82\xd3\xe4\x93\x02#\"\x1e/api/v2/users/{user_id}/active:\x01*\x12i\n\x07GetUser\x12\x1d.sift.users.v2.GetUserRequest\x1a\x1e.sift.users.v2.GetUserResponse\"\x1f\x82\xd3\xe4\x93\x02\x19\x12\x17/api/v2/users/{user_id}B\xb7\x01\n\x11\x63om.sift.users.v2B\nUsersProtoP\x01Z-azimuth/gen/protos/go/sift/users/v2;usersv2pb\xa2\x02\x03SUX\xaa\x02\rSift.Users.V2\xca\x02\rSift\\Users\\V2\xe2\x02\x19Sift\\Users\\V2\\GPBMetadata\xea\x02\x0fSift::Users::V2\x92\x41\x10\x12\x0e\n\x0cUser Serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19sift/users/v2/users.proto\x12\rsift.users.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1esift/common/type/v1/user.proto\"\x7f\n#UpdateUserOrganizationActiveRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\x12\'\n\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x16\n\x06\x61\x63tive\x18\x03 \x01(\x08R\x06\x61\x63tive\"&\n$UpdateUserOrganizationActiveResponse\".\n\x0eGetUserRequest\x12\x1c\n\x07user_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x06userId\"@\n\x0fGetUserResponse\x12-\n\x04user\x18\x01 \x01(\x0b\x32\x19.sift.common.type.v1.UserR\x04user2\xf6\x03\n\x0bUserService\x12\x96\x02\n\x1cUpdateUserOrganizationActive\x12\x32.sift.users.v2.UpdateUserOrganizationActiveRequest\x1a\x33.sift.users.v2.UpdateUserOrganizationActiveResponse\"\x8c\x01\x92\x41`\x12\x1cUpdateUserOrganizationActive\x1a@Used to toggle a user\'s active status within their organization.\x82\xd3\xe4\x93\x02#\"\x1e/api/v2/users/{user_id}/active:\x01*\x12\x8f\x01\n\x07GetUser\x12\x1d.sift.users.v2.GetUserRequest\x1a\x1e.sift.users.v2.GetUserResponse\"E\x92\x41#\x12\x07GetUser\x1a\x18Retrieves a user object.\x82\xd3\xe4\x93\x02\x19\x12\x17/api/v2/users/{user_id}\x1a<\x92\x41\x39\x12\x37Service to programmatically interact with user objects.B\xb7\x01\n\x11\x63om.sift.users.v2B\nUsersProtoP\x01Z-azimuth/gen/protos/go/sift/users/v2;usersv2pb\xa2\x02\x03SUX\xaa\x02\rSift.Users.V2\xca\x02\rSift\\Users\\V2\xe2\x02\x19Sift\\Users\\V2\\GPBMetadata\xea\x02\x0fSift::Users::V2\x92\x41\x10\x12\x0e\n\x0cUser Serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -28,10 +28,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\021com.sift.users.v2B\nUsersProtoP\001Z-azimuth/gen/protos/go/sift/users/v2;usersv2pb\242\002\003SUX\252\002\rSift.Users.V2\312\002\rSift\\Users\\V2\342\002\031Sift\\Users\\V2\\GPBMetadata\352\002\017Sift::Users::V2\222A\020\022\016\n\014User Service'
   _globals['_GETUSERREQUEST'].fields_by_name['user_id']._loaded_options = None
   _globals['_GETUSERREQUEST'].fields_by_name['user_id']._serialized_options = b'\340A\002'
+  _globals['_USERSERVICE']._loaded_options = None
+  _globals['_USERSERVICE']._serialized_options = b'\222A9\0227Service to programmatically interact with user objects.'
   _globals['_USERSERVICE'].methods_by_name['UpdateUserOrganizationActive']._loaded_options = None
-  _globals['_USERSERVICE'].methods_by_name['UpdateUserOrganizationActive']._serialized_options = b'\202\323\344\223\002#\"\036/api/v2/users/{user_id}/active:\001*'
+  _globals['_USERSERVICE'].methods_by_name['UpdateUserOrganizationActive']._serialized_options = b'\222A`\022\034UpdateUserOrganizationActive\032@Used to toggle a user\'s active status within their organization.\202\323\344\223\002#\"\036/api/v2/users/{user_id}/active:\001*'
   _globals['_USERSERVICE'].methods_by_name['GetUser']._loaded_options = None
-  _globals['_USERSERVICE'].methods_by_name['GetUser']._serialized_options = b'\202\323\344\223\002\031\022\027/api/v2/users/{user_id}'
+  _globals['_USERSERVICE'].methods_by_name['GetUser']._serialized_options = b'\222A#\022\007GetUser\032\030Retrieves a user object.\202\323\344\223\002\031\022\027/api/v2/users/{user_id}'
   _globals['_UPDATEUSERORGANIZATIONACTIVEREQUEST']._serialized_start=187
   _globals['_UPDATEUSERORGANIZATIONACTIVEREQUEST']._serialized_end=314
   _globals['_UPDATEUSERORGANIZATIONACTIVERESPONSE']._serialized_start=316
@@ -41,5 +43,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETUSERRESPONSE']._serialized_start=404
   _globals['_GETUSERRESPONSE']._serialized_end=468
   _globals['_USERSERVICE']._serialized_start=471
-  _globals['_USERSERVICE']._serialized_end=772
+  _globals['_USERSERVICE']._serialized_end=973
 # @@protoc_insertion_point(module_scope)

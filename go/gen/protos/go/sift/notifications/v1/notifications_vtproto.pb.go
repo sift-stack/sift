@@ -374,7 +374,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NotificationServiceClient interface {
+	// Retrieves notifications using an optional filter.
 	ListNotifications(ctx context.Context, in *ListNotificationsRequest, opts ...grpc.CallOption) (*ListNotificationsResponse, error)
+	// Batch updates a list of notifications using the list of fields specified in their respective `update_mask`s.
 	BatchUpdateNotifications(ctx context.Context, in *BatchUpdateNotificationsRequest, opts ...grpc.CallOption) (*BatchUpdateNotificationsResponse, error)
 }
 
@@ -408,7 +410,9 @@ func (c *notificationServiceClient) BatchUpdateNotifications(ctx context.Context
 // All implementations must embed UnimplementedNotificationServiceServer
 // for forward compatibility
 type NotificationServiceServer interface {
+	// Retrieves notifications using an optional filter.
 	ListNotifications(context.Context, *ListNotificationsRequest) (*ListNotificationsResponse, error)
+	// Batch updates a list of notifications using the list of fields specified in their respective `update_mask`s.
 	BatchUpdateNotifications(context.Context, *BatchUpdateNotificationsRequest) (*BatchUpdateNotificationsResponse, error)
 	mustEmbedUnimplementedNotificationServiceServer()
 }

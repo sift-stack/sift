@@ -467,7 +467,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CalculatedChannelsServiceClient interface {
+	// Retrieves a list of valid identifiers that can be used as part of a calculated channel expression.
 	ListExpressionIdentifiers(ctx context.Context, in *ListExpressionIdentifiersRequest, opts ...grpc.CallOption) (*ListExpressionIdentifiersResponse, error)
+	// Used to validate whether or not an expression used for a calculated channel is valid.
 	ValidateExpression(ctx context.Context, in *ValidateExpressionRequest, opts ...grpc.CallOption) (*ValidateExpressionResponse, error)
 }
 
@@ -501,7 +503,9 @@ func (c *calculatedChannelsServiceClient) ValidateExpression(ctx context.Context
 // All implementations must embed UnimplementedCalculatedChannelsServiceServer
 // for forward compatibility
 type CalculatedChannelsServiceServer interface {
+	// Retrieves a list of valid identifiers that can be used as part of a calculated channel expression.
 	ListExpressionIdentifiers(context.Context, *ListExpressionIdentifiersRequest) (*ListExpressionIdentifiersResponse, error)
+	// Used to validate whether or not an expression used for a calculated channel is valid.
 	ValidateExpression(context.Context, *ValidateExpressionRequest) (*ValidateExpressionResponse, error)
 	mustEmbedUnimplementedCalculatedChannelsServiceServer()
 }

@@ -62,7 +62,7 @@ pub struct ListRunsRequest {
     /// Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
     /// `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, and `is_pinned`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#run-proto). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#run). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
 }
@@ -95,7 +95,6 @@ pub struct CreateRunRequest {
     #[prost(message, optional, tag="4")]
     pub start_time: ::core::option::Option<::prost_types::Timestamp>,
     /// The time at which data ingestion for this new run concludes.
-    ///
     /// Important note: `stop_time` will be automatically computed during data ingestion and will be
     /// set based on the timestamp of the data for this run.
     #[prost(message, optional, tag="5")]
@@ -144,7 +143,6 @@ pub struct CreateAutomaticRunAssociationForAssetsRequest {
     /// Any data that is received for these assets will automatically added to the run.
     /// This applies even if the run has concluded, so long as the new data contains
     /// timestamps that are between the `start_time` and `stop_time`.
-    ///
     /// If any of the assets are already associated with a different run whose run
     /// period (the period between `start_time` and `end_time`) overlaps with the
     /// requested run period, an error will be returned.

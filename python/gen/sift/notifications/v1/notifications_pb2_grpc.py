@@ -30,13 +30,15 @@ class NotificationServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def ListNotifications(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieves notifications using an optional filter.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def BatchUpdateNotifications(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Batch updates a list of notifications using the list of fields specified in their respective `update_mask`s.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')

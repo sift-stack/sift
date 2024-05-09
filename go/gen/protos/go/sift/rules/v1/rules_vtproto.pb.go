@@ -2027,14 +2027,23 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuleServiceClient interface {
+	// Queries rules based on provided search parameters.
 	SearchRules(ctx context.Context, in *SearchRulesRequest, opts ...grpc.CallOption) (*SearchRulesResponse, error)
+	// Retrieves a rule.
 	GetRule(ctx context.Context, in *GetRuleRequest, opts ...grpc.CallOption) (*GetRuleResponse, error)
+	// Retrieve multiple rules.
 	BatchGetRules(ctx context.Context, in *BatchGetRulesRequest, opts ...grpc.CallOption) (*BatchGetRulesResponse, error)
+	// Creates a rule.
 	CreateRule(ctx context.Context, in *CreateRuleRequest, opts ...grpc.CallOption) (*CreateRuleResponse, error)
+	// Updates an existing rule.
 	UpdateRule(ctx context.Context, in *UpdateRuleRequest, opts ...grpc.CallOption) (*UpdateRuleResponse, error)
+	// Deletes a rule
 	DeleteRule(ctx context.Context, in *DeleteRuleRequest, opts ...grpc.CallOption) (*DeleteRuleResponse, error)
+	// Evaluates the provided rules and generate annotations based on the result.
 	EvaluateRules(ctx context.Context, in *EvaluateRulesRequest, opts ...grpc.CallOption) (*EvaluateRulesResponse, error)
+	// Retrieve a JSON object containing all of the rules for a given asset.
 	ViewHumanFriendlyRules(ctx context.Context, in *ViewHumanFriendlyRulesRequest, opts ...grpc.CallOption) (*ViewHumanFriendlyRulesResponse, error)
+	// Batch update rules given the `rules_json` which is a JSON list of rules.
 	UpdateHumanFriendlyRules(ctx context.Context, in *UpdateHumanFriendlyRulesRequest, opts ...grpc.CallOption) (*UpdateHumanFriendlyRulesResponse, error)
 }
 
@@ -2131,14 +2140,23 @@ func (c *ruleServiceClient) UpdateHumanFriendlyRules(ctx context.Context, in *Up
 // All implementations must embed UnimplementedRuleServiceServer
 // for forward compatibility
 type RuleServiceServer interface {
+	// Queries rules based on provided search parameters.
 	SearchRules(context.Context, *SearchRulesRequest) (*SearchRulesResponse, error)
+	// Retrieves a rule.
 	GetRule(context.Context, *GetRuleRequest) (*GetRuleResponse, error)
+	// Retrieve multiple rules.
 	BatchGetRules(context.Context, *BatchGetRulesRequest) (*BatchGetRulesResponse, error)
+	// Creates a rule.
 	CreateRule(context.Context, *CreateRuleRequest) (*CreateRuleResponse, error)
+	// Updates an existing rule.
 	UpdateRule(context.Context, *UpdateRuleRequest) (*UpdateRuleResponse, error)
+	// Deletes a rule
 	DeleteRule(context.Context, *DeleteRuleRequest) (*DeleteRuleResponse, error)
+	// Evaluates the provided rules and generate annotations based on the result.
 	EvaluateRules(context.Context, *EvaluateRulesRequest) (*EvaluateRulesResponse, error)
+	// Retrieve a JSON object containing all of the rules for a given asset.
 	ViewHumanFriendlyRules(context.Context, *ViewHumanFriendlyRulesRequest) (*ViewHumanFriendlyRulesResponse, error)
+	// Batch update rules given the `rules_json` which is a JSON list of rules.
 	UpdateHumanFriendlyRules(context.Context, *UpdateHumanFriendlyRulesRequest) (*UpdateHumanFriendlyRulesResponse, error)
 	mustEmbedUnimplementedRuleServiceServer()
 }

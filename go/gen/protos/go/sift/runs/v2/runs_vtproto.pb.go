@@ -564,10 +564,15 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RunServiceClient interface {
+	// Retrieve a run.
 	GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error)
+	// Retrieve runs using an optional filter.
 	ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error)
+	// Create a run.
 	CreateRun(ctx context.Context, in *CreateRunRequest, opts ...grpc.CallOption) (*CreateRunResponse, error)
+	// Updates an existing run using using the list of fields specified in `update_mask`.
 	UpdateRun(ctx context.Context, in *UpdateRunRequest, opts ...grpc.CallOption) (*UpdateRunResponse, error)
+	// Associates a list of assets with a given run.
 	CreateAutomaticRunAssociationForAssets(ctx context.Context, in *CreateAutomaticRunAssociationForAssetsRequest, opts ...grpc.CallOption) (*CreateAutomaticRunAssociationForAssetsResponse, error)
 }
 
@@ -628,10 +633,15 @@ func (c *runServiceClient) CreateAutomaticRunAssociationForAssets(ctx context.Co
 // All implementations must embed UnimplementedRunServiceServer
 // for forward compatibility
 type RunServiceServer interface {
+	// Retrieve a run.
 	GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error)
+	// Retrieve runs using an optional filter.
 	ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error)
+	// Create a run.
 	CreateRun(context.Context, *CreateRunRequest) (*CreateRunResponse, error)
+	// Updates an existing run using using the list of fields specified in `update_mask`.
 	UpdateRun(context.Context, *UpdateRunRequest) (*UpdateRunResponse, error)
+	// Associates a list of assets with a given run.
 	CreateAutomaticRunAssociationForAssets(context.Context, *CreateAutomaticRunAssociationForAssetsRequest) (*CreateAutomaticRunAssociationForAssetsResponse, error)
 	mustEmbedUnimplementedRunServiceServer()
 }

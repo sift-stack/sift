@@ -13,13 +13,32 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 service CalculatedChannelsService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "Service to programmatically interact with calculated channels."
+    external_docs: {
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265421153";
+      description: "Read more about calculated channels.";
+    }
+  };
+
+  // Retrieves a list of valid identifiers that can be used as part of a calculated channel expression.
   rpc ListExpressionIdentifiers(ListExpressionIdentifiersRequest) returns (ListExpressionIdentifiersResponse) {
     option (google.api.http) = {get: "/api/v1/calculated-channels:expression-identifiers"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListExpressionIdentifiers"
+      description: "Retrieves a list of valid identifiers that can be used as part of a calculated channel expression."
+    };
   }
+
+  // Used to validate whether or not an expression used for a calculated channel is valid.
   rpc ValidateExpression(ValidateExpressionRequest) returns (ValidateExpressionResponse) {
     option (google.api.http) = {
       post: "/api/v1/calculated-channels:validate-expression"
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ValidateExpression"
+      description: "Used to validate whether or not an expression used for a calculated channel is valid."
     };
   }
 }

@@ -363,7 +363,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChannelServiceClient interface {
+	// Retrieve a channel
 	GetChannel(ctx context.Context, in *GetChannelRequest, opts ...grpc.CallOption) (*GetChannelResponse, error)
+	// Retrieve channels using an optional filter.
 	ListChannels(ctx context.Context, in *ListChannelsRequest, opts ...grpc.CallOption) (*ListChannelsResponse, error)
 }
 
@@ -397,7 +399,9 @@ func (c *channelServiceClient) ListChannels(ctx context.Context, in *ListChannel
 // All implementations must embed UnimplementedChannelServiceServer
 // for forward compatibility
 type ChannelServiceServer interface {
+	// Retrieve a channel
 	GetChannel(context.Context, *GetChannelRequest) (*GetChannelResponse, error)
+	// Retrieve channels using an optional filter.
 	ListChannels(context.Context, *ListChannelsRequest) (*ListChannelsResponse, error)
 	mustEmbedUnimplementedChannelServiceServer()
 }

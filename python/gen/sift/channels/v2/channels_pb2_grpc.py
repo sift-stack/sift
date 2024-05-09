@@ -30,13 +30,15 @@ class ChannelServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def GetChannel(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieve a channel
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListChannels(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieve channels using an optional filter.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')

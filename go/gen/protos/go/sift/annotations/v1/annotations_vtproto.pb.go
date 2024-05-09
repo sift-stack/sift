@@ -930,11 +930,17 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AnnotationServiceClient interface {
+	// Creates an annotation.
 	CreateAnnotation(ctx context.Context, in *CreateAnnotationRequest, opts ...grpc.CallOption) (*CreateAnnotationResponse, error)
+	// Deletes an annotation.
 	DeleteAnnotation(ctx context.Context, in *DeleteAnnotationRequest, opts ...grpc.CallOption) (*DeleteAnnotationResponse, error)
+	// Batch deletes annotations.
 	BatchDeleteAnnotations(ctx context.Context, in *BatchDeleteAnnotationsRequest, opts ...grpc.CallOption) (*BatchDeleteAnnotationsResponse, error)
+	// Retrieves annotations using an optional filter.
 	ListAnnotations(ctx context.Context, in *ListAnnotationsRequest, opts ...grpc.CallOption) (*ListAnnotationsResponse, error)
+	// Retrieves an annotation
 	GetAnnotation(ctx context.Context, in *GetAnnotationRequest, opts ...grpc.CallOption) (*GetAnnotationResponse, error)
+	// Updates an existing annotation using using the list of fields specified in `update_mask`.
 	UpdateAnnotation(ctx context.Context, in *UpdateAnnotationRequest, opts ...grpc.CallOption) (*UpdateAnnotationResponse, error)
 }
 
@@ -1004,11 +1010,17 @@ func (c *annotationServiceClient) UpdateAnnotation(ctx context.Context, in *Upda
 // All implementations must embed UnimplementedAnnotationServiceServer
 // for forward compatibility
 type AnnotationServiceServer interface {
+	// Creates an annotation.
 	CreateAnnotation(context.Context, *CreateAnnotationRequest) (*CreateAnnotationResponse, error)
+	// Deletes an annotation.
 	DeleteAnnotation(context.Context, *DeleteAnnotationRequest) (*DeleteAnnotationResponse, error)
+	// Batch deletes annotations.
 	BatchDeleteAnnotations(context.Context, *BatchDeleteAnnotationsRequest) (*BatchDeleteAnnotationsResponse, error)
+	// Retrieves annotations using an optional filter.
 	ListAnnotations(context.Context, *ListAnnotationsRequest) (*ListAnnotationsResponse, error)
+	// Retrieves an annotation
 	GetAnnotation(context.Context, *GetAnnotationRequest) (*GetAnnotationResponse, error)
+	// Updates an existing annotation using using the list of fields specified in `update_mask`.
 	UpdateAnnotation(context.Context, *UpdateAnnotationRequest) (*UpdateAnnotationResponse, error)
 	mustEmbedUnimplementedAnnotationServiceServer()
 }

@@ -1743,6 +1743,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataServiceClient interface {
+	// Query data
 	GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (*GetDataResponse, error)
 }
 
@@ -1767,6 +1768,7 @@ func (c *dataServiceClient) GetData(ctx context.Context, in *GetDataRequest, opt
 // All implementations must embed UnimplementedDataServiceServer
 // for forward compatibility
 type DataServiceServer interface {
+	// Query data
 	GetData(context.Context, *GetDataRequest) (*GetDataResponse, error)
 	mustEmbedUnimplementedDataServiceServer()
 }

@@ -30,13 +30,15 @@ class UserServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def UpdateUserOrganizationActive(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Used to toggle a user's active status within their organization.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetUser(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieves a user object.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
