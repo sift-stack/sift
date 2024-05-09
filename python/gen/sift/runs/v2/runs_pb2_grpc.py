@@ -45,31 +45,36 @@ class RunServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def GetRun(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieve a run.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListRuns(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieve runs using an optional filter.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def CreateRun(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Create a run.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UpdateRun(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Updates an existing run using using the list of fields specified in `update_mask`.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def CreateAutomaticRunAssociationForAssets(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Associates a list of assets with a given run.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')

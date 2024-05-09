@@ -193,7 +193,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
+	// Used to toggle a user's active status within their organization.
 	UpdateUserOrganizationActive(ctx context.Context, in *UpdateUserOrganizationActiveRequest, opts ...grpc.CallOption) (*UpdateUserOrganizationActiveResponse, error)
+	// Retrieves a user object.
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 }
 
@@ -227,7 +229,9 @@ func (c *userServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opt
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
+	// Used to toggle a user's active status within their organization.
 	UpdateUserOrganizationActive(context.Context, *UpdateUserOrganizationActiveRequest) (*UpdateUserOrganizationActiveResponse, error)
+	// Retrieves a user object.
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }

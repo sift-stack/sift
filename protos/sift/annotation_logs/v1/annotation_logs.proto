@@ -5,21 +5,47 @@ package sift.annotation_logs.v1;
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 option go_package = "azimuth/gen/protos/go/sift/annotation_logs/v1;annotation_logsv1pb";
 
 service AnnotationLogService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "Service to programmatically interact with [annotation logs](/glossary#annotation)."
+    external_docs: {
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265486685";
+      description: "Read more about annotations.";
+    }
+  };
+
+  // Creates an annotation log on an annotation.
   rpc CreateAnnotationLog(CreateAnnotationLogRequest) returns (CreateAnnotationLogResponse) {
     option (google.api.http) = {
       post: "/api/v1/annotations/{annotation_id}/logs"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateAnnotationLog"
+      description: "Creates an annotation log on an annotation."
+    };
   }
+
+  // Retrieves annotation logs using an optional filter.
   rpc ListAnnotationLogs(ListAnnotationLogsRequest) returns (ListAnnotationLogsResponse) {
     option (google.api.http) = {get: "/api/v1/annotations/{annotation_id}/logs"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListAnnotationLogs"
+      description: "Retrieves annotation logs using an optional filter."
+    };
   }
+
+  // Deletes an annotation log.
   rpc DeleteAnnotationLog(DeleteAnnotationLogRequest) returns (DeleteAnnotationLogResponse) {
     option (google.api.http) = {delete: "/api/v1/annotations/{annotation_id}/logs/{annotation_log_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteAnnotationLog"
+      description: "Deletes an annotation log."
+    };
   }
 }
 
@@ -65,7 +91,7 @@ message ListAnnotationLogsRequest {
   // Available fields to filter by are `annotation_log_id`, `annotation_id`, `created_by_user_id`,
   // `created_date`, `modified_date`, and `kind`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_annotation_logs_v1_annotation_logs-proto). Optional.
+  // For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#annotationlogsearchresult). Optional.
   string filter = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 

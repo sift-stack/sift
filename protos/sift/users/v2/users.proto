@@ -13,14 +13,28 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 service UserService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to programmatically interact with user objects."};
+
+  // Used to toggle a user's active status within their organization.
   rpc UpdateUserOrganizationActive(UpdateUserOrganizationActiveRequest) returns (UpdateUserOrganizationActiveResponse) {
     option (google.api.http) = {
       post: "/api/v2/users/{user_id}/active"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateUserOrganizationActive"
+      description: "Used to toggle a user's active status within their organization."
+    };
   }
+
+  // Retrieves a user object.
   rpc GetUser(GetUserRequest) returns (GetUserResponse) {
     option (google.api.http) = {get: "/api/v2/users/{user_id}"};
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUser"
+      description: "Retrieves a user object."
+    };
   }
 }
 

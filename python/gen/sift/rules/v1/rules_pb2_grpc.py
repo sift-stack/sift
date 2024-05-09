@@ -65,55 +65,64 @@ class RuleServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def SearchRules(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Queries rules based on provided search parameters.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetRule(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieves a rule.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def BatchGetRules(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieve multiple rules.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def CreateRule(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Creates a rule.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UpdateRule(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Updates an existing rule.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def DeleteRule(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Deletes a rule
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def EvaluateRules(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Evaluates the provided rules and generate annotations based on the result.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ViewHumanFriendlyRules(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieve a JSON object containing all of the rules for a given asset.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UpdateHumanFriendlyRules(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Batch update rules given the `rules_json` which is a JSON list of rules.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')

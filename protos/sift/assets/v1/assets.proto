@@ -9,18 +9,43 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 
 option go_package = "azimuth/gen/protos/go/sift/assets/v1;assetsv1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
-  info: {title: "Asset service"}
+  info: {title: "Asset Service"}
 };
 
 service AssetService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "Service to programmatically interact with [assets](/glossary#asset)."
+    external_docs: {
+      url: "/data-model",
+      description: "Read more about what assets are.";
+    }
+  };
+
+  // Deletes an asset.
   rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse) {
     option (google.api.http) = {delete: "/api/v1/assets/{asset_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteAsset"
+      description: "Deletes an asset."
+    };
   }
+
+  // Retrieves an asset.
   rpc GetAsset(GetAssetRequest) returns (GetAssetResponse) {
     option (google.api.http) = {get: "/api/v1/assets/{asset_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetAsset"
+      description: "Retrieves an asset."
+    };
   }
+
+  // Retrieves assets using an optional filter.
   rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse) {
     option (google.api.http) = {get: "/api/v1/assets"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListAssets"
+      description: "Retrieves assets using an optional filter."
+    };
   }
 }
 
@@ -34,7 +59,7 @@ message Asset {
   string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
 }
 
-// The request for a call to `AssetService_ListAssets` to retrieve asset(s).
+// The request for a call to `AssetService_ListAssets`.
 message ListAssetsRequest {
   // The maximum number of assets to return.
   // The service may return fewer than this value.
@@ -52,7 +77,7 @@ message ListAssetsRequest {
   // Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
   // `created_date`, `modified_date`, and `name`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_assets_v1_assets-proto). Optional.
+  // For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#asset). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 

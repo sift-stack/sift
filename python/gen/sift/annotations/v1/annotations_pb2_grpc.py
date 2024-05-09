@@ -50,37 +50,43 @@ class AnnotationServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def CreateAnnotation(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Creates an annotation.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def DeleteAnnotation(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Deletes an annotation.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def BatchDeleteAnnotations(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Batch deletes annotations.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListAnnotations(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieves annotations using an optional filter.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetAnnotation(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieves an annotation
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UpdateAnnotation(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Updates an existing annotation using using the list of fields specified in `update_mask`.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')

@@ -30,13 +30,15 @@ class CalculatedChannelsServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def ListExpressionIdentifiers(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Retrieves a list of valid identifiers that can be used as part of a calculated channel expression.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ValidateExpression(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Used to validate whether or not an expression used for a calculated channel is valid.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')

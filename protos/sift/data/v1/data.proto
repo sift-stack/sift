@@ -18,10 +18,17 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 service DataService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to query data"};
+
+  // Query data
   rpc GetData(GetDataRequest) returns (GetDataResponse) {
     option (google.api.http) = {
       post: "/api/v1/data"
       body: "*",
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetData"
+      description: "Query data"
     };
   }
 }
@@ -35,9 +42,8 @@ message GetDataRequest {
   // Required. The end timestamp of the data to retrieve. This is an exclusive bound.
   google.protobuf.Timestamp end_time = 3;
 
-  // The rate to sample the returned data at. The data is sampled using LTTB (https://github.com/sveinn-steinarsson/flot-downsample)
+  // The rate to sample the returned data at. The data is sampled using [LTTB](https://github.com/sveinn-steinarsson/flot-downsample)
   // which will return one point approximately every sample_ms milliseconds that retains the shape of the raw data.
-  //
   // Sampling is only supported for numeric data types, if sample_ms is provided for non-numeric data, it will be
   // ignored and the full-fidelity data will be returned.
   uint32 sample_ms = 4;
@@ -46,14 +52,12 @@ message GetDataRequest {
   // The service may return fewer than this value.
   // If unspecified, at most 10,000 values will be returned.
   // The maximum value is 100,000; values above 100,000 will be coerced to 100,000.
-  //
   // For variable data types (i.e. string channels), at most page_size elements
   // will be read, or 1MB, whichever occurs first.
   uint32 page_size = 5;
 
   // A page token, received from a previous `GetData` call.
   // Provide this to retrieve the subsequent page.
-  //
   // When paginating, all other parameters provided to `GetData` must match
   // the call that provided the page token.
   string page_token = 6;
@@ -87,14 +91,13 @@ message CalculatedChannelQuery {
 
 message GetDataResponse {
   string next_page_token = 1;
+
   // data contains the result of the supplied queries.
   // Be aware that each query can generate multiple data responses.
   // For example, if run_id is omitted from a ChannelQuery, the query returns
   // data for all runs containing that channel. Channel data for each run is
   // returned in a separate data object.
-  //
   // Possible message types:
-  //
   //   sift.data.v1.DoubleValues
   //   sift.data.v1.FloatValues
   //   sift.data.v1.StringValues

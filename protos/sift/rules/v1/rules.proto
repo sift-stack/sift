@@ -17,56 +17,117 @@ import "sift/annotations/v1/annotations.proto";
 
 option go_package = "azimuth/gen/protos/go/sift/rules/v1;rulesv1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
-  info: {title: "Rule service"}
+  info: {title: "Rule Service"}
 };
 
 service RuleService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "Service to programmatically interact with rules."
+    external_docs: {
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265421102";
+      description: "Read more about what rules are.";
+    }
+  };
+
+  // Queries rules based on provided search parameters.
   rpc SearchRules(SearchRulesRequest) returns (SearchRulesResponse) {
     option (google.api.http) = {
       post: "/api/v1/rules/search"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "SearchRules"
+      description: "Queries rules based on provided search parameters."
+    };
   }
+
+  // Retrieves a rule.
   rpc GetRule(GetRuleRequest) returns (GetRuleResponse) {
     option (google.api.http) = {get: "/api/v1/rules"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetRules"
+      description: "Retrieves a rule."
+    };
   }
+
+  // Retrieve multiple rules.
   rpc BatchGetRules(BatchGetRulesRequest) returns (BatchGetRulesResponse) {
     option (google.api.http) = {
       post: "/api/v1/rules:batchGet"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchGetRules"
+      description: "Retrieves multiple rules."
+    };
   }
+
+  // Creates a rule.
   rpc CreateRule(CreateRuleRequest) returns (CreateRuleResponse) {
     option (google.api.http) = {
       post: "/api/v1/rules"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateRule"
+      description: "Creates a rule."
+    };
   }
+
+  // Updates an existing rule.
   rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse) {
     option (google.api.http) = {
       put: "/api/v1/rules"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateRule"
+      description: "Updates an existing rule."
+    };
   }
+
+  // Deletes a rule
   rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse) {
     option (google.api.http) = {
       post: "/api/v1/rules/delete"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteRule"
+      description: "Deletes a rule."
+    };
   }
+
+  // Evaluates the provided rules and generate annotations based on the result.
   rpc EvaluateRules(EvaluateRulesRequest) returns (EvaluateRulesResponse) {
     option (google.api.http) = {
       post: "/api/v1/rules/evaluate"
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "EvaluateRules"
+      description: "Evaluates the provided rules and generate annotations based on the result."
+    };
   }
+
+  // Retrieve a JSON object containing all of the rules for a given asset.
   rpc ViewHumanFriendlyRules(ViewHumanFriendlyRulesRequest) returns (ViewHumanFriendlyRulesResponse) {
     option (google.api.http) = {get: "/api/v1/rules:viewHumanFriendly"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ViewHumanFriendlyRules"
+      description: "Retrieve a JSON object containing all of the rules for a given asset."
+    };
   }
+
+  // Batch update rules given the `rules_json` which is a JSON list of rules.
   rpc UpdateHumanFriendlyRules(UpdateHumanFriendlyRulesRequest) returns (UpdateHumanFriendlyRulesResponse) {
     option (google.api.http) = {
       post: "/api/v1/rules:updateHumanFriendly"
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateHumanFriendlyRules"
+      description: "Batch update rules given the `rules_json` which is a JSON list of rules."
     };
   }
 }
