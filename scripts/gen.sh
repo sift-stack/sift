@@ -13,7 +13,7 @@ SUPPORTED_LANGS=(go python rust)
 TMP_DIR="tmp"
 BUF_CONF="protos/buf.yaml"
 OUTPUT_PROTOS="${TMP_DIR}/protos"
-PYTHON_GEN_DIR="python/gen"
+PYTHON_GEN_DIR="python/sift"
 
 USAGE=$(cat<<EOT
 Compile protocol buffers into supported target languages.
