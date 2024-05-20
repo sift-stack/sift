@@ -474,7 +474,7 @@ type ListIngestionConfigsRequest struct {
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
 	// Available fields to filter by are `ingestion_config_id`, `client_key`, `asset_id`, `created_date`, and `modified_date`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_ingestion_configs_v1-proto). Optional.
+	// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#ingestionconfigservice). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 }
 

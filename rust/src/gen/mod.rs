@@ -46,6 +46,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.calculated_channels.v1)
         }
     }
+    pub mod channel_schemas {
+        // @@protoc_insertion_point(attribute:sift.channel_schemas.v1)
+        pub mod v1 {
+            include!("sift.channel_schemas.v1.rs");
+            // @@protoc_insertion_point(sift.channel_schemas.v1)
+        }
+    }
     pub mod channels {
         // @@protoc_insertion_point(attribute:sift.channels.v2)
         pub mod v2 {
@@ -67,6 +74,13 @@ pub mod sift {
         pub mod v1 {
             include!("sift.data.v1.rs");
             // @@protoc_insertion_point(sift.data.v1)
+        }
+    }
+    pub mod ingest {
+        // @@protoc_insertion_point(attribute:sift.ingest.v1)
+        pub mod v1 {
+            include!("sift.ingest.v1.rs");
+            // @@protoc_insertion_point(sift.ingest.v1)
         }
     }
     pub mod ingestion_configs {
