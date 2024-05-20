@@ -84,8 +84,6 @@ pub mod user_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        /** Used to toggle a user's active status within their organization.
-*/
         pub async fn update_user_organization_active(
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateUserOrganizationActiveRequest>,
@@ -116,8 +114,6 @@ pub mod user_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /** Retrieves a user object.
-*/
         pub async fn get_user(
             &mut self,
             request: impl tonic::IntoRequest<super::GetUserRequest>,
@@ -152,8 +148,6 @@ pub mod user_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with UserServiceServer.
     #[async_trait]
     pub trait UserService: Send + Sync + 'static {
-        /** Used to toggle a user's active status within their organization.
-*/
         async fn update_user_organization_active(
             &self,
             request: tonic::Request<super::UpdateUserOrganizationActiveRequest>,
@@ -161,8 +155,6 @@ pub mod user_service_server {
             tonic::Response<super::UpdateUserOrganizationActiveResponse>,
             tonic::Status,
         >;
-        /** Retrieves a user object.
-*/
         async fn get_user(
             &self,
             request: tonic::Request<super::GetUserRequest>,

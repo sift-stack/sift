@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package sift.common.type.v1;
 
-option go_package = "azimuth/gen/protos/go/sift/common/type/v1;typev1pb";
-
 message Organization {
   string organization_id = 1;
   string organization_name = 2;
