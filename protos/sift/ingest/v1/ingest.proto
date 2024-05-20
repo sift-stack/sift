@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package sift.ingest.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "azimuth/gen/protos/go/sift/ingest/v1;ingestv1pb";
+
+service IngestService {
+  rpc IngestWithConfigDataStream(stream IngestWithConfigDataStreamRequest) returns (IngestWithConfigDataStreamResponse);
+}
+
+message IngestWithConfigDataStreamRequest {
+  string ingestion_config_id = 1;
+  string flow = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  repeated IngestWithConfigDataChannelValue channel_values = 4;
+  // The run_id MUST be included if this data is part of a run.
+  string run_id = 5;
+  // By default, if this request contains any channel values that do not match
+  // the supplied ingestion config, the request is stored in an error queue and
+  // the stream continues to accept data. This ensures all data is saved, but
+  // only valid data is fully ingested. If this is set to `true`, any validation
+  // errors end the stream and return the error to the client.
+  bool end_stream_on_validation_error = 6;
+  string organization_id = 7;
+}
+
+message IngestWithConfigDataStreamResponse {}
+
+message IngestWithConfigDataChannelValue {
+  oneof type {
+    string string = 1;
+    double double = 2;
+    float float = 3;
+    bool bool = 4;
+    int32 int32 = 5;
+    uint32 uint32 = 6;
+    int64 int64 = 7;
+    uint64 uint64 = 8;
+    bytes bit_field = 9;
+    uint32 enum = 10;
+    // If there's not a new data point for a channel at the given timestamp, pass empty to skip it
+    google.protobuf.Empty empty = 11;
+  }
+}
