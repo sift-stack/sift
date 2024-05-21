@@ -63,6 +63,27 @@ service RunService {
     };
   }
 
+  // Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.
+  rpc DeleteRun(DeleteRunRequest) returns (DeleteRunResponse) {
+    option (google.api.http) = {delete: "/api/v2/runs/{run_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteRun"
+      description: "Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`."
+    };
+  }
+
+  // Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`.
+  rpc StopRun(StopRunRequest) returns (StopRunResponse) {
+    option (google.api.http) = {
+      patch: "/api/v2/runs:stop"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "StopRun"
+      description: "Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`."
+    };
+  }
+
   // Associates a list of assets with a given run.
   rpc CreateAutomaticRunAssociationForAssets(CreateAutomaticRunAssociationForAssetsRequest) returns (CreateAutomaticRunAssociationForAssetsResponse) {
     option (google.api.http) = {
@@ -195,3 +216,19 @@ message CreateAutomaticRunAssociationForAssetsRequest {
 }
 
 message CreateAutomaticRunAssociationForAssetsResponse {}
+
+// The request for a call to `RunService_DeleteRun`.
+message DeleteRunRequest {
+  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `RunService_DeleteRun`.
+message DeleteRunResponse {}
+
+// The request for a call to `RunService_StopRun` to stop a run.
+message StopRunRequest {
+  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `RunService_StopRun` to stop a run.
+message StopRunResponse {}
