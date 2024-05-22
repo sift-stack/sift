@@ -34,6 +34,16 @@ class RunServiceStub(object):
                 request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.UpdateRunRequest.SerializeToString,
                 response_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.UpdateRunResponse.FromString,
                 )
+        self.DeleteRun = channel.unary_unary(
+                '/sift.runs.v2.RunService/DeleteRun',
+                request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.DeleteRunRequest.SerializeToString,
+                response_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.DeleteRunResponse.FromString,
+                )
+        self.StopRun = channel.unary_unary(
+                '/sift.runs.v2.RunService/StopRun',
+                request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.StopRunRequest.SerializeToString,
+                response_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.StopRunResponse.FromString,
+                )
         self.CreateAutomaticRunAssociationForAssets = channel.unary_unary(
                 '/sift.runs.v2.RunService/CreateAutomaticRunAssociationForAssets',
                 request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateAutomaticRunAssociationForAssetsRequest.SerializeToString,
@@ -72,6 +82,20 @@ class RunServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def DeleteRun(self, request, context):
+        """Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StopRun(self, request, context):
+        """Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def CreateAutomaticRunAssociationForAssets(self, request, context):
         """Associates a list of assets with a given run.
         """
@@ -101,6 +125,16 @@ def add_RunServiceServicer_to_server(servicer, server):
                     servicer.UpdateRun,
                     request_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.UpdateRunRequest.FromString,
                     response_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.UpdateRunResponse.SerializeToString,
+            ),
+            'DeleteRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteRun,
+                    request_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.DeleteRunRequest.FromString,
+                    response_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.DeleteRunResponse.SerializeToString,
+            ),
+            'StopRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopRun,
+                    request_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.StopRunRequest.FromString,
+                    response_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.StopRunResponse.SerializeToString,
             ),
             'CreateAutomaticRunAssociationForAssets': grpc.unary_unary_rpc_method_handler(
                     servicer.CreateAutomaticRunAssociationForAssets,
@@ -182,6 +216,40 @@ class RunService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.runs.v2.RunService/UpdateRun',
             sift_dot_runs_dot_v2_dot_runs__pb2.UpdateRunRequest.SerializeToString,
             sift_dot_runs_dot_v2_dot_runs__pb2.UpdateRunResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def DeleteRun(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.runs.v2.RunService/DeleteRun',
+            sift_dot_runs_dot_v2_dot_runs__pb2.DeleteRunRequest.SerializeToString,
+            sift_dot_runs_dot_v2_dot_runs__pb2.DeleteRunResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def StopRun(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.runs.v2.RunService/StopRun',
+            sift_dot_runs_dot_v2_dot_runs__pb2.StopRunRequest.SerializeToString,
+            sift_dot_runs_dot_v2_dot_runs__pb2.StopRunResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

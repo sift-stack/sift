@@ -153,5 +153,29 @@ pub struct CreateAutomaticRunAssociationForAssetsRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateAutomaticRunAssociationForAssetsResponse {
 }
+/// The request for a call to `RunService_DeleteRun`.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteRunRequest {
+    #[prost(string, tag="1")]
+    pub run_id: ::prost::alloc::string::String,
+}
+/// The response of a call to `RunService_DeleteRun`.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteRunResponse {
+}
+/// The request for a call to `RunService_StopRun` to stop a run.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StopRunRequest {
+    #[prost(string, tag="1")]
+    pub run_id: ::prost::alloc::string::String,
+}
+/// The response of a call to `RunService_StopRun` to stop a run.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StopRunResponse {
+}
 include!("sift.runs.v2.tonic.rs");
 // @@protoc_insertion_point(module)
