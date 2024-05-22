@@ -115,3 +115,23 @@ class CreateAutomaticRunAssociationForAssetsRequest(_message.Message):
 class CreateAutomaticRunAssociationForAssetsResponse(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class DeleteRunRequest(_message.Message):
+    __slots__ = ("run_id",)
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    def __init__(self, run_id: _Optional[str] = ...) -> None: ...
+
+class DeleteRunResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class StopRunRequest(_message.Message):
+    __slots__ = ("run_id",)
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    def __init__(self, run_id: _Optional[str] = ...) -> None: ...
+
+class StopRunResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...

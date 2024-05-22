@@ -181,6 +181,56 @@ pub mod run_service_client {
                 .insert(GrpcMethod::new("sift.runs.v2.RunService", "UpdateRun"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn delete_run(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteRunRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteRunResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.runs.v2.RunService/DeleteRun",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.runs.v2.RunService", "DeleteRun"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stop_run(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StopRunRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StopRunResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.runs.v2.RunService/StopRun",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.runs.v2.RunService", "StopRun"));
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn create_automatic_run_association_for_assets(
             &mut self,
             request: impl tonic::IntoRequest<
@@ -247,6 +297,17 @@ pub mod run_service_server {
             tonic::Response<super::UpdateRunResponse>,
             tonic::Status,
         >;
+        async fn delete_run(
+            &self,
+            request: tonic::Request<super::DeleteRunRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteRunResponse>,
+            tonic::Status,
+        >;
+        async fn stop_run(
+            &self,
+            request: tonic::Request<super::StopRunRequest>,
+        ) -> std::result::Result<tonic::Response<super::StopRunResponse>, tonic::Status>;
         async fn create_automatic_run_association_for_assets(
             &self,
             request: tonic::Request<super::CreateAutomaticRunAssociationForAssetsRequest>,
@@ -501,6 +562,98 @@ pub mod run_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = UpdateRunSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.runs.v2.RunService/DeleteRun" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteRunSvc<T: RunService>(pub Arc<T>);
+                    impl<
+                        T: RunService,
+                    > tonic::server::UnaryService<super::DeleteRunRequest>
+                    for DeleteRunSvc<T> {
+                        type Response = super::DeleteRunResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteRunRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RunService>::delete_run(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = DeleteRunSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.runs.v2.RunService/StopRun" => {
+                    #[allow(non_camel_case_types)]
+                    struct StopRunSvc<T: RunService>(pub Arc<T>);
+                    impl<
+                        T: RunService,
+                    > tonic::server::UnaryService<super::StopRunRequest>
+                    for StopRunSvc<T> {
+                        type Response = super::StopRunResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::StopRunRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RunService>::stop_run(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = StopRunSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
