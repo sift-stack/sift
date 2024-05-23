@@ -4,7 +4,7 @@ managed:
 plugins:
   - plugin: buf.build/grpc/python:v1.62.1
     out: gen
-  - plugin: buf.build/protocolbuffers/python
+  - plugin: buf.build/protocolbuffers/python:v26.1
     out: gen
   - plugin: buf.build/protocolbuffers/pyi:v26.1
     out: gen
