@@ -99,7 +99,8 @@ def create_ingestion_simulator(
     num_data_points: int = 100,
 ) -> Generator[ingestpb.IngestWithConfigDataStreamRequest, Any, None]:
     """
-    This function will create generator which we'll use to simulate ingestion.
+    This function will create generator which we'll use to simulate ingestion. It's going to essentially generate
+    some amount of data points 5ms apart (100 be default) that will get ingested into the Sift API.
     """
 
     current_timestamp = run.start_time 
