@@ -54,7 +54,7 @@ def main():
         )
         print(f"ok [ingestion_config_id {ingestion_config.ingestion_config_id}]")
 
-        print(f"Creating {ExampleTestRunConfig.RUN_NAME}... ", end="")
+        print(f"Creating run {ExampleTestRunConfig.RUN_NAME}... ", end="")
         run = ingest.create_run(
             channel,
             ExampleTestRunConfig.RUN_NAME,
@@ -69,7 +69,7 @@ def main():
         print("Beginning ingestion...")
         ingestion_simulator = create_ingestion_simulator(run, ingestion_config, flow_config)
         ingest.ingest_with_config(channel, ingestion_simulator)
-        print("Simulation completed.")
+        print("Ingestion completed.")
 
         channel.close()
 
