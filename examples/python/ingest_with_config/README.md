@@ -28,7 +28,10 @@ $ cp .env-example .env
 Be sure to set the appropriate environment variables in your `.env` file depending on the environment you're using. Comments
 meant to serve as guides can be found in the `.env-example` file.
 
-Now you may execute the script.
+Before executing the script, there is a class in [main.py](main.py#L76) called `ExampleTestRunConfig` that you are free to edit
+to change the run names, asset names, etc..
+
+To execute the script run the following:
 
 ```bash
 $ python main.py
