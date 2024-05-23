@@ -1,5 +1,6 @@
 **/.env
 **/venv
+**/__pycache__
 examples/python/annotations/gen/**/*
 examples/python/annotations/build/**/*
 examples/python/annotations/dist/**/*
