@@ -16,14 +16,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import builtins
-import google.api.http_pb2
-import google.protobuf.descriptor
-import google.protobuf.descriptor_pb2
-import google.protobuf.internal.extension_dict
+import abc
+import collections.abc
+import grpc
+import grpc.aio
+import typing
 
-DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
+_T = typing.TypeVar("_T")
 
-HTTP_FIELD_NUMBER: builtins.int
-http: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.MethodOptions, google.api.http_pb2.HttpRule]
-"""See `HttpRule`."""
+class _MaybeAsyncIterator(collections.abc.AsyncIterator[_T], collections.abc.Iterator[_T], metaclass=abc.ABCMeta): ...
+
+class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type: ignore[misc, type-arg]
+    ...
