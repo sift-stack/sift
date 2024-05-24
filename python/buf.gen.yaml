@@ -6,5 +6,7 @@ plugins:
     out: gen
   - plugin: buf.build/protocolbuffers/python:v26.1
     out: gen
-  - plugin: buf.build/protocolbuffers/pyi:v26.1
+  - plugin: buf.build/community/nipunn1313-mypy:v3.6.0
+    out: gen
+  - plugin: buf.build/community/nipunn1313-mypy-grpc:v3.6.0
     out: gen
