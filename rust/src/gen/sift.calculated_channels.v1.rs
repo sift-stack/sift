@@ -133,4 +133,5 @@ impl ExpressionMode {
     }
 }
 include!("sift.calculated_channels.v1.tonic.rs");
+include!("sift.calculated_channels.v1.serde.rs");
 // @@protoc_insertion_point(module)

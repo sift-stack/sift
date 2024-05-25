@@ -15,9 +15,9 @@ pub struct Channel {
     #[prost(string, tag="6")]
     pub unit_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="7")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="8")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="9")]
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="10")]
@@ -77,4 +77,5 @@ pub struct ListChannelsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 include!("sift.channels.v2.tonic.rs");
+include!("sift.channels.v2.serde.rs");
 // @@protoc_insertion_point(module)

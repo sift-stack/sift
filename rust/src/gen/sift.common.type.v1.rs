@@ -89,4 +89,5 @@ pub struct User {
     #[prost(message, repeated, tag="3")]
     pub organizations: ::prost::alloc::vec::Vec<Organization>,
 }
+include!("sift.common.type.v1.serde.rs");
 // @@protoc_insertion_point(module)

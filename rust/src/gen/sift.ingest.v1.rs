@@ -7,7 +7,7 @@ pub struct IngestWithConfigDataStreamRequest {
     #[prost(string, tag="2")]
     pub flow: ::prost::alloc::string::String,
     #[prost(message, optional, tag="3")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, repeated, tag="4")]
     pub channel_values: ::prost::alloc::vec::Vec<IngestWithConfigDataChannelValue>,
     /// The run_id MUST be included if this data is part of a run.
@@ -60,8 +60,9 @@ pub mod ingest_with_config_data_channel_value {
         Enum(u32),
         /// If there's not a new data point for a channel at the given timestamp, pass empty to skip it
         #[prost(message, tag="11")]
-        Empty(()),
+        Empty(::pbjson_types::Empty),
     }
 }
 include!("sift.ingest.v1.tonic.rs");
+include!("sift.ingest.v1.serde.rs");
 // @@protoc_insertion_point(module)

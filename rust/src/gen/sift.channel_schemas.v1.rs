@@ -51,4 +51,5 @@ pub struct BatchCreateChannelSchemasRequest {
 pub struct BatchCreateChannelSchemasResponse {
 }
 include!("sift.channel_schemas.v1.tonic.rs");
+include!("sift.channel_schemas.v1.serde.rs");
 // @@protoc_insertion_point(module)

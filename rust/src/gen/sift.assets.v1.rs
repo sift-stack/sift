@@ -9,11 +9,11 @@ pub struct Asset {
     #[prost(string, tag="4")]
     pub organization_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="5")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="6")]
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="7")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="8")]
     pub modified_by_user_id: ::prost::alloc::string::String,
 }
@@ -78,4 +78,5 @@ pub struct GetAssetResponse {
     pub asset: ::core::option::Option<Asset>,
 }
 include!("sift.assets.v1.tonic.rs");
+include!("sift.assets.v1.serde.rs");
 // @@protoc_insertion_point(module)
