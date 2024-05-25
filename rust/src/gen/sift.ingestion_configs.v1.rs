@@ -139,7 +139,7 @@ pub struct ListIngestionConfigFlowsRequest {
     /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
     /// Available fields to filter by are `flow_name`, `flow_id`, `created_date`, and `modified_date`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/ingestion/api#sift_ingestion_configs_v1-proto). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#ingestionconfig). Optional.
     #[prost(string, tag="4")]
     pub filter: ::prost::alloc::string::String,
 }
@@ -153,4 +153,5 @@ pub struct ListIngestionConfigFlowsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 include!("sift.ingestion_configs.v1.tonic.rs");
+include!("sift.ingestion_configs.v1.serde.rs");
 // @@protoc_insertion_point(module)

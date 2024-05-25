@@ -5,9 +5,9 @@ pub struct Run {
     #[prost(string, tag="1")]
     pub run_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="3")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="4")]
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="5")]
@@ -15,9 +15,9 @@ pub struct Run {
     #[prost(string, tag="6")]
     pub organization_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="7")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="8")]
-    pub stop_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub stop_time: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(bool, tag="9")]
     pub is_pinned: bool,
     #[prost(string, tag="10")]
@@ -93,12 +93,12 @@ pub struct CreateRunRequest {
     /// Important note: `start_time` will be automatically computed during data ingestion and will be set
     /// based on the timestamp of the data for this run.
     #[prost(message, optional, tag="4")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
     /// The time at which data ingestion for this new run concludes.
     /// Important note: `stop_time` will be automatically computed during data ingestion and will be
     /// set based on the timestamp of the data for this run.
     #[prost(message, optional, tag="5")]
-    pub stop_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub stop_time: ::core::option::Option<::pbjson_types::Timestamp>,
     /// An organization ID is only required if the user belongs to multiple organizations.
     #[prost(string, tag="7")]
     pub organization_id: ::prost::alloc::string::String,
@@ -124,7 +124,7 @@ pub struct UpdateRunRequest {
     /// commences for this run, the `start_time` will be automatically overwritten and set to the timestamp
     /// corresponding to the beginning of the latest run.
     #[prost(message, optional, tag="2")]
-    pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
+    pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
 }
 /// The response of a call to `RunService_UpdateRun` containing the updated run.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -178,4 +178,5 @@ pub struct StopRunRequest {
 pub struct StopRunResponse {
 }
 include!("sift.runs.v2.tonic.rs");
+include!("sift.runs.v2.serde.rs");
 // @@protoc_insertion_point(module)

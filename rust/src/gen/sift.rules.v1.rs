@@ -15,9 +15,9 @@ pub struct Rule {
     #[prost(bool, tag="6")]
     pub is_enabled: bool,
     #[prost(message, optional, tag="7")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="8")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="9")]
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="10")]
@@ -39,9 +39,9 @@ pub struct RuleCondition {
     #[prost(string, tag="4")]
     pub status: ::prost::alloc::string::String,
     #[prost(message, optional, tag="5")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="6")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="7")]
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="8")]
@@ -61,9 +61,9 @@ pub struct RuleAction {
     #[prost(message, optional, tag="4")]
     pub configuration: ::core::option::Option<RuleActionConfiguration>,
     #[prost(message, optional, tag="5")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="6")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="7")]
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="8")]
@@ -357,9 +357,9 @@ pub struct EvaluatedAnnotationOptions {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TimeRangeQuery {
     #[prost(message, optional, tag="1")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="2")]
-    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -467,4 +467,5 @@ impl ConditionComparator {
     }
 }
 include!("sift.rules.v1.tonic.rs");
+include!("sift.rules.v1.serde.rs");
 // @@protoc_insertion_point(module)

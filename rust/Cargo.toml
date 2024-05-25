@@ -7,8 +7,11 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1.79"
+pbjson = "0.6.0"
+pbjson-types = "0.6.0"
 prost = "0.12.4"
 prost-types = "0.12.4"
+serde = { version = "1.0.203", features = ["derive"] }
 tonic = { version = "0.11.0", features = ["tls", "tls-roots", "tls-webpki-roots"] }
 
 [features]

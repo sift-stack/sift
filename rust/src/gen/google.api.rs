@@ -460,4 +460,5 @@ impl FieldBehavior {
         }
     }
 }
+include!("google.api.serde.rs");
 // @@protoc_insertion_point(module)

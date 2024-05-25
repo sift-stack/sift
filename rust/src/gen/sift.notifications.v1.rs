@@ -5,9 +5,9 @@ pub struct Notification {
     #[prost(string, tag="1")]
     pub notification_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="3")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="4")]
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="5")]
@@ -77,7 +77,7 @@ pub struct UpdateNotificationRequest {
     pub notification: ::core::option::Option<Notification>,
     /// The list of fields to be updated. Currently, the only field that can be updated is `is_read`.
     #[prost(message, optional, tag="2")]
-    pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
+    pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
 }
 /// The response of a call to `NotificationService_BatchUpdateNotifications` containing the updated notifications.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -126,4 +126,5 @@ impl NotificationKind {
     }
 }
 include!("sift.notifications.v1.tonic.rs");
+include!("sift.notifications.v1.serde.rs");
 // @@protoc_insertion_point(module)

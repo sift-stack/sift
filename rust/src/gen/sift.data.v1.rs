@@ -6,10 +6,10 @@ pub struct GetDataRequest {
     pub queries: ::prost::alloc::vec::Vec<Query>,
     /// Required. The starting timestamp of the data to retrieve. This is an inclusive bound.
     #[prost(message, optional, tag="2")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
     /// Required. The end timestamp of the data to retrieve. This is an exclusive bound.
     #[prost(message, optional, tag="3")]
-    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
     /// The rate to sample the returned data at. The data is sampled using [LTTB](<https://github.com/sveinn-steinarsson/flot-downsample>)
     /// which will return one point approximately every sample_ms milliseconds that retains the shape of the raw data.
     /// Sampling is only supported for numeric data types, if sample_ms is provided for non-numeric data, it will be
@@ -96,7 +96,7 @@ pub struct GetDataResponse {
     ///    sift.data.v1.Uint32Values
     ///    sift.data.v1.Uint64Values
     #[prost(message, repeated, tag="2")]
-    pub data: ::prost::alloc::vec::Vec<::prost_types::Any>,
+    pub data: ::prost::alloc::vec::Vec<::pbjson_types::Any>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -166,7 +166,7 @@ pub mod metadata {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DoubleValue {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(double, tag="2")]
     pub value: f64,
 }
@@ -182,7 +182,7 @@ pub struct DoubleValues {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StringValue {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="2")]
     pub value: ::prost::alloc::string::String,
 }
@@ -198,7 +198,7 @@ pub struct StringValues {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EnumValue {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(uint32, tag="2")]
     pub value: u32,
 }
@@ -214,7 +214,7 @@ pub struct EnumValues {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BitFieldValue {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(uint32, tag="2")]
     pub value: u32,
 }
@@ -238,7 +238,7 @@ pub struct BitFieldValues {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BoolValue {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(bool, tag="2")]
     pub value: bool,
 }
@@ -254,7 +254,7 @@ pub struct BoolValues {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FloatValue {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(float, tag="2")]
     pub value: f32,
 }
@@ -270,7 +270,7 @@ pub struct FloatValues {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Int32Value {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(int32, tag="2")]
     pub value: i32,
 }
@@ -286,7 +286,7 @@ pub struct Int32Values {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Uint32Value {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(uint32, tag="2")]
     pub value: u32,
 }
@@ -302,7 +302,7 @@ pub struct Uint32Values {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Int64Value {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(int64, tag="2")]
     pub value: i64,
 }
@@ -318,7 +318,7 @@ pub struct Int64Values {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Uint64Value {
     #[prost(message, optional, tag="1")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(uint64, tag="2")]
     pub value: u64,
 }
@@ -331,4 +331,5 @@ pub struct Uint64Values {
     pub values: ::prost::alloc::vec::Vec<Uint64Value>,
 }
 include!("sift.data.v1.tonic.rs");
+include!("sift.data.v1.serde.rs");
 // @@protoc_insertion_point(module)

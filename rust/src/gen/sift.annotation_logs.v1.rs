@@ -92,9 +92,9 @@ pub struct AnnotationLogSearchResult {
     #[prost(string, tag="1")]
     pub annotation_log_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="3")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="4")]
     pub annotation_id: ::prost::alloc::string::String,
     #[prost(enumeration="AnnotationLogKind", tag="5")]
@@ -254,4 +254,5 @@ impl AnnotationCommentBodyElementType {
     }
 }
 include!("sift.annotation_logs.v1.tonic.rs");
+include!("sift.annotation_logs.v1.serde.rs");
 // @@protoc_insertion_point(module)

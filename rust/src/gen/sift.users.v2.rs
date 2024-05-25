@@ -28,4 +28,5 @@ pub struct GetUserResponse {
     pub user: ::core::option::Option<super::super::common::r#type::v1::User>,
 }
 include!("sift.users.v2.tonic.rs");
+include!("sift.users.v2.serde.rs");
 // @@protoc_insertion_point(module)

@@ -9,17 +9,17 @@ pub struct Annotation {
     #[prost(string, tag="3")]
     pub description: ::prost::alloc::string::String,
     #[prost(message, optional, tag="4")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="5")]
-    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="6")]
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="7")]
     pub modified_by_user_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="8")]
-    pub created_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="9")]
-    pub modified_date: ::core::option::Option<::prost_types::Timestamp>,
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, optional, tag="10")]
     pub run_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(enumeration="AnnotationState", optional, tag="11")]
@@ -81,10 +81,10 @@ pub struct CreateAnnotationRequest {
     pub description: ::prost::alloc::string::String,
     /// When the annotation starts.
     #[prost(message, optional, tag="3")]
-    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
     /// When the annotation ends.
     #[prost(message, optional, tag="4")]
-    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
     /// The names of the assets to associate with this annotation.
     #[prost(string, repeated, tag="5")]
     pub assets: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
@@ -206,7 +206,7 @@ pub struct UpdateAnnotationRequest {
     /// Important Note: if `tags` is specified in the update mask and `annotation.tags` is an empty list then all associated tags on the annotation
     /// will be removed.
     #[prost(message, optional, tag="2")]
-    pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
+    pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
 }
 /// The response of a call to `AnnotationService_UpdateAnnotation`.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -277,4 +277,5 @@ impl AnnotationType {
     }
 }
 include!("sift.annotations.v1.tonic.rs");
+include!("sift.annotations.v1.serde.rs");
 // @@protoc_insertion_point(module)
