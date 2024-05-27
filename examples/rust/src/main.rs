@@ -1,6 +1,6 @@
 use anyhow::Result;
 use dotenv::dotenv;
-use indoc::writedoc;
+use serde_json;
 use std::{env, io::Write, process::ExitCode, str::FromStr};
 use tonic::{metadata::MetadataValue, transport::Channel, Request};
 
@@ -76,28 +76,8 @@ async fn run() -> Result<()> {
     let mut buffer = Vec::new();
 
     for annotation in &annotations {
-        writedoc! {
-            buffer,
-            "
-            Annotation ID: {}
-                Name: {}
-                Description: {}
-                State: {}
-                Type: {}
-                Created at: {}
-                Modified at: {}
-                Created by rule condition ID: {}
-
-            ",
-            annotation.annotation_id,
-            annotation.name,
-            annotation.description,
-            annotation.state().as_str_name(),
-            annotation.annotation_type().as_str_name(),
-            annotation.created_date.as_ref().map(|t| t.to_string()).unwrap_or_else(String::new),
-            annotation.modified_date.as_ref().map(|t| t.to_string()).unwrap_or_else(String::new),
-            annotation.created_by_condition_id.as_deref().unwrap_or(""),
-        }?;
+        let annotation_json = serde_json::to_string_pretty(annotation)?;
+        writeln!(&mut buffer, "{annotation_json}")?;
     }
 
     let out = String::from_utf8(buffer)?;
