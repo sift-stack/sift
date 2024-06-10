@@ -74,6 +74,7 @@ impl SiftIngestionService {
     pub async fn send_values(&mut self, flows: Vec<Flow>) -> Result<()> {
         let mut requests = Vec::new();
 
+        // Turn our flows into request objects
         for flow in flows {
             let channel_values = flow
                 .channel_values
@@ -89,18 +90,19 @@ impl SiftIngestionService {
                 channel_values,
                 timestamp: Some(Timestamp::from(flow.timestamp)),
                 flow: flow.name,
+                ingestion_config_id: self.ingestion_config.ingestion_config_id.clone(),
+                organization_id: self.organization_id.clone().unwrap_or_default(),
+                end_stream_on_validation_error: self.end_stream_on_error,
                 run_id: self
                     .run
                     .as_ref()
                     .map_or_else(String::new, |r| r.run_id.clone()),
-                ingestion_config_id: self.ingestion_config.ingestion_config_id.clone(),
-                organization_id: self.organization_id.clone().unwrap_or_default(),
-                end_stream_on_validation_error: self.end_stream_on_error,
             };
 
             requests.push(request);
         }
 
+        // Stream requests and ignest data
         let stream = tokio_stream::iter(requests);
         let _ = self.client.ingest_with_config_data_stream(stream).await;
         Ok(())
