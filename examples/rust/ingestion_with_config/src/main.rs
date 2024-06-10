@@ -32,22 +32,28 @@ async fn simulate() -> Result<()> {
     let _ = dotenv()?;
     let current_dir = env::current_dir()?;
     let config_name = env::var(CONFIG_ENV_VAR).map(|c| current_dir.join(CONFIG_DIR_NAME).join(c))?;
+
+    // Load in the lunar_rover0.yml file and parse to TelemetryConfig
     let telemetry_config = TelemetryConfig::from_config(config_name)?;
+
     let asset_name = telemetry_config.asset_name.clone();
 
+    // Initialize gRPC transport channel
     let channel = grpc::use_channel()?;
+
     let mut ingestion_service =
         SiftIngestionService::from_config(channel.clone(), telemetry_config).await?;
     ingestion_service.end_stream_on_error();
 
     let mut current_time = Utc::now();
 
-    // Start a run
+    // OPTIONAL: Start a run
     let run_name = format!(
         "{}.{}",
         asset_name.to_ascii_lowercase(),
         current_time.timestamp()
     );
+
     let _ = ingestion_service
         .start_run(
             channel.clone(),
@@ -62,6 +68,7 @@ async fn simulate() -> Result<()> {
 
     let mut flows = Vec::new();
 
+    // Create the actual flows i.e. values that we're going to ingest
     for i in 0..100 {
         let flow = Flow {
             // Will be validated downstream... value is from configs/lunar_rover0.yml.
