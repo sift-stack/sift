@@ -1,0 +1,17 @@
+[package]
+name = "ingestion_with_config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.86"
+chrono = "0.4.38"
+dotenv = "0.15.0"
+pbjson-types = "0.6.0"
+serde = "1.0.203"
+serde_yaml = "0.9.34"
+sift = { git = "https://github.com/sift-stack/sift", version = "0.1.0" }
+tokio = { version = "1.38.0", features = ["full"] }
+tokio-stream = "0.1.15"
+tonic = "0.11.0"
+tower = "0.4.13"

@@ -4,10 +4,8 @@
 examples/python/annotations/gen/**/*
 examples/python/annotations/build/**/*
 examples/python/annotations/dist/**/*
-!examples/rust/src/gen/mod.rs
-examples/rust/src/gen/**/*
-examples/rust/target/**/*
-examples/go/gen/**/*
+examples/rust/annotations/target/**/*
+examples/rust/ingestion_with_config/target/**/*
 
 rust/target/**/*
 rust/protos/**/*
