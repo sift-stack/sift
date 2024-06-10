@@ -1,3 +1,5 @@
+SHELL := /bin/zsh
+
 gen:
 	bash scripts/gen.sh
 

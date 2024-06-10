@@ -14,6 +14,8 @@ TMP_DIR="tmp"
 BUF_CONF="protos/buf.yaml"
 OUTPUT_PROTOS="${TMP_DIR}/protos"
 PYTHON_GEN_DIR="python/gen"
+PYTHON_LIB_DIR="python/lib"
+PYTHON_CLIENT_LIB="sift_py"
 
 USAGE=$(cat<<EOT
 Compile protocol buffers into supported target languages.
@@ -54,6 +56,11 @@ gen_python_modules() {
       touch "$init_py"
     fi
   done
+
+  mv $PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB $PYTHON_GEN_DIR
+  rm -rf $PYTHON_LIB_DIR
+  mv $PYTHON_GEN_DIR $PYTHON_LIB_DIR
+
   echo "ok"
 }
 
