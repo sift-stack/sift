@@ -5,6 +5,8 @@ package sift.common.type.v1;
 import "google/api/field_behavior.proto";
 import "sift/common/type/v1/organization.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/common/type/v1;typev1pb";
+
 message User {
   string user_id = 1 [(google.api.field_behavior) = REQUIRED];
   string user_name = 2 [(google.api.field_behavior) = REQUIRED];

@@ -525,6 +525,8 @@ global___DeleteRuleResponse = DeleteRuleResponse
 
 @typing.final
 class ViewHumanFriendlyRulesRequest(google.protobuf.message.Message):
+    """Deprecated - use ViewJsonRulesRequest."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ASSET_ID_FIELD_NUMBER: builtins.int
@@ -540,6 +542,8 @@ global___ViewHumanFriendlyRulesRequest = ViewHumanFriendlyRulesRequest
 
 @typing.final
 class ViewHumanFriendlyRulesResponse(google.protobuf.message.Message):
+    """Deprecated - use ViewJsonRulesResponse."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RULES_JSON_FIELD_NUMBER: builtins.int
@@ -555,6 +559,8 @@ global___ViewHumanFriendlyRulesResponse = ViewHumanFriendlyRulesResponse
 
 @typing.final
 class UpdateHumanFriendlyRulesRequest(google.protobuf.message.Message):
+    """Deprecated - use UpdateJsonRulesRequest."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ASSET_ID_FIELD_NUMBER: builtins.int
@@ -576,6 +582,8 @@ global___UpdateHumanFriendlyRulesRequest = UpdateHumanFriendlyRulesRequest
 
 @typing.final
 class UpdateHumanFriendlyRulesResponse(google.protobuf.message.Message):
+    """Deprecated - use UpdateJsonRulesResponse."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     SUCCESS_FIELD_NUMBER: builtins.int
@@ -594,6 +602,157 @@ class UpdateHumanFriendlyRulesResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["messages", b"messages", "rules_count", b"rules_count", "success", b"success"]) -> None: ...
 
 global___UpdateHumanFriendlyRulesResponse = UpdateHumanFriendlyRulesResponse
+
+@typing.final
+class ViewJsonRulesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_ID_FIELD_NUMBER: builtins.int
+    asset_id: builtins.str
+    def __init__(
+        self,
+        *,
+        asset_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id"]) -> None: ...
+
+global___ViewJsonRulesRequest = ViewJsonRulesRequest
+
+@typing.final
+class ViewJsonRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULES_JSON_FIELD_NUMBER: builtins.int
+    rules_json: builtins.str
+    def __init__(
+        self,
+        *,
+        rules_json: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["rules_json", b"rules_json"]) -> None: ...
+
+global___ViewJsonRulesResponse = ViewJsonRulesResponse
+
+@typing.final
+class JsonRulesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_ID_FIELD_NUMBER: builtins.int
+    RULES_JSON_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    asset_id: builtins.str
+    rules_json: builtins.str
+    organization_id: builtins.str
+    def __init__(
+        self,
+        *,
+        asset_id: builtins.str = ...,
+        rules_json: builtins.str = ...,
+        organization_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "organization_id", b"organization_id", "rules_json", b"rules_json"]) -> None: ...
+
+global___JsonRulesRequest = JsonRulesRequest
+
+@typing.final
+class JsonRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SUCCESS_FIELD_NUMBER: builtins.int
+    TOTAL_RULES_COUNT_FIELD_NUMBER: builtins.int
+    RULES_CREATED_COUNT_FIELD_NUMBER: builtins.int
+    RULES_UPDATED_COUNT_FIELD_NUMBER: builtins.int
+    RULES_DELETED_COUNT_FIELD_NUMBER: builtins.int
+    ERROR_MESSAGES_FIELD_NUMBER: builtins.int
+    success: builtins.bool
+    total_rules_count: builtins.int
+    rules_created_count: builtins.int
+    rules_updated_count: builtins.int
+    rules_deleted_count: builtins.int
+    error_messages: builtins.str
+    def __init__(
+        self,
+        *,
+        success: builtins.bool = ...,
+        total_rules_count: builtins.int = ...,
+        rules_created_count: builtins.int = ...,
+        rules_updated_count: builtins.int = ...,
+        rules_deleted_count: builtins.int = ...,
+        error_messages: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_error_messages", b"_error_messages", "error_messages", b"error_messages"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_error_messages", b"_error_messages", "error_messages", b"error_messages", "rules_created_count", b"rules_created_count", "rules_deleted_count", b"rules_deleted_count", "rules_updated_count", b"rules_updated_count", "success", b"success", "total_rules_count", b"total_rules_count"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_error_messages", b"_error_messages"]) -> typing.Literal["error_messages"] | None: ...
+
+global___JsonRulesResponse = JsonRulesResponse
+
+@typing.final
+class ValidateJsonRulesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REQUEST_FIELD_NUMBER: builtins.int
+    @property
+    def request(self) -> global___JsonRulesRequest: ...
+    def __init__(
+        self,
+        *,
+        request: global___JsonRulesRequest | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["request", b"request"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["request", b"request"]) -> None: ...
+
+global___ValidateJsonRulesRequest = ValidateJsonRulesRequest
+
+@typing.final
+class ValidateJsonRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RESPONSE_FIELD_NUMBER: builtins.int
+    @property
+    def response(self) -> global___JsonRulesResponse: ...
+    def __init__(
+        self,
+        *,
+        response: global___JsonRulesResponse | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["response", b"response"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["response", b"response"]) -> None: ...
+
+global___ValidateJsonRulesResponse = ValidateJsonRulesResponse
+
+@typing.final
+class UpdateJsonRulesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REQUEST_FIELD_NUMBER: builtins.int
+    @property
+    def request(self) -> global___JsonRulesRequest: ...
+    def __init__(
+        self,
+        *,
+        request: global___JsonRulesRequest | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["request", b"request"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["request", b"request"]) -> None: ...
+
+global___UpdateJsonRulesRequest = UpdateJsonRulesRequest
+
+@typing.final
+class UpdateJsonRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RESPONSE_FIELD_NUMBER: builtins.int
+    @property
+    def response(self) -> global___JsonRulesResponse: ...
+    def __init__(
+        self,
+        *,
+        response: global___JsonRulesResponse | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["response", b"response"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["response", b"response"]) -> None: ...
+
+global___UpdateJsonRulesResponse = UpdateJsonRulesResponse
 
 @typing.final
 class RuleConditionExpression(google.protobuf.message.Message):

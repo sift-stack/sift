@@ -54,10 +54,25 @@ class RuleServiceStub(object):
                 request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ViewHumanFriendlyRulesRequest.SerializeToString,
                 response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ViewHumanFriendlyRulesResponse.FromString,
                 )
+        self.ViewJsonRules = channel.unary_unary(
+                '/sift.rules.v1.RuleService/ViewJsonRules',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ViewJsonRulesRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ViewJsonRulesResponse.FromString,
+                )
         self.UpdateHumanFriendlyRules = channel.unary_unary(
                 '/sift.rules.v1.RuleService/UpdateHumanFriendlyRules',
                 request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateHumanFriendlyRulesRequest.SerializeToString,
                 response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateHumanFriendlyRulesResponse.FromString,
+                )
+        self.ValidateJsonRules = channel.unary_unary(
+                '/sift.rules.v1.RuleService/ValidateJsonRules',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ValidateJsonRulesRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ValidateJsonRulesResponse.FromString,
+                )
+        self.UpdateJsonRules = channel.unary_unary(
+                '/sift.rules.v1.RuleService/UpdateJsonRules',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesResponse.FromString,
                 )
 
 
@@ -114,6 +129,13 @@ class RuleServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def ViewHumanFriendlyRules(self, request, context):
+        """Deprecated - use ViewJsonRules instead. Retrieve a JSON object containing all of the rules for a given asset.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ViewJsonRules(self, request, context):
         """Retrieve a JSON object containing all of the rules for a given asset.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -121,6 +143,20 @@ class RuleServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def UpdateHumanFriendlyRules(self, request, context):
+        """Deprecated - use UpdateJsonRules instead. Batch update rules given the `rules_json` which is a JSON list of rules.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ValidateJsonRules(self, request, context):
+        """Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateJsonRules(self, request, context):
         """Batch update rules given the `rules_json` which is a JSON list of rules.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -170,10 +206,25 @@ def add_RuleServiceServicer_to_server(servicer, server):
                     request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ViewHumanFriendlyRulesRequest.FromString,
                     response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ViewHumanFriendlyRulesResponse.SerializeToString,
             ),
+            'ViewJsonRules': grpc.unary_unary_rpc_method_handler(
+                    servicer.ViewJsonRules,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ViewJsonRulesRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ViewJsonRulesResponse.SerializeToString,
+            ),
             'UpdateHumanFriendlyRules': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateHumanFriendlyRules,
                     request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateHumanFriendlyRulesRequest.FromString,
                     response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateHumanFriendlyRulesResponse.SerializeToString,
+            ),
+            'ValidateJsonRules': grpc.unary_unary_rpc_method_handler(
+                    servicer.ValidateJsonRules,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ValidateJsonRulesRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ValidateJsonRulesResponse.SerializeToString,
+            ),
+            'UpdateJsonRules': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateJsonRules,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -322,6 +373,23 @@ class RuleService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def ViewJsonRules(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/ViewJsonRules',
+            sift_dot_rules_dot_v1_dot_rules__pb2.ViewJsonRulesRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.ViewJsonRulesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def UpdateHumanFriendlyRules(request,
             target,
             options=(),
@@ -335,5 +403,39 @@ class RuleService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/UpdateHumanFriendlyRules',
             sift_dot_rules_dot_v1_dot_rules__pb2.UpdateHumanFriendlyRulesRequest.SerializeToString,
             sift_dot_rules_dot_v1_dot_rules__pb2.UpdateHumanFriendlyRulesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ValidateJsonRules(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/ValidateJsonRules',
+            sift_dot_rules_dot_v1_dot_rules__pb2.ValidateJsonRulesRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.ValidateJsonRulesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UpdateJsonRules(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/UpdateJsonRules',
+            sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

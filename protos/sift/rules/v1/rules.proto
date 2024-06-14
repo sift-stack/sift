@@ -15,6 +15,7 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/annotations/v1/annotations.proto";
 
+option go_package = "azimuth/gen/protos/go/sift/rules/v1;rulesv1pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Rule Service"}
 };
@@ -109,8 +110,9 @@ service RuleService {
     };
   }
 
-  // Retrieve a JSON object containing all of the rules for a given asset.
+  // Deprecated - use ViewJsonRules instead. Retrieve a JSON object containing all of the rules for a given asset.
   rpc ViewHumanFriendlyRules(ViewHumanFriendlyRulesRequest) returns (ViewHumanFriendlyRulesResponse) {
+    option deprecated = true;
     option (google.api.http) = {get: "/api/v1/rules:viewHumanFriendly"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ViewHumanFriendlyRules"
@@ -118,14 +120,48 @@ service RuleService {
     };
   }
 
-  // Batch update rules given the `rules_json` which is a JSON list of rules.
+  // Retrieve a JSON object containing all of the rules for a given asset.
+  rpc ViewJsonRules(ViewJsonRulesRequest) returns (ViewJsonRulesResponse) {
+    option (google.api.http) = {get: "/api/v1/rules:viewJson"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ViewJsonRules"
+      description: "Retrieve a JSON object containing all of the rules for a given asset."
+    };
+  }
+
+  // Deprecated - use UpdateJsonRules instead. Batch update rules given the `rules_json` which is a JSON list of rules.
   rpc UpdateHumanFriendlyRules(UpdateHumanFriendlyRulesRequest) returns (UpdateHumanFriendlyRulesResponse) {
+    option deprecated = true;
     option (google.api.http) = {
       post: "/api/v1/rules:updateHumanFriendly"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "UpdateHumanFriendlyRules"
+      description: "Batch update rules given the `rules_json` which is a JSON list of rules."
+    };
+  }
+
+  // Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation.
+  rpc ValidateJsonRules(ValidateJsonRulesRequest) returns (ValidateJsonRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules:validateJson"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ValidateJsonRules"
+      description: "Validate a batch update for rules given the `rules_json` which is a JSON list of rules."
+    };
+  }
+
+  // Batch update rules given the `rules_json` which is a JSON list of rules.
+  rpc UpdateJsonRules(UpdateJsonRulesRequest) returns (UpdateJsonRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules:updateJson"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateJsonRules"
       description: "Batch update rules given the `rules_json` which is a JSON list of rules."
     };
   }
@@ -248,24 +284,71 @@ message DeleteRuleRequest {
 }
 message DeleteRuleResponse {}
 
+// Deprecated - use ViewJsonRulesRequest.
 message ViewHumanFriendlyRulesRequest {
+  option deprecated = true;
   string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+// Deprecated - use ViewJsonRulesResponse.
 message ViewHumanFriendlyRulesResponse {
+  option deprecated = true;
   string rules_json = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+// Deprecated - use UpdateJsonRulesRequest.
 message UpdateHumanFriendlyRulesRequest {
+  option deprecated = true;
   string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
   string rules_json = 2 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 3 [(google.api.field_behavior) = REQUIRED];
 }
 
+// Deprecated - use UpdateJsonRulesResponse.
 message UpdateHumanFriendlyRulesResponse {
+  option deprecated = true;
   bool success = 1 [(google.api.field_behavior) = REQUIRED];
   int32 rules_count = 2 [(google.api.field_behavior) = REQUIRED];
   string messages = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ViewJsonRulesRequest {
+  string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ViewJsonRulesResponse {
+  string rules_json = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message JsonRulesRequest {
+  string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rules_json = 2 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+message JsonRulesResponse {
+  bool success = 1 [(google.api.field_behavior) = REQUIRED];
+  int32 total_rules_count = 2 [(google.api.field_behavior) = REQUIRED];
+  int32 rules_created_count = 3 [(google.api.field_behavior) = REQUIRED];
+  int32 rules_updated_count = 4 [(google.api.field_behavior) = REQUIRED];
+  int32 rules_deleted_count = 5 [(google.api.field_behavior) = REQUIRED];
+  optional string error_messages = 6;
+}
+
+message ValidateJsonRulesRequest {
+  JsonRulesRequest request = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ValidateJsonRulesResponse {
+  JsonRulesResponse response = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateJsonRulesRequest {
+  JsonRulesRequest request = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateJsonRulesResponse {
+  JsonRulesResponse response = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message RuleConditionExpression {

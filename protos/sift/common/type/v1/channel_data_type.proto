@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package sift.common.type.v1;
 
+option go_package = "azimuth/gen/protos/go/sift/common/type/v1;typev1pb";
+
 enum ChannelDataType {
   CHANNEL_DATA_TYPE_UNSPECIFIED = 0 [deprecated = true];
   CHANNEL_DATA_TYPE_DOUBLE = 1;

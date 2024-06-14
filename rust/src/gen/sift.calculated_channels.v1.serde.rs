@@ -91,6 +91,116 @@ impl<'de> serde::Deserialize<'de> for ErrorValidatingExpressionResult {
         deserializer.deserialize_struct("sift.calculated_channels.v1.ErrorValidatingExpressionResult", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ExpressionChannelReference {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.channel_reference.is_empty() {
+            len += 1;
+        }
+        if !self.channel_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v1.ExpressionChannelReference", len)?;
+        if !self.channel_reference.is_empty() {
+            struct_ser.serialize_field("channelReference", &self.channel_reference)?;
+        }
+        if !self.channel_id.is_empty() {
+            struct_ser.serialize_field("channelId", &self.channel_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExpressionChannelReference {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "channel_reference",
+            "channelReference",
+            "channel_id",
+            "channelId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ChannelReference,
+            ChannelId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "channelReference" | "channel_reference" => Ok(GeneratedField::ChannelReference),
+                            "channelId" | "channel_id" => Ok(GeneratedField::ChannelId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExpressionChannelReference;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.calculated_channels.v1.ExpressionChannelReference")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ExpressionChannelReference, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut channel_reference__ = None;
+                let mut channel_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ChannelReference => {
+                            if channel_reference__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channelReference"));
+                            }
+                            channel_reference__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ChannelId => {
+                            if channel_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channelId"));
+                            }
+                            channel_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ExpressionChannelReference {
+                    channel_reference: channel_reference__.unwrap_or_default(),
+                    channel_id: channel_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.calculated_channels.v1.ExpressionChannelReference", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ExpressionIdentifier {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -398,12 +508,18 @@ impl serde::Serialize for ExpressionRequest {
         if !self.expression.is_empty() {
             len += 1;
         }
+        if !self.expression_channel_references.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v1.ExpressionRequest", len)?;
         if !self.channel_references.is_empty() {
             struct_ser.serialize_field("channelReferences", &self.channel_references)?;
         }
         if !self.expression.is_empty() {
             struct_ser.serialize_field("expression", &self.expression)?;
+        }
+        if !self.expression_channel_references.is_empty() {
+            struct_ser.serialize_field("expressionChannelReferences", &self.expression_channel_references)?;
         }
         struct_ser.end()
     }
@@ -418,12 +534,15 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
             "channel_references",
             "channelReferences",
             "expression",
+            "expression_channel_references",
+            "expressionChannelReferences",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             ChannelReferences,
             Expression,
+            ExpressionChannelReferences,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -447,6 +566,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
                         match value {
                             "channelReferences" | "channel_references" => Ok(GeneratedField::ChannelReferences),
                             "expression" => Ok(GeneratedField::Expression),
+                            "expressionChannelReferences" | "expression_channel_references" => Ok(GeneratedField::ExpressionChannelReferences),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -468,6 +588,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
             {
                 let mut channel_references__ = None;
                 let mut expression__ = None;
+                let mut expression_channel_references__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelReferences => {
@@ -484,11 +605,18 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
                             }
                             expression__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ExpressionChannelReferences => {
+                            if expression_channel_references__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("expressionChannelReferences"));
+                            }
+                            expression_channel_references__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ExpressionRequest {
                     channel_references: channel_references__.unwrap_or_default(),
                     expression: expression__.unwrap_or_default(),
+                    expression_channel_references: expression_channel_references__.unwrap_or_default(),
                 })
             }
         }

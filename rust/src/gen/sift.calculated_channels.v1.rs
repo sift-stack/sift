@@ -1,12 +1,23 @@
 // @generated
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExpressionChannelReference {
+    #[prost(string, tag="1")]
+    pub channel_reference: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub channel_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExpressionRequest {
     /// A map from the channel reference in the expression string (e.g. $1) to the channel id (uuid).
+    /// This is deprecated and should be passed in expression_channel_references instead.
     #[prost(map="string, string", tag="1")]
     pub channel_references: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
     #[prost(string, tag="2")]
     pub expression: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="3")]
+    pub expression_channel_references: ::prost::alloc::vec::Vec<ExpressionChannelReference>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

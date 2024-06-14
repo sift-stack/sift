@@ -55,6 +55,24 @@ EXPRESSION_MODE_CALCULATED_CHANNELS: ExpressionMode.ValueType  # 2
 global___ExpressionMode = ExpressionMode
 
 @typing.final
+class ExpressionChannelReference(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNEL_REFERENCE_FIELD_NUMBER: builtins.int
+    CHANNEL_ID_FIELD_NUMBER: builtins.int
+    channel_reference: builtins.str
+    channel_id: builtins.str
+    def __init__(
+        self,
+        *,
+        channel_reference: builtins.str = ...,
+        channel_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channel_id", b"channel_id", "channel_reference", b"channel_reference"]) -> None: ...
+
+global___ExpressionChannelReference = ExpressionChannelReference
+
+@typing.final
 class ExpressionRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -76,18 +94,24 @@ class ExpressionRequest(google.protobuf.message.Message):
 
     CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
     EXPRESSION_FIELD_NUMBER: builtins.int
+    EXPRESSION_CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
     expression: builtins.str
     @property
     def channel_references(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]:
-        """A map from the channel reference in the expression string (e.g. $1) to the channel id (uuid)."""
+        """A map from the channel reference in the expression string (e.g. $1) to the channel id (uuid).
+        This is deprecated and should be passed in expression_channel_references instead.
+        """
 
+    @property
+    def expression_channel_references(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExpressionChannelReference]: ...
     def __init__(
         self,
         *,
         channel_references: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
         expression: builtins.str = ...,
+        expression_channel_references: collections.abc.Iterable[global___ExpressionChannelReference] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["channel_references", b"channel_references", "expression", b"expression"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channel_references", b"channel_references", "expression", b"expression", "expression_channel_references", b"expression_channel_references"]) -> None: ...
 
 global___ExpressionRequest = ExpressionRequest
 
