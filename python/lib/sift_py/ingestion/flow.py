@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .channel import ChannelConfig
-from sift_internal.convert.protobuf import try_convert_pb, AsProtobuf, ProtobufMessage
+from sift_internal.convert.protobuf import try_cast_pb, AsProtobuf, ProtobufMessage
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
     FlowConfig as FlowConfigPb,
@@ -40,10 +40,10 @@ class FlowConfig(AsProtobuf):
         except IndexError:
             return None
 
-    def as_pb(self, klass: Type[ProtobufMessage]) -> ProtobufMessage:
+    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
         return FlowConfigPb(
             name=self.name,
-            channels=[try_convert_pb(conf, ChannelConfigPb) for conf in self.channels],
+            channels=[try_cast_pb(conf, ChannelConfigPb) for conf in self.channels],
         )
 
     @staticmethod
