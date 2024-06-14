@@ -6,10 +6,12 @@ examples/python/annotations/build/**/*
 examples/python/annotations/dist/**/*
 examples/rust/annotations/target/**/*
 examples/rust/ingestion_with_config/target/**/*
-
 rust/target/**/*
 rust/protos/**/*
 
 go/protos/**/*
 python/protos/**/*
 .DS_Store
+
+python/build
+*.egg-info/

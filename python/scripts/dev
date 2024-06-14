@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+usage() {
+  cat<<EOT
+Various development utilities
+
+Usage: dev [SUBCOMMAND] [OPTIONS]
+
+Subcommands:
+  bootstrap      Initializes python virtual environment and installs project dependencies
+  pip-install    Install project dependencies
+  fmt            Runs 'black' to format the lib directory
+
+Options:
+  -h, --help     Print usage text
+EOT
+}
+
+pip_install() {
+  source venv/bin/activate
+  pip install '.[development]'
+  pip install -e .
+}
+
+bootstrap() {
+  python3 -m venv venv
+  pip_install
+}
+
+fmt() {
+  source venv/bin/activate
+  black lib/sift_py
+}
+
+shift "$((OPTIND - 1))"
+
+case "$1" in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+    bootstrap)
+        bootstrap
+        ;;
+    pip-install)
+        pip_install
+        ;;
+    fmt)
+        fmt
+        ;;
+    "")
+        echo "No subcommand provided"
+        usage
+        exit 1
+        ;;
+    *)
+        echo "Invalid subcommand: $1"
+        usage
+        exit 1
+        ;;
+esac
+
+exit 0
