@@ -289,6 +289,31 @@ pub mod rule_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn view_json_rules(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ViewJsonRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ViewJsonRulesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/ViewJsonRules",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.rules.v1.RuleService", "ViewJsonRules"));
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn update_human_friendly_rules(
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateHumanFriendlyRulesRequest>,
@@ -317,6 +342,58 @@ pub mod rule_service_client {
                         "UpdateHumanFriendlyRules",
                     ),
                 );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn validate_json_rules(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ValidateJsonRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ValidateJsonRulesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/ValidateJsonRules",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("sift.rules.v1.RuleService", "ValidateJsonRules"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_json_rules(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateJsonRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateJsonRulesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/UpdateJsonRules",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.rules.v1.RuleService", "UpdateJsonRules"));
             self.inner.unary(req, path, codec).await
         }
     }
@@ -381,11 +458,32 @@ pub mod rule_service_server {
             tonic::Response<super::ViewHumanFriendlyRulesResponse>,
             tonic::Status,
         >;
+        async fn view_json_rules(
+            &self,
+            request: tonic::Request<super::ViewJsonRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ViewJsonRulesResponse>,
+            tonic::Status,
+        >;
         async fn update_human_friendly_rules(
             &self,
             request: tonic::Request<super::UpdateHumanFriendlyRulesRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UpdateHumanFriendlyRulesResponse>,
+            tonic::Status,
+        >;
+        async fn validate_json_rules(
+            &self,
+            request: tonic::Request<super::ValidateJsonRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ValidateJsonRulesResponse>,
+            tonic::Status,
+        >;
+        async fn update_json_rules(
+            &self,
+            request: tonic::Request<super::UpdateJsonRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateJsonRulesResponse>,
             tonic::Status,
         >;
     }
@@ -840,6 +938,52 @@ pub mod rule_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/sift.rules.v1.RuleService/ViewJsonRules" => {
+                    #[allow(non_camel_case_types)]
+                    struct ViewJsonRulesSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::ViewJsonRulesRequest>
+                    for ViewJsonRulesSvc<T> {
+                        type Response = super::ViewJsonRulesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ViewJsonRulesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::view_json_rules(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ViewJsonRulesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/sift.rules.v1.RuleService/UpdateHumanFriendlyRules" => {
                     #[allow(non_camel_case_types)]
                     struct UpdateHumanFriendlyRulesSvc<T: RuleService>(pub Arc<T>);
@@ -877,6 +1021,99 @@ pub mod rule_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = UpdateHumanFriendlyRulesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/ValidateJsonRules" => {
+                    #[allow(non_camel_case_types)]
+                    struct ValidateJsonRulesSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::ValidateJsonRulesRequest>
+                    for ValidateJsonRulesSvc<T> {
+                        type Response = super::ValidateJsonRulesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ValidateJsonRulesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::validate_json_rules(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ValidateJsonRulesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/UpdateJsonRules" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateJsonRulesSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::UpdateJsonRulesRequest>
+                    for UpdateJsonRulesSvc<T> {
+                        type Response = super::UpdateJsonRulesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateJsonRulesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::update_json_rules(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = UpdateJsonRulesSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

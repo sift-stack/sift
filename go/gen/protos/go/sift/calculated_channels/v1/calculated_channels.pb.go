@@ -123,20 +123,79 @@ func (ExpressionMode) EnumDescriptor() ([]byte, []int) {
 	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{1}
 }
 
+type ExpressionChannelReference struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ChannelReference string `protobuf:"bytes,1,opt,name=channel_reference,json=channelReference,proto3" json:"channel_reference,omitempty"`
+	ChannelId        string `protobuf:"bytes,2,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
+}
+
+func (x *ExpressionChannelReference) Reset() {
+	*x = ExpressionChannelReference{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExpressionChannelReference) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExpressionChannelReference) ProtoMessage() {}
+
+func (x *ExpressionChannelReference) ProtoReflect() protoreflect.Message {
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExpressionChannelReference.ProtoReflect.Descriptor instead.
+func (*ExpressionChannelReference) Descriptor() ([]byte, []int) {
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *ExpressionChannelReference) GetChannelReference() string {
+	if x != nil {
+		return x.ChannelReference
+	}
+	return ""
+}
+
+func (x *ExpressionChannelReference) GetChannelId() string {
+	if x != nil {
+		return x.ChannelId
+	}
+	return ""
+}
+
 type ExpressionRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
 	// A map from the channel reference in the expression string (e.g. $1) to the channel id (uuid).
-	ChannelReferences map[string]string `protobuf:"bytes,1,rep,name=channel_references,json=channelReferences,proto3" json:"channel_references,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	Expression        string            `protobuf:"bytes,2,opt,name=expression,proto3" json:"expression,omitempty"`
+	// This is deprecated and should be passed in expression_channel_references instead.
+	//
+	// Deprecated: Do not use.
+	ChannelReferences           map[string]string             `protobuf:"bytes,1,rep,name=channel_references,json=channelReferences,proto3" json:"channel_references,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Expression                  string                        `protobuf:"bytes,2,opt,name=expression,proto3" json:"expression,omitempty"`
+	ExpressionChannelReferences []*ExpressionChannelReference `protobuf:"bytes,3,rep,name=expression_channel_references,json=expressionChannelReferences,proto3" json:"expression_channel_references,omitempty"`
 }
 
 func (x *ExpressionRequest) Reset() {
 	*x = ExpressionRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[0]
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -149,7 +208,7 @@ func (x *ExpressionRequest) String() string {
 func (*ExpressionRequest) ProtoMessage() {}
 
 func (x *ExpressionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[0]
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -162,9 +221,10 @@ func (x *ExpressionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExpressionRequest.ProtoReflect.Descriptor instead.
 func (*ExpressionRequest) Descriptor() ([]byte, []int) {
-	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{0}
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{1}
 }
 
+// Deprecated: Do not use.
 func (x *ExpressionRequest) GetChannelReferences() map[string]string {
 	if x != nil {
 		return x.ChannelReferences
@@ -177,6 +237,13 @@ func (x *ExpressionRequest) GetExpression() string {
 		return x.Expression
 	}
 	return ""
+}
+
+func (x *ExpressionRequest) GetExpressionChannelReferences() []*ExpressionChannelReference {
+	if x != nil {
+		return x.ExpressionChannelReferences
+	}
+	return nil
 }
 
 type ListExpressionIdentifiersRequest struct {
@@ -193,7 +260,7 @@ type ListExpressionIdentifiersRequest struct {
 func (x *ListExpressionIdentifiersRequest) Reset() {
 	*x = ListExpressionIdentifiersRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[1]
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -206,7 +273,7 @@ func (x *ListExpressionIdentifiersRequest) String() string {
 func (*ListExpressionIdentifiersRequest) ProtoMessage() {}
 
 func (x *ListExpressionIdentifiersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[1]
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,7 +286,7 @@ func (x *ListExpressionIdentifiersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListExpressionIdentifiersRequest.ProtoReflect.Descriptor instead.
 func (*ListExpressionIdentifiersRequest) Descriptor() ([]byte, []int) {
-	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{1}
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ListExpressionIdentifiersRequest) GetPageSize() uint32 {
@@ -254,7 +321,7 @@ type ListExpressionIdentifiersResponse struct {
 func (x *ListExpressionIdentifiersResponse) Reset() {
 	*x = ListExpressionIdentifiersResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[2]
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -267,7 +334,7 @@ func (x *ListExpressionIdentifiersResponse) String() string {
 func (*ListExpressionIdentifiersResponse) ProtoMessage() {}
 
 func (x *ListExpressionIdentifiersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[2]
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +347,7 @@ func (x *ListExpressionIdentifiersResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListExpressionIdentifiersResponse.ProtoReflect.Descriptor instead.
 func (*ListExpressionIdentifiersResponse) Descriptor() ([]byte, []int) {
-	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{2}
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListExpressionIdentifiersResponse) GetIdentifiers() []*ExpressionIdentifier {
@@ -304,7 +371,7 @@ type ExpressionIdentifier struct {
 func (x *ExpressionIdentifier) Reset() {
 	*x = ExpressionIdentifier{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[3]
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -317,7 +384,7 @@ func (x *ExpressionIdentifier) String() string {
 func (*ExpressionIdentifier) ProtoMessage() {}
 
 func (x *ExpressionIdentifier) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[3]
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,7 +397,7 @@ func (x *ExpressionIdentifier) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExpressionIdentifier.ProtoReflect.Descriptor instead.
 func (*ExpressionIdentifier) Descriptor() ([]byte, []int) {
-	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{3}
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ExpressionIdentifier) GetName() string {
@@ -373,7 +440,7 @@ type ValidateExpressionRequest struct {
 func (x *ValidateExpressionRequest) Reset() {
 	*x = ValidateExpressionRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[4]
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -386,7 +453,7 @@ func (x *ValidateExpressionRequest) String() string {
 func (*ValidateExpressionRequest) ProtoMessage() {}
 
 func (x *ValidateExpressionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[4]
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -399,7 +466,7 @@ func (x *ValidateExpressionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateExpressionRequest.ProtoReflect.Descriptor instead.
 func (*ValidateExpressionRequest) Descriptor() ([]byte, []int) {
-	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{4}
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ValidateExpressionRequest) GetExpression() *ExpressionRequest {
@@ -431,7 +498,7 @@ type ValidateExpressionResponse struct {
 func (x *ValidateExpressionResponse) Reset() {
 	*x = ValidateExpressionResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[5]
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -444,7 +511,7 @@ func (x *ValidateExpressionResponse) String() string {
 func (*ValidateExpressionResponse) ProtoMessage() {}
 
 func (x *ValidateExpressionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[5]
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -457,7 +524,7 @@ func (x *ValidateExpressionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateExpressionResponse.ProtoReflect.Descriptor instead.
 func (*ValidateExpressionResponse) Descriptor() ([]byte, []int) {
-	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{5}
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{6}
 }
 
 func (m *ValidateExpressionResponse) GetResult() isValidateExpressionResponse_Result {
@@ -508,7 +575,7 @@ type ErrorValidatingExpressionResult struct {
 func (x *ErrorValidatingExpressionResult) Reset() {
 	*x = ErrorValidatingExpressionResult{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[6]
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -521,7 +588,7 @@ func (x *ErrorValidatingExpressionResult) String() string {
 func (*ErrorValidatingExpressionResult) ProtoMessage() {}
 
 func (x *ErrorValidatingExpressionResult) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[6]
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -534,7 +601,7 @@ func (x *ErrorValidatingExpressionResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorValidatingExpressionResult.ProtoReflect.Descriptor instead.
 func (*ErrorValidatingExpressionResult) Descriptor() ([]byte, []int) {
-	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{6}
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ErrorValidatingExpressionResult) GetErrorMessage() string {
@@ -555,7 +622,7 @@ type SuccessValidatingExpressionResult struct {
 func (x *SuccessValidatingExpressionResult) Reset() {
 	*x = SuccessValidatingExpressionResult{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[7]
+		mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -568,7 +635,7 @@ func (x *SuccessValidatingExpressionResult) String() string {
 func (*SuccessValidatingExpressionResult) ProtoMessage() {}
 
 func (x *SuccessValidatingExpressionResult) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[7]
+	mi := &file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -581,7 +648,7 @@ func (x *SuccessValidatingExpressionResult) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use SuccessValidatingExpressionResult.ProtoReflect.Descriptor instead.
 func (*SuccessValidatingExpressionResult) Descriptor() ([]byte, []int) {
-	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{7}
+	return file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SuccessValidatingExpressionResult) GetDataType() v1.ChannelDataType {
@@ -609,18 +676,33 @@ var file_sift_calculated_channels_v1_calculated_channels_proto_rawDesc = []byte{
 	0x6f, 0x74, 0x6f, 0x1a, 0x2b, 0x73, 0x69, 0x66, 0x74, 0x2f, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e,
 	0x2f, 0x74, 0x79, 0x70, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c,
 	0x5f, 0x64, 0x61, 0x74, 0x61, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x22, 0xf9, 0x01, 0x0a, 0x11, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x79, 0x0a, 0x12, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65,
-	0x6c, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03,
-	0x28, 0x0b, 0x32, 0x45, 0x2e, 0x73, 0x69, 0x66, 0x74, 0x2e, 0x63, 0x61, 0x6c, 0x63, 0x75, 0x6c,
-	0x61, 0x74, 0x65, 0x64, 0x5f, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x73, 0x2e, 0x76, 0x31,
-	0x2e, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x2e, 0x43, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x52, 0x65, 0x66, 0x65, 0x72, 0x65,
-	0x6e, 0x63, 0x65, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x42, 0x03, 0xe0, 0x41, 0x02, 0x52, 0x11,
+	0x22, 0x72, 0x0a, 0x1a, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x43, 0x68,
+	0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x52, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x12, 0x30,
+	0x0a, 0x11, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65,
+	0x6e, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x03, 0xe0, 0x41, 0x02, 0x52, 0x10,
 	0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x52, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65,
-	0x73, 0x12, 0x23, 0x0a, 0x0a, 0x65, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x03, 0xe0, 0x41, 0x02, 0x52, 0x0a, 0x65, 0x78, 0x70, 0x72,
-	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x1a, 0x44, 0x0a, 0x16, 0x43, 0x68, 0x61, 0x6e, 0x6e, 0x65,
+	0x12, 0x22, 0x0a, 0x0a, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x5f, 0x69, 0x64, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x42, 0x03, 0xe0, 0x41, 0x02, 0x52, 0x09, 0x63, 0x68, 0x61, 0x6e, 0x6e,
+	0x65, 0x6c, 0x49, 0x64, 0x22, 0xf5, 0x02, 0x0a, 0x11, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73,
+	0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x78, 0x0a, 0x12, 0x63, 0x68,
+	0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x73,
+	0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x45, 0x2e, 0x73, 0x69, 0x66, 0x74, 0x2e, 0x63, 0x61,
+	0x6c, 0x63, 0x75, 0x6c, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c,
+	0x73, 0x2e, 0x76, 0x31, 0x2e, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x43, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x52, 0x65,
+	0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x42, 0x02, 0x18,
+	0x01, 0x52, 0x11, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x52, 0x65, 0x66, 0x65, 0x72, 0x65,
+	0x6e, 0x63, 0x65, 0x73, 0x12, 0x23, 0x0a, 0x0a, 0x65, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69,
+	0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x03, 0xe0, 0x41, 0x02, 0x52, 0x0a, 0x65,
+	0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x7b, 0x0a, 0x1d, 0x65, 0x78, 0x70,
+	0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x5f, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x5f,
+	0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x37, 0x2e, 0x73, 0x69, 0x66, 0x74, 0x2e, 0x63, 0x61, 0x6c, 0x63, 0x75, 0x6c, 0x61, 0x74,
+	0x65, 0x64, 0x5f, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x73, 0x2e, 0x76, 0x31, 0x2e, 0x45,
+	0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x43, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c,
+	0x52, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x52, 0x1b, 0x65, 0x78, 0x70, 0x72, 0x65,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x43, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x52, 0x65, 0x66, 0x65,
+	0x72, 0x65, 0x6e, 0x63, 0x65, 0x73, 0x1a, 0x44, 0x0a, 0x16, 0x43, 0x68, 0x61, 0x6e, 0x6e, 0x65,
 	0x6c, 0x52, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79,
 	0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b,
 	0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
@@ -802,40 +884,42 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_rawDescGZIP() []
 }
 
 var file_sift_calculated_channels_v1_calculated_channels_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_sift_calculated_channels_v1_calculated_channels_proto_goTypes = []interface{}{
 	(ExpressionIdentifierType)(0),             // 0: sift.calculated_channels.v1.ExpressionIdentifierType
 	(ExpressionMode)(0),                       // 1: sift.calculated_channels.v1.ExpressionMode
-	(*ExpressionRequest)(nil),                 // 2: sift.calculated_channels.v1.ExpressionRequest
-	(*ListExpressionIdentifiersRequest)(nil),  // 3: sift.calculated_channels.v1.ListExpressionIdentifiersRequest
-	(*ListExpressionIdentifiersResponse)(nil), // 4: sift.calculated_channels.v1.ListExpressionIdentifiersResponse
-	(*ExpressionIdentifier)(nil),              // 5: sift.calculated_channels.v1.ExpressionIdentifier
-	(*ValidateExpressionRequest)(nil),         // 6: sift.calculated_channels.v1.ValidateExpressionRequest
-	(*ValidateExpressionResponse)(nil),        // 7: sift.calculated_channels.v1.ValidateExpressionResponse
-	(*ErrorValidatingExpressionResult)(nil),   // 8: sift.calculated_channels.v1.ErrorValidatingExpressionResult
-	(*SuccessValidatingExpressionResult)(nil), // 9: sift.calculated_channels.v1.SuccessValidatingExpressionResult
-	nil,                     // 10: sift.calculated_channels.v1.ExpressionRequest.ChannelReferencesEntry
-	(v1.ChannelDataType)(0), // 11: sift.common.type.v1.ChannelDataType
+	(*ExpressionChannelReference)(nil),        // 2: sift.calculated_channels.v1.ExpressionChannelReference
+	(*ExpressionRequest)(nil),                 // 3: sift.calculated_channels.v1.ExpressionRequest
+	(*ListExpressionIdentifiersRequest)(nil),  // 4: sift.calculated_channels.v1.ListExpressionIdentifiersRequest
+	(*ListExpressionIdentifiersResponse)(nil), // 5: sift.calculated_channels.v1.ListExpressionIdentifiersResponse
+	(*ExpressionIdentifier)(nil),              // 6: sift.calculated_channels.v1.ExpressionIdentifier
+	(*ValidateExpressionRequest)(nil),         // 7: sift.calculated_channels.v1.ValidateExpressionRequest
+	(*ValidateExpressionResponse)(nil),        // 8: sift.calculated_channels.v1.ValidateExpressionResponse
+	(*ErrorValidatingExpressionResult)(nil),   // 9: sift.calculated_channels.v1.ErrorValidatingExpressionResult
+	(*SuccessValidatingExpressionResult)(nil), // 10: sift.calculated_channels.v1.SuccessValidatingExpressionResult
+	nil,                     // 11: sift.calculated_channels.v1.ExpressionRequest.ChannelReferencesEntry
+	(v1.ChannelDataType)(0), // 12: sift.common.type.v1.ChannelDataType
 }
 var file_sift_calculated_channels_v1_calculated_channels_proto_depIdxs = []int32{
-	10, // 0: sift.calculated_channels.v1.ExpressionRequest.channel_references:type_name -> sift.calculated_channels.v1.ExpressionRequest.ChannelReferencesEntry
-	1,  // 1: sift.calculated_channels.v1.ListExpressionIdentifiersRequest.mode:type_name -> sift.calculated_channels.v1.ExpressionMode
-	5,  // 2: sift.calculated_channels.v1.ListExpressionIdentifiersResponse.identifiers:type_name -> sift.calculated_channels.v1.ExpressionIdentifier
-	0,  // 3: sift.calculated_channels.v1.ExpressionIdentifier.type:type_name -> sift.calculated_channels.v1.ExpressionIdentifierType
-	2,  // 4: sift.calculated_channels.v1.ValidateExpressionRequest.expression:type_name -> sift.calculated_channels.v1.ExpressionRequest
-	1,  // 5: sift.calculated_channels.v1.ValidateExpressionRequest.mode:type_name -> sift.calculated_channels.v1.ExpressionMode
-	8,  // 6: sift.calculated_channels.v1.ValidateExpressionResponse.error:type_name -> sift.calculated_channels.v1.ErrorValidatingExpressionResult
-	9,  // 7: sift.calculated_channels.v1.ValidateExpressionResponse.success:type_name -> sift.calculated_channels.v1.SuccessValidatingExpressionResult
-	11, // 8: sift.calculated_channels.v1.SuccessValidatingExpressionResult.data_type:type_name -> sift.common.type.v1.ChannelDataType
-	3,  // 9: sift.calculated_channels.v1.CalculatedChannelsService.ListExpressionIdentifiers:input_type -> sift.calculated_channels.v1.ListExpressionIdentifiersRequest
-	6,  // 10: sift.calculated_channels.v1.CalculatedChannelsService.ValidateExpression:input_type -> sift.calculated_channels.v1.ValidateExpressionRequest
-	4,  // 11: sift.calculated_channels.v1.CalculatedChannelsService.ListExpressionIdentifiers:output_type -> sift.calculated_channels.v1.ListExpressionIdentifiersResponse
-	7,  // 12: sift.calculated_channels.v1.CalculatedChannelsService.ValidateExpression:output_type -> sift.calculated_channels.v1.ValidateExpressionResponse
-	11, // [11:13] is the sub-list for method output_type
-	9,  // [9:11] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	11, // 0: sift.calculated_channels.v1.ExpressionRequest.channel_references:type_name -> sift.calculated_channels.v1.ExpressionRequest.ChannelReferencesEntry
+	2,  // 1: sift.calculated_channels.v1.ExpressionRequest.expression_channel_references:type_name -> sift.calculated_channels.v1.ExpressionChannelReference
+	1,  // 2: sift.calculated_channels.v1.ListExpressionIdentifiersRequest.mode:type_name -> sift.calculated_channels.v1.ExpressionMode
+	6,  // 3: sift.calculated_channels.v1.ListExpressionIdentifiersResponse.identifiers:type_name -> sift.calculated_channels.v1.ExpressionIdentifier
+	0,  // 4: sift.calculated_channels.v1.ExpressionIdentifier.type:type_name -> sift.calculated_channels.v1.ExpressionIdentifierType
+	3,  // 5: sift.calculated_channels.v1.ValidateExpressionRequest.expression:type_name -> sift.calculated_channels.v1.ExpressionRequest
+	1,  // 6: sift.calculated_channels.v1.ValidateExpressionRequest.mode:type_name -> sift.calculated_channels.v1.ExpressionMode
+	9,  // 7: sift.calculated_channels.v1.ValidateExpressionResponse.error:type_name -> sift.calculated_channels.v1.ErrorValidatingExpressionResult
+	10, // 8: sift.calculated_channels.v1.ValidateExpressionResponse.success:type_name -> sift.calculated_channels.v1.SuccessValidatingExpressionResult
+	12, // 9: sift.calculated_channels.v1.SuccessValidatingExpressionResult.data_type:type_name -> sift.common.type.v1.ChannelDataType
+	4,  // 10: sift.calculated_channels.v1.CalculatedChannelsService.ListExpressionIdentifiers:input_type -> sift.calculated_channels.v1.ListExpressionIdentifiersRequest
+	7,  // 11: sift.calculated_channels.v1.CalculatedChannelsService.ValidateExpression:input_type -> sift.calculated_channels.v1.ValidateExpressionRequest
+	5,  // 12: sift.calculated_channels.v1.CalculatedChannelsService.ListExpressionIdentifiers:output_type -> sift.calculated_channels.v1.ListExpressionIdentifiersResponse
+	8,  // 13: sift.calculated_channels.v1.CalculatedChannelsService.ValidateExpression:output_type -> sift.calculated_channels.v1.ValidateExpressionResponse
+	12, // [12:14] is the sub-list for method output_type
+	10, // [10:12] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_sift_calculated_channels_v1_calculated_channels_proto_init() }
@@ -845,7 +929,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ExpressionRequest); i {
+			switch v := v.(*ExpressionChannelReference); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -857,7 +941,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			}
 		}
 		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListExpressionIdentifiersRequest); i {
+			switch v := v.(*ExpressionRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -869,7 +953,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			}
 		}
 		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ListExpressionIdentifiersResponse); i {
+			switch v := v.(*ListExpressionIdentifiersRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -881,7 +965,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			}
 		}
 		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ExpressionIdentifier); i {
+			switch v := v.(*ListExpressionIdentifiersResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -893,7 +977,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			}
 		}
 		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ValidateExpressionRequest); i {
+			switch v := v.(*ExpressionIdentifier); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -905,7 +989,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			}
 		}
 		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ValidateExpressionResponse); i {
+			switch v := v.(*ValidateExpressionRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -917,7 +1001,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			}
 		}
 		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ErrorValidatingExpressionResult); i {
+			switch v := v.(*ValidateExpressionResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -929,6 +1013,18 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			}
 		}
 		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ErrorValidatingExpressionResult); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SuccessValidatingExpressionResult); i {
 			case 0:
 				return &v.state
@@ -941,7 +1037,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			}
 		}
 	}
-	file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[5].OneofWrappers = []interface{}{
+	file_sift_calculated_channels_v1_calculated_channels_proto_msgTypes[6].OneofWrappers = []interface{}{
 		(*ValidateExpressionResponse_Error)(nil),
 		(*ValidateExpressionResponse_Success)(nil),
 	}
@@ -951,7 +1047,7 @@ func file_sift_calculated_channels_v1_calculated_channels_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_sift_calculated_channels_v1_calculated_channels_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
