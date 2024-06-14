@@ -1552,6 +1552,323 @@ impl<'de> serde::Deserialize<'de> for GetRuleResponse {
         deserializer.deserialize_struct("sift.rules.v1.GetRuleResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for JsonRulesRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.asset_id.is_empty() {
+            len += 1;
+        }
+        if !self.rules_json.is_empty() {
+            len += 1;
+        }
+        if !self.organization_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.JsonRulesRequest", len)?;
+        if !self.asset_id.is_empty() {
+            struct_ser.serialize_field("assetId", &self.asset_id)?;
+        }
+        if !self.rules_json.is_empty() {
+            struct_ser.serialize_field("rulesJson", &self.rules_json)?;
+        }
+        if !self.organization_id.is_empty() {
+            struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for JsonRulesRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "asset_id",
+            "assetId",
+            "rules_json",
+            "rulesJson",
+            "organization_id",
+            "organizationId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AssetId,
+            RulesJson,
+            OrganizationId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
+                            "rulesJson" | "rules_json" => Ok(GeneratedField::RulesJson),
+                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = JsonRulesRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.JsonRulesRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<JsonRulesRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut asset_id__ = None;
+                let mut rules_json__ = None;
+                let mut organization_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AssetId => {
+                            if asset_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetId"));
+                            }
+                            asset_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RulesJson => {
+                            if rules_json__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rulesJson"));
+                            }
+                            rules_json__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrganizationId => {
+                            if organization_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("organizationId"));
+                            }
+                            organization_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(JsonRulesRequest {
+                    asset_id: asset_id__.unwrap_or_default(),
+                    rules_json: rules_json__.unwrap_or_default(),
+                    organization_id: organization_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.JsonRulesRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for JsonRulesResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.success {
+            len += 1;
+        }
+        if self.total_rules_count != 0 {
+            len += 1;
+        }
+        if self.rules_created_count != 0 {
+            len += 1;
+        }
+        if self.rules_updated_count != 0 {
+            len += 1;
+        }
+        if self.rules_deleted_count != 0 {
+            len += 1;
+        }
+        if self.error_messages.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.JsonRulesResponse", len)?;
+        if self.success {
+            struct_ser.serialize_field("success", &self.success)?;
+        }
+        if self.total_rules_count != 0 {
+            struct_ser.serialize_field("totalRulesCount", &self.total_rules_count)?;
+        }
+        if self.rules_created_count != 0 {
+            struct_ser.serialize_field("rulesCreatedCount", &self.rules_created_count)?;
+        }
+        if self.rules_updated_count != 0 {
+            struct_ser.serialize_field("rulesUpdatedCount", &self.rules_updated_count)?;
+        }
+        if self.rules_deleted_count != 0 {
+            struct_ser.serialize_field("rulesDeletedCount", &self.rules_deleted_count)?;
+        }
+        if let Some(v) = self.error_messages.as_ref() {
+            struct_ser.serialize_field("errorMessages", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for JsonRulesResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "success",
+            "total_rules_count",
+            "totalRulesCount",
+            "rules_created_count",
+            "rulesCreatedCount",
+            "rules_updated_count",
+            "rulesUpdatedCount",
+            "rules_deleted_count",
+            "rulesDeletedCount",
+            "error_messages",
+            "errorMessages",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Success,
+            TotalRulesCount,
+            RulesCreatedCount,
+            RulesUpdatedCount,
+            RulesDeletedCount,
+            ErrorMessages,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "success" => Ok(GeneratedField::Success),
+                            "totalRulesCount" | "total_rules_count" => Ok(GeneratedField::TotalRulesCount),
+                            "rulesCreatedCount" | "rules_created_count" => Ok(GeneratedField::RulesCreatedCount),
+                            "rulesUpdatedCount" | "rules_updated_count" => Ok(GeneratedField::RulesUpdatedCount),
+                            "rulesDeletedCount" | "rules_deleted_count" => Ok(GeneratedField::RulesDeletedCount),
+                            "errorMessages" | "error_messages" => Ok(GeneratedField::ErrorMessages),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = JsonRulesResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.JsonRulesResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<JsonRulesResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut success__ = None;
+                let mut total_rules_count__ = None;
+                let mut rules_created_count__ = None;
+                let mut rules_updated_count__ = None;
+                let mut rules_deleted_count__ = None;
+                let mut error_messages__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Success => {
+                            if success__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("success"));
+                            }
+                            success__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::TotalRulesCount => {
+                            if total_rules_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("totalRulesCount"));
+                            }
+                            total_rules_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::RulesCreatedCount => {
+                            if rules_created_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rulesCreatedCount"));
+                            }
+                            rules_created_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::RulesUpdatedCount => {
+                            if rules_updated_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rulesUpdatedCount"));
+                            }
+                            rules_updated_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::RulesDeletedCount => {
+                            if rules_deleted_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rulesDeletedCount"));
+                            }
+                            rules_deleted_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::ErrorMessages => {
+                            if error_messages__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("errorMessages"));
+                            }
+                            error_messages__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(JsonRulesResponse {
+                    success: success__.unwrap_or_default(),
+                    total_rules_count: total_rules_count__.unwrap_or_default(),
+                    rules_created_count: rules_created_count__.unwrap_or_default(),
+                    rules_updated_count: rules_updated_count__.unwrap_or_default(),
+                    rules_deleted_count: rules_deleted_count__.unwrap_or_default(),
+                    error_messages: error_messages__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.JsonRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for LastValueThreshold {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -3910,6 +4227,188 @@ impl<'de> serde::Deserialize<'de> for UpdateHumanFriendlyRulesResponse {
         deserializer.deserialize_struct("sift.rules.v1.UpdateHumanFriendlyRulesResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for UpdateJsonRulesRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.request.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.UpdateJsonRulesRequest", len)?;
+        if let Some(v) = self.request.as_ref() {
+            struct_ser.serialize_field("request", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UpdateJsonRulesRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "request",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Request,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "request" => Ok(GeneratedField::Request),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UpdateJsonRulesRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.UpdateJsonRulesRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UpdateJsonRulesRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut request__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Request => {
+                            if request__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("request"));
+                            }
+                            request__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UpdateJsonRulesRequest {
+                    request: request__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.UpdateJsonRulesRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UpdateJsonRulesResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.response.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.UpdateJsonRulesResponse", len)?;
+        if let Some(v) = self.response.as_ref() {
+            struct_ser.serialize_field("response", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UpdateJsonRulesResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "response",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Response,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "response" => Ok(GeneratedField::Response),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UpdateJsonRulesResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.UpdateJsonRulesResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UpdateJsonRulesResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut response__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Response => {
+                            if response__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("response"));
+                            }
+                            response__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UpdateJsonRulesResponse {
+                    response: response__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.UpdateJsonRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for UpdateRuleRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -4199,6 +4698,188 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleResponse {
         deserializer.deserialize_struct("sift.rules.v1.UpdateRuleResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ValidateJsonRulesRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.request.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ValidateJsonRulesRequest", len)?;
+        if let Some(v) = self.request.as_ref() {
+            struct_ser.serialize_field("request", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ValidateJsonRulesRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "request",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Request,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "request" => Ok(GeneratedField::Request),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ValidateJsonRulesRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.ValidateJsonRulesRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ValidateJsonRulesRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut request__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Request => {
+                            if request__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("request"));
+                            }
+                            request__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(ValidateJsonRulesRequest {
+                    request: request__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.ValidateJsonRulesRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ValidateJsonRulesResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.response.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ValidateJsonRulesResponse", len)?;
+        if let Some(v) = self.response.as_ref() {
+            struct_ser.serialize_field("response", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ValidateJsonRulesResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "response",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Response,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "response" => Ok(GeneratedField::Response),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ValidateJsonRulesResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.ValidateJsonRulesResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ValidateJsonRulesResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut response__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Response => {
+                            if response__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("response"));
+                            }
+                            response__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(ValidateJsonRulesResponse {
+                    response: response__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.ValidateJsonRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ViewHumanFriendlyRulesRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -4381,5 +5062,189 @@ impl<'de> serde::Deserialize<'de> for ViewHumanFriendlyRulesResponse {
             }
         }
         deserializer.deserialize_struct("sift.rules.v1.ViewHumanFriendlyRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ViewJsonRulesRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.asset_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ViewJsonRulesRequest", len)?;
+        if !self.asset_id.is_empty() {
+            struct_ser.serialize_field("assetId", &self.asset_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ViewJsonRulesRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "asset_id",
+            "assetId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AssetId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ViewJsonRulesRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.ViewJsonRulesRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ViewJsonRulesRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut asset_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AssetId => {
+                            if asset_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetId"));
+                            }
+                            asset_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ViewJsonRulesRequest {
+                    asset_id: asset_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.ViewJsonRulesRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ViewJsonRulesResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rules_json.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ViewJsonRulesResponse", len)?;
+        if !self.rules_json.is_empty() {
+            struct_ser.serialize_field("rulesJson", &self.rules_json)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ViewJsonRulesResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rules_json",
+            "rulesJson",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RulesJson,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "rulesJson" | "rules_json" => Ok(GeneratedField::RulesJson),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ViewJsonRulesResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.ViewJsonRulesResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ViewJsonRulesResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rules_json__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RulesJson => {
+                            if rules_json__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rulesJson"));
+                            }
+                            rules_json__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ViewJsonRulesResponse {
+                    rules_json: rules_json__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.ViewJsonRulesResponse", FIELDS, GeneratedVisitor)
     }
 }

@@ -197,18 +197,21 @@ pub struct DeleteRuleRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteRuleResponse {
 }
+/// Deprecated - use ViewJsonRulesRequest.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ViewHumanFriendlyRulesRequest {
     #[prost(string, tag="1")]
     pub asset_id: ::prost::alloc::string::String,
 }
+/// Deprecated - use ViewJsonRulesResponse.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ViewHumanFriendlyRulesResponse {
     #[prost(string, tag="1")]
     pub rules_json: ::prost::alloc::string::String,
 }
+/// Deprecated - use UpdateJsonRulesRequest.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateHumanFriendlyRulesRequest {
@@ -219,6 +222,7 @@ pub struct UpdateHumanFriendlyRulesRequest {
     #[prost(string, tag="3")]
     pub organization_id: ::prost::alloc::string::String,
 }
+/// Deprecated - use UpdateJsonRulesResponse.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateHumanFriendlyRulesResponse {
@@ -228,6 +232,68 @@ pub struct UpdateHumanFriendlyRulesResponse {
     pub rules_count: i32,
     #[prost(string, tag="3")]
     pub messages: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ViewJsonRulesRequest {
+    #[prost(string, tag="1")]
+    pub asset_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ViewJsonRulesResponse {
+    #[prost(string, tag="1")]
+    pub rules_json: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct JsonRulesRequest {
+    #[prost(string, tag="1")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub rules_json: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub organization_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct JsonRulesResponse {
+    #[prost(bool, tag="1")]
+    pub success: bool,
+    #[prost(int32, tag="2")]
+    pub total_rules_count: i32,
+    #[prost(int32, tag="3")]
+    pub rules_created_count: i32,
+    #[prost(int32, tag="4")]
+    pub rules_updated_count: i32,
+    #[prost(int32, tag="5")]
+    pub rules_deleted_count: i32,
+    #[prost(string, optional, tag="6")]
+    pub error_messages: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ValidateJsonRulesRequest {
+    #[prost(message, optional, tag="1")]
+    pub request: ::core::option::Option<JsonRulesRequest>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ValidateJsonRulesResponse {
+    #[prost(message, optional, tag="1")]
+    pub response: ::core::option::Option<JsonRulesResponse>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateJsonRulesRequest {
+    #[prost(message, optional, tag="1")]
+    pub request: ::core::option::Option<JsonRulesRequest>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateJsonRulesResponse {
+    #[prost(message, optional, tag="1")]
+    pub response: ::core::option::Option<JsonRulesResponse>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
