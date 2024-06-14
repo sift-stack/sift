@@ -5,7 +5,7 @@ used by consumers of this library and are not garaunteed to be stable.
 
 from ...grpc.transport import SiftChannel
 from ..flow import FlowConfig
-from ...convert.protobuf import try_convert_pb
+from sift_internal.convert.protobuf import try_cast_pb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     IngestionConfig,
     CreateIngestionConfigRequest,
@@ -56,7 +56,7 @@ def create_ingestion_config(
         asset_name=asset_name,
         client_key=client_key,
         organization_id=organization_id or "",
-        flows=[try_convert_pb(flow, FlowConfigPb) for flow in flows],
+        flows=[try_cast_pb(flow, FlowConfigPb) for flow in flows],
     )
     res = cast(CreateIngestionConfigResponse, svc.CreateIngestionConfig(req))
     return res.ingestion_config

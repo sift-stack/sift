@@ -1,6 +1,6 @@
 from __future__ import annotations
 from google.protobuf.empty_pb2 import Empty
-from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_convert_pb
+from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_cast_pb
 from enum import Enum
 from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as ChannelEnumTypePb
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
@@ -56,16 +56,16 @@ class ChannelConfig(AsProtobuf):
         self.bit_field_elements = bit_field_elements
         self.enum_types = enum_types
 
-    def as_pb(self, klass: Type[ProtobufMessage]) -> ProtobufMessage:
+    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
         return ChannelConfigPb(
             name=self.name,
             component=self.component or "",
             unit=self.unit or "",
             description=self.description or "",
             data_type=self.data_type.value,
-            enum_types=[try_convert_pb(etype, ChannelEnumTypePb) for etype in self.enum_types],
+            enum_types=[try_cast_pb(etype, ChannelEnumTypePb) for etype in self.enum_types],
             bit_field_elements=[
-                try_convert_pb(el, ChannelBitFieldElementPb) for el in self.bit_field_elements
+                try_cast_pb(el, ChannelBitFieldElementPb) for el in self.bit_field_elements
             ],
         )
 
@@ -80,7 +80,7 @@ class ChannelBitFieldElement(AsProtobuf):
         self.index = index
         self.bit_count = bit_count
 
-    def as_pb(self, klass: Type[ProtobufMessage]) -> ProtobufMessage:
+    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
         return ChannelBitFieldElementPb(
             name=self.name,
             index=self.index,
@@ -96,7 +96,7 @@ class ChannelEnumType(AsProtobuf):
         self.name = name
         self.key = key
 
-    def as_pb(self, klass: Type[ProtobufMessage]) -> ProtobufMessage:
+    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
         return ChannelEnumTypePb(name=self.name, key=self.key)
 
 

@@ -16,6 +16,7 @@ OUTPUT_PROTOS="${TMP_DIR}/protos"
 PYTHON_GEN_DIR="python/gen"
 PYTHON_LIB_DIR="python/lib"
 PYTHON_CLIENT_LIB="sift_py"
+PYTHON_CLIENT_LIB_INTERNAL="sift_internal"
 
 USAGE=$(cat<<EOT
 Compile protocol buffers into supported target languages.
@@ -58,6 +59,7 @@ gen_python_modules() {
   done
 
   mv $PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB $PYTHON_GEN_DIR
+  mv $PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB_INTERNAL $PYTHON_GEN_DIR
   rm -rf $PYTHON_LIB_DIR
   mv $PYTHON_GEN_DIR $PYTHON_LIB_DIR
 
