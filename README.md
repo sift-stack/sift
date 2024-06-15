@@ -1,6 +1,9 @@
 # Sift
 
-[![Build status](https://github.com/sift-stack/sift/actions/workflows/ci.yaml/badge.svg)](https://github.com/sift-stack/sift/actions)
+[![Build status](https://github.com/sift-stack/sift/actions/workflows/rust_ci.yaml/badge.svg)](https://github.com/sift-stack/sift/actions)
+[![Build status](https://github.com/sift-stack/sift/actions/workflows/python_ci.yaml/badge.svg)](https://github.com/sift-stack/sift/actions)
+[![Build status](https://github.com/sift-stack/sift/actions/workflows/go_ci.yaml/badge.svg)](https://github.com/sift-stack/sift/actions)
+[![Build status](https://github.com/sift-stack/sift/actions/workflows/proto_ci.yaml/badge.svg)](https://github.com/sift-stack/sift/actions)
 
 This repository contains utilities to interface with Sift's API. Currently, the primary way to interact with our API is through the code generated via our protobufs (protocol buffers). Comprehensive documentation
 for our protobufs can be found at [this link](https://docs.siftstack.com/ingestion/api) or in the actual proto files themselves as doc-comments.

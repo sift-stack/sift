@@ -1,0 +1,19 @@
+name: protos-ci
+
+on:
+  release:
+    types: [created]
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint-protos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: bufbuild/buf-setup-action@v1
+      - uses: bufbuild/buf-lint-action@v1
+        with:
+          input: protos
