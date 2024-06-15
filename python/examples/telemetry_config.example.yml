@@ -1,0 +1,69 @@
+asset_name: LunarVehicle426
+ingestion_client_key: lunar_vehicle_426
+
+channels:
+  log_channel: &log_channel
+    name: log
+    data_type: CHANNEL_DATA_TYPE_STRING
+    description: asset logs
+  
+  velocity_channel: &velocity_channel
+    name: velocity
+    data_type: CHANNEL_DATA_TYPE_DOUBLE
+    description: speed
+    unit: Miles Per Hour
+    component: mainmotor
+  
+  voltage_channel: &voltage_channel
+    name: voltage
+    data_type: CHANNEL_DATA_TYPE_INT_32
+    description: voltage at the source
+    unit: Volts
+  
+  vehicle_state_channel: &vehicle_state_channel
+    name: vehicle_state
+    data_type: CHANNEL_DATA_TYPE_ENUM
+    description: vehicle state
+    unit: vehicle state
+    enum_types:
+      - name: Accelerating
+        key: 0
+      - name: Decelerating
+        key: 1
+      - name: Stopped
+        key: 2
+  
+  gpio_channel: &gpio_channel
+    name: gpio
+    data_type: CHANNEL_DATA_TYPE_BIT_FIELD
+    description: on/off values for pins on gpio
+    bit_field_elements:
+      - name: 12v
+        index: 0
+        bit_count: 1
+      - name: charge
+        index: 1
+        bit_count: 2
+      - name: led
+        index: 3
+        bit_count: 4
+      - name: heater
+        index: 7
+        bit_count: 1
+
+flows:
+  - name: readings
+    channels:
+      - <<: *velocity_channel
+      - <<: *voltage_channel
+      - <<: *vehicle_state_channel
+      - <<: *gpio_channel
+
+  - name: partial_readings
+    channels:
+      - <<: *velocity_channel
+      - <<: *voltage_channel
+      
+  - name: logs
+    channels:
+      - <<: *log_channel
