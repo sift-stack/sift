@@ -30,9 +30,7 @@ def _try_from_yaml_str(yaml_str: str) -> TelemetryConfig:
 
     asset_name = any_as(config.get("asset_name"), str)
     if asset_name is None or len(asset_name) == 0:
-        raise YamlConfigError(
-            "Expected a non-blank string for top-level 'asset_name' property"
-        )
+        raise YamlConfigError("Expected a non-blank string for top-level 'asset_name' property")
 
     ingestion_client_key = any_as(config.get("ingestion_client_key"), str)
     if ingestion_client_key is None or len(ingestion_client_key) == 0:
@@ -86,30 +84,22 @@ def _deserialize_channels_from_yaml(
     for raw_channel_config in raw_channel_configs:
         channel_name = any_as(raw_channel_config.get("name"), str)
         if channel_name is None or len(channel_name) == 0:
-            raise YamlConfigError(
-                "Expected channel to have a non-blank 'name' property"
-            )
+            raise YamlConfigError("Expected channel to have a non-blank 'name' property")
 
         channel_data_type_str = any_as(raw_channel_config.get("data_type"), str)
         if channel_data_type_str is None or len(channel_data_type_str) == 0:
-            raise YamlConfigError(
-                "Missing property for 'flows.channel.data_type' property"
-            )
+            raise YamlConfigError("Missing property for 'flows.channel.data_type' property")
 
         channel_data_type = ChannelDataType.from_str(channel_data_type_str)
         if channel_data_type is None:
-            raise YamlConfigError(
-                "Invalid property for 'flows.channel.data_type' property"
-            )
+            raise YamlConfigError("Invalid property for 'flows.channel.data_type' property")
 
         description = any_as(raw_channel_config.get("description"), str)
         unit = any_as(raw_channel_config.get("unit"), str)
         component = any_as(raw_channel_config.get("component"), str)
 
         bit_field_elements = []
-        raw_bit_field_elements = any_as(
-            raw_channel_config.get("bit_field_elements"), list
-        )
+        raw_bit_field_elements = any_as(raw_channel_config.get("bit_field_elements"), list)
         if raw_bit_field_elements is not None:
             for element in raw_bit_field_elements:
                 el = _deserialize_bit_field_element_from_yaml(element)
@@ -168,15 +158,11 @@ def _deserialize_bit_field_element_from_yaml(
 def _deserialize_enum_type_from_yaml(enum_type: Any) -> ChannelEnumType:
     name = any_as(enum_type.get("name"), str)
     if name is None or len(name) == 0:
-        raise YamlConfigError(
-            "Expected a non-blank value for 'flows.channels.enum_types.name'"
-        )
+        raise YamlConfigError("Expected a non-blank value for 'flows.channels.enum_types.name'")
 
     key = any_as(enum_type.get("key"), int)
     if key is None:
-        raise YamlConfigError(
-            "Expected an integer value for 'flows.channels.enum_types.key'"
-        )
+        raise YamlConfigError("Expected an integer value for 'flows.channels.enum_types.key'")
 
     return ChannelEnumType(
         name=name,

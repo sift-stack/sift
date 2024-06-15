@@ -65,12 +65,9 @@ class ChannelConfig(AsProtobuf):
             unit=self.unit or "",
             description=self.description or "",
             data_type=self.data_type.value,
-            enum_types=[
-                try_cast_pb(etype, ChannelEnumTypePb) for etype in self.enum_types
-            ],
+            enum_types=[try_cast_pb(etype, ChannelEnumTypePb) for etype in self.enum_types],
             bit_field_elements=[
-                try_cast_pb(el, ChannelBitFieldElementPb)
-                for el in self.bit_field_elements
+                try_cast_pb(el, ChannelBitFieldElementPb) for el in self.bit_field_elements
             ],
         )
 
@@ -191,9 +188,7 @@ def empty_value() -> IngestWithConfigDataChannelValue:
     return IngestWithConfigDataChannelValue(empty=Empty())
 
 
-def is_data_type(
-    val: IngestWithConfigDataChannelValue, target_type: ChannelDataType
-) -> bool:
+def is_data_type(val: IngestWithConfigDataChannelValue, target_type: ChannelDataType) -> bool:
     if target_type == ChannelDataType.DOUBLE:
         return val.HasField("double")
     elif target_type == ChannelDataType.STRING:

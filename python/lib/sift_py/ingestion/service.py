@@ -85,9 +85,7 @@ class IngestionService(IngestionServiceImpl):
         validations on your own, prefer to use `create_ingestion_request`. Any errors that occur during
         ingestion will be handled by the Sift API.
         """
-        return super().try_create_ingestion_request(
-            flow_name, timestamp, channel_values
-        )
+        return super().try_create_ingestion_request(flow_name, timestamp, channel_values)
 
     def create_ingestion_request(
         self,

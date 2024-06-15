@@ -24,9 +24,7 @@ def test_telemetry_config():
     assert log_channel.description == "asset logs"
     assert log_channel.data_type == ChannelDataType.STRING
 
-    velocity_channel, voltage_channel, vehicle_state_channel, gpio_channel = (
-        readings_flow.channels
-    )
+    velocity_channel, voltage_channel, vehicle_state_channel, gpio_channel = readings_flow.channels
     assert velocity_channel.name == "velocity"
     assert velocity_channel.data_type == ChannelDataType.DOUBLE
     assert velocity_channel.unit == "Miles Per Hour"
