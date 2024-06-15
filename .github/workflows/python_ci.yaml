@@ -27,6 +27,11 @@ jobs:
           pip install '.[development]'
           pip install -e .
 
+      - name: Format check
+        working-directory: python
+        run: |
+          black lib/sift_py lib/sift_internal/ --check
+
       - name: Run pytest
         working-directory: python
         run: |
