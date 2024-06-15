@@ -10,7 +10,7 @@ from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
 )
-from typing import List, NotRequired, Optional, Type, TypedDict
+from typing import List, Optional, Type, TypedDict, Union
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 
@@ -21,7 +21,7 @@ class ChannelValue(TypedDict):
     """
 
     channel_name: str
-    component: NotRequired[str]
+    component: Union[str, None]
     value: IngestWithConfigDataChannelValue
 
 

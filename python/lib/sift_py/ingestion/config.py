@@ -1,3 +1,8 @@
+"""
+Contains the in memory representation of a telemetry config as well as tools to initialize one
+via a YAML file and future file formats in the future.
+"""
+
 from __future__ import annotations
 from .channel import ChannelDataType, ChannelBitFieldElement, ChannelEnumType
 from .error import YamlConfigError
@@ -56,30 +61,35 @@ def try_load_from_yaml(config_fs_path: Path) -> TelemetryConfig:
         raise YamlConfigError(f"Unsupported file-type '{suffix}', expected YAML.")
 
     with open(config_fs_path, "r") as file:
-        config: Dict[Any, Any] = yaml.safe_load(file)
+        content = file.read()
+        return _try_from_yaml_str(content)
 
-        asset_name = any_as(config.get("asset_name"), str)
-        if asset_name is None or len(asset_name) == 0:
-            raise YamlConfigError("Expected a non-blank string for top-level 'asset_name' property")
 
-        ingestion_client_key = any_as(config.get("ingestion_client_key"), str)
-        if ingestion_client_key is None or len(ingestion_client_key) == 0:
-            raise YamlConfigError(
-                "Expected a non-blank string top-level 'ingestion_client_key' property"
-            )
+def _try_from_yaml_str(yaml_str: str) -> TelemetryConfig:
+    config: Dict[Any, Any] = yaml.safe_load(yaml_str)
 
-        organization_id = any_as(config.get("organization_id"), str)
+    asset_name = any_as(config.get("asset_name"), str)
+    if asset_name is None or len(asset_name) == 0:
+        raise YamlConfigError("Expected a non-blank string for top-level 'asset_name' property")
 
-        raw_flows = any_as(config.get("flows"), list)
-        if raw_flows is None:
-            raise YamlConfigError("Expected 'flows' to be a list property")
-
-        return TelemetryConfig(
-            asset_name=asset_name,
-            ingestion_client_key=ingestion_client_key,
-            organization_id=organization_id,
-            flows=_deserialize_flows_from_yaml(raw_flows),
+    ingestion_client_key = any_as(config.get("ingestion_client_key"), str)
+    if ingestion_client_key is None or len(ingestion_client_key) == 0:
+        raise YamlConfigError(
+            "Expected a non-blank string top-level 'ingestion_client_key' property"
         )
+
+    organization_id = any_as(config.get("organization_id"), str)
+
+    raw_flows = any_as(config.get("flows"), list)
+    if raw_flows is None:
+        raise YamlConfigError("Expected 'flows' to be a list property")
+
+    return TelemetryConfig(
+        asset_name=asset_name,
+        ingestion_client_key=ingestion_client_key,
+        organization_id=organization_id,
+        flows=_deserialize_flows_from_yaml(raw_flows),
+    )
 
 
 def _deserialize_flows_from_yaml(raw_flow_configs: List[Dict]) -> List[FlowConfig]:

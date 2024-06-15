@@ -36,26 +36,16 @@ class IngestionServiceImpl:
         run_id: Optional[str] = None,
         end_stream_on_error: bool = False,
     ):
-        # TODO: Handle case where new Flows are added to an existing ingestion config
-        ingestion_config = get_ingestion_config_by_client_key(channel, config.ingestion_client_key)
 
-        if ingestion_config is not None:
-            self.ingestion_config = ingestion_config
-        else:
-            self.ingestion_config = create_ingestion_config(
-                channel,
-                config.asset_name,
-                config.flows,
-                config.ingestion_client_key,
-                config.organization_id,
-            )
-
+        self.ingestion_config = self.__class__.__get_or_create_ingestion_config(channel, config)
         self.asset_name = config.asset_name
-        self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
         self.transport_channel = channel
         self.run_id = run_id
         self.organization_id = config.organization_id
         self.end_stream_on_error = end_stream_on_error
+
+        # TODO... flows can have the same name...
+        self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         # TODO: Add logic to re-establish connection if channel has been closed due to idle timeout
@@ -160,4 +150,20 @@ class IngestionServiceImpl:
             run_id=self.run_id or "",
             organization_id=self.organization_id or "",
             end_stream_on_validation_error=self.end_stream_on_error,
+        )
+
+    @staticmethod
+    def __get_or_create_ingestion_config(channel: SiftChannel, config: TelemetryConfig):
+        # TODO: Handle case where new Flows are added to an existing ingestion config
+        ingestion_config = get_ingestion_config_by_client_key(channel, config.ingestion_client_key)
+
+        if ingestion_config is not None:
+            return ingestion_config
+
+        return create_ingestion_config(
+            channel,
+            config.asset_name,
+            config.flows,
+            config.ingestion_client_key,
+            config.organization_id,
         )

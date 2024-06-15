@@ -16,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 development = [
+  "pytest", # test framework
   "black", # formatter
 ]
 

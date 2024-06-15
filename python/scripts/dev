@@ -7,6 +7,7 @@ Various development utilities
 Usage: dev [SUBCOMMAND] [OPTIONS]
 
 Subcommands:
+  test           Execute tests
   bootstrap      Initializes python virtual environment and installs project dependencies
   pip-install    Install project dependencies
   fmt            Runs 'black' to format the lib directory
@@ -32,6 +33,10 @@ fmt() {
   black lib/sift_py
 }
 
+run_tests() {
+  pytest
+}
+
 shift "$((OPTIND - 1))"
 
 case "$1" in
@@ -47,6 +52,9 @@ case "$1" in
         ;;
     fmt)
         fmt
+        ;;
+    test)
+        run_tests
         ;;
     "")
         echo "No subcommand provided"
