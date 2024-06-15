@@ -30,7 +30,7 @@ bootstrap() {
 
 fmt() {
   source venv/bin/activate
-  black lib/sift_py
+  black lib/sift_py lib/sift_internal
 }
 
 run_tests() {
