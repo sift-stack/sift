@@ -1,4 +1,4 @@
-name: lint-go
+name: go-ci
 
 on:
   release:
