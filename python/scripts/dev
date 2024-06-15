@@ -31,12 +31,12 @@ bootstrap() {
 
 fmt() {
   source venv/bin/activate
-  ruff format lib/sift_py lib/sift_internal
+  ruff format
 }
 
 lint() {
   source venv/bin/activate
-  ruff check lib/sift_py lib/sift_internal
+  ruff check
 }
 
 run_tests() {

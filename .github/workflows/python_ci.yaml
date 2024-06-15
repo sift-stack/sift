@@ -30,12 +30,12 @@ jobs:
       - name: Lint
         working-directory: python
         run: |
-          ruff check .
+          ruff check
           
       - name: Format
         working-directory: python
         run: |
-          ruff fmt --check .
+          ruff format --check
 
       - name: Pytest
         working-directory: python
