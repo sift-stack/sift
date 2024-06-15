@@ -9,7 +9,7 @@ from sift.ingest.v1.ingest_pb2 import (
 )
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 from typing import Dict, List, Optional
-from .ingestion_impl.ingest import IngestionServiceImpl
+from .impl.ingest import IngestionServiceImpl
 from datetime import datetime
 
 
@@ -85,7 +85,9 @@ class IngestionService(IngestionServiceImpl):
         validations on your own, prefer to use `create_ingestion_request`. Any errors that occur during
         ingestion will be handled by the Sift API.
         """
-        return super().try_create_ingestion_request(flow_name, timestamp, channel_values)
+        return super().try_create_ingestion_request(
+            flow_name, timestamp, channel_values
+        )
 
     def create_ingestion_request(
         self,

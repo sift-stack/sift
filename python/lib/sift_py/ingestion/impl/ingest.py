@@ -1,7 +1,10 @@
 from __future__ import annotations
 from ..channel import ChannelValue, is_data_type, empty_value
 from ..flow import FlowConfig
-from .ingestion_config import get_ingestion_config_by_client_key, create_ingestion_config
+from .ingestion_config import (
+    get_ingestion_config_by_client_key,
+    create_ingestion_config,
+)
 from ..config import TelemetryConfig
 from ...grpc.transport import SiftChannel
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
@@ -36,8 +39,9 @@ class IngestionServiceImpl:
         run_id: Optional[str] = None,
         end_stream_on_error: bool = False,
     ):
-
-        self.ingestion_config = self.__class__.__get_or_create_ingestion_config(channel, config)
+        self.ingestion_config = self.__class__.__get_or_create_ingestion_config(
+            channel, config
+        )
         self.asset_name = config.asset_name
         self.transport_channel = channel
         self.run_id = run_id
@@ -155,7 +159,9 @@ class IngestionServiceImpl:
     @staticmethod
     def __get_or_create_ingestion_config(channel: SiftChannel, config: TelemetryConfig):
         # TODO: Handle case where new Flows are added to an existing ingestion config
-        ingestion_config = get_ingestion_config_by_client_key(channel, config.ingestion_client_key)
+        ingestion_config = get_ingestion_config_by_client_key(
+            channel, config.ingestion_client_key
+        )
 
         if ingestion_config is not None:
             return ingestion_config

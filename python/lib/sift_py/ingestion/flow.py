@@ -25,10 +25,13 @@ class FlowConfig(AsProtobuf):
         self.name = name
         self.channels = channels
         self.channel_by_fqn = {
-            self.__class__.compute_fqn(c.name, c.component): i for i, c in enumerate(channels)
+            self.__class__.compute_fqn(c.name, c.component): i
+            for i, c in enumerate(channels)
         }
 
-    def get_channel(self, name: str, component: Optional[str] = "") -> Optional[ChannelConfig]:
+    def get_channel(
+        self, name: str, component: Optional[str] = ""
+    ) -> Optional[ChannelConfig]:
         """
         Retrieves a `ChannelConfig` by its fully qualified name. Returns `None` if it cannot be found.
         """

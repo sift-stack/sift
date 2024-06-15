@@ -17,7 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 development = [
   "pytest", # test framework
-  "black", # formatter
+  "ruff", # formatter + linter
 ]
 
 [build-system]
@@ -27,8 +27,38 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["gen", "lib"]
 
-# The formatter
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = ['py38']
-include = '\.pyi?$'
+indent-width = 4
+target-version = "py38" # Python 3.8
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "lib/sift",
+    "lib/google",
+    "lib/protoc_gen_openapiv2",
+]

@@ -1,53 +1,13 @@
-"""
-Contains the in memory representation of a telemetry config as well as tools to initialize one
-via a YAML file and future file formats in the future.
-"""
-
 from __future__ import annotations
-from .channel import ChannelDataType, ChannelBitFieldElement, ChannelEnumType
-from .error import YamlConfigError
-from .flow import ChannelConfig, FlowConfig
+from ..channel import ChannelDataType, ChannelBitFieldElement, ChannelEnumType
+from ..error import YamlConfigError
+from ..flow import ChannelConfig, FlowConfig
 from pathlib import Path
 from sift_internal.types import any_as
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+from . import TelemetryConfig
 
 import yaml
-
-
-class TelemetryConfig:
-    """
-    Configurations necessary to start ingestion.
-
-    Attributes:
-      asset_name: The name of the asset that you wish to telemeter data for.
-      ingestion_client_key: An arbitrary string completely chosen by the user to uniquely identify
-                  this ingestion configuration. It should be unique with respect to your
-                  organization.
-
-      flows: The list of `FlowConfig`. A single flow can specify a single channel value
-             or a set of channel values, with each value belonging to a different channel. Channels
-             that send data at the same frequency and time should be in the same flow.
-
-      organization_id: ID of your organization in Sift. This field is only required if your user
-                       belongs to multiple organizations
-    """
-
-    asset_name: str
-    ingestion_client_key: str
-    organization_id: Optional[str]
-    flows: List[FlowConfig]
-
-    def __init__(
-        self,
-        asset_name: str,
-        ingestion_client_key: str,
-        organization_id: Optional[str] = None,
-        flows: List[FlowConfig] = [],
-    ):
-        self.asset_name = asset_name
-        self.ingestion_client_key = ingestion_client_key
-        self.organization_id = organization_id
-        self.flows = flows
 
 
 def try_load_from_yaml(config_fs_path: Path) -> TelemetryConfig:
@@ -70,7 +30,9 @@ def _try_from_yaml_str(yaml_str: str) -> TelemetryConfig:
 
     asset_name = any_as(config.get("asset_name"), str)
     if asset_name is None or len(asset_name) == 0:
-        raise YamlConfigError("Expected a non-blank string for top-level 'asset_name' property")
+        raise YamlConfigError(
+            "Expected a non-blank string for top-level 'asset_name' property"
+        )
 
     ingestion_client_key = any_as(config.get("ingestion_client_key"), str)
     if ingestion_client_key is None or len(ingestion_client_key) == 0:
@@ -79,6 +41,8 @@ def _try_from_yaml_str(yaml_str: str) -> TelemetryConfig:
         )
 
     organization_id = any_as(config.get("organization_id"), str)
+
+    # TODO... parse channels top-level first before flows then assign to flows.
 
     raw_flows = any_as(config.get("flows"), list)
     if raw_flows is None:
@@ -105,7 +69,8 @@ def _deserialize_flows_from_yaml(raw_flow_configs: List[Dict]) -> List[FlowConfi
             raise YamlConfigError("Expected 'channels' to be a list property")
 
         flow_config = FlowConfig(
-            name=flow_name, channels=_deserialize_channels_from_yaml(raw_channel_configs)
+            name=flow_name,
+            channels=_deserialize_channels_from_yaml(raw_channel_configs),
         )
 
         flow_configs.append(flow_config)
@@ -113,28 +78,38 @@ def _deserialize_flows_from_yaml(raw_flow_configs: List[Dict]) -> List[FlowConfi
     return flow_configs
 
 
-def _deserialize_channels_from_yaml(raw_channel_configs: List[Dict]) -> List[ChannelConfig]:
+def _deserialize_channels_from_yaml(
+    raw_channel_configs: List[Dict],
+) -> List[ChannelConfig]:
     channel_configs = []
 
     for raw_channel_config in raw_channel_configs:
         channel_name = any_as(raw_channel_config.get("name"), str)
         if channel_name is None or len(channel_name) == 0:
-            raise YamlConfigError("Expected channel to have a non-blank 'name' property")
+            raise YamlConfigError(
+                "Expected channel to have a non-blank 'name' property"
+            )
 
         channel_data_type_str = any_as(raw_channel_config.get("data_type"), str)
         if channel_data_type_str is None or len(channel_data_type_str) == 0:
-            raise YamlConfigError("Missing property for 'flows.channel.data_type' property")
+            raise YamlConfigError(
+                "Missing property for 'flows.channel.data_type' property"
+            )
 
         channel_data_type = ChannelDataType.from_str(channel_data_type_str)
         if channel_data_type is None:
-            raise YamlConfigError("Invalid property for 'flows.channel.data_type' property")
+            raise YamlConfigError(
+                "Invalid property for 'flows.channel.data_type' property"
+            )
 
         description = any_as(raw_channel_config.get("description"), str)
         unit = any_as(raw_channel_config.get("unit"), str)
         component = any_as(raw_channel_config.get("component"), str)
 
         bit_field_elements = []
-        raw_bit_field_elements = any_as(raw_channel_config.get("bit_field_elements"), list)
+        raw_bit_field_elements = any_as(
+            raw_channel_config.get("bit_field_elements"), list
+        )
         if raw_bit_field_elements is not None:
             for element in raw_bit_field_elements:
                 el = _deserialize_bit_field_element_from_yaml(element)
@@ -162,7 +137,9 @@ def _deserialize_channels_from_yaml(raw_channel_configs: List[Dict]) -> List[Cha
     return channel_configs
 
 
-def _deserialize_bit_field_element_from_yaml(bit_field_element: Dict) -> ChannelBitFieldElement:
+def _deserialize_bit_field_element_from_yaml(
+    bit_field_element: Dict,
+) -> ChannelBitFieldElement:
     name = any_as(bit_field_element.get("name"), str)
     if name is None or len(name) == 0:
         raise YamlConfigError(
@@ -191,11 +168,15 @@ def _deserialize_bit_field_element_from_yaml(bit_field_element: Dict) -> Channel
 def _deserialize_enum_type_from_yaml(enum_type: Any) -> ChannelEnumType:
     name = any_as(enum_type.get("name"), str)
     if name is None or len(name) == 0:
-        raise YamlConfigError("Expected a non-blank value for 'flows.channels.enum_types.name'")
+        raise YamlConfigError(
+            "Expected a non-blank value for 'flows.channels.enum_types.name'"
+        )
 
     key = any_as(enum_type.get("key"), int)
     if key is None:
-        raise YamlConfigError("Expected an integer value for 'flows.channels.enum_types.key'")
+        raise YamlConfigError(
+            "Expected an integer value for 'flows.channels.enum_types.key'"
+        )
 
     return ChannelEnumType(
         name=name,

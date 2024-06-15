@@ -14,7 +14,9 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ListIngestionConfigsResponse,
     FlowConfig as FlowConfigPb,
 )
-from sift.ingestion_configs.v1.ingestion_configs_pb2_grpc import IngestionConfigServiceStub
+from sift.ingestion_configs.v1.ingestion_configs_pb2_grpc import (
+    IngestionConfigServiceStub,
+)
 from typing import cast, List, Optional
 
 
