@@ -9,7 +9,7 @@ from sift.ingest.v1.ingest_pb2 import (
 )
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 from typing import Dict, List, Optional
-from .ingestion_impl.ingest import IngestionServiceImpl
+from .impl.ingest import IngestionServiceImpl
 from datetime import datetime
 
 

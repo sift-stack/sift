@@ -1,6 +1,6 @@
 from __future__ import annotations
-from .config import _try_from_yaml_str
-from .channel import ChannelDataType
+from .yaml import _try_from_yaml_str
+from ..channel import ChannelDataType
 
 
 def test_telemetry_config():

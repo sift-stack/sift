@@ -10,7 +10,8 @@ Subcommands:
   test           Execute tests
   bootstrap      Initializes python virtual environment and installs project dependencies
   pip-install    Install project dependencies
-  fmt            Runs 'black' to format the lib directory
+  fmt            Runs 'ruff' to format the lib directory
+  lint           Runs 'ruff' to lint the lib directory
 
 Options:
   -h, --help     Print usage text
@@ -30,7 +31,12 @@ bootstrap() {
 
 fmt() {
   source venv/bin/activate
-  black lib/sift_py
+  ruff format
+}
+
+lint() {
+  source venv/bin/activate
+  ruff check
 }
 
 run_tests() {
@@ -52,6 +58,9 @@ case "$1" in
         ;;
     fmt)
         fmt
+        ;;
+    lint)
+        lint
         ;;
     test)
         run_tests

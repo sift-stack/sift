@@ -2,7 +2,9 @@ from __future__ import annotations
 from google.protobuf.empty_pb2 import Empty
 from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_cast_pb
 from enum import Enum
-from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as ChannelEnumTypePb
+from sift.common.type.v1.channel_enum_type_pb2 import (
+    ChannelEnumType as ChannelEnumTypePb,
+)
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
 )
