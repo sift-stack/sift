@@ -2,7 +2,10 @@
 
 usage() {
   cat<<EOT
-Various development utilities
+Various development utilities.
+
+Upon running the 'bootstrap' subcommand, this script will be moved to the venv's bin
+directory so will be available as an in-path executable when the venv is activated.
 
 Usage: dev [SUBCOMMAND] [OPTIONS]
 
@@ -27,6 +30,8 @@ pip_install() {
 bootstrap() {
   python3 -m venv venv
   pip_install
+  cp ./scripts/dev venv/bin
+  chmod u+x venv/bin/dev
 }
 
 fmt() {

@@ -1,11 +1,12 @@
 from __future__ import annotations
-from ..channel import ChannelDataType, ChannelBitFieldElement, ChannelEnumType
+from ..channel import ChannelDataType, ChannelBitFieldElement, ChannelEnumType, channel_fqn
 from ..error import YamlConfigError
 from ..flow import ChannelConfig, FlowConfig
+from collections.abc import Iterable
 from pathlib import Path
 from sift_internal.types import any_as
 from typing import Any, Dict, List
-from . import TelemetryConfig
+from .telemetry import TelemetryConfig
 
 import yaml
 
@@ -30,31 +31,39 @@ def _try_from_yaml_str(yaml_str: str) -> TelemetryConfig:
 
     asset_name = any_as(config.get("asset_name"), str)
     if asset_name is None or len(asset_name) == 0:
-        raise YamlConfigError("Expected a non-blank string for top-level 'asset_name' property")
+        raise YamlConfigError("Expected a non-blank string for top-level 'asset_name' property.")
 
     ingestion_client_key = any_as(config.get("ingestion_client_key"), str)
     if ingestion_client_key is None or len(ingestion_client_key) == 0:
         raise YamlConfigError(
-            "Expected a non-blank string top-level 'ingestion_client_key' property"
+            "Expected a non-blank string top-level 'ingestion_client_key' property."
         )
 
     organization_id = any_as(config.get("organization_id"), str)
 
-    # TODO... parse channels top-level first before flows then assign to flows.
+    raw_channels = any_as(config.get("channels"), dict)
+    if raw_channels is None or len(raw_channels) == 0:
+        raise YamlConfigError("Expected a top-level non-empty 'channels' property.")
+
+    channels = _deserialize_channels_from_yaml(raw_channels.values())
+    channels_by_fqn = {channel_fqn(c): c for c in channels}
 
     raw_flows = any_as(config.get("flows"), list)
     if raw_flows is None:
-        raise YamlConfigError("Expected 'flows' to be a list property")
+        raise YamlConfigError("Expected 'flows' to be a list property.")
 
     return TelemetryConfig(
         asset_name=asset_name,
         ingestion_client_key=ingestion_client_key,
         organization_id=organization_id,
-        flows=_deserialize_flows_from_yaml(raw_flows),
+        flows=_deserialize_flows_from_yaml(raw_flows, channels_by_fqn),
     )
 
 
-def _deserialize_flows_from_yaml(raw_flow_configs: List[Dict]) -> List[FlowConfig]:
+def _deserialize_flows_from_yaml(
+    raw_flow_configs: Iterable[Dict],
+    channels_by_fqn: Dict[str, ChannelConfig],
+) -> List[FlowConfig]:
     flow_configs = []
 
     for raw_flow_config in raw_flow_configs:
@@ -66,18 +75,23 @@ def _deserialize_flows_from_yaml(raw_flow_configs: List[Dict]) -> List[FlowConfi
         if raw_channel_configs is None:
             raise YamlConfigError("Expected 'channels' to be a list property")
 
-        flow_config = FlowConfig(
-            name=flow_name,
-            channels=_deserialize_channels_from_yaml(raw_channel_configs),
-        )
+        channels = _deserialize_channels_from_yaml(raw_channel_configs)
 
+        for channel in channels:
+            fqn = channel_fqn(channel)
+            if channels_by_fqn.get(fqn) is None:
+                raise YamlConfigError(
+                    f"Flow '{flow_name}' contains channel '{fqn}' that is missing from top-level 'channels' property."
+                )
+
+        flow_config = FlowConfig(name=flow_name, channels=channels)
         flow_configs.append(flow_config)
 
     return flow_configs
 
 
 def _deserialize_channels_from_yaml(
-    raw_channel_configs: List[Dict],
+    raw_channel_configs: Iterable[Dict],
 ) -> List[ChannelConfig]:
     channel_configs = []
 

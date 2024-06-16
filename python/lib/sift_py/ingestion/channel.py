@@ -13,6 +13,7 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
 )
 from typing import List, Optional, Type, TypedDict, Union
+from typing_extensions import NotRequired
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 
@@ -23,7 +24,7 @@ class ChannelValue(TypedDict):
     """
 
     channel_name: str
-    component: Union[str, None]
+    component: NotRequired[str]
     value: IngestWithConfigDataChannelValue
 
 
@@ -70,6 +71,16 @@ class ChannelConfig(AsProtobuf):
                 try_cast_pb(el, ChannelBitFieldElementPb) for el in self.bit_field_elements
             ],
         )
+
+    def fqn(self) -> str:
+        """
+        The fully-qualified channel name of a channel called 'voltage' is simply `voltage'. The
+        fully qualified name of a channel called 'temperature' of component 'motor' is a `motor.temperature'.
+        """
+        if self.component is None or len(self.component) == "":
+            return self.name
+        else:
+            return f"{self.component}.{self.name}"
 
 
 class ChannelBitFieldElement(AsProtobuf):
@@ -142,6 +153,28 @@ class ChannelDataType(Enum):
             return cls.UINT_64
 
         return None
+
+
+def channel_fqn(channel: Union[ChannelConfig, ChannelValue]) -> str:
+    """
+    Computes the fully qualified channel name.
+
+    The fully-qualified channel name of a channel called 'voltage' is simply `voltage'. The
+    fully qualified name of a channel called 'temperature' of component 'motor' is a `motor.temperature'.
+    """
+
+    if isinstance(channel, ChannelConfig):
+        if channel.component is None or len(channel.component) == "":
+            return channel.name
+        else:
+            return f"{channel.component}.{channel.name}"
+    else:
+        component = channel.get("component", "")
+        channel_name = channel["channel_name"]
+        if len(component) == 0:
+            return channel_name
+        else:
+            return f"{component}.{channel_name}"
 
 
 def string_value(val: str) -> IngestWithConfigDataChannelValue:

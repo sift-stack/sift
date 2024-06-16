@@ -8,6 +8,7 @@ import sift.ingest.v1.ingest_pb2 as ingestpb
 import sift.ingestion_configs.v1.ingestion_configs_pb2 as ingestconf
 import sift.runs.v2.runs_pb2 as runpb
 
+
 def main():
     """
     This is an example script demonstrating how to use Sift's IngestService_IngestWithConfigDataStream
@@ -39,12 +40,14 @@ def main():
     with ingest.use_secure_channel(api_key, base_uri) as channel:
         channel_configs = []
 
-        for channel_config in ExampleTestRunConfig.CHANNEL_CONFIG_PARAMS: 
+        for channel_config in ExampleTestRunConfig.CHANNEL_CONFIG_PARAMS:
             name, component, desc, unit = channel_config
             conf = ingest.create_double_type_channel_config(name, component, desc, unit)
             channel_configs.append(conf)
 
-        flow_config = ingest.create_flow_config(ExampleTestRunConfig.FLOW_NAME, *channel_configs)
+        flow_config = ingest.create_flow_config(
+            ExampleTestRunConfig.FLOW_NAME, *channel_configs
+        )
 
         print("Creating ingestion config... ", end="")
         ingestion_config = ingest.create_ingestion_config(
@@ -67,11 +70,14 @@ def main():
         print(f"ok [run_id {run.run_id}]")
 
         print("Beginning ingestion...")
-        ingestion_simulator = create_ingestion_simulator(run, ingestion_config, flow_config)
+        ingestion_simulator = create_ingestion_simulator(
+            run, ingestion_config, flow_config
+        )
         ingest.ingest_with_config(channel, ingestion_simulator)
         print("Ingestion completed.")
 
         channel.close()
+
 
 class ExampleTestRunConfig:
     """
@@ -87,10 +93,13 @@ class ExampleTestRunConfig:
     FLOW_NAME = "example_flow"
 
     # (name, component, description, units)
-    CHANNEL_CONFIG_PARAMS: List[Tuple[str, Optional[str], Optional[str], Optional[str]]] = [
+    CHANNEL_CONFIG_PARAMS: List[
+        Tuple[str, Optional[str], Optional[str], Optional[str]]
+    ] = [
         ("pressure", None, "pressure applied", "mmHg"),
         ("velocity", "mainmotor", None, "m/s"),
     ]
+
 
 def create_ingestion_simulator(
     run: runpb.Run,
@@ -103,7 +112,7 @@ def create_ingestion_simulator(
     some amount of data points (100 by default) 5ms apart that will get ingested into the Sift API.
     """
 
-    current_timestamp = run.start_time 
+    current_timestamp = run.start_time
     total_messages_sent = 0
 
     for i in range(num_data_points):
@@ -127,9 +136,12 @@ def create_ingestion_simulator(
         request.channel_values.append(velocity)
 
         total_messages_sent += 1
-        print(f"Sending message [time={timestamp.ToJsonString()}  run={run.run_id} total_messages_sent={total_messages_sent}]")
+        print(
+            f"Sending message [time={timestamp.ToJsonString()}  run={run.run_id} total_messages_sent={total_messages_sent}]"
+        )
 
         yield request
+
 
 if __name__ == "__main__":
     main()

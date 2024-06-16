@@ -1,11 +1,11 @@
 from __future__ import annotations
-from ..channel import ChannelValue, is_data_type, empty_value
+from ..channel import ChannelValue, channel_fqn, is_data_type, empty_value
 from ..flow import FlowConfig
 from .ingestion_config import (
     get_ingestion_config_by_client_key,
     create_ingestion_config,
 )
-from ..config import TelemetryConfig
+from ..config.telemetry import TelemetryConfig
 from ...grpc.transport import SiftChannel
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 from sift.ingest.v1.ingest_pb2 import (
@@ -91,9 +91,7 @@ class IngestionServiceImpl:
         channel_values_by_fqn: Dict[str, ChannelValue] = {}
 
         for channel_value in channel_values:
-            name = channel_value["channel_name"]
-            component = channel_value.get("component")
-            fqn = FlowConfig.compute_fqn(name, component)
+            fqn = channel_fqn(channel_value)
 
             if channel_values_by_fqn.get(fqn, None) is None:
                 channel_values_by_fqn[fqn] = channel_value
@@ -103,7 +101,7 @@ class IngestionServiceImpl:
         values: List[IngestWithConfigDataChannelValue] = []
 
         for channel in flow_config.channels:
-            fqn = FlowConfig.compute_fqn(channel.name, channel.component)
+            fqn = channel_fqn(channel)
             channel_value = channel_values_by_fqn.pop(fqn, None)
 
             if channel_value is None:
