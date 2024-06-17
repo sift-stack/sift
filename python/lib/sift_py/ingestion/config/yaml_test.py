@@ -1,10 +1,15 @@
 from __future__ import annotations
-from .yaml import _try_from_yaml_str
+
+from .yaml import _try_from_yaml_str, YamlConfigError
 from ..channel import ChannelDataType
+
+import pytest
 
 
 def test_telemetry_config():
-    telemetry_config = _try_from_yaml_str(TELEMETRY_CONFIG)
+    telemetry_config = _try_from_yaml_str(
+        TELEMETRY_CONFIG, {"named_expressions": [TEST_NAMED_EXPRESSIONS_YAML_STR]}
+    )
     assert telemetry_config.asset_name == "LunarVehicle426"
     assert telemetry_config.ingestion_client_key == "lunar_vehicle_426"
     assert len(telemetry_config.flows) == 3
@@ -65,6 +70,30 @@ def test_telemetry_config():
     assert gpio_channel.bit_field_elements[3].name == "heater"
     assert gpio_channel.bit_field_elements[3].index == 7
     assert gpio_channel.bit_field_elements[3].bit_count == 1
+
+    assert len(telemetry_config.rules) == 3
+
+    overheating_rule, speeding_rule, failures_rule = telemetry_config.rules
+
+    assert overheating_rule.name == "overheating"
+    assert overheating_rule.description == "Checks for vehicle overheating"
+    assert overheating_rule.expression == 'vehicle_state == "Accelerating" && temperature > 80'
+
+    assert speeding_rule.name == "speeding"
+    assert speeding_rule.description == "Checks high vehicle speed"
+    assert speeding_rule.expression == "mainmotor.velocity > 20"
+
+    assert failures_rule.name == "failures"
+    assert failures_rule.description == "Checks for failure logs"
+    assert failures_rule.expression == 'contains(log, "failure")'
+
+
+def test_no_duplicate_channels_telemetry_config():
+    """
+    Raise an error if there are duplicate channels in a flow.
+    """
+    with pytest.raises(YamlConfigError):
+        _ = _try_from_yaml_str(DUPLICATE_CHANNEL_IN_FLOW_TELEMETRY_CONFIG)
 
 
 TELEMETRY_CONFIG = """
@@ -137,8 +166,9 @@ rules:
     type: review
     expression:
       name: log_substring_contains
-      _1: log
-      _2: failure
+      identifiers:
+          $1: log
+          $2: '\"failure\"'
 
 flows:
   - name: readings
@@ -156,4 +186,30 @@ flows:
   - name: logs
     channels:
       - <<: *log_channel
+"""
+
+TEST_NAMED_EXPRESSIONS_YAML_STR = """
+log_substring_contains:
+  contains($1, $2)
+is_even:
+  mod($1, 2) == 0
+"""
+
+DUPLICATE_CHANNEL_IN_FLOW_TELEMETRY_CONFIG = """
+asset_name: LunarVehicle426
+ingestion_client_key: lunar_vehicle_426
+
+channels:
+  velocity_channel: &velocity_channel
+    name: velocity
+    data_type: double
+    description: speed
+    unit: Miles Per Hour
+    component: mainmotor
+
+flows:
+  - name: readings
+    channels:
+      - <<: *velocity_channel
+      - <<: *velocity_channel
 """

@@ -6,9 +6,11 @@ from .config import (
     RuleActionAnnotationKind,
 )
 from ..error import YamlConfigError
-from sift_internal.types import any_as
-from typing import Dict, List, Literal, TypedDict
+from pathlib import Path
+from typing import cast, Dict, List, Literal, TypedDict
 from typing_extensions import NotRequired
+
+import yaml
 
 
 class RulesYamlSpec(TypedDict):
@@ -23,7 +25,7 @@ class RuleYamlSpec(TypedDict):
     name: str
     description: NotRequired[str]
     expression: str | NamedExpressionYamlSpec
-    annotation_type: Literal["phase"] | Literal["review"]
+    type: Literal["phase"] | Literal["review"]
     assignee: NotRequired[str]
     tags: NotRequired[List[str]]
 
@@ -55,13 +57,18 @@ def rule_config_from_yaml(
     rule_yaml: RuleYamlSpec,
     named_expressions: Dict[str, str] = {},
 ) -> RuleConfig:
-    rule_name = any_as(rule_yaml.get("name"), str)
+    """
+    Creates a `RuleConfig` from a `rule_yaml` and an optional `named_expressions` dictionary
+    if generic named expressions are used.
+    """
+
+    rule_name = rule_yaml.get("name")
     if rule_name is None or len(rule_name) == 0:
         raise YamlConfigError("Expected rule to have a 'name' property.")
 
-    description = any_as(rule_yaml.get("description"), str) or ""
+    description = rule_yaml.get("description") or ""
 
-    raw_annotation_type = any_as(rule_yaml.get("type"), str)
+    raw_annotation_type = rule_yaml.get("type")
     if raw_annotation_type is None:
         raise YamlConfigError(f"Expected ruled '{rule_name} to have a 'type' property.")
 
@@ -130,3 +137,19 @@ def rule_config_from_yaml(
         raise YamlConfigError(
             f"Expected rule '{rule_name}' 'expression' property to be a string or have properties."
         )
+
+
+def try_load_named_expressions_from_yaml(
+    named_expressions_fs_path: Path,
+) -> NamedExpressionsYamlSpec:
+    """
+    Loads in named expressions from a file.
+    """
+
+    suffix = named_expressions_fs_path.suffix
+    if suffix != ".yaml" and suffix != ".yml":
+        raise YamlConfigError(f"Unsupported file-type '{suffix}', expected YAML.")
+
+    with open(named_expressions_fs_path, "r") as file:
+        content = file.read()
+        return cast(NamedExpressionsYamlSpec, yaml.safe_load(content))
