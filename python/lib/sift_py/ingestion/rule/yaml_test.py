@@ -99,7 +99,7 @@ def test_rule_config_with_named_expression():
     assert failures_rule.description == "Checks for failure logs"
     assert failures_rule.action.kind() == RuleActionKind.ANNOTATION
     assert isinstance(failures_rule.action, RuleActionCreateDataReviewAnnotation)
-    assert failures_rule.expression == 'contains(log, "failure")'
+    assert failures_rule.expression == 'contains(log, "ERROR")'
 
 
 TEST_RULE_YAML_STR = """
