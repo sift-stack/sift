@@ -68,32 +68,31 @@ def test_telemetry_config():
 
 
 TELEMETRY_CONFIG = """
----
 asset_name: LunarVehicle426
 ingestion_client_key: lunar_vehicle_426
 
 channels:
   log_channel: &log_channel
     name: log
-    data_type: CHANNEL_DATA_TYPE_STRING
+    data_type: string
     description: asset logs
   
   velocity_channel: &velocity_channel
     name: velocity
-    data_type: CHANNEL_DATA_TYPE_DOUBLE
+    data_type: double
     description: speed
     unit: Miles Per Hour
     component: mainmotor
   
   voltage_channel: &voltage_channel
     name: voltage
-    data_type: CHANNEL_DATA_TYPE_INT_32
+    data_type: int32
     description: voltage at the source
     unit: Volts
   
   vehicle_state_channel: &vehicle_state_channel
     name: vehicle_state
-    data_type: CHANNEL_DATA_TYPE_ENUM
+    data_type: enum
     description: vehicle state
     unit: vehicle state
     enum_types:
@@ -106,7 +105,7 @@ channels:
   
   gpio_channel: &gpio_channel
     name: gpio
-    data_type: CHANNEL_DATA_TYPE_BIT_FIELD
+    data_type: bit_field
     description: on/off values for pins on gpio
     bit_field_elements:
       - name: 12v
@@ -121,6 +120,25 @@ channels:
       - name: heater
         index: 7
         bit_count: 1
+
+rules:
+  - name: overheating
+    description: Checks for vehicle overheating
+    expression: vehicle_state == "Accelerating" && temperature > 80
+    type: phase
+
+  - name: speeding
+    description: Checks high vehicle speed
+    expression: mainmotor.velocity > 20
+    type: phase
+
+  - name: failures
+    description: Checks for failure logs
+    type: review
+    expression:
+      name: log_substring_contains
+      _1: log
+      _2: failure
 
 flows:
   - name: readings

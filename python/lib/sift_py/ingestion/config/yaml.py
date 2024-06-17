@@ -27,7 +27,7 @@ def try_load_from_yaml(config_fs_path: Path) -> TelemetryConfig:
 
 
 def _try_from_yaml_str(yaml_str: str) -> TelemetryConfig:
-    config: Dict[Any, Any] = yaml.safe_load(yaml_str)
+    config: Dict[str, Any] = yaml.safe_load(yaml_str)
 
     asset_name = any_as(config.get("asset_name"), str)
     if asset_name is None or len(asset_name) == 0:

@@ -12,7 +12,7 @@ from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
 )
-from typing import List, Optional, Type, TypedDict, Union
+from typing import List, Optional, Type, TypedDict
 from typing_extensions import NotRequired
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
@@ -131,31 +131,46 @@ class ChannelDataType(Enum):
 
     @classmethod
     def from_str(cls, val: str) -> Optional["ChannelDataType"]:
-        if val == "CHANNEL_DATA_TYPE_DOUBLE":
+        val = val.strip()
+
+        if val == "CHANNEL_DATA_TYPE_DOUBLE" or val == ChannelDataTypeStrRep.DOUBLE.value:
             return cls.DOUBLE
-        elif val == "CHANNEL_DATA_TYPE_STRING":
+        elif val == "CHANNEL_DATA_TYPE_STRING" or val == ChannelDataTypeStrRep.STRING.value:
             return cls.STRING
-        elif val == "CHANNEL_DATA_TYPE_ENUM":
+        elif val == "CHANNEL_DATA_TYPE_ENUM" or val == ChannelDataTypeStrRep.ENUM.value:
             return cls.ENUM
-        elif val == "CHANNEL_DATA_TYPE_BIT_FIELD":
+        elif val == "CHANNEL_DATA_TYPE_BIT_FIELD" or val == ChannelDataTypeStrRep.BIT_FIELD.value:
             return cls.BIT_FIELD
-        elif val == "CHANNEL_DATA_TYPE_BOOL":
+        elif val == "CHANNEL_DATA_TYPE_BOOL" or val == ChannelDataTypeStrRep.BOOL.value:
             return cls.BOOL
-        elif val == "CHANNEL_DATA_TYPE_FLOAT":
+        elif val == "CHANNEL_DATA_TYPE_FLOAT" or val == ChannelDataTypeStrRep.FLOAT.value:
             return cls.FLOAT
-        elif val == "CHANNEL_DATA_TYPE_INT_32":
+        elif val == "CHANNEL_DATA_TYPE_INT_32" or val == ChannelDataTypeStrRep.INT_32.value:
             return cls.INT_32
-        elif val == "CHANNEL_DATA_TYPE_INT_64":
+        elif val == "CHANNEL_DATA_TYPE_INT_64" or val == ChannelDataTypeStrRep.INT_64.value:
             return cls.INT_64
-        elif val == "CHANNEL_DATA_TYPE_UINT_32":
+        elif val == "CHANNEL_DATA_TYPE_UINT_32" or val == ChannelDataTypeStrRep.UINT_32.value:
             return cls.UINT_32
-        elif val == "CHANNEL_DATA_TYPE_UINT_64":
+        elif val == "CHANNEL_DATA_TYPE_UINT_64" or val == ChannelDataTypeStrRep.UINT_64.value:
             return cls.UINT_64
 
         return None
 
 
-def channel_fqn(channel: Union[ChannelConfig, ChannelValue]) -> str:
+class ChannelDataTypeStrRep(Enum):
+    DOUBLE = "double"
+    STRING = "string"
+    ENUM = "enum"
+    BIT_FIELD = "bit_field"
+    BOOL = "bool"
+    FLOAT = "float"
+    INT_32 = "int32"
+    INT_64 = "int64"
+    UINT_32 = "uint32"
+    UINT_64 = "uint64"
+
+
+def channel_fqn(channel: ChannelConfig | ChannelValue) -> str:
     """
     Computes the fully qualified channel name.
 
