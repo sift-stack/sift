@@ -19,16 +19,15 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift.runs.v2.runs_pb2 import CreateRunRequest, CreateRunResponse
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 from sift_internal.convert.json import to_json
-
-from ...grpc.transport import SiftChannel
-from ..channel import ChannelValue, channel_fqn, empty_value, is_data_type
-from ..config.telemetry import TelemetryConfig
-from ..flow import FlowConfig
-from ..rule.config import RuleConfig
-from .ingestion_config import (
+from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion.channel import ChannelValue, channel_fqn, empty_value, is_data_type
+from sift_py.ingestion.config.telemetry import TelemetryConfig
+from sift_py.ingestion.flow import FlowConfig
+from sift_py.ingestion.impl.ingestion_config import (
     create_ingestion_config,
     get_ingestion_config_by_client_key,
 )
+from sift_py.ingestion.rule.config import RuleConfig
 
 
 class IngestionServiceImpl:

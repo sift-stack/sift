@@ -4,17 +4,16 @@ from typing import cast
 
 import pytest
 import yaml
-
-from ..channel import ChannelDataType
-from ..rule.config import (
-    RuleActionCreateDataReviewAnnotation,
-    RuleActionCreatePhaseAnnotation,
-    RuleActionKind,
-)
-from .yaml import (
+from sift_py.ingestion.channel import ChannelDataType
+from sift_py.ingestion.config.yaml import (
     NamedExpressionsYamlSpec,
     YamlConfigError,
     _try_from_yaml_str,
+)
+from sift_py.ingestion.rule.config import (
+    RuleActionCreateDataReviewAnnotation,
+    RuleActionCreatePhaseAnnotation,
+    RuleActionKind,
 )
 
 

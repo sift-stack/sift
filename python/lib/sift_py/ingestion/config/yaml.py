@@ -5,16 +5,21 @@ from pathlib import Path
 from typing import Dict, List, Literal, Optional, TypedDict, cast
 
 import yaml
-from typing_extensions import NotRequired
-
-from ..channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType, channel_fqn
-from ..flow import ChannelConfig, FlowConfig
-from ..rule.config import (
+from sift_py.ingestion.channel import (
+    ChannelBitFieldElement,
+    ChannelDataType,
+    ChannelEnumType,
+    channel_fqn,
+)
+from sift_py.ingestion.flow import ChannelConfig, FlowConfig
+from sift_py.ingestion.rule.config import (
     RuleActionAnnotationKind,
     RuleActionCreateDataReviewAnnotation,
     RuleActionCreatePhaseAnnotation,
     RuleConfig,
 )
+from typing_extensions import NotRequired
+
 from .telemetry import TelemetryConfig
 
 

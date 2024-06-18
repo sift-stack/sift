@@ -1,4 +1,5 @@
-from ..channel import ChannelConfig, ChannelDataType
+from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
+
 from .config import (
     RuleActionCreateDataReviewAnnotation,
     RuleActionCreatePhaseAnnotation,

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from ..flow import FlowConfig
-from ..rule.config import RuleConfig
+from sift_py.ingestion.flow import FlowConfig
+from sift_py.ingestion.rule.config import RuleConfig
 
 
 class TelemetryConfig:

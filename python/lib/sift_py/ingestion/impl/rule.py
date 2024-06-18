@@ -1,9 +1,15 @@
-from ...grpc.transport import SiftChannel
-from ..rule.config import RuleConfig
-from sift.rules.v1.rules_pb2 import UpdateJsonRulesRequest, UpdateJsonRulesResponse, JsonRulesRequest
+from typing import List, Optional, cast
+
+from sift.rules.v1.rules_pb2 import (
+    JsonRulesRequest,
+    UpdateJsonRulesRequest,
+    UpdateJsonRulesResponse,
+)
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift_internal.convert.json import to_json
-from typing import cast, List, Optional
+from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion.rule.config import RuleConfig
+
 
 def update_rules(
     transport_channel: SiftChannel,
