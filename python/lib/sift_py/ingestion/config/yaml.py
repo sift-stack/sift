@@ -1,13 +1,13 @@
 from __future__ import annotations
-from ..rule.yaml import (
-    NamedExpressionsYamlSpec,
-    RuleYamlSpec,
-    rule_config_from_yaml,
-    try_load_named_expressions_from_yaml,
-)
 from ..channel import ChannelDataType, ChannelBitFieldElement, ChannelEnumType, channel_fqn
 from ..error import YamlConfigError
 from ..flow import ChannelConfig, FlowConfig
+from ..rule.config import (
+    RuleConfig,
+    RuleActionCreateDataReviewAnnotation,
+    RuleActionAnnotationKind,
+    RuleActionCreatePhaseAnnotation,
+)
 from collections.abc import Iterable
 from pathlib import Path
 from typing import cast, Dict, List, Literal, Optional, TypedDict
@@ -94,6 +94,47 @@ class YamlLoadOptions(TypedDict):
     named_expressions: List[Path | str]
 
 
+class RulesYamlSpec(TypedDict):
+    rules: List[RuleYamlSpec]
+
+
+class RuleYamlSpec(TypedDict):
+    """
+    The formal definition of what a single rule looks like in YAML.
+    """
+
+    name: str
+    description: NotRequired[str]
+    expression: str | NamedExpressionYamlSpec
+    type: Literal["phase"] | Literal["review"]
+    assignee: NotRequired[str]
+    tags: NotRequired[List[str]]
+    channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
+    sub_expressions: NotRequired[List[Dict[str, str]]]
+
+
+class NamedExpressionYamlSpec(TypedDict):
+    """
+    A named, reusable expression. This class is the formal definition
+    of what a named expression should look like in YAML.
+    """
+
+    name: str
+
+
+"""
+NamedExpressionsYamlSpec is a type alias for a dictionary where both keys and values are strings.
+Note the pluralization in the name to distinguish it from `NamedExpressionYamlSpec`.
+
+This alias serves as a formal definition for a YAML file that solely contains named expressions.
+See `sift_py.ingestion.rule.yaml_test.py` for examples.
+
+Named expressions are generic expressions that contain placeholders instead of identifiers. They can
+be loaded at runtime and referenced in telemetry configs to facilitate reuse.
+"""
+NamedExpressionsYamlSpec = Dict[str, str]
+
+
 def try_load_from_yaml(
     config_fs_path: Path, opts: Optional[YamlLoadOptions] = None
 ) -> TelemetryConfig:
@@ -109,6 +150,124 @@ def try_load_from_yaml(
     with open(config_fs_path, "r") as file:
         content = file.read()
         return _try_from_yaml_str(content, opts)
+
+
+def rule_config_from_yaml(
+    rule_yaml: RuleYamlSpec,
+    named_expressions: Dict[str, str] = {},
+) -> RuleConfig:
+    """
+    Creates a `RuleConfig` from a `rule_yaml` and an optional `named_expressions` dictionary
+    if generic named expressions are used.
+    """
+
+    rule_name = rule_yaml.get("name")
+    if rule_name is None or len(rule_name) == 0:
+        raise YamlConfigError("Expected rule to have a 'name' property.")
+
+    description = rule_yaml.get("description") or ""
+
+    raw_annotation_type = rule_yaml.get("type")
+    if raw_annotation_type is None:
+        raise YamlConfigError(f"Expected ruled '{rule_name} to have a 'type' property.")
+
+    annotation_type = RuleActionAnnotationKind.from_str(raw_annotation_type)
+
+    expression = rule_yaml.get("expression")
+
+    if expression is None:
+        raise YamlConfigError(f"Expected rule '{rule_name}' to have an expression.")
+
+    raw_channel_references = rule_yaml.get("channel_references", [])
+    channel_references = {}
+    for raw_channel_reference in raw_channel_references:
+        for reference, channel_config in raw_channel_reference.items():
+            channel_references[reference] = _deserialize_channel_from_yaml(channel_config)
+
+    raw_sub_expressions = rule_yaml.get("sub_expressions", [])
+    sub_expressions = {}
+    for raw_sub_expression in raw_sub_expressions:
+        for reference, value in raw_sub_expression.items():
+            sub_expressions[reference] = value
+
+    if isinstance(expression, str):
+        if annotation_type == RuleActionAnnotationKind.REVIEW:
+            return RuleConfig(
+                name=rule_name,
+                description=description,
+                expression=expression,
+                action=RuleActionCreateDataReviewAnnotation(
+                    assignee=rule_yaml.get("assignee"),
+                    tags=rule_yaml.get("tags"),
+                ),
+                channel_references=channel_references,
+                sub_expressions=sub_expressions,
+            )
+        else:
+            return RuleConfig(
+                name=rule_name,
+                description=description,
+                expression=expression,
+                action=RuleActionCreatePhaseAnnotation(
+                    tags=rule_yaml.get("tags"),
+                ),
+                channel_references=channel_references,
+                sub_expressions=sub_expressions,
+            )
+    elif isinstance(expression, dict):
+        expression_name = expression.get("name")
+        if expression_name is None:
+            raise YamlConfigError("Expected named expression to have a 'name' property.")
+
+        named_expression = named_expressions.get(expression_name)
+        if named_expression is None:
+            raise YamlConfigError(
+                f"Failed to find named expression '{expression_name}' for rule '{rule_name}'."
+            )
+
+        if annotation_type == RuleActionAnnotationKind.REVIEW:
+            return RuleConfig(
+                name=rule_name,
+                description=description,
+                expression=named_expression,
+                action=RuleActionCreateDataReviewAnnotation(
+                    assignee=rule_yaml.get("assignee"),
+                    tags=rule_yaml.get("tags"),
+                ),
+                channel_references=channel_references,
+                sub_expressions=sub_expressions,
+            )
+        else:
+            return RuleConfig(
+                name=rule_name,
+                description=description,
+                expression=named_expression,
+                action=RuleActionCreatePhaseAnnotation(
+                    tags=rule_yaml.get("tags"),
+                ),
+                channel_references=channel_references,
+                sub_expressions=sub_expressions,
+            )
+    else:
+        raise YamlConfigError(
+            f"Expected rule '{rule_name}' 'expression' property to be a string or have properties."
+        )
+
+
+def try_load_named_expressions_from_yaml(
+    named_expressions_fs_path: Path,
+) -> NamedExpressionsYamlSpec:
+    """
+    Loads in named expressions from a file.
+    """
+
+    suffix = named_expressions_fs_path.suffix
+    if suffix != ".yaml" and suffix != ".yml":
+        raise YamlConfigError(f"Unsupported file-type '{suffix}', expected YAML.")
+
+    with open(named_expressions_fs_path, "r") as file:
+        content = file.read()
+        return cast(NamedExpressionsYamlSpec, yaml.safe_load(content))
 
 
 def _try_from_yaml_str(yaml_str: str, opts: Optional[YamlLoadOptions] = None) -> TelemetryConfig:
@@ -130,7 +289,7 @@ def _try_from_yaml_str(yaml_str: str, opts: Optional[YamlLoadOptions] = None) ->
     if raw_channels is None or len(raw_channels) == 0:
         raise YamlConfigError("Expected a top-level non-empty 'channels' property.")
 
-    channels = _deserialize_channels_from_yaml(raw_channels.values())
+    channels = [_deserialize_channel_from_yaml(c) for c in raw_channels.values()]
     channels_by_fqn = {channel_fqn(c): c for c in channels}
 
     raw_flows = config.get("flows")
@@ -187,7 +346,7 @@ def _deserialize_flows_from_yaml(
         if raw_channel_configs is None:
             raise YamlConfigError("Expected 'channels' to be a list property")
 
-        channels = _deserialize_channels_from_yaml(raw_channel_configs)
+        channels = [_deserialize_channel_from_yaml(c) for c in raw_channel_configs]
         seen_channels = set()
 
         for channel in channels:
@@ -208,55 +367,48 @@ def _deserialize_flows_from_yaml(
     return flow_configs
 
 
-def _deserialize_channels_from_yaml(
-    raw_channel_configs: Iterable[ChannelConfigYamlSpec],
-) -> List[ChannelConfig]:
-    channel_configs = []
+def _deserialize_channel_from_yaml(
+    raw_channel_config: ChannelConfigYamlSpec,
+) -> ChannelConfig:
+    channel_name = raw_channel_config.get("name")
+    if channel_name is None or len(channel_name) == 0:
+        raise YamlConfigError("Expected channel to have a non-blank 'name' property")
 
-    for raw_channel_config in raw_channel_configs:
-        channel_name = raw_channel_config.get("name")
-        if channel_name is None or len(channel_name) == 0:
-            raise YamlConfigError("Expected channel to have a non-blank 'name' property")
+    channel_data_type_str = raw_channel_config.get("data_type")
+    if channel_data_type_str is None or len(channel_data_type_str) == 0:
+        raise YamlConfigError("Missing property for 'flows.channel.data_type' property")
 
-        channel_data_type_str = raw_channel_config.get("data_type")
-        if channel_data_type_str is None or len(channel_data_type_str) == 0:
-            raise YamlConfigError("Missing property for 'flows.channel.data_type' property")
+    channel_data_type = ChannelDataType.from_str(channel_data_type_str)
+    if channel_data_type is None:
+        raise YamlConfigError("Invalid property for 'flows.channel.data_type' property")
 
-        channel_data_type = ChannelDataType.from_str(channel_data_type_str)
-        if channel_data_type is None:
-            raise YamlConfigError("Invalid property for 'flows.channel.data_type' property")
+    description = raw_channel_config.get("description")
+    unit = raw_channel_config.get("unit")
+    component = raw_channel_config.get("component")
 
-        description = raw_channel_config.get("description")
-        unit = raw_channel_config.get("unit")
-        component = raw_channel_config.get("component")
+    bit_field_elements = []
+    raw_bit_field_elements = raw_channel_config.get("bit_field_elements")
+    if raw_bit_field_elements is not None:
+        for element in raw_bit_field_elements:
+            el = _deserialize_bit_field_element_from_yaml(element)
+            bit_field_elements.append(el)
 
-        bit_field_elements = []
-        raw_bit_field_elements = raw_channel_config.get("bit_field_elements")
-        if raw_bit_field_elements is not None:
-            for element in raw_bit_field_elements:
-                el = _deserialize_bit_field_element_from_yaml(element)
-                bit_field_elements.append(el)
+    enum_types = []
+    raw_enum_types = raw_channel_config.get("enum_types")
+    if raw_enum_types is not None:
+        for enum_type in raw_enum_types:
+            etype = _deserialize_enum_type_from_yaml(enum_type)
+            enum_types.append(etype)
 
-        enum_types = []
-        raw_enum_types = raw_channel_config.get("enum_types")
-        if raw_enum_types is not None:
-            for enum_type in raw_enum_types:
-                etype = _deserialize_enum_type_from_yaml(enum_type)
-                enum_types.append(etype)
-
-        channel_config = ChannelConfig(
-            name=channel_name,
-            data_type=channel_data_type,
-            description=description,
-            unit=unit,
-            component=component,
-            bit_field_elements=bit_field_elements,
-            enum_types=enum_types,
-        )
-
-        channel_configs.append(channel_config)
-
-    return channel_configs
+    return ChannelConfig(
+        name=channel_name,
+        data_type=channel_data_type,
+        description=description,
+        unit=unit,
+        component=component,
+        bit_field_elements=bit_field_elements,
+        enum_types=enum_types,
+    )
 
 
 def _deserialize_bit_field_element_from_yaml(

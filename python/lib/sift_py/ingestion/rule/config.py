@@ -1,15 +1,17 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from enum import Enum
+from ..channel import ChannelConfig, channel_fqn
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
-from sift_internal.convert.json import AsJson
-from typing import Any, Dict, List, Optional
+from sift_internal.convert.json import AsJson, RemoveNullEncoder
+from typing import Any, Dict, List, Optional, TypedDict
 
 import json
 
 
 class RuleConfig(AsJson):
+    # TODO: Finish doc comment for this
     """
     Defines a rule to be used during ingestion. If a rule's expression validates to try, then
     a specific action will take place as specified by the `kind` attribute.
@@ -25,6 +27,7 @@ class RuleConfig(AsJson):
     description: str
     expression: str
     action: RuleAction
+    channel_references: Dict[str, ChannelConfig]
 
     def __init__(
         self,
@@ -32,47 +35,36 @@ class RuleConfig(AsJson):
         description: str,
         expression: str,
         action: RuleAction,
-        ident_map: Optional[Dict[str, Any]] = None,
+        channel_references: Dict[str, ChannelConfig] = {},
+        sub_expressions: Dict[str, Any] = {},
     ):
-        """
-        Initializes an instance of `RuleConfig`.
-
-        The `ident_map` is used when loading in a re-usable expression that contains placeholder identifiers
-        as opposed to channel names. The `ident_map` is used to map the placeholder to an actual channel identifier
-        or an arbitrary expression.Note that the value of each key will be passed to the builtin `str` function. If
-        you're concerned about what the output will be when passed to `str`, prefer to create a `str` value yourself
-        before passing it into the `ident_map`.
-
-        A channel identifier is the channel's fully qualified name.
-
-        For a channel whose name is 'voltage' that doesn't belong to a component, the fully qualified name is
-        'voltage'. If a channel's name is 'temperature' and it belongs to the 'thruster' component, then the fully
-        qualified name is 'thruster.component'. You may use `sift_py.ingestion.channel.channel_fqn` to  generate
-        fully qualified channel names. Failure to provide fully-qualified names may produce downstream errors.
-
-        If no `ident_map` is provided, it is assumed that the `expression` argument is fine as is.
-
-        See `sift_py.ingestion.rule.config_test` for examples.
-        """
         self.name = name
         self.description = description
         self.action = action
-
-        if ident_map is None or len(ident_map) == 0:
-            self.expression = expression
-        else:
-            self.expression = self.__class__.generate_complete_expression(expression, ident_map)
+        self.channel_references = channel_references
+        self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
 
     def as_json(self) -> str:
         """
         Produces the appropriate JSON structure that's suitable for the Rules API.
         """
 
-        hash_map: Dict[str, str | List[str] | None] = {
+        hash_map: Dict[str, List[ExpressionChannelReference] | str | List[str] | None] = {
             "name": self.name,
             "description": self.description,
             "expression": self.expression,
         }
+
+        channel_references: List[ExpressionChannelReference] = []
+        for ref, channel_config in self.channel_references.items():
+            channel_references.append(
+                {
+                    "channel_reference": ref,
+                    "channel_identifier": channel_fqn(channel_config),
+                }
+            )
+
+        hash_map["expression_channel_references"] = channel_references
 
         if isinstance(self.action, RuleActionCreateDataReviewAnnotation):
             hash_map["type"] = RuleActionAnnotationKind.REVIEW.value
@@ -84,21 +76,14 @@ class RuleConfig(AsJson):
         else:
             raise TypeError(f"Unsupported rule action '{self.action.kind()}'.")
 
-        return json.dumps(hash_map)
+        return json.dumps(hash_map, cls=RemoveNullEncoder)
 
     @staticmethod
-    def generate_complete_expression(expression: str, ident_map: Dict[str, str]) -> str:
-        """
-        Takes a generic expression with placeholders and generates a complete expression given the `ident_map`.
-
-        If for example, we had a generic `expression`, `$1 > $2` with an `ident_map` of `{ "$1": "pressure", "$2": 10 }`,
-        then this function will output `pressure > 10`.
-        """
-
-        for ident, expr in ident_map.items():
-            if ident not in expression:
-                raise ValueError(f"Couldn't find '{ident}' in expression '{expression}'.")
-            expression = expression.replace(ident, str(expr))
+    def interpolate_sub_expressions(expression: str, sub_expressions: Dict[str, str]) -> str:
+        for ref, expr in sub_expressions.items():
+            if ref not in expression:
+                raise ValueError(f"Couldn't find '{ref}' in expression '{expression}'.")
+            expression = expression.replace(ref, str(expr))
 
         return expression
 
@@ -183,3 +168,13 @@ class RuleActionKind(Enum):
 class RuleActionKindStrRep(Enum):
     NOTIFICATION = "notification"
     ANNOTATION = "annotation"
+
+
+class ExpressionChannelReference(TypedDict):
+    """
+    `reference`: The channel reference (e.g. '$1') used in the expression.
+    `identifier`: The fully qualified channel name. See `sift_py.ingestion.channel.channel_fqn`.
+    """
+
+    channel_reference: str
+    channel_identifier: str

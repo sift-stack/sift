@@ -1,40 +1,59 @@
-from .config import RuleConfig, RuleActionCreatePhaseAnnotation
+from .config import (
+    RuleActionCreateDataReviewAnnotation,
+    RuleConfig,
+    RuleActionCreatePhaseAnnotation,
+)
+from ..channel import ChannelConfig, ChannelDataType
 
 
 def test_rule_config_basic_expression():
-    expression = "voltage > 10"
+    expression = "$1 > 10"
     config = RuleConfig(
         name="High Voltage",
         description="Rock & Roll",
         expression=expression,
         action=RuleActionCreatePhaseAnnotation(),
+        channel_references={
+            "$1": ChannelConfig(
+                name="voltage",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        },
     )
     assert config.expression == expression
-
-
-def test_rule_config_test_single_channel_placeholder():
-    expression = "$1 > 10"
-    config = RuleConfig(
-        name="voltage",
-        description="high voltage",
-        expression=expression,
-        action=RuleActionCreatePhaseAnnotation(),
-        ident_map={"$1": "voltage"},
+    assert (
+        config.as_json()
+        == '{"name": "High Voltage", "description": "Rock & Roll", "expression": "$1 > 10", "expression_channel_references": [{"channel_reference": "$1", "channel_identifier": "voltage"}], "type": "phase", "tags": null}'
     )
-    assert config.expression == "voltage > 10"
 
 
-def test_rule_config_test_multi_channel_placeholder():
+def test_rule_config_test_sub_expression():
     expression = '$1 == "Accelerating" && $2 > $3'
     config = RuleConfig(
         name="overheating",
         description="checks if vehicle overheats while accelerating",
         expression=expression,
-        action=RuleActionCreatePhaseAnnotation(),
-        ident_map={
-            "$1": "vehicle_state",
-            "$2": "motor.temperature",
+        action=RuleActionCreateDataReviewAnnotation(
+            tags=["foo", "bar"],
+            assignee="foobar@baz.com",
+        ),
+        channel_references={
+            "$1": ChannelConfig(
+                name="vehicle_state",
+                component="motor",
+                data_type=ChannelDataType.INT_32,
+            ),
+            "$2": ChannelConfig(
+                name="temperature",
+                component="motor",
+                data_type=ChannelDataType.INT_32,
+            ),
+        },
+        sub_expressions={
             "$3": 80,
         },
     )
-    assert config.expression == 'vehicle_state == "Accelerating" && motor.temperature > 80'
+    assert (
+        config.as_json()
+        == '{"name": "overheating", "description": "checks if vehicle overheats while accelerating", "expression": "$1 == \\"Accelerating\\" && $2 > 80", "expression_channel_references": [{"channel_reference": "$1", "channel_identifier": "motor.vehicle_state"}, {"channel_reference": "$2", "channel_identifier": "motor.temperature"}], "type": "review", "tags": ["foo", "bar"], "assignee": "foobar@baz.com"}'
+    )

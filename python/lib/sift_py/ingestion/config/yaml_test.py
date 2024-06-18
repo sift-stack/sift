@@ -1,9 +1,21 @@
 from __future__ import annotations
 
-from .yaml import _try_from_yaml_str, YamlConfigError
+from ..rule.config import (
+    RuleActionCreateDataReviewAnnotation,
+    RuleActionCreatePhaseAnnotation,
+    RuleActionKind,
+)
+from .yaml import (
+    _try_from_yaml_str,
+    YamlConfigError,
+    NamedExpressionsYamlSpec,
+)
 from ..channel import ChannelDataType
+from typing import cast
+
 
 import pytest
+import yaml
 
 
 def test_telemetry_config():
@@ -77,15 +89,21 @@ def test_telemetry_config():
 
     assert overheating_rule.name == "overheating"
     assert overheating_rule.description == "Checks for vehicle overheating"
-    assert overheating_rule.expression == 'vehicle_state == "Accelerating" && temperature > 80'
+    assert overheating_rule.expression == '$1 == "Accelerating" && $2 > 80'
+    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
+    assert isinstance(overheating_rule.action, RuleActionCreateDataReviewAnnotation)
 
     assert speeding_rule.name == "speeding"
     assert speeding_rule.description == "Checks high vehicle speed"
-    assert speeding_rule.expression == "mainmotor.velocity > 20"
+    assert speeding_rule.expression == "$1 > 20"
+    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
+    assert isinstance(speeding_rule.action, RuleActionCreatePhaseAnnotation)
 
     assert failures_rule.name == "failures"
     assert failures_rule.description == "Checks for failure logs"
-    assert failures_rule.expression == 'contains(log, "failure")'
+    assert failures_rule.expression == 'contains($1, "ERROR")'
+    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
+    assert isinstance(failures_rule.action, RuleActionCreateDataReviewAnnotation)
 
 
 def test_no_duplicate_channels_telemetry_config():
@@ -94,6 +112,20 @@ def test_no_duplicate_channels_telemetry_config():
     """
     with pytest.raises(YamlConfigError):
         _ = _try_from_yaml_str(DUPLICATE_CHANNEL_IN_FLOW_TELEMETRY_CONFIG)
+
+
+def test_named_expressions():
+    named_expressions = cast(
+        NamedExpressionsYamlSpec, yaml.safe_load(TEST_NAMED_EXPRESSIONS_YAML_STR)
+    )
+
+    log_substring_contains = named_expressions.get("log_substring_contains")
+    assert log_substring_contains is not None
+    assert log_substring_contains == "contains($1, $2)"
+
+    is_even = named_expressions.get("is_even")
+    assert is_even is not None
+    assert is_even == "mod($1, 2) == 0"
 
 
 TELEMETRY_CONFIG = """
@@ -153,22 +185,33 @@ channels:
 rules:
   - name: overheating
     description: Checks for vehicle overheating
-    expression: vehicle_state == "Accelerating" && temperature > 80
-    type: phase
+    expression: $1 == "Accelerating" && $2 > 80
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+    type: review
 
   - name: speeding
     description: Checks high vehicle speed
-    expression: mainmotor.velocity > 20
     type: phase
+    expression: $1 > 20
+    channel_references:
+      - $1: *velocity_channel
 
   - name: failures
     description: Checks for failure logs
     type: review
+    assignee: homer@example.com
     expression:
       name: log_substring_contains
-      identifiers:
-          $1: log
-          $2: '\"failure\"'
+    channel_references:
+      - $1: *log_channel
+    sub_expressions:
+      - $2: '\"ERROR\"' # Strings must be escaped
+    tags:
+        - foo
+        - bar
+        - baz
 
 flows:
   - name: readings
@@ -186,13 +229,7 @@ flows:
   - name: logs
     channels:
       - <<: *log_channel
-"""
 
-TEST_NAMED_EXPRESSIONS_YAML_STR = """
-log_substring_contains:
-  contains($1, $2)
-is_even:
-  mod($1, 2) == 0
 """
 
 DUPLICATE_CHANNEL_IN_FLOW_TELEMETRY_CONFIG = """
@@ -212,4 +249,11 @@ flows:
     channels:
       - <<: *velocity_channel
       - <<: *velocity_channel
+"""
+
+TEST_NAMED_EXPRESSIONS_YAML_STR = """
+log_substring_contains:
+  contains($1, $2)
+is_even:
+  mod($1, 2) == 0
 """

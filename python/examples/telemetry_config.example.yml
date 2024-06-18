@@ -54,23 +54,29 @@ channels:
 rules:
   - name: overheating
     description: Checks for vehicle overheating
-    expression: vehicle_state == "Accelerating" && temperature > 80
-    type: phase
+    expression: $1 == "Accelerating" && $2 > 80
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+    type: review
 
   - name: speeding
     description: Checks high vehicle speed
-    expression: mainmotor.velocity > 20
     type: phase
+    expression: $1 > 20
+    channel_references:
+      - $1: *velocity_channel
 
   - name: failures
     description: Checks for failure logs
     type: review
-    assignee: homer@simpsons.com
+    assignee: homer@example.com
     expression:
       name: log_substring_contains
-      identifiers:
-          $1: log
-          $2: '\"ERROR\"' # Strings must be escaped
+    channel_references:
+      - $1: *log_channel
+    sub_expressions:
+      - $2: '\"ERROR\"' # Strings must be escaped
     tags:
         - foo
         - bar

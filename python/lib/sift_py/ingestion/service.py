@@ -1,6 +1,6 @@
 from __future__ import annotations
 from ..grpc.transport import SiftChannel
-from .config import TelemetryConfig
+from .config.telemetry import TelemetryConfig
 from ..ingestion.flow import FlowConfig
 from .channel import ChannelValue
 from sift.ingest.v1.ingest_pb2 import (
@@ -53,12 +53,6 @@ class IngestionService(IngestionServiceImpl):
         Create a run to use as part of the call to `ingest`.
         """
         super().start_run(channel, run_name, description, organization_id, tags)
-
-    def end_run(self):
-        """
-        End the current run if any and don't include it in subsequent calls to `ingest`.
-        """
-        super().end_run()
 
     def try_create_ingestion_request(
         self,
