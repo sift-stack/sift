@@ -1,11 +1,16 @@
 from __future__ import annotations
-from .channel import ChannelConfig, channel_fqn
-from sift_internal.convert.protobuf import try_cast_pb, AsProtobuf, ProtobufMessage
+
+from typing import Dict, List, Optional, Type
+
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
+)
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
-from typing import Dict, List, Optional, Type
+from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_cast_pb
+
+from .channel import ChannelConfig, channel_fqn
 
 
 class FlowConfig(AsProtobuf):

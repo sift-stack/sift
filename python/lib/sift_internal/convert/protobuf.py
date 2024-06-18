@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Optional, Type, TypeVar, cast
+
 from google.protobuf.message import Message
-from typing import cast, Optional, Type, TypeVar
 
 ProtobufMessage = Message
 

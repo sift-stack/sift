@@ -5,11 +5,13 @@ and should generally be used within a with-block for correct resource management
 """
 
 from __future__ import annotations
-from grpc_interceptor import ClientInterceptor
-from .interceptors import Metadata, MetadataInterceptor
+
 from typing import List, TypedDict
 
 import grpc
+from grpc_interceptor import ClientInterceptor
+
+from .interceptors import Metadata, MetadataInterceptor
 
 SiftChannel = grpc.Channel
 
@@ -60,8 +62,10 @@ class SiftChannelConfig(TypedDict):
     Config class used to instantiate a `SiftChannel` via `use_sift_channel`.
 
     Attributes:
-      uri: The URI of Sift's gRPC API. The scheme portion of the URI i.e. `https://` should be ommitted.
-      apikey: User-generated API key generated via the Sift application.
+        `uri`:
+            The URI of Sift's gRPC API. The scheme portion of the URI i.e. `https://` should be ommitted.
+        `apikey`:
+            User-generated API key generated via the Sift application.
     """
 
     uri: str

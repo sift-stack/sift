@@ -64,3 +64,6 @@ exclude = [
     "lib/google",
     "lib/protoc_gen_openapiv2",
 ]
+
+[tool.ruff.lint]
+select = ["F", "W", "I", "N"]

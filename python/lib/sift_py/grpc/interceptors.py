@@ -8,10 +8,11 @@ for the particular types of interceptors found in the base `grpc` module.
 """
 
 from __future__ import annotations
-from grpc_interceptor import ClientInterceptor, ClientCallDetails
-from typing import Any, Callable, cast, List, Tuple
+
+from typing import Any, Callable, List, Tuple, cast
 
 import grpc
+from grpc_interceptor import ClientCallDetails, ClientInterceptor
 
 Metadata = List[Tuple[str, str]]
 

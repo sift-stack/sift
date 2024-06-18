@@ -1,9 +1,9 @@
+from ..channel import ChannelConfig, ChannelDataType
 from .config import (
     RuleActionCreateDataReviewAnnotation,
-    RuleConfig,
     RuleActionCreatePhaseAnnotation,
+    RuleConfig,
 )
-from ..channel import ChannelConfig, ChannelDataType
 
 
 def test_rule_config_json():

@@ -1,32 +1,34 @@
 from __future__ import annotations
-from ..channel import ChannelValue, channel_fqn, is_data_type, empty_value
-from ..flow import FlowConfig
-from ..rule.config import RuleConfig
-from .ingestion_config import (
-    get_ingestion_config_by_client_key,
-    create_ingestion_config,
-)
-from ..config.telemetry import TelemetryConfig
-from ...grpc.transport import SiftChannel
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
+
+from datetime import datetime
+from typing import Dict, List, Optional, cast
+
+from google.protobuf.timestamp_pb2 import Timestamp
 from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataChannelValue,
     IngestWithConfigDataStreamRequest,
 )
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
-from sift.runs.v2.runs_pb2 import CreateRunRequest, CreateRunResponse
-from sift.runs.v2.runs_pb2_grpc import RunServiceStub
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 from sift.rules.v1.rules_pb2 import (
+    JsonRulesRequest,
     UpdateJsonRulesRequest,
     UpdateJsonRulesResponse,
-    JsonRulesRequest,
 )
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
-from google.protobuf.timestamp_pb2 import Timestamp
-from typing import cast, Dict, List, Optional
-from datetime import datetime
+from sift.runs.v2.runs_pb2 import CreateRunRequest, CreateRunResponse
+from sift.runs.v2.runs_pb2_grpc import RunServiceStub
+from sift_internal.convert.json import to_json
 
-import json
+from ...grpc.transport import SiftChannel
+from ..channel import ChannelValue, channel_fqn, empty_value, is_data_type
+from ..config.telemetry import TelemetryConfig
+from ..flow import FlowConfig
+from ..rule.config import RuleConfig
+from .ingestion_config import (
+    create_ingestion_config,
+    get_ingestion_config_by_client_key,
+)
 
 
 class IngestionServiceImpl:
@@ -59,6 +61,7 @@ class IngestionServiceImpl:
         # TODO... flows can have the same name...
         self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
 
+        # TODO... compare with existing rules and error if mismatch
         self.__class__.update_rules(
             channel, self.ingestion_config.asset_id, config.rules, config.organization_id
         )
@@ -171,7 +174,7 @@ class IngestionServiceImpl:
         organization_id: Optional[str] = None,
     ):
         svc = RuleServiceStub(channel)
-        json_rules = json.dumps(rule_configs, default=lambda x: x.as_json())
+        json_rules = to_json(rule_configs)
         req = UpdateJsonRulesRequest(
             request=JsonRulesRequest(
                 asset_id=asset_id,

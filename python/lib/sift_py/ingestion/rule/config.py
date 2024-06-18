@@ -1,23 +1,33 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from enum import Enum
-from ..channel import ChannelConfig, channel_fqn
-from sift.annotations.v1.annotations_pb2 import AnnotationType
-from sift.rules.v1.rules_pb2 import ActionKind
 from typing import Any, Dict, List, Optional, TypedDict
 
+from sift.annotations.v1.annotations_pb2 import AnnotationType
+from sift.rules.v1.rules_pb2 import ActionKind
+from sift_internal.convert.json import AsJson
 
-class RuleConfig:
+from ..channel import ChannelConfig, channel_fqn
+
+
+class RuleConfig(AsJson):
     # TODO: Finish doc comment for this
     """
     Defines a rule to be used during ingestion. If a rule's expression validates to try, then
     a specific action will take place as specified by the `kind` attribute.
 
     Attributes:
-      `name`: Name of the rule.
-      `description`: Description of the rule.
-      `expression`: A CEL string expression, that, when evaluated to a truthy value, executes the `action`.
-      `action`: The action to execute if the result of an `expression` evaluates to a truthy value.
+        `name`:
+            Name of the rule.
+        `description`:
+            Description of the rule.
+        `expression`:
+            A CEL string expression, that, when evaluated to a truthy value, executes the `action`.
+        `action`:
+            The action to execute if the result of an `expression` evaluates to a truthy value.
+        `channel_references`:
+            Reference to channel dict. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
     """
 
     name: str
@@ -35,13 +45,14 @@ class RuleConfig:
         channel_references: Dict[str, ChannelConfig] = {},
         sub_expressions: Dict[str, Any] = {},
     ):
+
         self.name = name
         self.description = description
         self.action = action
         self.channel_references = channel_references
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
 
-    def as_json(self) -> Dict[str, Any]:
+    def as_json(self) -> Any:
         """
         Produces the appropriate JSON structure that's suitable for the Rules API.
         """
@@ -107,8 +118,10 @@ class RuleActionCreateDataReviewAnnotation(RuleAction):
     Action to create a data-review annotation when a rule evaluates to a truthy value.
 
     Attributes:
-      `tags`: List of tag names to associate with the newly created data-review annotation.
-      `assignee`: Email of user in organization to assign the newly created data-review annotation.
+        `tags`:
+            List of tag names to associate with the newly created data-review annotation.
+        `assignee`:
+            Email of user in organization to assign the newly created data-review annotation.
     """
 
     tags: Optional[List[str]]
@@ -127,7 +140,8 @@ class RuleActionCreatePhaseAnnotation(RuleAction):
     Action to create a phase annotation when a rule evaluates to a truthy value.
 
     Attributes:
-      `tags`: List of tag names to associate with the newly created data-review annotation.
+        `tags`:
+            List of tag names to associate with the newly created data-review annotation.
     """
 
     tags: Optional[List[str]]

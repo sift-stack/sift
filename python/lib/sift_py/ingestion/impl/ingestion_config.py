@@ -3,21 +3,25 @@ Internal module: This module contains implementation details that are not meant 
 used by consumers of this library and are not garaunteed to be stable.
 """
 
-from ...grpc.transport import SiftChannel
-from ..flow import FlowConfig
-from sift_internal.convert.protobuf import try_cast_pb
+from typing import List, Optional, cast
+
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
-    IngestionConfig,
     CreateIngestionConfigRequest,
     CreateIngestionConfigResponse,
+    IngestionConfig,
     ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
+)
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
 from sift.ingestion_configs.v1.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )
-from typing import cast, List, Optional
+from sift_internal.convert.protobuf import try_cast_pb
+
+from ...grpc.transport import SiftChannel
+from ..flow import FlowConfig
 
 
 def get_ingestion_config_by_client_key(

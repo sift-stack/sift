@@ -1,20 +1,22 @@
 from __future__ import annotations
-from ..channel import ChannelDataType, ChannelBitFieldElement, ChannelEnumType, channel_fqn
+
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Dict, List, Literal, Optional, TypedDict, cast
+
+import yaml
+from typing_extensions import NotRequired
+
+from ..channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType, channel_fqn
 from ..error import YamlConfigError
 from ..flow import ChannelConfig, FlowConfig
 from ..rule.config import (
-    RuleConfig,
-    RuleActionCreateDataReviewAnnotation,
     RuleActionAnnotationKind,
+    RuleActionCreateDataReviewAnnotation,
     RuleActionCreatePhaseAnnotation,
+    RuleConfig,
 )
-from collections.abc import Iterable
-from pathlib import Path
-from typing import cast, Dict, List, Literal, Optional, TypedDict
-from typing_extensions import NotRequired
 from .telemetry import TelemetryConfig
-
-import yaml
 
 
 class TelemetryConfigYamlSpec(TypedDict):
@@ -88,7 +90,8 @@ class YamlLoadOptions(TypedDict):
     Options to use when loading a telemetry config form YAML.
 
     Attributes:
-      `named_expressions`: A list of look up paths for YAML files containing named expressions. Could also just be a YAML str.
+        `named_expressions`:
+            A list of look up paths for YAML files containing named expressions. Could also just be a YAML str.
     """
 
     named_expressions: List[Path | str]

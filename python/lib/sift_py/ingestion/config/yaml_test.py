@@ -1,21 +1,21 @@
 from __future__ import annotations
 
+from typing import cast
+
+import pytest
+import yaml
+
+from ..channel import ChannelDataType
 from ..rule.config import (
     RuleActionCreateDataReviewAnnotation,
     RuleActionCreatePhaseAnnotation,
     RuleActionKind,
 )
 from .yaml import (
-    _try_from_yaml_str,
-    YamlConfigError,
     NamedExpressionsYamlSpec,
+    YamlConfigError,
+    _try_from_yaml_str,
 )
-from ..channel import ChannelDataType
-from typing import cast
-
-
-import pytest
-import yaml
 
 
 def test_telemetry_config():
@@ -137,20 +137,20 @@ channels:
     name: log
     data_type: string
     description: asset logs
-  
+
   velocity_channel: &velocity_channel
     name: velocity
     data_type: double
     description: speed
     unit: Miles Per Hour
     component: mainmotor
-  
+
   voltage_channel: &voltage_channel
     name: voltage
     data_type: int32
     description: voltage at the source
     unit: Volts
-  
+
   vehicle_state_channel: &vehicle_state_channel
     name: vehicle_state
     data_type: enum
@@ -163,7 +163,7 @@ channels:
         key: 1
       - name: Stopped
         key: 2
-  
+
   gpio_channel: &gpio_channel
     name: gpio
     data_type: bit_field
@@ -225,7 +225,7 @@ flows:
     channels:
       - <<: *velocity_channel
       - <<: *voltage_channel
-      
+
   - name: logs
     channels:
       - <<: *log_channel

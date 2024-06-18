@@ -1,16 +1,19 @@
 from __future__ import annotations
-from ..grpc.transport import SiftChannel
-from .config.telemetry import TelemetryConfig
-from ..ingestion.flow import FlowConfig
-from .channel import ChannelValue
+
+from datetime import datetime
+from typing import Dict, List, Optional
+
 from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataChannelValue,
     IngestWithConfigDataStreamRequest,
 )
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
-from typing import Dict, List, Optional
+
+from ..grpc.transport import SiftChannel
+from ..ingestion.flow import FlowConfig
+from .channel import ChannelValue
+from .config.telemetry import TelemetryConfig
 from .impl.ingest import IngestionServiceImpl
-from datetime import datetime
 
 
 class IngestionService(IngestionServiceImpl):

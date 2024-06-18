@@ -1,21 +1,22 @@
 from __future__ import annotations
-from google.protobuf.empty_pb2 import Empty
-from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_cast_pb
+
 from enum import Enum
-from sift.common.type.v1.channel_enum_type_pb2 import (
-    ChannelEnumType as ChannelEnumTypePb,
-)
+from typing import List, Optional, Type, TypedDict
+
+import sift.common.type.v1.channel_data_type_pb2 as channel_pb
+from google.protobuf.empty_pb2 import Empty
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
+)
+from sift.common.type.v1.channel_enum_type_pb2 import (
+    ChannelEnumType as ChannelEnumTypePb,
 )
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
 )
-from typing import List, Optional, Type, TypedDict
+from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_cast_pb
 from typing_extensions import NotRequired
-
-import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 
 
 class ChannelValue(TypedDict):
