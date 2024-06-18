@@ -4,13 +4,10 @@ from enum import Enum
 from ..channel import ChannelConfig, channel_fqn
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
-from sift_internal.convert.json import AsJson, RemoveNullEncoder
 from typing import Any, Dict, List, Optional, TypedDict
 
-import json
 
-
-class RuleConfig(AsJson):
+class RuleConfig:
     # TODO: Finish doc comment for this
     """
     Defines a rule to be used during ingestion. If a rule's expression validates to try, then
@@ -44,7 +41,7 @@ class RuleConfig(AsJson):
         self.channel_references = channel_references
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
 
-    def as_json(self) -> str:
+    def as_json(self) -> Dict[str, Any]:
         """
         Produces the appropriate JSON structure that's suitable for the Rules API.
         """
@@ -68,22 +65,33 @@ class RuleConfig(AsJson):
 
         if isinstance(self.action, RuleActionCreateDataReviewAnnotation):
             hash_map["type"] = RuleActionAnnotationKind.REVIEW.value
-            hash_map["tags"] = self.action.tags
             hash_map["assignee"] = self.action.assignee
+
+            if self.action.assignee is not None and len(self.action.assignee) > 0:
+                hash_map["assignee"] = self.action.assignee
+
+            if self.action.tags is not None and len(self.action.tags) > 0:
+                hash_map["tags"] = self.action.tags
+
         elif isinstance(self.action, RuleActionCreatePhaseAnnotation):
             hash_map["type"] = RuleActionAnnotationKind.PHASE.value
-            hash_map["tags"] = self.action.tags
+
+            if self.action.tags is not None and len(self.action.tags) > 0:
+                hash_map["tags"] = self.action.tags
         else:
             raise TypeError(f"Unsupported rule action '{self.action.kind()}'.")
 
-        return json.dumps(hash_map, cls=RemoveNullEncoder)
+        return hash_map
 
     @staticmethod
     def interpolate_sub_expressions(expression: str, sub_expressions: Dict[str, str]) -> str:
         for ref, expr in sub_expressions.items():
             if ref not in expression:
                 raise ValueError(f"Couldn't find '{ref}' in expression '{expression}'.")
-            expression = expression.replace(ref, str(expr))
+            if isinstance(expr, str):
+                expression = expression.replace(ref, f'"{expr}"')
+            else:
+                expression = expression.replace(ref, str(expr))
 
         return expression
 

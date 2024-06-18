@@ -48,8 +48,9 @@ def _metadata_interceptor(config: SiftChannelConfig) -> ClientInterceptor:
     """
     Any new metadata goes here.
     """
+    apikey = config["apikey"]
     metadata: Metadata = [
-        ("authorization", f"Bearer {config["apikey"]}"),
+        ("authorization", f"Bearer {apikey}"),
     ]
     return MetadataInterceptor(metadata)
 

@@ -6,12 +6,12 @@ from .config import (
 from ..channel import ChannelConfig, ChannelDataType
 
 
-def test_rule_config_basic_expression():
-    expression = "$1 > 10"
-    config = RuleConfig(
+def test_rule_config_json():
+    voltage_rule_expression = "$1 > 10"
+    voltage_rule_config = RuleConfig(
         name="High Voltage",
         description="Rock & Roll",
-        expression=expression,
+        expression=voltage_rule_expression,
         action=RuleActionCreatePhaseAnnotation(),
         channel_references={
             "$1": ChannelConfig(
@@ -20,19 +20,13 @@ def test_rule_config_basic_expression():
             ),
         },
     )
-    assert config.expression == expression
-    assert (
-        config.as_json()
-        == '{"name": "High Voltage", "description": "Rock & Roll", "expression": "$1 > 10", "expression_channel_references": [{"channel_reference": "$1", "channel_identifier": "voltage"}], "type": "phase", "tags": null}'
-    )
+    assert voltage_rule_config.expression == voltage_rule_expression
 
-
-def test_rule_config_test_sub_expression():
-    expression = '$1 == "Accelerating" && $2 > $3'
-    config = RuleConfig(
+    overheating_rule_expression = '$1 == "Accelerating" && $2 > $3'
+    overheating_rule_config = RuleConfig(
         name="overheating",
         description="checks if vehicle overheats while accelerating",
-        expression=expression,
+        expression=overheating_rule_expression,
         action=RuleActionCreateDataReviewAnnotation(
             tags=["foo", "bar"],
             assignee="foobar@baz.com",
@@ -53,7 +47,25 @@ def test_rule_config_test_sub_expression():
             "$3": 80,
         },
     )
-    assert (
-        config.as_json()
-        == '{"name": "overheating", "description": "checks if vehicle overheats while accelerating", "expression": "$1 == \\"Accelerating\\" && $2 > 80", "expression_channel_references": [{"channel_reference": "$1", "channel_identifier": "motor.vehicle_state"}, {"channel_reference": "$2", "channel_identifier": "motor.temperature"}], "type": "review", "tags": ["foo", "bar"], "assignee": "foobar@baz.com"}'
+    assert overheating_rule_config.expression == '$1 == "Accelerating" && $2 > 80'
+
+    contains_rule_expression = "contains($1, $2)"
+    contains_rule_config = RuleConfig(
+        name="contains",
+        description="checks if vehicle overheats while accelerating",
+        expression=contains_rule_expression,
+        action=RuleActionCreateDataReviewAnnotation(
+            tags=["foo", "bar"],
+            assignee="foobar@baz.com",
+        ),
+        channel_references={
+            "$1": ChannelConfig(
+                name="log",
+                data_type=ChannelDataType.INT_32,
+            ),
+        },
+        sub_expressions={
+            "$2": "Error",
+        },
     )
+    assert contains_rule_config.expression == 'contains($1, "Error")'

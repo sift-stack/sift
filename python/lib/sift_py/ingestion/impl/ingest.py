@@ -171,7 +171,7 @@ class IngestionServiceImpl:
         organization_id: Optional[str] = None,
     ):
         svc = RuleServiceStub(channel)
-        json_rules = json.dumps([rule.as_json() for rule in rule_configs])
+        json_rules = json.dumps(rule_configs, default=lambda x: x.as_json())
         req = UpdateJsonRulesRequest(
             request=JsonRulesRequest(
                 asset_id=asset_id,

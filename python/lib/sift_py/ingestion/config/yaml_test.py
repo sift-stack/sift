@@ -207,7 +207,7 @@ rules:
     channel_references:
       - $1: *log_channel
     sub_expressions:
-      - $2: '\"ERROR\"' # Strings must be escaped
+      - $2: ERROR
     tags:
         - foo
         - bar
