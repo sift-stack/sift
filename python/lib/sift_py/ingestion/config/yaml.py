@@ -8,7 +8,6 @@ import yaml
 from typing_extensions import NotRequired
 
 from ..channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType, channel_fqn
-from ..error import YamlConfigError
 from ..flow import ChannelConfig, FlowConfig
 from ..rule.config import (
     RuleActionAnnotationKind,
@@ -136,6 +135,15 @@ Named expressions are generic expressions that contain placeholders instead of i
 be loaded at runtime and referenced in telemetry configs to facilitate reuse.
 """
 NamedExpressionsYamlSpec = Dict[str, str]
+
+class YamlConfigError(Exception):
+    """
+    When the YAML config has missing or invalid properties.
+    """
+    message: str
+
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 def try_load_from_yaml(

@@ -1,8 +1,3 @@
-"""
-Internal module: This module contains implementation details that are not meant to be
-used by consumers of this library and are not garaunteed to be stable.
-"""
-
 from typing import List, Optional, cast
 
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (

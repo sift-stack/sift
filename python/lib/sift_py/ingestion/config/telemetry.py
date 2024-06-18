@@ -37,10 +37,35 @@ class TelemetryConfig:
         flows: List[FlowConfig] = [],
         rules: List[RuleConfig] = [],
     ):
-        # TODO: Add validation logic here as well.
+        self.__class__.validate_flows(flows)
 
         self.asset_name = asset_name
         self.ingestion_client_key = ingestion_client_key
         self.organization_id = organization_id
         self.flows = flows
         self.rules = rules
+
+    @staticmethod
+    def validate_flows(flows: List[FlowConfig]):
+        """
+        Ensures no duplicate channels in a flow, otherwise raises a `TelemetryConfigValidationError` exception.
+        """
+        for flow in flows:
+            seen_channels = set()
+
+            for channel in flow.channels:
+                fqn = channel.fqn()
+
+                if fqn in seen_channels:
+                    raise TelemetryConfigValidationError(f"Can't have two identical channels, '{fqn}', in flow '{flow.name}'.")
+                else:
+                    seen_channels.add(fqn)
+
+class TelemetryConfigValidationError(Exception):
+    """
+    When the telemetry config has invalid properties
+    """
+    message: str
+
+    def __init__(self, message: str):
+        super().__init__(message)
