@@ -1,9 +1,13 @@
 from typing import List, Optional, cast
 
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+    CreateIngestionConfigFlowsRequest,
+    CreateIngestionConfigFlowsResponse,
     CreateIngestionConfigRequest,
     CreateIngestionConfigResponse,
     IngestionConfig,
+    ListIngestionConfigFlowsRequest,
+    ListIngestionConfigFlowsResponse,
     ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
 )
@@ -60,3 +64,60 @@ def create_ingestion_config(
     )
     res = cast(CreateIngestionConfigResponse, svc.CreateIngestionConfig(req))
     return res.ingestion_config
+
+
+def get_ingestion_config_flow_names(
+    channel: SiftChannel,
+    ingestion_config_id: str,
+) -> List[str]:
+    """
+    Gets all names of flow configs of an ingestion config.
+    """
+
+    svc = IngestionConfigServiceStub(channel)
+
+    flows: List[str] = []
+
+    req = ListIngestionConfigFlowsRequest(
+        ingestion_config_id=ingestion_config_id,
+        page_size=1_000,
+        filter="",
+    )
+    res = cast(ListIngestionConfigFlowsResponse, svc.ListIngestionConfigFlows(req))
+
+    for flow in res.flows:
+        flows.append(flow.name)
+
+    page_token = res.next_page_token
+
+    while len(page_token) > 0:
+        req = ListIngestionConfigFlowsRequest(
+            ingestion_config_id=ingestion_config_id,
+            page_size=1_000,
+            filter="",
+            page_token=page_token,
+        )
+        res = cast(ListIngestionConfigFlowsResponse, svc.ListIngestionConfigFlows(req))
+
+        for flow in res.flows:
+            flows.append(flow.name)
+
+        page_token = res.next_page_token
+
+    return flows
+
+
+def create_flow_configs(
+    channel: SiftChannel,
+    ingestion_config_id: str,
+    flow_configs: List[FlowConfig],
+):
+    """
+    Adds flow configs to an existing ingestion config.
+    """
+    svc = IngestionConfigServiceStub(channel)
+    req = CreateIngestionConfigFlowsRequest(
+        ingestion_config_id=ingestion_config_id,
+        flows=[try_cast_pb(f, FlowConfigPb) for f in flow_configs],
+    )
+    _ = cast(CreateIngestionConfigFlowsResponse, svc.CreateIngestionConfigFlows(req))

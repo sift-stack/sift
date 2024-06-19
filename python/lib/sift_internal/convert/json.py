@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from abc import ABC, abstractmethod
 from typing import Any
@@ -13,6 +15,7 @@ class AsJson(ABC):
     @abstractmethod
     def as_json(self) -> Any:
         pass
+
 
 def to_json(value: Any) -> str:
     """

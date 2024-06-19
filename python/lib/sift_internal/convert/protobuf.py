@@ -5,6 +5,8 @@ from google.protobuf.message import Message
 
 ProtobufMessage = Message
 
+T = TypeVar("T", bound=ProtobufMessage)
+
 
 class AsProtobuf(ABC):
     """
@@ -19,9 +21,6 @@ class AsProtobuf(ABC):
         if conversion fails.
         """
         pass
-
-
-T = TypeVar("T", bound=ProtobufMessage)
 
 
 def try_cast_pb(value: AsProtobuf, target_klass: Type[T]) -> T:

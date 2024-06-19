@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Optional, cast
+from typing import Dict, List, Optional
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sift.ingest.v1.ingest_pb2 import (
@@ -10,23 +10,18 @@ from sift.ingest.v1.ingest_pb2 import (
 )
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
-from sift.rules.v1.rules_pb2 import (
-    JsonRulesRequest,
-    UpdateJsonRulesRequest,
-    UpdateJsonRulesResponse,
-)
-from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
-from sift.runs.v2.runs_pb2 import CreateRunRequest, CreateRunResponse
-from sift.runs.v2.runs_pb2_grpc import RunServiceStub
-from sift_internal.convert.json import to_json
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.channel import ChannelValue, channel_fqn, empty_value, is_data_type
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
 from sift_py.ingestion.impl.ingestion_config import (
+    create_flow_configs,
     create_ingestion_config,
     get_ingestion_config_by_client_key,
+    get_ingestion_config_flow_names,
 )
+from sift_py.ingestion.impl.rule import update_rules, validate_rules_synchronized
+from sift_py.ingestion.impl.run import create_run, get_run_id_by_name
 from sift_py.ingestion.rule.config import RuleConfig
 
 
@@ -34,11 +29,8 @@ class IngestionServiceImpl:
     transport_channel: SiftChannel
     ingestion_config: IngestionConfig
     asset_name: str
-
-    # TODO: Multiple flows can have the same name if their channel configs differ...
     flow_configs_by_name: Dict[str, FlowConfig]
     rules: List[RuleConfig]
-
     run_id: Optional[str]
     organization_id: Optional[str]
     end_stream_on_error: bool
@@ -50,29 +42,29 @@ class IngestionServiceImpl:
         run_id: Optional[str] = None,
         end_stream_on_error: bool = False,
     ):
-        self.ingestion_config = self.__class__.get_or_create_ingestion_config(channel, config)
+        ingestion_config = self.__class__.get_or_create_ingestion_config(channel, config)
+        flow_configs_by_name = {flow.name: flow for flow in config.flows}
+
+        validate_rules_synchronized(channel, ingestion_config.asset_id, config.rules)
+        update_rules(channel, ingestion_config.asset_id, config.rules)
+
+        self.rules = config.rules
+        self.ingestion_config = ingestion_config
         self.asset_name = config.asset_name
         self.transport_channel = channel
         self.run_id = run_id
         self.organization_id = config.organization_id
         self.end_stream_on_error = end_stream_on_error
-
-        # TODO... flows can have the same name...
-        self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
-
-        # TODO... compare with existing rules and error if mismatch
-        self.__class__.update_rules(
-            channel, self.ingestion_config.asset_id, config.rules, config.organization_id
-        )
-        self.rules = config.rules
+        self.flow_configs_by_name = flow_configs_by_name
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
-        # TODO: Add logic to re-establish connection if channel has been closed due to idle timeout
-
+        """
+        Perform data ingestion.
+        """
         svc = IngestServiceStub(self.transport_channel)
         svc.IngestWithConfigDataStream(iter(requests))
 
-    def start_run(
+    def attach_run(
         self,
         channel: SiftChannel,
         run_name: str,
@@ -80,15 +72,29 @@ class IngestionServiceImpl:
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
     ):
-        svc = RunServiceStub(channel)
-        req = CreateRunRequest(
-            name=run_name,
+        """
+        Retrieve an existing run or create one to use during this period of ingestion.
+        """
+        run_id = get_run_id_by_name(channel, run_name)
+
+        if run_id is not None:
+            self.run_id = run_id
+            return
+
+        self.run_id = create_run(
+            channel=channel,
+            run_name=run_name,
             description=description or "",
             organization_id=organization_id or "",
-            tags=tags,
+            tags=tags or [],
         )
-        res = cast(CreateRunResponse, svc.CreateRun(req))
-        self.run_id = res.run.run_id
+
+    def detach_run(self):
+        """
+        Detach run from this period of ingestion. Subsequent data ingested won't be associated with
+        the run being detached.
+        """
+        self.run_id = None
 
     def try_create_ingestion_request(
         self,
@@ -96,6 +102,10 @@ class IngestionServiceImpl:
         timestamp: datetime,
         channel_values: List[ChannelValue],
     ) -> IngestWithConfigDataStreamRequest:
+        """
+        Creates an ingestion request for a flow that must exist in `flow_configs_by_name`. This method
+        performs a series of client-side validations and will return a `ValueError` if any validations fail.
+        """
         flow_config = self.flow_configs_by_name.get(flow_name)
 
         if flow_config is None:
@@ -152,6 +162,10 @@ class IngestionServiceImpl:
         timestamp: datetime,
         channel_values: List[IngestWithConfigDataChannelValue],
     ) -> IngestWithConfigDataStreamRequest:
+        """
+        Creates an ingestion request for a flow that must exist in `flow_configs_by_name`. This method
+        does not do any sort of client-side validation and is recommended to use if performance is required.
+        """
         timestamp_pb = Timestamp()
         timestamp_pb.FromDatetime(timestamp)
 
@@ -166,28 +180,31 @@ class IngestionServiceImpl:
         )
 
     @staticmethod
-    def update_rules(
-        channel: SiftChannel,
-        asset_id: str,
-        rule_configs: List[RuleConfig],
-        organization_id: Optional[str] = None,
+    def update_flow_configs(
+        channel: SiftChannel, ingestion_config_id: str, flows: List[FlowConfig]
     ):
-        svc = RuleServiceStub(channel)
-        json_rules = to_json(rule_configs)
-        req = UpdateJsonRulesRequest(
-            request=JsonRulesRequest(
-                asset_id=asset_id,
-                rules_json=json_rules,
-                organization_id=organization_id or "",
-            )
-        )
-        res = cast(UpdateJsonRulesResponse, svc.UpdateJsonRules(req))
-        if not res.response.success:
-            raise Exception(f"Failed to load rules: {res.response.error_messages}")
+        """
+        Queries flow configs from Sift and does a check to see if there are any new flow configs that need to be created.
+        """
+
+        registered_flow_names = set(get_ingestion_config_flow_names(channel, ingestion_config_id))
+
+        flows_to_create = []
+
+        for flow in flows:
+            if flow.name in registered_flow_names:
+                continue
+
+            flows_to_create.append(flow)
+
+        create_flow_configs(channel, ingestion_config_id, flows_to_create)
 
     @staticmethod
     def get_or_create_ingestion_config(channel: SiftChannel, config: TelemetryConfig):
-        # TODO: Handle case where new Flows are added to an existing ingestion config
+        """
+        Retrieves an existing ingestion config or creates a new one.
+        """
+
         ingestion_config = get_ingestion_config_by_client_key(channel, config.ingestion_client_key)
 
         if ingestion_config is not None:

@@ -13,8 +13,9 @@ Subcommands:
   test           Execute tests
   bootstrap      Initializes python virtual environment and installs project dependencies
   pip-install    Install project dependencies
-  fmt            Runs 'ruff' to format the lib directory
-  lint           Runs 'ruff' to lint the lib directory
+  fmt            Runs 'ruff fmt' to format the lib directory
+  lint           Runs 'ruff check' to lint the lib directory
+  lint-fix       Runs 'ruff check --fix'
 
 Options:
   -h, --help     Print usage text
@@ -44,6 +45,11 @@ lint() {
   ruff check
 }
 
+lint_fix() {
+  source venv/bin/activate
+  ruff check --fix
+}
+
 run_tests() {
   pytest
 }
@@ -63,6 +69,9 @@ case "$1" in
         ;;
     fmt)
         fmt
+        ;;
+    lint-fix)
+        lint_fix
         ;;
     lint)
         lint

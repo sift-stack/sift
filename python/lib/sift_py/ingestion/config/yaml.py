@@ -141,10 +141,12 @@ be loaded at runtime and referenced in telemetry configs to facilitate reuse.
 """
 NamedExpressionsYamlSpec = Dict[str, str]
 
+
 class YamlConfigError(Exception):
     """
     When the YAML config has missing or invalid properties.
     """
+
     message: str
 
     def __init__(self, message: str):

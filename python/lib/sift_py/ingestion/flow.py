@@ -36,3 +36,7 @@ class FlowConfig(AsProtobuf):
             name=self.name,
             channels=[try_cast_pb(conf, ChannelConfigPb) for conf in self.channels],
         )
+
+    # @classmethod
+    # def from_pb(cls, message: ProtobufMessage) -> Self:
+    # flow_config_pb = cast(FlowConfigPb, message)

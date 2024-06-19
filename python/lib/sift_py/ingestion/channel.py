@@ -12,9 +12,6 @@ from sift.common.type.v1.channel_enum_type_pb2 import (
     ChannelEnumType as ChannelEnumTypePb,
 )
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
-    ChannelConfig as ChannelConfigPb,
-)
 from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_cast_pb
 from typing_extensions import NotRequired
 
@@ -61,7 +58,7 @@ class ChannelConfig(AsProtobuf):
         self.enum_types = enum_types
 
     def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
-        return ChannelConfigPb(
+        return klass(
             name=self.name,
             component=self.component or "",
             unit=self.unit or "",
@@ -95,7 +92,7 @@ class ChannelBitFieldElement(AsProtobuf):
         self.bit_count = bit_count
 
     def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
-        return ChannelBitFieldElementPb(
+        return klass(
             name=self.name,
             index=self.index,
             bit_count=self.bit_count,
@@ -111,7 +108,7 @@ class ChannelEnumType(AsProtobuf):
         self.key = key
 
     def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
-        return ChannelEnumTypePb(name=self.name, key=self.key)
+        return klass(name=self.name, key=self.key)
 
 
 class ChannelDataType(Enum):

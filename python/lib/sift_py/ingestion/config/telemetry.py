@@ -48,23 +48,36 @@ class TelemetryConfig:
     @staticmethod
     def validate_flows(flows: List[FlowConfig]):
         """
-        Ensures no duplicate channels in a flow, otherwise raises a `TelemetryConfigValidationError` exception.
+        Ensures no duplicate channels and flows with the same name, otherwise raises a `TelemetryConfigValidationError` exception.
         """
+        flow_names = set()
+
         for flow in flows:
             seen_channels = set()
+
+            if flow.name in flow_names:
+                raise TelemetryConfigValidationError(
+                    f"Can't have two flows with the same name, '{flow.name}'"
+                )
+
+            flow_names.add(flow.name)
 
             for channel in flow.channels:
                 fqn = channel.fqn()
 
                 if fqn in seen_channels:
-                    raise TelemetryConfigValidationError(f"Can't have two identical channels, '{fqn}', in flow '{flow.name}'.")
+                    raise TelemetryConfigValidationError(
+                        f"Can't have two identical channels, '{fqn}', in flow '{flow.name}'."
+                    )
                 else:
                     seen_channels.add(fqn)
+
 
 class TelemetryConfigValidationError(Exception):
     """
     When the telemetry config has invalid properties
     """
+
     message: str
 
     def __init__(self, message: str):

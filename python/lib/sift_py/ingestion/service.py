@@ -43,7 +43,7 @@ class IngestionService(IngestionServiceImpl):
         """
         super().ingest(*requests)
 
-    def start_run(
+    def attach_run(
         self,
         channel: SiftChannel,
         run_name: str,
@@ -52,9 +52,16 @@ class IngestionService(IngestionServiceImpl):
         tags: Optional[List[str]] = None,
     ):
         """
-        Create a run to use as part of the call to `ingest`.
+        Retrieve an existing run or create one to use during this period of ingestion.
         """
-        super().start_run(channel, run_name, description, organization_id, tags)
+        super().attach_run(channel, run_name, description, organization_id, tags)
+
+    def detach_run(self):
+        """
+        Detach run from this period of ingestion. Subsequent data ingested won't be associated with
+        the run being detached.
+        """
+        super().detach_run()
 
     def try_create_ingestion_request(
         self,

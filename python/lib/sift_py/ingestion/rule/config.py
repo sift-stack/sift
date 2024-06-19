@@ -11,7 +11,6 @@ from sift_py.ingestion.channel import ChannelConfig, channel_fqn
 
 
 class RuleConfig(AsJson):
-    # TODO: Finish doc comment for this
     """
     Defines a rule to be used during ingestion. If a rule's expression validates to try, then
     a specific action will take place as specified by the `kind` attribute.
@@ -44,7 +43,6 @@ class RuleConfig(AsJson):
         channel_references: Dict[str, ChannelConfig] = {},
         sub_expressions: Dict[str, Any] = {},
     ):
-
         self.name = name
         self.description = description
         self.action = action
