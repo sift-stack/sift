@@ -41,7 +41,7 @@ def validate_rules_synchronized(
 
         if rule_name not in rule_names_from_config:
             raise Exception(
-                "Encountered rule '{rule_name}' on asset '{asset_id}' not found in local telemetry config. Add it."
+                f"Encountered rule '{rule_name}' on asset '{asset_id}' not found in local telemetry config. Add it."
             )
 
 

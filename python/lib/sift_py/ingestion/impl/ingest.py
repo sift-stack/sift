@@ -33,6 +33,7 @@ class IngestionServiceImpl:
     rules: List[RuleConfig]
     run_id: Optional[str]
     organization_id: Optional[str]
+    overwrite_rules: bool
     end_stream_on_error: bool
 
     def __init__(
@@ -40,12 +41,20 @@ class IngestionServiceImpl:
         channel: SiftChannel,
         config: TelemetryConfig,
         run_id: Optional[str] = None,
+        overwrite_rules: bool = False,
         end_stream_on_error: bool = False,
     ):
         ingestion_config = self.__class__.get_or_create_ingestion_config(channel, config)
+
+        self.__class__.update_flow_configs(
+            channel, ingestion_config.ingestion_config_id, config.flows
+        )
+
         flow_configs_by_name = {flow.name: flow for flow in config.flows}
 
-        validate_rules_synchronized(channel, ingestion_config.asset_id, config.rules)
+        if not overwrite_rules:
+            validate_rules_synchronized(channel, ingestion_config.asset_id, config.rules)
+
         update_rules(channel, ingestion_config.asset_id, config.rules)
 
         self.rules = config.rules
