@@ -5,6 +5,7 @@ from typing import List, Optional, Type, TypedDict
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
+from sift.channels.v2.channels_pb2 import Channel as ChannelPb
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
 )
@@ -90,10 +91,7 @@ class ChannelConfig(AsProtobuf):
         The fully-qualified channel name of a channel called 'voltage' is simply `voltage'. The
         fully qualified name of a channel called 'temperature' of component 'motor' is a `motor.temperature'.
         """
-        if self.component is None or len(self.component) == "":
-            return self.name
-        else:
-            return f"{self.component}.{self.name}"
+        return channel_fqn(self)
 
 
 class ChannelBitFieldElement(AsProtobuf):
@@ -220,7 +218,7 @@ class ChannelDataTypeStrRep(Enum):
     UINT_64 = "uint64"
 
 
-def channel_fqn(channel: ChannelConfig | ChannelValue) -> str:
+def channel_fqn(channel: ChannelConfig | ChannelValue | ChannelPb) -> str:
     """
     Computes the fully qualified channel name.
 
@@ -229,6 +227,11 @@ def channel_fqn(channel: ChannelConfig | ChannelValue) -> str:
     """
 
     if isinstance(channel, ChannelConfig):
+        if channel.component is None or len(channel.component) == "":
+            return channel.name
+        else:
+            return f"{channel.component}.{channel.name}"
+    elif isinstance(channel, ChannelPb):
         if channel.component is None or len(channel.component) == "":
             return channel.name
         else:

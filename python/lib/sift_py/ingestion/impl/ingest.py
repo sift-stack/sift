@@ -14,6 +14,8 @@ from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.channel import ChannelValue, channel_fqn, empty_value, is_data_type
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
+from sift_py.ingestion.impl.channel import get_asset_channels
+from sift_py.ingestion.impl.error import IngestionValidationError
 from sift_py.ingestion.impl.ingestion_config import (
     create_flow_configs,
     create_ingestion_config,
@@ -46,18 +48,21 @@ class IngestionServiceImpl:
     ):
         ingestion_config = self.__class__.get_or_create_ingestion_config(channel, config)
 
+        self.__class__.validate_and_update_channels(
+            channel, ingestion_config.asset_id, config.flows
+        )
+
         self.__class__.update_flow_configs(
             channel, ingestion_config.ingestion_config_id, config.flows
         )
-
-        flow_configs_by_name = {flow.name: flow for flow in config.flows}
 
         if not overwrite_rules:
             self.__class__.validate_rules_synchronized(
                 channel, ingestion_config.asset_id, config.rules
             )
 
-        update_rules(channel, ingestion_config.asset_id, config.rules)
+        if len(config.rules) > 0:
+            update_rules(channel, ingestion_config.asset_id, config.rules)
 
         self.rules = config.rules
         self.ingestion_config = ingestion_config
@@ -66,7 +71,7 @@ class IngestionServiceImpl:
         self.run_id = run_id
         self.organization_id = config.organization_id
         self.end_stream_on_error = end_stream_on_error
-        self.flow_configs_by_name = flow_configs_by_name
+        self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
@@ -115,12 +120,14 @@ class IngestionServiceImpl:
     ) -> IngestWithConfigDataStreamRequest:
         """
         Creates an ingestion request for a flow that must exist in `flow_configs_by_name`. This method
-        performs a series of client-side validations and will return a `ValueError` if any validations fail.
+        performs a series of client-side validations and will return a `IngestionValidationError` if any validations fail.
         """
         flow_config = self.flow_configs_by_name.get(flow_name)
 
         if flow_config is None:
-            raise ValueError(f"A flow config of name '{flow_name}' could not be found.")
+            raise IngestionValidationError(
+                f"A flow config of name '{flow_name}' could not be found."
+            )
 
         channel_values_by_fqn: Dict[str, ChannelValue] = {}
 
@@ -130,7 +137,7 @@ class IngestionServiceImpl:
             if channel_values_by_fqn.get(fqn, None) is None:
                 channel_values_by_fqn[fqn] = channel_value
             else:
-                raise ValueError(f"Encountered multiple values for {fqn}")
+                raise IngestionValidationError(f"Encountered multiple values for {fqn}")
 
         values: List[IngestWithConfigDataChannelValue] = []
 
@@ -147,16 +154,18 @@ class IngestionServiceImpl:
             if is_data_type(value, channel.data_type):
                 values.append(value)
             else:
-                raise ValueError(
+                raise IngestionValidationError(
                     f"Expected value for `{channel.name}` to be a '{channel.data_type}'."
                 )
 
         if len(channel_values_by_fqn) > 0:
             unexpected_channels = [name for name in channel_values_by_fqn.keys()]
-            raise ValueError(f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}")
+            raise IngestionValidationError(
+                f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}"
+            )
 
         if timestamp.tzname() != "UTC":
-            raise ValueError(
+            raise IngestionValidationError(
                 f"Expected 'timestamp' to be in UTC but it is in {timestamp.tzname()}."
             )
 
@@ -195,6 +204,9 @@ class IngestionServiceImpl:
         """
         Queries flow configs from Sift and does a check to see if there are any new flow configs that need to be created.
         """
+        if len(flows) == 0:
+            return
+
         registered_flow_names = set(get_ingestion_config_flow_names(channel, ingestion_config_id))
 
         flows_to_create = []
@@ -207,6 +219,38 @@ class IngestionServiceImpl:
 
         if len(flows_to_create) > 0:
             create_flow_configs(channel, ingestion_config_id, flows_to_create)
+
+    @staticmethod
+    def validate_and_update_channels(
+        transport_channel: SiftChannel, asset_id: str, flows: List[FlowConfig]
+    ):
+        """
+        There isn't an update channels API yet.
+
+        For now this function will just ensure that people aren't changing channel data-types for
+        an existing channel given by component and name.
+
+        Changing the name/component of a channel will just result in a new channel.
+
+        We'll want to add support to update description, unit, and whatever else.
+        """
+        if len(flows) == 0:
+            return
+
+        existing_channels = get_asset_channels(transport_channel, asset_id)
+        channel_by_fqn = {channel_fqn(c): c for c in existing_channels}
+
+        for flow in flows:
+            for channel in flow.channels:
+                already_created_channel = channel_by_fqn.get(channel.fqn())
+
+                if already_created_channel is None:
+                    continue
+
+                if already_created_channel.data_type != channel.data_type:
+                    raise IngestionValidationError(
+                        f"Cannot change the data-type of channel '{channel.fqn()}'."
+                    )
 
     @staticmethod
     def get_or_create_ingestion_config(
@@ -240,6 +284,9 @@ class IngestionServiceImpl:
         Namely, if a rule was added via a Sift UI and wasn't added immediately to the telemetry config, then
         this will raise an exception.
         """
+        if len(rule_configs) == 0:
+            return
+
         rules_json = get_asset_rules_json(transport_channel, asset_id)
 
         rule_names_from_config = set()
@@ -251,9 +298,9 @@ class IngestionServiceImpl:
             rule_name: str = rule_json.get("name", "")
 
             if len(rule_name) == 0:
-                raise Exception("Encountered rule without a name from Sift API.")
+                raise IngestionValidationError("Encountered rule without a name from Sift API.")
 
             if rule_name not in rule_names_from_config:
-                raise Exception(
+                raise IngestionValidationError(
                     f"Encountered rule '{rule_name}' on asset '{asset_id}' not found in local telemetry config. Add it."
                 )

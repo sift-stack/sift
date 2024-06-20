@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 from typing import Callable
 
 import pytest
+import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from pytest_mock import MockFixture
+from sift.channels.v2.channels_pb2 import Channel as ChannelPb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 from sift_internal.test_util.channel import MockChannel
 from sift_py.ingestion.channel import (
@@ -16,6 +18,8 @@ from sift_py.ingestion.channel import (
 )
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
+from sift_py.ingestion.impl.channel import get_asset_channels
+from sift_py.ingestion.impl.error import IngestionValidationError
 from sift_py.ingestion.impl.ingest import (
     IngestionServiceImpl,
     create_flow_configs,
@@ -66,6 +70,11 @@ def test_ingestion_service_update_flow_configs_updates_flows(mocker: MockFixture
 
     flow_names_queried_from_api = ["flow_a"]
 
+    mock_validate_and_update_channels = mocker.patch.object(
+        IngestionServiceImpl, "validate_and_update_channels"
+    )
+    mock_validate_and_update_channels.return_value = None
+
     mock_get_ingestion_config_flow_names = mocker.patch(_mock_path(get_ingestion_config_flow_names))
     mock_get_ingestion_config_flow_names.return_value = flow_names_queried_from_api
 
@@ -94,6 +103,11 @@ def test_ingestion_service_get_or_create_ingestion_config_retrieves_existing(moc
         asset_name="asset_name",
         ingestion_client_key=mock_ingestion_config.client_key,
     )
+
+    mock_validate_and_update_channels = mocker.patch.object(
+        IngestionServiceImpl, "validate_and_update_channels"
+    )
+    mock_validate_and_update_channels.return_value = None
 
     mock_get_ingestion_config_by_client_key = mocker.patch(
         _mock_path(get_ingestion_config_by_client_key)
@@ -207,6 +221,11 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
+    mock_validate_and_update_channels = mocker.patch.object(
+        IngestionServiceImpl, "validate_and_update_channels"
+    )
+    mock_validate_and_update_channels.return_value = None
+
     mock_update_flow_configs = mocker.patch.object(IngestionServiceImpl, "update_flow_configs")
     mock_update_flow_configs.return_value = None
 
@@ -222,7 +241,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
     )
 
     # Non-existent flow
-    with pytest.raises(ValueError, match="could not be found"):
+    with pytest.raises(IngestionValidationError, match="could not be found"):
         svc.try_create_ingestion_request(
             flow_name="lerg",  # typo
             timestamp=datetime.now(timezone.utc),
@@ -232,7 +251,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
         )
 
     # Duplicate values for channel
-    with pytest.raises(ValueError, match="multiple values"):
+    with pytest.raises(IngestionValidationError, match="multiple values"):
         svc.try_create_ingestion_request(
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
@@ -243,7 +262,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
         )
 
     # Wrong channel value type
-    with pytest.raises(ValueError, match="Expected value"):
+    with pytest.raises(IngestionValidationError, match="Expected value"):
         svc.try_create_ingestion_request(
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
@@ -253,7 +272,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
         )
 
     # Wrong channel for flow
-    with pytest.raises(ValueError, match="Unexpected channel"):
+    with pytest.raises(IngestionValidationError, match="Unexpected channel"):
         svc.try_create_ingestion_request(
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
@@ -335,6 +354,11 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
+    mock_validate_and_update_channels = mocker.patch.object(
+        IngestionServiceImpl, "validate_and_update_channels"
+    )
+    mock_validate_and_update_channels.return_value = None
+
     mock_update_flow_configs = mocker.patch.object(IngestionServiceImpl, "update_flow_configs")
     mock_update_flow_configs.return_value = None
 
@@ -389,3 +413,62 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
         mock_ingestion_config.asset_id,
         telemetry_config.rules,
     )
+
+
+def test_ingestion_service_validate_channels(mocker: MockFixture):
+    """
+    Disallow updating channel-data type for an existing channel
+    """
+
+    # This is a previously created channel that already exists in Sift
+    existing_voltage_channel = ChannelPb(
+        name="voltage",
+        component="motor",
+        data_type=channel_pb.CHANNEL_DATA_TYPE_DOUBLE,
+    )
+
+    # For the same channel someone tried changing the channel data-type from the config
+    voltage_channel = ChannelConfig(
+        name="voltage",
+        component="motor",
+        data_type=ChannelDataType.INT_32,
+    )
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="my-ingestion-config",
+        asset_id="my-asset-id",
+        client_key="my-client-key",
+    )
+
+    mock_get_or_create_ingestion_config = mocker.patch.object(
+        IngestionServiceImpl, "get_or_create_ingestion_config"
+    )
+    mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
+
+    mock_get_asset_channels = mocker.patch(_mock_path(get_asset_channels))
+    mock_get_asset_channels.return_value = [existing_voltage_channel]
+
+    mock_update_flow_configs = mocker.patch.object(IngestionServiceImpl, "update_flow_configs")
+    mock_update_flow_configs.return_value = None
+
+    mock_get_asset_rules_json = mocker.patch(_mock_path(get_asset_rules_json))
+    mock_get_asset_rules_json.return_value = None
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        ingestion_client_key=mock_ingestion_config.client_key,
+        flows=[
+            FlowConfig(
+                name="reading",
+                channels=[voltage_channel],
+            ),
+        ],
+    )
+
+    mock_channel = MockChannel()
+
+    with pytest.raises(IngestionValidationError, match="Cannot change the data-type"):
+        _ = IngestionServiceImpl(
+            channel=mock_channel,
+            config=telemetry_config,
+        )
