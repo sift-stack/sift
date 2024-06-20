@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Self, Type
 
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
@@ -8,9 +8,8 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
-from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_cast_pb
-
-from .channel import ChannelConfig, channel_fqn
+from sift_internal.convert.protobuf import AsProtobuf
+from sift_py.ingestion.channel import ChannelConfig, channel_fqn
 
 
 class FlowConfig(AsProtobuf):
@@ -31,12 +30,15 @@ class FlowConfig(AsProtobuf):
         self.channels = channels
         self.channel_by_fqn = {channel_fqn(c): i for i, c in enumerate(channels)}
 
-    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
-        return FlowConfigPb(
+    def as_pb(self, klass: Type[FlowConfigPb]) -> FlowConfigPb:
+        return klass(
             name=self.name,
-            channels=[try_cast_pb(conf, ChannelConfigPb) for conf in self.channels],
+            channels=[conf.as_pb(ChannelConfigPb) for conf in self.channels],
         )
 
-    # @classmethod
-    # def from_pb(cls, message: ProtobufMessage) -> Self:
-    # flow_config_pb = cast(FlowConfigPb, message)
+    @classmethod
+    def from_pb(cls, message: FlowConfigPb) -> Self:
+        return cls(
+            name=message.name,
+            channels=[ChannelConfig.from_pb(c) for c in message.channels],
+        )

@@ -37,13 +37,34 @@ class TelemetryConfig:
         flows: List[FlowConfig] = [],
         rules: List[RuleConfig] = [],
     ):
+        """
+        Will raise a `TelemetryConfigValidationError` under the following conditions:
+            - Multiple flows with the same name
+            - Multiple rules with the same name
+            - Identical channels in the same flow
+        """
         self.__class__.validate_flows(flows)
+        self.__class__.validate_rules(rules)
 
         self.asset_name = asset_name
         self.ingestion_client_key = ingestion_client_key
         self.organization_id = organization_id
         self.flows = flows
         self.rules = rules
+
+    @staticmethod
+    def validate_rules(rules: List[RuleConfig]):
+        """
+        Ensure that there are no rules with identical names
+        """
+        seen_rule_names = set()
+
+        for rule in rules:
+            if rule.name in seen_rule_names:
+                raise TelemetryConfigValidationError(
+                    f"Can't have two rules with identical names, '{rule.name}'."
+                )
+            seen_rule_names.add(rule.name)
 
     @staticmethod
     def validate_flows(flows: List[FlowConfig]):
@@ -57,7 +78,7 @@ class TelemetryConfig:
 
             if flow.name in flow_names:
                 raise TelemetryConfigValidationError(
-                    f"Can't have two flows with the same name, '{flow.name}'"
+                    f"Can't have two flows with the same name, '{flow.name}'."
                 )
 
             flow_names.add(flow.name)

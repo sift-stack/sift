@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional, Type, TypedDict
+from typing import List, Optional, Self, Type, TypedDict
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
@@ -12,7 +12,8 @@ from sift.common.type.v1.channel_enum_type_pb2 import (
     ChannelEnumType as ChannelEnumTypePb,
 )
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
-from sift_internal.convert.protobuf import AsProtobuf, ProtobufMessage, try_cast_pb
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
+from sift_internal.convert.protobuf import AsProtobuf
 from typing_extensions import NotRequired
 
 
@@ -57,17 +58,31 @@ class ChannelConfig(AsProtobuf):
         self.bit_field_elements = bit_field_elements
         self.enum_types = enum_types
 
-    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
+    def as_pb(self, klass: Type[ChannelConfigPb]) -> ChannelConfigPb:
         return klass(
             name=self.name,
             component=self.component or "",
             unit=self.unit or "",
             description=self.description or "",
             data_type=self.data_type.value,
-            enum_types=[try_cast_pb(etype, ChannelEnumTypePb) for etype in self.enum_types],
+            enum_types=[etype.as_pb(ChannelEnumTypePb) for etype in self.enum_types],
             bit_field_elements=[
-                try_cast_pb(el, ChannelBitFieldElementPb) for el in self.bit_field_elements
+                el.as_pb(ChannelBitFieldElementPb) for el in self.bit_field_elements
             ],
+        )
+
+    @classmethod
+    def from_pb(cls, message: ChannelConfigPb) -> Self:
+        return cls(
+            name=message.name,
+            data_type=ChannelDataType.from_pb(message.data_type),
+            description=message.description,
+            unit=message.unit,
+            component=message.component,
+            bit_field_elements=[
+                ChannelBitFieldElement.from_pb(el) for el in message.bit_field_elements
+            ],
+            enum_types=[ChannelEnumType.from_pb(etype) for etype in message.enum_types],
         )
 
     def fqn(self) -> str:
@@ -91,11 +106,19 @@ class ChannelBitFieldElement(AsProtobuf):
         self.index = index
         self.bit_count = bit_count
 
-    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
+    def as_pb(self, klass: Type[ChannelBitFieldElementPb]) -> ChannelBitFieldElementPb:
         return klass(
             name=self.name,
             index=self.index,
             bit_count=self.bit_count,
+        )
+
+    @classmethod
+    def from_pb(cls, message: ChannelBitFieldElementPb) -> Self:
+        return cls(
+            name=message.name,
+            index=message.index,
+            bit_count=message.bit_count,
         )
 
 
@@ -107,8 +130,12 @@ class ChannelEnumType(AsProtobuf):
         self.name = name
         self.key = key
 
-    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
+    def as_pb(self, klass: Type[ChannelEnumTypePb]) -> ChannelEnumTypePb:
         return klass(name=self.name, key=self.key)
+
+    @classmethod
+    def from_pb(cls, message: ChannelEnumTypePb) -> Self:
+        return cls(name=message.name, key=message.key)
 
 
 class ChannelDataType(Enum):
@@ -126,6 +153,31 @@ class ChannelDataType(Enum):
     INT_64 = channel_pb.CHANNEL_DATA_TYPE_INT_64
     UINT_32 = channel_pb.CHANNEL_DATA_TYPE_UINT_32
     UINT_64 = channel_pb.CHANNEL_DATA_TYPE_UINT_64
+
+    @classmethod
+    def from_pb(cls, val: channel_pb.ChannelDataType.ValueType) -> "ChannelDataType":
+        if val == cls.DOUBLE:
+            return cls.DOUBLE
+        elif val == cls.STRING:
+            return cls.STRING
+        elif val == cls.ENUM:
+            return cls.ENUM
+        elif val == cls.BIT_FIELD:
+            return cls.BIT_FIELD
+        elif val == cls.BOOL:
+            return cls.BOOL
+        elif val == cls.FLOAT:
+            return cls.FLOAT
+        elif val == cls.INT_32:
+            return cls.INT_32
+        elif val == cls.INT_64:
+            return cls.INT_64
+        elif val == cls.UINT_32:
+            return cls.UINT_32
+        elif val == cls.UINT_64:
+            return cls.UINT_64
+        else:
+            raise ValueError(f"Unknown channel data type '{val}'.")
 
     @classmethod
     def from_str(cls, val: str) -> Optional["ChannelDataType"]:

@@ -20,7 +20,7 @@ from sift_py.ingestion.impl.ingestion_config import (
     get_ingestion_config_by_client_key,
     get_ingestion_config_flow_names,
 )
-from sift_py.ingestion.impl.rule import update_rules, validate_rules_synchronized
+from sift_py.ingestion.impl.rule import get_asset_rules_json, update_rules
 from sift_py.ingestion.impl.run import create_run, get_run_id_by_name
 from sift_py.ingestion.rule.config import RuleConfig
 
@@ -53,7 +53,9 @@ class IngestionServiceImpl:
         flow_configs_by_name = {flow.name: flow for flow in config.flows}
 
         if not overwrite_rules:
-            validate_rules_synchronized(channel, ingestion_config.asset_id, config.rules)
+            self.__class__.validate_rules_synchronized(
+                channel, ingestion_config.asset_id, config.rules
+            )
 
         update_rules(channel, ingestion_config.asset_id, config.rules)
 
@@ -151,9 +153,7 @@ class IngestionServiceImpl:
 
         if len(channel_values_by_fqn) > 0:
             unexpected_channels = [name for name in channel_values_by_fqn.keys()]
-            raise ValueError(
-                f"Unexpected channels for flow '{flow_name}' or 'component' field missing for channel: {unexpected_channels}"
-            )
+            raise ValueError(f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}")
 
         if timestamp.tzname() != "UTC":
             raise ValueError(
@@ -195,7 +195,6 @@ class IngestionServiceImpl:
         """
         Queries flow configs from Sift and does a check to see if there are any new flow configs that need to be created.
         """
-
         registered_flow_names = set(get_ingestion_config_flow_names(channel, ingestion_config_id))
 
         flows_to_create = []
@@ -206,10 +205,13 @@ class IngestionServiceImpl:
 
             flows_to_create.append(flow)
 
-        create_flow_configs(channel, ingestion_config_id, flows_to_create)
+        if len(flows_to_create) > 0:
+            create_flow_configs(channel, ingestion_config_id, flows_to_create)
 
     @staticmethod
-    def get_or_create_ingestion_config(channel: SiftChannel, config: TelemetryConfig):
+    def get_or_create_ingestion_config(
+        channel: SiftChannel, config: TelemetryConfig
+    ) -> IngestionConfig:
         """
         Retrieves an existing ingestion config or creates a new one.
         """
@@ -226,3 +228,32 @@ class IngestionServiceImpl:
             config.ingestion_client_key,
             config.organization_id,
         )
+
+    @staticmethod
+    def validate_rules_synchronized(
+        transport_channel: SiftChannel,
+        asset_id: str,
+        rule_configs: List[RuleConfig],
+    ):
+        """
+        Ensures that rules defined in the telemetry config and the rules in Sift are in sync, otherwise error.
+        Namely, if a rule was added via a Sift UI and wasn't added immediately to the telemetry config, then
+        this will raise an exception.
+        """
+        rules_json = get_asset_rules_json(transport_channel, asset_id)
+
+        rule_names_from_config = set()
+
+        for rule_config in rule_configs:
+            rule_names_from_config.add(rule_config.name)
+
+        for rule_json in rules_json:
+            rule_name: str = rule_json.get("name", "")
+
+            if len(rule_name) == 0:
+                raise Exception("Encountered rule without a name from Sift API.")
+
+            if rule_name not in rule_names_from_config:
+                raise Exception(
+                    f"Encountered rule '{rule_name}' on asset '{asset_id}' not found in local telemetry config. Add it."
+                )

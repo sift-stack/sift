@@ -17,7 +17,6 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
 from sift.ingestion_configs.v1.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )
-from sift_internal.convert.protobuf import try_cast_pb
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.flow import FlowConfig
 
@@ -60,7 +59,7 @@ def create_ingestion_config(
         asset_name=asset_name,
         client_key=client_key,
         organization_id=organization_id or "",
-        flows=[try_cast_pb(flow, FlowConfigPb) for flow in flows],
+        flows=[flow.as_pb(FlowConfigPb) for flow in flows],
     )
     res = cast(CreateIngestionConfigResponse, svc.CreateIngestionConfig(req))
     return res.ingestion_config
@@ -118,6 +117,6 @@ def create_flow_configs(
     svc = IngestionConfigServiceStub(channel)
     req = CreateIngestionConfigFlowsRequest(
         ingestion_config_id=ingestion_config_id,
-        flows=[try_cast_pb(f, FlowConfigPb) for f in flow_configs],
+        flows=[f.as_pb(FlowConfigPb) for f in flow_configs],
     )
     _ = cast(CreateIngestionConfigFlowsResponse, svc.CreateIngestionConfigFlows(req))

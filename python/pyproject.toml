@@ -18,8 +18,13 @@ requires-python = ">=3.9"
 
 [project.optional-dependencies]
 development = [
-  "pytest", # test framework
-  "ruff", # formatter + linter
+   # testing tools
+  "pytest",
+  "pytest-mock",
+  "grpcio-testing",
+
+  # formatter + linter
+  "ruff",
 ]
 
 [build-system]
