@@ -11,10 +11,14 @@ from sift.ingest.v1.ingest_pb2 import (
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 from sift_py.grpc.transport import SiftChannel
-from sift_py.ingestion.channel import ChannelValue, channel_fqn, empty_value, is_data_type
+from sift_py.ingestion.channel import (
+    ChannelValue,
+    channel_fqn,
+    empty_value,
+    is_data_type,
+)
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
-from sift_py.ingestion.impl.channel import get_asset_channels
 from sift_py.ingestion.impl.error import IngestionValidationError
 from sift_py.ingestion.impl.ingestion_config import (
     create_flow_configs,
@@ -47,10 +51,6 @@ class IngestionServiceImpl:
         end_stream_on_error: bool = False,
     ):
         ingestion_config = self.__class__.get_or_create_ingestion_config(channel, config)
-
-        self.__class__.validate_and_update_channels(
-            channel, ingestion_config.asset_id, config.flows
-        )
 
         self.__class__.update_flow_configs(
             channel, ingestion_config.ingestion_config_id, config.flows
@@ -219,38 +219,6 @@ class IngestionServiceImpl:
 
         if len(flows_to_create) > 0:
             create_flow_configs(channel, ingestion_config_id, flows_to_create)
-
-    @staticmethod
-    def validate_and_update_channels(
-        transport_channel: SiftChannel, asset_id: str, flows: List[FlowConfig]
-    ):
-        """
-        There isn't an update channels API yet.
-
-        For now this function will just ensure that people aren't changing channel data-types for
-        an existing channel given by component and name.
-
-        Changing the name/component of a channel will just result in a new channel.
-
-        We'll want to add support to update description, unit, and whatever else.
-        """
-        if len(flows) == 0:
-            return
-
-        existing_channels = get_asset_channels(transport_channel, asset_id)
-        channel_by_fqn = {channel_fqn(c): c for c in existing_channels}
-
-        for flow in flows:
-            for channel in flow.channels:
-                already_created_channel = channel_by_fqn.get(channel.fqn())
-
-                if already_created_channel is None:
-                    continue
-
-                if already_created_channel.data_type != channel.data_type:
-                    raise IngestionValidationError(
-                        f"Cannot change the data-type of channel '{channel.fqn()}'."
-                    )
 
     @staticmethod
     def get_or_create_ingestion_config(
