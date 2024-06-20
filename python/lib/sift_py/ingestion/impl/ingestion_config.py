@@ -1,23 +1,24 @@
-"""
-Internal module: This module contains implementation details that are not meant to be
-used by consumers of this library and are not garaunteed to be stable.
-"""
+from typing import List, Optional, cast
 
-from ...grpc.transport import SiftChannel
-from ..flow import FlowConfig
-from sift_internal.convert.protobuf import try_cast_pb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
-    IngestionConfig,
+    CreateIngestionConfigFlowsRequest,
+    CreateIngestionConfigFlowsResponse,
     CreateIngestionConfigRequest,
     CreateIngestionConfigResponse,
+    IngestionConfig,
+    ListIngestionConfigFlowsRequest,
+    ListIngestionConfigFlowsResponse,
     ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
+)
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
 from sift.ingestion_configs.v1.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )
-from typing import cast, List, Optional
+from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion.flow import FlowConfig
 
 
 def get_ingestion_config_by_client_key(
@@ -58,7 +59,64 @@ def create_ingestion_config(
         asset_name=asset_name,
         client_key=client_key,
         organization_id=organization_id or "",
-        flows=[try_cast_pb(flow, FlowConfigPb) for flow in flows],
+        flows=[flow.as_pb(FlowConfigPb) for flow in flows],
     )
     res = cast(CreateIngestionConfigResponse, svc.CreateIngestionConfig(req))
     return res.ingestion_config
+
+
+def get_ingestion_config_flow_names(
+    channel: SiftChannel,
+    ingestion_config_id: str,
+) -> List[str]:
+    """
+    Gets all names of flow configs of an ingestion config.
+    """
+
+    svc = IngestionConfigServiceStub(channel)
+
+    flows: List[str] = []
+
+    req = ListIngestionConfigFlowsRequest(
+        ingestion_config_id=ingestion_config_id,
+        page_size=1_000,
+        filter="",
+    )
+    res = cast(ListIngestionConfigFlowsResponse, svc.ListIngestionConfigFlows(req))
+
+    for flow in res.flows:
+        flows.append(flow.name)
+
+    page_token = res.next_page_token
+
+    while len(page_token) > 0:
+        req = ListIngestionConfigFlowsRequest(
+            ingestion_config_id=ingestion_config_id,
+            page_size=1_000,
+            filter="",
+            page_token=page_token,
+        )
+        res = cast(ListIngestionConfigFlowsResponse, svc.ListIngestionConfigFlows(req))
+
+        for flow in res.flows:
+            flows.append(flow.name)
+
+        page_token = res.next_page_token
+
+    return flows
+
+
+def create_flow_configs(
+    channel: SiftChannel,
+    ingestion_config_id: str,
+    flow_configs: List[FlowConfig],
+):
+    """
+    Adds flow configs to an existing ingestion config.
+    """
+    svc = IngestionConfigServiceStub(channel)
+    req = CreateIngestionConfigFlowsRequest(
+        ingestion_config_id=ingestion_config_id,
+        flows=[f.as_pb(FlowConfigPb) for f in flow_configs],
+    )
+    _ = cast(CreateIngestionConfigFlowsResponse, svc.CreateIngestionConfigFlows(req))

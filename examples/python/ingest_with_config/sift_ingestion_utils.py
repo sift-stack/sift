@@ -1,13 +1,14 @@
 from google.protobuf import timestamp_pb2
 from typing import Any, cast, Generator, Optional
 import grpc
-from sift.common.type.v1.channel_data_type_pb2  import ChannelDataType
+from sift.common.type.v1.channel_data_type_pb2 import ChannelDataType
 import sift.ingest.v1.ingest_pb2 as ingest
 import sift.ingest.v1.ingest_pb2_grpc as ingest_grpc
 import sift.ingestion_configs.v1.ingestion_configs_pb2 as ingestconf
 import sift.ingestion_configs.v1.ingestion_configs_pb2_grpc as ingestconf_grpc
 import sift.runs.v2.runs_pb2 as run
 import sift.runs.v2.runs_pb2_grpc as run_grpc
+
 
 def use_secure_channel(api_key: str, base_uri: str) -> grpc.Channel:
     """
@@ -16,8 +17,11 @@ def use_secure_channel(api_key: str, base_uri: str) -> grpc.Channel:
     """
     credentials = grpc.ssl_channel_credentials()
     call_credentials = grpc.access_token_call_credentials(api_key)
-    composite_credentials = grpc.composite_channel_credentials(credentials, call_credentials) 
-    return grpc.secure_channel(base_uri,composite_credentials)
+    composite_credentials = grpc.composite_channel_credentials(
+        credentials, call_credentials
+    )
+    return grpc.secure_channel(base_uri, composite_credentials)
+
 
 def create_double_type_channel_config(
     name: str,
@@ -42,7 +46,10 @@ def create_double_type_channel_config(
 
     return config
 
-def create_flow_config(flow_name: str, *channel_configs: ingestconf.ChannelConfig) -> ingestconf.FlowConfig:
+
+def create_flow_config(
+    flow_name: str, *channel_configs: ingestconf.ChannelConfig
+) -> ingestconf.FlowConfig:
     """
     Creates a flow config that describes a group of channels that will telemeter data.
     """
@@ -52,6 +59,7 @@ def create_flow_config(flow_name: str, *channel_configs: ingestconf.ChannelConfi
         config.channels.append(channel_config)
 
     return config
+
 
 def create_ingestion_config(
     channel: grpc.Channel,
@@ -67,9 +75,12 @@ def create_ingestion_config(
     for flow_config in flow_configs:
         request.flows.append(flow_config)
 
-    response = ingestconf_grpc.IngestionConfigServiceStub(channel).CreateIngestionConfig(request)
+    response = ingestconf_grpc.IngestionConfigServiceStub(
+        channel
+    ).CreateIngestionConfig(request)
 
     return cast(ingestconf.CreateIngestionConfigResponse, response).ingestion_config
+
 
 def create_run(
     channel: grpc.Channel,
@@ -102,6 +113,7 @@ def create_run(
 
     return cast(run.CreateRunResponse, response).run
 
+
 def ingest_with_config(
     channel: grpc.Channel,
     ingestion_iter: Generator[ingest.IngestWithConfigDataStreamRequest, Any, None],
@@ -111,9 +123,12 @@ def ingest_with_config(
     Data should be available to view shortly after this function concludes
     """
     try:
-        ingest_grpc.IngestServiceStub(channel).IngestWithConfigDataStream(ingestion_iter)
+        ingest_grpc.IngestServiceStub(channel).IngestWithConfigDataStream(
+            ingestion_iter
+        )
     except Exception as e:
         print(f"Something went wrong during ingestion: {e}")
+
 
 def delete_run(run_id: str, api_key: str, base_uri: str):
     """

@@ -4,25 +4,25 @@ ingestion_client_key: lunar_vehicle_426
 channels:
   log_channel: &log_channel
     name: log
-    data_type: CHANNEL_DATA_TYPE_STRING
+    data_type: string
     description: asset logs
   
   velocity_channel: &velocity_channel
     name: velocity
-    data_type: CHANNEL_DATA_TYPE_DOUBLE
+    data_type: double
     description: speed
     unit: Miles Per Hour
     component: mainmotor
   
   voltage_channel: &voltage_channel
     name: voltage
-    data_type: CHANNEL_DATA_TYPE_INT_32
+    data_type: int32
     description: voltage at the source
     unit: Volts
   
   vehicle_state_channel: &vehicle_state_channel
     name: vehicle_state
-    data_type: CHANNEL_DATA_TYPE_ENUM
+    data_type: enum
     description: vehicle state
     unit: vehicle state
     enum_types:
@@ -35,7 +35,7 @@ channels:
   
   gpio_channel: &gpio_channel
     name: gpio
-    data_type: CHANNEL_DATA_TYPE_BIT_FIELD
+    data_type: bit_field
     description: on/off values for pins on gpio
     bit_field_elements:
       - name: 12v
@@ -50,6 +50,37 @@ channels:
       - name: heater
         index: 7
         bit_count: 1
+
+rules:
+  - name: overheating
+    description: Checks for vehicle overheating
+    expression: $1 == "Accelerating" && $2 > 80
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+    type: review
+
+  - name: speeding
+    description: Checks high vehicle speed
+    type: phase
+    expression: $1 > 20
+    channel_references:
+      - $1: *velocity_channel
+
+  - name: failures
+    description: Checks for failure logs
+    type: review
+    assignee: homer@example.com
+    expression:
+      name: log_substring_contains
+    channel_references:
+      - $1: *log_channel
+    sub_expressions:
+      - $2: ERROR
+    tags:
+        - foo
+        - bar
+        - baz
 
 flows:
   - name: readings
@@ -67,3 +98,4 @@ flows:
   - name: logs
     channels:
       - <<: *log_channel
+

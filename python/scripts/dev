@@ -2,7 +2,10 @@
 
 usage() {
   cat<<EOT
-Various development utilities
+Various development utilities.
+
+Upon running the 'bootstrap' subcommand, this script will be moved to the venv's bin
+directory so will be available as an in-path executable when the venv is activated.
 
 Usage: dev [SUBCOMMAND] [OPTIONS]
 
@@ -10,8 +13,9 @@ Subcommands:
   test           Execute tests
   bootstrap      Initializes python virtual environment and installs project dependencies
   pip-install    Install project dependencies
-  fmt            Runs 'ruff' to format the lib directory
-  lint           Runs 'ruff' to lint the lib directory
+  fmt            Runs 'ruff fmt' to format the lib directory
+  lint           Runs 'ruff check' to lint the lib directory
+  lint-fix       Runs 'ruff check --fix'
 
 Options:
   -h, --help     Print usage text
@@ -27,6 +31,8 @@ pip_install() {
 bootstrap() {
   python3 -m venv venv
   pip_install
+  cp ./scripts/dev venv/bin
+  chmod u+x venv/bin/dev
 }
 
 fmt() {
@@ -37,6 +43,11 @@ fmt() {
 lint() {
   source venv/bin/activate
   ruff check
+}
+
+lint_fix() {
+  source venv/bin/activate
+  ruff check --fix
 }
 
 run_tests() {
@@ -58,6 +69,9 @@ case "$1" in
         ;;
     fmt)
         fmt
+        ;;
+    lint-fix)
+        lint_fix
         ;;
     lint)
         lint

@@ -1,10 +1,26 @@
 from __future__ import annotations
-from .yaml import _try_from_yaml_str
-from ..channel import ChannelDataType
+
+from typing import cast
+
+import pytest
+import yaml
+from sift_py.ingestion.channel import ChannelDataType
+from sift_py.ingestion.config.yaml import (
+    NamedExpressionsYamlSpec,
+    YamlConfigError,
+    _try_from_yaml_str,
+)
+from sift_py.ingestion.rule.config import (
+    RuleActionCreateDataReviewAnnotation,
+    RuleActionCreatePhaseAnnotation,
+    RuleActionKind,
+)
 
 
 def test_telemetry_config():
-    telemetry_config = _try_from_yaml_str(TELEMETRY_CONFIG)
+    telemetry_config = _try_from_yaml_str(
+        TELEMETRY_CONFIG, {"named_expressions": [TEST_NAMED_EXPRESSIONS_YAML_STR]}
+    )
     assert telemetry_config.asset_name == "LunarVehicle426"
     assert telemetry_config.ingestion_client_key == "lunar_vehicle_426"
     assert len(telemetry_config.flows) == 3
@@ -66,34 +82,77 @@ def test_telemetry_config():
     assert gpio_channel.bit_field_elements[3].index == 7
     assert gpio_channel.bit_field_elements[3].bit_count == 1
 
+    assert len(telemetry_config.rules) == 3
+
+    overheating_rule, speeding_rule, failures_rule = telemetry_config.rules
+
+    assert overheating_rule.name == "overheating"
+    assert overheating_rule.description == "Checks for vehicle overheating"
+    assert overheating_rule.expression == '$1 == "Accelerating" && $2 > 80'
+    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
+    assert isinstance(overheating_rule.action, RuleActionCreateDataReviewAnnotation)
+
+    assert speeding_rule.name == "speeding"
+    assert speeding_rule.description == "Checks high vehicle speed"
+    assert speeding_rule.expression == "$1 > 20"
+    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
+    assert isinstance(speeding_rule.action, RuleActionCreatePhaseAnnotation)
+
+    assert failures_rule.name == "failures"
+    assert failures_rule.description == "Checks for failure logs"
+    assert failures_rule.expression == 'contains($1, "ERROR")'
+    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
+    assert isinstance(failures_rule.action, RuleActionCreateDataReviewAnnotation)
+
+
+def test_no_duplicate_channels_telemetry_config():
+    """
+    Raise an error if there are duplicate channels in a flow.
+    """
+    with pytest.raises(YamlConfigError):
+        _ = _try_from_yaml_str(DUPLICATE_CHANNEL_IN_FLOW_TELEMETRY_CONFIG)
+
+
+def test_named_expressions():
+    named_expressions = cast(
+        NamedExpressionsYamlSpec, yaml.safe_load(TEST_NAMED_EXPRESSIONS_YAML_STR)
+    )
+
+    log_substring_contains = named_expressions.get("log_substring_contains")
+    assert log_substring_contains is not None
+    assert log_substring_contains == "contains($1, $2)"
+
+    is_even = named_expressions.get("is_even")
+    assert is_even is not None
+    assert is_even == "mod($1, 2) == 0"
+
 
 TELEMETRY_CONFIG = """
----
 asset_name: LunarVehicle426
 ingestion_client_key: lunar_vehicle_426
 
 channels:
   log_channel: &log_channel
     name: log
-    data_type: CHANNEL_DATA_TYPE_STRING
+    data_type: string
     description: asset logs
-  
+
   velocity_channel: &velocity_channel
     name: velocity
-    data_type: CHANNEL_DATA_TYPE_DOUBLE
+    data_type: double
     description: speed
     unit: Miles Per Hour
     component: mainmotor
-  
+
   voltage_channel: &voltage_channel
     name: voltage
-    data_type: CHANNEL_DATA_TYPE_INT_32
+    data_type: int32
     description: voltage at the source
     unit: Volts
-  
+
   vehicle_state_channel: &vehicle_state_channel
     name: vehicle_state
-    data_type: CHANNEL_DATA_TYPE_ENUM
+    data_type: enum
     description: vehicle state
     unit: vehicle state
     enum_types:
@@ -103,10 +162,10 @@ channels:
         key: 1
       - name: Stopped
         key: 2
-  
+
   gpio_channel: &gpio_channel
     name: gpio
-    data_type: CHANNEL_DATA_TYPE_BIT_FIELD
+    data_type: bit_field
     description: on/off values for pins on gpio
     bit_field_elements:
       - name: 12v
@@ -122,6 +181,37 @@ channels:
         index: 7
         bit_count: 1
 
+rules:
+  - name: overheating
+    description: Checks for vehicle overheating
+    expression: $1 == "Accelerating" && $2 > 80
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+    type: review
+
+  - name: speeding
+    description: Checks high vehicle speed
+    type: phase
+    expression: $1 > 20
+    channel_references:
+      - $1: *velocity_channel
+
+  - name: failures
+    description: Checks for failure logs
+    type: review
+    assignee: homer@example.com
+    expression:
+      name: log_substring_contains
+    channel_references:
+      - $1: *log_channel
+    sub_expressions:
+      - $2: ERROR
+    tags:
+        - foo
+        - bar
+        - baz
+
 flows:
   - name: readings
     channels:
@@ -134,8 +224,35 @@ flows:
     channels:
       - <<: *velocity_channel
       - <<: *voltage_channel
-      
+
   - name: logs
     channels:
       - <<: *log_channel
+
+"""
+
+DUPLICATE_CHANNEL_IN_FLOW_TELEMETRY_CONFIG = """
+asset_name: LunarVehicle426
+ingestion_client_key: lunar_vehicle_426
+
+channels:
+  velocity_channel: &velocity_channel
+    name: velocity
+    data_type: double
+    description: speed
+    unit: Miles Per Hour
+    component: mainmotor
+
+flows:
+  - name: readings
+    channels:
+      - <<: *velocity_channel
+      - <<: *velocity_channel
+"""
+
+TEST_NAMED_EXPRESSIONS_YAML_STR = """
+log_substring_contains:
+  contains($1, $2)
+is_even:
+  mod($1, 2) == 0
 """

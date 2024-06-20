@@ -1,21 +1,47 @@
 from __future__ import annotations
-from ..grpc.transport import SiftChannel
-from .config import TelemetryConfig
-from ..ingestion.flow import FlowConfig
-from .channel import ChannelValue
+
+from datetime import datetime
+from typing import Dict, List, Optional
+
 from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataChannelValue,
     IngestWithConfigDataStreamRequest,
 )
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
-from typing import Dict, List, Optional
-from .impl.ingest import IngestionServiceImpl
-from datetime import datetime
+from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion.channel import ChannelValue
+from sift_py.ingestion.config.telemetry import TelemetryConfig
+from sift_py.ingestion.flow import FlowConfig
+from sift_py.ingestion.impl.ingest import IngestionServiceImpl
 
 
 class IngestionService(IngestionServiceImpl):
     """
     A fully configured service that, when instantiated, is ready to start ingesting data.
+
+    Attributes:
+        `transport_channel`:
+            A gRPC transport channel. Prefer to use `SiftChannel`.
+        `ingestion_config`:
+            The underlying strongly-typed ingestion config. Users of this service don't need to be concerned with this.
+        `asset_name`:
+            The name of the asset to telemeter.
+        `flow_configs_by_name`:
+            A mapping of flow config name to the actual flow config.
+        `run_id`:
+            The ID of the optional run to associated ingested data with.
+        `organization_id`:
+            ID of the organization of the user.
+        `overwrite_rules`:
+            If there are rules in Sift that aren't found in the local telemetry config, then initializing
+            an `IngestionService` will raise an exception advising the user to update their telemetry config
+            with the missing rule before proceeding. Setting this field to `True` replace all rules currently
+            in Sift with the rules in the telemetry config.
+        `end_stream_on_error`:
+            By default any errors that may occur during ingestion API-side are produced asynchronously and ingestion
+            won't be interrupted. The errors produced are surfaced on the user errors page. Setting this field to `True`
+            will ensure that any errors that occur during ingestion is returned immediately, terminating the stream. This
+            is useful for debugging purposes.
     """
 
     transport_channel: SiftChannel
@@ -24,6 +50,7 @@ class IngestionService(IngestionServiceImpl):
     flow_configs_by_name: Dict[str, FlowConfig]
     run_id: Optional[str]
     organization_id: Optional[str]
+    overwrite_rules: bool
     end_stream_on_error: bool
 
     def __init__(
@@ -31,9 +58,10 @@ class IngestionService(IngestionServiceImpl):
         channel: SiftChannel,
         config: TelemetryConfig,
         run_id: Optional[str] = None,
+        overwrite_rules: bool = False,
         end_stream_on_error: bool = False,
     ):
-        super().__init__(channel, config, run_id, end_stream_on_error)
+        super().__init__(channel, config, run_id, overwrite_rules, end_stream_on_error)
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
@@ -41,7 +69,7 @@ class IngestionService(IngestionServiceImpl):
         """
         super().ingest(*requests)
 
-    def start_run(
+    def attach_run(
         self,
         channel: SiftChannel,
         run_name: str,
@@ -50,15 +78,16 @@ class IngestionService(IngestionServiceImpl):
         tags: Optional[List[str]] = None,
     ):
         """
-        Create a run to use as part of the call to `ingest`.
+        Retrieve an existing run or create one to use during this period of ingestion.
         """
-        super().start_run(channel, run_name, description, organization_id, tags)
+        super().attach_run(channel, run_name, description, organization_id, tags)
 
-    def end_run(self):
+    def detach_run(self):
         """
-        End the current run if any and don't include it in subsequent calls to `ingest`.
+        Detach run from this period of ingestion. Subsequent data ingested won't be associated with
+        the run being detached.
         """
-        super().end_run()
+        super().detach_run()
 
     def try_create_ingestion_request(
         self,

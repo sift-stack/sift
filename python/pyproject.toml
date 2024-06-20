@@ -3,6 +3,7 @@ name = "sift_py"
 version = "0.1"
 description = "Python client library for the Sift API"
 dependencies = [
+  "typing-extensions==4.12.2",
   # https://grpc.github.io/grpc/python/
   "grpcio==1.64.1",
   # https://googleapis.dev/python/protobuf/latest/
@@ -13,11 +14,17 @@ dependencies = [
   "PyYAML==6.0.1",
   "types-PyYAML==6.0.12.20240311",
 ]
+requires-python = ">=3.9"
 
 [project.optional-dependencies]
 development = [
-  "pytest", # test framework
-  "ruff", # formatter + linter
+   # testing tools
+  "pytest",
+  "pytest-mock",
+  "grpcio-testing",
+
+  # formatter + linter
+  "ruff",
 ]
 
 [build-system]
@@ -62,3 +69,6 @@ exclude = [
     "lib/google",
     "lib/protoc_gen_openapiv2",
 ]
+
+[tool.ruff.lint]
+select = ["F", "W", "I", "N", "TID"]

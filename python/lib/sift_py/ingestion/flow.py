@@ -1,11 +1,16 @@
 from __future__ import annotations
-from .channel import ChannelConfig
-from sift_internal.convert.protobuf import try_cast_pb, AsProtobuf, ProtobufMessage
+
+from typing import Dict, List, Type
+
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
+)
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
-from typing import Dict, List, Optional, Type
+from sift_internal.convert.protobuf import AsProtobuf
+from sift_py.ingestion.channel import ChannelConfig, channel_fqn
+from typing_extensions import Self
 
 
 class FlowConfig(AsProtobuf):
@@ -24,35 +29,17 @@ class FlowConfig(AsProtobuf):
     def __init__(self, name: str, channels: List[ChannelConfig]):
         self.name = name
         self.channels = channels
-        self.channel_by_fqn = {
-            self.__class__.compute_fqn(c.name, c.component): i for i, c in enumerate(channels)
-        }
+        self.channel_by_fqn = {channel_fqn(c): i for i, c in enumerate(channels)}
 
-    def get_channel(self, name: str, component: Optional[str] = "") -> Optional[ChannelConfig]:
-        """
-        Retrieves a `ChannelConfig` by its fully qualified name. Returns `None` if it cannot be found.
-        """
-        fqn = self.__class__.compute_fqn(name, component)
-        index = self.channel_by_fqn[fqn]
-
-        try:
-            return self.channels[index]
-        except IndexError:
-            return None
-
-    def as_pb(self, klass: Type[ProtobufMessage]) -> Optional[ProtobufMessage]:
-        return FlowConfigPb(
+    def as_pb(self, klass: Type[FlowConfigPb]) -> FlowConfigPb:
+        return klass(
             name=self.name,
-            channels=[try_cast_pb(conf, ChannelConfigPb) for conf in self.channels],
+            channels=[conf.as_pb(ChannelConfigPb) for conf in self.channels],
         )
 
-    @staticmethod
-    def compute_fqn(name: str, component: Optional[str]) -> str:
-        """
-        The fully-qualified channel name of a channel called 'voltage' is simply `voltage'. The
-        fully qualified name of a channel called 'temperature' of component 'motor' is a `motor.temperature'.
-        """
-        if component is None or len(component) == "":
-            return name
-        else:
-            return f"{component}.{name}"
+    @classmethod
+    def from_pb(cls, message: FlowConfigPb) -> Self:
+        return cls(
+            name=message.name,
+            channels=[ChannelConfig.from_pb(c) for c in message.channels],
+        )

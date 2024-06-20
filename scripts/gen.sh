@@ -58,10 +58,10 @@ gen_python_modules() {
     fi
   done
 
-  mv $PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB $PYTHON_GEN_DIR
-  mv $PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB_INTERNAL $PYTHON_GEN_DIR
-  rm -rf $PYTHON_LIB_DIR
-  mv $PYTHON_GEN_DIR $PYTHON_LIB_DIR
+  mv "$PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB" "$PYTHON_GEN_DIR"
+  mv "$PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB_INTERNAL" "$PYTHON_GEN_DIR"
+  rm -rf "$PYTHON_LIB_DIR"
+  mv "$PYTHON_GEN_DIR" "$PYTHON_LIB_DIR"
 
   echo "ok"
 }
@@ -78,7 +78,7 @@ gen_protos() {
     langs=( "${SUPPORTED_LANGS[@]}" )
   fi
 
-  python_gen=false
+  local python_gen=false
 
   for lang in ${langs[@]}; do
     printf "Compiling protocol buffers for $lang... "
