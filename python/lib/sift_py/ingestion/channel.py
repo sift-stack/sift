@@ -154,25 +154,25 @@ class ChannelDataType(Enum):
 
     @classmethod
     def from_pb(cls, val: channel_pb.ChannelDataType.ValueType) -> "ChannelDataType":
-        if val == cls.DOUBLE:
+        if val == cls.DOUBLE.value:
             return cls.DOUBLE
-        elif val == cls.STRING:
+        elif val == cls.STRING.value:
             return cls.STRING
-        elif val == cls.ENUM:
+        elif val == cls.ENUM.value:
             return cls.ENUM
-        elif val == cls.BIT_FIELD:
+        elif val == cls.BIT_FIELD.value:
             return cls.BIT_FIELD
-        elif val == cls.BOOL:
+        elif val == cls.BOOL.value:
             return cls.BOOL
-        elif val == cls.FLOAT:
+        elif val == cls.FLOAT.value:
             return cls.FLOAT
-        elif val == cls.INT_32:
+        elif val == cls.INT_32.value:
             return cls.INT_32
-        elif val == cls.INT_64:
+        elif val == cls.INT_64.value:
             return cls.INT_64
-        elif val == cls.UINT_32:
+        elif val == cls.UINT_32.value:
             return cls.UINT_32
-        elif val == cls.UINT_64:
+        elif val == cls.UINT_64.value:
             return cls.UINT_64
         else:
             raise ValueError(f"Unknown channel data type '{val}'.")
@@ -227,12 +227,12 @@ def channel_fqn(channel: ChannelConfig | ChannelValue | ChannelPb) -> str:
     """
 
     if isinstance(channel, ChannelConfig):
-        if channel.component is None or len(channel.component) == "":
+        if channel.component is None or len(channel.component) == 0:
             return channel.name
         else:
             return f"{channel.component}.{channel.name}"
     elif isinstance(channel, ChannelPb):
-        if channel.component is None or len(channel.component) == "":
+        if channel.component is None or len(channel.component) == 0:
             return channel.name
         else:
             return f"{channel.component}.{channel.name}"
