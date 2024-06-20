@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional, Self, Type, TypedDict
+from typing import List, Optional, Type, TypedDict
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
@@ -14,7 +14,7 @@ from sift.common.type.v1.channel_enum_type_pb2 import (
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from sift_internal.convert.protobuf import AsProtobuf
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, Self
 
 
 class ChannelValue(TypedDict):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Self, Type
+from typing import Dict, List, Type
 
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
@@ -10,6 +10,7 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
 )
 from sift_internal.convert.protobuf import AsProtobuf
 from sift_py.ingestion.channel import ChannelConfig, channel_fqn
+from typing_extensions import Self
 
 
 class FlowConfig(AsProtobuf):
