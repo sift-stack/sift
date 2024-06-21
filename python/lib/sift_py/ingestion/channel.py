@@ -14,8 +14,9 @@ from sift.common.type.v1.channel_enum_type_pb2 import (
 )
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
-from sift_internal.convert.protobuf import AsProtobuf
 from typing_extensions import NotRequired, Self
+
+from sift_py._internal.convert.protobuf import AsProtobuf
 
 
 class ChannelValue(TypedDict):

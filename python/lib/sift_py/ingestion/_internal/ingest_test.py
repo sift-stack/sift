@@ -6,8 +6,19 @@ from typing import Callable
 import pytest
 from pytest_mock import MockFixture
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
-from sift_internal.test_util.channel import MockChannel
 
+from sift_py._internal.test_util.channel import MockChannel
+from sift_py.ingestion._internal.error import IngestionValidationError
+from sift_py.ingestion._internal.ingest import (
+    _IngestionServiceImpl,
+    create_flow_configs,
+    get_ingestion_config_flow_names,
+)
+from sift_py.ingestion._internal.ingestion_config import (
+    create_ingestion_config,
+    get_ingestion_config_by_client_key,
+)
+from sift_py.ingestion._internal.rule import get_asset_rules_json, update_rules
 from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelDataType,
@@ -17,20 +28,9 @@ from sift_py.ingestion.channel import (
 )
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
-from sift_py.ingestion.impl.error import IngestionValidationError
-from sift_py.ingestion.impl.ingest import (
-    IngestionServiceImpl,
-    create_flow_configs,
-    get_ingestion_config_flow_names,
-)
-from sift_py.ingestion.impl.ingestion_config import (
-    create_ingestion_config,
-    get_ingestion_config_by_client_key,
-)
-from sift_py.ingestion.impl.rule import get_asset_rules_json, update_rules
 from sift_py.ingestion.rule.config import RuleActionCreateDataReviewAnnotation, RuleConfig
 
-SUBJECT_MODULE = "sift_py.ingestion.impl.ingest"
+SUBJECT_MODULE = "sift_py.ingestion._internal.ingest"
 
 
 def _mock_path(fn: Callable) -> str:
@@ -75,7 +75,7 @@ def test_ingestion_service_update_flow_configs_updates_flows(mocker: MockFixture
     mock_create_flow_configs.return_value = None
 
     mock_channel = MockChannel()
-    IngestionServiceImpl.update_flow_configs(
+    _IngestionServiceImpl.update_flow_configs(
         mock_channel, ingestion_config_id, flows_loaded_from_config
     )
     mock_create_flow_configs.assert_called_once_with(mock_channel, ingestion_config_id, [flow_b])
@@ -106,7 +106,7 @@ def test_ingestion_service_get_or_create_ingestion_config_retrieves_existing(moc
 
     mock_channel = MockChannel()
 
-    ingestion_config = IngestionServiceImpl.get_or_create_ingestion_config(
+    ingestion_config = _IngestionServiceImpl.get_or_create_ingestion_config(
         mock_channel,
         mock_telemetry_config,
     )
@@ -144,7 +144,7 @@ def test_ingestion_service_get_or_create_ingestion_config_create_if_not_exist(mo
 
     mock_channel = MockChannel()
 
-    ingestion_config = IngestionServiceImpl.get_or_create_ingestion_config(
+    ingestion_config = _IngestionServiceImpl.get_or_create_ingestion_config(
         mock_channel,
         mock_telemetry_config,
     )
@@ -205,11 +205,11 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
     )
 
     mock_get_or_create_ingestion_config = mocker.patch.object(
-        IngestionServiceImpl, "get_or_create_ingestion_config"
+        _IngestionServiceImpl, "get_or_create_ingestion_config"
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
-    mock_update_flow_configs = mocker.patch.object(IngestionServiceImpl, "update_flow_configs")
+    mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "update_flow_configs")
     mock_update_flow_configs.return_value = None
 
     mock_update_rules = mocker.patch(_mock_path(update_rules))
@@ -217,7 +217,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
 
     transport_channel = MockChannel()
 
-    svc = IngestionServiceImpl(
+    svc = _IngestionServiceImpl(
         channel=transport_channel,
         config=telemetry_config,
         overwrite_rules=True,
@@ -333,11 +333,11 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
     )
 
     mock_get_or_create_ingestion_config = mocker.patch.object(
-        IngestionServiceImpl, "get_or_create_ingestion_config"
+        _IngestionServiceImpl, "get_or_create_ingestion_config"
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
-    mock_update_flow_configs = mocker.patch.object(IngestionServiceImpl, "update_flow_configs")
+    mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "update_flow_configs")
     mock_update_flow_configs.return_value = None
 
     mock_get_asset_rules_json = mocker.patch(_mock_path(get_asset_rules_json))
@@ -371,7 +371,7 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
     mock_channel = MockChannel()
 
     with pytest.raises(Exception, match="not found in local"):
-        _ = IngestionServiceImpl(
+        _ = _IngestionServiceImpl(
             channel=mock_channel,
             config=telemetry_config,
         )
@@ -380,7 +380,7 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
     mock_update_rules = mocker.patch(_mock_path(update_rules))
     mock_update_rules.return_value = None
 
-    _ = IngestionServiceImpl(
+    _ = _IngestionServiceImpl(
         channel=mock_channel,
         config=telemetry_config,
         overwrite_rules=True,

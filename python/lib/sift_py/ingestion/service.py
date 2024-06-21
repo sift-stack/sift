@@ -10,13 +10,13 @@ from sift.ingest.v1.ingest_pb2 import (
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 
 from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion._internal.ingest import _IngestionServiceImpl
 from sift_py.ingestion.channel import ChannelValue
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
-from sift_py.ingestion.impl.ingest import IngestionServiceImpl
 
 
-class IngestionService(IngestionServiceImpl):
+class IngestionService(_IngestionServiceImpl):
     """
     A fully configured service that, when instantiated, is ready to start ingesting data.
 

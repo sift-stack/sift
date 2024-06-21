@@ -8,9 +8,9 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
-from sift_internal.convert.protobuf import AsProtobuf
 from typing_extensions import Self
 
+from sift_py._internal.convert.protobuf import AsProtobuf
 from sift_py.ingestion.channel import ChannelConfig, channel_fqn
 
 

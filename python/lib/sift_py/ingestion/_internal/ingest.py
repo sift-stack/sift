@@ -12,6 +12,15 @@ from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 
 from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion._internal.error import IngestionValidationError
+from sift_py.ingestion._internal.ingestion_config import (
+    create_flow_configs,
+    create_ingestion_config,
+    get_ingestion_config_by_client_key,
+    get_ingestion_config_flow_names,
+)
+from sift_py.ingestion._internal.rule import get_asset_rules_json, update_rules
+from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
 from sift_py.ingestion.channel import (
     ChannelValue,
     channel_fqn,
@@ -20,19 +29,10 @@ from sift_py.ingestion.channel import (
 )
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
-from sift_py.ingestion.impl.error import IngestionValidationError
-from sift_py.ingestion.impl.ingestion_config import (
-    create_flow_configs,
-    create_ingestion_config,
-    get_ingestion_config_by_client_key,
-    get_ingestion_config_flow_names,
-)
-from sift_py.ingestion.impl.rule import get_asset_rules_json, update_rules
-from sift_py.ingestion.impl.run import create_run, get_run_id_by_name
 from sift_py.ingestion.rule.config import RuleConfig
 
 
-class IngestionServiceImpl:
+class _IngestionServiceImpl:
     transport_channel: SiftChannel
     ingestion_config: IngestionConfig
     asset_name: str
