@@ -10,6 +10,7 @@ from sift.rules.v1.rules_pb2 import (
 )
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift_internal.convert.json import to_json
+
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.rule.config import RuleConfig
 

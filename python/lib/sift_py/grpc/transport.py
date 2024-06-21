@@ -10,10 +10,11 @@ from typing import List, TypedDict
 
 import grpc
 from grpc_interceptor import ClientInterceptor
+from typing_extensions import TypeAlias
 
 from .interceptors import Metadata, MetadataInterceptor
 
-SiftChannel = grpc.Channel
+SiftChannel: TypeAlias = grpc.Channel
 
 
 def use_sift_channel(config: SiftChannelConfig) -> SiftChannel:

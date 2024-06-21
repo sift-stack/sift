@@ -10,6 +10,7 @@ from sift.ingest.v1.ingest_pb2 import (
 )
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
+
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.channel import (
     ChannelValue,
@@ -143,13 +144,13 @@ class IngestionServiceImpl:
 
         for channel in flow_config.channels:
             fqn = channel_fqn(channel)
-            channel_value = channel_values_by_fqn.pop(fqn, None)
+            channel_val: Optional[ChannelValue] = channel_values_by_fqn.pop(fqn, None)
 
-            if channel_value is None:
+            if channel_val is None:
                 values.append(empty_value())
                 continue
 
-            value = channel_value["value"]
+            value = channel_val["value"]
 
             if is_data_type(value, channel.data_type):
                 values.append(value)

@@ -4,6 +4,7 @@ from typing import cast
 
 import pytest
 import yaml
+
 from sift_py.ingestion.channel import ChannelDataType
 from sift_py.ingestion.config.yaml import (
     NamedExpressionsYamlSpec,

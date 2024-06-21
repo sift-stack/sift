@@ -8,6 +8,7 @@ from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataStreamRequest,
 )
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
+
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.channel import ChannelValue
 from sift_py.ingestion.config.telemetry import TelemetryConfig

@@ -1,4 +1,5 @@
 import pytest
+
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
 from sift_py.ingestion.config.telemetry import TelemetryConfig, TelemetryConfigValidationError
 from sift_py.ingestion.flow import FlowConfig

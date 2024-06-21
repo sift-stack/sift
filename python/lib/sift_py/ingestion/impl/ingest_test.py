@@ -7,6 +7,7 @@ import pytest
 from pytest_mock import MockFixture
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 from sift_internal.test_util.channel import MockChannel
+
 from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelDataType,

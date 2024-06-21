@@ -27,7 +27,7 @@ class AsProtobuf(ABC, Generic[T]):
 
     @classmethod
     @abstractmethod
-    def from_pb(cls, message: Type[T]) -> T:
+    def from_pb(cls, message: T) -> T:
         """
         Converts a protobuf object to the type of the sub-class class.
         """

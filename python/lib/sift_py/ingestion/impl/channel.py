@@ -3,6 +3,7 @@ from typing import List, cast
 from sift.channels.v2.channels_pb2 import Channel as ChannelPb
 from sift.channels.v2.channels_pb2 import ListChannelsRequest, ListChannelsResponse
 from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
+
 from sift_py.grpc.transport import SiftChannel
 
 
@@ -13,7 +14,7 @@ def get_asset_channels(
     """
     Queries all channels for the given `asset_id`.
     """
-    channels_pb = []
+    channels_pb: List[ChannelPb] = []
 
     svc = ChannelServiceStub(transport_channel)
     req = ListChannelsRequest(

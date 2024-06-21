@@ -17,6 +17,7 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
 from sift.ingestion_configs.v1.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )
+
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.flow import FlowConfig
 
