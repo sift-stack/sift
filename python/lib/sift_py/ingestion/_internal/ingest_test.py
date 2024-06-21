@@ -205,7 +205,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
     )
 
     mock_get_or_create_ingestion_config = mocker.patch.object(
-        _IngestionServiceImpl, "get_or_create_ingestion_config"
+        _IngestionServiceImpl, "_get_or_create_ingestion_config"
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
@@ -333,7 +333,7 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
     )
 
     mock_get_or_create_ingestion_config = mocker.patch.object(
-        _IngestionServiceImpl, "get_or_create_ingestion_config"
+        _IngestionServiceImpl, "_get_or_create_ingestion_config"
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
