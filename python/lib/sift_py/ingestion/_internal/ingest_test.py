@@ -75,7 +75,7 @@ def test_ingestion_service_update_flow_configs_updates_flows(mocker: MockFixture
     mock_create_flow_configs.return_value = None
 
     mock_channel = MockChannel()
-    _IngestionServiceImpl.update_flow_configs(
+    _IngestionServiceImpl._update_flow_configs(
         mock_channel, ingestion_config_id, flows_loaded_from_config
     )
     mock_create_flow_configs.assert_called_once_with(mock_channel, ingestion_config_id, [flow_b])
@@ -106,7 +106,7 @@ def test_ingestion_service_get_or_create_ingestion_config_retrieves_existing(moc
 
     mock_channel = MockChannel()
 
-    ingestion_config = _IngestionServiceImpl.get_or_create_ingestion_config(
+    ingestion_config = _IngestionServiceImpl._get_or_create_ingestion_config(
         mock_channel,
         mock_telemetry_config,
     )
@@ -144,7 +144,7 @@ def test_ingestion_service_get_or_create_ingestion_config_create_if_not_exist(mo
 
     mock_channel = MockChannel()
 
-    ingestion_config = _IngestionServiceImpl.get_or_create_ingestion_config(
+    ingestion_config = _IngestionServiceImpl._get_or_create_ingestion_config(
         mock_channel,
         mock_telemetry_config,
     )

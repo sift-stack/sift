@@ -51,14 +51,14 @@ class _IngestionServiceImpl:
         overwrite_rules: bool = False,
         end_stream_on_error: bool = False,
     ):
-        ingestion_config = self.__class__.get_or_create_ingestion_config(channel, config)
+        ingestion_config = self.__class__._get_or_create_ingestion_config(channel, config)
 
-        self.__class__.update_flow_configs(
+        self.__class__._update_flow_configs(
             channel, ingestion_config.ingestion_config_id, config.flows
         )
 
         if not overwrite_rules:
-            self.__class__.validate_rules_synchronized(
+            self.__class__._validate_rules_synchronized(
                 channel, ingestion_config.asset_id, config.rules
             )
 
@@ -199,7 +199,7 @@ class _IngestionServiceImpl:
         )
 
     @staticmethod
-    def update_flow_configs(
+    def _update_flow_configs(
         channel: SiftChannel, ingestion_config_id: str, flows: List[FlowConfig]
     ):
         """
@@ -222,7 +222,7 @@ class _IngestionServiceImpl:
             create_flow_configs(channel, ingestion_config_id, flows_to_create)
 
     @staticmethod
-    def get_or_create_ingestion_config(
+    def _get_or_create_ingestion_config(
         channel: SiftChannel, config: TelemetryConfig
     ) -> IngestionConfig:
         """
@@ -243,7 +243,7 @@ class _IngestionServiceImpl:
         )
 
     @staticmethod
-    def validate_rules_synchronized(
+    def _validate_rules_synchronized(
         transport_channel: SiftChannel,
         asset_id: str,
         rule_configs: List[RuleConfig],
