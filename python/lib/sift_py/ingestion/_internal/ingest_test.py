@@ -337,7 +337,7 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
-    mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "update_flow_configs")
+    mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "_update_flow_configs")
     mock_update_flow_configs.return_value = None
 
     mock_get_asset_rules_json = mocker.patch(_mock_path(get_asset_rules_json))
