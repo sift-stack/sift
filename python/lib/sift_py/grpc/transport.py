@@ -12,7 +12,7 @@ import grpc
 from grpc_interceptor import ClientInterceptor
 from typing_extensions import TypeAlias
 
-from .interceptors import Metadata, MetadataInterceptor
+from sift_py.grpc._interceptors import Metadata, MetadataInterceptor
 
 SiftChannel: TypeAlias = grpc.Channel
 
@@ -29,7 +29,7 @@ def use_sift_channel(config: SiftChannelConfig) -> SiftChannel:
     return grpc.intercept_channel(channel, *interceptors)
 
 
-def use_insecure_sift_channel(config: SiftChannelConfig) -> SiftChannel:
+def _use_insecure_sift_channel(config: SiftChannelConfig) -> SiftChannel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
     """
