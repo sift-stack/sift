@@ -1,4 +1,0 @@
-log_substring_contains:
-  contains($1, $2)
-is_even:
-  mod($1, 2) == 0

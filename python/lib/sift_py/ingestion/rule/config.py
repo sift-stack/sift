@@ -6,7 +6,8 @@ from typing import Any, Dict, List, Optional, TypedDict
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
-from sift_internal.convert.json import AsJson
+
+from sift_py._internal.convert.json import AsJson
 from sift_py.ingestion.channel import ChannelConfig, channel_fqn
 
 

@@ -8,14 +8,15 @@ from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataStreamRequest,
 )
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
+
 from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion._internal.ingest import _IngestionServiceImpl
 from sift_py.ingestion.channel import ChannelValue
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
-from sift_py.ingestion.impl.ingest import IngestionServiceImpl
 
 
-class IngestionService(IngestionServiceImpl):
+class IngestionService(_IngestionServiceImpl):
     """
     A fully configured service that, when instantiated, is ready to start ingesting data.
 
@@ -98,7 +99,7 @@ class IngestionService(IngestionServiceImpl):
         """
         Creates an `IngestWithConfigDataStreamRequest`, i.e. a flow, given a `flow_name` and a
         list of `ChannelValue` objects. Channels that appear in the flow config but not in the
-        `channel_value_by_channel_name` will be assigned an empty value.
+        `channel_values` will be assigned an empty value.
 
         This function will perform validation checks to ensure that the values provided in the dictionary; this
         includes:
@@ -108,7 +109,7 @@ class IngestionService(IngestionServiceImpl):
           - Making sure that the timestamp is in UTC
           - Making sure channels that belong to a component have the 'component' field for the channel value
 
-        If any of the above validations fail then a `ValueError` will be raised.
+        If any of the above validations fail then a `IngestionValidationError` will be raised.
 
         If for performance reasons you'd prefer to skip the validation checks, or perhaps you did the
         validations on your own, prefer to use `create_ingestion_request`. Any errors that occur during
@@ -135,7 +136,7 @@ class IngestionService(IngestionServiceImpl):
         - Values in `channel_values` must appear in the same order its corresponding channel appears in the flow config
           associated with the `flow_name`.
         - The length of `channel_values` is expected to match the length of the channel configs list of the flow config
-          associated with `flow_name`. `google.protobuf.empty_pb2.Empty` may be used if you require empty values.
+          associated with `flow_name`. `sift_py.ingestion.channel.empty_value()` may be used if you require empty values.
         - The `timestamp` must be in UTC.
         """
         return super().create_ingestion_request(flow_name, timestamp, channel_values)

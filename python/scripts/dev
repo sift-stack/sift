@@ -16,6 +16,8 @@ Subcommands:
   fmt            Runs 'ruff fmt' to format the lib directory
   lint           Runs 'ruff check' to lint the lib directory
   lint-fix       Runs 'ruff check --fix'
+  mypy           Runs 'mypy lib' for static analysis
+  update-dev     Copies changes to the dev script over to the venv bin
 
 Options:
   -h, --help     Print usage text
@@ -28,11 +30,20 @@ pip_install() {
   pip install -e .
 }
 
+update_dev() {
+  cp ./scripts/dev venv/bin
+  chmod u+x venv/bin/dev
+}
+
 bootstrap() {
   python3 -m venv venv
   pip_install
-  cp ./scripts/dev venv/bin
-  chmod u+x venv/bin/dev
+  update_dev
+}
+
+run_mypy() {
+  source venv/bin/activate
+  mypy lib
 }
 
 fmt() {
@@ -76,8 +87,14 @@ case "$1" in
     lint)
         lint
         ;;
+    mypy)
+        run_mypy
+        ;;
     test)
         run_tests
+        ;;
+    update-dev)
+        update_dev
         ;;
     "")
         echo "No subcommand provided"

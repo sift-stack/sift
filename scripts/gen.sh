@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# TODO: This is not maintainable. Each language should have their own build process now that
+# libraries are being built on top of protobuf generated code.
+
 cleanup() {
   printf "\x1b[?25h"
   if [[ -d ./tmp ]]; then
@@ -62,6 +65,10 @@ gen_python_modules() {
   mv "$PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB_INTERNAL" "$PYTHON_GEN_DIR"
   rm -rf "$PYTHON_LIB_DIR"
   mv "$PYTHON_GEN_DIR" "$PYTHON_LIB_DIR"
+
+  # This is necessary to split `google` module into separate directories: one generated from the googleapis buf plugin,
+  # and the other coming from the `protobuf` PyPI package that gets installed as `google`.
+  echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$PYTHON_LIB_DIR/google/__init__.py"
 
   echo "ok"
 }

@@ -10,7 +10,17 @@ from sift.ingest.v1.ingest_pb2 import (
 )
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
+
 from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion._internal.error import IngestionValidationError
+from sift_py.ingestion._internal.ingestion_config import (
+    create_flow_configs,
+    create_ingestion_config,
+    get_ingestion_config_by_client_key,
+    get_ingestion_config_flow_names,
+)
+from sift_py.ingestion._internal.rule import get_asset_rules_json, update_rules
+from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
 from sift_py.ingestion.channel import (
     ChannelValue,
     channel_fqn,
@@ -19,19 +29,10 @@ from sift_py.ingestion.channel import (
 )
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
-from sift_py.ingestion.impl.error import IngestionValidationError
-from sift_py.ingestion.impl.ingestion_config import (
-    create_flow_configs,
-    create_ingestion_config,
-    get_ingestion_config_by_client_key,
-    get_ingestion_config_flow_names,
-)
-from sift_py.ingestion.impl.rule import get_asset_rules_json, update_rules
-from sift_py.ingestion.impl.run import create_run, get_run_id_by_name
 from sift_py.ingestion.rule.config import RuleConfig
 
 
-class IngestionServiceImpl:
+class _IngestionServiceImpl:
     transport_channel: SiftChannel
     ingestion_config: IngestionConfig
     asset_name: str
@@ -50,14 +51,14 @@ class IngestionServiceImpl:
         overwrite_rules: bool = False,
         end_stream_on_error: bool = False,
     ):
-        ingestion_config = self.__class__.get_or_create_ingestion_config(channel, config)
+        ingestion_config = self.__class__._get_or_create_ingestion_config(channel, config)
 
-        self.__class__.update_flow_configs(
+        self.__class__._update_flow_configs(
             channel, ingestion_config.ingestion_config_id, config.flows
         )
 
         if not overwrite_rules:
-            self.__class__.validate_rules_synchronized(
+            self.__class__._validate_rules_synchronized(
                 channel, ingestion_config.asset_id, config.rules
             )
 
@@ -143,13 +144,13 @@ class IngestionServiceImpl:
 
         for channel in flow_config.channels:
             fqn = channel_fqn(channel)
-            channel_value = channel_values_by_fqn.pop(fqn, None)
+            channel_val: Optional[ChannelValue] = channel_values_by_fqn.pop(fqn, None)
 
-            if channel_value is None:
+            if channel_val is None:
                 values.append(empty_value())
                 continue
 
-            value = channel_value["value"]
+            value = channel_val["value"]
 
             if is_data_type(value, channel.data_type):
                 values.append(value)
@@ -198,7 +199,7 @@ class IngestionServiceImpl:
         )
 
     @staticmethod
-    def update_flow_configs(
+    def _update_flow_configs(
         channel: SiftChannel, ingestion_config_id: str, flows: List[FlowConfig]
     ):
         """
@@ -221,7 +222,7 @@ class IngestionServiceImpl:
             create_flow_configs(channel, ingestion_config_id, flows_to_create)
 
     @staticmethod
-    def get_or_create_ingestion_config(
+    def _get_or_create_ingestion_config(
         channel: SiftChannel, config: TelemetryConfig
     ) -> IngestionConfig:
         """
@@ -242,7 +243,7 @@ class IngestionServiceImpl:
         )
 
     @staticmethod
-    def validate_rules_synchronized(
+    def _validate_rules_synchronized(
         transport_channel: SiftChannel,
         asset_id: str,
         rule_configs: List[RuleConfig],

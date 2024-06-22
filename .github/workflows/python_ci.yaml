@@ -37,6 +37,11 @@ jobs:
         run: |
           ruff format --check
 
+      - name: MyPy
+        working-directory: python
+        run: |
+          mypy lib
+
       - name: Pytest
         working-directory: python
         run: |
