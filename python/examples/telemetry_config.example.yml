@@ -1,5 +1,5 @@
-asset_name: LunarVehicle426
-ingestion_client_key: lunar_vehicle_426
+asset_name: NostromoLV426
+ingestion_client_key: nostromo_lv_426
 
 channels:
   log_channel: &log_channel
@@ -60,27 +60,33 @@ rules:
       - $2: *voltage_channel
     type: review
 
-  - name: speeding
-    description: Checks high vehicle speed
-    type: phase
-    expression: $1 > 20
+  - name: kinetic_energy
+    description: Tracks high energy output while in motion
+    type: review
+    assignee: cthulhu@rlyeh.com
+    expression:
+      name: kinetic_energy_gt
     channel_references:
       - $1: *velocity_channel
+    sub_expressions:
+      - $mass: 10
+      - $threshold: 470
+    tags:
+        - nostromo
 
-  - name: failures
-    description: Checks for failure logs
+  - name: failure
+    description: Checks for failures reported by logs
     type: review
-    assignee: homer@example.com
+    assignee: cthulhu@rlyeh.com
     expression:
       name: log_substring_contains
     channel_references:
       - $1: *log_channel
     sub_expressions:
-      - $2: ERROR
+      - $sub_string: failure
     tags:
-        - foo
-        - bar
-        - baz
+        - failure
+        - nostromo
 
 flows:
   - name: readings
@@ -90,10 +96,13 @@ flows:
       - <<: *vehicle_state_channel
       - <<: *gpio_channel
 
-  - name: partial_readings
+  - name: voltage
     channels:
-      - <<: *velocity_channel
       - <<: *voltage_channel
+
+  - name: gpio_channel
+    channels:
+      - <<: *gpio_channel
       
   - name: logs
     channels:

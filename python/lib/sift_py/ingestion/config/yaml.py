@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Literal, Optional, TypedDict, cast
 
 import yaml
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypeAlias
 
 from sift_py.ingestion.channel import (
     ChannelBitFieldElement,
@@ -137,10 +137,10 @@ Note the pluralization in the name to distinguish it from `NamedExpressionYamlSp
 This alias serves as a formal definition for a YAML file that solely contains named expressions.
 See `sift_py.ingestion.rule.yaml_test.py` for examples.
 
-Named expressions are generic expressions that contain placeholders instead of identifiers. They can
-be loaded at runtime and referenced in telemetry configs to facilitate reuse.
+Named expressions are expressions that contain placeholders which are replaced with actual
+expressions at runtime.
 """
-NamedExpressionsYamlSpec = Dict[str, str]
+NamedExpressionsYamlSpec: TypeAlias = Dict[str, str]
 
 
 class YamlConfigError(Exception):
@@ -160,6 +160,10 @@ def try_load_from_yaml(
     """
     Loads in YAML config file and deserializes it into an instance of `TelemetryConfig`. If
     the YAML config has any malformed or missing properties than a `YamlConfigError` is raised.
+
+    If any rules in the config make use of named expressions, then the path to the named expressions
+    module(s) must be provided via the `opts` argument, specifically the `named_expressions` field
+    of `YamlLoadOptions`.
     """
 
     suffix = config_fs_path.suffix
@@ -273,6 +277,42 @@ def rule_config_from_yaml(
         )
 
 
+def try_load_named_expressions_from_yaml_strs(yaml_strs: List[str]) -> NamedExpressionsYamlSpec:
+    named_expressions: NamedExpressionsYamlSpec = {}
+
+    for yaml_str in yaml_strs:
+        exprs = cast(NamedExpressionsYamlSpec, yaml.safe_load(yaml_str))
+
+        for name, expr in exprs.items():
+            if name in named_expressions:
+                raise YamlConfigError(f"Found multiple named expressions with the name '{name}'.")
+
+            named_expressions[name] = expr
+
+    return named_expressions
+
+
+def try_load_named_expressions_from_yamls(
+    named_expressions_fs_paths: List[Path],
+) -> NamedExpressionsYamlSpec:
+    """
+    Loads in named expressions from multiple paths.
+    """
+
+    named_expressions: NamedExpressionsYamlSpec = {}
+
+    for named_expressions_fs_path in named_expressions_fs_paths:
+        exprs = try_load_named_expressions_from_yaml(named_expressions_fs_path)
+
+        for name, expr in exprs.items():
+            if name in named_expressions:
+                raise YamlConfigError(f"Found multiple named expressions with the name '{name}'.")
+
+            named_expressions[name] = expr
+
+    return named_expressions
+
+
 def try_load_named_expressions_from_yaml(
     named_expressions_fs_path: Path,
 ) -> NamedExpressionsYamlSpec:
@@ -317,22 +357,17 @@ def _try_from_yaml_str(yaml_str: str, opts: Optional[YamlLoadOptions] = None) ->
 
     named_expressions = {}
     if opts is not None:
-        for named_expr in opts.get("named_expressions", []):
-            named_expressions_from_yaml = {}
+        named_exprs = opts.get("named_expressions", [])
 
-            if isinstance(named_expr, str):
-                named_expressions_from_yaml = cast(
-                    NamedExpressionsYamlSpec, yaml.safe_load(named_expr)
+        if len(named_exprs) > 0:
+            if isinstance(named_exprs[0], str):
+                named_expressions = try_load_named_expressions_from_yaml_strs(
+                    cast(List[str], named_exprs)
                 )
             else:
-                named_expressions_from_yaml = try_load_named_expressions_from_yaml(named_expr)
-
-            for name, expression in named_expressions_from_yaml.items():
-                if name in named_expressions:
-                    raise YamlConfigError(
-                        f"Found multiple named expressions with the name '{name}'."
-                    )
-                named_expressions[name] = expression
+                named_expressions = try_load_named_expressions_from_yamls(
+                    cast(List[Path], named_exprs)
+                )
 
     raw_rules = config.get("rules")
     rules = []
