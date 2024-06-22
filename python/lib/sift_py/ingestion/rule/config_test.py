@@ -70,3 +70,25 @@ def test_rule_config_json():
         },
     )
     assert contains_rule_config.expression == 'contains($1, "Error")'
+
+
+def test_rule_named_expressions():
+    kinetic_energy_gt_expression = "0.5 * $mass * $1 * $1 > $threshold"
+
+    rule_on_kinetic_energy = RuleConfig(
+        name="rule_onkinetic_energy",
+        description="checks high periods of energy output",
+        expression=kinetic_energy_gt_expression,
+        action=RuleActionCreatePhaseAnnotation(),
+        channel_references={
+            "$1": ChannelConfig(
+                name="log",
+                data_type=ChannelDataType.INT_32,
+            ),
+        },
+        sub_expressions={
+            "$mass": 10,
+            "$threshold": 35,
+        },
+    )
+    assert rule_on_kinetic_energy.expression == "0.5 * 10 * $1 * $1 > 35"
