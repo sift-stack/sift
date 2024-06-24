@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-ci:
-
   publish-to-testpypi:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
