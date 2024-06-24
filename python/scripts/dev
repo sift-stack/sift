@@ -27,6 +27,7 @@ EOT
 pip_install() {
   source venv/bin/activate
   pip install '.[development]'
+  pip install '.[build]'
   pip install -e .
 }
 

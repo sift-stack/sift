@@ -1,7 +1,24 @@
 [project]
 name = "sift_py"
-version = "0.1"
+version = "0.1.0-rc.1"
 description = "Python client library for the Sift API"
+requires-python = ">=3.9"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
+classifiers  = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+maintainers = [ {name = "Sift Software Engineers", email = "engineering@siftstack.com"} ]
+keywords = [
+  "sift",
+  "sift-stack",
+  "siftstack",
+  "sift_py",
+]
 dependencies = [
   "typing-extensions==4.12.2",
   # https://grpc.github.io/grpc/python/
@@ -15,7 +32,13 @@ dependencies = [
   "PyYAML==6.0.1",
   "types-PyYAML==6.0.12.20240311",
 ]
-requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "https://github.com/sift-stack/sift/tree/main/python"
+Documentation = "https://docs.siftstack.com/"
+Repository = "https://github.com/sift-stack/sift/tree/main/python"
+Issues = "https://github.com/me/spam/issues"
+Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
@@ -28,6 +51,9 @@ development = [
 
   # formatter + linter
   "ruff",
+]
+build = [
+  "build==1.2.1",
 ]
 
 [build-system]
@@ -55,12 +81,12 @@ ignore_missing_imports = true
 ignore_errors = true
 
 [tool.setuptools.packages.find]
-where = ["gen", "lib"]
+where = ["lib"]
 
 [tool.ruff]
 line-length = 100
 indent-width = 4
-target-version = "py38" # Python 3.8
+target-version = "py39" # Python 3.9
 exclude = [
     ".bzr",
     ".direnv",
