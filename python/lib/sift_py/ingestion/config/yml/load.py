@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Type, cast
 import yaml
 
 from sift_py.ingestion.channel import ChannelDataTypeStrRep
-from sift_py.ingestion.config.yaml import TelemetryConfigYamlSpec
 from sift_py.ingestion.config.yml.error import YamlConfigError
 from sift_py.ingestion.config.yml.spec import (
     ChannelBitFieldElementYamlSpec,
@@ -13,6 +12,7 @@ from sift_py.ingestion.config.yml.spec import (
     ChannelEnumTypeYamlSpec,
     FlowYamlSpec,
     RuleYamlSpec,
+    TelemetryConfigYamlSpec,
 )
 from sift_py.ingestion.rule.config import RuleActionAnnotationKind
 
@@ -26,9 +26,36 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     step will return an error whose source is the `yaml` package. Any errors that may occur during the
     validation step will return a `YamlConfigError`.
     """
-
     raw_config = _read_yaml(path)
+    return _validate_yaml(raw_config)
 
+def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
+    named_expressions = {}
+
+    for path in paths:
+        named_expr_module = _read_named_expression_module_yaml(path)
+
+        for name, expr in named_expr_module.items():
+            if name in named_expressions:
+                raise YamlConfigError(f"Encountered expressions with identical names being loaded, '{name}'.")
+            named_expressions[name] = expr
+
+    return named_expressions
+
+def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
+    with open(path, "r") as f:
+        named_expressions = cast(Dict[Any, Any], yaml.safe_load(f.read()))
+
+        for key, value in named_expressions.items():
+            if not isinstance(key, str):
+                raise YamlConfigError(f"Expected '{key}' to be a string in named expression module '{path}'.")
+            if not isinstance(value, str):
+                raise YamlConfigError(f"Expected expression of '{key}' to be a string in named expression module '{path}'.")
+
+        return cast(Dict[str, str], named_expressions)
+
+
+def _validate_yaml(raw_config: Dict[Any, Any]) -> TelemetryConfigYamlSpec:
     asset_name = raw_config.get("asset_name")
 
     if not isinstance(asset_name, str):
@@ -47,16 +74,17 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     channels = raw_config.get("channels")
 
     if channels is not None:
-        if not isinstance(channels, list):
+        if not isinstance(channels, dict):
             raise YamlConfigError._invalid_property(
                 channels,
                 "channels",
-                f"List<{ChannelConfigYamlSpec}>",
+                f"Dict[str, {ChannelConfigYamlSpec}]",
                 None,
             )
 
-        for channel in cast(List[Any], channels):
-            _validate_channel(channel)
+        for anchor, channel_config in cast(Dict[Any, Any], channels).items():
+            _validate_channel_anchor(anchor)
+            _validate_channel(channel_config)
 
     rules = raw_config.get("rules")
 
@@ -65,7 +93,7 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
             raise YamlConfigError._invalid_property(
                 channels,
                 "channels",
-                f"List<{RuleYamlSpec}>",
+                f"List[{_type_fqn(RuleYamlSpec)}]",
                 None,
             )
 
@@ -75,11 +103,11 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     flows = raw_config.get("flows")
 
     if flows is not None:
-        if not isinstance(rules, list):
+        if not isinstance(flows, list):
             raise YamlConfigError._invalid_property(
                 flows,
                 "flows",
-                f"List<{FlowYamlSpec}>",
+                f"List[{_type_fqn(FlowYamlSpec)}]",
                 None,
             )
 
@@ -93,6 +121,14 @@ def _read_yaml(path: Path) -> Dict[Any, Any]:
     with open(path, "r") as f:
         return cast(Dict[Any, Any], yaml.safe_load(f.read()))
 
+def _validate_channel_anchor(val: Any):
+    if not isinstance(val, str):
+        raise YamlConfigError._invalid_property(
+            val,
+            "<str>",
+            "&str",
+            ["channels"],
+        )
 
 def _validate_channel(val: Any):
     channel = cast(Dict[Any, Any], val)
@@ -351,7 +387,7 @@ def _validate_sub_expression(val: Any):
 
         if _SUB_EXPRESSION_REGEX.match(key) is None:
             raise YamlConfigError(
-                "Invalid sub-expression key, '{key}'. Characters must be in the character set [a-zA-Z_] and prefixed with a '$'."
+                f"Invalid sub-expression key, '{key}'. Characters must be in the character set [a-zA-Z_] and prefixed with a '$'."
             )
 
 

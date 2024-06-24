@@ -228,15 +228,9 @@ def channel_fqn(channel: ChannelConfig | ChannelValue | ChannelPb) -> str:
     """
 
     if isinstance(channel, ChannelConfig):
-        if channel.component is None or len(channel.component) == 0:
-            return channel.name
-        else:
-            return f"{channel.component}.{channel.name}"
+        return _channel_fqn(channel.name, channel.component)
     elif isinstance(channel, ChannelPb):
-        if channel.component is None or len(channel.component) == 0:
-            return channel.name
-        else:
-            return f"{channel.component}.{channel.name}"
+        return _channel_fqn(channel.name, channel.component)
     else:
         component = channel.get("component", "")
         channel_name = channel["channel_name"]
@@ -244,6 +238,13 @@ def channel_fqn(channel: ChannelConfig | ChannelValue | ChannelPb) -> str:
             return channel_name
         else:
             return f"{component}.{channel_name}"
+
+
+def _channel_fqn(name: str, component: Optional[str]) -> str:
+    if component is None or len(component) == 0:
+        return name
+    else:
+        return f"{component}.{name}"
 
 
 def string_value(val: str) -> IngestWithConfigDataChannelValue:

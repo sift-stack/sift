@@ -8,7 +8,6 @@ from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
 
 from sift_py._internal.convert.json import AsJson
-from sift_py.ingestion.channel import ChannelConfig, channel_fqn
 
 
 class RuleConfig(AsJson):
@@ -33,7 +32,7 @@ class RuleConfig(AsJson):
     description: str
     expression: str
     action: RuleAction
-    channel_references: Dict[str, ChannelConfig]
+    channel_references: List[ExpressionChannelReference]
 
     def __init__(
         self,
@@ -41,7 +40,7 @@ class RuleConfig(AsJson):
         description: str,
         expression: str,
         action: RuleAction,
-        channel_references: Dict[str, ChannelConfig] = {},
+        channel_references: List[ExpressionChannelReference],
         sub_expressions: Dict[str, Any] = {},
     ):
         self.name = name
@@ -61,16 +60,7 @@ class RuleConfig(AsJson):
             "expression": self.expression,
         }
 
-        channel_references: List[ExpressionChannelReference] = []
-        for ref, channel_config in self.channel_references.items():
-            channel_references.append(
-                {
-                    "channel_reference": ref,
-                    "channel_identifier": channel_fqn(channel_config),
-                }
-            )
-
-        hash_map["expression_channel_references"] = channel_references
+        hash_map["expression_channel_references"] = self.channel_references
 
         if isinstance(self.action, RuleActionCreateDataReviewAnnotation):
             hash_map["type"] = RuleActionAnnotationKind.REVIEW.value

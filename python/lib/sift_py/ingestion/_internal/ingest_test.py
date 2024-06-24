@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Callable
 
 import pytest
 from pytest_mock import MockFixture
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 
+import sift_py.ingestion._internal.ingest
 from sift_py._internal.test_util.channel import MockChannel
+from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
 from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingest import (
     _IngestionServiceImpl,
@@ -30,12 +31,7 @@ from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import FlowConfig
 from sift_py.ingestion.rule.config import RuleActionCreateDataReviewAnnotation, RuleConfig
 
-SUBJECT_MODULE = "sift_py.ingestion._internal.ingest"
-
-
-def _mock_path(fn: Callable) -> str:
-    return f"{SUBJECT_MODULE}.{fn.__name__}"
-
+_mock_path = _mock_path_imp(sift_py.ingestion._internal.ingest)
 
 def test_ingestion_service_update_flow_configs_updates_flows(mocker: MockFixture):
     """
@@ -290,9 +286,9 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
         name="voltage_rule",
         description="",
         expression="$1 > 10",
-        channel_references={
-            "$1": voltage_channel,
-        },
+        channel_references=[
+            {"channel_reference": "$1", "channel_identifier": voltage_channel.fqn()},
+        ],
         action=RuleActionCreateDataReviewAnnotation(
             assignee="bob@example.com",
             tags=["motor"],
@@ -303,9 +299,9 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
         name="pressure_rule",
         description="",
         expression="$1 > 10",
-        channel_references={
-            "$1": pressure_channel,
-        },
+        channel_references=[
+            {"channel_reference": "$1", "channel_identifier": pressure_channel.fqn()},
+        ],
         action=RuleActionCreateDataReviewAnnotation(
             assignee="bob@example.com",
             tags=["barometer"],
@@ -317,9 +313,9 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
         name="log_rule",
         description="",
         expression='contains($1, "ERROR")',
-        channel_references={
-            "$1": logs_channel,
-        },
+        channel_references=[
+            {"channel_reference": "$1", "channel_identifier": logs_channel.fqn()},
+        ],
         action=RuleActionCreateDataReviewAnnotation(
             assignee="bob@example.com",
             tags=["log"],

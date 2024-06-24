@@ -2,6 +2,10 @@ from grpc_testing import Channel
 
 
 class MockChannel(Channel):
+    """
+    Used as a mock gRPC channel
+    """
+
     def take_unary_unary(self, method_descriptor):
         pass
 
