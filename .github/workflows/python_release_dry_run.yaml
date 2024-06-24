@@ -16,11 +16,11 @@ jobs:
     permissions:
       id-token: write  
     steps:
-      - name: Run CI
-        uses: ./.github/workflows/python_ci.yaml
-
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Run CI
+        uses: ./.github/workflows/python_ci.yaml
 
       - name: Set up Python
         uses: actions/setup-python@v2
