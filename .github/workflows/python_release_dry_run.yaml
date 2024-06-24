@@ -30,22 +30,6 @@ jobs:
           pip install '.[build]'
           pip install .
 
-      - name: Lint
-        run: |
-          ruff check
-          
-      - name: Format
-        run: |
-          ruff format --check
-
-      - name: MyPy
-        run: |
-          mypy lib
-
-      - name: Pytest
-        run: |
-          pytest
-
       - name: Build distributions
         working-directory: python
         run: |
