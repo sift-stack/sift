@@ -5,7 +5,6 @@ on:
 
 jobs:
   run-ci:
-    uses: ./.github/workflows/python_ci.yaml
 
   publish-to-testpypi:
     name: Upload release to PyPI
@@ -19,6 +18,9 @@ jobs:
     permissions:
       id-token: write  
     steps:
+      - name: Run CI
+        uses: ./.github/workflows/python_ci.yaml
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -42,4 +44,5 @@ jobs:
       - name: Publish package distributions to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          packages-dir: ./python/dist/
           repository-url: https://test.pypi.org/legacy/
