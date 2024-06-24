@@ -1,11 +1,16 @@
 name: PyPI Publish
 
 on:
+  pull_request:
   workflow_dispatch:
 
 jobs:
+  python-ci:
+    uses: ./.github/workflows/python_ci.yaml
+
   publish-to-testpypi:
     name: Upload release to PyPI
+    needs: python-ci
     runs-on: ubuntu-latest
     defaults:
       run:
