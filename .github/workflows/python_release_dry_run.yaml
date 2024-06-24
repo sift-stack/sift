@@ -10,6 +10,9 @@ jobs:
   publish-to-testpypi:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
     environment:
       name: pypi_dry_run
       url: https://test.pypi.org/p/sift_py
