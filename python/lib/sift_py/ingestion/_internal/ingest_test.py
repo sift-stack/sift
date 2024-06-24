@@ -33,6 +33,7 @@ from sift_py.ingestion.rule.config import RuleActionCreateDataReviewAnnotation, 
 
 _mock_path = _mock_path_imp(sift_py.ingestion._internal.ingest)
 
+
 def test_ingestion_service_update_flow_configs_updates_flows(mocker: MockFixture):
     """
     Tests to ensure that if a user adds a new flow to the telemetry config,

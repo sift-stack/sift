@@ -29,6 +29,7 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     raw_config = _read_yaml(path)
     return _validate_yaml(raw_config)
 
+
 def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
     named_expressions = {}
 
@@ -37,10 +38,13 @@ def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
 
         for name, expr in named_expr_module.items():
             if name in named_expressions:
-                raise YamlConfigError(f"Encountered expressions with identical names being loaded, '{name}'.")
+                raise YamlConfigError(
+                    f"Encountered expressions with identical names being loaded, '{name}'."
+                )
             named_expressions[name] = expr
 
     return named_expressions
+
 
 def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
     with open(path, "r") as f:
@@ -48,9 +52,13 @@ def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
 
         for key, value in named_expressions.items():
             if not isinstance(key, str):
-                raise YamlConfigError(f"Expected '{key}' to be a string in named expression module '{path}'.")
+                raise YamlConfigError(
+                    f"Expected '{key}' to be a string in named expression module '{path}'."
+                )
             if not isinstance(value, str):
-                raise YamlConfigError(f"Expected expression of '{key}' to be a string in named expression module '{path}'.")
+                raise YamlConfigError(
+                    f"Expected expression of '{key}' to be a string in named expression module '{path}'."
+                )
 
         return cast(Dict[str, str], named_expressions)
 
@@ -121,6 +129,7 @@ def _read_yaml(path: Path) -> Dict[Any, Any]:
     with open(path, "r") as f:
         return cast(Dict[Any, Any], yaml.safe_load(f.read()))
 
+
 def _validate_channel_anchor(val: Any):
     if not isinstance(val, str):
         raise YamlConfigError._invalid_property(
@@ -129,6 +138,7 @@ def _validate_channel_anchor(val: Any):
             "&str",
             ["channels"],
         )
+
 
 def _validate_channel(val: Any):
     channel = cast(Dict[Any, Any], val)
@@ -141,7 +151,7 @@ def _validate_channel(val: Any):
     description = channel.get("description")
 
     if description is not None and not isinstance(description, str):
-        raise YamlConfigError._invalid_property(name, "- description", "str", ["channels"])
+        raise YamlConfigError._invalid_property(description, "- description", "str", ["channels"])
 
     unit = channel.get("unit")
 
@@ -196,14 +206,14 @@ def _validate_channel(val: Any):
 
         if enum_types is not None:
             raise YamlConfigError(
-                f"Channel of data-type '{data_type}' should not have `enum_types` set."
+                f"Channel of data-type '{data_type}' should not have 'enum_types' set."
             )
 
         bit_field_elements = channel.get("bit_field_elements")
 
         if bit_field_elements is not None:
             raise YamlConfigError(
-                f"Channel of data-type '{data_type}' should not have `bit_field_elements` set."
+                f"Channel of data-type '{data_type}' should not have 'bit_field_elements' set."
             )
 
 

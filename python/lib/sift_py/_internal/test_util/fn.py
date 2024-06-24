@@ -10,4 +10,5 @@ def _mock_path(subject_module: ModuleType) -> Callable[[Callable], str]:
 
     def mock_fn(fn: Callable) -> str:
         return f"{subject_module.__name__}.{fn.__name__}"
+
     return mock_fn

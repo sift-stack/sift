@@ -33,12 +33,10 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
     mock_read_and_validate = mocker.patch(_mock_path(read_and_validate))
     mock_read_and_validate.return_value = yaml_config
 
-    mock_load_named_expression_modules = mocker.patch(
-        _mock_path(load_named_expression_modules)
-    )
+    mock_load_named_expression_modules = mocker.patch(_mock_path(load_named_expression_modules))
     mock_load_named_expression_modules.return_value = {
         "log_substring_contains": "contains($1, $substr)",
-        "kinetic_energy_gt": "0.5 * $mass * $1 * $1 > $threshold"
+        "kinetic_energy_gt": "0.5 * $mass * $1 * $1 > $threshold",
     }
 
     dummy_yaml_path = Path()
@@ -131,7 +129,7 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
 
     assert kinetic_energy_rule.name == "kinetic_energy"
     assert kinetic_energy_rule.description == "Tracks high energy output while in motion"
-    assert kinetic_energy_rule.expression == '0.5 * 10 * $1 * $1 > 470'
+    assert kinetic_energy_rule.expression == "0.5 * 10 * $1 * $1 > 470"
     assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
     assert isinstance(kinetic_energy_rule.action, RuleActionCreateDataReviewAnnotation)
 
@@ -140,18 +138,18 @@ def test_telemetry_config_err_if_duplicate_channels_in_flow(mocker: MockerFixtur
     """
     Raise an error if there are duplicate channels in a flow.
     """
-    raw_yaml_config = cast(Dict[Any, Any], yaml.safe_load(DUPLICATE_CHANNEL_IN_FLOW_TELEMETRY_CONFIG))
+    raw_yaml_config = cast(
+        Dict[Any, Any], yaml.safe_load(DUPLICATE_CHANNEL_IN_FLOW_TELEMETRY_CONFIG)
+    )
     yaml_config = _validate_yaml(raw_yaml_config)
 
     mock_read_and_validate = mocker.patch(_mock_path(read_and_validate))
     mock_read_and_validate.return_value = yaml_config
 
-    mock_load_named_expression_modules = mocker.patch(
-        _mock_path(load_named_expression_modules)
-    )
+    mock_load_named_expression_modules = mocker.patch(_mock_path(load_named_expression_modules))
     mock_load_named_expression_modules.return_value = {
         "log_substring_contains": "contains($1, $substr)",
-        "kinetic_energy_gt": "0.5 * $mass * $1 * $1 > $threshold"
+        "kinetic_energy_gt": "0.5 * $mass * $1 * $1 > $threshold",
     }
 
     dummy_yaml_path = Path()
@@ -163,6 +161,7 @@ def test_telemetry_config_err_if_duplicate_channels_in_flow(mocker: MockerFixtur
 
 def test_telemetry_config_named_expression_interpolation():
     pass
+
 
 def test_telemetry_config_validations_duplicate_rules():
     channel = ChannelConfig(
@@ -261,6 +260,7 @@ def test_telemetry_config_validations_flows_with_same_name():
                 ),
             ],
         )
+
 
 TEST_YAML_CONFIG_STR = """
 asset_name: LunarVehicle426
