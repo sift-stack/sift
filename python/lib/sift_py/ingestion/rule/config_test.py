@@ -14,12 +14,15 @@ def test_rule_config_json():
         description="Rock & Roll",
         expression=voltage_rule_expression,
         action=RuleActionCreatePhaseAnnotation(),
-        channel_references={
-            "$1": ChannelConfig(
-                name="voltage",
-                data_type=ChannelDataType.DOUBLE,
-            ),
-        },
+        channel_references=[
+            {
+                "channel_reference": "$1",
+                "channel_config": ChannelConfig(
+                    name="voltage",
+                    data_type=ChannelDataType.DOUBLE,
+                ),
+            }
+        ],
     )
     assert voltage_rule_config.expression == voltage_rule_expression
 
@@ -32,18 +35,24 @@ def test_rule_config_json():
             tags=["foo", "bar"],
             assignee="foobar@baz.com",
         ),
-        channel_references={
-            "$1": ChannelConfig(
-                name="vehicle_state",
-                component="motor",
-                data_type=ChannelDataType.INT_32,
-            ),
-            "$2": ChannelConfig(
-                name="temperature",
-                component="motor",
-                data_type=ChannelDataType.INT_32,
-            ),
-        },
+        channel_references=[
+            {
+                "channel_reference": "$1",
+                "channel_config": ChannelConfig(
+                    name="vehicle_state",
+                    component="motor",
+                    data_type=ChannelDataType.INT_32,
+                ),
+            },
+            {
+                "channel_reference": "$2",
+                "channel_config": ChannelConfig(
+                    name="temperature",
+                    component="motor",
+                    data_type=ChannelDataType.INT_32,
+                ),
+            },
+        ],
         sub_expressions={
             "$3": 80,
         },
@@ -59,12 +68,15 @@ def test_rule_config_json():
             tags=["foo", "bar"],
             assignee="foobar@baz.com",
         ),
-        channel_references={
-            "$1": ChannelConfig(
-                name="log",
-                data_type=ChannelDataType.INT_32,
-            ),
-        },
+        channel_references=[
+            {
+                "channel_reference": "$1",
+                "channel_config": ChannelConfig(
+                    name="log",
+                    data_type=ChannelDataType.INT_32,
+                ),
+            },
+        ],
         sub_expressions={
             "$2": "Error",
         },
@@ -80,12 +92,15 @@ def test_rule_named_expressions():
         description="checks high periods of energy output",
         expression=kinetic_energy_gt_expression,
         action=RuleActionCreatePhaseAnnotation(),
-        channel_references={
-            "$1": ChannelConfig(
-                name="log",
-                data_type=ChannelDataType.INT_32,
-            ),
-        },
+        channel_references=[
+            {
+                "channel_reference": "$1",
+                "channel_config": ChannelConfig(
+                    name="velocity",
+                    data_type=ChannelDataType.INT_32,
+                ),
+            },
+        ],
         sub_expressions={
             "$mass": 10,
             "$threshold": 35,

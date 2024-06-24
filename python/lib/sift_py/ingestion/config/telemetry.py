@@ -17,6 +17,7 @@ from sift_py.ingestion.config.yaml.spec import TelemetryConfigYamlSpec
 from sift_py.ingestion.flow import FlowConfig
 from sift_py.ingestion.rule.config import (
     ExpressionChannelReference,
+    ExpressionChannelReferenceChannelConfig,
     RuleAction,
     RuleActionAnnotationKind,
     RuleActionCreateDataReviewAnnotation,
@@ -191,7 +192,9 @@ class TelemetryConfig:
                     tags=tags,
                 )
 
-            channel_references: List[ExpressionChannelReference] = []
+            channel_references: List[
+                ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
+            ] = []
 
             for channel_reference in rule.get("channel_references", []):
                 for ref, val in channel_reference.items():

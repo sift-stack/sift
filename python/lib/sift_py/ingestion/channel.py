@@ -89,7 +89,7 @@ class ChannelConfig(AsProtobuf):
 
     def fqn(self) -> str:
         """
-        The fully-qualified channel name of a channel called 'voltage' is simply `voltage'. The
+        The fully-qualified channel name of a channel called 'voltage' is simply `voltage`. The
         fully qualified name of a channel called 'temperature' of component 'motor' is a `motor.temperature'.
         """
         return channel_fqn(self)
