@@ -1,7 +1,7 @@
 import pytest
 
-from sift_py.ingestion.config.yml import load
-from sift_py.ingestion.config.yml.error import YamlConfigError
+from sift_py.ingestion.config.yaml import load
+from sift_py.ingestion.config.yaml.error import YamlConfigError
 
 
 def test__validate_channel_anchor():

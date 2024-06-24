@@ -6,11 +6,11 @@ import yaml
 from pytest_mock import MockerFixture, MockFixture
 
 import sift_py.ingestion.config.telemetry
-import sift_py.ingestion.config.yml.load
+import sift_py.ingestion.config.yaml.load
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
 from sift_py.ingestion.config.telemetry import TelemetryConfig, TelemetryConfigValidationError
-from sift_py.ingestion.config.yml.load import (
+from sift_py.ingestion.config.yaml.load import (
     _validate_yaml,
     load_named_expression_modules,
     read_and_validate,

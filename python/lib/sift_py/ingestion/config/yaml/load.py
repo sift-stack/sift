@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Type, cast
 import yaml
 
 from sift_py.ingestion.channel import ChannelDataTypeStrRep
-from sift_py.ingestion.config.yml.error import YamlConfigError
-from sift_py.ingestion.config.yml.spec import (
+from sift_py.ingestion.config.yaml.error import YamlConfigError
+from sift_py.ingestion.config.yaml.spec import (
     ChannelBitFieldElementYamlSpec,
     ChannelConfigYamlSpec,
     ChannelEnumTypeYamlSpec,
