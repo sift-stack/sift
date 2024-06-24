@@ -22,15 +22,21 @@ _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
 
 def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     """
-    Reads in the telemetry config YAML file and validates it. Any errors that may occur at the parsing
+    Reads in the telemetry config YAML file found at `path` and validates it. Any errors that may occur at the parsing
     step will return an error whose source is the `yaml` package. Any errors that may occur during the
-    validation step will return a `YamlConfigError`.
+    validation step will return a `sift_py.ingestion.config.yaml.error.YamlConfigError`.
     """
     raw_config = _read_yaml(path)
     return _validate_yaml(raw_config)
 
 
 def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
+    """
+    Takes in a list of paths to YAML files which contains named expressions and processes them into a `dict`.
+    The key is the name of the expression and the value is the expression itself. For more information on
+    named expression modules see `sift_py.ingestion/config/yaml/spec.py
+    """
+
     named_expressions = {}
 
     for path in paths:

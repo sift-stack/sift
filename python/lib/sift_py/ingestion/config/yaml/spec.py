@@ -1,19 +1,24 @@
 """
-Formal specification of the types that `sift_py` expects when loading
-a telemetry config from a YAML file.
+Formal specification of the types that `sift_py` expects when loading a telemetry config from a YAML file.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Dict, List, Literal, TypedDict
 
-from typing_extensions import NotRequired, TypeAlias
+from typing_extensions import NotRequired
 
 
 class TelemetryConfigYamlSpec(TypedDict):
     """
     Formal spec that defines what the telemetry config should look like in YAML.
+
+    `asset_name`: The name of the asset to telemeter.
+    `ingestion_client_key`: User-defined string-key that uniquely identifies this telemetry config.
+    `organization_id`: Optional ID of user's organization. Required if user belongs to multiple orgs.
+    `channels`: Sensors that send the data.
+    `rules`: Rules that, when evaluated to a true, will perform some sort of acction.
+    `flows`: A list of named groups of channels that send data together.
     """
 
     asset_name: str
@@ -27,6 +32,14 @@ class TelemetryConfigYamlSpec(TypedDict):
 class ChannelConfigYamlSpec(TypedDict):
     """
     Formal spec that defines what a channel should look like in YAML.
+
+    `name`: Name of channel.
+    `description`: Optional channel description.
+    `unit`: Unit of measurement.
+    `component`: Name of component that channel belongs to.
+    `data_type`: Type of the data associated with the channel.
+    `enum_types`: Required if `data_type` is `enum.
+    `bit_field_elements`: Required if `data_type` is `bit_field`.
     """
 
     name: str
@@ -77,25 +90,59 @@ class FlowYamlSpec(TypedDict):
     channels: List[ChannelConfigYamlSpec]
 
 
-class YamlLoadOptions(TypedDict):
-    """
-    Options to use when loading a telemetry config form YAML.
-
-    Attributes:
-        `named_expressions`:
-            A list of look up paths for YAML files containing named expressions. Could also just be a YAML str.
-    """
-
-    named_expressions: List[Path | str]
-
-
-class RulesYamlSpec(TypedDict):
-    rules: List[RuleYamlSpec]
-
-
 class RuleYamlSpec(TypedDict):
     """
     The formal definition of what a single rule looks like in YAML.
+
+    `name`: Name of the rule.
+    `description`: Description of rule.
+    `expression`:
+        Either an expression-string or a `sift_py.ingestion.config.yaml.spec.NamedExpressionYamlSpec` referencing a named expression.
+    `type`: Determines the action to perform if a rule gets evaluated to true.
+    `assignee`: If `type` is `review`, determines who to notify. Expects an email.
+    `tags`: Tags to associate with the rule.
+    `channel_references`: A list of channel references that maps to an actual channel. More below.
+    `sub_expressions`: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
+
+    Channel references:
+    A channel reference is a string containing a numerical value prefixed with "$". Examples include "$1", "$2", "$11", and so on.
+    The channel reference is mapped to an actual channel config. In YAML it would look something like this:
+
+    ```yaml
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+    ```
+
+    Sub-expressions:
+    A sub-expression is made up of two components: A reference and the actual sub-expression. The sub-expression reference is
+    a string with a "$" prepended to another string comprised of characters in the following character set: `[a-zA-Z0-9_]`.
+    This reference should be mapped to the actual sub-expression. For example, say you have kinematic equations in `kinematics.yml`,
+    and the equation you're interested in using looks like the following:
+
+    ```yaml
+    kinetic_energy_gt:
+      0.5 * $mass * $1 * $1 > $threshold
+    ```
+
+    To properly use `kinetic_energy_gt` in your rule, it would look like the following:
+
+    ```yaml
+    rules:
+      - name: kinetic_energy
+        description: Tracks high energy output while in motion
+        type: review
+        assignee: bob@example.com
+        expression:
+          name: kinetic_energy_gt
+        channel_references:
+          - $1: *velocity_channel
+        sub_expressions:
+          - $mass: 10
+          - $threshold: 470
+        tags:
+            - nostromo
+    ```
     """
 
     name: str
@@ -110,24 +157,15 @@ class RuleYamlSpec(TypedDict):
 
 class NamedExpressionYamlSpec(TypedDict):
     """
-    A named, reusable expression. This class is the formal definition
-    of what a named expression should look like in YAML.
+    A named expression. This class is the formal definition of what a named expression
+    should look like in YAML. The value of `name` may contain a mix of channel references
+    and channel identifiers.
+
+    For a formal definition of channel references and channel identifiers see the following:
+    `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
     """
 
     name: str
-
-
-"""
-NamedExpressionsYamlSpec is a type alias for a dictionary where both keys and values are strings.
-Note the pluralization in the name to distinguish it from `NamedExpressionYamlSpec`.
-
-This alias serves as a formal definition for a YAML file that solely contains named expressions.
-See `sift_py.ingestion.rule.yaml_test.py` for examples.
-
-Named expressions are expressions that contain placeholders which are replaced with actual
-expressions at runtime.
-"""
-NamedExpressionsYamlSpec: TypeAlias = Dict[str, str]
 
 
 class YamlConfigError(Exception):
