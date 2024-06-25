@@ -1,0 +1,110 @@
+asset_name: NostromoLV426
+ingestion_client_key: nostromo_lv_426
+
+channels:
+  log_channel: &log_channel
+    name: log
+    data_type: string
+    description: asset logs
+  
+  velocity_channel: &velocity_channel
+    name: velocity
+    data_type: double
+    description: speed
+    unit: Miles Per Hour
+    component: mainmotor
+  
+  voltage_channel: &voltage_channel
+    name: voltage
+    data_type: int32
+    description: voltage at the source
+    unit: Volts
+  
+  vehicle_state_channel: &vehicle_state_channel
+    name: vehicle_state
+    data_type: enum
+    description: vehicle state
+    unit: vehicle state
+    enum_types:
+      - name: Accelerating
+        key: 0
+      - name: Decelerating
+        key: 1
+      - name: Stopped
+        key: 2
+  
+  gpio_channel: &gpio_channel
+    name: gpio
+    data_type: bit_field
+    description: on/off values for pins on gpio
+    bit_field_elements:
+      - name: 12v
+        index: 0
+        bit_count: 1
+      - name: charge
+        index: 1
+        bit_count: 2
+      - name: led
+        index: 3
+        bit_count: 4
+      - name: heater
+        index: 7
+        bit_count: 1
+
+rules:
+  - name: overheating
+    description: Checks for vehicle overheating
+    expression: $1 == "Accelerating" && $2 > 80
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+    type: review
+
+  - name: kinetic_energy
+    description: Tracks high energy output while in motion
+    type: review
+    # assignee: ellen.ripley@weylandcorp.com
+    expression:
+      name: kinetic_energy_gt
+    channel_references:
+      - $1: *velocity_channel
+    sub_expressions:
+      - $mass: 10
+      - $threshold: 470
+    tags:
+        - nostromo
+
+  - name: failure
+    description: Checks for failures reported by logs
+    type: review
+    # assignee: ellen.ripley@weylandcorp.com
+    expression:
+      name: log_substring_contains
+    channel_references:
+      - $1: *log_channel
+    sub_expressions:
+      - $sub_string: failure
+    tags:
+        - failure
+        - nostromo
+
+flows:
+  - name: readings
+    channels:
+      - <<: *velocity_channel
+      - <<: *voltage_channel
+      - <<: *vehicle_state_channel
+      - <<: *gpio_channel
+
+  - name: voltage
+    channels:
+      - <<: *voltage_channel
+
+  - name: gpio_channel
+    channels:
+      - <<: *gpio_channel
+      
+  - name: logs
+    channels:
+      - <<: *log_channel
+
