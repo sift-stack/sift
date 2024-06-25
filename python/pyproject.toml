@@ -1,5 +1,5 @@
 [project]
-name = "sift_py"
+name = "sift_stack_py"
 version = "0.1.0-rc.1"
 description = "Python client library for the Sift API"
 requires-python = ">=3.9"
