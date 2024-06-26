@@ -30,8 +30,14 @@ how the protobufs should be generated.
 
 ### Installation via Package Managers
 
-The following demonstrates how to install Sift's client utilities for each supported language using their respective official package managers. The source is currently hosted only on Github, but in the future we may move
-these to the official package repositories for each language.
+The following demonstrates how to install Sift's client utilities for each supported language using their respective official package managers. If a package is currently being hosted
+directly on Github, do note that we are in the process of moving them to the official package repositories for each language.
+
+#### Python
+
+```
+$ pip install sift-stack-py
+```
 
 #### Go
 
@@ -43,12 +49,6 @@ $ go get github.com/sift-stack/sift/go@main && go mod tidy
 
 ```
 $ cargo add --git https://github.com/sift-stack/sift sift
-```
-
-#### Python
-
-```
-$ pip install 'git+https://github.com/sift-stack/sift.git#subdirectory=python'
 ```
 
 ### Manual Installation
