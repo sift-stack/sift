@@ -2,4 +2,12 @@
 [![pypi](https://img.shields.io/pypi/v/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
 [![pypi](https://img.shields.io/pypi/pyversions/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
 
-This library offers a Python API on top of code derived from Sift's protocol buffers to ergonomically interface with the Sift gRPC API.
+This library offers a Python API on top of Sift's protocol buffers to ergonomically interface with the Sift gRPC API.
+
+## Installation
+
+To install the Sift Python library:
+
+```
+$ pip install sift-stack-py
+```

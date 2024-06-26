@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional, Type, TypedDict
+from typing import List, Optional, Type, TypedDict, Union
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
@@ -219,7 +219,7 @@ class ChannelDataTypeStrRep(Enum):
     UINT_64 = "uint64"
 
 
-def channel_fqn(channel: ChannelConfig | ChannelValue | ChannelPb) -> str:
+def channel_fqn(channel: Union[ChannelConfig, ChannelValue, ChannelPb]) -> str:
     """
     Computes the fully qualified channel name.
 

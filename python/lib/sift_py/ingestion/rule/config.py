@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypedDict, cast
+from typing import Any, Dict, List, Optional, TypedDict, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
@@ -36,7 +36,7 @@ class RuleConfig(AsJson):
         expression: str,
         action: RuleAction,
         channel_references: List[
-            ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
+            Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
         ],
         sub_expressions: Dict[str, Any] = {},
     ):
@@ -74,7 +74,7 @@ class RuleConfig(AsJson):
         Produces the appropriate JSON structure that's suitable for the Rules API.
         """
 
-        hash_map: Dict[str, List[ExpressionChannelReference] | str | List[str] | None] = {
+        hash_map: Dict[str, Union[List[ExpressionChannelReference], str, List[str], None]] = {
             "name": self.name,
             "description": self.description,
             "expression": self.expression,
