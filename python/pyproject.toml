@@ -37,8 +37,6 @@ dependencies = [
 Homepage = "https://github.com/sift-stack/sift/tree/main/python"
 Documentation = "https://docs.siftstack.com/"
 Repository = "https://github.com/sift-stack/sift/tree/main/python"
-Issues = "https://github.com/me/spam/issues"
-Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
