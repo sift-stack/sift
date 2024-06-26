@@ -10,13 +10,14 @@ directory so will be available as an in-path executable when the venv is activat
 Usage: dev [SUBCOMMAND] [OPTIONS]
 
 Subcommands:
-  test           Execute tests
   bootstrap      Initializes python virtual environment and installs project dependencies
-  pip-install    Install project dependencies
+  docs           Boots up documentation server on port 8080
   fmt            Runs 'ruff fmt' to format the lib directory
-  lint           Runs 'ruff check' to lint the lib directory
   lint-fix       Runs 'ruff check --fix'
+  lint           Runs 'ruff check' to lint the lib directory
   mypy           Runs 'mypy lib' for static analysis
+  pip-install    Install project dependencies
+  test           Execute tests
   update-dev     Copies changes to the dev script over to the venv bin
 
 Options:
@@ -62,6 +63,11 @@ lint_fix() {
   ruff check --fix
 }
 
+doc() {
+  source venv/bin/activate
+  pdoc lib/sift_py
+}
+
 run_tests() {
   pytest
 }
@@ -75,6 +81,9 @@ case "$1" in
         ;;
     bootstrap)
         bootstrap
+        ;;
+    docs)
+        doc
         ;;
     pip-install)
         pip_install

@@ -29,18 +29,11 @@ from sift_py.ingestion.rule.config import (
 class TelemetryConfig:
     """
     Configurations necessary to start ingestion.
-
-    Attributes:
-        `asset_name`:
-            The name of the asset that you wish to telemeter data for.
-        `ingestion_client_key`:
-            An arbitrary string chosen by the user to uniquely identify this ingestion configuration.
-        `flows`:
-            A single flow can specify a single channel value or a set of channel values that are ingested together.
-        `organization_id`:
-            ID of your organization in Sift. This field is only required if your user belongs to multiple organizations.
-        `rules`:
-            Rules to evaluate during ingestion.
+    - `asset_name`: The name of the asset that you wish to telemeter data for.
+    - `ingestion_client_key`: An arbitrary string chosen by the user to uniquely identify this ingestion configuration.
+    - `flows`: A single flow can specify a single channel value or a set of channel values that are ingested together.
+    - `organization_id`: ID of your organization in Sift. This field is only required if your user belongs to multiple organizations.
+    - `rules`: Rules to evaluate during ingestion.
     """
 
     asset_name: str
@@ -59,9 +52,9 @@ class TelemetryConfig:
     ):
         """
         Will raise a `TelemetryConfigValidationError` under the following conditions:
-            - Multiple flows with the same name
-            - Multiple rules with the same name
-            - Identical channels in the same flow
+        - Multiple flows with the same name
+        - Multiple rules with the same name
+        - Identical channels in the same flow
         """
         self.__class__.validate_flows(flows)
         self.__class__.validate_rules(rules)
@@ -119,6 +112,11 @@ class TelemetryConfig:
         path: Path,
         named_expression_modules: Optional[List[Path]] = None,
     ) -> Self:
+        """
+        Initializes a telemetry config from a YAML file found at the provided `path` as well as optional
+        paths to named expression modules if named expressions are leveraged.
+        """
+
         config_as_yaml = read_and_validate(path)
 
         if named_expression_modules is not None:
