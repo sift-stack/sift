@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypedDict, cast
+from typing import Any, Dict, List, Optional, TypedDict, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
@@ -16,17 +16,11 @@ class RuleConfig(AsJson):
     Defines a rule to be used during ingestion. If a rule's expression validates to try, then
     a specific action will take place as specified by the `kind` attribute.
 
-    Attributes:
-        `name`:
-            Name of the rule.
-        `description`:
-            Description of the rule.
-        `expression`:
-            A CEL string expression, that, when evaluated to a truthy value, executes the `action`.
-        `action`:
-            The action to execute if the result of an `expression` evaluates to a truthy value.
-        `channel_references`:
-            Reference to channel dict. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
+    - `name`: Name of the rule.
+    - `description`: Description of the rule.
+    - `expression`: A CEL string expression, that, when evaluated to a truthy value, executes the `action`.
+    - `action`: The action to execute if the result of an `expression` evaluates to a truthy value.
+    - `channel_references`: Reference to channel. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
     """
 
     name: str
@@ -42,7 +36,7 @@ class RuleConfig(AsJson):
         expression: str,
         action: RuleAction,
         channel_references: List[
-            ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
+            Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
         ],
         sub_expressions: Dict[str, Any] = {},
     ):
@@ -80,7 +74,7 @@ class RuleConfig(AsJson):
         Produces the appropriate JSON structure that's suitable for the Rules API.
         """
 
-        hash_map: Dict[str, List[ExpressionChannelReference] | str | List[str] | None] = {
+        hash_map: Dict[str, Union[List[ExpressionChannelReference], str, List[str], None]] = {
             "name": self.name,
             "description": self.description,
             "expression": self.expression,
@@ -131,11 +125,8 @@ class RuleActionCreateDataReviewAnnotation(RuleAction):
     """
     Action to create a data-review annotation when a rule evaluates to a truthy value.
 
-    Attributes:
-        `tags`:
-            List of tag names to associate with the newly created data-review annotation.
-        `assignee`:
-            Email of user in organization to assign the newly created data-review annotation.
+    - `tags`: List of tag names to associate with the newly created data-review annotation.
+    - `assignee`: Email of user in organization to assign the newly created data-review annotation.
     """
 
     tags: Optional[List[str]]
@@ -153,9 +144,7 @@ class RuleActionCreatePhaseAnnotation(RuleAction):
     """
     Action to create a phase annotation when a rule evaluates to a truthy value.
 
-    Attributes:
-        `tags`:
-            List of tag names to associate with the newly created data-review annotation.
+    - `tags`: List of tag names to associate with the newly created data-review annotation.
     """
 
     tags: Optional[List[str]]

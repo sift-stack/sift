@@ -16,11 +16,12 @@ from sift_py.ingestion.channel import ChannelConfig, channel_fqn
 
 class FlowConfig(AsProtobuf):
     """
-    Describes a flow which is a set of channels whose values are often
-    ingested together.
+    Describes a flow which is a set of channels whose values are often ingested together, allowing
+    users to send multiple data points for multiple channels in a single request.
 
-    The `channel_by_fqn` attribute is a mapping of a channel's fully-qualified name
-    to the index of the `ChannelConfig` instance as it appears in the `channels` attribute.
+    `channel_by_fqn`:
+        A mapping of a channel's fully-qualified name to the index of the `sift_py.ingestion.channel.ChannelConfig`
+        as it appears in the `channels` attribute.
     """
 
     name: str

@@ -61,12 +61,8 @@ def _metadata_interceptor(config: SiftChannelConfig) -> ClientInterceptor:
 class SiftChannelConfig(TypedDict):
     """
     Config class used to instantiate a `SiftChannel` via `use_sift_channel`.
-
-    Attributes:
-        `uri`:
-            The URI of Sift's gRPC API. The scheme portion of the URI i.e. `https://` should be ommitted.
-        `apikey`:
-            User-generated API key generated via the Sift application.
+    - `uri`: The URI of Sift's gRPC API. The scheme portion of the URI i.e. `https://` should be ommitted.
+    - `apikey`: User-generated API key generated via the Sift application.
     """
 
     uri: str

@@ -4,7 +4,7 @@ Formal specification of the types that `sift_py` expects when loading a telemetr
 
 from __future__ import annotations
 
-from typing import Dict, List, Literal, TypedDict
+from typing import Dict, List, Literal, TypedDict, Union
 
 from typing_extensions import NotRequired
 
@@ -46,18 +46,18 @@ class ChannelConfigYamlSpec(TypedDict):
     description: NotRequired[str]
     unit: NotRequired[str]
     component: NotRequired[str]
-    data_type: (
-        Literal["double"]
-        | Literal["string"]
-        | Literal["enum"]
-        | Literal["bit_field"]
-        | Literal["bool"]
-        | Literal["float"]
-        | Literal["int32"]
-        | Literal["int64"]
-        | Literal["uint32"]
-        | Literal["uint64"]
-    )
+    data_type: Union[
+        Literal["double"],
+        Literal["string"],
+        Literal["enum"],
+        Literal["bit_field"],
+        Literal["bool"],
+        Literal["float"],
+        Literal["int32"],
+        Literal["int64"],
+        Literal["uint32"],
+        Literal["uint64"],
+    ]
     enum_types: NotRequired[List[ChannelEnumTypeYamlSpec]]
     bit_field_elements: NotRequired[List[ChannelBitFieldElementYamlSpec]]
 
@@ -147,8 +147,8 @@ class RuleYamlSpec(TypedDict):
 
     name: str
     description: NotRequired[str]
-    expression: str | NamedExpressionYamlSpec
-    type: Literal["phase"] | Literal["review"]
+    expression: Union[str, NamedExpressionYamlSpec]
+    type: Union[Literal["phase"], Literal["review"]]
     assignee: NotRequired[str]
     tags: NotRequired[List[str]]
     channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
