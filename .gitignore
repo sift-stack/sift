@@ -16,4 +16,5 @@ python/protos/**/*
 .DS_Store
 
 python/build
+python/docs/sift_py
 *.egg-info/
