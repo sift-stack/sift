@@ -44,6 +44,7 @@ development = [
 
    # testing tools
   "pytest",
+  "pytest-benchmark",
   "pytest-mock",
   "grpcio-testing",
 

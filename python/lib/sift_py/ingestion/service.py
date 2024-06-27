@@ -13,7 +13,7 @@ from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.ingest import _IngestionServiceImpl
 from sift_py.ingestion.channel import ChannelValue
 from sift_py.ingestion.config.telemetry import TelemetryConfig
-from sift_py.ingestion.flow import FlowConfig
+from sift_py.ingestion.flow import Flow, FlowConfig, FlowOrderedChannelValues
 
 
 class IngestionService(_IngestionServiceImpl):
@@ -133,3 +133,17 @@ class IngestionService(_IngestionServiceImpl):
         - The `timestamp` must be in UTC.
         """
         return super().create_ingestion_request(flow_name, timestamp, channel_values)
+
+    def ingest_flows(self, *flows: FlowOrderedChannelValues):
+        """
+        Combines the requests creation step and ingestion into a single call.
+        See `create_ingestion_request` for information about how client-side validations are handled.
+        """
+        return super().ingest_flows(*flows)
+
+    def try_ingest_flows(self, *flows: Flow):
+        """
+        Combines the requests creation step and ingestion into a single call.
+        See `try_create_ingestion_request` for information about how client-side validations are handled.
+        """
+        return super().try_ingest_flows(*flows)
