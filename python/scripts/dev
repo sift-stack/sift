@@ -65,7 +65,7 @@ lint_fix() {
 
 doc() {
   source venv/bin/activate
-  pdoc lib/sift_py
+  pdoc lib/sift_py -p 7777
 }
 
 run_tests() {

@@ -81,7 +81,7 @@ class _IngestionServiceImpl:
         """
         Perform data ingestion.
         """
-        self.ingest_service_stub.IngestWithConfigDataStream(requests)
+        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
 
     def ingest_flows(self, *flows: FlowOrderedChannelValues):
         """
@@ -97,7 +97,7 @@ class _IngestionServiceImpl:
             req = self.create_ingestion_request(flow_name, timestamp, channel_values)
             requests.append(req)
 
-        self.ingest_service_stub.IngestWithConfigDataStream(requests)
+        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
 
     def try_ingest_flows(self, *flows: Flow):
         """
@@ -113,7 +113,7 @@ class _IngestionServiceImpl:
             req = self.try_create_ingestion_request(flow_name, timestamp, channel_values)
             requests.append(req)
 
-        self.ingest_service_stub.IngestWithConfigDataStream(requests)
+        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
 
     def attach_run(
         self,
