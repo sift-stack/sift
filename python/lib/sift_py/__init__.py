@@ -808,8 +808,16 @@ with ingestion_service.buffered_ingestion(750) as buffered_ingestion:
     buffered_ingestion.try_ingest_flows(*lots_more_flows)
 ```
 
-Once the with-block ends, the remaining requests will be flushed from the buffer. Visit
-the `sift_py.ingestion.service.IngestionService.buffered_ingestion` function definition
+Once the with-block ends, the remaining requests will be flushed from the buffer automatically,
+but you may manually flush as well:
+
+```python
+with ingestion_service.buffered_ingestion() as buffered_ingestion:
+    buffered_ingestion.try_ingest_flows(*lots_of_flows)
+    buffered_ingestion.flush()
+```
+
+Visit the `sift_py.ingestion.service.IngestionService.buffered_ingestion` function definition
 for further details.
 
 ## More Examples
