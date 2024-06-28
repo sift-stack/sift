@@ -12,6 +12,8 @@ official [Sift documentation](https://docs.siftstack.com/glossary).
     - [Named Expression Modules](#named-expression-modules)
 * [Ingestion Service](#ingestion-service)
     - [Sending data to Sift](#sending-data-to-sift)
+* [Ingestion Performance](#ingestion-performance)
+    - [Buffered Ingestion](#buffered-ingestion)
 * [More Examples](#more-examples)
 
 ## Introduction
@@ -35,6 +37,8 @@ The following example demonstrates how to create a simple telemetry config for a
 and a single rule, afterwhich we'll send a single data point to Sift for that channel.
 
 ```python
+from datetime import datetime, timezone
+
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.channel import (
     ChannelBitFieldElement,
@@ -99,27 +103,20 @@ with use_sift_channel(sift_channel_config) as channel:
     ingestion_service = IngestionService(
         channel,
         telemetry_config,
-        # Overwrite any rules created in the Sift UI that isn't in the config
-        overwrite_rules=True,
-        # End stream if errors occur API-side.
-        end_stream_on_error=True,
     )
 
-    # Create an ingestion request for the 'temperature_reading' flow
-    temperature_reading = self.ingestion_service.try_create_ingestion_request(
-        flow_name="temperature_reading",
-        timestamp=timestamp,
-        channel_values=[
+    # Send data to Sift for the 'temperature_reading' flow
+    temperature_reading = self.ingestion_service.try_ingest_flows({
+        "flow_name": "temperature_reading",
+        "timestamp": datetime.now(timezone.utc),
+        "channel_values": [
             {
                 "channel_name": "temperature",
                 "component": "thruster",
                 "value": double_value(327)
             },
         ],
-    )
-
-    # Send the data to Sift
-    ingestion_service.ingest(temperature_reading)
+    })
 ```
 
 ## Telemetry Config
@@ -457,9 +454,9 @@ def nostromos_lv_426() -> TelemetryConfig:
 As mentioned previously, whereas a telemetry config defines the schema of your telemetry,
 `sift_py.ingestion.service.IngestionService` is what's actually responsible for sending your data to Sift.
 
-There are two methods currently available to generate data to send to Sift.
-- `sift_py.ingestion.service.IngestionService.try_create_ingestion_request`
-- `sift_py.ingestion.service.IngestionService.create_ingestion_request`
+The two methods most folks will use to send data to Sift are the following:
+- `sift_py.ingestion.service.IngestionService.try_ingest_flows`
+- `sift_py.ingestion.service.IngestionService.ingest_flows`
 
 Visit the function definitions to understand the differences between each.
 
@@ -539,7 +536,7 @@ def nostromos_lv_426() -> TelemetryConfig:
     )
 ```
 
-The following is an example of ingesting data for each flow using `sift_py.ingestion.service.IngestionService.try_create_ingestion_request`:
+The following is an example of ingesting data for each flow using `sift_py.ingestion.service.IngestionService.try_ingest_flows`:
 
 ```python
 import time
@@ -569,14 +566,13 @@ with use_sift_channel(sift_channel_config) as channel:
     ingestion_service = IngestionService(
         channel,
         telemetry_config,
-        end_stream_on_error=True,  # End stream if errors occur API-side.
     )
 
     # Send data for the readings flow
-    readings_request = ingestion_service.try_create_ingestion_request(
-        flow_name="readings",
-        timestamp=datetime.now(timezone.utc),
-        channel_values=[
+    ingestion_service.try_ingest_flows({
+        "flow_name": "readings",
+        "timestamp": datetime.now(timezone.utc),
+        "channel_values": [
             {
                 "channel_name": "velocity",
                 "component": "mainmotor",
@@ -595,14 +591,13 @@ with use_sift_channel(sift_channel_config) as channel:
                 "value": bit_field_value(bytes(int("00001001", 2)),
             },
         ],
-    )
-    ingestion_service.ingest(readings_request)
+    })
 
     # Send partial data for the readings flow
-    partial_readings_request = ingestion_service.try_create_ingestion_request(
-        flow_name="readings",
-        timestamp=datetime.now(timezone.utc),
-        channel_values=[
+    ingestion_service.try_ingest_flows({
+        "flow_name": "readings",
+        "timestamp": datetime.now(timezone.utc),
+        "channel_values": [
             {
                 "channel_name": "velocity",
                 "component": "mainmotor",
@@ -613,27 +608,64 @@ with use_sift_channel(sift_channel_config) as channel:
                 "value": bit_field_value(bytes(int("00001001", 2)),
             },
         ],
-    )
-    ingestion_service.ingest(partial_readings_request)
+    })
 
     # Send partial data for the logs flow
-    logs_request = ingestion_service.try_create_ingestion_request(
-        flow_name="readings",
-        timestamp=datetime.now(timezone.utc),
-        channel_values=[
+    ingestion_service.try_ingest_flows({
+        "flow_name": "readings",
+        "timestamp": datetime.now(timezone.utc),
+        "channel_values": [
             {
                 "channel_name": "logs",
                 "value": string_value("INFO: some message")
             },
         ],
+    })
+
+    # Send data for both logs and readings
+    ingestion_service.try_ingest_flows(
+        {
+            "flow_name": "readings",
+            "timestamp": datetime.now(timezone.utc),
+            "channel_values": [
+                {
+                    "channel_name": "velocity",
+                    "component": "mainmotor",
+                    "value": double_value(10),
+                },
+                {
+                    "channel_name": "voltage",
+                    "value": int32_value(5),
+                },
+                {
+                    "channel_name": "vehicle_state",
+                    "value": enum_value(2),
+                },
+                {
+                    "channel_name": "gpio",
+                    "value": bit_field_value(bytes(int("00001001", 2)),
+                },
+            ],
+        },
+        {
+            "flow_name": "readings",
+            "timestamp": datetime.now(timezone.utc),
+            "channel_values": [
+                {
+                    "channel_name": "logs",
+                    "value": string_value("INFO: some message")
+                },
+            ],
+        },
     )
-    ingestion_service.ingest(logs_request)
+
 ```
 
-Alternatively, you may also use `sift_py.ingestion.service.IngestionService.create_ingestion_request`, but be sure
+Alternatively, you may also use `sift_py.ingestion.service.IngestionService.ingest_flows`, but be sure
 to read the documentation for that method to understand how to leverage it correctly. Unlike
-`sift_py.ingestion.service.IngestionService.try_create_ingestion_request`, it will not perform any client-side validations.
-This is useful when performance is critical.
+`sift_py.ingestion.service.IngestionService.try_ingest_flows`, it will not perform any client-side validations.
+This is useful when performance is critical. Do note, however, that the client-side validations done in `sift_py.ingestion.service.IngestionService.try_ingest_flows`
+are pretty minimal and should not incur noticeable overhead.
 
 ```python
 import time
@@ -664,45 +696,121 @@ with use_sift_channel(sift_channel_config) as channel:
     ingestion_service = IngestionService(
         channel,
         telemetry_config,
-        end_stream_on_error=True,  # End stream if errors occur API-side.
     )
 
     # Send data for the readings flow
-    readings_request = ingestion_service.create_ingestion_request(
-        flow_name="readings",
-        timestamp=datetime.now(timezone.utc),
-        channel_values=[
+    ingestion_service.ingest_flows({
+        "flow_name": "readings",
+        "timestamp": datetime.now(timezone.utc),
+        "channel_values": [
             double_value(10),
             int32_value(5),
             enum_value(2),
             bit_field_value(bytes(int("00001001", 2)),
         ],
-    )
-    ingestion_service.ingest(readings_request)
+    })
 
     # Send partial data for the readings flow
-    partial_readings_request = ingestion_service.try_create_ingestion_request(
-        flow_name="readings",
-        timestamp=datetime.now(timezone.utc),
-        channel_values=[
+    ingestion_service.ingest_flows({
+        "flow_name": "readings",
+        "timestamp": datetime.now(timezone.utc),
+        "channel_values": [
             double_value(10),
             empty_value(),
             empty_value(),
             bit_field_value(bytes(int("00001001", 2)),
         ],
-    )
-    ingestion_service.ingest(partial_readings_request)
+    })
 
-    # Send partial data for the logs flow
-    logs_request = ingestion_service.try_create_ingestion_request(
-        flow_name="readings",
-        timestamp=datetime.now(timezone.utc),
-        channel_values=[
-            string_value("INFO: some message")
+    # Send data for logs flow
+    ingestion_service.ingest_flows({
+        "flow_name": "logs",
+        "timestamp": datetime.now(timezone.utc),
+        "channel_values": [
+            string_value("INFO: some message"),
         ],
+    })
+
+    # Send data for both logs and readings flow
+    ingestion_service.ingest_flows(
+        {
+            "flow_name": "readings",
+            "timestamp": datetime.now(timezone.utc),
+            "channel_values": [
+                double_value(10),
+                int32_value(5),
+                enum_value(2),
+                bit_field_value(bytes(int("00001001", 2)),
+            ],
+        },
+        {
+            "flow_name": "logs",
+            "timestamp": datetime.now(timezone.utc),
+            "channel_values": [
+                string_value("INFO: some message"),
+            ],
+        },
     )
-    ingestion_service.ingest(logs_request)
+
 ```
+
+## Ingestion Performance
+
+Depending on your ingestion setup there are some very common Python gotchas as it relates to gRPC that
+hinders performance. The following are some examples of things you may want to avoid
+when ingesting data into Sift:
+
+1. Avoid ingesting a high volume of data points in a hot loop. Prefer to ingest the data as a batch so that
+serializing all outgoing requests can happen in one-fell swoop.
+
+```python
+# Avoid this:
+for flow in flows:
+    ingestion_service.try_ingest_flows(flow)
+
+# Do this:
+ingestion_service.try_ingest_flows(*flows)
+```
+
+2. Avoid sending too much data at once, otherwise you may encounter CPU-bound bottlenecks caused by
+serializing a large amount of messages.
+
+```python
+# Avoid this:
+ingestion_service.try_ingest_flows(*a_very_large_amount_of_flows)
+```
+
+To avoid having to deal with these pitfalls, prefer to leverage buffered ingestion.
+
+### Buffered Ingestion
+
+`sift_py` offers an API to automatically buffer requests and send them in batches when the
+buffer threshold is met. This ensures the following:
+- You are not serializing, streaming, serializing, streaming, and so on, one record at a time.
+- You are not spending too much time serializing a large amount of requests, and likewise,
+spending too much time streaming a high volume of messages.
+
+This API is available via the following:
+- `sift_py.ingestion.service.IngestionService.buffered_ingestion`
+
+The buffered ingestion mechanism simply handles the buffering logic and streams the data only
+after the buffer threshold is met. The following is an example of how it might be used:
+
+```python
+# Defaults to a buffer size of `sift_py.ingestion.buffer.DEFAULT_BUFFER_SIZE` requests.
+with ingestion_service.buffered_ingestion() as buffered_ingestion:
+    buffered_ingestion.try_ingest_flows(*lots_of_flows)
+    buffered_ingestion.try_ingest_flows(*lots_more_flows)
+
+# Custom buffer size of 750 requests
+with ingestion_service.buffered_ingestion(750) as buffered_ingestion:
+    buffered_ingestion.try_ingest_flows(*lots_of_flows)
+    buffered_ingestion.try_ingest_flows(*lots_more_flows)
+```
+
+Once the with-block ends, the remaining requests will be flushed from the buffer. Visit
+the `sift_py.ingestion.service.IngestionService.buffered_ingestion` function definition
+for further details.
 
 ## More Examples
 
