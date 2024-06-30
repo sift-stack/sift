@@ -28,7 +28,7 @@ from sift_py.ingestion.channel import (
     is_data_type,
 )
 from sift_py.ingestion.config.telemetry import TelemetryConfig
-from sift_py.ingestion.flow import FlowConfig
+from sift_py.ingestion.flow import Flow, FlowConfig, FlowOrderedChannelValues
 from sift_py.ingestion.rule.config import RuleConfig
 
 
@@ -42,6 +42,8 @@ class _IngestionServiceImpl:
     organization_id: Optional[str]
     overwrite_rules: bool
     end_stream_on_error: bool
+
+    ingest_service_stub: IngestServiceStub
 
     def __init__(
         self,
@@ -73,13 +75,45 @@ class _IngestionServiceImpl:
         self.organization_id = config.organization_id
         self.end_stream_on_error = end_stream_on_error
         self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
+        self.ingest_service_stub = IngestServiceStub(channel)
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
         Perform data ingestion.
         """
-        svc = IngestServiceStub(self.transport_channel)
-        svc.IngestWithConfigDataStream(iter(requests))
+        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
+
+    def ingest_flows(self, *flows: FlowOrderedChannelValues):
+        """
+        Combines the requests creation step and ingestion into a single call.
+        See `create_ingestion_request` for information about how client-side validations are handled.
+        """
+
+        requests = []
+        for flow in flows:
+            flow_name = flow["flow_name"]
+            timestamp = flow["timestamp"]
+            channel_values = flow["channel_values"]
+            req = self.create_ingestion_request(flow_name, timestamp, channel_values)
+            requests.append(req)
+
+        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
+
+    def try_ingest_flows(self, *flows: Flow):
+        """
+        Combines the requests creation step and ingestion into a single call.
+        See `try_create_ingestion_request` for information about how client-side validations are handled.
+        """
+
+        requests = []
+        for flow in flows:
+            flow_name = flow["flow_name"]
+            timestamp = flow["timestamp"]
+            channel_values = flow["channel_values"]
+            req = self.try_create_ingestion_request(flow_name, timestamp, channel_values)
+            requests.append(req)
+
+        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
 
     def attach_run(
         self,

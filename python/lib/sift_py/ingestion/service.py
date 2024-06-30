@@ -11,9 +11,10 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.ingest import _IngestionServiceImpl
+from sift_py.ingestion.buffer import BufferedIngestionService
 from sift_py.ingestion.channel import ChannelValue
 from sift_py.ingestion.config.telemetry import TelemetryConfig
-from sift_py.ingestion.flow import FlowConfig
+from sift_py.ingestion.flow import Flow, FlowConfig, FlowOrderedChannelValues
 
 
 class IngestionService(_IngestionServiceImpl):
@@ -133,3 +134,56 @@ class IngestionService(_IngestionServiceImpl):
         - The `timestamp` must be in UTC.
         """
         return super().create_ingestion_request(flow_name, timestamp, channel_values)
+
+    def ingest_flows(self, *flows: FlowOrderedChannelValues):
+        """
+        Combines the requests creation step and ingestion into a single call.
+        See `create_ingestion_request` for information about how client-side validations are handled.
+        """
+        return super().ingest_flows(*flows)
+
+    def try_ingest_flows(self, *flows: Flow):
+        """
+        Combines the requests creation step and ingestion into a single call.
+        See `try_create_ingestion_request` for information about how client-side validations are handled.
+        """
+        return super().try_ingest_flows(*flows)
+
+    def buffered_ingestion(self, buffer_size: Optional[int] = None) -> BufferedIngestionService:
+        """
+        This method automates buffering requests and streams them in batches and is meant to be used
+        in a with-block. Failure to put this in a with-block may result in some data not being ingested unless
+        the caller explicitly calls `sift_py.ingestion.buffer.BufferedIngestionService.flush`.
+
+        Once the with-block is exited then a final call to the aforementioned `flush` method  will be made
+        to ingest the remaining data. If a `buffer_size` is not provided then it will default to
+        `sift_py.ingestion.buffer.DEFAULT_BUFFER_SIZE`.
+
+        Example usage:
+
+        ```python
+        # With client-side validations
+        with ingestion_service.buffered_ingestion() as buffered_ingestion:
+            for _ in range(10_000):
+                buffered_ingestion.try_ingest_flows({
+                    "flow_name": "readings",
+                    "timestamp": datetime.now(timezone.utc),
+                    "channel_values": [
+                        {
+                            "channel_name": "my-channel",
+                            "value": double_value(3)
+                        }
+                    ],
+                })
+
+        # Without client-side validations and a custom buffer size
+        with ingestion_service.buffered_ingestion(2_000) as buffered_ingestion:
+            for _ in range(6_000):
+                buffered_ingestion.ingest_flows({
+                    "flow_name": "readings",
+                    "timestamp": datetime.now(timezone.utc),
+                    "channel_values": [double_value(3)]
+                })
+        ```
+        """
+        return BufferedIngestionService(self, buffer_size)
