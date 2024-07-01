@@ -219,7 +219,7 @@ class ChannelDataTypeStrRep(Enum):
     UINT_64 = "uint64"
 
 
-def channel_fqn(channel: Union[ChannelConfig, ChannelValue, ChannelPb]) -> str:
+def channel_fqn(channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, ChannelPb]) -> str:
     """
     Computes the fully qualified channel name.
 
@@ -228,6 +228,8 @@ def channel_fqn(channel: Union[ChannelConfig, ChannelValue, ChannelPb]) -> str:
     """
 
     if isinstance(channel, ChannelConfig):
+        return _channel_fqn(channel.name, channel.component)
+    elif isinstance(channel, ChannelConfigPb):
         return _channel_fqn(channel.name, channel.component)
     elif isinstance(channel, ChannelPb):
         return _channel_fqn(channel.name, channel.component)

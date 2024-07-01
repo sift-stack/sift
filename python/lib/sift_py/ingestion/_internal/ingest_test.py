@@ -4,7 +4,12 @@ from datetime import datetime, timezone
 
 import pytest
 from pytest_mock import MockFixture
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+    FlowConfig as FlowConfigPb,
+)
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+    IngestionConfig as IngestionConfigPb,
+)
 
 import sift_py.ingestion._internal.ingest
 from sift_py._internal.test_util.channel import MockChannel
@@ -13,7 +18,7 @@ from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingest import (
     _IngestionServiceImpl,
     create_flow_configs,
-    get_ingestion_config_flow_names,
+    get_ingestion_config_flows,
 )
 from sift_py.ingestion._internal.ingestion_config import (
     create_ingestion_config,
@@ -61,20 +66,22 @@ def test_ingestion_service_update_flow_configs_updates_flows(mocker: MockFixture
         ],
     )
 
-    flows_loaded_from_config = [flow_a, flow_b]
+    flows_from_api = [flow_a.as_pb(FlowConfigPb)]
 
-    flow_names_queried_from_api = ["flow_a"]
+    telemetry_config = TelemetryConfig(
+        asset_name="my-config",
+        ingestion_client_key="my-key",
+        flows=[flow_a, flow_b],
+    )
 
-    mock_get_ingestion_config_flow_names = mocker.patch(_mock_path(get_ingestion_config_flow_names))
-    mock_get_ingestion_config_flow_names.return_value = flow_names_queried_from_api
+    mock_get_ingestion_config_flow_names = mocker.patch(_mock_path(get_ingestion_config_flows))
+    mock_get_ingestion_config_flow_names.return_value = flows_from_api
 
     mock_create_flow_configs = mocker.patch(_mock_path(create_flow_configs))
     mock_create_flow_configs.return_value = None
 
     mock_channel = MockChannel()
-    _IngestionServiceImpl._update_flow_configs(
-        mock_channel, ingestion_config_id, flows_loaded_from_config
-    )
+    _IngestionServiceImpl._update_flow_configs(mock_channel, ingestion_config_id, telemetry_config)
     mock_create_flow_configs.assert_called_once_with(mock_channel, ingestion_config_id, [flow_b])
 
 

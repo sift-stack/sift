@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -9,6 +10,7 @@ from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataStreamRequest,
 )
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 
 from sift_py.grpc.transport import SiftChannel
@@ -17,11 +19,12 @@ from sift_py.ingestion._internal.ingestion_config import (
     create_flow_configs,
     create_ingestion_config,
     get_ingestion_config_by_client_key,
-    get_ingestion_config_flow_names,
+    get_ingestion_config_flows,
 )
 from sift_py.ingestion._internal.rule import get_asset_rules_json, update_rules
 from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
 from sift_py.ingestion.channel import (
+    ChannelConfig,
     ChannelValue,
     channel_fqn,
     empty_value,
@@ -55,9 +58,7 @@ class _IngestionServiceImpl:
     ):
         ingestion_config = self.__class__._get_or_create_ingestion_config(channel, config)
 
-        self.__class__._update_flow_configs(
-            channel, ingestion_config.ingestion_config_id, config.flows
-        )
+        self.__class__._update_flow_configs(channel, ingestion_config.ingestion_config_id, config)
 
         if not overwrite_rules:
             self.__class__._validate_rules_synchronized(
@@ -234,23 +235,55 @@ class _IngestionServiceImpl:
 
     @staticmethod
     def _update_flow_configs(
-        channel: SiftChannel, ingestion_config_id: str, flows: List[FlowConfig]
+        channel: SiftChannel, ingestion_config_id: str, telemetry_config: TelemetryConfig
     ):
         """
-        Queries flow configs from Sift and does a check to see if there are any new flow configs that need to be created.
+        Compares local flows from a telemetry config with the flows registered in Sift. If a local flow
+        contains channels that isn't in Sift then this will create a new flow containing those channels.
         """
-        if len(flows) == 0:
+        config_flows = telemetry_config.flows
+
+        if len(config_flows) == 0:
             return
 
-        registered_flow_names = set(get_ingestion_config_flow_names(channel, ingestion_config_id))
+        sift_flows = get_ingestion_config_flows(channel, ingestion_config_id)
 
-        flows_to_create = []
+        sift_flow_indices_by_name = {flow.name: i for i, flow in enumerate(sift_flows)}
 
-        for flow in flows:
-            if flow.name in registered_flow_names:
+        flows_to_create: List[FlowConfig] = []
+
+        # We can have multiple channels of the same name but different data-type. This will create a completely unique channel
+        # identifier by creating a composite key of the fully qualified channel name with the channel's data-type.
+        sift_channel_identifier: Callable[[ChannelConfigPb], str] = (
+            lambda x: f"{channel_fqn(x)}.{x.data_type}"
+        )
+        config_channel_identifier: Callable[[ChannelConfig], str] = (
+            lambda x: f"{channel_fqn(x)}.{x.data_type.value}"
+        )
+
+        for config_flow in config_flows:
+            sift_flow_index = sift_flow_indices_by_name.get(config_flow.name)
+
+            # There isn't a flow in Sift for this config flow so we'll create it.
+            if sift_flow_index is None:
+                flows_to_create.append(config_flow)
                 continue
 
-            flows_to_create.append(flow)
+            # There is a flow in Sift with the name of the config flow. We'll
+            # compare the channels in the config flow with the sift flow and
+            # see if there's a difference. If there is we'll create a new flow.
+            sift_flow = sift_flows[sift_flow_index]
+
+            sift_channel_identifiers = {
+                sift_channel_identifier(channel) for channel in sift_flow.channels
+            }
+
+            for config_channel in config_flow.channels:
+                # Found a channel for this flow that doesn't exist in Sift based on channel
+                # fully-qualified name and data-type. Create a new flow.
+                if not config_channel_identifier(config_channel) in sift_channel_identifiers:
+                    flows_to_create.append(config_flow)
+                    break
 
         if len(flows_to_create) > 0:
             create_flow_configs(channel, ingestion_config_id, flows_to_create)

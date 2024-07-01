@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from pytest_mock import MockFixture
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 
 import sift_py.ingestion._internal.ingest
@@ -10,7 +11,7 @@ from sift_py._internal.test_util.channel import MockChannel
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
 from sift_py.ingestion._internal.ingestion_config import (
     get_ingestion_config_by_client_key,
-    get_ingestion_config_flow_names,
+    get_ingestion_config_flows,
 )
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType, double_value
 from sift_py.ingestion.config.telemetry import TelemetryConfig
@@ -29,20 +30,20 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
     mock_ingest = mocker.patch.object(IngestionService, "ingest")
     mock_ingest.return_value = None
 
+    readings_flow = FlowConfig(
+        name="readings",
+        channels=[
+            ChannelConfig(
+                name="my-channel",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
     telemetry_config = TelemetryConfig(
         asset_name="my-asset",
         ingestion_client_key="ingestion-client-key",
-        flows=[
-            FlowConfig(
-                name="readings",
-                channels=[
-                    ChannelConfig(
-                        name="my-channel",
-                        data_type=ChannelDataType.DOUBLE,
-                    ),
-                ],
-            ),
-        ],
+        flows=[readings_flow],
     )
 
     mock_ingestion_config = IngestionConfigPb(
@@ -56,8 +57,8 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
     )
     mock_get_ingestion_config_by_client_key.return_value = mock_ingestion_config
 
-    mock_ingestion_config_flow_name = mocker.patch(_mock_path(get_ingestion_config_flow_names))
-    mock_ingestion_config_flow_name.return_value = ["readings"]
+    mock_get_ingestion_config_flows = mocker.patch(_mock_path(get_ingestion_config_flows))
+    mock_get_ingestion_config_flows.return_value = [readings_flow.as_pb(FlowConfigPb)]
 
     ingestion_service = IngestionService(MockChannel(), telemetry_config)
 

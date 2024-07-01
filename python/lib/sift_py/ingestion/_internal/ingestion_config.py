@@ -73,10 +73,17 @@ def get_ingestion_config_flow_names(
     """
     Gets all names of flow configs of an ingestion config.
     """
+    flows = get_ingestion_config_flows(channel, ingestion_config_id)
+    breakpoint()
+    return [flow.name for flow in flows]
 
+
+def get_ingestion_config_flows(
+    channel: SiftChannel, ingestion_config_id: str
+) -> List[FlowConfigPb]:
     svc = IngestionConfigServiceStub(channel)
 
-    flows: List[str] = []
+    flows: List[FlowConfigPb] = []
 
     req = ListIngestionConfigFlowsRequest(
         ingestion_config_id=ingestion_config_id,
@@ -86,7 +93,7 @@ def get_ingestion_config_flow_names(
     res = cast(ListIngestionConfigFlowsResponse, svc.ListIngestionConfigFlows(req))
 
     for flow in res.flows:
-        flows.append(flow.name)
+        flows.append(flow)
 
     page_token = res.next_page_token
 
@@ -100,7 +107,7 @@ def get_ingestion_config_flow_names(
         res = cast(ListIngestionConfigFlowsResponse, svc.ListIngestionConfigFlows(req))
 
         for flow in res.flows:
-            flows.append(flow.name)
+            flows.append(flow)
 
         page_token = res.next_page_token
 
