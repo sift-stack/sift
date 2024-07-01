@@ -10,6 +10,8 @@ official [Sift documentation](https://docs.siftstack.com/glossary).
     - [Telemetry Config from YAML](#telemetry-config-from-yaml)
     - [Telemetry Config YAML Schema](#telemetry-config-yaml-schema)
     - [Named Expression Modules](#named-expression-modules)
+* [Updating a Telemetry Config](#updating-a-telemetry-config)
+    - [Ingestion Client Key](#ingestion-client-key)
 * [Ingestion Service](#ingestion-service)
     - [Sending data to Sift](#sending-data-to-sift)
 * [Ingestion Performance](#ingestion-performance)
@@ -448,6 +450,30 @@ def nostromos_lv_426() -> TelemetryConfig:
         ],
     )
 ```
+
+## Updating a Telemetry Config
+
+The following section covers the situation in which you have an existing telemetry config that you would like to edit
+for future telemetry and how to use the `ingestion_client_key`.
+
+### Ingestion Client Key
+
+A `sift_py.ingestion.config.telemetry.TelemetryConfig` contains a field called `ingestion_client_key`
+which is used by Sift to uniquely identify an existing telemetry config for an asset. For a given telemetry config
+you are free to make the following changes and Sift will be able to pick it up without changing the `ingestion_client_key`:
+- Adding new channels
+- Removing existing channels (Need to also remove channel reference in the flow)
+- Adding new flows
+- Removing existing flows
+- Adding new rules
+- Updating existing rules
+
+These can even be done on the fly at run-time.
+
+The following changes, however, would require you to also update the `ingestion_client_key`, otherwise an exception will be raised
+when a `sift_py.ingestion.service.IngestionService` is initialized.
+- Updating an existing channel
+- Adding a new channel to an existing flow
 
 ## Ingestion Service
 
