@@ -2,15 +2,20 @@ import random
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
+import pytest
 from pytest_mock import MockFixture
+from sift.ingestion_configs.v1.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 
 import sift_py.ingestion._internal.ingest
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
+from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingestion_config import (
+    create_flow_configs,
+    create_ingestion_config,
     get_ingestion_config_by_client_key,
-    get_ingestion_config_flow_names,
+    get_ingestion_config_flows,
 )
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType, double_value
 from sift_py.ingestion.config.telemetry import TelemetryConfig
@@ -29,20 +34,20 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
     mock_ingest = mocker.patch.object(IngestionService, "ingest")
     mock_ingest.return_value = None
 
+    readings_flow = FlowConfig(
+        name="readings",
+        channels=[
+            ChannelConfig(
+                name="my-channel",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
     telemetry_config = TelemetryConfig(
         asset_name="my-asset",
         ingestion_client_key="ingestion-client-key",
-        flows=[
-            FlowConfig(
-                name="readings",
-                channels=[
-                    ChannelConfig(
-                        name="my-channel",
-                        data_type=ChannelDataType.DOUBLE,
-                    ),
-                ],
-            ),
-        ],
+        flows=[readings_flow],
     )
 
     mock_ingestion_config = IngestionConfigPb(
@@ -56,8 +61,8 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
     )
     mock_get_ingestion_config_by_client_key.return_value = mock_ingestion_config
 
-    mock_ingestion_config_flow_name = mocker.patch(_mock_path(get_ingestion_config_flow_names))
-    mock_ingestion_config_flow_name.return_value = ["readings"]
+    mock_get_ingestion_config_flows = mocker.patch(_mock_path(get_ingestion_config_flows))
+    mock_get_ingestion_config_flows.return_value = [readings_flow.as_pb(FlowConfigPb)]
 
     ingestion_service = IngestionService(MockChannel(), telemetry_config)
 
@@ -158,3 +163,173 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
             assert len(buffered_ingestion._buffer) == 0
 
         assert mock_ingest.call_count == 6
+
+
+def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
+    """
+    Tests modifying existing channel configs in telemetry config. If a channel config
+    is modified in a telemetry config after it has already been used for ingestion
+    then we should create a new flow. If a user modifies a channel back to a previous
+    version (same component and name), then we should re-use an existing channel.
+    """
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="my-ingestion-config-id",
+        client_key="my-ingestion-config",
+        asset_id="my-asset-id",
+    )
+
+    channel_a = ChannelConfig(
+        name="channel_a",
+        component="A",
+        data_type=ChannelDataType.DOUBLE,
+    )
+
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[channel_a],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset-name",
+        ingestion_client_key=mock_ingestion_config.ingestion_config_id,
+        flows=[flow_a],
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = None
+
+    mock_create_ingestion_config = mocker.patch(_mock_path(create_ingestion_config))
+    mock_create_ingestion_config.return_value = mock_ingestion_config
+
+    mock_get_ingestion_config_flows = mocker.patch(_mock_path(get_ingestion_config_flows))
+    mock_get_ingestion_config_flows.return_value = [flow_a.as_pb(FlowConfigPb)]
+
+    mock_channel = MockChannel()
+
+    ingestion_service = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+    )
+
+    mock_create_ingestion_config.assert_called_once_with(
+        mock_channel,
+        telemetry_config.asset_name,
+        telemetry_config.flows,
+        telemetry_config.ingestion_client_key,
+        None,
+    )
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0] == channel_a
+
+    # Modify an existing channel but don't modify flow
+    channel_a.data_type = ChannelDataType.STRING
+
+    mock_create_flow_configs = mocker.patch(_mock_path(create_flow_configs))
+    mock_create_flow_configs.return_value = None
+
+    mock_get_ingestion_config_by_client_key.reset_mock()
+    mock_get_ingestion_config_by_client_key.return_value = mock_ingestion_config
+
+    # Re-initialize ingestion service
+    ingestion_service = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+    )
+
+    # Assert that we are trying to create a new flow with the same name as `flow_a`
+    # but with a new channel.
+    mock_create_flow_configs.assert_called_once_with(
+        mock_channel, mock_ingestion_config.ingestion_config_id, [flow_a]
+    )
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0] == channel_a
+
+    # Okay now what happens if someone were to change the channel config back to the original..
+
+    # Modify back to original
+    channel_a.data_type = ChannelDataType.DOUBLE
+
+    mock_create_flow_configs.reset_mock()
+
+    # Re-initialize ingestion service
+    ingestion_service = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+    )
+
+    # We shouldn't be creating a new flow, should re-use an existing flow.
+    mock_create_flow_configs.assert_not_called()
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0] == channel_a
+
+
+def test_ingestion_service_register_new_flow(mocker: MockFixture):
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="my-ingestion-config-id",
+        client_key="my-ingestion-config",
+        asset_id="my-asset-id",
+    )
+
+    channel_a = ChannelConfig(
+        name="channel_a",
+        component="A",
+        data_type=ChannelDataType.DOUBLE,
+    )
+
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[channel_a],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset-name",
+        ingestion_client_key=mock_ingestion_config.ingestion_config_id,
+        flows=[flow_a],
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = None
+
+    mock_create_ingestion_config = mocker.patch(_mock_path(create_ingestion_config))
+    mock_create_ingestion_config.return_value = mock_ingestion_config
+
+    mock_get_ingestion_config_flows = mocker.patch(_mock_path(get_ingestion_config_flows))
+    mock_get_ingestion_config_flows.return_value = [flow_a.as_pb(FlowConfigPb)]
+
+    mock_channel = MockChannel()
+
+    ingestion_service = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+    )
+
+    new_flow_config = FlowConfig(
+        name="my_new_flow", channels=[ChannelConfig("new_channel", ChannelDataType.DOUBLE)]
+    )
+
+    mock_create_flow_configs = mocker.patch(_mock_path(create_flow_configs))
+    mock_create_flow_configs.return_value = None
+
+    assert ingestion_service.flow_configs_by_name.get("my_new_flow") is None
+
+    ingestion_service.try_create_new_flow(new_flow_config)
+
+    mock_create_flow_configs.assert_called_once_with(
+        mock_channel, mock_ingestion_config.ingestion_config_id, [new_flow_config]
+    )
+    assert ingestion_service.flow_configs_by_name["my_new_flow"] == new_flow_config
+
+    # Test the name collision
+    new_flow_config_name_collision = FlowConfig(
+        name="my_new_flow", channels=[ChannelConfig("foobar", ChannelDataType.DOUBLE)]
+    )
+
+    with pytest.raises(IngestionValidationError):
+        ingestion_service.try_create_new_flow(new_flow_config_name_collision)
+
+    # Bypass the validation
+    ingestion_service.create_new_flow(new_flow_config_name_collision)
+    assert ingestion_service.flow_configs_by_name["my_new_flow"] == new_flow_config_name_collision
+    assert ingestion_service.flow_configs_by_name["my_new_flow"] != new_flow_config
