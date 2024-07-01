@@ -58,8 +58,6 @@ class _IngestionServiceImpl:
     ):
         ingestion_config = self.__class__._get_or_create_ingestion_config(channel, config)
 
-        self.__class__._update_flow_configs(channel, ingestion_config.ingestion_config_id, config)
-
         if not overwrite_rules:
             self.__class__._validate_rules_synchronized(
                 channel, ingestion_config.asset_id, config.rules
@@ -233,6 +231,38 @@ class _IngestionServiceImpl:
             end_stream_on_validation_error=self.end_stream_on_error,
         )
 
+    def try_create_new_flow(self, flow_config: FlowConfig):
+        """
+        Tries to create a new flow at runtime. Will raise an `IngestionValidationError` if there already exists
+        a flow with the name of the `flow_config` argument. If you'd like to overwrite any flow configs with that
+        have the same name as the provided `flow_config`, then see `create_new_flow`.
+        """
+
+        if flow_config.name in self.flow_configs_by_name:
+            raise IngestionValidationError(
+                f"There is already a flow with name '{flow_config.name}'."
+            )
+
+        create_flow_configs(
+            self.transport_channel,
+            self.ingestion_config.ingestion_config_id,
+            [flow_config],
+        )
+
+        self.flow_configs_by_name[flow_config.name] = flow_config
+
+    def create_new_flow(self, flow_config: FlowConfig):
+        """
+        Like `try_create_new_flow` but will automatically overwrite any existing flow config with `flow_config` if they
+        share the same name. If you'd an exception to be raise in the case of a name collision then see `try_create_new_flow`.
+        """
+        create_flow_configs(
+            self.transport_channel,
+            self.ingestion_config.ingestion_config_id,
+            [flow_config],
+        )
+        self.flow_configs_by_name[flow_config.name] = flow_config
+
     @staticmethod
     def _update_flow_configs(
         channel: SiftChannel, ingestion_config_id: str, telemetry_config: TelemetryConfig
@@ -288,26 +318,31 @@ class _IngestionServiceImpl:
         if len(flows_to_create) > 0:
             create_flow_configs(channel, ingestion_config_id, flows_to_create)
 
-    @staticmethod
+    @classmethod
     def _get_or_create_ingestion_config(
-        channel: SiftChannel, config: TelemetryConfig
+        cls, channel: SiftChannel, config: TelemetryConfig
     ) -> IngestionConfig:
         """
-        Retrieves an existing ingestion config or creates a new one.
+        Retrieves an existing ingestion config or creates a new one. If an existing ingestion config is fetched,
+        then flows may be updated to reflect any changes that may have occured in the telemetry config.
         """
 
         ingestion_config = get_ingestion_config_by_client_key(channel, config.ingestion_client_key)
 
+        # Exiting ingestion config.. update flows if necessary
         if ingestion_config is not None:
+            cls._update_flow_configs(channel, ingestion_config.ingestion_config_id, config)
             return ingestion_config
 
-        return create_ingestion_config(
+        ingestion_config = create_ingestion_config(
             channel,
             config.asset_name,
             config.flows,
             config.ingestion_client_key,
             config.organization_id,
         )
+
+        return ingestion_config
 
     @staticmethod
     def _validate_rules_synchronized(
