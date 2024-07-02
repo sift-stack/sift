@@ -76,29 +76,33 @@ class Simulator:
                 if current_time - last_reading_time >= readings_interval_s:
                     timestamp = datetime.now(timezone.utc)
 
-                    buffered_ingestion.try_ingest_flows({
-                        "flow_name": "readings",
-                        "timestamp": timestamp,
-                        "channel_values": [
-                            {
-                                "channel_name": "velocity",
-                                "component": "mainmotor",
-                                "value": double_value(random.randint(1, 10)),
-                            },
-                            {
-                                "channel_name": "voltage",
-                                "value": int32_value(random.randint(1, 10)),
-                            },
-                            {
-                                "channel_name": "vehicle_state",
-                                "value": enum_value(random.randint(0, 2)),
-                            },
-                            {
-                                "channel_name": "gpio",
-                                "value": bit_field_value(random.choice(self.sample_bit_field_values)),
-                            },
-                        ],
-                    })
+                    buffered_ingestion.try_ingest_flows(
+                        {
+                            "flow_name": "readings",
+                            "timestamp": timestamp,
+                            "channel_values": [
+                                {
+                                    "channel_name": "velocity",
+                                    "component": "mainmotor",
+                                    "value": double_value(random.randint(1, 10)),
+                                },
+                                {
+                                    "channel_name": "voltage",
+                                    "value": int32_value(random.randint(1, 10)),
+                                },
+                                {
+                                    "channel_name": "vehicle_state",
+                                    "value": enum_value(random.randint(0, 2)),
+                                },
+                                {
+                                    "channel_name": "gpio",
+                                    "value": bit_field_value(
+                                        random.choice(self.sample_bit_field_values)
+                                    ),
+                                },
+                            ],
+                        }
+                    )
                     logging.info(f"{timestamp} Emitted data for 'readings' flow")
                     last_reading_time = current_time
 
@@ -106,21 +110,26 @@ class Simulator:
                 if current_time - last_log_time >= logs_interval_s:
                     timestamp = datetime.now(timezone.utc)
 
-                    buffered_ingestion.try_ingest_flows({
-                        "flow_name": "logs",
-                        "timestamp": timestamp,
-                        "channel_values": [
-                            {
-                                "channel_name": "log",
-                                "value": string_value(random.choice(self.sample_logs).strip()),
-                            },
-                        ],
-                    })
+                    buffered_ingestion.try_ingest_flows(
+                        {
+                            "flow_name": "logs",
+                            "timestamp": timestamp,
+                            "channel_values": [
+                                {
+                                    "channel_name": "log",
+                                    "value": string_value(random.choice(self.sample_logs).strip()),
+                                },
+                            ],
+                        }
+                    )
                     logging.info(f"{timestamp} Emitted data for 'logs' flow")
                     last_log_time = current_time
 
                 # Send partial data for readings flow and full data for logs flow
-                if current_time - last_partial_readings_time >= partial_readings_with_log_interval_s:
+                if (
+                    current_time - last_partial_readings_time
+                    >= partial_readings_with_log_interval_s
+                ):
                     timestamp = datetime.now(timezone.utc)
 
                     buffered_ingestion.try_ingest_flows(
@@ -148,7 +157,7 @@ class Simulator:
                                     "value": string_value(random.choice(self.sample_logs).strip()),
                                 },
                             ],
-                        }
+                        },
                     )
                     logging.info(
                         f"{timestamp} Emitted log for 'logs' flow and partial data for 'readings' flow"
