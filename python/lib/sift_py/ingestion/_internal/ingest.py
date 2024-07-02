@@ -231,11 +231,11 @@ class _IngestionServiceImpl:
             end_stream_on_validation_error=self.end_stream_on_error,
         )
 
-    def try_create_new_flow(self, flow_config: FlowConfig):
+    def try_create_flow(self, flow_config: FlowConfig):
         """
         Tries to create a new flow at runtime. Will raise an `IngestionValidationError` if there already exists
         a flow with the name of the `flow_config` argument. If you'd like to overwrite any flow configs with that
-        have the same name as the provided `flow_config`, then see `create_new_flow`.
+        have the same name as the provided `flow_config`, then see `create_flow`.
         """
 
         if flow_config.name in self.flow_configs_by_name:
@@ -251,10 +251,10 @@ class _IngestionServiceImpl:
 
         self.flow_configs_by_name[flow_config.name] = flow_config
 
-    def create_new_flow(self, flow_config: FlowConfig):
+    def create_flow(self, flow_config: FlowConfig):
         """
-        Like `try_create_new_flow` but will automatically overwrite any existing flow config with `flow_config` if they
-        share the same name. If you'd an exception to be raise in the case of a name collision then see `try_create_new_flow`.
+        Like `try_create_flow` but will automatically overwrite any existing flow config with `flow_config` if they
+        share the same name. If you'd an exception to be raise in the case of a name collision then see `try_create_flow`.
         """
         create_flow_configs(
             self.transport_channel,
