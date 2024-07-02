@@ -44,10 +44,10 @@ development = [
   "mypy==1.10.0",
 
    # testing tools
-  "pytest",
-  "pytest-benchmark",
-  "pytest-mock",
-  "grpcio-testing",
+  "pytest==8.2.2",
+  "pytest-benchmark==4.0.0",
+  "pytest-mock==3.14.0",
+  "grpcio-testing==1.64.1",
 
   # formatter + linter
   "ruff",

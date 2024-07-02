@@ -18,6 +18,8 @@ Metadata = List[Tuple[str, str]]
 
 
 class MetadataInterceptor(ClientInterceptor):
+    metadata: Metadata
+
     """
     Interceptor to add metadata to all unary and streaming RPCs
     """
