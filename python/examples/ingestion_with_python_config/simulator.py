@@ -68,114 +68,100 @@ class Simulator:
         logs_interval_s = 1 / LOGS_FREQUENCY_HZ
         partial_readings_with_log_interval_s = 1 / PARTIAL_READINGS_WITH_LOG_FREQUENCY_HZ
 
-        while time.time() < end_time:
-            current_time = time.time()
+        with self.ingestion_service.buffered_ingestion() as buffered_ingestion:
+            while time.time() < end_time:
+                current_time = time.time()
 
-            if current_time - last_reading_time >= readings_interval_s:
-                self.send_reading()
-                last_reading_time = current_time
+                # Send date for readings flow
+                if current_time - last_reading_time >= readings_interval_s:
+                    timestamp = datetime.now(timezone.utc)
 
-            if current_time - last_log_time >= logs_interval_s:
-                self.send_log()
-                last_log_time = current_time
+                    buffered_ingestion.try_ingest_flows(
+                        {
+                            "flow_name": "readings",
+                            "timestamp": timestamp,
+                            "channel_values": [
+                                {
+                                    "channel_name": "velocity",
+                                    "component": "mainmotor",
+                                    "value": double_value(random.randint(1, 10)),
+                                },
+                                {
+                                    "channel_name": "voltage",
+                                    "value": int32_value(random.randint(1, 10)),
+                                },
+                                {
+                                    "channel_name": "vehicle_state",
+                                    "value": enum_value(random.randint(0, 2)),
+                                },
+                                {
+                                    "channel_name": "gpio",
+                                    "value": bit_field_value(
+                                        random.choice(self.sample_bit_field_values)
+                                    ),
+                                },
+                            ],
+                        }
+                    )
+                    logging.info(f"{timestamp} Emitted data for 'readings' flow")
+                    last_reading_time = current_time
 
-            if current_time - last_partial_readings_time >= partial_readings_with_log_interval_s:
-                self.send_partial_reading_with_log()
-                last_partial_readings_time = current_time
+                # Send date for logs flow
+                if current_time - last_log_time >= logs_interval_s:
+                    timestamp = datetime.now(timezone.utc)
+
+                    buffered_ingestion.try_ingest_flows(
+                        {
+                            "flow_name": "logs",
+                            "timestamp": timestamp,
+                            "channel_values": [
+                                {
+                                    "channel_name": "log",
+                                    "value": string_value(random.choice(self.sample_logs).strip()),
+                                },
+                            ],
+                        }
+                    )
+                    logging.info(f"{timestamp} Emitted data for 'logs' flow")
+                    last_log_time = current_time
+
+                # Send partial data for readings flow and full data for logs flow
+                if (
+                    current_time - last_partial_readings_time
+                    >= partial_readings_with_log_interval_s
+                ):
+                    timestamp = datetime.now(timezone.utc)
+
+                    buffered_ingestion.try_ingest_flows(
+                        {
+                            "flow_name": "readings",
+                            "timestamp": timestamp,
+                            "channel_values": [
+                                {
+                                    "channel_name": "velocity",
+                                    "component": "mainmotor",
+                                    "value": double_value(random.randint(1, 10)),
+                                },
+                                {
+                                    "channel_name": "voltage",
+                                    "value": int32_value(random.randint(1, 10)),
+                                },
+                            ],
+                        },
+                        {
+                            "flow_name": "logs",
+                            "timestamp": timestamp,
+                            "channel_values": [
+                                {
+                                    "channel_name": "log",
+                                    "value": string_value(random.choice(self.sample_logs).strip()),
+                                },
+                            ],
+                        },
+                    )
+                    logging.info(
+                        f"{timestamp} Emitted log for 'logs' flow and partial data for 'readings' flow"
+                    )
+                    last_partial_readings_time = current_time
 
         self.logger.info("Completed simulation.")
-
-    def send_reading(self):
-        """
-        Sends data for 'readings' flow.
-        """
-
-        timestamp = datetime.now(timezone.utc)
-
-        request = self.ingestion_service.try_create_ingestion_request(
-            flow_name="readings",
-            timestamp=timestamp,
-            channel_values=[
-                {
-                    "channel_name": "velocity",
-                    "component": "mainmotor",
-                    "value": double_value(random.randint(1, 10)),
-                },
-                {
-                    "channel_name": "voltage",
-                    "value": int32_value(random.randint(1, 10)),
-                },
-                {
-                    "channel_name": "vehicle_state",
-                    "value": enum_value(random.randint(0, 2)),
-                },
-                {
-                    "channel_name": "gpio",
-                    "value": bit_field_value(random.choice(self.sample_bit_field_values)),
-                },
-            ],
-        )
-        self.ingestion_service.ingest(request)
-
-        logging.info(f"{timestamp} Emitted data for 'readings' flow")
-
-    def send_log(self):
-        """
-        Sends data for 'log' flow
-        """
-
-        timestamp = datetime.now(timezone.utc)
-
-        request = self.ingestion_service.try_create_ingestion_request(
-            flow_name="logs",
-            timestamp=timestamp,
-            channel_values=[
-                {
-                    "channel_name": "log",
-                    "value": string_value(random.choice(self.sample_logs).strip()),
-                },
-            ],
-        )
-        self.ingestion_service.ingest(request)
-
-        logging.info(f"{timestamp} Emitted data for 'logs' flow")
-
-    def send_partial_reading_with_log(self):
-        """
-        Sends partial data for 'readings' flow and sends data for 'log' flow.
-        """
-
-        timestamp = datetime.now(timezone.utc)
-
-        partial_reading = self.ingestion_service.try_create_ingestion_request(
-            flow_name="readings",
-            timestamp=timestamp,
-            channel_values=[
-                {
-                    "channel_name": "velocity",
-                    "component": "mainmotor",
-                    "value": double_value(random.randint(1, 10)),
-                },
-                {
-                    "channel_name": "voltage",
-                    "value": int32_value(random.randint(1, 10)),
-                },
-            ],
-        )
-
-        log = self.ingestion_service.try_create_ingestion_request(
-            flow_name="logs",
-            timestamp=timestamp,
-            channel_values=[
-                {
-                    "channel_name": "log",
-                    "value": string_value(random.choice(self.sample_logs).strip()),
-                },
-            ],
-        )
-
-        self.ingestion_service.ingest(partial_reading, log)
-
-        logging.info(
-            f"{timestamp} Emitted log for 'logs' flow and partial data for 'readings' flow"
-        )
