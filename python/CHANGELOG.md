@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
  
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.1.0-rc.2] - July 1, 2024
+## [v0.1.0-rc.2] - July 1, 2024
 
 Summary of changes:
 - [Introduced automated ingestion request buffering to improve performance](https://github.com/sift-stack/sift/pull/65)
