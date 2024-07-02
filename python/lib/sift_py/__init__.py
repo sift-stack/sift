@@ -108,7 +108,7 @@ with use_sift_channel(sift_channel_config) as channel:
     )
 
     # Send data to Sift for the 'temperature_reading' flow
-    temperature_reading = self.ingestion_service.try_ingest_flows({
+    ingestion_service.try_ingest_flows({
         "flow_name": "temperature_reading",
         "timestamp": datetime.now(timezone.utc),
         "channel_values": [
@@ -674,7 +674,7 @@ with use_sift_channel(sift_channel_config) as channel:
             ],
         },
         {
-            "flow_name": "readings",
+            "flow_name": "logs",
             "timestamp": datetime.now(timezone.utc),
             "channel_values": [
                 {

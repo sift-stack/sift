@@ -314,7 +314,7 @@ def test_ingestion_service_register_new_flow(mocker: MockFixture):
 
     assert ingestion_service.flow_configs_by_name.get("my_new_flow") is None
 
-    ingestion_service.try_create_new_flow(new_flow_config)
+    ingestion_service.try_create_flow(new_flow_config)
 
     mock_create_flow_configs.assert_called_once_with(
         mock_channel, mock_ingestion_config.ingestion_config_id, [new_flow_config]
@@ -327,9 +327,9 @@ def test_ingestion_service_register_new_flow(mocker: MockFixture):
     )
 
     with pytest.raises(IngestionValidationError):
-        ingestion_service.try_create_new_flow(new_flow_config_name_collision)
+        ingestion_service.try_create_flow(new_flow_config_name_collision)
 
     # Bypass the validation
-    ingestion_service.create_new_flow(new_flow_config_name_collision)
+    ingestion_service.create_flow(new_flow_config_name_collision)
     assert ingestion_service.flow_configs_by_name["my_new_flow"] == new_flow_config_name_collision
     assert ingestion_service.flow_configs_by_name["my_new_flow"] != new_flow_config
