@@ -14,6 +14,7 @@ Summary of changes:
 For in-depth documentation please see the [documentation section of the README](https://github.com/sift-stack/sift/tree/main/python#documentation) for instructions
 on how to build the documentation locally.
 
+### Table of Contents
 - [Combining Request Generation and Ingestion into a Single Step](#combining-request-generation-and-ingestion-into-a-single-step)
 - [Request Buffering](#request-buffering)
 - [Creating New Flows on the Fly](#creating-new-flows-on-the-fly)
