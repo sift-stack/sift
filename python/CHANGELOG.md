@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [v0.1.0-rc.3] - July 3, 2024
 
 Summary of changes:
-- [Automatated gRPC retries of an unexpected gRPC status code is returned or if a connection unexpectedly terminates](https://github.com/sift-stack/sift/pull/70)
+- [Automated gRPC retries if an unexpected gRPC status code is returned and if a connection unexpectedly terminates](https://github.com/sift-stack/sift/pull/70)
 
 The following are some gRPC error codes that can happen due to external factors that Sift doesn't directly control:
 - `UNKNOWN`
