@@ -26,7 +26,7 @@ def use_sift_channel(config: SiftChannelConfig) -> SiftChannel:
 
     Should an RPC fail for a reason that isn't explicitly controlled by Sift, `SiftChannel`
     will automatically leverage gRPC's retry mechanism to try and recover until the max-attempts
-    are exceeded, after which the underlying exception will be raised
+    are exceeded, after which the underlying exception will be raised.
     """
     if not config.get("use_ssl", True):
         return _use_insecure_sift_channel(config)
