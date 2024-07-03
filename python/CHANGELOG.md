@@ -3,6 +3,20 @@ All notable changes to this project will be documented in this file.
  
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.1.0-rc.3] - July 3, 2024
+
+Summary of changes:
+- [Automatated gRPC retries of an unexpected gRPC status code is returned or if a connection unexpectedly terminates](https://github.com/sift-stack/sift/pull/70)
+
+The following are some gRPC error codes that can happen due to external factors that Sift doesn't directly control:
+- `UNKNOWN`
+- `UNAVAILABLE`
+- `ABORTED`
+- `DEADLINE_EXCEEDED`
+
+They are the source of common disruptions, particularly during ingestion, and so this mechanism will automatically retry failed RPCs over an existing connection
+or will establish a new one if necessary.
+
 ## [v0.1.0-rc.2] - July 1, 2024
 
 Summary of changes:
