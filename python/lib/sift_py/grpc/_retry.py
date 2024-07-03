@@ -28,9 +28,9 @@ class RetryPolicy:
                 "retryPolicy": {
                     # gRPC does not allow more than 5 attempts
                     "maxAttempts": 5,
-                    "initialBackoff": "0.1s",
-                    "maxBackoff": "1s",
-                    "backoffMultiplier": 2,
+                    "initialBackoff": "0.05s",
+                    "maxBackoff": "5s",
+                    "backoffMultiplier": 4,
                     "retryableStatusCodes": [
                         StatusCode.UNKNOWN.name,
                         StatusCode.UNAVAILABLE.name,
