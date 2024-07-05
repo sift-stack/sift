@@ -16,6 +16,7 @@ from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from typing_extensions import NotRequired, Self
 
+from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.convert.protobuf import AsProtobuf
 
 
@@ -240,13 +241,6 @@ def channel_fqn(channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, Cha
             return channel_name
         else:
             return f"{component}.{channel_name}"
-
-
-def _channel_fqn(name: str, component: Optional[str]) -> str:
-    if component is None or len(component) == 0:
-        return name
-    else:
-        return f"{component}.{name}"
 
 
 def string_value(val: str) -> IngestWithConfigDataChannelValue:
