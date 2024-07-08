@@ -5,17 +5,18 @@ from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift.channels.v2.channels_pb2 import Channel, ListChannelsRequest, ListChannelsResponse
 from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
 from sift.data.v1.data_pb2 import ChannelQuery as ChannelQueryPb
-from sift.data.v1.data_pb2 import GetDataRequest
-from sift.data.v1.data_pb2_grpc import DataServiceStub
+from sift.data.v1.data_pb2 import GetDataRequest, Query
 from sift.runs.v2.runs_pb2 import ListRunsRequest, ListRunsResponse, Run
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 from typing_extensions import TypeAlias
 
+from sift_py._internal.channel import channel_fqn
 from sift_py._internal.convert.timestamp import to_pb_timestamp
 from sift_py.data.error import DataError
 from sift_py.data.query import CalculatedChannelQuery, ChannelQuery, DataQuery
 from sift_py.error import SiftError
-from sift_py.grpc.transport import SiftChannel
+from sift_py.grpc.transport import SiftChannel, SiftChannelConfig
+from sift_pyrs import DataService as DataServiceImpl
 
 
 class DataService:
@@ -23,20 +24,30 @@ class DataService:
     ChannelFqn: TypeAlias = str
     RunName: TypeAlias = str
 
+    _data_service_impl: DataServiceImpl
+
     _asset_service_stub: AssetServiceStub
     _channel_service_stub: ChannelServiceStub
-    _data_service_stub: DataServiceStub
     _run_service_stub: RunServiceStub
 
     _cached_assets: Dict[AssetName, Asset]
     _cached_channels: Dict[AssetName, Dict[ChannelFqn, Channel]]
     _cached_runs: Dict[RunName, Run]
 
-    def __init__(self, channel: SiftChannel):
+    def __init__(self, channel: SiftChannel, channel_config: SiftChannelConfig):
+        # Reminder that we should include uri scheme e.g. 'https://' in this for rust.
+        self._data_service_impl = DataServiceImpl(
+            uri=channel_config["uri"],
+            apikey=channel_config["apikey"],
+            num_threads=None,
+        )
         self._asset_service_stub = AssetServiceStub(channel)
         self._channel_service_stub = ChannelServiceStub(channel)
-        self._data_service_stub = DataServiceStub(channel)
         self._run_service_stub = RunServiceStub(channel)
+
+        self._cached_assets = {}
+        self._cached_channels = {}
+        self._cached_runs = {}
 
     def execute(self, query: DataQuery, bust_cache: bool = False):
         if bust_cache:
@@ -59,7 +70,7 @@ class DataService:
                         f"An unexpected error occurred. Expected channel '{channel_fqn}' to have been loaded."
                     )
 
-                query = ChannelQueryPb(channel_id=channel.channel_id)
+                cquery = ChannelQueryPb(channel_id=channel.channel_id)
 
                 if run_name is not None:
                     run = runs.get(run_name)
@@ -69,9 +80,9 @@ class DataService:
                             f"An unexpected error occurred. Expected run '{run_name}' to have been loaded."
                         )
 
-                    query.run_id = run.run_id
+                    cquery.run_id = run.run_id
 
-                queries.append(query)
+                queries.append(Query(channel=cquery))
 
             elif isinstance(channel_query, CalculatedChannelQuery):
                 raise NotImplementedError("Calculated channel downloading is not yet implemented.")
@@ -88,6 +99,7 @@ class DataService:
 
         # Serialize and pass off to Rust
         wire_format = request.SerializeToString()
+        self._data_service_impl.get_data(wire_format)
 
     def _bust_cache(self):
         self._cached_assets.clear()
@@ -108,7 +120,7 @@ class DataService:
 
         if channels is None:
             sift_channels = self._get_channels_by_asset_id(asset.asset_id)
-            channels = {c.name: c for c in sift_channels}
+            channels = {channel_fqn(c.name, c.component): c for c in sift_channels}
             self._cached_channels[asset.name] = channels
 
         return channels

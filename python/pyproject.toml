@@ -25,7 +25,7 @@ dependencies = [
   "grpcio==1.64.1",
   # https://googleapis.dev/python/protobuf/latest/
   "types-protobuf==5.26.0.20240422",
-  "protobuf==5.27.1",
+  "protobuf==5.27.2",
   # https://grpc-interceptor.readthedocs.io
   "grpc-interceptor==0.15.4",
   # https://pyyaml.org/wiki/PyYAMLDocumentation
@@ -41,7 +41,11 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
+  # static analysis
   "mypy==1.10.0",
+
+  # rust
+  "maturin==1.6.0",
 
    # testing tools
   "pytest==8.2.2",

@@ -13,7 +13,7 @@ class DataQuery:
 
     asset_name: str
     start_time: datetime
-    end: datetime
+    end_time: datetime
     sample_ms: int
     page_size: int
     channels: List[Union[ChannelQuery, CalculatedChannelQuery]]
@@ -25,20 +25,30 @@ class DataQuery:
         end_time: datetime,
         sample_ms: int,
         channels: List[Union[ChannelQuery, CalculatedChannelQuery]],
-        page_size: Optional[int],
+        page_size: int = DEFAULT_PAGE_SIZE,
     ):
         self.asset_name = asset_name
         self.start_time = start_time
         self.end_time = end_time
         self.sample_ms = sample_ms
         self.channels = channels
-        self.page_size = page_size or self.__class__.DEFAULT_PAGE_SIZE
+        self.page_size = page_size
 
 
 class ChannelQuery:
     channel_name: str
     component: Optional[str]
     run_name: Optional[str]
+
+    def __init__(
+        self,
+        channel_name: str,
+        component: Optional[str] = None,
+        run_name: Optional[str] = None,
+    ):
+        self.channel_name = channel_name
+        self.component = component
+        self.run_name = run_name
 
     def fqn(self) -> str:
         return channel_fqn(self.channel_name, self.component)
@@ -58,3 +68,15 @@ class CalculatedChannelQuery:
     run_name: str
     expression: str
     expression_channel_references: Dict[ChannelName, ChannelIdentifier]
+
+    def __init__(
+        self,
+        channel_key: str,
+        run_name: str,
+        expression: str,
+        expression_channel_references: Dict[ChannelName, ChannelIdentifier],
+    ):
+        self.channel_key = channel_key
+        self.run_name = run_name
+        self.expression = expression
+        self.expression_channel_references = expression_channel_references
