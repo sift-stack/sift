@@ -23,15 +23,23 @@ class DataQuery:
     def __init__(
         self,
         asset_name: str,
-        start_time: datetime,
-        end_time: datetime,
-        sample_ms: int,
+        start_time: Union[datetime, str],
+        end_time: Union[datetime, str],
         channels: List[Union[ChannelQuery, CalculatedChannelQuery]],
+        sample_ms: int = 0,
         page_size: int = DEFAULT_PAGE_SIZE,
     ):
+        if isinstance(start_time, str):
+            self.start_time = datetime.fromisoformat(start_time)
+        else:
+            self.start_time = start_time
+
+        if isinstance(end_time, str):
+            self.end_time = datetime.fromisoformat(end_time)
+        else:
+            self.end_time = end_time
+
         self.asset_name = asset_name
-        self.start_time = start_time
-        self.end_time = end_time
         self.sample_ms = sample_ms
         self.channels = channels
         self.page_size = page_size
@@ -49,6 +57,18 @@ class DataQueryResult:
 
     def __init__(self, merged_channel_data: Dict[str, List[ChannelTimeSeries]]):
         self._result = merged_channel_data
+
+    def channel(self, lookup: ChannelLookupInfo) -> Optional[DataQueryResultSet]:
+        """
+        Like `channels` but returns a single `DataQueryResultSet`.
+        """
+
+        result = self.channels(lookup)
+
+        if len(result) > 0:
+            return result[0]
+
+        return None
 
     def channels(self, *lookup: ChannelLookupInfo) -> List[DataQueryResultSet]:
         """
@@ -77,11 +97,11 @@ class DataQueryResult:
 
                 series = time_series[0]
                 result.append(
-                    {
-                        "identifier": info,
-                        "time_column": series.time_column,
-                        "value_column": series.value_column,
-                    }
+                    DataQueryResultSet(
+                        identifier=info,
+                        timestamps=series.time_column,
+                        values=series.value_column,
+                    )
                 )
             else:
                 fqn, data_type = cast(Tuple[str, ChannelDataType], info)
@@ -94,32 +114,58 @@ class DataQueryResult:
                 if len(time_series) == 1:
                     series = time_series[0]
                     result.append(
-                        {
-                            "identifier": identifier,
-                            "time_column": series.time_column,
-                            "value_column": series.value_column,
-                        }
+                        DataQueryResultSet(
+                            identifier=identifier,
+                            timestamps=series.time_column,
+                            values=series.value_column,
+                        )
                     )
                     continue
 
                 for series in time_series:
                     if series.data_type == data_type:
                         result.append(
-                            {
-                                "identifier": identifier,
-                                "time_column": series.time_column,
-                                "value_column": series.value_column,
-                            }
+                            DataQueryResultSet(
+                                identifier=identifier,
+                                timestamps=series.time_column,
+                                values=series.value_column,
+                            )
                         )
                         break
 
         return result
 
 
-class DataQueryResultSet(TypedDict):
+class DataQueryResultSet:
     identifier: str
-    time_column: List[datetime]
-    value_column: List[Any]
+    timestamps: List[datetime]
+    values: List[Any]
+
+    def __init__(self, identifier: str, timestamps: List[datetime], values: List[Any]):
+        self.identifier = identifier
+        self.timestamps = timestamps
+        self.values = values
+
+    def value_column(self, column_name: Optional[str] = None) -> Dict[str, List[Any]]:
+        if column_name is None:
+            return {self.identifier: self.values}
+        else:
+            return {column_name: self.values}
+
+    def time_column(self, column_name: Optional[str] = None) -> Dict[str, List[Any]]:
+        if column_name is None:
+            return {"time": self.timestamps}
+        else:
+            return {column_name: self.timestamps}
+
+    def columns(
+        self,
+        time_column_name: Optional[str] = None,
+        value_column_name: Optional[str] = None,
+    ) -> Dict[str, List[Any]]:
+        cols = self.time_column(time_column_name)
+        cols.update(self.value_column(value_column_name))
+        return cols
 
 
 class ChannelQuery:
