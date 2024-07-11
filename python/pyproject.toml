@@ -20,6 +20,7 @@ keywords = [
   "sift_py",
 ]
 dependencies = [
+  "aiofiles==24.1.0",
   "typing-extensions==4.12.2",
   # https://grpc.github.io/grpc/python/
   "grpcio==1.64.1",
@@ -44,14 +45,12 @@ development = [
   # static analysis
   "mypy==1.10.0",
 
-  # rust
-  "maturin==1.6.0",
-
    # testing tools
   "pytest==8.2.2",
   "pytest-benchmark==4.0.0",
   "pytest-mock==3.14.0",
   "grpcio-testing==1.64.1",
+  "pytest-asyncio==0.23.7",
 
   # formatter + linter
   "ruff",

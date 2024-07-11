@@ -1,6 +1,0 @@
-from typing import Optional
-
-class DataService:
-    def __init__(self, uri: str, apikey: str, num_threads: Optional[int]): ...
-
-    def get_data(self, get_data_request_wire_format: bytes): ...

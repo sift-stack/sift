@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from pytest_mock import MockFixture
 from sift.assets.v1.assets_pb2 import Asset
 from sift.channels.v2.channels_pb2 import Channel
@@ -10,18 +11,16 @@ from sift.common.type.v1.channel_data_type_pb2 import (
 )
 from sift.runs.v2.runs_pb2 import Run
 
-from sift_py._internal.test_util.channel import MockChannel
+from sift_py._internal.test_util.channel import MockAsyncChannel
 from sift_py.data.query import ChannelQuery, DataQuery
 from sift_py.data.service import DataService
 
 
-def test_data_service_execute(mocker: MockFixture):
+@pytest.mark.asyncio
+async def test_data_service_execute(mocker: MockFixture):
     with patch_grpc_calls(mocker):
-        channel = MockChannel()
-        data_service = DataService(channel, {
-            "uri": "http://localhost:50051",
-            "apikey": "KUFfAn0ikCQipEDohjddPfw2bUSlPd2P9tGgzy1h",
-        })
+        channel = MockAsyncChannel()
+        data_service = DataService(channel)
 
         start_time = datetime.now(timezone.utc)
         end_time = start_time + timedelta(minutes=2)
@@ -35,23 +34,22 @@ def test_data_service_execute(mocker: MockFixture):
                 ChannelQuery(
                     channel_name="velocity",
                     component="mainmotor",
-                    run_name="[NostromoLV426].1720141748.047512"
+                    run_name="[NostromoLV426].1720141748.047512",
                 ),
                 ChannelQuery(
-                    channel_name="vehicle_state",
-                    run_name="[NostromoLV426].1720141748.047512"
+                    channel_name="vehicle_state", run_name="[NostromoLV426].1720141748.047512"
                 ),
-            ]
+            ],
         )
 
-        data_service.execute(query)
+        await data_service.execute(query)
+
 
 @contextmanager
 def patch_grpc_calls(mocker: MockFixture):
     mock__get_asset_by_name = mocker.patch.object(DataService, "_get_asset_by_name")
     mock__get_asset_by_name.return_value = Asset(
-        asset_id="b7955799-9893-4acf-bf14-50052284020c",
-        name="NostromoLV428"
+        asset_id="b7955799-9893-4acf-bf14-50052284020c", name="NostromoLV428"
     )
 
     mock__get_channels_by_asset_id = mocker.patch.object(DataService, "_get_channels_by_asset_id")

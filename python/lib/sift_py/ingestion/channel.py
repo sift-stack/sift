@@ -206,6 +206,30 @@ class ChannelDataType(Enum):
 
         return None
 
+    def as_human_str(self) -> str:
+        if self == self.__class__.DOUBLE.value:
+            return ChannelDataTypeStrRep.DOUBLE.value
+        elif self == self.__class__.STRING.value:
+            return ChannelDataTypeStrRep.STRING.value
+        elif self == self.__class__.ENUM.value:
+            return ChannelDataTypeStrRep.ENUM.value
+        elif self == self.__class__.BIT_FIELD.value:
+            return ChannelDataTypeStrRep.BIT_FIELD.value
+        elif self == self.__class__.BOOL.value:
+            return ChannelDataTypeStrRep.BOOL.value
+        elif self == self.__class__.FLOAT.value:
+            return ChannelDataTypeStrRep.FLOAT.value
+        elif self == self.__class__.INT_32.value:
+            return ChannelDataTypeStrRep.INT_32.value
+        elif self == self.__class__.INT_64.value:
+            return ChannelDataTypeStrRep.INT_64.value
+        elif self == self.__class__.UINT_32.value:
+            return ChannelDataTypeStrRep.UINT_32.value
+        elif self == self.__class__.UINT_64.value:
+            return ChannelDataTypeStrRep.UINT_64.value
+        else:
+            raise Exception("Unreachable.")
+
 
 class ChannelDataTypeStrRep(Enum):
     DOUBLE = "double"
