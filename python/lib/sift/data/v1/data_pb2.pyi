@@ -127,6 +127,7 @@ class CalculatedChannelQuery(google.protobuf.message.Message):
     CHANNEL_KEY_FIELD_NUMBER: builtins.int
     EXPRESSION_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
+    MODE_FIELD_NUMBER: builtins.int
     channel_key: builtins.str
     run_id: builtins.str
     """Optional.
@@ -134,6 +135,8 @@ class CalculatedChannelQuery(google.protobuf.message.Message):
     If set to the empty string, only non-run data is returned.
     If unset, all run / non-run data is returned.
     """
+    mode: sift.calculated_channels.v1.calculated_channels_pb2.ExpressionMode.ValueType
+    """Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS."""
     @property
     def expression(self) -> sift.calculated_channels.v1.calculated_channels_pb2.ExpressionRequest: ...
     def __init__(
@@ -142,9 +145,13 @@ class CalculatedChannelQuery(google.protobuf.message.Message):
         channel_key: builtins.str = ...,
         expression: sift.calculated_channels.v1.calculated_channels_pb2.ExpressionRequest | None = ...,
         run_id: builtins.str | None = ...,
+        mode: sift.calculated_channels.v1.calculated_channels_pb2.ExpressionMode.ValueType | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_run_id", b"_run_id", "expression", b"expression", "run_id", b"run_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_run_id", b"_run_id", "channel_key", b"channel_key", "expression", b"expression", "run_id", b"run_id"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_mode", b"_mode", "_run_id", b"_run_id", "expression", b"expression", "mode", b"mode", "run_id", b"run_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_mode", b"_mode", "_run_id", b"_run_id", "channel_key", b"channel_key", "expression", b"expression", "mode", b"mode", "run_id", b"run_id"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_mode", b"_mode"]) -> typing.Literal["mode"] | None: ...
+    @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_run_id", b"_run_id"]) -> typing.Literal["run_id"] | None: ...
 
 global___CalculatedChannelQuery = CalculatedChannelQuery

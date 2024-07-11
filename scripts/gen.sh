@@ -16,10 +16,6 @@ SUPPORTED_LANGS=(go python rust)
 TMP_DIR="tmp"
 BUF_CONF="protos/buf.yaml"
 OUTPUT_PROTOS="${TMP_DIR}/protos"
-PYTHON_GEN_DIR="python/gen"
-PYTHON_LIB_DIR="python/lib"
-PYTHON_CLIENT_LIB="sift_py"
-PYTHON_CLIENT_LIB_INTERNAL="sift_internal"
 
 USAGE=$(cat<<EOT
 Compile protocol buffers into supported target languages.
@@ -48,27 +44,31 @@ err_and_exit() {
 }
 
 gen_python_modules() {
-  if [[ ! -d "$PYTHON_GEN_DIR" ]]; then
-    err_and_exit "The '$PYTHON_GEN_DIR' directory could not be located. Failed to generate python modules."
+  local python_gen_dir="python/gen"
+  local python_lib="python/lib"
+  local sift_py="python/lib/sift_py"
+
+  if [[ ! -d "$python_gen_dir" ]]; then
+    err_and_exit "The '$python_gen_dir' directory could not be located. Failed to generate python modules."
   fi
 
   printf "Generating python modules... "
-  for dir in $(find "$PYTHON_GEN_DIR" -type d); do
+  for dir in $(find "$python_gen_dir" -type d); do
     local init_py="$dir/__init__.py"
 
     if [[ ! -f "$init_py" ]]; then
       touch "$init_py"
     fi
   done
+  rm "$python_lib/__init__.py"
 
-  mv "$PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB" "$PYTHON_GEN_DIR"
-  mv "$PYTHON_LIB_DIR/$PYTHON_CLIENT_LIB_INTERNAL" "$PYTHON_GEN_DIR"
-  rm -rf "$PYTHON_LIB_DIR"
-  mv "$PYTHON_GEN_DIR" "$PYTHON_LIB_DIR"
+  mv $sift_py $python_gen_dir
+  rm -rf $python_lib
+  mv $python_gen_dir $python_lib
 
   # This is necessary to split `google` module into separate directories: one generated from the googleapis buf plugin,
   # and the other coming from the `protobuf` PyPI package that gets installed as `google`.
-  echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$PYTHON_LIB_DIR/google/__init__.py"
+  echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$python_lib/google/__init__.py"
 
   echo "ok"
 }

@@ -95,7 +95,6 @@ class Rule(google.protobuf.message.Message):
     ASSET_ID_FIELD_NUMBER: builtins.int
     NAME_FIELD_NUMBER: builtins.int
     DESCRIPTION_FIELD_NUMBER: builtins.int
-    CURRENT_STATUS_FIELD_NUMBER: builtins.int
     IS_ENABLED_FIELD_NUMBER: builtins.int
     CREATED_DATE_FIELD_NUMBER: builtins.int
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
@@ -107,7 +106,6 @@ class Rule(google.protobuf.message.Message):
     asset_id: builtins.str
     name: builtins.str
     description: builtins.str
-    current_status: builtins.str
     is_enabled: builtins.bool
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
@@ -125,7 +123,6 @@ class Rule(google.protobuf.message.Message):
         asset_id: builtins.str = ...,
         name: builtins.str = ...,
         description: builtins.str = ...,
-        current_status: builtins.str = ...,
         is_enabled: builtins.bool = ...,
         created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
@@ -135,7 +132,7 @@ class Rule(google.protobuf.message.Message):
         conditions: collections.abc.Iterable[global___RuleCondition] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "conditions", b"conditions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "current_status", b"current_status", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "conditions", b"conditions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id"]) -> None: ...
 
 global___Rule = Rule
 
@@ -146,7 +143,6 @@ class RuleCondition(google.protobuf.message.Message):
     RULE_CONDITION_ID_FIELD_NUMBER: builtins.int
     RULE_ID_FIELD_NUMBER: builtins.int
     EXPRESSION_FIELD_NUMBER: builtins.int
-    STATUS_FIELD_NUMBER: builtins.int
     CREATED_DATE_FIELD_NUMBER: builtins.int
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
@@ -154,7 +150,6 @@ class RuleCondition(google.protobuf.message.Message):
     ACTIONS_FIELD_NUMBER: builtins.int
     rule_condition_id: builtins.str
     rule_id: builtins.str
-    status: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
     @property
@@ -171,7 +166,6 @@ class RuleCondition(google.protobuf.message.Message):
         rule_condition_id: builtins.str = ...,
         rule_id: builtins.str = ...,
         expression: global___RuleConditionExpression | None = ...,
-        status: builtins.str = ...,
         created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         created_by_user_id: builtins.str = ...,
@@ -179,7 +173,7 @@ class RuleCondition(google.protobuf.message.Message):
         actions: collections.abc.Iterable[global___RuleAction] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "expression", b"expression", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["actions", b"actions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "expression", b"expression", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "rule_condition_id", b"rule_condition_id", "rule_id", b"rule_id", "status", b"status"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["actions", b"actions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "expression", b"expression", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "rule_condition_id", b"rule_condition_id", "rule_id", b"rule_id"]) -> None: ...
 
 global___RuleCondition = RuleCondition
 
@@ -436,11 +430,9 @@ class UpdateConditionRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RULE_CONDITION_ID_FIELD_NUMBER: builtins.int
-    STATUS_FIELD_NUMBER: builtins.int
     EXPRESSION_FIELD_NUMBER: builtins.int
     ACTIONS_FIELD_NUMBER: builtins.int
     rule_condition_id: builtins.str
-    status: builtins.str
     @property
     def expression(self) -> global___RuleConditionExpression: ...
     @property
@@ -449,12 +441,11 @@ class UpdateConditionRequest(google.protobuf.message.Message):
         self,
         *,
         rule_condition_id: builtins.str | None = ...,
-        status: builtins.str = ...,
         expression: global___RuleConditionExpression | None = ...,
         actions: collections.abc.Iterable[global___UpdateActionRequest] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_rule_condition_id", b"_rule_condition_id", "expression", b"expression", "rule_condition_id", b"rule_condition_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_rule_condition_id", b"_rule_condition_id", "actions", b"actions", "expression", b"expression", "rule_condition_id", b"rule_condition_id", "status", b"status"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_rule_condition_id", b"_rule_condition_id", "actions", b"actions", "expression", b"expression", "rule_condition_id", b"rule_condition_id"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_rule_condition_id", b"_rule_condition_id"]) -> typing.Literal["rule_condition_id"] | None: ...
 
 global___UpdateConditionRequest = UpdateConditionRequest
@@ -944,7 +935,9 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
     ANNOTATION_OPTIONS_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
     TIME_RANGE_FIELD_NUMBER: builtins.int
+    DRY_RUN_FIELD_NUMBER: builtins.int
     run_id: builtins.str
+    dry_run: builtins.bool
     @property
     def rule_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
@@ -958,9 +951,10 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
         annotation_options: global___EvaluatedAnnotationOptions | None = ...,
         run_id: builtins.str = ...,
         time_range: global___TimeRangeQuery | None = ...,
+        dry_run: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["annotation_options", b"annotation_options", "run_id", b"run_id", "time", b"time", "time_range", b"time_range"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["annotation_options", b"annotation_options", "rule_ids", b"rule_ids", "run_id", b"run_id", "time", b"time", "time_range", b"time_range"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["annotation_options", b"annotation_options", "dry_run", b"dry_run", "rule_ids", b"rule_ids", "run_id", b"run_id", "time", b"time", "time_range", b"time_range"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["time", b"time"]) -> typing.Literal["run_id", "time_range"] | None: ...
 
 global___EvaluateRulesRequest = EvaluateRulesRequest
@@ -1007,12 +1001,45 @@ class EvaluateRulesResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     CREATED_ANNOTATION_COUNT_FIELD_NUMBER: builtins.int
+    DRY_RUN_ANNOTATIONS_FIELD_NUMBER: builtins.int
     created_annotation_count: builtins.int
+    @property
+    def dry_run_annotations(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DryRunAnnotation]:
+        """If dry_run is true, this will be populated with the annotations that would be created"""
+
     def __init__(
         self,
         *,
         created_annotation_count: builtins.int = ...,
+        dry_run_annotations: collections.abc.Iterable[global___DryRunAnnotation] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["created_annotation_count", b"created_annotation_count"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["created_annotation_count", b"created_annotation_count", "dry_run_annotations", b"dry_run_annotations"]) -> None: ...
 
 global___EvaluateRulesResponse = EvaluateRulesResponse
+
+@typing.final
+class DryRunAnnotation(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CONDITION_ID_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    START_TIME_FIELD_NUMBER: builtins.int
+    END_TIME_FIELD_NUMBER: builtins.int
+    condition_id: builtins.str
+    name: builtins.str
+    @property
+    def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def end_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        condition_id: builtins.str = ...,
+        name: builtins.str = ...,
+        start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        end_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["end_time", b"end_time", "start_time", b"start_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["condition_id", b"condition_id", "end_time", b"end_time", "name", b"name", "start_time", b"start_time"]) -> None: ...
+
+global___DryRunAnnotation = DryRunAnnotation
