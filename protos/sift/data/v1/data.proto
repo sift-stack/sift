@@ -87,6 +87,8 @@ message CalculatedChannelQuery {
   // If set to the empty string, only non-run data is returned.
   // If unset, all run / non-run data is returned.
   optional string run_id = 3;
+  // Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS.
+  optional sift.calculated_channels.v1.ExpressionMode mode = 4;
 }
 
 message GetDataResponse {

@@ -168,11 +168,12 @@ service RuleService {
 }
 
 message Rule {
+  // 5 is reserved from old "current_status" column directly on rule
+  reserved 5;
   string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
   string asset_id = 2 [(google.api.field_behavior) = REQUIRED];
   string name = 3 [(google.api.field_behavior) = REQUIRED];
   string description = 4 [(google.api.field_behavior) = REQUIRED];
-  string current_status = 5 [(google.api.field_behavior) = REQUIRED];
   bool is_enabled = 6 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp created_date = 7 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 8 [(google.api.field_behavior) = REQUIRED];
@@ -182,10 +183,11 @@ message Rule {
   repeated RuleCondition conditions = 12 [(google.api.field_behavior) = REQUIRED];
 }
 message RuleCondition {
+  // 4 is reserved from old "status" column that lived directly on rule condition
+  reserved 4;
   string rule_condition_id = 1 [(google.api.field_behavior) = REQUIRED];
   string rule_id = 2 [(google.api.field_behavior) = REQUIRED];
   RuleConditionExpression expression = 3 [(google.api.field_behavior) = REQUIRED];
-  string status = 4 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp created_date = 5 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 6 [(google.api.field_behavior) = REQUIRED];
   string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
@@ -260,8 +262,9 @@ message UpdateRuleRequest {
   string organization_id = 7;
 }
 message UpdateConditionRequest {
+  // 2 is reserved from old status update support on rule condition directly
+  reserved 2;
   optional string rule_condition_id = 1;
-  string status = 2 [(google.api.field_behavior) = REQUIRED];
   RuleConditionExpression expression = 3 [(google.api.field_behavior) = REQUIRED];
   repeated UpdateActionRequest actions = 4 [(google.api.field_behavior) = REQUIRED];
 }
@@ -409,6 +412,7 @@ message EvaluateRulesRequest {
     string run_id = 3;
     TimeRangeQuery time_range = 4;
   }
+  bool dry_run = 5;
 }
 message EvaluatedAnnotationOptions {
   repeated string tag_ids = 1;
@@ -420,4 +424,13 @@ message TimeRangeQuery {
 
 message EvaluateRulesResponse {
   int32 created_annotation_count = 1;
+  // If dry_run is true, this will be populated with the annotations that would be created
+  repeated DryRunAnnotation dry_run_annotations = 2;
+}
+
+message DryRunAnnotation {
+  string condition_id = 1;
+  string name = 2;
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
 }
