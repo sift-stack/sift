@@ -1,12 +1,18 @@
 import asyncio
 from collections import defaultdict
-from typing import Dict, Iterable, List, Set, Union, cast
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union, cast
 
 from google.protobuf.any_pb2 import Any
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
+from sift.calculated_channels.v1.calculated_channels_pb2 import (
+    ExpressionChannelReference,
+    ExpressionRequest,
+)
+from sift.calculated_channels.v1.calculated_channels_pb2_grpc import CalculatedChannelsServiceStub
 from sift.channels.v2.channels_pb2 import Channel, ListChannelsRequest, ListChannelsResponse
 from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
+from sift.data.v1.data_pb2 import CalculatedChannelQuery as CalculatedChannelQueryPb
 from sift.data.v1.data_pb2 import ChannelQuery as ChannelQueryPb
 from sift.data.v1.data_pb2 import GetDataRequest, GetDataResponse, Query
 from sift.data.v1.data_pb2_grpc import DataServiceStub
@@ -17,12 +23,14 @@ from typing_extensions import TypeAlias
 from sift_py._internal.cel import cel_in
 from sift_py._internal.channel import channel_fqn
 from sift_py._internal.convert.timestamp import to_pb_timestamp
+from sift_py.data._validate import validate_channel_reference
 from sift_py.data.channel import ChannelTimeSeries
 from sift_py.data.deserialize import try_deserialize_channel_data
 from sift_py.data.error import DataError
 from sift_py.data.query import CalculatedChannelQuery, ChannelQuery, DataQuery, DataQueryResult
 from sift_py.error import SiftError
 from sift_py.grpc.transport import SiftAsyncChannel
+from sift_py.ingestion.channel import ChannelDataType
 
 
 class DataService:
@@ -38,6 +46,7 @@ class DataService:
 
     _asset_service_stub: AssetServiceStub
     _channel_service_stub: ChannelServiceStub
+    _calculated_channel_service_stub: CalculatedChannelsServiceStub
     _data_service_stub: DataServiceStub
     _run_service_stub: RunServiceStub
 
@@ -48,6 +57,7 @@ class DataService:
     def __init__(self, channel: SiftAsyncChannel):
         self._asset_service_stub = AssetServiceStub(channel)
         self._channel_service_stub = ChannelServiceStub(channel)
+        self._calculated_channel_service_stub = CalculatedChannelsServiceStub(channel)
         self._data_service_stub = DataServiceStub(channel)
         self._run_service_stub = RunServiceStub(channel)
 
@@ -67,13 +77,13 @@ class DataService:
 
         for channel_query in query.channels:
             if isinstance(channel_query, ChannelQuery):
-                channel_fqn = channel_query.fqn()
+                fqn = channel_query.fqn()
                 run_name = channel_query.run_name
-                targets = channels.get(channel_fqn)
+                targets = channels.get(fqn)
 
                 if not targets:
                     raise SiftError(
-                        f"An unexpected error occurred. Expected channel '{channel_fqn}' to have been loaded."
+                        f"An unexpected error occurred. Expected channel '{fqn}' to have been loaded."
                     )
                 cqueries = [ChannelQueryPb(channel_id=channel.channel_id) for channel in targets]
 
@@ -92,9 +102,69 @@ class DataService:
                     queries.append(Query(channel=cquery))
 
             elif isinstance(channel_query, CalculatedChannelQuery):
-                raise NotImplementedError("Calculated channel downloading is not yet implemented.")
+                expression_channel_references = []
+
+                for expr_ref in channel_query.expression_channel_references:
+                    validate_channel_reference(expr_ref["reference"])
+
+                    fqn = channel_fqn(expr_ref["channel_name"], expr_ref.get("component"))
+
+                    targets = channels.get(fqn)
+
+                    if not targets:
+                        raise SiftError(
+                            f"An unexpected error occurred. Expected channel '{fqn}' to have been loaded."
+                        )
+
+                    channel_id = targets[0].channel_id
+
+                    if len(targets) > 1:
+                        target_data_type = expr_ref.get("data_type")
+
+                        if target_data_type is None:
+                            raise ValueError(
+                                f"Found multiple channels with the fully qualified name '{fqn}'. A 'data_type' must be provided in `ExpressionChannelReference`."
+                            )
+
+                        for target in targets:
+                            if ChannelDataType.from_pb(target.data_type) == target_data_type:
+                                channel_id = target.channel_id
+                                break
+
+                    expression_channel_references.append(
+                        ExpressionChannelReference(
+                            channel_reference=expr_ref["reference"], channel_id=channel_id
+                        )
+                    )
+
+                expression_request = ExpressionRequest(
+                    expression=channel_query.expression,
+                    expression_channel_references=expression_channel_references,
+                )
+
+                calculated_cquery = CalculatedChannelQueryPb(
+                    channel_key=channel_query.channel_key,
+                    expression=expression_request,
+                )
+
+                run_name = channel_query.run_name
+
+                if run_name is not None:
+                    run = runs.get(run_name)
+
+                    if run is None:
+                        raise SiftError(
+                            f"An unexpected error occurred. Expected run '{run_name}' to have been loaded."
+                        )
+
+                    calculated_cquery.run_id = run.run_id
+
+                queries.append(Query(calculated_channel=calculated_cquery))
+
             else:
                 raise DataError("Unknown channel query type.")
+
+        await self._validate_queries(queries)
 
         start_time = to_pb_timestamp(query.start_time)
         end_time = to_pb_timestamp(query.end_time)
@@ -166,6 +236,9 @@ class DataService:
                 for metadata, cvalues in parsed_channel_data:
                     channel = metadata.channel
                     fqn = channel_fqn(channel.name, channel.component)
+
+                    if not fqn:
+                        fqn = channel.channel_id
 
                     time_series = merged_values_by_channel.get(fqn)
 
@@ -340,3 +413,29 @@ class DataService:
             batches.append(queries[i : i + batch_size])
 
         return batches
+
+    async def _validate_queries(self, queries: List[Query]):
+        queries_to_validate: List[ExpressionRequest] = []
+
+        for query in queries:
+            if query.HasField("calculated_channel"):
+                queries_to_validate.append(query.calculated_channel.expression)
+
+        if len(queries_to_validate) > 0:
+            tasks = []
+
+            for to_validate in queries_to_validate:
+                task = asyncio.create_task(self._validate_expression(to_validate))
+                tasks.append(task)
+
+            for result in await asyncio.gather(*tasks):
+                if result is not None:
+                    expr, err = result
+                    raise ValueError(f"Encountered an invalid expression '{expr}': {err}")
+
+    async def _validate_expression(self, req: ExpressionRequest) -> Optional[Tuple[str, Exception]]:
+        try:
+            self._calculated_channel_service_stub.ValidateExpression(req)
+            return None
+        except Exception as err:
+            return (req.expression, err)
