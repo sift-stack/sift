@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 
@@ -204,12 +206,11 @@ class CalculatedChannelQuery:
 
     def __init__(
         self,
-        channel_key: str,
         run_name: str,
         expression: str,
         expression_channel_references: Dict[ChannelName, ChannelIdentifier],
     ):
-        self.channel_key = channel_key
+        self.channel_key = str(uuid.uuid4())
         self.run_name = run_name
         self.expression = expression
         self.expression_channel_references = expression_channel_references

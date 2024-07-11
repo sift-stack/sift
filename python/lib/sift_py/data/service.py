@@ -26,8 +26,10 @@ from sift_py.grpc.transport import SiftAsyncChannel
 
 
 class DataService:
-    # TODO: There is a pagination when there are multiple channels in the same query that needs to be resolved.
-    # In the mean time each channel will be in their own requests.
+    # TODO: There is a pagination issue API side when requesting multiple channels in single request.
+    # If all data points for all channels in a single request don't fit into a single page, then
+    # paging seems to omit all but a single channel. We can increase this batch size once that issue
+    # has been resolved. In the mean time each channel gets its own request.
     REQUEST_BATCH_SIZE = 1
 
     AssetName: TypeAlias = str
@@ -152,39 +154,44 @@ class DataService:
     def _merge_and_sort_pages(
         self, pages: List[Iterable[Any]]
     ) -> Dict[str, List[ChannelTimeSeries]]:
+        if len(pages) == 0:
+            return {}
+
         merged_values_by_channel: Dict[str, List[ChannelTimeSeries]] = {}
 
         for page in pages:
             for raw_channel_values in page:
-                metadata, cvalues = try_deserialize_channel_data(cast(Any, raw_channel_values))
-                channel = metadata.channel
-                fqn = channel_fqn(channel.name, channel.component)
+                parsed_channel_data = try_deserialize_channel_data(cast(Any, raw_channel_values))
 
-                time_series = merged_values_by_channel.get(fqn)
+                for metadata, cvalues in parsed_channel_data:
+                    channel = metadata.channel
+                    fqn = channel_fqn(channel.name, channel.component)
 
-                if time_series is None:
-                    merged_values_by_channel[fqn] = [
-                        ChannelTimeSeries(
-                            data_type=cvalues.data_type,
-                            time_column=cvalues.time_column,
-                            value_column=cvalues.value_column,
-                        ),
-                    ]
-                else:
-                    for series in time_series:
-                        if series.data_type == cvalues.data_type:
-                            series.time_column.extend(cvalues.time_column)
-                            series.value_column.extend(cvalues.value_column)
-                            break
-                    else:  # for-else
-                        # Situation in which multiple channels with identical fully-qualified names but different types.
-                        time_series.append(
+                    time_series = merged_values_by_channel.get(fqn)
+
+                    if time_series is None:
+                        merged_values_by_channel[fqn] = [
                             ChannelTimeSeries(
                                 data_type=cvalues.data_type,
                                 time_column=cvalues.time_column,
                                 value_column=cvalues.value_column,
+                            ),
+                        ]
+                    else:
+                        for series in time_series:
+                            if series.data_type == cvalues.data_type:
+                                series.time_column.extend(cvalues.time_column)
+                                series.value_column.extend(cvalues.value_column)
+                                break
+                        else:  # for-else
+                            # Situation in which multiple channels with identical fully-qualified names but different types.
+                            time_series.append(
+                                ChannelTimeSeries(
+                                    data_type=cvalues.data_type,
+                                    time_column=cvalues.time_column,
+                                    value_column=cvalues.value_column,
+                                )
                             )
-                        )
 
         for data in merged_values_by_channel.values():
             for channel_data in data:
