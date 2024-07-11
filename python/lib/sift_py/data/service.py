@@ -70,7 +70,17 @@ class DataService:
             self._bust_cache()
 
         asset = await self._load_asset(query.asset_name)
-        channels = await self._load_channels(asset)
+
+        channel_fqns = []
+
+        for c in query.channels:
+            if isinstance(c, ChannelQuery):
+                channel_fqns.append(channel_fqn(c.channel_name, c.component))
+            elif isinstance(c, CalculatedChannelQuery):
+                for ref in c.expression_channel_references:
+                    channel_fqns.append(channel_fqn(ref["channel_name"], ref.get("component")))
+
+        channels = await self._load_channels(asset, channel_fqns)
         runs = await self._load_runs(query.channels)
 
         queries: List[Query] = []
@@ -286,11 +296,13 @@ class DataService:
 
         return asset
 
-    async def _load_channels(self, asset: Asset) -> Dict[ChannelFqn, List[Channel]]:
-        channels = self._cached_channels.get(asset.name)
-
-        if channels is None:
-            sift_channels = await self._get_channels_by_asset_id(asset.asset_id)
+    async def _load_channels(
+        self, asset: Asset, channel_fqns: List[str]
+    ) -> Dict[ChannelFqn, List[Channel]]:
+        if self._cached_channels.get(asset.name) is None:
+            sift_channels = await self._get_channels_by_asset_id_and_channel_fqns(
+                asset.asset_id, channel_fqns
+            )
 
             channels = defaultdict(list)
 
@@ -298,8 +310,28 @@ class DataService:
                 channels[channel_fqn(c.name, c.component)].append(c)
 
             self._cached_channels[asset.name] = channels
+            return self._cached_channels[asset.name]
 
-        return channels
+        chans = self._cached_channels[asset.name]
+
+        channels_to_retrieve = []
+
+        for fqn in channel_fqns:
+            if chans.get(fqn) is None:
+                channels_to_retrieve.append(fqn)
+
+        sift_channels = await self._get_channels_by_asset_id_and_channel_fqns(
+            asset.asset_id, channels_to_retrieve
+        )
+
+        channels = defaultdict(list)
+
+        for c in sift_channels:
+            channels[channel_fqn(c.name, c.component)].append(c)
+
+        self._cached_channels[asset.name].update(channels)
+
+        return self._cached_channels[asset.name]
 
     async def _load_runs(
         self, channel_queries: List[Union[ChannelQuery, CalculatedChannelQuery]]
@@ -377,13 +409,22 @@ class DataService:
 
         return runs
 
-    async def _get_channels_by_asset_id(self, asset_id: str) -> List[Channel]:
+    async def _get_channels_by_asset_id_and_channel_fqns(
+        self, asset_id: str, channel_fqns: List[str]
+    ) -> List[Channel]:
         if len(asset_id) == 0:
             return []
 
         channels: List[Channel] = []
 
-        filter = f'asset_id=="{asset_id}"'
+        channel_names = []
+
+        for fqn in channel_fqns:
+            channel_names.append(fqn.split(".")[-1])
+
+        name_in = cel_in("name", channel_names)
+
+        filter = f'asset_id=="{asset_id}" && {name_in}'
         page_size = 1_000
         next_page_token = ""
 
