@@ -44,9 +44,9 @@ err_and_exit() {
 }
 
 gen_python_modules() {
-  local python_gen_dir = "python/gen"
-  local python_lib - "python/lib"
-  local sift_py - "python/lib/sift_py"
+  local python_gen_dir="python/gen"
+  local python_lib="python/lib"
+  local sift_py="python/lib/sift_py"
 
   if [[ ! -d "$python_gen_dir" ]]; then
     err_and_exit "The '$python_gen_dir' directory could not be located. Failed to generate python modules."
@@ -60,6 +60,7 @@ gen_python_modules() {
       touch "$init_py"
     fi
   done
+  rm "$python_lib/__init__.py"
 
   mv $sift_py $python_gen_dir
   rm -rf $python_lib

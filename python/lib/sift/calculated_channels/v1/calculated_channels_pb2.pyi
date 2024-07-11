@@ -46,12 +46,14 @@ class _ExpressionModeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper.
     EXPRESSION_MODE_UNSPECIFIED: _ExpressionMode.ValueType  # 0
     EXPRESSION_MODE_RULES: _ExpressionMode.ValueType  # 1
     EXPRESSION_MODE_CALCULATED_CHANNELS: _ExpressionMode.ValueType  # 2
+    EXPRESSION_MODE_RULER: _ExpressionMode.ValueType  # 3
 
 class ExpressionMode(_ExpressionMode, metaclass=_ExpressionModeEnumTypeWrapper): ...
 
 EXPRESSION_MODE_UNSPECIFIED: ExpressionMode.ValueType  # 0
 EXPRESSION_MODE_RULES: ExpressionMode.ValueType  # 1
 EXPRESSION_MODE_CALCULATED_CHANNELS: ExpressionMode.ValueType  # 2
+EXPRESSION_MODE_RULER: ExpressionMode.ValueType  # 3
 global___ExpressionMode = ExpressionMode
 
 @typing.final
