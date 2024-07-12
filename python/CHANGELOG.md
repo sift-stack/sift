@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
  
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.1.0] - July 12, 2024
+
+Summary of changes:
+- Promote to `v0.1.0` from release candidate state. 
+- [Add module to download telemetry](https://github.com/sift-stack/sift/pull/72)
+
+In addition to the changes above, documentation is now also available online:
+- [Online documentation](https://docs.siftstack.com/sift_py/sift_py.html)
+- [Section on how to download telemetry](https://docs.siftstack.com/sift_py/sift_py/data.html)
+
 ## [v0.1.0-rc.3] - July 3, 2024
 
 Summary of changes:
