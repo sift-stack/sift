@@ -1,7 +1,7 @@
 # Sift Python
 [![pypi](https://img.shields.io/pypi/v/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
 [![pypi](https://img.shields.io/pypi/pyversions/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
-[![docs](https://readthedocs.org/projects/pip/badge/?version=latest)](https://docs.siftstack.com/sift_py/sift_py.html)
+[![docs](https://readthedocs.org/projects/pip/badge/)](https://docs.siftstack.com/sift_py/sift_py.html)
 
 This library offers a Python API on top of Sift's protocol buffers to ergonomically interface with the Sift gRPC API.
 
