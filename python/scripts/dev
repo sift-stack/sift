@@ -12,6 +12,7 @@ Usage: dev [SUBCOMMAND] [OPTIONS]
 Subcommands:
   bootstrap      Initializes python virtual environment and installs project dependencies
   docs           Boots up documentation server on port 8080
+  docs-build     Builds docs and emits to docs/sift_py
   fmt            Runs 'ruff fmt' to format the lib directory
   lint-fix       Runs 'ruff check --fix'
   lint           Runs 'ruff check' to lint the lib directory
@@ -68,6 +69,11 @@ doc() {
   pdoc lib/sift_py -p 7777
 }
 
+doc_build() {
+  source venv/bin/activate
+  pdoc lib/sift_py -o docs/sift_py
+}
+
 run_tests() {
   pytest
 }
@@ -81,6 +87,9 @@ case "$1" in
         ;;
     bootstrap)
         bootstrap
+        ;;
+    docs-build)
+        doc_build
         ;;
     docs)
         doc

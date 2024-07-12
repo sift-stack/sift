@@ -1,6 +1,7 @@
 # Sift Python
 [![pypi](https://img.shields.io/pypi/v/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
 [![pypi](https://img.shields.io/pypi/pyversions/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
+[![docs](https://readthedocs.org/projects/pip/badge/?version=latest)](https://docs.siftstack.com/sift_py/sift_py.html)
 
 This library offers a Python API on top of Sift's protocol buffers to ergonomically interface with the Sift gRPC API.
 
@@ -13,6 +14,11 @@ $ pip install sift-stack-py
 ```
 
 ## Documentation
+
+Documentation can be found at [this link](https://docs.siftstack.com/sift_py/sift_py.html), however, if you need
+to build the documentation for offline use, read on.
+
+### Offline documentation
 
 To build the documentation locally:
 
