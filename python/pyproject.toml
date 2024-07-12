@@ -1,6 +1,6 @@
 [project]
 name = "sift_stack_py"
-version = "0.1.0-rc.3"
+version = "0.1.0"
 description = "Python client library for the Sift API"
 requires-python = ">=3.9"
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -38,7 +38,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/sift-stack/sift/tree/main/python"
-Documentation = "https://docs.siftstack.com/"
+Documentation = "https://docs.siftstack.com/sift_py/sift_py.html"
 Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
