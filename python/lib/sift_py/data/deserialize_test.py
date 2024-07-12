@@ -83,7 +83,7 @@ def test_try_deserialize_channel_data_bit_field_elements():
     value_a = int("10000001", 2)
     value_b = int("11110001", 2)
 
-    double_values = BitFieldValues(
+    bit_field_values = BitFieldValues(
         metadata=metadata,
         values=[
             BitFieldElementValues(
@@ -108,7 +108,7 @@ def test_try_deserialize_channel_data_bit_field_elements():
     )
 
     raw_values = Any()
-    raw_values.Pack(double_values)
+    raw_values.Pack(bit_field_values)
 
     deserialized_data = try_deserialize_channel_data(raw_values)
 
