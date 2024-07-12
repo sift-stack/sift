@@ -32,6 +32,8 @@ dependencies = [
   # https://pyyaml.org/wiki/PyYAMLDocumentation
   "PyYAML==6.0.1",
   "types-PyYAML==6.0.12.20240311",
+  "pandas==2.2.2",
+  "pandas-stubs==2.2.2.240603",
 ]
 
 [project.urls]

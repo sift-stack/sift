@@ -1,18 +1,19 @@
-from datetime import datetime
 from typing import Any, List
+
+import pandas as pd
 
 from sift_py.ingestion.channel import ChannelDataType
 
 
 class ChannelTimeSeries:
     data_type: ChannelDataType
-    time_column: List[datetime]
+    time_column: List[pd.Timestamp]
     value_column: List[Any]
 
     def __init__(
         self,
         data_type: ChannelDataType,
-        time_column: List[datetime],
+        time_column: List[pd.Timestamp],
         value_column: List[Any],
     ):
         if len(time_column) != len(value_column):

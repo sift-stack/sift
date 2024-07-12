@@ -17,7 +17,7 @@ from sift.data.v1.data_pb2 import (
     Uint64Values,
 )
 
-from sift_py._internal.channel import to_datetime
+from sift_py._internal.time import to_timestamp_nanos
 from sift_py.data.channel import ChannelTimeSeries
 from sift_py.error import SiftError
 from sift_py.ingestion.channel import ChannelDataType
@@ -37,7 +37,7 @@ class ChannelValues(Enum):
 
 
 def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, ChannelTimeSeries]]:
-    if channel_values.type_url == ChannelValues.DOUBLE_VALUES.value:
+    if ChannelValues.DOUBLE_VALUES.value in channel_values.type_url:
         double_values = cast(DoubleValues, DoubleValues.FromString(channel_values.value))
         metadata = double_values.metadata
 
@@ -45,7 +45,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         double_value_column = []
 
         for v in double_values.values:
-            time_column.append(to_datetime(v.timestamp))
+            time_column.append(to_timestamp_nanos(v.timestamp))
             double_value_column.append(v.value)
 
         time_series = ChannelTimeSeries(
@@ -53,7 +53,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.FLOAT_VALUES.value:
+    elif ChannelValues.FLOAT_VALUES.value in channel_values.type_url:
         float_values = cast(FloatValues, FloatValues.FromString(channel_values.value))
         metadata = float_values.metadata
 
@@ -61,7 +61,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         float_value_column = []
 
         for float_v in float_values.values:
-            time_column.append(to_datetime(float_v.timestamp))
+            time_column.append(to_timestamp_nanos(float_v.timestamp))
             float_value_column.append(float_v.value)
 
         time_series = ChannelTimeSeries(
@@ -69,7 +69,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.STRING_VALUES.value:
+    elif ChannelValues.STRING_VALUES.value in channel_values.type_url:
         string_values = cast(StringValues, StringValues.FromString(channel_values.value))
         metadata = string_values.metadata
 
@@ -77,7 +77,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         string_value_column = []
 
         for string_v in string_values.values:
-            time_column.append(to_datetime(string_v.timestamp))
+            time_column.append(to_timestamp_nanos(string_v.timestamp))
             string_value_column.append(string_v.value)
 
         time_series = ChannelTimeSeries(
@@ -85,7 +85,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.ENUM_VALUES.value:
+    elif ChannelValues.ENUM_VALUES.value in channel_values.type_url:
         enum_values = cast(EnumValues, EnumValues.FromString(channel_values.value))
         metadata = enum_values.metadata
 
@@ -93,7 +93,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         enum_value_column = []
 
         for enum_v in enum_values.values:
-            time_column.append(to_datetime(enum_v.timestamp))
+            time_column.append(to_timestamp_nanos(enum_v.timestamp))
             enum_value_column.append(enum_v.value)
 
         time_series = ChannelTimeSeries(
@@ -101,7 +101,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.BOOL_VALUES.value:
+    elif ChannelValues.BOOL_VALUES.value in channel_values.type_url:
         bool_values = cast(BoolValues, BoolValues.FromString(channel_values.value))
         metadata = bool_values.metadata
 
@@ -109,7 +109,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         bool_value_column = []
 
         for bool_v in bool_values.values:
-            time_column.append(to_datetime(bool_v.timestamp))
+            time_column.append(to_timestamp_nanos(bool_v.timestamp))
             bool_value_column.append(bool_v.value)
 
         time_series = ChannelTimeSeries(
@@ -117,7 +117,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.INT32_VALUES.value:
+    elif ChannelValues.INT32_VALUES.value in channel_values.type_url:
         int32_values = cast(Int32Values, Int32Values.FromString(channel_values.value))
         metadata = int32_values.metadata
 
@@ -125,7 +125,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         int32_value_column = []
 
         for int32_v in int32_values.values:
-            time_column.append(to_datetime(int32_v.timestamp))
+            time_column.append(to_timestamp_nanos(int32_v.timestamp))
             int32_value_column.append(int32_v.value)
 
         time_series = ChannelTimeSeries(
@@ -133,7 +133,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.INT64_VALUES.value:
+    elif ChannelValues.INT64_VALUES.value in channel_values.type_url:
         int64_values = cast(Int64Values, Int64Values.FromString(channel_values.value))
         metadata = int64_values.metadata
 
@@ -141,7 +141,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         int64_value_column = []
 
         for int64_v in int64_values.values:
-            time_column.append(to_datetime(int64_v.timestamp))
+            time_column.append(to_timestamp_nanos(int64_v.timestamp))
             int64_value_column.append(int64_v.value)
 
         time_series = ChannelTimeSeries(
@@ -149,7 +149,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.UINT32_VALUES.value:
+    elif ChannelValues.UINT32_VALUES.value in channel_values.type_url:
         uint32_values = cast(Uint32Values, Uint32Values.FromString(channel_values.value))
         metadata = uint32_values.metadata
 
@@ -157,7 +157,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         uint32_value_column = []
 
         for uint32_v in uint32_values.values:
-            time_column.append(to_datetime(uint32_v.timestamp))
+            time_column.append(to_timestamp_nanos(uint32_v.timestamp))
             uint32_value_column.append(uint32_v.value)
 
         time_series = ChannelTimeSeries(
@@ -165,7 +165,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.UINT64_VALUES.value:
+    elif ChannelValues.UINT64_VALUES.value in channel_values.type_url:
         uint64_values = cast(Uint64Values, Uint64Values.FromString(channel_values.value))
         metadata = uint64_values.metadata
 
@@ -173,7 +173,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         uint64_value_column = []
 
         for uint64_v in uint64_values.values:
-            time_column.append(to_datetime(uint64_v.timestamp))
+            time_column.append(to_timestamp_nanos(uint64_v.timestamp))
             uint64_value_column.append(uint64_v.value)
 
         time_series = ChannelTimeSeries(
@@ -181,7 +181,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
         )
         return [(metadata, time_series)]
 
-    elif channel_values.type_url == ChannelValues.BIT_FIELD_VALUES.value:
+    elif ChannelValues.BIT_FIELD_VALUES.value in channel_values.type_url:
         bit_field_values = cast(BitFieldValues, BitFieldValues.FromString(channel_values.value))
         metadata = bit_field_values.metadata
         data_type = ChannelDataType.from_pb(metadata.data_type)
@@ -197,7 +197,7 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
             bit_field_el_column = []
 
             for bf_v in bit_field_element.values:
-                time_column.append(to_datetime(bf_v.timestamp))
+                time_column.append(to_timestamp_nanos(bf_v.timestamp))
                 bit_field_el_column.append(bf_v.value)
 
             time_series = ChannelTimeSeries(data_type, time_column, bit_field_el_column)
@@ -205,4 +205,4 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
 
         return parsed_data
 
-    raise SiftError("Received an unknown channel-type.")
+    raise SiftError(f"Received an unknown channel-type '{channel_values.type_url}'.")
