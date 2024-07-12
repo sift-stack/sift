@@ -59,6 +59,7 @@ async def calculated_channel_demo():
 
         return merged_frame
 
+
 if __name__ == "__main__":
     data = asyncio.run(calculated_channel_demo())
     print(data)
