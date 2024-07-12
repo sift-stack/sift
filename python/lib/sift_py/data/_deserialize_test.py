@@ -14,7 +14,7 @@ from sift.data.v1.data_pb2 import (
 )
 
 from sift_py._internal.time import to_timestamp_nanos, to_timestamp_pb
-from sift_py.data.deserialize import try_deserialize_channel_data
+from sift_py.data._deserialize import try_deserialize_channel_data
 
 
 def test_try_deserialize_channel_data_double():

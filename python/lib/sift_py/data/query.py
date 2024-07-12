@@ -1,3 +1,11 @@
+"""
+Module containing utilities to construct a data query which is ultimately
+passed to `sift_py.data.service.DataService.execute` to download telemetry.
+
+This module also contains types that represent the result of a data query
+which can be easily converted into a `pandas` data frame or series.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -9,11 +17,26 @@ from typing_extensions import NotRequired, TypeAlias
 
 from sift_py._internal.channel import channel_fqn
 from sift_py._internal.time import to_timestamp_nanos
-from sift_py.data.channel import ChannelTimeSeries
+from sift_py.data._channel import ChannelTimeSeries
 from sift_py.ingestion.channel import ChannelDataType
 
 
 class DataQuery:
+    """
+    A query that is meant to be passed to `sift_py.data.service.DataService.execute` to
+    retrieve telemetry.
+
+    - `asset_name`: The name of the asset to query telemetry for.
+    - `start_time`: The start time of the time range of the data to request.
+    - `end_time`: The end time of the time range of the data to request.
+    - `sample_ms`:
+        The sampling rate to use when retrieving data. The lower the sampling rate, the
+        greater the data-fidelity. A sampling rate of `0` retrieves full-fidelity data.
+    - `channels`:
+        List of either `ChannelQuery` or `CalculatedChannelQuery`, but not both. Represents the
+        channels to retrieve data from.
+    """
+
     DEFAULT_PAGE_SIZE = 100_000
 
     asset_name: str
@@ -30,14 +53,15 @@ class DataQuery:
         end_time: Union[pd.Timestamp, TimestampPb, datetime, str, int],
         channels: List[Union[ChannelQuery, CalculatedChannelQuery]],
         sample_ms: int = 0,
-        page_size: int = DEFAULT_PAGE_SIZE,
+        # Currently not in use outside of testing purposes.
+        _: int = DEFAULT_PAGE_SIZE,
     ):
         self.start_time = to_timestamp_nanos(start_time)
         self.end_time = to_timestamp_nanos(end_time)
         self.asset_name = asset_name
         self.sample_ms = sample_ms
         self.channels = channels
-        self.page_size = page_size
+        self.page_size = self.__class__.DEFAULT_PAGE_SIZE
 
 
 """
@@ -48,6 +72,10 @@ ChannelLookupInfo: TypeAlias = Union[str, Tuple[str, ChannelDataType]]
 
 
 class DataQueryResult:
+    """
+    The result of a data query which can contain multiple channels.
+    """
+
     _result: Dict[str, List[ChannelTimeSeries]]
 
     def __init__(self, merged_channel_data: Dict[str, List[ChannelTimeSeries]]):
@@ -131,6 +159,10 @@ class DataQueryResult:
         return result
 
     def all_channels(self) -> List[DataQueryResultSet]:
+        """
+        Returns all channel data.
+        """
+
         result = []
 
         for fqn, time_series in self._result.items():
@@ -161,6 +193,15 @@ class DataQueryResult:
 
 
 class DataQueryResultSet:
+    """
+    Represents time series data for a single channel. Can easily be converted into a `pandas` data frame like so:
+
+    ```python
+    pd.DataFrame(data_query_result_set.all_columns())
+    ```
+
+    """
+
     identifier: str
     timestamps: List[pd.Timestamp]
     values: List[Any]
@@ -171,12 +212,21 @@ class DataQueryResultSet:
         self.values = values
 
     def value_column(self, column_name: Optional[str] = None) -> Dict[str, List[Any]]:
+        """
+        Returns a single key-value pair dictionary meant to represent the value column of the data-set.
+        `column_name` can be used to override the name of the column.
+        """
+
         if column_name is None:
             return {self.identifier: self.values}
         else:
             return {column_name: self.values}
 
     def time_column(self, column_name: Optional[str] = None) -> Dict[str, List[Any]]:
+        """
+        Returns a single key-value pair dictionary meant to represent the time column of the data-set.
+        `column_name` can be used to override the name of the column.
+        """
         if column_name is None:
             return {"time": self.timestamps}
         else:
@@ -187,12 +237,20 @@ class DataQueryResultSet:
         time_column_name: Optional[str] = None,
         value_column_name: Optional[str] = None,
     ) -> Dict[str, List[Any]]:
+        """
+        Returns both the time and value columns with options to override the column names.
+        """
+
         cols = self.time_column(time_column_name)
         cols.update(self.value_column(value_column_name))
         return cols
 
 
 class ChannelQuery:
+    """
+    Represents a single channel to include in the `sift_py.data.query.DataQuery`.
+    """
+
     channel_name: str
     component: Optional[str]
     run_name: Optional[str]
@@ -211,16 +269,18 @@ class ChannelQuery:
         return channel_fqn(self.channel_name, self.component)
 
 
+class ExpressionChannelReference(TypedDict):
+    reference: str
+    channel_name: str
+    component: NotRequired[str]
+    data_type: NotRequired[ChannelDataType]
+
+
 class CalculatedChannelQuery:
-    ExpressionChannelReference = TypedDict(
-        "ExpressionChannelReference",
-        {
-            "reference": str,
-            "channel_name": str,
-            "component": NotRequired[str],
-            "data_type": NotRequired[ChannelDataType],
-        },
-    )
+    """
+    Represents a single calculated channel to include in the `sift_py.data.query.DataQuery`.
+    """
+
     channel_key: str
     expression: str
     expression_channel_references: List[ExpressionChannelReference]

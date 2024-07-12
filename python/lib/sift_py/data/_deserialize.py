@@ -18,7 +18,7 @@ from sift.data.v1.data_pb2 import (
 )
 
 from sift_py._internal.time import to_timestamp_nanos
-from sift_py.data.channel import ChannelTimeSeries
+from sift_py.data._channel import ChannelTimeSeries
 from sift_py.error import SiftError
 from sift_py.ingestion.channel import ChannelDataType
 

@@ -16,6 +16,7 @@ official [Sift documentation](https://docs.siftstack.com/glossary).
     - [Sending data to Sift](#sending-data-to-sift)
 * [Ingestion Performance](#ingestion-performance)
     - [Buffered Ingestion](#buffered-ingestion)
+* [Downloading Telemetry](#downloading-telemetry)
 * [More Examples](#more-examples)
 
 ## Introduction
@@ -845,6 +846,68 @@ with ingestion_service.buffered_ingestion() as buffered_ingestion:
 
 Visit the `sift_py.ingestion.service.IngestionService.buffered_ingestion` function definition
 for further details.
+
+## Downloading Telemetry
+
+To download your telemetry locally you'll want to make use of the `sift_py.data` module. Them module-level documentation
+contains more details, but here is an example script demonstrating how to download data for multiple channels, putting them
+into a `pandas` data frame, and writing the results out to a CSV:
+
+```python
+import asyncio
+import functools
+import pandas as pd
+from sift_py.data.query import ChannelQuery, DataQuery
+from sift_py.grpc.transport import SiftChannelConfig, use_sift_async_channel
+from sift_py.data.service import DataService
+
+
+async def channel_demo():
+    channel_config: SiftChannelConfig = {
+        "apikey": "my-key"
+        "uri": "sift-uri"
+    }
+
+    async with use_sift_async_channel(channel_config) as channel:
+        data_service = DataService(channel)
+
+        query = DataQuery(
+            asset_name="NostromoLV426",
+            start_time="2024-07-04T18:09:08.555-07:00",
+            end_time="2024-07-04T18:09:11.556-07:00",
+            channels=[
+                ChannelQuery(
+                    channel_name="voltage",
+                    run_name="[NostromoLV426].1720141748.047512"
+                ),
+                ChannelQuery(
+                    channel_name="velocity",
+                    component="mainmotors",
+                    run_name="[NostromoLV426].1720141748.047512",
+                ),
+                ChannelQuery(
+                    channel_name="gpio",
+                    run_name="[NostromoLV426].1720141748.047512",
+                ),
+            ],
+        )
+
+        result = await data_service.execute(query)
+
+        data_frames = [
+            pd.DataFrame(data.columns())
+            for data in result.channels("voltage", "mainmotors.velocity", "gpio.12v")
+        ]
+
+        merged_frame = functools.reduce(
+            lambda x, y: pd.merge_asof(x, y, on="time"), data_frames
+        )
+
+        merged_frame.to_csv("my_csv.csv")
+
+if __name__ == "__main__":
+    asyncio.run(example())
+```
 
 ## More Examples
 

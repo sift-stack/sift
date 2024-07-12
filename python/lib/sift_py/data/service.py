@@ -23,9 +23,9 @@ from typing_extensions import TypeAlias
 from sift_py._internal.cel import cel_in
 from sift_py._internal.channel import channel_fqn
 from sift_py._internal.convert.timestamp import to_pb_timestamp
+from sift_py.data._channel import ChannelTimeSeries
+from sift_py.data._deserialize import try_deserialize_channel_data
 from sift_py.data._validate import validate_channel_reference
-from sift_py.data.channel import ChannelTimeSeries
-from sift_py.data.deserialize import try_deserialize_channel_data
 from sift_py.data.error import DataError
 from sift_py.data.query import CalculatedChannelQuery, ChannelQuery, DataQuery, DataQueryResult
 from sift_py.error import SiftError
@@ -34,6 +34,12 @@ from sift_py.ingestion.channel import ChannelDataType
 
 
 class DataService:
+    """
+    A service that asynchronously executes a `sift_py.data.query.DataQuery` to retrieve telemetry
+    for an arbitrary amount of channels (or calculated channels) within a user-specified time-range
+    and sampling rate.
+    """
+
     # TODO: There is a pagination issue API side when requesting multiple channels in single request.
     # If all data points for all channels in a single request don't fit into a single page, then
     # paging seems to omit all but a single channel. We can increase this batch size once that issue
@@ -66,6 +72,10 @@ class DataService:
         self._cached_runs = {}
 
     async def execute(self, query: DataQuery, bust_cache: bool = False) -> DataQueryResult:
+        """
+        Performs the actual query to retrieve telemetry.
+        """
+
         if bust_cache:
             self._bust_cache()
 
