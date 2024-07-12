@@ -164,6 +164,26 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
 
         assert mock_ingest.call_count == 6
 
+    with mock_ctx_manager():
+        with ingestion_service.buffered_ingestion() as buffered_ingestion:
+            for _ in range(6_600):
+                buffered_ingestion.ingest_flows(
+                    {
+                        "flow_name": "readings",
+                        "timestamp": datetime.now(timezone.utc),
+                        "channel_values": [double_value(random.random())],
+                    }
+                )
+
+            assert mock_ingest.call_count == 6
+            assert len(buffered_ingestion._buffer) == 600
+
+            with pytest.raises(Exception):
+                raise
+
+        assert len(buffered_ingestion._buffer) == 0
+        assert mock_ingest.call_count == 7
+
 
 def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
     """

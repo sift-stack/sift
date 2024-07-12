@@ -16,6 +16,7 @@ from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from typing_extensions import NotRequired, Self
 
+from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.convert.protobuf import AsProtobuf
 
 
@@ -205,6 +206,30 @@ class ChannelDataType(Enum):
 
         return None
 
+    def as_human_str(self) -> str:
+        if self == self.__class__.DOUBLE.value:
+            return ChannelDataTypeStrRep.DOUBLE.value
+        elif self == self.__class__.STRING.value:
+            return ChannelDataTypeStrRep.STRING.value
+        elif self == self.__class__.ENUM.value:
+            return ChannelDataTypeStrRep.ENUM.value
+        elif self == self.__class__.BIT_FIELD.value:
+            return ChannelDataTypeStrRep.BIT_FIELD.value
+        elif self == self.__class__.BOOL.value:
+            return ChannelDataTypeStrRep.BOOL.value
+        elif self == self.__class__.FLOAT.value:
+            return ChannelDataTypeStrRep.FLOAT.value
+        elif self == self.__class__.INT_32.value:
+            return ChannelDataTypeStrRep.INT_32.value
+        elif self == self.__class__.INT_64.value:
+            return ChannelDataTypeStrRep.INT_64.value
+        elif self == self.__class__.UINT_32.value:
+            return ChannelDataTypeStrRep.UINT_32.value
+        elif self == self.__class__.UINT_64.value:
+            return ChannelDataTypeStrRep.UINT_64.value
+        else:
+            raise Exception("Unreachable.")
+
 
 class ChannelDataTypeStrRep(Enum):
     DOUBLE = "double"
@@ -240,13 +265,6 @@ def channel_fqn(channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, Cha
             return channel_name
         else:
             return f"{component}.{channel_name}"
-
-
-def _channel_fqn(name: str, component: Optional[str]) -> str:
-    if component is None or len(component) == 0:
-        return name
-    else:
-        return f"{component}.{name}"
 
 
 def string_value(val: str) -> IngestWithConfigDataChannelValue:

@@ -20,17 +20,20 @@ keywords = [
   "sift_py",
 ]
 dependencies = [
+  "aiofiles==24.1.0",
   "typing-extensions==4.12.2",
   # https://grpc.github.io/grpc/python/
   "grpcio==1.64.1",
   # https://googleapis.dev/python/protobuf/latest/
   "types-protobuf==5.26.0.20240422",
-  "protobuf==5.27.1",
+  "protobuf==5.27.2",
   # https://grpc-interceptor.readthedocs.io
   "grpc-interceptor==0.15.4",
   # https://pyyaml.org/wiki/PyYAMLDocumentation
   "PyYAML==6.0.1",
   "types-PyYAML==6.0.12.20240311",
+  "pandas==2.2.2",
+  "pandas-stubs==2.2.2.240603",
 ]
 
 [project.urls]
@@ -41,6 +44,7 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
+  # static analysis
   "mypy==1.10.0",
 
    # testing tools
@@ -48,6 +52,7 @@ development = [
   "pytest-benchmark==4.0.0",
   "pytest-mock==3.14.0",
   "grpcio-testing==1.64.1",
+  "pytest-asyncio==0.23.7",
 
   # formatter + linter
   "ruff",
