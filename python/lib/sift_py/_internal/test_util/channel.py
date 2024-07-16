@@ -1,5 +1,5 @@
-from collections.abc import AsyncIterable, Callable, Iterable
-from typing import Any, Optional, Union
+from collections.abc import AsyncIterable, Iterable
+from typing import Any, Callable, Optional, Union
 
 import grpc
 import grpc.aio as grpc_aio
@@ -9,8 +9,8 @@ from grpc_testing import Channel
 SerializingFunction = Callable[[Any], bytes]
 DeserializingFunction = Callable[[bytes], Any]
 DoneCallbackType = Callable[[Any], None]
-RequestIterableType = Union[Iterable[Any], AsyncIterable[Any]]
-ResponseIterableType = AsyncIterable[Any]
+RequestIterableType = Union[Iterable, AsyncIterable]
+ResponseIterableType = AsyncIterable
 
 
 class MockChannel(Channel):
