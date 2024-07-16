@@ -22,14 +22,10 @@ keywords = [
 ]
 dependencies = [
   "typing-extensions~=4.12.2",
-  # https://grpc.github.io/grpc/python/
   "grpcio~=1.64.1",
-  # https://googleapis.dev/python/protobuf/latest/
-  "types-protobuf==5.26.0.20240422",
+  "types-protobuf~=5.26.0.20240422",
   "protobuf~=5.27.2",
-  # https://grpc-interceptor.readthedocs.io
   "grpc-interceptor~=0.15.4",
-  # https://pyyaml.org/wiki/PyYAMLDocumentation
   "PyYAML~=6.0.1",
   "types-PyYAML~=6.0.12.20240311",
   "pandas~=2.0.3",
