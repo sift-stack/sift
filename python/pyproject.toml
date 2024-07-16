@@ -1,12 +1,13 @@
 [project]
 name = "sift_stack_py"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python client library for the Sift API"
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 classifiers  = [
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -32,8 +33,8 @@ dependencies = [
   # https://pyyaml.org/wiki/PyYAMLDocumentation
   "PyYAML==6.0.1",
   "types-PyYAML==6.0.12.20240311",
-  "pandas==2.2.2",
-  "pandas-stubs==2.2.2.240603",
+  "pandas==2.0.3",
+  "pandas-stubs==2.0.3.230814",
 ]
 
 [project.urls]
@@ -92,7 +93,7 @@ where = ["lib"]
 [tool.ruff]
 line-length = 100
 indent-width = 4
-target-version = "py39" # Python 3.9
+target-version = "py38" # Python 3.8
 exclude = [
     ".bzr",
     ".direnv",

@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
  
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.1.1] - July 17, 2024
+
+Summary of changes:
+- Extend support for Python 3.8
+
 ## [v0.1.0] - July 12, 2024
 
 Summary of changes:
