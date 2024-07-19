@@ -10,12 +10,12 @@ from typing import Any, List, Tuple, TypedDict
 
 import grpc
 import grpc.aio as grpc_aio
-from grpc_interceptor import ClientInterceptor
 from typing_extensions import NotRequired, TypeAlias
 
 from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
 from sift_py.grpc._async_interceptors.metadata import MetadataAsyncInterceptor
-from sift_py.grpc._interceptors import Metadata, MetadataInterceptor
+from sift_py.grpc._interceptors.base import ClientInterceptor
+from sift_py.grpc._interceptors.metadata import Metadata, MetadataInterceptor
 from sift_py.grpc._retry import RetryPolicy
 
 SiftChannel: TypeAlias = grpc.Channel
