@@ -1,2 +1,0 @@
-python-dotenv==1.0.1
-sift @ git+https://github.com/sift-stack/sift.git#subdirectory=python
