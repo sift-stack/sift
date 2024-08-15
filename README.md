@@ -69,4 +69,7 @@ In the near future we will plan to provide more installation options.
 
 ## Examples
 
-For usage examples you may also refer to the [examples](examples/) directory which demonstrates basic usage of the code generated from the protobufs.
+For usage examples you may also refer to examples which demonstrates basic usage of the code generated from the protobufs.
+- [Python Examples](https://github.com/sift-stack/sift/tree/main/python/examples)
+- [Go Examples](https://github.com/sift-stack/sift/tree/main/go/examples)
+- [Rust Examples](https://github.com/sift-stack/sift/tree/main/rust/examples)

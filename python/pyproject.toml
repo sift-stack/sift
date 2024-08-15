@@ -25,6 +25,7 @@ dependencies = [
   "PyYAML~=6.0.0",
   "pandas~=2.0.3",
   "protobuf~=5.26.0",
+  "pydantic~=2.0.0",
 
   # May move these to optional dependencies in the future.
   "pandas-stubs~=2.0.3",
