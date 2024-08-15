@@ -69,6 +69,8 @@ gen_python_modules() {
   # This is necessary to split `google` module into separate directories: one generated from the googleapis buf plugin,
   # and the other coming from the `protobuf` PyPI package that gets installed as `google`.
   echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$python_lib/google/__init__.py"
+  touch "$sift_py/py.typed"
+  touch "$sift_grafana/py.typed"
 
   echo "ok"
 }

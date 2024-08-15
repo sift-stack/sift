@@ -5,7 +5,7 @@ package sift.ingest.v1;
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "azimuth/gen/protos/go/sift/ingest/v1;ingestv1pb";
+
 
 service IngestService {
   rpc IngestWithConfigDataStream(stream IngestWithConfigDataStreamRequest) returns (IngestWithConfigDataStreamResponse);
