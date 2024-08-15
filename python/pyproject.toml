@@ -82,6 +82,10 @@ ignore_errors = true
 [tool.setuptools.packages.find]
 where = ["lib"]
 
+[tool.setuptools.package-data]
+sift_grafana = ["py.typed"]
+sift_py = ["py.typed"]
+
 [tool.ruff]
 line-length = 100
 indent-width = 4
