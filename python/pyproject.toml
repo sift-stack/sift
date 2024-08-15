@@ -21,21 +21,17 @@ keywords = [
   "sift_py",
 ]
 dependencies = [
-  "aiofiles==24.1.0",
-  "typing-extensions==4.12.2",
-  # https://grpc.github.io/grpc/python/
-  "grpcio==1.64.1",
-  # https://googleapis.dev/python/protobuf/latest/
-  "types-protobuf==5.26.0.20240422",
-  "protobuf==5.27.2",
-  # https://grpc-interceptor.readthedocs.io
-  "grpc-interceptor==0.15.4",
-  # https://pyyaml.org/wiki/PyYAMLDocumentation
-  "PyYAML==6.0.1",
-  "types-PyYAML==6.0.12.20240311",
-  "pandas==2.0.3",
-  "pandas-stubs==2.0.3.230814",
+  "grpcio~=1.64.1",
+  "PyYAML~=6.0.0",
+  "pandas~=2.0.3",
+  "protobuf~=5.26.0",
   "pydantic~=2.0.0",
+
+  # May move these to optional dependencies in the future.
+  "pandas-stubs~=2.0.3",
+  "types-PyYAML~=6.0.0",
+  "types-protobuf~=5.26.0.20240420",
+  "typing-extensions~=4.6.1",
 ]
 
 [project.urls]
@@ -46,17 +42,12 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
-  # static analysis
+  "grpcio-testing==1.64.1",
   "mypy==1.10.0",
-
-   # testing tools
   "pytest==8.2.2",
+  "pytest-asyncio==0.23.7",
   "pytest-benchmark==4.0.0",
   "pytest-mock==3.14.0",
-  "grpcio-testing==1.64.1",
-  "pytest-asyncio==0.23.7",
-
-  # formatter + linter
   "ruff",
 ]
 build = [
@@ -69,7 +60,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.8"
 
 # No official typing stubs for Python gRPC libraries yet.
 # https://github.com/grpc/grpc/issues/29041

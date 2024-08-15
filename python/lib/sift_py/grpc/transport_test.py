@@ -7,7 +7,6 @@ from typing import Any, Callable, Iterator, cast
 
 import grpc
 import pytest
-from grpc_interceptor import ServerInterceptor
 from pytest_mock import MockFixture, MockType
 from sift.data.v1.data_pb2 import GetDataRequest, GetDataResponse
 from sift.data.v1.data_pb2_grpc import (
@@ -16,6 +15,7 @@ from sift.data.v1.data_pb2_grpc import (
     add_DataServiceServicer_to_server,
 )
 
+from sift_py._internal.test_util.server_interceptor import ServerInterceptor
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 
 
