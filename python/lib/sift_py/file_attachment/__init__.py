@@ -4,11 +4,11 @@ It also support provides utilities to easily query all file attachments for a gi
 which could be a run, annotation, or annotation logs. File attachment deletion is also supported.
 
 Once files have been attached, they should be viewable on the Sift application, attached to their
-respective entities. Below are various examples on how to leverage the `sift_py.file_attachment.FileAttachmentService`.
+respective entities. Below are various examples on how to leverage the `sift_py.file_attachment.service.FileAttachmentService`.
 
 ## Initializing the file attachment service
 
-Unlike other services throughout `sift_py`, the `sift_py.file_attachment.FileAttachmentService` does rely on both
+Unlike other services throughout `sift_py`, the `sift_py.file_attachment.service.FileAttachmentService` does rely on both
 REST and gRPC APIs, so with that in mind we can initialize our service like so:
 
 ```python
@@ -25,7 +25,6 @@ rest_config: SiftRestConfig = {
     # Be sure to exclude the "https://" or "http://" scheme out of the uri
     "uri": rest_base_uri,
     "apikey": apikey,
-    "use_ssl": False,
 }
 
 sift_channel_config = SiftChannelConfig(uri=grpc_base_uri, apikey=apikey)
