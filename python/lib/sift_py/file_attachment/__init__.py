@@ -67,6 +67,7 @@ with use_sift_channel(sift_channel_config) as channel:
     remote_file = file_attachment_service.upload_attachment(
         path="path/to/foo.mp4",
         entity=run,
+        # Metatadata.. optional but recommended for optimal viewing in the application
         metadata=VideoMetadata(height=2160, width=3840, duration_seconds=5.5),
         description="thrusters getting too hot" ,
     )
