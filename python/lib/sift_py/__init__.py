@@ -912,7 +912,7 @@ if __name__ == "__main__":
 
 ## File attachments
 
-See the module-level documentation for `sift_py.file_attachments` to learn uploading and downloading
+See the module-level documentation for `sift_py.file_attachment` to learn uploading and downloading
 file attachments to various entities such as runs, annotations, and annotation logs. Once file attachments
 are created they become viewable in the Sift application.
 
