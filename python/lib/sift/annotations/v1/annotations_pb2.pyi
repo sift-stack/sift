@@ -78,6 +78,7 @@ class Annotation(google.protobuf.message.Message):
     TAGS_FIELD_NUMBER: builtins.int
     LEGEND_CONFIG_FIELD_NUMBER: builtins.int
     CREATED_BY_CONDITION_ID_FIELD_NUMBER: builtins.int
+    CREATED_BY_RULE_CONDITION_VERSION_ID_FIELD_NUMBER: builtins.int
     annotation_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -90,6 +91,7 @@ class Annotation(google.protobuf.message.Message):
     annotation_type: global___AnnotationType.ValueType
     legend_config: builtins.str
     created_by_condition_id: builtins.str
+    created_by_rule_condition_version_id: builtins.str
     @property
     def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -120,11 +122,14 @@ class Annotation(google.protobuf.message.Message):
         tags: collections.abc.Iterable[builtins.str] | None = ...,
         legend_config: builtins.str | None = ...,
         created_by_condition_id: builtins.str | None = ...,
+        created_by_rule_condition_version_id: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "created_by_condition_id", b"created_by_condition_id", "created_date", b"created_date", "end_time", b"end_time", "legend_config", b"legend_config", "modified_date", b"modified_date", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "annotation_id", b"annotation_id", "annotation_type", b"annotation_type", "assigned_to_user_id", b"assigned_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "end_time", b"end_time", "legend_config", b"legend_config", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_date", b"created_date", "end_time", b"end_time", "legend_config", b"legend_config", "modified_date", b"modified_date", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "annotation_id", b"annotation_id", "annotation_type", b"annotation_type", "assigned_to_user_id", b"assigned_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "end_time", b"end_time", "legend_config", b"legend_config", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_created_by_condition_id", b"_created_by_condition_id"]) -> typing.Literal["created_by_condition_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id"]) -> typing.Literal["created_by_rule_condition_version_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_legend_config", b"_legend_config"]) -> typing.Literal["legend_config"] | None: ...
     @typing.overload
@@ -211,6 +216,7 @@ class CreateAnnotationRequest(google.protobuf.message.Message):
     ANNOTATION_TYPE_FIELD_NUMBER: builtins.int
     CREATED_BY_CONDITION_ID_FIELD_NUMBER: builtins.int
     LEGEND_CONFIG_FIELD_NUMBER: builtins.int
+    CREATED_BY_RULE_CONDITION_VERSION_ID_FIELD_NUMBER: builtins.int
     name: builtins.str
     """The name assigned to the new annotation."""
     description: builtins.str
@@ -233,6 +239,8 @@ class CreateAnnotationRequest(google.protobuf.message.Message):
     """The ID of the rule condition that created this annotation."""
     legend_config: builtins.str
     """A JSON string containing the axes configuration of the annotation's linked channels."""
+    created_by_rule_condition_version_id: builtins.str
+    """The ID of the rule condition version that created this annotation."""
     @property
     def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp:
         """When the annotation starts."""
@@ -270,13 +278,16 @@ class CreateAnnotationRequest(google.protobuf.message.Message):
         annotation_type: global___AnnotationType.ValueType = ...,
         created_by_condition_id: builtins.str | None = ...,
         legend_config: builtins.str | None = ...,
+        created_by_rule_condition_version_id: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_assign_to_user_id", b"_assign_to_user_id", "_created_by_condition_id", b"_created_by_condition_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "assign_to_user_id", b"assign_to_user_id", "created_by_condition_id", b"created_by_condition_id", "end_time", b"end_time", "legend_config", b"legend_config", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_assign_to_user_id", b"_assign_to_user_id", "_created_by_condition_id", b"_created_by_condition_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "annotation_type", b"annotation_type", "assets", b"assets", "assign_to_user_id", b"assign_to_user_id", "created_by_condition_id", b"created_by_condition_id", "description", b"description", "end_time", b"end_time", "legend_config", b"legend_config", "linked_channels", b"linked_channels", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_assign_to_user_id", b"_assign_to_user_id", "_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "assign_to_user_id", b"assign_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "end_time", b"end_time", "legend_config", b"legend_config", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_assign_to_user_id", b"_assign_to_user_id", "_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "annotation_type", b"annotation_type", "assets", b"assets", "assign_to_user_id", b"assign_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "description", b"description", "end_time", b"end_time", "legend_config", b"legend_config", "linked_channels", b"linked_channels", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_assign_to_user_id", b"_assign_to_user_id"]) -> typing.Literal["assign_to_user_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_created_by_condition_id", b"_created_by_condition_id"]) -> typing.Literal["created_by_condition_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id"]) -> typing.Literal["created_by_rule_condition_version_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_legend_config", b"_legend_config"]) -> typing.Literal["legend_config"] | None: ...
     @typing.overload
@@ -419,7 +430,7 @@ class ListAnnotationsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
-    `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_condition_id`,
+    `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`,
     and `annotation_type`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#annotation). Optional.
