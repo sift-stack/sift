@@ -1,6 +1,6 @@
 """
 This module contains services to facilitate uploading and downloading file attachments.
-It also support provides utilities to easily query all file attachments for a given entity
+It also provides utilities to easily query all file attachments for a given entity
 which could be a run, annotation, or annotation logs. File attachment deletion is also supported.
 
 Once files have been attached, they should be viewable on the Sift application, attached to their
