@@ -47,6 +47,7 @@ gen_python_modules() {
   local python_gen_dir="python/gen"
   local python_lib="python/lib"
   local sift_py="python/lib/sift_py"
+  local sift_grafana="python/lib/sift_grafana"
 
   if [[ ! -d "$python_gen_dir" ]]; then
     err_and_exit "The '$python_gen_dir' directory could not be located. Failed to generate python modules."
@@ -60,16 +61,17 @@ gen_python_modules() {
       touch "$init_py"
     fi
   done
-  rm "$python_lib/__init__.py"
 
   mv $sift_py $python_gen_dir
+  mv $sift_grafana $python_gen_dir
   rm -rf $python_lib
   mv $python_gen_dir $python_lib
 
   # This is necessary to split `google` module into separate directories: one generated from the googleapis buf plugin,
   # and the other coming from the `protobuf` PyPI package that gets installed as `google`.
   echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$python_lib/google/__init__.py"
-
+  
+  rm "${python_lib}/__init__.py"
 
   echo "ok"
 }

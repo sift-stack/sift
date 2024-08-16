@@ -36,7 +36,7 @@ class RuleServiceStub:
         sift.rules.v1.rules_pb2.GetRuleRequest,
         sift.rules.v1.rules_pb2.GetRuleResponse,
     ]
-    """Retrieves a rule."""
+    """Retrieves the latest version of a rule."""
 
     BatchGetRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.BatchGetRulesRequest,
@@ -98,6 +98,24 @@ class RuleServiceStub:
     ]
     """Batch update rules given the `rules_json` which is a JSON list of rules."""
 
+    ListRuleVersions: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.ListRuleVersionsRequest,
+        sift.rules.v1.rules_pb2.ListRuleVersionsResponse,
+    ]
+    """Retrieves a list of rule versions for the given rule."""
+
+    GetRuleVersion: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.GetRuleVersionRequest,
+        sift.rules.v1.rules_pb2.GetRuleVersionResponse,
+    ]
+    """Retrieves a specific version of a rule."""
+
+    BatchGetRuleVersions: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchGetRuleVersionsRequest,
+        sift.rules.v1.rules_pb2.BatchGetRuleVersionsResponse,
+    ]
+    """Retrieves multiple rules by rule versions."""
+
 class RuleServiceAsyncStub:
     SearchRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.SearchRulesRequest,
@@ -109,7 +127,7 @@ class RuleServiceAsyncStub:
         sift.rules.v1.rules_pb2.GetRuleRequest,
         sift.rules.v1.rules_pb2.GetRuleResponse,
     ]
-    """Retrieves a rule."""
+    """Retrieves the latest version of a rule."""
 
     BatchGetRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.BatchGetRulesRequest,
@@ -171,6 +189,24 @@ class RuleServiceAsyncStub:
     ]
     """Batch update rules given the `rules_json` which is a JSON list of rules."""
 
+    ListRuleVersions: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.ListRuleVersionsRequest,
+        sift.rules.v1.rules_pb2.ListRuleVersionsResponse,
+    ]
+    """Retrieves a list of rule versions for the given rule."""
+
+    GetRuleVersion: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.GetRuleVersionRequest,
+        sift.rules.v1.rules_pb2.GetRuleVersionResponse,
+    ]
+    """Retrieves a specific version of a rule."""
+
+    BatchGetRuleVersions: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchGetRuleVersionsRequest,
+        sift.rules.v1.rules_pb2.BatchGetRuleVersionsResponse,
+    ]
+    """Retrieves multiple rules by rule versions."""
+
 class RuleServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def SearchRules(
@@ -186,7 +222,7 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.GetRuleRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.GetRuleResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.GetRuleResponse]]:
-        """Retrieves a rule."""
+        """Retrieves the latest version of a rule."""
 
     @abc.abstractmethod
     def BatchGetRules(
@@ -267,5 +303,29 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.UpdateJsonRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.UpdateJsonRulesResponse]]:
         """Batch update rules given the `rules_json` which is a JSON list of rules."""
+
+    @abc.abstractmethod
+    def ListRuleVersions(
+        self,
+        request: sift.rules.v1.rules_pb2.ListRuleVersionsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.ListRuleVersionsResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.ListRuleVersionsResponse]]:
+        """Retrieves a list of rule versions for the given rule."""
+
+    @abc.abstractmethod
+    def GetRuleVersion(
+        self,
+        request: sift.rules.v1.rules_pb2.GetRuleVersionRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.GetRuleVersionResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.GetRuleVersionResponse]]:
+        """Retrieves a specific version of a rule."""
+
+    @abc.abstractmethod
+    def BatchGetRuleVersions(
+        self,
+        request: sift.rules.v1.rules_pb2.BatchGetRuleVersionsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.BatchGetRuleVersionsResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.BatchGetRuleVersionsResponse]]:
+        """Retrieves multiple rules by rule versions."""
 
 def add_RuleServiceServicer_to_server(servicer: RuleServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
