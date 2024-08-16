@@ -95,8 +95,8 @@ class UploadService:
         mime, encoding = mimetypes.guess_type(path)
         return file_name, mime, encoding
 
-    @classmethod
-    def _compute_uri(cls, restconf: SiftRestConfig) -> str:
+    @staticmethod
+    def _compute_uri(restconf: SiftRestConfig) -> str:
         uri = restconf["uri"]
         parsed_uri = urlparse(uri)
 
