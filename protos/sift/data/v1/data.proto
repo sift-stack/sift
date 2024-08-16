@@ -12,7 +12,7 @@ import "sift/common/type/v1/channel_bit_field_element.proto";
 import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
 
-option go_package = "azimuth/gen/protos/go/sift/data/v1;datav1pb";
+
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Data Service"}
 };

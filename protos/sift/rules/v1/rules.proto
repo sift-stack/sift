@@ -15,7 +15,7 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/annotations/v1/annotations.proto";
 
-option go_package = "azimuth/gen/protos/go/sift/rules/v1;rulesv1pb";
+
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Rule Service"}
 };
@@ -41,12 +41,12 @@ service RuleService {
     };
   }
 
-  // Retrieves a rule.
+  // Retrieves the latest version of a rule.
   rpc GetRule(GetRuleRequest) returns (GetRuleResponse) {
     option (google.api.http) = {get: "/api/v1/rules"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetRules"
-      description: "Retrieves a rule."
+      summary: "GetRule"
+      description: "Retrieves the latest version of a rule."
     };
   }
 
@@ -165,6 +165,36 @@ service RuleService {
       description: "Batch update rules given the `rules_json` which is a JSON list of rules."
     };
   }
+
+  // Retrieves a list of rule versions for the given rule.
+  rpc ListRuleVersions(ListRuleVersionsRequest) returns (ListRuleVersionsResponse) {
+    option (google.api.http) = {get: "/api/v1/rules/{rule_id}/versions"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListRuleVersions"
+      description: "Retrieves a list of rule versions for the given rule."
+    };
+  }
+
+  // Retrieves a specific version of a rule.
+  rpc GetRuleVersion(GetRuleVersionRequest) returns (GetRuleVersionResponse) {
+    option (google.api.http) = {get: "/api/v1/rules:version"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetRuleVersion"
+      description: "Retrieves a specific version of a rule."
+    };
+  }
+
+  // Retrieves multiple rules by rule versions.
+  rpc BatchGetRuleVersions(BatchGetRuleVersionsRequest) returns (BatchGetRuleVersionsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules:batchGetVersions"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchGetRuleVersions"
+      description: "Retrieves multiple rules by rule versions."
+    };
+  }
 }
 
 message Rule {
@@ -181,6 +211,7 @@ message Rule {
   string modified_by_user_id = 10 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 11 [(google.api.field_behavior) = REQUIRED];
   repeated RuleCondition conditions = 12 [(google.api.field_behavior) = REQUIRED];
+  RuleVersion rule_version = 13 [(google.api.field_behavior) = REQUIRED];
 }
 message RuleCondition {
   // 4 is reserved from old "status" column that lived directly on rule condition
@@ -193,6 +224,7 @@ message RuleCondition {
   string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
   repeated RuleAction actions = 9 [(google.api.field_behavior) = REQUIRED];
+  string rule_condition_version_id = 10 [(google.api.field_behavior) = REQUIRED];
 }
 message RuleAction {
   string rule_action_id = 1 [(google.api.field_behavior) = REQUIRED];
@@ -203,6 +235,11 @@ message RuleAction {
   google.protobuf.Timestamp modified_date = 6 [(google.api.field_behavior) = REQUIRED];
   string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+  string rule_action_version_id = 9 [(google.api.field_behavior) = REQUIRED];
+}
+
+message RuleAssetConfiguration {
+  repeated string asset_ids = 1;
 }
 
 message SearchRulesRequest {
@@ -228,7 +265,7 @@ enum SearchOrder {
 }
 message SearchRulesResponse {
   uint32 count = 1 [(google.api.field_behavior) = REQUIRED];
-  // Conditions are not included in the search response
+  // Conditions are not included in the search response. The latest version of the rule is returned.
   repeated Rule rules = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -260,6 +297,7 @@ message UpdateRuleRequest {
   bool is_enabled = 5 [(google.api.field_behavior) = REQUIRED];
   repeated UpdateConditionRequest conditions = 6 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 7;
+  string version_notes = 8;
 }
 message UpdateConditionRequest {
   // 2 is reserved from old status update support on rule condition directly
@@ -354,12 +392,66 @@ message UpdateJsonRulesResponse {
   JsonRulesResponse response = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+message ListRuleVersionsRequest {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of Rule Versions to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 Rule Versions will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListRuleVersions` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListRuleVersions` must match
+  // the call that provided the page token.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `rule_version_id`, `user_notes`,  and `change_message`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions). Optional.
+  string filter = 4;
+}
+
+message RuleVersion {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rule_version_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string version = 3 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 4 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 5 [(google.api.field_behavior) = REQUIRED];
+  string version_notes = 6 [(google.api.field_behavior) = REQUIRED];
+  string generated_change_message = 7 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListRuleVersionsResponse {
+  repeated RuleVersion rule_versions = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2;
+}
+
+message GetRuleVersionRequest {
+  string rule_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetRuleVersionResponse {
+  Rule rule = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchGetRuleVersionsRequest {
+  repeated string rule_version_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchGetRuleVersionsResponse {
+  repeated Rule rules = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
 message RuleConditionExpression {
   oneof expression {
-    SingleChannelComparisonExpression single_channel_comparison = 1;
+    SingleChannelComparisonExpression single_channel_comparison = 1 [deprecated = true];
     CalculatedChannelConfig calculated_channel = 2;
   }
 }
+
+// Deprecated - use CalculatedChannelConfig.
 message SingleChannelComparisonExpression {
   string channel_component = 1 [(google.api.field_behavior) = REQUIRED];
   string channel_name = 2 [(google.api.field_behavior) = REQUIRED];
@@ -433,4 +525,5 @@ message DryRunAnnotation {
   string name = 2;
   google.protobuf.Timestamp start_time = 3;
   google.protobuf.Timestamp end_time = 4;
+  string condition_version_id = 5;
 }

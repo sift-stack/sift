@@ -5,7 +5,7 @@ package sift.tags.v1;
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "azimuth/gen/protos/go/sift/tags/v1;tagsv1pb";
+
 
 message Tag {
   string tag_id = 1 [(google.api.field_behavior) = REQUIRED];

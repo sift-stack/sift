@@ -70,6 +70,7 @@ gen_python_modules() {
   # and the other coming from the `protobuf` PyPI package that gets installed as `google`.
   echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$python_lib/google/__init__.py"
 
+
   echo "ok"
 }
 
