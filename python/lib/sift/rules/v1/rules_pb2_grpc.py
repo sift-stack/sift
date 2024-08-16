@@ -74,6 +74,21 @@ class RuleServiceStub(object):
                 request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesRequest.SerializeToString,
                 response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesResponse.FromString,
                 )
+        self.ListRuleVersions = channel.unary_unary(
+                '/sift.rules.v1.RuleService/ListRuleVersions',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ListRuleVersionsRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ListRuleVersionsResponse.FromString,
+                )
+        self.GetRuleVersion = channel.unary_unary(
+                '/sift.rules.v1.RuleService/GetRuleVersion',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.GetRuleVersionRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.GetRuleVersionResponse.FromString,
+                )
+        self.BatchGetRuleVersions = channel.unary_unary(
+                '/sift.rules.v1.RuleService/BatchGetRuleVersions',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchGetRuleVersionsRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchGetRuleVersionsResponse.FromString,
+                )
 
 
 class RuleServiceServicer(object):
@@ -87,7 +102,7 @@ class RuleServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetRule(self, request, context):
-        """Retrieves a rule.
+        """Retrieves the latest version of a rule.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -163,6 +178,27 @@ class RuleServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListRuleVersions(self, request, context):
+        """Retrieves a list of rule versions for the given rule.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetRuleVersion(self, request, context):
+        """Retrieves a specific version of a rule.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchGetRuleVersions(self, request, context):
+        """Retrieves multiple rules by rule versions.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RuleServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -225,6 +261,21 @@ def add_RuleServiceServicer_to_server(servicer, server):
                     servicer.UpdateJsonRules,
                     request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesRequest.FromString,
                     response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesResponse.SerializeToString,
+            ),
+            'ListRuleVersions': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListRuleVersions,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ListRuleVersionsRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ListRuleVersionsResponse.SerializeToString,
+            ),
+            'GetRuleVersion': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetRuleVersion,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.GetRuleVersionRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.GetRuleVersionResponse.SerializeToString,
+            ),
+            'BatchGetRuleVersions': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchGetRuleVersions,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchGetRuleVersionsRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchGetRuleVersionsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -437,5 +488,56 @@ class RuleService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/UpdateJsonRules',
             sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesRequest.SerializeToString,
             sift_dot_rules_dot_v1_dot_rules__pb2.UpdateJsonRulesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListRuleVersions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/ListRuleVersions',
+            sift_dot_rules_dot_v1_dot_rules__pb2.ListRuleVersionsRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.ListRuleVersionsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetRuleVersion(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/GetRuleVersion',
+            sift_dot_rules_dot_v1_dot_rules__pb2.GetRuleVersionRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.GetRuleVersionResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchGetRuleVersions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/BatchGetRuleVersions',
+            sift_dot_rules_dot_v1_dot_rules__pb2.BatchGetRuleVersionsRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.BatchGetRuleVersionsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

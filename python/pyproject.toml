@@ -24,14 +24,17 @@ dependencies = [
   "grpcio~=1.64.1",
   "PyYAML~=6.0.0",
   "pandas~=2.0.3",
-  "protobuf~=5.26.0",
+  "protobuf~=5.26.1",
   "pydantic~=2.0.0",
+  "requests~=2.25.0",
+  "requests-toolbelt~=1.0.0",
 
   # May move these to optional dependencies in the future.
   "pandas-stubs~=2.0.3",
   "types-PyYAML~=6.0.0",
   "types-protobuf~=5.26.0.20240420",
   "typing-extensions~=4.6.1",
+  "types-requests~=2.25.0",
 ]
 
 [project.urls]
@@ -76,6 +79,11 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "grpc.aio"
+ignore_missing_imports = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "requests_toolbelt"
 ignore_missing_imports = true
 ignore_errors = true
 

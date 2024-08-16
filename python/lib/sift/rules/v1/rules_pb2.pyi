@@ -102,6 +102,7 @@ class Rule(google.protobuf.message.Message):
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     CONDITIONS_FIELD_NUMBER: builtins.int
+    RULE_VERSION_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     asset_id: builtins.str
     name: builtins.str
@@ -116,6 +117,8 @@ class Rule(google.protobuf.message.Message):
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___RuleCondition]: ...
+    @property
+    def rule_version(self) -> global___RuleVersion: ...
     def __init__(
         self,
         *,
@@ -130,9 +133,10 @@ class Rule(google.protobuf.message.Message):
         modified_by_user_id: builtins.str = ...,
         organization_id: builtins.str = ...,
         conditions: collections.abc.Iterable[global___RuleCondition] | None = ...,
+        rule_version: global___RuleVersion | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "conditions", b"conditions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "conditions", b"conditions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
 
 global___Rule = Rule
 
@@ -148,10 +152,12 @@ class RuleCondition(google.protobuf.message.Message):
     CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
     ACTIONS_FIELD_NUMBER: builtins.int
+    RULE_CONDITION_VERSION_ID_FIELD_NUMBER: builtins.int
     rule_condition_id: builtins.str
     rule_id: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
+    rule_condition_version_id: builtins.str
     @property
     def expression(self) -> global___RuleConditionExpression: ...
     @property
@@ -171,9 +177,10 @@ class RuleCondition(google.protobuf.message.Message):
         created_by_user_id: builtins.str = ...,
         modified_by_user_id: builtins.str = ...,
         actions: collections.abc.Iterable[global___RuleAction] | None = ...,
+        rule_condition_version_id: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "expression", b"expression", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["actions", b"actions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "expression", b"expression", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "rule_condition_id", b"rule_condition_id", "rule_id", b"rule_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["actions", b"actions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "expression", b"expression", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "rule_condition_id", b"rule_condition_id", "rule_condition_version_id", b"rule_condition_version_id", "rule_id", b"rule_id"]) -> None: ...
 
 global___RuleCondition = RuleCondition
 
@@ -189,11 +196,13 @@ class RuleAction(google.protobuf.message.Message):
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    RULE_ACTION_VERSION_ID_FIELD_NUMBER: builtins.int
     rule_action_id: builtins.str
     rule_condition_id: builtins.str
     action_type: global___ActionKind.ValueType
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
+    rule_action_version_id: builtins.str
     @property
     def configuration(self) -> global___RuleActionConfiguration: ...
     @property
@@ -211,11 +220,28 @@ class RuleAction(google.protobuf.message.Message):
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         created_by_user_id: builtins.str = ...,
         modified_by_user_id: builtins.str = ...,
+        rule_action_version_id: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["configuration", b"configuration", "created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["action_type", b"action_type", "configuration", b"configuration", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "rule_action_id", b"rule_action_id", "rule_condition_id", b"rule_condition_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["action_type", b"action_type", "configuration", b"configuration", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "rule_action_id", b"rule_action_id", "rule_action_version_id", b"rule_action_version_id", "rule_condition_id", b"rule_condition_id"]) -> None: ...
 
 global___RuleAction = RuleAction
+
+@typing.final
+class RuleAssetConfiguration(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def asset_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        asset_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_ids", b"asset_ids"]) -> None: ...
+
+global___RuleAssetConfiguration = RuleAssetConfiguration
 
 @typing.final
 class SearchRulesRequest(google.protobuf.message.Message):
@@ -281,7 +307,7 @@ class SearchRulesResponse(google.protobuf.message.Message):
     count: builtins.int
     @property
     def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Rule]:
-        """Conditions are not included in the search response"""
+        """Conditions are not included in the search response. The latest version of the rule is returned."""
 
     def __init__(
         self,
@@ -400,12 +426,14 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     IS_ENABLED_FIELD_NUMBER: builtins.int
     CONDITIONS_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    VERSION_NOTES_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     name: builtins.str
     description: builtins.str
     asset_id: builtins.str
     is_enabled: builtins.bool
     organization_id: builtins.str
+    version_notes: builtins.str
     @property
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateConditionRequest]: ...
     def __init__(
@@ -418,9 +446,10 @@ class UpdateRuleRequest(google.protobuf.message.Message):
         is_enabled: builtins.bool = ...,
         conditions: collections.abc.Iterable[global___UpdateConditionRequest] | None = ...,
         organization_id: builtins.str = ...,
+        version_notes: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_rule_id", b"_rule_id", "rule_id", b"rule_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_rule_id", b"_rule_id", "asset_id", b"asset_id", "conditions", b"conditions", "description", b"description", "is_enabled", b"is_enabled", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_rule_id", b"_rule_id", "asset_id", b"asset_id", "conditions", b"conditions", "description", b"description", "is_enabled", b"is_enabled", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_rule_id", b"_rule_id"]) -> typing.Literal["rule_id"] | None: ...
 
 global___UpdateRuleRequest = UpdateRuleRequest
@@ -746,6 +775,162 @@ class UpdateJsonRulesResponse(google.protobuf.message.Message):
 global___UpdateJsonRulesResponse = UpdateJsonRulesResponse
 
 @typing.final
+class ListRuleVersionsRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_ID_FIELD_NUMBER: builtins.int
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    rule_id: builtins.str
+    page_size: builtins.int
+    """The maximum number of Rule Versions to return.
+    The service may return fewer than this value.
+    If unspecified, at most 50 Rule Versions will be returned.
+    The maximum value is 1000; values above 1000 will be coerced to 1000.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListRuleVersions` call.
+    Provide this to retrieve the subsequent page.
+    When paginating, all other parameters provided to `ListRuleVersions` must match
+    the call that provided the page token.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are `rule_version_id`, `user_notes`,  and `change_message`.
+    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions). Optional.
+    """
+    def __init__(
+        self,
+        *,
+        rule_id: builtins.str = ...,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "page_size", b"page_size", "page_token", b"page_token", "rule_id", b"rule_id"]) -> None: ...
+
+global___ListRuleVersionsRequest = ListRuleVersionsRequest
+
+@typing.final
+class RuleVersion(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_ID_FIELD_NUMBER: builtins.int
+    RULE_VERSION_ID_FIELD_NUMBER: builtins.int
+    VERSION_FIELD_NUMBER: builtins.int
+    CREATED_DATE_FIELD_NUMBER: builtins.int
+    CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    VERSION_NOTES_FIELD_NUMBER: builtins.int
+    GENERATED_CHANGE_MESSAGE_FIELD_NUMBER: builtins.int
+    rule_id: builtins.str
+    rule_version_id: builtins.str
+    version: builtins.str
+    created_by_user_id: builtins.str
+    version_notes: builtins.str
+    generated_change_message: builtins.str
+    @property
+    def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        rule_id: builtins.str = ...,
+        rule_version_id: builtins.str = ...,
+        version: builtins.str = ...,
+        created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        created_by_user_id: builtins.str = ...,
+        version_notes: builtins.str = ...,
+        generated_change_message: builtins.str = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["created_date", b"created_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "generated_change_message", b"generated_change_message", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "version", b"version", "version_notes", b"version_notes"]) -> None: ...
+
+global___RuleVersion = RuleVersion
+
+@typing.final
+class ListRuleVersionsResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_VERSIONS_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def rule_versions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___RuleVersion]: ...
+    def __init__(
+        self,
+        *,
+        rule_versions: collections.abc.Iterable[global___RuleVersion] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "rule_versions", b"rule_versions"]) -> None: ...
+
+global___ListRuleVersionsResponse = ListRuleVersionsResponse
+
+@typing.final
+class GetRuleVersionRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_VERSION_ID_FIELD_NUMBER: builtins.int
+    rule_version_id: builtins.str
+    def __init__(
+        self,
+        *,
+        rule_version_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["rule_version_id", b"rule_version_id"]) -> None: ...
+
+global___GetRuleVersionRequest = GetRuleVersionRequest
+
+@typing.final
+class GetRuleVersionResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_FIELD_NUMBER: builtins.int
+    @property
+    def rule(self) -> global___Rule: ...
+    def __init__(
+        self,
+        *,
+        rule: global___Rule | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["rule", b"rule"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["rule", b"rule"]) -> None: ...
+
+global___GetRuleVersionResponse = GetRuleVersionResponse
+
+@typing.final
+class BatchGetRuleVersionsRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_VERSION_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def rule_version_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        rule_version_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["rule_version_ids", b"rule_version_ids"]) -> None: ...
+
+global___BatchGetRuleVersionsRequest = BatchGetRuleVersionsRequest
+
+@typing.final
+class BatchGetRuleVersionsResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULES_FIELD_NUMBER: builtins.int
+    @property
+    def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Rule]: ...
+    def __init__(
+        self,
+        *,
+        rules: collections.abc.Iterable[global___Rule] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["rules", b"rules"]) -> None: ...
+
+global___BatchGetRuleVersionsResponse = BatchGetRuleVersionsResponse
+
+@typing.final
 class RuleConditionExpression(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -769,6 +954,8 @@ global___RuleConditionExpression = RuleConditionExpression
 
 @typing.final
 class SingleChannelComparisonExpression(google.protobuf.message.Message):
+    """Deprecated - use CalculatedChannelConfig."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     CHANNEL_COMPONENT_FIELD_NUMBER: builtins.int
@@ -1025,8 +1212,10 @@ class DryRunAnnotation(google.protobuf.message.Message):
     NAME_FIELD_NUMBER: builtins.int
     START_TIME_FIELD_NUMBER: builtins.int
     END_TIME_FIELD_NUMBER: builtins.int
+    CONDITION_VERSION_ID_FIELD_NUMBER: builtins.int
     condition_id: builtins.str
     name: builtins.str
+    condition_version_id: builtins.str
     @property
     def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -1038,8 +1227,9 @@ class DryRunAnnotation(google.protobuf.message.Message):
         name: builtins.str = ...,
         start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         end_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        condition_version_id: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["end_time", b"end_time", "start_time", b"start_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["condition_id", b"condition_id", "end_time", b"end_time", "name", b"name", "start_time", b"start_time"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["condition_id", b"condition_id", "condition_version_id", b"condition_version_id", "end_time", b"end_time", "name", b"name", "start_time", b"start_time"]) -> None: ...
 
 global___DryRunAnnotation = DryRunAnnotation
