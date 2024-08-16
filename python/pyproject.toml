@@ -78,6 +78,11 @@ ignore_missing_imports = true
 ignore_errors = true
 
 [[tool.mypy.overrides]]
+module = "grpc.aio"
+ignore_missing_imports = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
 module = "requests_toolbelt"
 ignore_missing_imports = true
 ignore_errors = true
