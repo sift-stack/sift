@@ -8,6 +8,10 @@ from enum import Enum
 
 
 class Entity:
+    """
+    An abstract entity that represents the thing that we want to attach files to.
+    """
+
     entity_id: str
     entity_type: EntityType
 
@@ -17,6 +21,10 @@ class Entity:
 
 
 class EntityType(Enum):
+    """
+    Represents the types of entities that supports file attachments.
+    """
+
     RUN = "runs"
     ANNOTATION = "annotations"
     ANNOTATION_LOG = "annotation_logs"

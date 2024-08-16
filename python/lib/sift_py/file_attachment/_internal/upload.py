@@ -30,7 +30,7 @@ class UploadService:
         self,
         path: Union[str, Path],
         entity: Entity,
-        metadata: Metadata,
+        metadata: Optional[Metadata],
         description: Optional[str] = None,
         organization_id: Optional[str] = None,
     ) -> str:
@@ -50,7 +50,6 @@ class UploadService:
             form_fields: Dict[str, Any] = {
                 "entityId": entity.entity_id,
                 "entityType": entity.entity_type.value,
-                "metadata": to_json(metadata),
             }
 
             if content_encoding:
@@ -64,6 +63,9 @@ class UploadService:
                 )
             else:
                 form_fields["file"] = (file_name, file, mimetype)
+
+            if metadata:
+                form_fields["metadata"] = to_json(metadata)
 
             if organization_id:
                 form_fields["organizationId"] = organization_id

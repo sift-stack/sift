@@ -1,3 +1,8 @@
+"""
+Module containing optional metadata types to provide to Sift when uploading a file attachment.
+Though optional, providing this information could help improve quality of renders on the Sift app.
+"""
+
 from __future__ import annotations
 
 from typing import Any, Type
@@ -18,6 +23,10 @@ class Metadata(AsJson): ...
 
 
 class VideoMetadata(AsProtobuf, Metadata):
+    """
+    Metadata for video media-types i.e. any mimetypes of the following pattern: `video/*`.
+    """
+
     width: int
     height: int
     duration_seconds: float
@@ -51,6 +60,10 @@ class VideoMetadata(AsProtobuf, Metadata):
 
 
 class ImageMetadata(AsProtobuf, Metadata):
+    """
+    Metadata for image media-types i.e. any mimetypes of the following pattern: `image/*`.
+    """
+
     width: int
     height: int
 

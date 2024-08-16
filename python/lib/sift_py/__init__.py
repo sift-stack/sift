@@ -17,6 +17,7 @@ official [Sift documentation](https://docs.siftstack.com/glossary).
 * [Ingestion Performance](#ingestion-performance)
     - [Buffered Ingestion](#buffered-ingestion)
 * [Downloading Telemetry](#downloading-telemetry)
+* [File attachments](#file-attachments)
 * [More Examples](#more-examples)
 
 ## Introduction
@@ -908,6 +909,12 @@ async def channel_demo():
 if __name__ == "__main__":
     asyncio.run(example())
 ```
+
+## File attachments
+
+See the module-level documentation for `sift_py.file_attachments` to learn uploading and downloading
+file attachments to various entities such as runs, annotations, and annotation logs. Once file attachments
+are created they become viewable in the Sift application.
 
 ## More Examples
 
