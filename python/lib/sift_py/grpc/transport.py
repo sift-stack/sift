@@ -6,10 +6,11 @@ and should generally be used within a with-block for correct resource management
 
 from __future__ import annotations
 
-from typing import Any, List, Tuple, TypedDict
+from typing import Any, List, Optional, Tuple, TypedDict, Union
 
 import grpc
 import grpc.aio as grpc_aio
+from sift_py.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 from typing_extensions import NotRequired, TypeAlias
 
 from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
@@ -36,7 +37,7 @@ def use_sift_channel(config: SiftChannelConfig) -> SiftChannel:
         return _use_insecure_sift_channel(config)
 
     credentials = grpc.ssl_channel_credentials()
-    options = _compute_channel_options()
+    options = _compute_channel_options(config)
     channel = grpc.secure_channel(config["uri"], credentials, options)
     interceptors = _compute_sift_interceptors(config)
     return grpc.intercept_channel(channel, *interceptors)
@@ -53,7 +54,7 @@ def use_sift_async_channel(config: SiftChannelConfig) -> SiftAsyncChannel:
     return grpc_aio.secure_channel(
         target=config["uri"],
         credentials=grpc.ssl_channel_credentials(),
-        options=_compute_channel_options(),
+        options=_compute_channel_options(config),
         interceptors=_compute_sift_async_interceptors(config),
     )
 
@@ -94,11 +95,28 @@ def _compute_sift_async_interceptors(config: SiftChannelConfig) -> List[grpc_aio
     ]
 
 
-def _compute_channel_options() -> List[Tuple[str, Any]]:
+def _compute_channel_options(opts: Optional[SiftChannelConfig] = None) -> List[Tuple[str, Any]]:
     """
     Initialize all [channel options](https://github.com/grpc/grpc/blob/v1.64.x/include/grpc/impl/channel_arg_names.h) here.
     """
-    return [("grpc.enable_retries", 1), ("grpc.service_config", RetryPolicy.default().as_json())]
+
+    options = [("grpc.enable_retries", 1), ("grpc.service_config", RetryPolicy.default().as_json())]
+
+    if opts is None:
+        return options
+
+    if keepalive := opts.get("enable_keepalive"):
+        config = DEFAULT_KEEPALIVE_CONFIG if isinstance(keepalive, bool) else keepalive
+        options.extend(
+            [
+                ("grpc.keepalive_time_ms", config["keepalive_time_ms"]),
+                ("grpc.keepalive_timeout_ms", config["keepalive_timeout_ms"]),
+                ("grpc.http2.max_pings_without_data", config["max_pings_without_data"]),
+                ("grpc.keepalive_permit_without_calls", config["keepalive_permit_without_calls"]),
+            ]
+        )
+
+    return options
 
 
 def _metadata_interceptor(config: SiftChannelConfig) -> ClientInterceptor:
@@ -128,9 +146,13 @@ class SiftChannelConfig(TypedDict):
     Config class used to instantiate a `SiftChannel` via `use_sift_channel`.
     - `uri`: The URI of Sift's gRPC API. The scheme portion of the URI i.e. `https://` should be ommitted.
     - `apikey`: User-generated API key generated via the Sift application.
+    - `enable_keepalive`: Enable HTTP/2 PING-based keepalive to allow long-lived connections with idle long periods. If
+    set to `True`, it will use the default values configured in `sift_py.grpc.keepalive` to configure keepalive. A custom
+    `sift_py.grpc.keepalive.KeepaliveConfig` may also be provided. Default disabled.
     - `use_ssl`: INTERNAL USE. Meant to be used for local development.
     """
 
     uri: str
     apikey: str
+    enable_keepalive: NotRequired[Union[bool, KeepaliveConfig]]
     use_ssl: NotRequired[bool]
