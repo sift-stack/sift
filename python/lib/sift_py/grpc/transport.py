@@ -10,7 +10,6 @@ from typing import Any, List, Optional, Tuple, TypedDict, Union
 
 import grpc
 import grpc.aio as grpc_aio
-from sift_py.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 from typing_extensions import NotRequired, TypeAlias
 
 from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
@@ -18,6 +17,7 @@ from sift_py.grpc._async_interceptors.metadata import MetadataAsyncInterceptor
 from sift_py.grpc._interceptors.base import ClientInterceptor
 from sift_py.grpc._interceptors.metadata import Metadata, MetadataInterceptor
 from sift_py.grpc._retry import RetryPolicy
+from sift_py.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 
 SiftChannel: TypeAlias = grpc.Channel
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel
