@@ -9,7 +9,6 @@ from __future__ import annotations
 from typing import Any, List, Optional, Tuple, TypedDict, Union
 from urllib.parse import ParseResult, urlparse
 
-
 import grpc
 import grpc.aio as grpc_aio
 from typing_extensions import NotRequired, TypeAlias
