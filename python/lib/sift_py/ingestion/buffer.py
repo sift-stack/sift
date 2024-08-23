@@ -1,3 +1,4 @@
+import threading
 from types import TracebackType
 from typing import Generic, List, Optional, Type, TypeVar
 
@@ -13,14 +14,36 @@ T = TypeVar("T", bound=_IngestionServiceImpl)
 
 
 class BufferedIngestionService(Generic[T]):
+    """
+    See `sift_py.ingestion.service.IngestionService.buffered_ingestion`
+    for more information and how to leverage buffered ingestion.
+    """
+
     _buffer: List[IngestWithConfigDataStreamRequest]
     _buffer_size: int
     _ingestion_service: T
+    _flush_interval_sec: Optional[float]
+    _flush_timer: Optional[threading.Timer]
+    _lock: Optional[threading.Lock]
 
-    def __init__(self, ingestion_service: T, buffer_size: Optional[int]):
+    def __init__(
+        self,
+        ingestion_service: T,
+        buffer_size: Optional[int],
+        flush_interval_sec: Optional[float],
+    ):
         self._buffer = []
         self._buffer_size = buffer_size or DEFAULT_BUFFER_SIZE
         self._ingestion_service = ingestion_service
+        self._flush_timer = None
+
+        if flush_interval_sec:
+            self._flush_interval_sec = flush_interval_sec
+            self._lock = threading.Lock()
+            self._start_flush_timer()
+        else:
+            self._flush_interval_sec = None
+            self._lock = None
 
     def __enter__(self) -> Self:
         return self
@@ -31,6 +54,7 @@ class BufferedIngestionService(Generic[T]):
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> bool:
+        self._cancel_flush_timer()
         self.flush()
 
         if exc_val is not None:
@@ -110,6 +134,30 @@ class BufferedIngestionService(Generic[T]):
         """
         Flush and ingest all requests in buffer.
         """
+
+        # TODO: Make sure that this is the correct way to ensure that this is the only
+        # Python thread running. Buffer is written to in the ingest flow methods..
+        if self._flush_timer and self._lock:
+            with self._lock:
+                self._flush()
+            self._restart_flush_timer()
+        else:
+            self._flush()
+
+    def _flush(self):
         if len(self._buffer) > 0:
             self._ingestion_service.ingest(*self._buffer)
             self._buffer.clear()
+
+    def _start_flush_timer(self):
+        if self._flush_interval_sec:
+            self._flush_timer = threading.Timer(self._flush_interval_sec, self.flush)
+            self._flush_timer.start()
+
+    def _cancel_flush_timer(self):
+        if self._flush_timer:
+            self._flush_timer = self._flush_timer.cancel()
+
+    def _restart_flush_timer(self):
+        self._cancel_flush_timer()
+        self._start_flush_timer()

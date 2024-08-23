@@ -149,15 +149,23 @@ class IngestionService(_IngestionServiceImpl):
         """
         return super().try_ingest_flows(*flows)
 
-    def buffered_ingestion(self, buffer_size: Optional[int] = None) -> BufferedIngestionService:
+    def buffered_ingestion(
+        self, buffer_size: Optional[int] = None, flush_interval_sec: Optional[float] = None
+    ) -> BufferedIngestionService:
         """
-        This method automates buffering requests and streams them in batches and is meant to be used
+        This method automates buffering requests and streams them in batches. It is recommended to be used
         in a with-block. Failure to put this in a with-block may result in some data not being ingested unless
-        the caller explicitly calls `sift_py.ingestion.buffer.BufferedIngestionService.flush`.
+        the caller explicitly calls `sift_py.ingestion.buffer.BufferedIngestionService.flush` before the returned
+        instance of `sift_py.ingestion.buffer.BufferedIngestionService` goes out of scope. Once the with-block
+        is exited then a final call to the aforementioned `flush` method  will be made to ingest the remaining data.
 
-        Once the with-block is exited then a final call to the aforementioned `flush` method  will be made
-        to ingest the remaining data. If a `buffer_size` is not provided then it will default to
-        `sift_py.ingestion.buffer.DEFAULT_BUFFER_SIZE`.
+        Buffered ingestion works by automatically flushing and ingesting data into Sift whenever the buffer is filled.
+        The size of the buffer is configured via the `buffer_size` argument and defaults to `sift_py.ingestion.buffer.DEFAULT_BUFFER_SIZE`.
+
+        It is also possible to configure buffered ingestion to periodically flush the buffer regardless of whether or not the buffer
+        is filled. The interval between flushes is set via the `flush_interval_sec` argument which is the number of seconds between each flush.
+        If a flush were to occur due to the buffer being filled, then the timer will restart. If `flush_interval_sec` is `None`, then flushes will only
+        occur once the buffer is filled and at the end of the scope of the with-block.
 
         Example usage:
 
@@ -171,8 +179,6 @@ class IngestionService(_IngestionServiceImpl):
                     "channel_values": [
                         {
                             "channel_name": "my-channel",
-                            "value": double_value(3)
-                        }
                     ],
                 })
 
@@ -184,9 +190,18 @@ class IngestionService(_IngestionServiceImpl):
                     "timestamp": datetime.now(timezone.utc),
                     "channel_values": [double_value(3)]
                 })
+
+        # With default buffer size and periodic flushes of 3.2 seconds
+        with ingestion_service.buffered_ingestion(flush_interval_sec=3.2) as buffered_ingestion:
+            for _ in range(6_000):
+                buffered_ingestion.ingest_flows({
+                    "flow_name": "readings",
+                    "timestamp": datetime.now(timezone.utc),
+                    "channel_values": [double_value(3)]
+                })
         ```
         """
-        return BufferedIngestionService(self, buffer_size)
+        return BufferedIngestionService(self, buffer_size, flush_interval_sec)
 
     def create_flow(self, flow_config: FlowConfig):
         """
