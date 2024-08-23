@@ -87,7 +87,9 @@ class UploadService:
             )
 
             if response.status_code != 200:
-                raise Exception(f"Request failed with status code {response.status_code} ({response.reason}).")
+                raise Exception(
+                    f"Request failed with status code {response.status_code} ({response.reason})."
+                )
 
             return response.json().get("remoteFile").get("remoteFileId")
 
