@@ -30,7 +30,7 @@ class UploadService:
         self,
         path: Union[str, Path],
         entity: Entity,
-        metadata: Optional[Metadata],
+        metadata: Optional[Metadata] = None,
         description: Optional[str] = None,
         organization_id: Optional[str] = None,
     ) -> str:
