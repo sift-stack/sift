@@ -7,6 +7,8 @@ and should generally be used within a with-block for correct resource management
 from __future__ import annotations
 
 from typing import Any, List, Optional, Tuple, TypedDict, Union
+from urllib.parse import ParseResult, urlparse
+
 
 import grpc
 import grpc.aio as grpc_aio
@@ -33,12 +35,15 @@ def use_sift_channel(config: SiftChannelConfig) -> SiftChannel:
     will automatically leverage gRPC's retry mechanism to try and recover until the max-attempts
     are exceeded, after which the underlying exception will be raised.
     """
-    if not config.get("use_ssl", True):
+    use_ssl = config.get("use_ssl", True)
+
+    if not use_ssl:
         return _use_insecure_sift_channel(config)
 
     credentials = grpc.ssl_channel_credentials()
     options = _compute_channel_options(config)
-    channel = grpc.secure_channel(config["uri"], credentials, options)
+    api_uri = _clean_uri(config["uri"], use_ssl)
+    channel = grpc.secure_channel(api_uri, credentials, options)
     interceptors = _compute_sift_interceptors(config)
     return grpc.intercept_channel(channel, *interceptors)
 
@@ -48,11 +53,13 @@ def use_sift_async_channel(config: SiftChannelConfig) -> SiftAsyncChannel:
     Like `use_sift_channel` but returns a channel meant to be used within the context
     of an async runtime when asynchonous I/O is required.
     """
-    if not config.get("use_ssl", True):
+    use_ssl = config.get("use_ssl", True)
+
+    if not use_ssl:
         return _use_insecure_sift_async_channel(config)
 
     return grpc_aio.secure_channel(
-        target=config["uri"],
+        target=_clean_uri(config["uri"], use_ssl),
         credentials=grpc.ssl_channel_credentials(),
         options=_compute_channel_options(config),
         interceptors=_compute_sift_async_interceptors(config),
@@ -64,7 +71,8 @@ def _use_insecure_sift_channel(config: SiftChannelConfig) -> SiftChannel:
     FOR DEVELOPMENT PURPOSES ONLY
     """
     options = _compute_channel_options()
-    channel = grpc.insecure_channel(config["uri"], options)
+    api_uri = _clean_uri(config["uri"], False)
+    channel = grpc.insecure_channel(api_uri, options)
     interceptors = _compute_sift_interceptors(config)
     return grpc.intercept_channel(channel, *interceptors)
 
@@ -139,6 +147,21 @@ def _metadata_async_interceptor(config: SiftChannelConfig) -> ClientAsyncInterce
         ("authorization", f"Bearer {apikey}"),
     ]
     return MetadataAsyncInterceptor(metadata)
+
+
+def _clean_uri(uri: str, use_ssl: bool) -> str:
+    """
+    This will automatically transform the URI to an acceptable form regardless of whether or not
+    users included the scheme in the URL or included trailing slashes.
+    """
+
+    if "http://" in uri or "https://" in uri:
+        parsed: ParseResult = urlparse(uri)
+        return parsed.netloc
+
+    full_uri = f"https://{uri}" if use_ssl else f"http://{uri}"
+    parsed_res: ParseResult = urlparse(full_uri)
+    return parsed_res.netloc
 
 
 class SiftChannelConfig(TypedDict):
