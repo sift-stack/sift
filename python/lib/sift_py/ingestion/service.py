@@ -11,7 +11,7 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.ingest import _IngestionServiceImpl
-from sift_py.ingestion.buffer import BufferedIngestionService
+from sift_py.ingestion.buffer import BufferedIngestionService, OnErrorCallback
 from sift_py.ingestion.channel import ChannelValue
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import Flow, FlowConfig, FlowOrderedChannelValues
@@ -150,7 +150,10 @@ class IngestionService(_IngestionServiceImpl):
         return super().try_ingest_flows(*flows)
 
     def buffered_ingestion(
-        self, buffer_size: Optional[int] = None, flush_interval_sec: Optional[float] = None
+        self,
+        buffer_size: Optional[int] = None,
+        flush_interval_sec: Optional[float] = None,
+        on_error: Optional[OnErrorCallback] = None,
     ) -> BufferedIngestionService:
         """
         This method automates buffering requests and streams them in batches. It is recommended to be used
@@ -166,6 +169,12 @@ class IngestionService(_IngestionServiceImpl):
         is filled. The interval between flushes is set via the `flush_interval_sec` argument which is the number of seconds between each flush.
         If a flush were to occur due to the buffer being filled, then the timer will restart. If `flush_interval_sec` is `None`, then flushes will only
         occur once the buffer is filled and at the end of the scope of the with-block.
+
+        If an error were to occur that would cause the context manager to call `__exit__`, one last attempt to flush the buffer will be made
+        before the error is re-raised for the caller to handle. If the caller would instead like to customize `__exit__` behavior in the case
+        of an error, they can make use of the `on_error` argument whose type signature is a function where the first argument is the error,
+        the second is the buffer containing the uningested request, and the third argument being a function where, when called, will attempt
+        to flush the buffer.
 
         Example usage:
 
@@ -199,9 +208,19 @@ class IngestionService(_IngestionServiceImpl):
                     "timestamp": datetime.now(timezone.utc),
                     "channel_values": [double_value(3)]
                 })
+
+        # Custom code to run when error
+        def on_error_calback(err, buffer, flush):
+            # Save contents of buffer to disk
+            ...
+            # Try once more to flush the buffer
+            flush()
+
+        with ingestion_service.buffered_ingestion(on_error=on_error_calback) as buffered_ingestion:
+            ...
         ```
         """
-        return BufferedIngestionService(self, buffer_size, flush_interval_sec)
+        return BufferedIngestionService(self, buffer_size, flush_interval_sec, on_error)
 
     def create_flow(self, flow_config: FlowConfig):
         """

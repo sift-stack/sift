@@ -2,9 +2,11 @@ import random
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from time import sleep
+from typing import Callable, List
 
 import pytest
 from pytest_mock import MockFixture
+from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 
@@ -182,6 +184,57 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
             with pytest.raises(Exception):
                 raise
 
+        assert len(buffered_ingestion._buffer) == 0
+        assert mock_ingest.call_count == 7
+
+    with mock_ctx_manager():
+        on_error_spy = mocker.stub()
+
+        def on_error(
+            err: BaseException, requests: List[IngestWithConfigDataStreamRequest], _flush: Callable
+        ):
+            on_error_spy()
+            pass
+
+        with pytest.raises(Exception):
+            with ingestion_service.buffered_ingestion(on_error=on_error) as buffered_ingestion:
+                for _ in range(6_600):
+                    buffered_ingestion.ingest_flows(
+                        {
+                            "flow_name": "readings",
+                            "timestamp": datetime.now(timezone.utc),
+                            "channel_values": [double_value(random.random())],
+                        }
+                    )
+                raise
+
+        on_error_spy.assert_called_once()
+        assert len(buffered_ingestion._buffer) == 600
+        assert mock_ingest.call_count == 6
+
+    with mock_ctx_manager():
+        on_error_flush_spy = mocker.stub()
+
+        def on_error(
+            err: BaseException, requests: List[IngestWithConfigDataStreamRequest], _flush: Callable
+        ):
+            on_error_flush_spy()
+            _flush()
+            pass
+
+        with pytest.raises(Exception):
+            with ingestion_service.buffered_ingestion(on_error=on_error) as buffered_ingestion:
+                for _ in range(6_600):
+                    buffered_ingestion.ingest_flows(
+                        {
+                            "flow_name": "readings",
+                            "timestamp": datetime.now(timezone.utc),
+                            "channel_values": [double_value(random.random())],
+                        }
+                    )
+                raise
+
+        on_error_spy.assert_called_once()
         assert len(buffered_ingestion._buffer) == 0
         assert mock_ingest.call_count == 7
 

@@ -1,10 +1,10 @@
 import threading
 from contextlib import contextmanager
 from types import TracebackType
-from typing import Generic, List, Optional, Type, TypeVar
+from typing import Callable, Generic, List, Optional, Type, TypeVar
 
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
-from typing_extensions import Self
+from typing_extensions import Self, TypeAlias
 
 from sift_py.ingestion._internal.ingest import _IngestionServiceImpl
 from sift_py.ingestion.flow import Flow, FlowOrderedChannelValues
@@ -12,6 +12,11 @@ from sift_py.ingestion.flow import Flow, FlowOrderedChannelValues
 DEFAULT_BUFFER_SIZE = 1_000
 
 T = TypeVar("T", bound=_IngestionServiceImpl)
+
+FlushCallback: TypeAlias = Callable[[], None]
+OnErrorCallback: TypeAlias = Callable[
+    [BaseException, List[IngestWithConfigDataStreamRequest], FlushCallback], None
+]
 
 
 class BufferedIngestionService(Generic[T]):
@@ -26,16 +31,19 @@ class BufferedIngestionService(Generic[T]):
     _flush_interval_sec: Optional[float]
     _flush_timer: Optional[threading.Timer]
     _lock: Optional[threading.Lock]
+    _on_error: Optional[OnErrorCallback]
 
     def __init__(
         self,
         ingestion_service: T,
         buffer_size: Optional[int],
         flush_interval_sec: Optional[float],
+        on_error: Optional[OnErrorCallback],
     ):
         self._buffer = []
         self._buffer_size = buffer_size or DEFAULT_BUFFER_SIZE
         self._ingestion_service = ingestion_service
+        self._on_error = on_error
         self._flush_timer = None
 
         if flush_interval_sec:
@@ -56,10 +64,16 @@ class BufferedIngestionService(Generic[T]):
         exc_tb: Optional[TracebackType],
     ) -> bool:
         self._cancel_flush_timer()
-        self.flush()
 
         if exc_val is not None:
+            if self._on_error is not None:
+                self._on_error(exc_val, self._buffer, self.flush)
+            else:
+                self.flush()
+
             raise exc_val
+        else:
+            self.flush()
 
         return True
 
