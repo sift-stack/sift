@@ -3,6 +3,168 @@ All notable changes to this project will be documented in this file.
  
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.2.0] - September 3, 2024
+
+Summary of changes:
+- [Add pydantic models for the sift grafana plugin queries](https://github.com/sift-stack/sift/pull/78)
+- [Lowered minimum version requirements for various dependencies and dependency cleanup](https://github.com/sift-stack/sift/pull/77)
+- [Added py.typed to modules that utilize type annotations](https://github.com/sift-stack/sift/pull/81)
+- [Added services derived from protobuf for the following APIs](https://github.com/sift-stack/sift/pull/84)
+    * Remote files
+    * Rule versions
+    * Saved searches
+- [Added helpful validations when processing Sift API URLs](https://github.com/sift-stack/sift/pull/87)
+- [Added support for gRPC keep-alive](https://github.com/sift-stack/sift/pull/86)
+- [Added service to upload and download file attachments](https://github.com/sift-stack/sift/pull/85)
+- [Added timer-based flushing for buffered ingestion and custom error-handling](https://github.com/sift-stack/sift/pull/88)
+- [Added functionality to generate a channel value from a channel config](https://github.com/sift-stack/sift/pull/89)
+
+The following section will cover some of the more notable features in depth. Please refer to the [documentation](https://docs.siftstack.com/sift_py/sift_py.html) for
+even more detail.
+
+### Table of Contents
+- [Keepalive](#keepalive)
+- [File attachments](#file-attachments)
+- [Timer based flushing for buffered ingestion](#timer-based-flushing-for-buffered-ingestion)
+- [Custom error handling for buffered ingestion](#custom-error-handling-for-buffered-ingestion)
+
+### Keepalive
+
+Long-lived connections are generally are at risk of being closed due to idle timeouts if they are idle for a particular duration. In other words, if there
+is no data being exchanged on the connection for a duration specified by a load balancer's idle timeout, the connection will be closed. In order to
+ensure that this does not happen you can opt into enabling the HTTP/2 PING-based keepalive mechanism either on your own gRPC channel or the one
+that Sift provides. To configure keep-alive using the Sift-provided gRPC channel:
+
+```python
+from sift_py.grpc.transport import use_sift_channel, SiftChannelConfig
+
+sift_channel_config = SiftChannelConfig(
+    uri=uri,
+    apikey=apikey,
+    enable_keepalive=True,
+)
+
+with use_sift_channel(sift_channel_config) as channel:
+    ...
+```
+
+This uses default values set in the `sift_py.grpc.keepalive` module. If you'd like to configure your own keepalive parameters you could
+also do the following:
+
+```python
+from sift_py.grpc.transport import use_sift_channel, SiftChannelConfig
+from sift_py.grpc.keepalive import KeepaliveConfig
+
+sift_channel_config = SiftChannelConfig(
+    uri=uri,
+    apikey=apikey,
+    enable_keepalive=KeepaliveConfig(
+        keepalive_time_ms=keepalive_time_ms,
+        keepalive_timeout_ms=keepalive_timeout_ms,
+        keepalive_permit_without_calls=keepalive_permit_without_calls,
+        max_pings_without_data=max_pings_without_data,
+    ),
+)
+
+with use_sift_channel(sift_channel_config) as channel:
+    ...
+```
+
+### File attachments
+
+There is now a `sift_py.file_attachment` module that contains utilities to programmatically upload and download file attachments.
+Files currently can be attached to various entities such as runs, annotations, and annotation logs. Various video and image formats
+are currently supported. Below is an example demonstrating how to upload a file attachment and programmatically downloading it.
+
+```python
+from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
+from sift_py.file_attachment.service import FileAttachmentService
+from sift_py.file_attachment.entity import Entity, EntityType
+from sift_py.file_attachment.metadata import VideoMetadata
+from sift_py.rest import SiftRestConfig
+
+from sift.remote_files.v1.remote_files_pb2 import GetRemoteFileRequest
+from sift.remote_files.v1.remote_files_pb2_grpc import RemoteFileServiceStub
+
+# Get API credentials setup
+...
+
+with use_sift_channel(sift_channel_config) as channel:
+    file_attachment_service = FileAttachmentService(channel, rest_config)
+
+    run = entity=Entity(
+        entity_id=run_id, # some arbitrary run ID that refers to an existing run
+        entity_type=EntityType.RUN,
+    )
+
+    # uploading the file attachment and attaching it to a run of `run_id`
+    remote_file = file_attachment_service.upload_attachment(
+        path="path/to/foo.mp4",
+        entity=run,
+        # Metatadata.. optional but recommended for optimal viewing in the application
+        metadata=VideoMetadata(height=2160, width=3840, duration_seconds=5.5),
+        description="thrusters getting too hot" ,
+    )
+
+    # retrieving all of the file attachments for our run
+    all_file_attachments = file_attachment_service.retrieve_attachments(run)
+
+    # downloading our file_attachment and saving it to our current working dir
+    file_attachment_service.download_attachment(remote_file)
+
+    # downloading our file_attachment and saving it somewhere else with a different name
+    file_attachment_service.download_attachment(remote_file, "somewhere/else/foo.mp4")
+
+    # deleting out file attachment from Sift
+    file_attachment_service.delete_file_attachments(remote_file_1, remote_file_2, remote_file_etc)
+```
+
+### Timer based flushing for buffered ingestion
+
+Previously the [buffered ingestion API](https://docs.siftstack.com/sift_py/sift_py.html#buffered-ingestion) flushes a buffer whenever any one
+of the following conditions are met:
+- The caller manually calls `flush`
+- The buffer gets filled
+- The `with`-block associated with the buffered ingestion service as a context-manager goes out of scope.
+- An exception is raised inside of the aforementioned `with`-block.
+
+Note that the last two points only apply if the buffered ingestion service is used as a context manager like so:
+
+```python
+with ingestion_service.buffered_ingestion() as buffered_ingestion:
+    ...
+```
+
+Now there is support to periodically flush the buffer regardless of whether or not the buffer is filled. To configure a timer to flush periodically:
+
+```python
+with ingestion_service.buffered_ingestion(flush_interval_sec=3.2) as buffered_ingestion:
+    ...
+```
+
+This will configure the buffered ingestion service to flush its buffer every `3.2` seconds. If the buffer happens to be filled before the timer elapses,
+then the timer will reset.
+
+### Custom error handling for buffered ingestion
+
+Previously when using the buffered ingestion service as a context manager, any exception that gets raised within the `with`-block will result
+in the service attempting to flush one more time. The caller can now customize error-handling behavior by passing in a function handler that takes
+in three arguments: the error that's raised, the buffer containing the remaining requests that weren't ingested, and a function that when called will
+attempt to flush the buffer.
+
+
+```python
+# Custom code to run when error
+def on_error_calback(err, buffer, flush):
+    # Maybe try to save contents of buffer to disk
+    ...
+    # Try once more to flush the buffer
+    flush()
+
+with ingestion_service.buffered_ingestion(on_error=on_error_calback) as buffered_ingestion:
+    ...
+```
+
 ## [v0.1.1] - July 17, 2024
 
 Summary of changes:
