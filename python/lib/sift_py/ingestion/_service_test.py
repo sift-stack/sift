@@ -1,9 +1,12 @@
 import random
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from time import sleep
+from typing import Callable, List
 
 import pytest
 from pytest_mock import MockFixture
+from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 
@@ -184,6 +187,57 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
         assert len(buffered_ingestion._buffer) == 0
         assert mock_ingest.call_count == 7
 
+    with mock_ctx_manager():
+        on_error_spy = mocker.stub()
+
+        def on_error(
+            err: BaseException, requests: List[IngestWithConfigDataStreamRequest], _flush: Callable
+        ):
+            on_error_spy()
+            pass
+
+        with pytest.raises(Exception):
+            with ingestion_service.buffered_ingestion(on_error=on_error) as buffered_ingestion:
+                for _ in range(6_600):
+                    buffered_ingestion.ingest_flows(
+                        {
+                            "flow_name": "readings",
+                            "timestamp": datetime.now(timezone.utc),
+                            "channel_values": [double_value(random.random())],
+                        }
+                    )
+                raise
+
+        on_error_spy.assert_called_once()
+        assert len(buffered_ingestion._buffer) == 600
+        assert mock_ingest.call_count == 6
+
+    with mock_ctx_manager():
+        on_error_flush_spy = mocker.stub()
+
+        def on_error(
+            err: BaseException, requests: List[IngestWithConfigDataStreamRequest], _flush: Callable
+        ):
+            on_error_flush_spy()
+            _flush()
+            pass
+
+        with pytest.raises(Exception):
+            with ingestion_service.buffered_ingestion(on_error=on_error) as buffered_ingestion:
+                for _ in range(6_600):
+                    buffered_ingestion.ingest_flows(
+                        {
+                            "flow_name": "readings",
+                            "timestamp": datetime.now(timezone.utc),
+                            "channel_values": [double_value(random.random())],
+                        }
+                    )
+                raise
+
+        on_error_spy.assert_called_once()
+        assert len(buffered_ingestion._buffer) == 0
+        assert mock_ingest.call_count == 7
+
 
 def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
     """
@@ -353,3 +407,72 @@ def test_ingestion_service_register_new_flow(mocker: MockFixture):
     ingestion_service.create_flow(new_flow_config_name_collision)
     assert ingestion_service.flow_configs_by_name["my_new_flow"] == new_flow_config_name_collision
     assert ingestion_service.flow_configs_by_name["my_new_flow"] != new_flow_config
+
+
+def test_ingestion_service_buffered_ingestion_flush_timeout(mocker: MockFixture):
+    """
+    Test for timeout based flush mechanism in buffered ingestion. If buffer hasn't been flushed
+    after a certain time then the buffer will be automatically flushed.
+    """
+
+    mock_ingest = mocker.patch.object(IngestionService, "ingest")
+    mock_ingest.return_value = None
+
+    readings_flow = FlowConfig(
+        name="readings",
+        channels=[
+            ChannelConfig(
+                name="my-channel",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        ingestion_client_key="ingestion-client-key",
+        flows=[readings_flow],
+    )
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="ingestion-config-id",
+        asset_id="asset-id",
+        client_key="client-key",
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = mock_ingestion_config
+
+    mock_get_ingestion_config_flows = mocker.patch(_mock_path(get_ingestion_config_flows))
+    mock_get_ingestion_config_flows.return_value = [readings_flow.as_pb(FlowConfigPb)]
+
+    ingestion_service = IngestionService(MockChannel(), telemetry_config)
+
+    @contextmanager
+    def mock_ctx_manager():
+        yield
+        mock_ingest.reset_mock()
+
+    with mock_ctx_manager():
+        with ingestion_service.buffered_ingestion(flush_interval_sec=2) as buffered_ingestion:
+            assert buffered_ingestion._buffer_size == 1_000
+
+            for _ in range(1_500):
+                buffered_ingestion.try_ingest_flows(
+                    {
+                        "flow_name": "readings",
+                        "timestamp": datetime.now(timezone.utc),
+                        "channel_values": [
+                            {"channel_name": "my-channel", "value": double_value(random.random())}
+                        ],
+                    }
+                )
+            assert mock_ingest.call_count == 1
+            assert len(buffered_ingestion._buffer) == 500
+
+            # This will cause the flush timer to flush based on provided interval
+            sleep(5)
+            assert mock_ingest.call_count == 2
+            assert len(buffered_ingestion._buffer) == 0
