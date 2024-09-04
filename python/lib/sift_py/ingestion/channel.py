@@ -61,6 +61,49 @@ class ChannelConfig(AsProtobuf):
         self.bit_field_elements = bit_field_elements
         self.enum_types = enum_types
 
+    def value_from(
+        self, value: Optional[Union[int, float, bool, str]]
+    ) -> Optional[IngestWithConfigDataChannelValue]:
+        """
+        Like `try_value_from` except will return `None` there is a failure to produce a channel value due to a type mismatch.
+        """
+        try:
+            return self.try_value_from(value)
+        except ValueError:
+            return None
+
+    def try_value_from(
+        self, value: Optional[Union[int, float, bool, str]]
+    ) -> IngestWithConfigDataChannelValue:
+        """
+        Generate a channel value for this particular channel configuration. This will raise an exception
+        if there is a type match, namely, if `value` isn't consistent with the channel's data-type. For a version
+        of this function that does not raise an exception and simply ignores type mistmatches, see `value_from`. If `value`
+        is `None` then an empty value will be generated.
+        """
+        if value is None:
+            return empty_value()
+
+        if isinstance(value, int) or isinstance(value, float):
+            if self.data_type == ChannelDataType.INT_32:
+                return int32_value(int(value))
+            elif self.data_type == ChannelDataType.INT_64:
+                return int64_value(int(value))
+            elif self.data_type == ChannelDataType.UINT_32:
+                return uint32_value(int(value))
+            elif self.data_type == ChannelDataType.UINT_64:
+                return uint64_value(int(value))
+            elif self.data_type == ChannelDataType.FLOAT:
+                return float_value(float(value))
+            elif self.data_type == ChannelDataType.ENUM:
+                return enum_value(int(value))
+        elif isinstance(value, str) and self.data_type == ChannelDataType.STRING:
+            return string_value(value)
+        elif isinstance(value, bool) and self.data_type == ChannelDataType.BOOL:
+            return bool_value(value)
+
+        raise ValueError(f"Failed to cast value of type {type(value)} to {self.data_type}")
+
     def as_pb(self, klass: Type[ChannelConfigPb]) -> ChannelConfigPb:
         return klass(
             name=self.name,
