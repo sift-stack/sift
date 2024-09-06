@@ -1,7 +1,7 @@
 # Buffered Ingestion Benchmark
 
 The purpose of this benchmark is to provide an overall assessment of end-to-end ingestion performance using the sift-stack-py library, comparing both the buffered
-and unbuffered ingestion client APIs. Each test is set up by parsing a CSV file containing 100K rows, with each row transformed into a single data ingestion request
+and unbuffered ingestion client APIs. Each test is set up by parsing a CSV file containing 100K rows (not included in repo), with each row transformed into a single data ingestion request
 consisting of a timestamp and 50 channel values. Once 100K requests are generated, the benchmark measures the time required to ingest all 100K requests in various batch
 sizes into a local instance of Sift.
 
