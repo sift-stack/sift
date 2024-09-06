@@ -40,7 +40,9 @@ def test_ingestion_performance(benchmark: BenchmarkFixture):
 
         average_time = sum(ingest_batch_times) / len(ingest_batch_times)
 
-        print(f"unbuffered_ingestion | num_flows={len(flows)} batch_size={stride} avg_time_per_batch={average_time}s")
+        print(
+            f"unbuffered_ingestion | num_flows={len(flows)} batch_size={stride} avg_time_per_batch={average_time}s"
+        )
 
     benchmark.pedantic(target=target, setup=_setup, rounds=5)
 
