@@ -1,0 +1,5 @@
+python-dotenv
+sift-stack-py
+ruff
+pytest
+pytest-benchmark
