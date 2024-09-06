@@ -133,6 +133,6 @@ Legend:
 
 The following are the key takeaways from the benchmarks:
 
-- *Ingestion Speed*: Ingesting 1000 requests, each containing 50 double-type channel values, to a local Sift instance takes an average of 0.05 seconds. This translates to a 20 kHz ingestion rate. Note that this does not account for network bandwidth or the performance of Sift's deployed servers.
-- *Buffered vs. Manual Batching*: Buffered ingestion is slightly slower than manual batching, but it significantly reduces the setup effort. Overall, buffered ingestion is recommended for simplicity and efficiency.
-- *Batch Size Considerations*: Increasing the batch or buffer size doesn't directly improve raw ingestion performance. However, larger batches take longer to serialize, which can lead to a thread holding onto the Global Interpreter Lock (GIL) for extended periods in multi-threaded CPython applications.
+- **Ingestion Speed**: Ingesting 1000 requests, each containing 50 double-type channel values, to a local Sift instance takes an average of 0.05 seconds. This translates to a 20 kHz ingestion rate. Note that this does not account for network bandwidth or the performance of Sift's deployed servers.
+- **Buffered vs. Manual Batching**: Buffered ingestion is slightly slower than manual batching, but it significantly reduces the setup effort. Overall, buffered ingestion is recommended for simplicity and efficiency.
+- **Batch Size Considerations**: Increasing the batch or buffer size doesn't directly improve raw ingestion performance. However, larger batches take longer to serialize, which can lead to a thread holding onto the Global Interpreter Lock (GIL) for extended periods in multi-threaded CPython applications.
