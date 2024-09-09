@@ -4,7 +4,9 @@ isort:skip_file
 """
 
 import builtins
+import collections.abc
 import google.protobuf.descriptor
+import google.protobuf.internal.containers
 import google.protobuf.message
 import sift.common.type.v1.user_pb2
 import typing
@@ -76,3 +78,65 @@ class GetUserResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["user", b"user"]) -> None: ...
 
 global___GetUserResponse = GetUserResponse
+
+@typing.final
+class ListActiveUsersRequest(google.protobuf.message.Message):
+    """The request for a call to `UserService_ListActiveUsers` to retrieve users."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    page_size: builtins.int
+    """The maximum number of users to return. The service may return fewer than this value.
+    If unspecified, at most 50 users will be returned. The maximum value is 1000; values above
+    1000 will be coerced to 1000. Optional.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListActiveUsers` call.
+    Provide this to retrieve the subsequent page.
+    When paginating, all other parameters provided to `ListActiveUsers` must match
+    the call that provided the page token. Optional.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are `user_id` and `name`.
+    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+    For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#users). Optional.
+    """
+    organization_id: builtins.str
+    """Optional. If provided, this will scope down the user search to just those in the organization ID provided."""
+    def __init__(
+        self,
+        *,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        organization_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+
+global___ListActiveUsersRequest = ListActiveUsersRequest
+
+@typing.final
+class ListActiveUsersResponse(google.protobuf.message.Message):
+    """The response of a call to `UserService_ListActiveUsersResponse`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    USERS_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def users(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.user_pb2.User]: ...
+    def __init__(
+        self,
+        *,
+        users: collections.abc.Iterable[sift.common.type.v1.user_pb2.User] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "users", b"users"]) -> None: ...
+
+global___ListActiveUsersResponse = ListActiveUsersResponse

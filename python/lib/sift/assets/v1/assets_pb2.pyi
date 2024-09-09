@@ -6,6 +6,7 @@ isort:skip_file
 import builtins
 import collections.abc
 import google.protobuf.descriptor
+import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
@@ -24,6 +25,7 @@ class Asset(google.protobuf.message.Message):
     CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    TAGS_FIELD_NUMBER: builtins.int
     asset_id: builtins.str
     name: builtins.str
     organization_id: builtins.str
@@ -33,6 +35,8 @@ class Asset(google.protobuf.message.Message):
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     def __init__(
         self,
         *,
@@ -43,9 +47,10 @@ class Asset(google.protobuf.message.Message):
         created_by_user_id: builtins.str = ...,
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         modified_by_user_id: builtins.str = ...,
+        tags: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
 
 global___Asset = Asset
 
@@ -173,3 +178,47 @@ class GetAssetResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["asset", b"asset"]) -> None: ...
 
 global___GetAssetResponse = GetAssetResponse
+
+@typing.final
+class UpdateAssetRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_FIELD_NUMBER: builtins.int
+    UPDATE_MASK_FIELD_NUMBER: builtins.int
+    @property
+    def asset(self) -> global___Asset:
+        """The asset to update. The asset's `asset_id` field is used to identify asset run to update
+        and is required.
+        """
+
+    @property
+    def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
+        """The list of fields to be updated. Currently, the only field available to be updated is `tags`."""
+
+    def __init__(
+        self,
+        *,
+        asset: global___Asset | None = ...,
+        update_mask: google.protobuf.field_mask_pb2.FieldMask | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["asset", b"asset", "update_mask", b"update_mask"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset", b"asset", "update_mask", b"update_mask"]) -> None: ...
+
+global___UpdateAssetRequest = UpdateAssetRequest
+
+@typing.final
+class UpdateAssetResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_FIELD_NUMBER: builtins.int
+    @property
+    def asset(self) -> global___Asset: ...
+    def __init__(
+        self,
+        *,
+        asset: global___Asset | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["asset", b"asset"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset", b"asset"]) -> None: ...
+
+global___UpdateAssetResponse = UpdateAssetResponse
