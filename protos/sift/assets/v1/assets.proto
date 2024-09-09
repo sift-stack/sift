@@ -4,6 +4,7 @@ package sift.assets.v1;
 
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
@@ -47,6 +48,17 @@ service AssetService {
       description: "Retrieves assets using an optional filter."
     };
   }
+
+  rpc UpdateAsset(UpdateAssetRequest) returns (UpdateAssetResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/assets",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateAsset"
+      description: "Update fields on an asset."
+    };
+  }
 }
 
 message Asset {
@@ -57,6 +69,7 @@ message Asset {
   string created_by_user_id = 6 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+  repeated string tags = 9 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `AssetService_ListAssets`.
@@ -103,5 +116,16 @@ message GetAssetRequest {
 }
 
 message GetAssetResponse {
+  Asset asset = 1;
+}
+message UpdateAssetRequest {
+  // The asset to update. The asset's `asset_id` field is used to identify asset run to update
+  // and is required.
+  Asset asset = 1;
+
+  // The list of fields to be updated. Currently, the only field available to be updated is `tags`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+message UpdateAssetResponse {
   Asset asset = 1;
 }

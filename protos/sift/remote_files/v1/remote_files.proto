@@ -112,6 +112,7 @@ message VideoMetadata {
   uint32 height = 1 [(google.api.field_behavior) = OPTIONAL];
   uint32 width = 2 [(google.api.field_behavior) = OPTIONAL];
   float duration_seconds = 3 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp timestamp = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ImageMetadata {
@@ -214,7 +215,7 @@ message UpdateRemoteFileRequest {
   // The remote file to update.
   RemoteFile remote_file = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // The list of fields to be updated. The field available to be updated is `description`.
+  // The list of fields to be updated. The fields available to be updated are `description` and `metadata`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 

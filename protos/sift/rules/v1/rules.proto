@@ -212,6 +212,9 @@ message Rule {
   string organization_id = 11 [(google.api.field_behavior) = REQUIRED];
   repeated RuleCondition conditions = 12 [(google.api.field_behavior) = REQUIRED];
   RuleVersion rule_version = 13 [(google.api.field_behavior) = REQUIRED];
+
+  // client_key is a client provided identifier for the rule. It is immutable after rule creation.
+  string client_key = 14 [(google.api.field_behavior) = OPTIONAL];
 }
 message RuleCondition {
   // 4 is reserved from old "status" column that lived directly on rule condition
@@ -269,15 +272,19 @@ message SearchRulesResponse {
   repeated Rule rules = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
+// GetRuleRequest is used to retrieve a rule by rule_id or client_key. If both are provided, only rule_id will be used.
 message GetRuleRequest {
-  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rule_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 message GetRuleResponse {
   Rule rule = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+// BatchGetRulesRequest is used to retrieve rules by rule_ids or client_keys. If both are provided, both will be used to retrieve rules.
 message BatchGetRulesRequest {
-  repeated string rule_ids = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated string rule_ids = 1 [(google.api.field_behavior) = OPTIONAL];
+  repeated string client_keys = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 message BatchGetRulesResponse {
   repeated Rule rules = 1 [(google.api.field_behavior) = REQUIRED];
@@ -289,6 +296,8 @@ message CreateRuleRequest {
 message CreateRuleResponse {
   string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
+
+// UpdateRuleRequest is used to create or update a rule. If the rule_id or client_key is provided, the rule will be updated. If not, a new rule will be created.
 message UpdateRuleRequest {
   optional string rule_id = 1;
   string name = 2 [(google.api.field_behavior) = REQUIRED];
@@ -298,6 +307,7 @@ message UpdateRuleRequest {
   repeated UpdateConditionRequest conditions = 6 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 7;
   string version_notes = 8;
+  optional string client_key = 9;
 }
 message UpdateConditionRequest {
   // 2 is reserved from old status update support on rule condition directly
@@ -320,8 +330,10 @@ message UpdateRuleResponse {
   string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+// DeleteRuleRequest is used to delete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
 message DeleteRuleRequest {
-  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rule_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 message DeleteRuleResponse {}
 
