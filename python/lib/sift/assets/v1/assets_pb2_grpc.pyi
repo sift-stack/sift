@@ -37,6 +37,11 @@ class AssetServiceStub:
     ]
     """Retrieves assets using an optional filter."""
 
+    UpdateAsset: grpc.UnaryUnaryMultiCallable[
+        sift.assets.v1.assets_pb2.UpdateAssetRequest,
+        sift.assets.v1.assets_pb2.UpdateAssetResponse,
+    ]
+
 class AssetServiceAsyncStub:
     DeleteAsset: grpc.aio.UnaryUnaryMultiCallable[
         sift.assets.v1.assets_pb2.DeleteAssetRequest,
@@ -55,6 +60,11 @@ class AssetServiceAsyncStub:
         sift.assets.v1.assets_pb2.ListAssetsResponse,
     ]
     """Retrieves assets using an optional filter."""
+
+    UpdateAsset: grpc.aio.UnaryUnaryMultiCallable[
+        sift.assets.v1.assets_pb2.UpdateAssetRequest,
+        sift.assets.v1.assets_pb2.UpdateAssetResponse,
+    ]
 
 class AssetServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -80,5 +90,12 @@ class AssetServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.assets.v1.assets_pb2.ListAssetsResponse, collections.abc.Awaitable[sift.assets.v1.assets_pb2.ListAssetsResponse]]:
         """Retrieves assets using an optional filter."""
+
+    @abc.abstractmethod
+    def UpdateAsset(
+        self,
+        request: sift.assets.v1.assets_pb2.UpdateAssetRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.assets.v1.assets_pb2.UpdateAssetResponse, collections.abc.Awaitable[sift.assets.v1.assets_pb2.UpdateAssetResponse]]: ...
 
 def add_AssetServiceServicer_to_server(servicer: AssetServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

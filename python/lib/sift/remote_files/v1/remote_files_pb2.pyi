@@ -118,17 +118,22 @@ class VideoMetadata(google.protobuf.message.Message):
     HEIGHT_FIELD_NUMBER: builtins.int
     WIDTH_FIELD_NUMBER: builtins.int
     DURATION_SECONDS_FIELD_NUMBER: builtins.int
+    TIMESTAMP_FIELD_NUMBER: builtins.int
     height: builtins.int
     width: builtins.int
     duration_seconds: builtins.float
+    @property
+    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
         height: builtins.int = ...,
         width: builtins.int = ...,
         duration_seconds: builtins.float = ...,
+        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["duration_seconds", b"duration_seconds", "height", b"height", "width", b"width"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["duration_seconds", b"duration_seconds", "height", b"height", "timestamp", b"timestamp", "width", b"width"]) -> None: ...
 
 global___VideoMetadata = VideoMetadata
 
@@ -400,7 +405,7 @@ class UpdateRemoteFileRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The field available to be updated is `description`."""
+        """The list of fields to be updated. The fields available to be updated are `description` and `metadata`."""
 
     def __init__(
         self,

@@ -29,6 +29,11 @@ class AssetServiceStub(object):
                 request_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.ListAssetsRequest.SerializeToString,
                 response_deserializer=sift_dot_assets_dot_v1_dot_assets__pb2.ListAssetsResponse.FromString,
                 )
+        self.UpdateAsset = channel.unary_unary(
+                '/sift.assets.v1.AssetService/UpdateAsset',
+                request_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.UpdateAssetRequest.SerializeToString,
+                response_deserializer=sift_dot_assets_dot_v1_dot_assets__pb2.UpdateAssetResponse.FromString,
+                )
 
 
 class AssetServiceServicer(object):
@@ -55,6 +60,12 @@ class AssetServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def UpdateAsset(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AssetServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -72,6 +83,11 @@ def add_AssetServiceServicer_to_server(servicer, server):
                     servicer.ListAssets,
                     request_deserializer=sift_dot_assets_dot_v1_dot_assets__pb2.ListAssetsRequest.FromString,
                     response_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.ListAssetsResponse.SerializeToString,
+            ),
+            'UpdateAsset': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateAsset,
+                    request_deserializer=sift_dot_assets_dot_v1_dot_assets__pb2.UpdateAssetRequest.FromString,
+                    response_serializer=sift_dot_assets_dot_v1_dot_assets__pb2.UpdateAssetResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -131,5 +147,22 @@ class AssetService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.assets.v1.AssetService/ListAssets',
             sift_dot_assets_dot_v1_dot_assets__pb2.ListAssetsRequest.SerializeToString,
             sift_dot_assets_dot_v1_dot_assets__pb2.ListAssetsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UpdateAsset(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.assets.v1.AssetService/UpdateAsset',
+            sift_dot_assets_dot_v1_dot_assets__pb2.UpdateAssetRequest.SerializeToString,
+            sift_dot_assets_dot_v1_dot_assets__pb2.UpdateAssetResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
