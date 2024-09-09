@@ -4,7 +4,7 @@ package sift.common.type.v1;
 
 import "google/api/field_behavior.proto";
 
-
+option go_package = "azimuth/gen/protos/go/sift/common/type/v1;typev1pb";
 
 message ChannelBitFieldElement {
   string name = 1 [(google.api.field_behavior) = REQUIRED];

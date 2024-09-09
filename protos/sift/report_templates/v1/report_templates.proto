@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package sift.report_templates.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "azimuth/gen/protos/go/sift/report_templates/v1;report_templatesv1pb";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "ReportTemplate service"}
+};
+
+service ReportTemplateService {
+  // Retrieve a report template.
+  rpc GetReportTemplate(GetReportTemplateRequest) returns (GetReportTemplateResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/report-templates/{report_template_id}"
+      additional_bindings {get: "/v1/organizations/{organization_id}/report_templates/{client_key}"}
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetReportTemplate",
+      description: "Retrieve a report template."
+    };
+  }
+
+  // Create a report template.
+  rpc CreateReportTemplate(CreateReportTemplateRequest) returns (CreateReportTemplateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/report-templates"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "InsertReportTemplate",
+      description: "Create a report template."
+    };
+  }
+}
+
+message ReportTemplate {
+  string report_template_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
+  optional string client_key = 3 [(google.api.field_behavior) = OPTIONAL];
+  string name = 4 [(google.api.field_behavior) = REQUIRED];
+  optional string description = 5 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Timestamp archived_date = 6 [(google.api.field_behavior) = OPTIONAL];
+  string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 9 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 10 [(google.api.field_behavior) = REQUIRED];
+  repeated ReportTemplateRule rules = 11 [(google.api.field_behavior) = REQUIRED];
+  repeated ReportTemplateTag tags = 12 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ReportTemplateRule {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rule_version_id = 2 [(google.api.field_behavior) = REQUIRED];
+  uint32 rule_version_number = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ReportTemplateTag {
+  string tag_name = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `ReportTemplateService_GetReportTemplate` to retrieve a report template.
+// If `report_template_id` is provided then all other arguments will be ignored. The argument `report_template_id`
+// should not be used together with `client_key`. The `organization_id` argument is only required
+// if using `client_key` and the user belongs to multiple organizations.
+message GetReportTemplateRequest {
+  string report_template_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+  string organization_id = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request of a call to `ReportTemplateService_GetReportTemplate` to retrieve a report template.
+message GetReportTemplateResponse {
+  ReportTemplate report_template = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request of a call to `ReportTemplateService_CreateReportTemplate` to create a report template.
+message CreateReportTemplateRequest {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  optional string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+  optional string description = 3 [(google.api.field_behavior) = OPTIONAL];
+  repeated string tag_names = 4 [(google.api.field_behavior) = REQUIRED];
+  // `organization_id` is only required if your user belongs to multiple organizations
+  string organization_id = 6 [(google.api.field_behavior) = REQUIRED];
+  oneof rule_identifiers {
+    CreateReportTemplateRequestRuleIds rule_ids = 7 [(google.api.field_behavior) = OPTIONAL];
+    CreateReportTemplateRequestClientKeys rule_client_keys = 8 [(google.api.field_behavior) = OPTIONAL];
+  }
+}
+
+message CreateReportTemplateRequestRuleIds {
+  repeated string rule_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateReportTemplateRequestClientKeys {
+  repeated string rule_client_keys = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `ReportTemplateService_CreateReportTemplate` to create a report template.
+message CreateReportTemplateResponse {
+  ReportTemplate report_template = 1 [(google.api.field_behavior) = REQUIRED];
+}
