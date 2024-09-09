@@ -95,6 +95,8 @@ class ChannelConfig(AsProtobuf):
                 return uint64_value(int(value))
             elif self.data_type == ChannelDataType.FLOAT:
                 return float_value(float(value))
+            elif self.data_type == ChannelDataType.DOUBLE:
+                return double_value(float(value))
             elif self.data_type == ChannelDataType.ENUM:
                 return enum_value(int(value))
         elif isinstance(value, str) and self.data_type == ChannelDataType.STRING:
