@@ -88,6 +88,11 @@ rules:
         - failure
         - nostromo
 
+  - name: voltage.overvoltage
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+ 
 flows:
   - name: readings
     channels:

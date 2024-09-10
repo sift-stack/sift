@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Type, cast
+from typing import Any, Dict, List, Type, Callable, cast
 
 import yaml
 
@@ -52,6 +52,28 @@ def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
     return named_expressions
 
 
+def load_named_rule_modules(paths: List[Path]) -> Dict[str, str]: #TODO: Remove redundancy
+    """
+    Takes in a list of paths to YAML files which contains named expressions and processes them into a `dict`.
+    The key is the name of the expression and the value is the expression itself. For more information on
+    named expression modules see `sift_py.ingestion/config/yaml/spec.py
+    """
+
+    named_rules = {}
+
+    for path in paths:
+        named_expr_module = _read_named_rule_module_yaml(path)
+
+        for name, expr in named_expr_module.items():
+            if name in named_rules:
+                raise YamlConfigError(
+                    f"Encountered rules with identical names being loaded, '{name}'."
+                )
+            named_rules[name] = expr
+
+    return named_rules
+
+
 def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
     with open(path, "r") as f:
         named_expressions = cast(Dict[Any, Any], yaml.safe_load(f.read()))
@@ -65,6 +87,28 @@ def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
                 raise YamlConfigError(
                     f"Expected expression of '{key}' to be a string in named expression module '{path}'."
                 )
+
+        return cast(Dict[str, str], named_expressions)
+
+
+def _read_named_rule_module_yaml(path: Path) -> Dict[str, Any]:
+    with open(path, "r") as f:
+        named_expressions = cast(Dict[Any, Any], yaml.safe_load(f.read()))
+
+        for key, value in named_expressions.items():
+            if not isinstance(key, str):
+                raise YamlConfigError(
+                    f"Expected '{key}' to be a string in named expression module '{path}'."
+                )
+            if key == "module_name" and not isinstance(value, str):  # TODO: Maybe make this nicer
+                raise YamlConfigError(
+                    f"Expected expression of '{key}' to be a string in named expression module '{path}'."
+                )
+            if key == "rules" and not isinstance(value, List):
+                raise YamlConfigError(
+                    f"Expected expression of '{key}' to be a list in named expression module '{path}'."
+                )
+
 
         return cast(Dict[str, str], named_expressions)
 
@@ -105,14 +149,14 @@ def _validate_yaml(raw_config: Dict[Any, Any]) -> TelemetryConfigYamlSpec:
     if rules is not None:
         if not isinstance(rules, list):
             raise YamlConfigError._invalid_property(
-                channels,
-                "channels",
+                channels,  # TODO: Should this be rules?
+                "channels",  # TODO: Should this be rules?
                 f"List[{_type_fqn(RuleYamlSpec)}]",
                 None,
             )
 
         for rule in cast(List[Any], rules):
-            _validate_rule(rule)
+            _validate_rule(rule)  # TODO: Update what runs here ?
 
     flows = raw_config.get("flows")
 
@@ -305,6 +349,7 @@ def _validate_rule(val: Any):
             "<class 'str'> | <class 'dict'>",
             ["rules"],
         )
+    # TODO: If None, assume it's a module
 
     rule_type = rule.get("type")
     valid_rule_types = [kind.value for kind in RuleActionAnnotationKind]

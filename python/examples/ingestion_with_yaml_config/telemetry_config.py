@@ -5,6 +5,7 @@ from sift_py.ingestion.service import TelemetryConfig
 
 TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
 EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
+RULE_MODULES_DIR = Path().joinpath("rule_modules")
 
 
 def nostromos_lv_426() -> TelemetryConfig:
@@ -21,5 +22,8 @@ def nostromos_lv_426() -> TelemetryConfig:
         [
             EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
             EXPRESSION_MODULES_DIR.joinpath("string.yml"),
+        ],
+        [
+            RULE_MODULES_DIR.joinpath("voltage.yml")
         ],
     )

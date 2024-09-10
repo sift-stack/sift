@@ -1,0 +1,7 @@
+module_name: voltage
+
+rules:
+  - name: overvoltage
+    description: Checks for overvoltage while accelerating
+    expression: $1 == "Accelerating" && $2 > 80
+    type: review
