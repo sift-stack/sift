@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Type, Callable, cast
+from typing import Any, Dict, List, Type, cast
 
 import yaml
 
@@ -52,7 +52,7 @@ def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
     return named_expressions
 
 
-def load_named_rule_modules(paths: List[Path]) -> Dict[str, str]: #TODO: Remove redundancy
+def load_named_rule_modules(paths: List[Path]) -> Dict[str, str]:  # TODO: Remove redundancy
     """
     Takes in a list of paths to YAML files which contains named expressions and processes them into a `dict`.
     The key is the name of the expression and the value is the expression itself. For more information on
@@ -108,7 +108,6 @@ def _read_named_rule_module_yaml(path: Path) -> Dict[str, Any]:
                 raise YamlConfigError(
                     f"Expected expression of '{key}' to be a list in named expression module '{path}'."
                 )
-
 
         return cast(Dict[str, str], named_expressions)
 
@@ -317,6 +316,7 @@ def _validate_bit_field_element(val: Any):
 
 
 def _validate_rule(val: Any):
+    # TODO: Only name and channel_references if referencing a module
     rule = cast(Dict[Any, Any], val)
 
     name = rule.get("name")
@@ -349,7 +349,6 @@ def _validate_rule(val: Any):
             "<class 'str'> | <class 'dict'>",
             ["rules"],
         )
-    # TODO: If None, assume it's a module
 
     rule_type = rule.get("type")
     valid_rule_types = [kind.value for kind in RuleActionAnnotationKind]

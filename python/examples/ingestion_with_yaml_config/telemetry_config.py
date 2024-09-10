@@ -23,7 +23,5 @@ def nostromos_lv_426() -> TelemetryConfig:
             EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
             EXPRESSION_MODULES_DIR.joinpath("string.yml"),
         ],
-        [
-            RULE_MODULES_DIR.joinpath("voltage.yml")
-        ],
+        [RULE_MODULES_DIR.joinpath("voltage.yml")],
     )

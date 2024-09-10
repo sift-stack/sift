@@ -12,7 +12,11 @@ from sift_py.ingestion.channel import (
     ChannelEnumType,
     _channel_fqn,
 )
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules, load_named_rule_modules,read_and_validate
+from sift_py.ingestion.config.yaml.load import (
+    load_named_expression_modules,
+    load_named_rule_modules,
+    read_and_validate,
+)
 from sift_py.ingestion.config.yaml.spec import TelemetryConfigYamlSpec
 from sift_py.ingestion.flow import FlowConfig
 from sift_py.ingestion.rule.config import (
