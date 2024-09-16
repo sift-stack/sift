@@ -92,18 +92,18 @@ if __name__ == "__main__":
     telemetry_config = _load_telemetry_config(sample_data_csv, asset_name, ingestion_client_key)
     flows = _parse_csv(sample_data_csv, telemetry_config)
 
-    config = SiftChannelConfig(
+    sift_channel_config = SiftChannelConfig(
         uri=sift_uri,
         apikey=apikey,
-        use_ssl=False,
     )
 
-    sift_channel = use_sift_channel(config)
+    with use_sift_channel(sift_channel_config) as channel:
+        # Create ingestion service using the telemetry config
+       ingestion_service = IngestionService(
+           channel=channel,
+           config=telemetry_config,
+       )
 
-    ingestion_service = IngestionService(
-        channel=sift_channel,
-        config=telemetry_config,
-    )
-
-    run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
-    ingestion_service.attach_run(sift_channel, run_name, "example csv ingestion")
+        # Create a new run as part of this ingestion
+       run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
+       ingestion_service.attach_run(channel, run_name, "example csv ingestion")
