@@ -1,3 +1,4 @@
+import csv
 import os
 import uuid
 from datetime import datetime
@@ -20,13 +21,12 @@ def _parse_csv(
     flow = telemetry_config.flows[0]  # Packed into a single flow for this example
     flow_name = flow.name
 
-    with open(path_to_csv, "r") as csv:
-        body = iter(csv.readlines())
-        next(body)  # skip header
+    with open(path_to_csv, "r") as csv_file:
+        reader = csv.reader(csv_file)
+        next(reader)  # skip header
 
-        for row in body:
-            columns = row.strip().split(",")
-            timestamp_str, values = columns[0], columns[1:]
+        for row in reader:
+            timestamp_str, values = row[0], row[1:]
             assert len(values) == len(
                 flow.channels
             ), "number of channels don't match number of data points in row"
@@ -47,10 +47,9 @@ def _load_telemetry_config(
 ) -> TelemetryConfig:
     channels = []
 
-    with open(path_to_csv, "r") as csv:
-        body = csv.readlines()
-        header_row = body[0]
-        header = header_row.strip().split(",")
+    with open(path_to_csv, "r") as csv_file:
+        reader = csv.reader(csv_file)
+        header = next(reader)  # grab only header
         channel_names = header[1:]
 
         for name in channel_names:
