@@ -106,3 +106,7 @@ if __name__ == "__main__":
         # Create a new run as part of this ingestion
         run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
         ingestion_service.attach_run(channel, run_name, "example csv ingestion")
+
+        buffered_ingestion = ingestion_service.buffered_ingestion()
+        for flow in flows:
+            buffered_ingestion.try_ingest_flows(flow)
