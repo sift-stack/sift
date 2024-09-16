@@ -98,11 +98,11 @@ if __name__ == "__main__":
 
     with use_sift_channel(sift_channel_config) as channel:
         # Create ingestion service using the telemetry config
-       ingestion_service = IngestionService(
-           channel=channel,
-           config=telemetry_config,
-       )
+        ingestion_service = IngestionService(
+            channel=channel,
+            config=telemetry_config,
+        )
 
         # Create a new run as part of this ingestion
-       run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
-       ingestion_service.attach_run(channel, run_name, "example csv ingestion")
+        run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
+        ingestion_service.attach_run(channel, run_name, "example csv ingestion")
