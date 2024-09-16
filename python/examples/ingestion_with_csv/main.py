@@ -13,7 +13,7 @@ from sift_py.ingestion.flow import FlowConfig, FlowOrderedChannelValues
 from sift_py.ingestion.service import IngestionService
 
 
-def _parse_csv(
+def parse_csv(
     path_to_csv: Path, telemetry_config: TelemetryConfig
 ) -> List[FlowOrderedChannelValues]:
     flows: List[FlowOrderedChannelValues] = []
@@ -42,7 +42,7 @@ def _parse_csv(
     return flows
 
 
-def _load_telemetry_config(
+def load_telemetry_config(
     path_to_csv: Path, asset_name: str, ingestion_client_key: str
 ) -> TelemetryConfig:
     channels = []
@@ -88,8 +88,8 @@ if __name__ == "__main__":
 
     sample_data_csv = Path("sample_data.csv")
 
-    telemetry_config = _load_telemetry_config(sample_data_csv, asset_name, ingestion_client_key)
-    flows = _parse_csv(sample_data_csv, telemetry_config)
+    telemetry_config = load_telemetry_config(sample_data_csv, asset_name, ingestion_client_key)
+    flows = parse_csv(sample_data_csv, telemetry_config)
 
     sift_channel_config = SiftChannelConfig(
         uri=sift_uri,
@@ -98,11 +98,11 @@ if __name__ == "__main__":
 
     with use_sift_channel(sift_channel_config) as channel:
         # Create ingestion service using the telemetry config
-        ingestion_service = IngestionService(
-            channel=channel,
-            config=telemetry_config,
-        )
+       ingestion_service = IngestionService(
+           channel=channel,
+           config=telemetry_config,
+       )
 
         # Create a new run as part of this ingestion
-        run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
-        ingestion_service.attach_run(channel, run_name, "example csv ingestion")
+       run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
+       ingestion_service.attach_run(channel, run_name, "example csv ingestion")
