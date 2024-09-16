@@ -42,7 +42,9 @@ def _parse_csv(
     return flows
 
 
-def _load_telemetry_config(path_to_csv: Path, asset_name: str, ingestion_client_key: str) -> TelemetryConfig:
+def _load_telemetry_config(
+    path_to_csv: Path, asset_name: str, ingestion_client_key: str
+) -> TelemetryConfig:
     channels = []
 
     with open(path_to_csv, "r") as csv:
