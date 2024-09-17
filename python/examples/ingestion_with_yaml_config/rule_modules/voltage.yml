@@ -1,4 +1,4 @@
-module_name: voltage
+namespace: voltage
 
 rules:
   - name: overvoltage

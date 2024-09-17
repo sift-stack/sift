@@ -88,7 +88,8 @@ rules:
         - failure
         - nostromo
 
-  - name: voltage.overvoltage
+  - namespace: voltage
+    name: overvoltage
     channel_references:
       - $1: *vehicle_state_channel
       - $2: *voltage_channel

@@ -57,6 +57,12 @@ def load_named_rule_modules(paths: List[Path]) -> Dict[str, str]:  # TODO: Remov
     Takes in a list of paths to YAML files which contains named expressions and processes them into a `dict`.
     The key is the name of the expression and the value is the expression itself. For more information on
     named expression modules see `sift_py.ingestion/config/yaml/spec.py
+
+    TODO:
+        check if file or directory
+        open file or iterate through files in directory
+        ensure no duplicated namespaces
+        reassemble into namespace.name format
     """
 
     named_rules = {}
@@ -92,6 +98,14 @@ def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
 
 
 def _read_named_rule_module_yaml(path: Path) -> Dict[str, Any]:
+    """
+    TODO
+    - ensure namespace is a string
+    - get list of rules
+    - ensure namespace key isn't in this list
+    - call _validate_rules()
+    - return dict of { namespace: { rules }} for reassembly
+    """
     with open(path, "r") as f:
         named_expressions = cast(Dict[Any, Any], yaml.safe_load(f.read()))
 
@@ -316,13 +330,40 @@ def _validate_bit_field_element(val: Any):
 
 
 def _validate_rule(val: Any):
-    # TODO: Only name and channel_references if referencing a module
     rule = cast(Dict[Any, Any], val)
+
+    namespace = rule.get("namespace")
+    if namespace is not None and not isinstance(namespace, str):
+        raise YamlConfigError._invalid_property(
+            namespace,
+            "- namespace",
+            "str",
+            ["rules"],
+        )
 
     name = rule.get("name")
 
     if not isinstance(name, str):
         raise YamlConfigError._invalid_property(name, "- name", "str", ["rules"])
+
+    channel_references = rule.get("channel_references")
+
+    if namespace or (channel_references is not None):
+        if not isinstance(channel_references, list):
+            raise YamlConfigError._invalid_property(
+                channel_references,
+                "- channel_references",
+                f"List[Dict[str, {_type_fqn(ChannelConfigYamlSpec)}]]",
+                ["rules"],
+            )
+
+        for channel_reference in cast(List[Any], channel_references):
+            _validate_channel_reference(channel_reference)
+
+    if namespace:
+        # TODO: Probably should inform the user that the below keys
+        # belong in the referenced namespace instead of doing this
+        return
 
     description = rule.get("description")
 
@@ -380,20 +421,6 @@ def _validate_rule(val: Any):
             "List[str]",
             ["rules"],
         )
-
-    channel_references = rule.get("channel_references")
-
-    if channel_references is not None:
-        if not isinstance(channel_references, list):
-            raise YamlConfigError._invalid_property(
-                channel_references,
-                "- channel_references",
-                f"List[Dict[str, {_type_fqn(ChannelConfigYamlSpec)}]]",
-                ["rules"],
-            )
-
-        for channel_reference in cast(List[Any], channel_references):
-            _validate_channel_reference(channel_reference)
 
     sub_expressions = rule.get("sub_expressions")
 
