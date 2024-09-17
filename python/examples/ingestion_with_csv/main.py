@@ -34,9 +34,7 @@ def parse_csv(
                 {
                     "flow_name": flow_name,
                     "timestamp": datetime.fromisoformat(timestamp_str),
-                    "channel_values": [
-                        double_value(float(raw_value)) for raw_value in values
-                    ],
+                    "channel_values": [double_value(float(raw_value)) for raw_value in values],
                 }
             )
 
@@ -85,15 +83,11 @@ if __name__ == "__main__":
     assert asset_name, "expected 'ASSET_NAME' environment variable to be set"
 
     ingestion_client_key = os.getenv("INGESTION_CLIENT_KEY")
-    assert (
-        ingestion_client_key
-    ), "expected 'INGESTION_CLIENT_KEY' environment variable to be set"
+    assert ingestion_client_key, "expected 'INGESTION_CLIENT_KEY' environment variable to be set"
 
     sample_data_csv = Path("sample_data.csv")
 
-    telemetry_config = load_telemetry_config(
-        sample_data_csv, asset_name, ingestion_client_key
-    )
+    telemetry_config = load_telemetry_config(sample_data_csv, asset_name, ingestion_client_key)
     flows = parse_csv(sample_data_csv, telemetry_config)
 
     sift_channel_config = SiftChannelConfig(
