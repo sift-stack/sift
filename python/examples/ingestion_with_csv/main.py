@@ -101,6 +101,7 @@ if __name__ == "__main__":
         ingestion_service = IngestionService(
             channel=channel,
             config=telemetry_config,
+            end_stream_on_error=True  # End stream if errors occur API-side.,
         )
 
         # Create a new run as part of this ingestion
