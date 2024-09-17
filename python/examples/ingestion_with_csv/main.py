@@ -1,6 +1,5 @@
 import csv
 import os
-import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -35,7 +34,9 @@ def parse_csv(
                 {
                     "flow_name": flow_name,
                     "timestamp": datetime.fromisoformat(timestamp_str),
-                    "channel_values": [double_value(float(raw_value)) for raw_value in values],
+                    "channel_values": [
+                        double_value(float(raw_value)) for raw_value in values
+                    ],
                 }
             )
 
@@ -84,11 +85,15 @@ if __name__ == "__main__":
     assert asset_name, "expected 'ASSET_NAME' environment variable to be set"
 
     ingestion_client_key = os.getenv("INGESTION_CLIENT_KEY")
-    assert ingestion_client_key, "expected 'INGESTION_CLIENT_KEY' environment variable to be set"
+    assert (
+        ingestion_client_key
+    ), "expected 'INGESTION_CLIENT_KEY' environment variable to be set"
 
     sample_data_csv = Path("sample_data.csv")
 
-    telemetry_config = load_telemetry_config(sample_data_csv, asset_name, ingestion_client_key)
+    telemetry_config = load_telemetry_config(
+        sample_data_csv, asset_name, ingestion_client_key
+    )
     flows = parse_csv(sample_data_csv, telemetry_config)
 
     sift_channel_config = SiftChannelConfig(
@@ -101,12 +106,11 @@ if __name__ == "__main__":
         ingestion_service = IngestionService(
             channel=channel,
             config=telemetry_config,
-            end_stream_on_error=True,  # End stream if errors occur API-side.
         )
 
         # Create a new run as part of this ingestion
-        run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
+        run_name = f"{asset_name}-{datetime.now()}"
         ingestion_service.attach_run(channel, run_name, "example csv ingestion")
 
         with ingestion_service.buffered_ingestion() as buffered_ingestion:
-            buffered_ingestion.try_ingest_flows(*flows)
+            buffered_ingestion.ingest_flows(*flows)
