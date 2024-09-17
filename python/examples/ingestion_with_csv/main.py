@@ -1,6 +1,5 @@
 import csv
 import os
-import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -101,12 +100,11 @@ if __name__ == "__main__":
         ingestion_service = IngestionService(
             channel=channel,
             config=telemetry_config,
-            end_stream_on_error=True,  # End stream if errors occur API-side.
         )
 
         # Create a new run as part of this ingestion
-        run_name = f"{telemetry_config.ingestion_client_key}-{uuid.uuid4()}"
+        run_name = f"{asset_name}-{datetime.now()}"
         ingestion_service.attach_run(channel, run_name, "example csv ingestion")
 
         with ingestion_service.buffered_ingestion() as buffered_ingestion:
-            buffered_ingestion.try_ingest_flows(*flows)
+            buffered_ingestion.ingest_flows(*flows)
