@@ -68,11 +68,8 @@ def load_telemetry_config(
 
             channel_data = {}
             for row in reader:
-                 timestamp_str, value = row[0], row[1]  # Assuming only one channel per CSV
-                 channel_data.update({
-                      datetime.fromisoformat(timestamp_str):
-                      value
-                 })
+                timestamp_str, value = row[0], row[1]  # Assuming only one channel per CSV
+                channel_data.update({datetime.fromisoformat(timestamp_str): value})
             data.append(channel_data)
 
     telemetry_config = TelemetryConfig(
