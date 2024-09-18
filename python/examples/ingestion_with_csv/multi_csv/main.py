@@ -21,13 +21,16 @@ def parse_csv(
     flow_name = flow.name
 
     all_timestamps: List = []
-    for channel in data:
+    for channel in data:  # Extract all timestamps from all channels
         all_timestamps += channel.keys()
+    all_timestamps = sorted(list(set(all_timestamps)))  # Remove duplicates and sort
 
-    for timestamp in sorted(list(set(all_timestamps))):
+    for timestamp in all_timestamps:
         channel_values = []
+
         for channel in data:
             channel_data = channel.get(timestamp)
+            # Check if there's data present for each timestamp
             if channel_data:
                 channel_values.append(double_value(float(channel_data)))
             else:
@@ -48,7 +51,7 @@ def load_telemetry_config(
     csv_paths: List[Path], asset_name: str, ingestion_client_key: str
 ) -> Tuple[TelemetryConfig, List[Dict]]:
     channels = []
-    data: List[Dict] = []
+    data: List[Dict] = []  # Each channel will have its own dictionary: {timestamp: value}
 
     for path_to_csv in csv_paths:
         with open(path_to_csv, "r") as csv_file:
