@@ -52,32 +52,32 @@ def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
     return named_expressions
 
 
-def load_named_rule_modules(paths: List[Path]) -> Dict[str, str]:  # TODO: Remove redundancy
+def load_rule_namespaces(paths: List[Path]) -> Dict[str, List]:
     """
-    Takes in a list of paths to YAML files which contains named expressions and processes them into a `dict`.
-    The key is the name of the expression and the value is the expression itself. For more information on
-    named expression modules see `sift_py.ingestion/config/yaml/spec.py
-
-    TODO:
-        check if file or directory
-        open file or iterate through files in directory
-        ensure no duplicated namespaces
-        reassemble into namespace.name format
+    TODO: A nice docstring
     """
 
-    named_rules = {}
+    rule_namespaces: Dict[str, List] = {}
+
+    def update_rule_namespaces(rule_module_path: Path):
+        rule_module = _read_rule_namespace_yaml(rule_module_path)
+
+        for key in rule_module.keys():
+            if key in rule_namespaces:
+                raise YamlConfigError(
+                    f"Encountered rules with identical names being loaded, '{key}'."
+                )
+
+        rule_namespaces.update(rule_module)
 
     for path in paths:
-        named_expr_module = _read_named_rule_module_yaml(path)
+        if path.is_dir():
+            for rule_file in path.iterdir():
+                update_rule_namespaces(rule_file)
+        elif path.is_file():
+            update_rule_namespaces(path)
 
-        for name, expr in named_expr_module.items():
-            if name in named_rules:
-                raise YamlConfigError(
-                    f"Encountered rules with identical names being loaded, '{name}'."
-                )
-            named_rules[name] = expr
-
-    return named_rules
+    return rule_namespaces
 
 
 def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
@@ -97,33 +97,35 @@ def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
         return cast(Dict[str, str], named_expressions)
 
 
-def _read_named_rule_module_yaml(path: Path) -> Dict[str, Any]:
-    """
-    TODO
-    - ensure namespace is a string
-    - get list of rules
-    - ensure namespace key isn't in this list
-    - call _validate_rules()
-    - return dict of { namespace: { rules }} for reassembly
-    """
+def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:
     with open(path, "r") as f:
-        named_expressions = cast(Dict[Any, Any], yaml.safe_load(f.read()))
+        namespace_rules = cast(Dict[Any, Any], yaml.safe_load(f.read()))
+        namespace = namespace_rules.get("namespace")
 
-        for key, value in named_expressions.items():
-            if not isinstance(key, str):
-                raise YamlConfigError(
-                    f"Expected '{key}' to be a string in named expression module '{path}'."
-                )
-            if key == "module_name" and not isinstance(value, str):  # TODO: Maybe make this nicer
-                raise YamlConfigError(
-                    f"Expected expression of '{key}' to be a string in named expression module '{path}'."
-                )
-            if key == "rules" and not isinstance(value, List):
-                raise YamlConfigError(
-                    f"Expected expression of '{key}' to be a list in named expression module '{path}'."
-                )
+        if not isinstance(namespace, str):
+            raise YamlConfigError(
+                f"Expected '{namespace} to be a string in rule namespace yaml: '{path}'"
+            )
 
-        return cast(Dict[str, str], named_expressions)
+        rules = namespace_rules.get("rules")
+        if not isinstance(namespace, str):
+            raise YamlConfigError(
+                f"Expected '{rules}' to be a list in rule namespace yaml: '{path}'"
+            )
+
+        for rule in cast(List[Any], rules):
+           nested_namespace = rule.get("namespace")
+           if nested_namespace:  # TODO: Do we want to allow this?
+               raise YamlConfigError(
+                   "Rules referencing other namespaces cannot be nested. "
+                   f"Found nested namespace '{nested_namespace}' in '{path}'. "
+               )
+           _validate_rule(rule)
+
+        # TODO: This format just seemed easier to work with... it does seem to
+        # sort of break from the pattern since everything else I think keeps the
+        # YAML format intact. Will come back and give this a think.
+        return {namespace: cast(List[Any], rules)}
 
 
 def _validate_yaml(raw_config: Dict[Any, Any]) -> TelemetryConfigYamlSpec:
@@ -169,7 +171,7 @@ def _validate_yaml(raw_config: Dict[Any, Any]) -> TelemetryConfigYamlSpec:
             )
 
         for rule in cast(List[Any], rules):
-            _validate_rule(rule)  # TODO: Update what runs here ?
+            _validate_rule(rule)
 
     flows = raw_config.get("flows")
 

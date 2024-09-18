@@ -14,7 +14,7 @@ from sift_py.ingestion.channel import (
 )
 from sift_py.ingestion.config.yaml.load import (
     load_named_expression_modules,
-    load_named_rule_modules,
+    load_rule_namespaces,
     read_and_validate,
 )
 from sift_py.ingestion.config.yaml.spec import TelemetryConfigYamlSpec
@@ -125,20 +125,20 @@ class TelemetryConfig:
         config_as_yaml = read_and_validate(path)
 
         named_expressions = {}
-        named_rules = {}
+        rule_namespaces = {}
         if named_expression_modules is not None:
             named_expressions = load_named_expression_modules(named_expression_modules)
         if named_rule_modules is not None:
-            named_rules = load_named_rule_modules(named_rule_modules)
+            rule_namespaces = load_rule_namespaces(named_rule_modules)
 
-        return cls._from_yaml(config_as_yaml, named_expressions, named_rules)
+        return cls._from_yaml(config_as_yaml, named_expressions, rule_namespaces)
 
     @classmethod
     def _from_yaml(
         cls,
         config_as_yaml: TelemetryConfigYamlSpec,
         named_expressions: Dict[str, str] = {},
-        named_rules: Dict[str, str] = {},  # TODO, do stuff with this
+        rule_namespaces: Dict[str, List] = {},  # TODO, do stuff with this
     ) -> Self:
         rules = []
         flows = []
@@ -188,6 +188,19 @@ class TelemetryConfig:
             )
 
         for rule in config_as_yaml.get("rules", []):
+            # TODO: Handle rules here; assemble rules from namespace keys
+            namespace = rule.get("namespace")
+
+            if namespace:
+                rule_namespace = rule_namespaces.get(str(namespace))
+                if not rule_namespace:
+                     # TODO: This is a placeholder.
+                     # Maybe we should try and catch this earlier?
+                     # Otherwise what happens if the namespace doesn't exist?
+                    raise ValueError(f"Could not find namespace {namespace}")
+                for rule_from_namespace in rule_namespace:
+                    pass # Match on name
+
             annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
 
             tags = rule.get("tags")
