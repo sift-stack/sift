@@ -205,6 +205,7 @@ class TelemetryConfig:
                 if not found_rule:
                     # TODO: Maybe we should try and catch this earlier?
                     raise ValueError(f"Could not find rule name {rule['name']} in {namespace}")
+                rule = found_rule
 
             annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
 

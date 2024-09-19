@@ -9,3 +9,4 @@ rules:
   - name: vehicle_not_stopped
     description: Makes sure vehicle velocity remains 0 while stopped
     expression: $1 == "Stopped" && $2 > 0
+    type: review

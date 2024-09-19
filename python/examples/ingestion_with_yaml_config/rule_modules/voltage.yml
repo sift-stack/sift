@@ -9,3 +9,4 @@ rules:
   - name: undervoltage
     description: Checks for undervoltage while accelerating
     expression: $1 == "Accelerating" && $2 < 40
+    type: review
