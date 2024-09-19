@@ -20,11 +20,7 @@ def parse_csv(
     flow = telemetry_config.flows[0]  # Packed into a single flow for this example
     flow_name = flow.name
 
-    all_timestamps = [
-        ts
-        for channel in data
-        for ts in channel.keys()
-    ]
+    all_timestamps = [ts for channel in data for ts in channel.keys()]
     all_timestamps = sorted(list(set(all_timestamps)))  # Remove duplicates and sort
 
     for timestamp in all_timestamps:
