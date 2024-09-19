@@ -114,13 +114,13 @@ def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:
             )
 
         for rule in cast(List[Any], rules):
-           nested_namespace = rule.get("namespace")
-           if nested_namespace:  # TODO: Do we want to allow this?
-               raise YamlConfigError(
-                   "Rules referencing other namespaces cannot be nested. "
-                   f"Found nested namespace '{nested_namespace}' in '{path}'. "
-               )
-           _validate_rule(rule)
+            nested_namespace = rule.get("namespace")
+            if nested_namespace:  # TODO: Do we want to allow this?
+                raise YamlConfigError(
+                    "Rules referencing other namespaces cannot be nested. "
+                    f"Found nested namespace '{nested_namespace}' in '{path}'. "
+                )
+            _validate_rule(rule)
 
         # TODO: This format just seemed easier to work with... it does feel like
         # sort of breaks from patterns elsewhere here since everything else I think
