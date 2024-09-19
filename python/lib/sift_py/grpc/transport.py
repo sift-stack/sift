@@ -6,7 +6,7 @@ and should generally be used within a with-block for correct resource management
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple, TypedDict, Union
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 from urllib.parse import ParseResult, urlparse
 
 import grpc
@@ -24,7 +24,9 @@ SiftChannel: TypeAlias = grpc.Channel
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 
 
-def use_sift_channel(config: SiftChannelConfig) -> SiftChannel:
+def use_sift_channel(
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+) -> SiftChannel:
     """
     Returns an intercepted channel that is meant to be used across all services that
     make RPCs to Sift's API. It is highly encouraged to use this within a with-block
@@ -43,11 +45,13 @@ def use_sift_channel(config: SiftChannelConfig) -> SiftChannel:
     options = _compute_channel_options(config)
     api_uri = _clean_uri(config["uri"], use_ssl)
     channel = grpc.secure_channel(api_uri, credentials, options)
-    interceptors = _compute_sift_interceptors(config)
+    interceptors = _compute_sift_interceptors(config, metadata)
     return grpc.intercept_channel(channel, *interceptors)
 
 
-def use_sift_async_channel(config: SiftChannelConfig) -> SiftAsyncChannel:
+def use_sift_async_channel(
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+) -> SiftAsyncChannel:
     """
     Like `use_sift_channel` but returns a channel meant to be used within the context
     of an async runtime when asynchonous I/O is required.
@@ -61,44 +65,52 @@ def use_sift_async_channel(config: SiftChannelConfig) -> SiftAsyncChannel:
         target=_clean_uri(config["uri"], use_ssl),
         credentials=grpc.ssl_channel_credentials(),
         options=_compute_channel_options(config),
-        interceptors=_compute_sift_async_interceptors(config),
+        interceptors=_compute_sift_async_interceptors(config, metadata),
     )
 
 
-def _use_insecure_sift_channel(config: SiftChannelConfig) -> SiftChannel:
+def _use_insecure_sift_channel(
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+) -> SiftChannel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
     """
     options = _compute_channel_options()
     api_uri = _clean_uri(config["uri"], False)
     channel = grpc.insecure_channel(api_uri, options)
-    interceptors = _compute_sift_interceptors(config)
+    interceptors = _compute_sift_interceptors(config, metadata)
     return grpc.intercept_channel(channel, *interceptors)
 
 
-def _use_insecure_sift_async_channel(config: SiftChannelConfig) -> SiftAsyncChannel:
+def _use_insecure_sift_async_channel(
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+) -> SiftAsyncChannel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
     """
     return grpc_aio.insecure_channel(
         target=config["uri"],
         options=_compute_channel_options(),
-        interceptors=_compute_sift_async_interceptors(config),
+        interceptors=_compute_sift_async_interceptors(config, metadata),
     )
 
 
-def _compute_sift_interceptors(config: SiftChannelConfig) -> List[ClientInterceptor]:
+def _compute_sift_interceptors(
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+) -> List[ClientInterceptor]:
     """
     Initialized all interceptors here.
     """
     return [
-        _metadata_interceptor(config),
+        _metadata_interceptor(config, metadata),
     ]
 
 
-def _compute_sift_async_interceptors(config: SiftChannelConfig) -> List[grpc_aio.ClientInterceptor]:
+def _compute_sift_async_interceptors(
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+) -> List[grpc_aio.ClientInterceptor]:
     return [
-        _metadata_async_interceptor(config),
+        _metadata_async_interceptor(config, metadata),
     ]
 
 
@@ -126,25 +138,35 @@ def _compute_channel_options(opts: Optional[SiftChannelConfig] = None) -> List[T
     return options
 
 
-def _metadata_interceptor(config: SiftChannelConfig) -> ClientInterceptor:
+def _metadata_interceptor(
+    config: SiftChannelConfig, metadata_kwargs: Optional[Dict[str, Any]] = None
+) -> ClientInterceptor:
     """
     Any new metadata goes here.
     """
     apikey = config["apikey"]
-    metadata: Metadata = [
-        ("authorization", f"Bearer {apikey}"),
-    ]
+
+    kwargs = []
+    if metadata_kwargs:
+        kwargs = [(key, val) for key, val in metadata_kwargs.items()]
+
+    metadata: Metadata = [("authorization", f"Bearer {apikey}"), *kwargs]
     return MetadataInterceptor(metadata)
 
 
-def _metadata_async_interceptor(config: SiftChannelConfig) -> ClientAsyncInterceptor:
+def _metadata_async_interceptor(
+    config: SiftChannelConfig, metadata_kwargs: Optional[Dict[str, Any]] = None
+) -> ClientAsyncInterceptor:
     """
     Any new metadata goes here for unary-unary calls.
     """
     apikey = config["apikey"]
-    metadata: Metadata = [
-        ("authorization", f"Bearer {apikey}"),
-    ]
+
+    kwargs = []
+    if metadata_kwargs:
+        kwargs = [(key, val) for key, val in metadata_kwargs.items()]
+
+    metadata: Metadata = [("authorization", f"Bearer {apikey}"), *kwargs]
     return MetadataAsyncInterceptor(metadata)
 
 
