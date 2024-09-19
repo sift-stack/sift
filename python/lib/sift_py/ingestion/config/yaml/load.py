@@ -122,9 +122,10 @@ def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:
                )
            _validate_rule(rule)
 
-        # TODO: This format just seemed easier to work with... it does seem to
-        # sort of break from the pattern since everything else I think keeps the
-        # YAML format intact. Will come back and give this a think.
+        # TODO: This format just seemed easier to work with... it does feel like
+        # sort of breaks from patterns elsewhere here since everything else I think
+        # keeps the YAML format "intact" after reading into memory.
+        # Will come back and give this a think.
         return {namespace: cast(List[Any], rules)}
 
 

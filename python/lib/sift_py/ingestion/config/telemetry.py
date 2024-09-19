@@ -188,7 +188,6 @@ class TelemetryConfig:
             )
 
         for rule in config_as_yaml.get("rules", []):
-            # TODO: Handle rules here; assemble rules from namespace keys
             namespace = rule.get("namespace")
 
             if namespace:
@@ -198,8 +197,14 @@ class TelemetryConfig:
                      # Maybe we should try and catch this earlier?
                      # Otherwise what happens if the namespace doesn't exist?
                     raise ValueError(f"Could not find namespace {namespace}")
+
+                found_rule = None
                 for rule_from_namespace in rule_namespace:
-                    pass # Match on name
+                    if rule["name"] == rule_from_namespace["name"]:
+                        found_rule = rule_from_namespace
+                if not found_rule:
+                     # TODO: Maybe we should try and catch this earlier?
+                    raise ValueError(f"Could not find rule name {rule['name']} in {namespace}")
 
             annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
 
