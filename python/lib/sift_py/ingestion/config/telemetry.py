@@ -138,7 +138,7 @@ class TelemetryConfig:
         cls,
         config_as_yaml: TelemetryConfigYamlSpec,
         named_expressions: Dict[str, str] = {},
-        rule_namespaces: Dict[str, List] = {},  # TODO, do stuff with this
+        rule_namespaces: Dict[str, List] = {},
     ) -> Self:
         rules = []
         flows = []
