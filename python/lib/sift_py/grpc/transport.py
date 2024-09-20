@@ -139,35 +139,35 @@ def _compute_channel_options(opts: Optional[SiftChannelConfig] = None) -> List[T
 
 
 def _metadata_interceptor(
-    config: SiftChannelConfig, metadata_kwargs: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
 ) -> ClientInterceptor:
     """
     Any new metadata goes here.
     """
     apikey = config["apikey"]
+    md: Metadata = [("authorization", f"Bearer {apikey}")]
 
-    kwargs = []
-    if metadata_kwargs:
-        kwargs = [(key, val) for key, val in metadata_kwargs.items()]
+    if metadata:
+        kwargs = [(key, val) for key, val in metadata.items()]
+        md.append(*kwargs)
 
-    metadata: Metadata = [("authorization", f"Bearer {apikey}"), *kwargs]
-    return MetadataInterceptor(metadata)
+    return MetadataInterceptor(md)
 
 
 def _metadata_async_interceptor(
-    config: SiftChannelConfig, metadata_kwargs: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
 ) -> ClientAsyncInterceptor:
     """
     Any new metadata goes here for unary-unary calls.
     """
     apikey = config["apikey"]
+    md: Metadata = [("authorization", f"Bearer {apikey}")]
 
-    kwargs = []
-    if metadata_kwargs:
-        kwargs = [(key, val) for key, val in metadata_kwargs.items()]
+    if metadata:
+        kwargs = [(key, val) for key, val in metadata.items()]
+        md.append(*kwargs)
 
-    metadata: Metadata = [("authorization", f"Bearer {apikey}"), *kwargs]
-    return MetadataAsyncInterceptor(metadata)
+    return MetadataAsyncInterceptor(md)
 
 
 def _clean_uri(uri: str, use_ssl: bool) -> str:
