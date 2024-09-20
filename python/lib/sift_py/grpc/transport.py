@@ -148,8 +148,8 @@ def _metadata_interceptor(
     md: Metadata = [("authorization", f"Bearer {apikey}")]
 
     if metadata:
-        kwargs = [(key, val) for key, val in metadata.items()]
-        md.append(*kwargs)
+        for key, val in metadata.items():
+            md.append((key, val))
 
     return MetadataInterceptor(md)
 
@@ -164,8 +164,8 @@ def _metadata_async_interceptor(
     md: Metadata = [("authorization", f"Bearer {apikey}")]
 
     if metadata:
-        kwargs = [(key, val) for key, val in metadata.items()]
-        md.append(*kwargs)
+        for key, val in metadata.items():
+            md.append((key, val))
 
     return MetadataAsyncInterceptor(md)
 
