@@ -39,7 +39,7 @@ def use_sift_channel(
     use_ssl = config.get("use_ssl", True)
 
     if not use_ssl:
-        return _use_insecure_sift_channel(config)
+        return _use_insecure_sift_channel(config, metadata)
 
     credentials = grpc.ssl_channel_credentials()
     options = _compute_channel_options(config)
@@ -59,7 +59,7 @@ def use_sift_async_channel(
     use_ssl = config.get("use_ssl", True)
 
     if not use_ssl:
-        return _use_insecure_sift_async_channel(config)
+        return _use_insecure_sift_async_channel(config, metadata)
 
     return grpc_aio.secure_channel(
         target=_clean_uri(config["uri"], use_ssl),
