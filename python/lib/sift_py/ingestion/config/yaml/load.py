@@ -12,6 +12,7 @@ from sift_py.ingestion.config.yaml.spec import (
     ChannelEnumTypeYamlSpec,
     FlowYamlSpec,
     RuleYamlSpec,
+    RuleModuleYamlSpec,
     TelemetryConfigYamlSpec,
 )
 from sift_py.ingestion.rule.config import RuleActionAnnotationKind
@@ -167,7 +168,7 @@ def _validate_yaml(raw_config: Dict[Any, Any]) -> TelemetryConfigYamlSpec:
             raise YamlConfigError._invalid_property(
                 rules,
                 "rules",
-                f"List[{_type_fqn(RuleYamlSpec)}]",
+                f"List[{_type_fqn(RuleYamlSpec)}] or List[{_type_fqn(RuleModuleYamlSpec)}]",
                 None,
             )
 

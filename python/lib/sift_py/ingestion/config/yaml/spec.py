@@ -90,6 +90,15 @@ class FlowYamlSpec(TypedDict):
     channels: List[ChannelConfigYamlSpec]
 
 
+class RuleModuleYamlSpec(TypedDict):
+    """
+    TODO: A nice docstring
+    """
+    name: str
+    namespace: str
+    channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
+
+
 class RuleYamlSpec(TypedDict):
     """
     The formal definition of what a single rule looks like in YAML.
