@@ -165,8 +165,8 @@ def _validate_yaml(raw_config: Dict[Any, Any]) -> TelemetryConfigYamlSpec:
     if rules is not None:
         if not isinstance(rules, list):
             raise YamlConfigError._invalid_property(
-                channels,  # TODO: Should this be rules?
-                "channels",  # TODO: Should this be rules?
+                rules,
+                "rules",
                 f"List[{_type_fqn(RuleYamlSpec)}]",
                 None,
             )
