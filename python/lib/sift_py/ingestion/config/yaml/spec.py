@@ -94,6 +94,7 @@ class RuleModuleYamlSpec(TypedDict):
     """
     TODO: A nice docstring
     """
+
     name: str
     namespace: str
     channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]

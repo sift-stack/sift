@@ -11,8 +11,8 @@ from sift_py.ingestion.config.yaml.spec import (
     ChannelConfigYamlSpec,
     ChannelEnumTypeYamlSpec,
     FlowYamlSpec,
-    RuleYamlSpec,
     RuleModuleYamlSpec,
+    RuleYamlSpec,
     TelemetryConfigYamlSpec,
 )
 from sift_py.ingestion.rule.config import RuleActionAnnotationKind
