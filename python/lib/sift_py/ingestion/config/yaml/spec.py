@@ -90,14 +90,16 @@ class FlowYamlSpec(TypedDict):
     channels: List[ChannelConfigYamlSpec]
 
 
-class RuleModuleYamlSpec(TypedDict):
+class RuleNamespaceYamlSpec(TypedDict):
     """
-    TODO: A nice docstring
+    The formal definition of what a rule namespace looks like in YAML.
+
+    `namespace`: Name of the namespace.
+    `rules`: A list of rules that belong to the namespace.
     """
 
-    name: str
     namespace: str
-    channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
+    rules: List[RuleYamlSpec]
 
 
 class RuleYamlSpec(TypedDict):
@@ -105,6 +107,7 @@ class RuleYamlSpec(TypedDict):
     The formal definition of what a single rule looks like in YAML.
 
     `name`: Name of the rule.
+    `namespace`: Optional namespace of the rule.
     `description`: Description of rule.
     `expression`:
         Either an expression-string or a `sift_py.ingestion.config.yaml.spec.NamedExpressionYamlSpec` referencing a named expression.
@@ -156,6 +159,7 @@ class RuleYamlSpec(TypedDict):
     """
 
     name: str
+    namespace: NotRequired[str]
     description: NotRequired[str]
     expression: Union[str, NamedExpressionYamlSpec]
     type: Union[Literal["phase"], Literal["review"]]

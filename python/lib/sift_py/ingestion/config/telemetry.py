@@ -193,18 +193,14 @@ class TelemetryConfig:
             if namespace:
                 rule_namespace = rule_namespaces.get(str(namespace))
                 if not rule_namespace:
-                    # TODO: This is a placeholder.
-                    # Maybe we should try and catch this earlier?
-                    # Otherwise what happens if the namespace doesn't exist?
-                    raise ValueError(f"Could not find namespace {namespace}")
+                    raise TelemetryConfigValidationError(f"Could not find namespace {namespace}")
 
                 found_rule = None
                 for rule_from_namespace in rule_namespace:
                     if rule["name"] == rule_from_namespace["name"]:
                         found_rule = rule_from_namespace
                 if not found_rule:
-                    # TODO: Maybe we should try and catch this earlier?
-                    raise ValueError(f"Could not find rule name {rule['name']} in {namespace}")
+                    raise TelemetryConfigValidationError(f"Could not find rule name {rule['name']} in {namespace}")
                 rule = found_rule
 
             annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
