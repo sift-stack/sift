@@ -107,7 +107,7 @@ class RuleYamlSpec(TypedDict):
     The formal definition of what a single rule looks like in YAML.
 
     `name`: Name of the rule.
-    `namespace`: Optional namespace of the rule.
+    `namespace`: Optional namespace of the rule. Only used if referencing a rule defined in a namespace.
     `description`: Description of rule.
     `expression`:
         Either an expression-string or a `sift_py.ingestion.config.yaml.spec.NamedExpressionYamlSpec` referencing a named expression.
@@ -116,6 +116,26 @@ class RuleYamlSpec(TypedDict):
     `tags`: Tags to associate with the rule.
     `channel_references`: A list of channel references that maps to an actual channel. More below.
     `sub_expressions`: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
+
+    Namespaces:
+    Rule may be defined in a separate YAML within a namespace. The reference to the namespace rule would look like the following:
+    ```yaml
+    rules:
+      - namespace: voltage
+        name: overvoltage
+        channel_references:
+          - $1: *vehicle_state_channel
+          - $2: *voltage_channel
+    ```
+    With the corresponding rule being defined in a separate YAML file like the following:
+    ```yaml
+    namespace: voltage
+    rules:
+      - name: overvoltage
+        description: Checks for overvoltage while accelerating
+        expression: $1 == "Accelerating" && $2 > 80
+        type: review
+    ```
 
     Channel references:
     A channel reference is a string containing a numerical value prefixed with "$". Examples include "$1", "$2", "$11", and so on.
