@@ -73,10 +73,16 @@ def load_rule_namespaces(paths: List[Path]) -> Dict[str, List]:
 
         rule_namespaces.update(rule_module)
 
+    def handle_dir(path: Path):
+        for file_in_dir in path.iterdir():
+            if file_in_dir.is_dir():
+                handle_dir(file_in_dir)
+            elif file_in_dir.is_file():
+                update_rule_namespaces(file_in_dir)
+
     for path in paths:
         if path.is_dir():
-            for rule_file in path.iterdir():
-                update_rule_namespaces(rule_file)
+            handle_dir(path)
         elif path.is_file():
             update_rule_namespaces(path)
 
