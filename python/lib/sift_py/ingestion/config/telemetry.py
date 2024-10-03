@@ -188,6 +188,24 @@ class TelemetryConfig:
             )
 
         for rule in config_as_yaml.get("rules", []):
+            # Order matters -- capture the channel references before checking the namespace
+            channel_references: List[
+                ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
+            ] = []
+
+            for channel_reference in rule.get("channel_references", []):
+                for ref, val in channel_reference.items():
+                    name = val["name"]
+                    component = val.get("component")
+
+                    channel_references.append(
+                        {
+                            "channel_reference": ref,
+                            "channel_identifier": _channel_fqn(name, component),
+                        }
+                    )
+
+            print(channel_references)
             namespace = rule.get("namespace")
 
             if namespace:
@@ -213,22 +231,6 @@ class TelemetryConfig:
                     assignee=rule.get("assignee"),
                     tags=tags,
                 )
-
-            channel_references: List[
-                ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
-            ] = []
-
-            for channel_reference in rule.get("channel_references", []):
-                for ref, val in channel_reference.items():
-                    name = val["name"]
-                    component = val.get("component")
-
-                    channel_references.append(
-                        {
-                            "channel_reference": ref,
-                            "channel_identifier": _channel_fqn(name, component),
-                        }
-                    )
 
             expression = rule["expression"]
             if isinstance(expression, str):
