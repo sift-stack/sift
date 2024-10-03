@@ -127,7 +127,7 @@ flows:
   - name: gpio_channel
     channels:
       - <<: *gpio_channel
-      
+
   - name: logs
     channels:
       - <<: *log_channel

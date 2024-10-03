@@ -389,7 +389,6 @@ def _validate_rule(val: Any):
     if description is not None and not isinstance(description, str):
         raise YamlConfigError._invalid_property(description, "- description", "str", ["rules"])
 
-
     if isinstance(expression, dict):
         expression_name = cast(Dict[Any, Any], expression).get("name")
 
@@ -419,7 +418,6 @@ def _validate_rule(val: Any):
             ["rules"],
         )
 
-
     if assignee is not None and not isinstance(assignee, str):
         raise YamlConfigError._invalid_property(
             assignee,
@@ -428,7 +426,6 @@ def _validate_rule(val: Any):
             ["rules"],
         )
 
-
     if tags is not None and not isinstance(tags, list):
         raise YamlConfigError._invalid_property(
             tags,
@@ -436,7 +433,6 @@ def _validate_rule(val: Any):
             "List[str]",
             ["rules"],
         )
-
 
     if sub_expressions is not None:
         if not isinstance(channel_references, list):

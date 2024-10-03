@@ -218,7 +218,9 @@ class TelemetryConfig:
                     if rule["name"] == rule_from_namespace["name"]:
                         found_rule = rule_from_namespace
                 if not found_rule:
-                    raise TelemetryConfigValidationError(f"Could not find rule name {rule['name']} in {namespace}")
+                    raise TelemetryConfigValidationError(
+                        f"Could not find rule name {rule['name']} in {namespace}"
+                    )
                 rule = found_rule
 
             annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
