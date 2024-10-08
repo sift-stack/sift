@@ -59,13 +59,13 @@ class CsvUploadService:
         try:
             upload_info = response.json()
         except (json.decoder.JSONDecodeError, KeyError) as e:
-            raise Exception(f"Invalid reponse: {e}")
+            raise Exception(f"Invalid response: {e}")
 
         try:
             upload_url: str = upload_info["uploadUrl"]
             data_import_id: str = upload_info["dataImportId"]
         except KeyError as e:
-            raise Exception(f"Reponse missing required keys: {e}")
+            raise Exception(f"Response missing required keys: {e}")
 
         with open(path, "rb") as f:
             headers = {
@@ -100,7 +100,7 @@ class CsvUploadService:
         headers = {"Authorization": f"Bearer {self._apikey}"}
 
         response = requests.post(
-            url=self._upload_uri,
+            url=self._url_uri,
             headers=headers,
             data=json.dumps(
                 (
@@ -117,7 +117,17 @@ class CsvUploadService:
                 f"URL upload request failed with status code {response.status_code}. {response.text}"
             )
 
-        return DataImportStatus(self._rest_conf, response.json().get("dataImportId"))
+        try:
+            upload_info = response.json()
+        except (json.decoder.JSONDecodeError, KeyError) as e:
+            raise Exception(f"Invalid response: {e}")
+
+        try:
+            data_import_id: str = upload_info["dataImportId"]
+        except KeyError as e:
+            raise Exception(f"Response missing required keys: {e}")
+
+        return DataImportStatus(self._rest_conf, data_import_id)
 
     @staticmethod
     def _mime_and_content_type_from_path(path: Path) -> Tuple[str, Optional[str], Optional[str]]:
