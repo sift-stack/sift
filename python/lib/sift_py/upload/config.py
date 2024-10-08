@@ -93,7 +93,7 @@ class DataColumn(_BaseModel):
         if self.data_type not in VALID_DATA_TYPES:
             raise PydanticCustomError(
                 "invalid_config_error",
-                f"Invalid data_type: {self.data_type}.\nValid options: {", ".join(VALID_DATA_TYPES)}",
+                f"Invalid data_type: {self.data_type}.\nValid options: {', '.join(VALID_DATA_TYPES)}",
             )
 
         return self
