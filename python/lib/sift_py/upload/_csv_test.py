@@ -85,14 +85,26 @@ def test_csv_upload_service_invalid_data_response(mocker: MockFixture):
     mock_path_is_file = mocker.patch("sift_py.upload.csv.Path.is_file")
     mock_path_is_file.return_value = True
 
-    mock_requests_post = mocker.patch("sift_py.upload.csv.requests.post")
-    mock_requests_post.return_value = MockResponse(status_code=200, text="{}")
-
     mocker.patch(
         "sift_py.upload.csv.open",
         mocker.mock_open(),
     )
-    with pytest.raises(Exception, match="Reponse missing required keys"):
+
+    mock_requests_post = mocker.patch("sift_py.upload.csv.requests.post")
+    mock_requests_post.return_value = MockResponse(status_code=200, text="asdgasdg")
+
+    with pytest.raises(Exception, match="Invalid response"):
+        svc = CsvUploadService(rest_config)
+
+        svc.upload(
+            path="some_csv.csv",
+            csv_config=csv_config,
+        )
+
+    mock_requests_post = mocker.patch("sift_py.upload.csv.requests.post")
+    mock_requests_post.return_value = MockResponse(status_code=200, text="{}")
+
+    with pytest.raises(Exception, match="Response missing required keys"):
         svc = CsvUploadService(rest_config)
 
         svc.upload(
