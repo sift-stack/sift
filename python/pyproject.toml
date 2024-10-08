@@ -26,6 +26,7 @@ dependencies = [
   "pandas~=2.0.3",
   "protobuf~=5.26.1",
   "pydantic~=2.0.0",
+  "pydantic_core~=2.3.0",
   "requests~=2.25.0",
   "requests-toolbelt~=1.0.0",
 
