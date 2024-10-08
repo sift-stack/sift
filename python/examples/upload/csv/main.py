@@ -8,7 +8,7 @@ from sift_py.upload.csv import CsvUploadService
 
 if __name__ == "__main__":
     """
-    Example of uploading a CSV file from a CSV file into Sift.
+    Example of uploading a CSV file into Sift.
     """
 
     load_dotenv()
@@ -26,8 +26,6 @@ if __name__ == "__main__":
         # Be sure to exclude the "https://" or "http://" scheme out of the uri
         "uri": sift_uri,
         "apikey": apikey,
-        # TODO: Remove
-        "use_ssl": False,
     }
 
     csv_upload_service = CsvUploadService(rest_config)
