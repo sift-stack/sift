@@ -1,7 +1,8 @@
 import json
 
+import pytest
 from pytest_mock import MockFixture
-from sift_py.data_import.status import DataImportStatus, DataImportStatusValue
+from sift_py.data_import.status import DataImportStatus, DataImportStatusType
 from sift_py.rest import SiftRestConfig
 
 rest_config: SiftRestConfig = {
@@ -32,26 +33,33 @@ def test_get_status(mocker: MockFixture):
         status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_SUCCEEDED"}})
     )
     status = DataImportStatus(rest_config, "123-123-123")
-    assert status.get_status() == DataImportStatusValue.SUCCEEDED
+    assert status.get_status() == DataImportStatusType.SUCCEEDED
 
     mock_requests_post.return_value = MockResponse(
         status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_PENDING"}})
     )
     status = DataImportStatus(rest_config, "123-123-123")
-    assert status.get_status() == DataImportStatusValue.PENDING
+    assert status.get_status() == DataImportStatusType.PENDING
 
     mock_requests_post.return_value = MockResponse(
         status_code=200,
         text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_IN_PROGRESS"}}),
     )
     status = DataImportStatus(rest_config, "123-123-123")
-    assert status.get_status() == DataImportStatusValue.IN_PROGRESS
+    assert status.get_status() == DataImportStatusType.IN_PROGRESS
 
     mock_requests_post.return_value = MockResponse(
         status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_FAILED"}})
     )
     status = DataImportStatus(rest_config, "123-123-123")
-    assert status.get_status() == DataImportStatusValue.FAILED
+    assert status.get_status() == DataImportStatusType.FAILED
+
+    with pytest.raises(Exception, match="Unknown data import status"):
+        mock_requests_post.return_value = MockResponse(
+            status_code=200, text=json.dumps({"dataImport": {"status": "INVALID_STATUS"}})
+        )
+        status = DataImportStatus(rest_config, "123-123-123")
+        status.get_status()
 
 
 def test_wait_success(mocker: MockFixture):

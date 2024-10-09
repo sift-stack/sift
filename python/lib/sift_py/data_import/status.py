@@ -6,7 +6,7 @@ import requests
 from sift_py.rest import SiftRestConfig, compute_uri
 
 
-class DataImportStatusValue(Enum):
+class DataImportStatusType(Enum):
     SUCCEEDED = "DATA_IMPORT_STATUS_SUCCEEDED"
     PENDING = "DATA_IMPORT_STATUS_PENDING"
     IN_PROGRESS = "DATA_IMPORT_STATUS_IN_PROGRESS"
@@ -22,8 +22,8 @@ class DataImportStatusValue(Enum):
             return cls.IN_PROGRESS
         elif val == cls.FAILED.value:
             return cls.FAILED
-        else:
-            raise ValueError("Argument 'val' is not a valid status.")
+
+        return None
 
 
 class DataImportStatus:
@@ -36,27 +36,31 @@ class DataImportStatus:
         self._status_uri = urljoin(base_uri, self.STATUS_PATH)
         self._apikey = restconf["apikey"]
 
-    def get_status(self) -> DataImportStatusValue:
+    def get_status(self) -> DataImportStatusType:
         response = requests.get(
             url=f"{self._status_uri}/{self._data_import_id}",
             headers={"Authorization": f"Bearer {self._apikey}"},
         )
         response.raise_for_status()
 
-        status = response.json().get("dataImport").get("status")
-        return DataImportStatusValue.from_str(status)
+        status_text = response.json().get("dataImport").get("status")
+        status = DataImportStatusType.from_str(status_text)
+        if status is None:
+            raise Exception(f"Unknown data import status: {status_text}")
+
+        return status
 
     def wait_until_complete(self) -> bool:
         polling_interval = 1
         while True:
-            status: DataImportStatusValue = self.get_status()
-            if status == DataImportStatusValue.SUCCEEDED:
+            status: DataImportStatusType = self.get_status()
+            if status == DataImportStatusType.SUCCEEDED:
                 return True
-            elif status == DataImportStatusValue.PENDING:
+            elif status == DataImportStatusType.PENDING:
                 pass
-            elif status == DataImportStatusValue.IN_PROGRESS:
+            elif status == DataImportStatusType.IN_PROGRESS:
                 pass
-            elif status == DataImportStatusValue.FAILED:
+            elif status == DataImportStatusType.FAILED:
                 return False
             else:
                 raise Exception(f"Unknown status: {status}")

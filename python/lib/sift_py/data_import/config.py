@@ -4,22 +4,8 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic_core import PydanticCustomError
+from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType
-
-VALID_TIME_FORMATS = [
-    "TIME_FORMAT_ABSOLUTE_RFC3339",
-    "TIME_FORMAT_ABSOLUTE_DATETIME",
-    "TIME_FORMAT_ABSOLUTE_UNIX_SECONDS",
-    "TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS",
-    "TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS",
-    "TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS",
-    "TIME_FORMAT_RELATIVE_NANOSECONDS",
-    "TIME_FORMAT_RELATIVE_MICROSECONDS",
-    "TIME_FORMAT_RELATIVE_MILLISECONDS",
-    "TIME_FORMAT_RELATIVE_SECONDS",
-    "TIME_FORMAT_RELATIVE_MINUTES",
-    "TIME_FORMAT_RELATIVE_HOURS",
-]
 
 
 class CsvConfig:
@@ -68,23 +54,18 @@ class _TimeColumn(_BaseModel):
     relative_start_time: Optional[str] = None
 
     @model_validator(mode="after")
-    def validate_format(self):
-        if self.format not in VALID_TIME_FORMATS:
+    def validate_time(self):
+        format = TimeFormatType.from_str(self.format)
+        if format is None:
             raise PydanticCustomError(
-                "invalid_config_error",
-                "Invalid time format: {format}.\nValid options: {valid}",
-                {"format": self.format, "valid": ", ".join(VALID_TIME_FORMATS)},
+                "invalid_config_error", f"Invalid time format: {self.format}."
             )
 
-        return self
-
-    @model_validator(mode="after")
-    def validate_relative_time(self):
-        if self.format.startswith("TIME_FORMAT_RELATIVE_"):
+        if format.is_relative():
             if self.relative_start_time is None:
                 raise PydanticCustomError("invalid_config_error", "Missing 'relative_start_time'")
         else:
-            if self.relative_start_time:
+            if self.relative_start_time is not None:
                 raise PydanticCustomError(
                     "invalid_config_error",
                     "'relative_start_time' specified for non relative time format.",
@@ -108,7 +89,6 @@ class _DataColumn(_BaseModel):
             raise PydanticCustomError(
                 "invalid_config_error", f"Invalid data_type: {self.data_type}."
             )
-
         return self
 
     @model_validator(mode="after")
