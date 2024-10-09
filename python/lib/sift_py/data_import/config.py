@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic_core import PydanticCustomError
@@ -65,7 +65,7 @@ class _BitFieldElement(_BaseModel, ChannelBitFieldElement):
 class _TimeColumn(_BaseModel):
     format: str
     column_number: int
-    relative_start_time: str = None
+    relative_start_time: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_format(self):
