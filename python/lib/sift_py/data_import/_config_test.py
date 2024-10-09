@@ -2,231 +2,144 @@ import pytest
 from sift_py.data_import.config import CsvConfig
 
 
-def test_empty_data_columns():
+@pytest.fixture
+def csv_config_data():
+    return {
+        "asset_name": "test_asset",
+        "first_data_row": 2,
+        "time_column": {
+            "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
+            "column_number": 1,
+        },
+        "data_columns": {
+            1: {
+                "name": "channel",
+                "data_type": "CHANNEL_DATA_TYPE_INT_32",
+            }
+        },
+    }
+
+
+def test_empty_data_columns(csv_config_data):
+    csv_config_data["data_columns"] = {}
     with pytest.raises(Exception, match="Empty 'data_columns'"):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
-                    "column_number": 1,
-                },
-                "data_columns": {},
-            }
-        )
+        CsvConfig(csv_config_data)
 
 
-def test_data_column_validation():
+def test_data_column_validation(csv_config_data):
+    csv_config_data["data_columns"] = {
+        1: {
+            "name": "channel",
+            "data_type": "INVALID_DATA_TYPE",
+        }
+    }
     with pytest.raises(Exception, match="Invalid data_type:"):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
-                    "column_number": 1,
-                },
-                "data_columns": {
-                    1: {
-                        "name": "channel",
-                        "data_type": "INVALID_DATA_TYPE",
-                    }
-                },
-            }
-        )
+        CsvConfig(csv_config_data)
 
 
-def test_enums():
+def test_enums(csv_config_data):
+    csv_config_data["data_columns"] = {
+        1: {
+            "name": "channel",
+            "data_type": "CHANNEL_DATA_TYPE_INT_32",
+            "enum_types": [
+                {"key": 1, "name": "value_1"},
+                {"key": 2, "name": "value_2"},
+            ],
+        }
+    }
     with pytest.raises(Exception, match="Enums can only be specified"):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
-                    "column_number": 1,
-                },
-                "data_columns": {
-                    1: {
-                        "name": "channel",
-                        "data_type": "CHANNEL_DATA_TYPE_INT_32",
-                        "enum_types": [
-                            {"key": 1, "name": "value_1"},
-                            {"key": 2, "name": "value_2"},
-                        ],
-                    }
-                },
-            }
-        )
+        CsvConfig(csv_config_data)
 
-    with pytest.raises(Exception, match="validation error"):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
-                    "column_number": 1,
-                },
-                "data_columns": {
-                    1: {
-                        "name": "channel",
-                        "data_type": "CHANNEL_DATA_TYPE_ENUM",
-                        "enum_types": [
-                            {"key": 1, "name": "value_1", "extra_key": "value"},
-                            {"key": 2, "name": "value_2"},
-                        ],
-                    }
-                },
-            }
-        )
-
-    CsvConfig(
-        {
-            "asset_name": "test_asset",
-            "first_data_row": 2,
-            "time_column": {
-                "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
-                "column_number": 1,
-            },
-            "data_columns": {
-                1: {
-                    "name": "channel",
-                    "data_type": "CHANNEL_DATA_TYPE_ENUM",
-                    "enum_types": [
-                        {"key": 1, "name": "value_1"},
-                        {"key": 2, "name": "value_2"},
-                    ],
-                }
-            },
+    csv_config_data["data_columns"] = {
+        1: {
+            "name": "channel",
+            "data_type": "CHANNEL_DATA_TYPE_ENUM",
+            "enum_types": [
+                {"key": 1, "name": "value_1", "extra_key": "value"},
+                {"key": 2, "name": "value_2"},
+            ],
         }
-    )
+    }
+    with pytest.raises(Exception, match="validation error"):
+        CsvConfig(csv_config_data)
+
+    csv_config_data["data_columns"] = {
+        1: {
+            "name": "channel",
+            "data_type": "CHANNEL_DATA_TYPE_ENUM",
+            "enum_types": [
+                {"key": 1, "name": "value_1"},
+                {"key": 2, "name": "value_2"},
+            ],
+        }
+    }
+    CsvConfig(csv_config_data)
 
 
-def test_bit_field():
+def test_bit_field(csv_config_data):
+    csv_config_data["data_columns"] = {
+        1: {
+            "name": "channel",
+            "data_type": "CHANNEL_DATA_TYPE_INT_32",
+            "bit_field_elements": [
+                {"index": 1, "name": "bit_field_name_1", "bit_count": 4},
+            ],
+        }
+    }
     with pytest.raises(Exception, match="Bit fields can only be specified"):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
-                    "column_number": 1,
-                },
-                "data_columns": {
-                    1: {
-                        "name": "channel",
-                        "data_type": "CHANNEL_DATA_TYPE_INT_32",
-                        "bit_field_elements": [
-                            {"index": 1, "name": "bit_field_name_1", "bit_count": 4},
-                        ],
-                    }
-                },
-            }
-        )
+        CsvConfig(csv_config_data)
 
-    with pytest.raises(Exception, match="validation error"):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
-                    "column_number": 1,
+    csv_config_data["data_columns"] = {
+        1: {
+            "name": "channel",
+            "data_type": "CHANNEL_DATA_TYPE_INT_32",
+            "bit_field_elements": [
+                {
+                    "index": 1,
+                    "name": "bit_field_name_1",
+                    "bit_count": 4,
+                    "extra_key": "value",
                 },
-                "data_columns": {
-                    1: {
-                        "name": "channel",
-                        "data_type": "CHANNEL_DATA_TYPE_INT_32",
-                        "bit_field_elements": [
-                            {
-                                "index": 1,
-                                "name": "bit_field_name_1",
-                                "bit_count": 4,
-                                "extra_key": "value",
-                            },
-                        ],
-                    }
-                },
-            }
-        )
-
-    CsvConfig(
-        {
-            "asset_name": "test_asset",
-            "first_data_row": 2,
-            "time_column": {
-                "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
-                "column_number": 1,
-            },
-            "data_columns": {
-                1: {
-                    "name": "channel",
-                    "data_type": "CHANNEL_DATA_TYPE_BIT_FIELD",
-                    "bit_field_elements": [
-                        {"index": 1, "name": "bit_field_name_1", "bit_count": 4},
-                    ],
-                }
-            },
+            ],
         }
-    )
+    }
+    with pytest.raises(Exception, match="validation error"):
+        CsvConfig(csv_config_data)
+
+    csv_config_data["data_columns"] = {
+        1: {
+            "name": "channel",
+            "data_type": "CHANNEL_DATA_TYPE_BIT_FIELD",
+            "bit_field_elements": [
+                {"index": 1, "name": "bit_field_name_1", "bit_count": 4},
+            ],
+        }
+    }
+    CsvConfig(csv_config_data)
 
 
-def test_time_column():
+def test_time_column(csv_config_data):
+    csv_config_data["time_column"] = {
+        "format": "INVALID_TIME_FORMAT",
+        "column_number": 1,
+    }
     with pytest.raises(Exception, match="Invalid time format"):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "INVALID_TIME_FORMAT",
-                    "column_number": 1,
-                },
-                "data_columns": {
-                    1: {
-                        "name": "channel",
-                        "data_type": "CHANNEL_DATA_TYPE_BIT_FIELD",
-                    }
-                },
-            }
-        )
+        CsvConfig(csv_config_data)
 
+    csv_config_data["time_column"] = {
+        "format": "TIME_FORMAT_RELATIVE_SECONDS",
+        "column_number": 1,
+    }
     with pytest.raises(Exception, match="Missing 'relative_start_time'"):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "TIME_FORMAT_RELATIVE_SECONDS",
-                    "column_number": 1,
-                },
-                "data_columns": {
-                    1: {
-                        "name": "channel",
-                        "data_type": "CHANNEL_DATA_TYPE_BIT_FIELD",
-                    }
-                },
-            }
-        )
+        CsvConfig(csv_config_data)
 
+    csv_config_data["time_column"] = {
+        "format": "TIME_FORMAT_ABSOLUTE_UNIX_SECONDS",
+        "column_number": 1,
+        "relative_start_time": "100",
+    }
     with pytest.raises(
         Exception, match="'relative_start_time' specified for non relative time format."
     ):
-        CsvConfig(
-            {
-                "asset_name": "test_asset",
-                "first_data_row": 2,
-                "time_column": {
-                    "format": "TIME_FORMAT_ABSOLUTE_UNIX_SECONDS",
-                    "column_number": 1,
-                    "relative_start_time": "100",
-                },
-                "data_columns": {
-                    1: {
-                        "name": "channel",
-                        "data_type": "CHANNEL_DATA_TYPE_BIT_FIELD",
-                    }
-                },
-            }
-        )
+        CsvConfig(csv_config_data)
