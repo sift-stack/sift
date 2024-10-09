@@ -41,7 +41,8 @@ def test_get_status(mocker: MockFixture):
     assert status.get_status() == DataImportStatusValue.PENDING
 
     mock_requests_post.return_value = MockResponse(
-        status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_IN_PROGRESS"}})
+        status_code=200,
+        text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_IN_PROGRESS"}}),
     )
     status = DataImportStatus(rest_config, "123-123-123")
     assert status.get_status() == DataImportStatusValue.IN_PROGRESS

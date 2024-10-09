@@ -57,8 +57,10 @@ class _CsvConfigImpl(_BaseModel):
 class _EnumType(_BaseModel, ChannelEnumType):
     pass
 
+
 class _BitFieldElement(_BaseModel, ChannelBitFieldElement):
     pass
+
 
 class _TimeColumn(_BaseModel):
     format: str
@@ -104,8 +106,7 @@ class _DataColumn(_BaseModel):
     def validate_data_type(self):
         if ChannelDataType.from_str(self.data_type) is None:
             raise PydanticCustomError(
-                "invalid_config_error",
-                f"Invalid data_type: {self.data_type}."
+                "invalid_config_error", f"Invalid data_type: {self.data_type}."
             )
 
         return self

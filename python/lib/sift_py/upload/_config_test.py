@@ -119,12 +119,8 @@ def test_bit_field():
                         "name": "channel",
                         "data_type": "CHANNEL_DATA_TYPE_INT_32",
                         "bit_field_elements": [
-                            {
-                                "index": 1,
-                                "name": "bit_field_name_1",
-                                "bit_count": 4
-                            },
-                    ],
+                            {"index": 1, "name": "bit_field_name_1", "bit_count": 4},
+                        ],
                     }
                 },
             }
@@ -150,7 +146,7 @@ def test_bit_field():
                                 "bit_count": 4,
                                 "extra_key": "value",
                             },
-                    ],
+                        ],
                     }
                 },
             }
