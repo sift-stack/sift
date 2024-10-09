@@ -147,3 +147,23 @@ class CsvConfig:
 
     def to_dict(self):
         return self._csv_config.model_dump()
+
+
+class _TdmsConfigImpl(_BaseModel):
+    """ """
+
+    asset_name: str
+    run_name: Optional[str] = None
+    run_id: Optional[str] = None
+
+
+class TdmsConfig:
+    def __init__(self, config_info) -> None:
+        self._config_info = config_info
+        self._tdms_config = _TdmsConfigImpl(**self._config_info)
+
+    def to_json(self):
+        return self._tdms_config.model_dump_json()
+
+    def to_dict(self):
+        return self._tdms_config.model_dump()
