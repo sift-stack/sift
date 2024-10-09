@@ -1,8 +1,8 @@
 import json
 
 from pytest_mock import MockFixture
+from sift_py.data_import.status import DataImportStatus, DataImportStatusValue
 from sift_py.rest import SiftRestConfig
-from sift_py.upload.status import DataImportStatus, DataImportStatusValue
 
 rest_config: SiftRestConfig = {
     "uri": "some_uri.com",
@@ -27,7 +27,7 @@ class MockResponse:
 
 
 def test_get_status(mocker: MockFixture):
-    mock_requests_post = mocker.patch("sift_py.upload.status.requests.get")
+    mock_requests_post = mocker.patch("sift_py.data_import.status.requests.get")
     mock_requests_post.return_value = MockResponse(
         status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_SUCCEEDED"}})
     )
@@ -55,8 +55,8 @@ def test_get_status(mocker: MockFixture):
 
 
 def test_wait_success(mocker: MockFixture):
-    mock_time_sleep = mocker.patch("sift_py.upload.status.time.sleep")
-    mock_requests_get = mocker.patch("sift_py.upload.status.requests.get")
+    mock_time_sleep = mocker.patch("sift_py.data_import.status.time.sleep")
+    mock_requests_get = mocker.patch("sift_py.data_import.status.requests.get")
     mock_requests_get.side_effect = [
         MockResponse(
             status_code=200,
@@ -79,7 +79,7 @@ def test_wait_success(mocker: MockFixture):
 
 
 def test_wait_failure(mocker: MockFixture):
-    mock_requests_get = mocker.patch("sift_py.upload.status.requests.get")
+    mock_requests_get = mocker.patch("sift_py.data_import.status.requests.get")
     mock_requests_get.side_effect = [
         MockResponse(
             status_code=200,
@@ -100,8 +100,8 @@ def test_wait_failure(mocker: MockFixture):
 
 
 def test_wait_max_polling_interval(mocker: MockFixture):
-    mock_time_sleep = mocker.patch("sift_py.upload.status.time.sleep")
-    mock_requests_get = mocker.patch("sift_py.upload.status.requests.get")
+    mock_time_sleep = mocker.patch("sift_py.data_import.status.time.sleep")
+    mock_requests_get = mocker.patch("sift_py.data_import.status.requests.get")
     mock_requests_get.side_effect = [
         MockResponse(
             status_code=200,

@@ -5,9 +5,9 @@ from typing import Optional, Tuple, Union
 from urllib.parse import urljoin, urlparse
 
 import requests
+from sift_py.data_import.config import CsvConfig
+from sift_py.data_import.status import DataImportStatus
 from sift_py.rest import SiftRestConfig, compute_uri
-from sift_py.upload.config import CsvConfig
-from sift_py.upload.status import DataImportStatus
 
 
 class CsvUploadService:

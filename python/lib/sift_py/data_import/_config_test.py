@@ -1,5 +1,5 @@
 import pytest
-from sift_py.upload.config import CsvConfig
+from sift_py.data_import.config import CsvConfig
 
 
 def test_empty_data_columns():

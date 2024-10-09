@@ -2,9 +2,9 @@ import csv
 import os
 
 from dotenv import load_dotenv
+from sift_py.data_import.config import CsvConfig
+from sift_py.data_import.csv import CsvUploadService
 from sift_py.rest import SiftRestConfig
-from sift_py.upload.config import CsvConfig
-from sift_py.upload.csv import CsvUploadService
 
 if __name__ == "__main__":
     """
