@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.2.2] - October 9, 2024
+
+Summary of changes:
+- Loosen various dependency requirements
+
 ## [v0.2.1] - September 26, 2024
 
 Summary of changes:

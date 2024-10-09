@@ -1,6 +1,6 @@
 [project]
 name = "sift_stack_py"
-version = "0.2.1"
+version = "0.2.2"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -21,20 +21,20 @@ keywords = [
   "sift_py",
 ]
 dependencies = [
-  "grpcio~=1.64.1",
-  "PyYAML~=6.0.0",
-  "pandas~=2.0.3",
-  "protobuf~=5.26.1",
-  "pydantic~=2.0.0",
-  "requests~=2.25.0",
-  "requests-toolbelt~=1.0.0",
+  "grpcio~=1.64",
+  "PyYAML~=6.0",
+  "pandas~=2.0",
+  "protobuf~=5.26",
+  "pydantic~=2.0",
+  "requests~=2.25",
+  "requests-toolbelt~=1.0",
 
   # May move these to optional dependencies in the future.
-  "pandas-stubs~=2.0.3",
-  "types-PyYAML~=6.0.0",
-  "types-protobuf~=5.26.0.20240420",
-  "typing-extensions~=4.6.1",
-  "types-requests~=2.25.0",
+  "pandas-stubs~=2.0",
+  "types-PyYAML~=6.0",
+  "types-protobuf~=5.26",
+  "typing-extensions~=4.6",
+  "types-requests~=2.25",
 ]
 
 [project.urls]
