@@ -1,7 +1,7 @@
 import mimetypes
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import requests
 from requests_toolbelt import MultipartEncoder
@@ -9,7 +9,7 @@ from requests_toolbelt import MultipartEncoder
 from sift_py._internal.convert.json import to_json
 from sift_py.file_attachment.entity import Entity
 from sift_py.file_attachment.metadata import Metadata
-from sift_py.rest import SiftRestConfig
+from sift_py.rest import SiftRestConfig, compute_uri
 
 
 class UploadService:
@@ -21,7 +21,7 @@ class UploadService:
     _apikey: str
 
     def __init__(self, restconf: SiftRestConfig):
-        base_uri = self.__class__._compute_uri(restconf)
+        base_uri = compute_uri(restconf)
         self._upload_uri = urljoin(base_uri, self.UPLOAD_PATH)
         self._upload_bulk_uri = urljoin(base_uri, self.UPLOAD_BULK_PATH)
         self._apikey = restconf["apikey"]
@@ -98,16 +98,3 @@ class UploadService:
         file_name = path.name
         mime, encoding = mimetypes.guess_type(path)
         return file_name, mime, encoding
-
-    @staticmethod
-    def _compute_uri(restconf: SiftRestConfig) -> str:
-        uri = restconf["uri"]
-        parsed_uri = urlparse(uri)
-
-        if parsed_uri.scheme != "":
-            raise Exception(f"The URL scheme '{parsed_uri.scheme}' should not be included")
-
-        if restconf.get("use_ssl", True):
-            return f"https://{uri}"
-
-        return f"http://{uri}"

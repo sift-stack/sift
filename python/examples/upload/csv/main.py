@@ -60,5 +60,5 @@ if __name__ == "__main__":
     )
 
     status = csv_upload_service.upload(input_csv, csv_config)
-    status.wait(verbose=True)
+    status.wait_until_complete()
     print("Upload example complete!")

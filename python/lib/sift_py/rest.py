@@ -1,3 +1,4 @@
+import re
 from typing import TypedDict
 
 from typing_extensions import NotRequired
@@ -14,3 +15,16 @@ class SiftRestConfig(TypedDict):
     uri: str
     apikey: str
     use_ssl: NotRequired[bool]
+
+
+def compute_uri(restconf: SiftRestConfig) -> str:
+    uri = restconf["uri"]
+
+    scheme_match = re.match(r"(.+://).+", uri)
+    if scheme_match:
+        raise Exception(f"The URL scheme '{scheme_match.groups()[0]}' should not be included")
+
+    if restconf.get("use_ssl", True):
+        return f"https://{uri}"
+
+    return f"http://{uri}"

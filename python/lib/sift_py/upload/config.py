@@ -1,7 +1,10 @@
-from typing import Dict, List, Optional
+from __future__ import annotations
+
+from typing import Dict, List
 
 from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic_core import PydanticCustomError
+from sift_py.ingestion.channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType
 
 VALID_TIME_FORMATS = [
     "TIME_FORMAT_ABSOLUTE_RFC3339",
@@ -19,39 +22,48 @@ VALID_TIME_FORMATS = [
 ]
 
 
-VALID_DATA_TYPES = [
-    "CHANNEL_DATA_TYPE_DOUBLE",
-    "CHANNEL_DATA_TYPE_FLOAT",
-    "CHANNEL_DATA_TYPE_STRING",
-    "CHANNEL_DATA_TYPE_BOOL",
-    "CHANNEL_DATA_TYPE_INT_32",
-    "CHANNEL_DATA_TYPE_INT_64",
-    "CHANNEL_DATA_TYPE_UINT_32",
-    "CHANNEL_DATA_TYPE_UINT_6",
-    "CHANNEL_DATA_TYPE_ENUM",
-    "CHANNEL_DATA_TYPE_BIT_FIELD",
-]
+class CsvConfig:
+    def __init__(self, config_info) -> None:
+        self._config_info = config_info
+        self._csv_config = _CsvConfigImpl(**self._config_info)
+
+    def to_json(self):
+        return self._csv_config.model_dump_json()
+
+    def to_dict(self):
+        return self._csv_config.model_dump()
 
 
 class _BaseModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class EnumType(_BaseModel):
-    key: int
-    name: str
+class _CsvConfigImpl(_BaseModel):
+    """"""
+
+    asset_name: str
+    run_name: str = ""
+    run_id: str = ""
+    first_data_row: int
+    time_column: _TimeColumn
+    data_columns: Dict[int, _DataColumn]
+
+    @model_validator(mode="after")
+    def validate_config(self):
+        if not self.data_columns:
+            raise PydanticCustomError("invalid_config_error", "Empty 'data_columns'")
 
 
-class BitFieldElement(_BaseModel):
-    index: int
-    name: str
-    bit_count: int
+class _EnumType(_BaseModel, ChannelEnumType):
+    pass
 
+class _BitFieldElement(_BaseModel, ChannelBitFieldElement):
+    pass
 
-class TimeColumn(_BaseModel):
+class _TimeColumn(_BaseModel):
     format: str
     column_number: int
-    relative_start_time: Optional[str] = None
+    relative_start_time: str = None
 
     @model_validator(mode="after")
     def validate_format(self):
@@ -79,21 +91,21 @@ class TimeColumn(_BaseModel):
         return self
 
 
-class DataColumn(_BaseModel):
+class _DataColumn(_BaseModel):
     name: str
     data_type: str
-    component: Optional[str] = ""
-    units: Optional[str] = ""
-    description: Optional[str] = ""
-    enum_types: Optional[List[EnumType]] = []
-    bit_field_elements: Optional[List[BitFieldElement]] = []
+    component: str = ""
+    units: str = ""
+    description: str = ""
+    enum_types: List[_EnumType] = []
+    bit_field_elements: List[_BitFieldElement] = []
 
     @model_validator(mode="after")
     def validate_data_type(self):
-        if self.data_type not in VALID_DATA_TYPES:
+        if ChannelDataType.from_str(self.data_type) is None:
             raise PydanticCustomError(
                 "invalid_config_error",
-                f"Invalid data_type: {self.data_type}.\nValid options: {', '.join(VALID_DATA_TYPES)}",
+                f"Invalid data_type: {self.data_type}."
             )
 
         return self
@@ -119,31 +131,3 @@ class DataColumn(_BaseModel):
                 )
 
         return self
-
-
-class _CsvConfigImpl(_BaseModel):
-    """ """
-
-    asset_name: str
-    run_name: Optional[str] = None
-    run_id: Optional[str] = None
-    first_data_row: int
-    time_column: TimeColumn
-    data_columns: Dict[int, DataColumn]
-
-    @model_validator(mode="after")
-    def validate_config(self):
-        if not self.data_columns:
-            raise PydanticCustomError("invalid_config_error", "Empty 'data_columns'")
-
-
-class CsvConfig:
-    def __init__(self, config_info) -> None:
-        self._config_info = config_info
-        self._csv_config = _CsvConfigImpl(**self._config_info)
-
-    def to_json(self):
-        return self._csv_config.model_dump_json()
-
-    def to_dict(self):
-        return self._csv_config.model_dump()

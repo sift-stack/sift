@@ -1,12 +1,11 @@
 import json
 import mimetypes
-import re
 from pathlib import Path
 from typing import Optional, Tuple, Union
 from urllib.parse import urljoin, urlparse
 
 import requests
-from sift_py.rest import SiftRestConfig
+from sift_py.rest import SiftRestConfig, compute_uri
 from sift_py.upload.config import CsvConfig
 from sift_py.upload.status import DataImportStatus
 
@@ -22,8 +21,8 @@ class CsvUploadService:
 
     def __init__(self, rest_conf: SiftRestConfig):
         self._rest_conf = rest_conf
+        base_uri = compute_uri(rest_conf)
         self._apikey = rest_conf["apikey"]
-        base_uri = self.__class__._compute_uri(rest_conf)
         self._upload_uri = urljoin(base_uri, self.UPLOAD_PATH)
         self._url_uri = urljoin(base_uri, self.URL_PATH)
 
@@ -41,6 +40,9 @@ class CsvUploadService:
 
         if not mimetype:
             raise Exception(f"The MIME-type of '{posix_path}' could not be computed.")
+
+        if mimetype not in ["test/plain", "text/csv"]:
+            raise Exception(f"{path} is not a valid file type. Must be text or csv.")
 
         response = requests.post(
             url=self._upload_uri,
@@ -134,16 +136,3 @@ class CsvUploadService:
         file_name = path.name
         mime, encoding = mimetypes.guess_type(path)
         return file_name, mime, encoding
-
-    @staticmethod
-    def _compute_uri(restconf: SiftRestConfig) -> str:
-        uri = restconf["uri"]
-
-        scheme_match = re.match(r"(.+://).+", uri)
-        if scheme_match:
-            raise Exception(f"The URL scheme '{scheme_match.groups()[0]}' should not be included")
-
-        if restconf.get("use_ssl", True):
-            return f"https://{uri}"
-
-        return f"http://{uri}"

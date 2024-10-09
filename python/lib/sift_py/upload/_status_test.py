@@ -2,7 +2,7 @@ import json
 
 from pytest_mock import MockFixture
 from sift_py.rest import SiftRestConfig
-from sift_py.upload.status import DataImportStatus
+from sift_py.upload.status import DataImportStatus, DataImportStatusValue
 
 rest_config: SiftRestConfig = {
     "uri": "some_uri.com",
@@ -32,7 +32,25 @@ def test_get_status(mocker: MockFixture):
         status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_SUCCEEDED"}})
     )
     status = DataImportStatus(rest_config, "123-123-123")
-    assert status.get_status() == "DATA_IMPORT_STATUS_SUCCEEDED"
+    assert status.get_status() == DataImportStatusValue.SUCCEEDED
+
+    mock_requests_post.return_value = MockResponse(
+        status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_PENDING"}})
+    )
+    status = DataImportStatus(rest_config, "123-123-123")
+    assert status.get_status() == DataImportStatusValue.PENDING
+
+    mock_requests_post.return_value = MockResponse(
+        status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_IN_PROGRESS"}})
+    )
+    status = DataImportStatus(rest_config, "123-123-123")
+    assert status.get_status() == DataImportStatusValue.IN_PROGRESS
+
+    mock_requests_post.return_value = MockResponse(
+        status_code=200, text=json.dumps({"dataImport": {"status": "DATA_IMPORT_STATUS_FAILED"}})
+    )
+    status = DataImportStatus(rest_config, "123-123-123")
+    assert status.get_status() == DataImportStatusValue.FAILED
 
 
 def test_wait_success(mocker: MockFixture):
@@ -54,7 +72,7 @@ def test_wait_success(mocker: MockFixture):
     ]
 
     status = DataImportStatus(rest_config, "123-123-123")
-    assert status.wait() == True
+    assert status.wait_until_complete() == True
     mock_time_sleep.assert_any_call(1)
     mock_time_sleep.assert_any_call(2)
 
@@ -77,7 +95,7 @@ def test_wait_failure(mocker: MockFixture):
     ]
 
     status = DataImportStatus(rest_config, "123-123-123")
-    assert status.wait() == False
+    assert status.wait_until_complete() == False
 
 
 def test_wait_max_polling_interval(mocker: MockFixture):
@@ -97,5 +115,5 @@ def test_wait_max_polling_interval(mocker: MockFixture):
     ]
 
     status = DataImportStatus(rest_config, "123-123-123")
-    assert status.wait() == True
+    assert status.wait_until_complete() == True
     mock_time_sleep.assert_called_with(60)

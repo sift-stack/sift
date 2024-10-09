@@ -60,6 +60,28 @@ def test_enums():
             }
         )
 
+    with pytest.raises(Exception, match="validation error"):
+        CsvConfig(
+            {
+                "asset_name": "test_asset",
+                "first_data_row": 2,
+                "time_column": {
+                    "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
+                    "column_number": 1,
+                },
+                "data_columns": {
+                    1: {
+                        "name": "channel",
+                        "data_type": "CHANNEL_DATA_TYPE_ENUM",
+                        "enum_types": [
+                            {"key": 1, "name": "value_1", "extra_key": "value"},
+                            {"key": 2, "name": "value_2"},
+                        ],
+                    }
+                },
+            }
+        )
+
     CsvConfig(
         {
             "asset_name": "test_asset",
@@ -83,7 +105,7 @@ def test_enums():
 
 
 def test_bit_field():
-    with pytest.raises(Exception, match="Enums can only be specified"):
+    with pytest.raises(Exception, match="Bit fields can only be specified"):
         CsvConfig(
             {
                 "asset_name": "test_asset",
@@ -95,11 +117,40 @@ def test_bit_field():
                 "data_columns": {
                     1: {
                         "name": "channel",
-                        "data_type": "CHANNEL_DATA_TYPE_BIT_FIELD",
-                        "enum_types": [
-                            {"key": 1, "name": "value_1"},
-                            {"key": 2, "name": "value_2"},
-                        ],
+                        "data_type": "CHANNEL_DATA_TYPE_INT_32",
+                        "bit_field_elements": [
+                            {
+                                "index": 1,
+                                "name": "bit_field_name_1",
+                                "bit_count": 4
+                            },
+                    ],
+                    }
+                },
+            }
+        )
+
+    with pytest.raises(Exception, match="validation error"):
+        CsvConfig(
+            {
+                "asset_name": "test_asset",
+                "first_data_row": 2,
+                "time_column": {
+                    "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
+                    "column_number": 1,
+                },
+                "data_columns": {
+                    1: {
+                        "name": "channel",
+                        "data_type": "CHANNEL_DATA_TYPE_INT_32",
+                        "bit_field_elements": [
+                            {
+                                "index": 1,
+                                "name": "bit_field_name_1",
+                                "bit_count": 4,
+                                "extra_key": "value",
+                            },
+                    ],
                     }
                 },
             }

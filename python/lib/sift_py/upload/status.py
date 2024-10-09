@@ -1,9 +1,29 @@
-import re
 import time
+from enum import Enum
 from urllib.parse import urljoin
 
 import requests
-from sift_py.rest import SiftRestConfig
+from sift_py.rest import SiftRestConfig, compute_uri
+
+
+class DataImportStatusValue(Enum):
+    SUCCEEDED = "DATA_IMPORT_STATUS_SUCCEEDED"
+    PENDING = "DATA_IMPORT_STATUS_PENDING"
+    IN_PROGRESS = "DATA_IMPORT_STATUS_IN_PROGRESS"
+    FAILED = "DATA_IMPORT_STATUS_FAILED"
+
+    @classmethod
+    def from_str(cls, val: str):
+        if val == cls.SUCCEEDED.value:
+            return cls.SUCCEEDED
+        elif val == cls.PENDING.value:
+            return cls.PENDING
+        elif val == cls.IN_PROGRESS.value:
+            return cls.IN_PROGRESS
+        elif val == cls.FAILED.value:
+            return cls.FAILED
+        else:
+            raise ValueError("Argument 'val' is not a valid status.")
 
 
 class DataImportStatus:
@@ -11,51 +31,34 @@ class DataImportStatus:
     _data_import_id: str
 
     def __init__(self, restconf: SiftRestConfig, data_import_id: str):
-        base_uri = self.__class__._compute_uri(restconf)
+        base_uri = compute_uri(restconf)
         self._data_import_id = data_import_id
         self._status_uri = urljoin(base_uri, self.STATUS_PATH)
         self._apikey = restconf["apikey"]
 
-    def get_status(self):
+    def get_status(self) -> DataImportStatusValue:
         response = requests.get(
             url=f"{self._status_uri}/{self._data_import_id}",
             headers={"Authorization": f"Bearer {self._apikey}"},
         )
         response.raise_for_status()
-        return response.json().get("dataImport").get("status")
 
-    def wait(self, verbose: bool = False) -> bool:
+        status = response.json().get("dataImport").get("status")
+        return DataImportStatusValue.from_str(status)
+
+    def wait_until_complete(self) -> bool:
         polling_interval = 1
         while True:
-            status = self.get_status()
-            if status == "DATA_IMPORT_STATUS_SUCCEEDED":
-                if verbose:
-                    print("Upload completed!")
+            status: DataImportStatusValue = self.get_status()
+            if status == DataImportStatusValue.SUCCEEDED:
                 return True
-            elif status == "DATA_IMPORT_STATUS_PENDING":
-                if verbose:
-                    print("Upload pending...")
-            elif status == "DATA_IMPORT_STATUS_IN_PROGRESS":
-                if verbose:
-                    print("Upload in progress...")
-            elif status == "DATA_IMPORT_STATUS_FAILED":
-                if verbose:
-                    print("Upload failed")
+            elif status == DataImportStatusValue.PENDING:
+                pass
+            elif status == DataImportStatusValue.IN_PROGRESS:
+                pass
+            elif status == DataImportStatusValue.FAILED:
                 return False
             else:
                 raise Exception(f"Unknown status: {status}")
             time.sleep(polling_interval)
             polling_interval = min(polling_interval * 2, 60)
-
-    @staticmethod
-    def _compute_uri(restconf: SiftRestConfig) -> str:
-        uri = restconf["uri"]
-
-        scheme_match = re.match(r"(.+://).+", uri)
-        if scheme_match:
-            raise Exception(f"The URL scheme '{scheme_match.groups()[0]}' should not be included")
-
-        if restconf.get("use_ssl", True):
-            return f"https://{uri}"
-
-        return f"http://{uri}"
