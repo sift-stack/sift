@@ -5,16 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.2.2] - October 9, 2024
 
-Loosen various dependency requirements
-
 Summary of changes:
-- [add missing double channel computation](https://github.com/sift-stack/sift/pull/92)
-- [update protos](https://github.com/sift-stack/sift/pull/94)
-- [update protos](https://github.com/sift-stack/sift/pull/95)
-- [csv example ingestion](https://github.com/sift-stack/sift/pull/96)
-- [update example](https://github.com/sift-stack/sift/pull/97)
-- [Add multiple CSV ingestion example](https://github.com/sift-stack/sift/pull/98)
-- [Add metadata arg to use_sift_channel](https://github.com/sift-stack/sift/pull/99)
+- Loosen various dependency requirements
 
 ## [v0.2.1] - September 26, 2024
 
