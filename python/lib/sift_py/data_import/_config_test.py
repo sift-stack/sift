@@ -1,5 +1,6 @@
 import pytest
 from sift_py.data_import.config import CsvConfig
+from sift_py.ingestion.channel import ChannelDataType
 
 
 @pytest.fixture
@@ -35,6 +36,18 @@ def test_data_column_validation(csv_config_data):
     }
     with pytest.raises(Exception, match="Invalid data_type:"):
         CsvConfig(csv_config_data)
+
+    csv_config_data["data_columns"] = {1: {"name": "channel", "data_type": complex}}
+    with pytest.raises(Exception, match="Invalid data_type:"):
+        CsvConfig(csv_config_data)
+
+    csv_config_data["data_columns"] = {
+        1: {"name": "channel_bool", "data_type": ChannelDataType.BOOL},
+        2: {"name": "channel_double", "data_type": ChannelDataType.DOUBLE},
+        3: {"name": "channel_int", "data_type": ChannelDataType.INT_64},
+        4: {"name": "channel_str", "data_type": ChannelDataType.STRING},
+    }
+    CsvConfig(csv_config_data)
 
 
 def test_enums(csv_config_data):

@@ -20,7 +20,7 @@ class SiftRestConfig(TypedDict):
 def compute_uri(restconf: SiftRestConfig) -> str:
     uri = restconf["uri"]
 
-    scheme_match = re.match(r"(.+://).+", uri)
+    scheme_match = re.match(r"^(\w+://).+", uri)
     if scheme_match:
         raise Exception(f"The URL scheme '{scheme_match.groups()[0]}' should not be included")
 

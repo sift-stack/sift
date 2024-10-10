@@ -251,27 +251,35 @@ class ChannelDataType(Enum):
 
         return None
 
-    def as_human_str(self) -> str:
-        if self == self.__class__.DOUBLE.value:
-            return ChannelDataTypeStrRep.DOUBLE.value
-        elif self == self.__class__.STRING.value:
-            return ChannelDataTypeStrRep.STRING.value
-        elif self == self.__class__.ENUM.value:
-            return ChannelDataTypeStrRep.ENUM.value
-        elif self == self.__class__.BIT_FIELD.value:
-            return ChannelDataTypeStrRep.BIT_FIELD.value
-        elif self == self.__class__.BOOL.value:
-            return ChannelDataTypeStrRep.BOOL.value
-        elif self == self.__class__.FLOAT.value:
-            return ChannelDataTypeStrRep.FLOAT.value
-        elif self == self.__class__.INT_32.value:
-            return ChannelDataTypeStrRep.INT_32.value
-        elif self == self.__class__.INT_64.value:
-            return ChannelDataTypeStrRep.INT_64.value
-        elif self == self.__class__.UINT_32.value:
-            return ChannelDataTypeStrRep.UINT_32.value
-        elif self == self.__class__.UINT_64.value:
-            return ChannelDataTypeStrRep.UINT_64.value
+    def as_human_str(self, api_format: bool = False) -> str:
+        if self == self.__class__.DOUBLE:
+            return "CHANNEL_DATA_TYPE_DOUBLE" if api_format else ChannelDataTypeStrRep.DOUBLE.value
+        elif self == self.__class__.STRING:
+            return "CHANNEL_DATA_TYPE_STRING" if api_format else ChannelDataTypeStrRep.STRING.value
+        elif self == self.__class__.ENUM:
+            return "CHANNEL_DATA_TYPE_ENUM" if api_format else ChannelDataTypeStrRep.ENUM.value
+        elif self == self.__class__.BIT_FIELD:
+            return (
+                "CHANNEL_DATA_TYPE_BIT_FIELD"
+                if api_format
+                else ChannelDataTypeStrRep.BIT_FIELD.value
+            )
+        elif self == self.__class__.BOOL:
+            return "CHANNEL_DATA_TYPE_BOOL" if api_format else ChannelDataTypeStrRep.BOOL.value
+        elif self == self.__class__.FLOAT:
+            return "CHANNEL_DATA_TYPE_FLOAT" if api_format else ChannelDataTypeStrRep.FLOAT.value
+        elif self == self.__class__.INT_32:
+            return "CHANNEL_DATA_TYPE_INT_32" if api_format else ChannelDataTypeStrRep.INT_32.value
+        elif self == self.__class__.INT_64:
+            return "CHANNEL_DATA_TYPE_INT_64" if api_format else ChannelDataTypeStrRep.INT_64.value
+        elif self == self.__class__.UINT_32:
+            return (
+                "CHANNEL_DATA_TYPE_UINT_32" if api_format else ChannelDataTypeStrRep.UINT_32.value
+            )
+        elif self == self.__class__.UINT_64:
+            return (
+                "CHANNEL_DATA_TYPE_UINT_64" if api_format else ChannelDataTypeStrRep.UINT_64.value
+            )
         else:
             raise Exception("Unreachable.")
 

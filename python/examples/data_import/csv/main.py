@@ -43,7 +43,9 @@ if __name__ == "__main__":
                 continue
             data_config[i + 1] = {
                 "name": channel,
-                "data_type": "CHANNEL_DATA_TYPE_DOUBLE",  # Assume all channels are doubles
+                # This example assumes all channels are doubles.
+                # Can also use `ChannelDoubleType.DOUBLE` or `double`
+                "data_type": "CHANNEL_DATA_TYPE_DOUBLE",
                 "description": f"Example channel {channel}",
             }
 
