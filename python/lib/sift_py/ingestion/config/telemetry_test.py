@@ -39,11 +39,23 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
         "kinetic_energy_gt": "0.5 * $mass * $1 * $1 > $threshold",
     }
 
-    mock_load_rule_namespaces = mocker.patch(_mock_path(sift_py.ingestion.config.yaml.load.load_rule_namespaces))
+    mock_load_rule_namespaces = mocker.patch(
+        _mock_path(sift_py.ingestion.config.yaml.load.load_rule_namespaces)
+    )
     mock_load_rule_namespaces.return_value = {
         "velocity": [
-            {"name": "vehicle_stuck", "description": "Checks that vehicle velocity becomes nonzero 5s after entering accelerating state", "expression": "$1 == \"Accelerating\" && persistence($2 == 0, 5)", "type": "review"},
-            {"name": "vehicle_not_stopped", "description": "Makes sure vehicle velocity remains 0 while stopped", "expression": "$1 == \"Stopped\" && $2 > 0", "type": "review"}
+            {
+                "name": "vehicle_stuck",
+                "description": "Checks that vehicle velocity becomes nonzero 5s after entering accelerating state",
+                "expression": '$1 == "Accelerating" && persistence($2 == 0, 5)',
+                "type": "review",
+            },
+            {
+                "name": "vehicle_not_stopped",
+                "description": "Makes sure vehicle velocity remains 0 while stopped",
+                "expression": '$1 == "Stopped" && $2 > 0',
+                "type": "review",
+            },
         ]
     }
 
@@ -51,7 +63,9 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
     dummy_named_expr_mod_path = Path()
     dummy_rule_namespace_path = [Path()]
 
-    telemetry_config = TelemetryConfig.try_from_yaml(dummy_yaml_path, [dummy_named_expr_mod_path], dummy_rule_namespace_path)
+    telemetry_config = TelemetryConfig.try_from_yaml(
+        dummy_yaml_path, [dummy_named_expr_mod_path], dummy_rule_namespace_path
+    )
 
     assert telemetry_config.asset_name == "LunarVehicle426"
     assert telemetry_config.ingestion_client_key == "lunar_vehicle_426"
@@ -116,7 +130,14 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
 
     assert len(telemetry_config.rules) == 6
 
-    overheating_rule, speeding_rule, failures_rule, kinetic_energy_rule, vehicle_stuck, vehicle_not_stopped = telemetry_config.rules
+    (
+        overheating_rule,
+        speeding_rule,
+        failures_rule,
+        kinetic_energy_rule,
+        vehicle_stuck,
+        vehicle_not_stopped,
+    ) = telemetry_config.rules
 
     assert overheating_rule.name == "overheating"
     assert overheating_rule.description == "Checks for vehicle overheating"
@@ -143,14 +164,17 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
     assert isinstance(kinetic_energy_rule.action, RuleActionCreateDataReviewAnnotation)
 
     assert vehicle_stuck.name == "vehicle_stuck"
-    assert vehicle_stuck.description == "Checks that vehicle velocity becomes nonzero 5s after entering accelerating state"
-    assert vehicle_stuck.expression == "$1 == \"Accelerating\" && persistence($2 == 0, 5)"
+    assert (
+        vehicle_stuck.description
+        == "Checks that vehicle velocity becomes nonzero 5s after entering accelerating state"
+    )
+    assert vehicle_stuck.expression == '$1 == "Accelerating" && persistence($2 == 0, 5)'
     assert vehicle_stuck.action.kind() == RuleActionKind.ANNOTATION
     assert isinstance(vehicle_stuck.action, RuleActionCreateDataReviewAnnotation)
 
     assert vehicle_not_stopped.name == "vehicle_not_stopped"
     assert vehicle_not_stopped.description == "Makes sure vehicle velocity remains 0 while stopped"
-    assert vehicle_not_stopped.expression == "$1 == \"Stopped\" && $2 > 0"
+    assert vehicle_not_stopped.expression == '$1 == "Stopped" && $2 > 0'
     assert vehicle_not_stopped.action.kind() == RuleActionKind.ANNOTATION
     assert isinstance(vehicle_not_stopped.action, RuleActionCreateDataReviewAnnotation)
 
@@ -286,8 +310,10 @@ def test_telemetry_config_validations_flows_with_same_name():
 def test_telemetry_config_validations_rules_with_same_namespace():
     pass
 
+
 def test_telemetry_config_validations_rule_missing_namespace():
     pass
+
 
 def test_telemetry_config_validations_rule_missing_from_namespace():
     pass
