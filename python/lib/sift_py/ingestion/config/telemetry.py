@@ -205,7 +205,6 @@ class TelemetryConfig:
                         }
                     )
 
-            print(channel_references)
             namespace = rule.get("namespace")
 
             if namespace:
