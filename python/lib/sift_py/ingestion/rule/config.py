@@ -76,9 +76,7 @@ class RuleConfig(AsJson):
         self.action = action
         self.description = description
         self.expression = expression
-        self.expression = self.__class__.interpolate_sub_expressions(
-            expression, sub_expressions
-        )
+        self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
 
     def as_json(self) -> Any:
         """
@@ -115,7 +113,9 @@ class RuleConfig(AsJson):
         return hash_map
 
     @staticmethod
-    def interpolate_sub_expressions(expression: Optional[str], sub_expressions: Optional[Dict[str, str]]) -> Optional[str]:
+    def interpolate_sub_expressions(
+        expression: Optional[str], sub_expressions: Optional[Dict[str, str]]
+    ) -> Optional[str]:
         if expression and sub_expressions:
             for ref, expr in sub_expressions.items():
                 if ref not in expression:
@@ -132,7 +132,9 @@ class RuleConfig(AsJson):
         namespace: str, namespace_rules: Optional[Dict[str, List[Dict]]]
     ) -> Tuple[str, str, RuleAction]:
         if not namespace_rules:
-            raise ValueError(f"Namespace rules must be provided with namespace key. Got: {namespace_rules}")
+            raise ValueError(
+                f"Namespace rules must be provided with namespace key. Got: {namespace_rules}"
+            )
 
         rule_list = namespace_rules.get(namespace)
         if not rule_list:
