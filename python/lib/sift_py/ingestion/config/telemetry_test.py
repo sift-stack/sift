@@ -283,6 +283,16 @@ def test_telemetry_config_validations_flows_with_same_name():
         )
 
 
+def test_telemetry_config_validations_rules_with_same_namespace():
+    pass
+
+def test_telemetry_config_validations_rule_missing_namespace():
+    pass
+
+def test_telemetry_config_validations_rule_missing_from_namespace():
+    pass
+
+
 TEST_YAML_CONFIG_STR = """
 asset_name: LunarVehicle426
 ingestion_client_key: lunar_vehicle_426
