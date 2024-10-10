@@ -7,13 +7,14 @@ from sift_py.ingestion.channel import (
     ChannelEnumType,
 )
 from sift_py.ingestion.config.telemetry import FlowConfig, TelemetryConfig
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules
+from sift_py.ingestion.config.yaml.load import load_named_expression_modules, load_rule_namespaces
 from sift_py.ingestion.rule.config import (
     RuleActionCreateDataReviewAnnotation,
     RuleConfig,
 )
 
 EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
+RULE_NAMESPACES_DIR = Path().joinpath("rule_modules")
 
 
 def nostromos_lv_426() -> TelemetryConfig:
@@ -21,6 +22,12 @@ def nostromos_lv_426() -> TelemetryConfig:
         [
             EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
             EXPRESSION_MODULES_DIR.joinpath("string.yml"),
+        ]
+    )
+
+    rule_namespaces = load_rule_namespaces(
+        [
+            RULE_NAMESPACES_DIR,
         ]
     )
 
@@ -123,6 +130,70 @@ def nostromos_lv_426() -> TelemetryConfig:
                     # assignee="ellen.ripley@weylandcorp.com",
                     tags=["nostromo", "failure"],
                 ),
+            ),
+            RuleConfig(
+                name="overvoltage",
+                namespace="voltage",
+                namespace_rules=rule_namespaces,
+                channel_references=[
+                    # INFO: Can use either "channel_identifier" or "channel_config"
+                    {
+                        "channel_reference": "$1",
+                        "channel_identifier": vehicle_state_channel.fqn(),
+                    },
+                    {
+                        "channel_reference": "$2",
+                        "channel_config": voltage_channel,
+                    },
+                ],
+            ),
+            RuleConfig(
+                name="undervoltage",
+                namespace="voltage",
+                namespace_rules=rule_namespaces,
+                channel_references=[
+                    # INFO: Can use either "channel_identifier" or "channel_config"
+                    {
+                        "channel_reference": "$1",
+                        "channel_identifier": vehicle_state_channel.fqn(),
+                    },
+                    {
+                        "channel_reference": "$2",
+                        "channel_config": voltage_channel,
+                    },
+                ],
+            ),
+            RuleConfig(
+                name="vehicle_stuck",
+                namespace="velocity",
+                namespace_rules=rule_namespaces,
+                channel_references=[
+                    # INFO: Can use either "channel_identifier" or "channel_config"
+                    {
+                        "channel_reference": "$1",
+                        "channel_identifier": vehicle_state_channel.fqn(),
+                    },
+                    {
+                        "channel_reference": "$2",
+                        "channel_config": velocity_channel,
+                    },
+                ],
+            ),
+            RuleConfig(
+                name="vehicle_not_stopped",
+                namespace="velocity",
+                namespace_rules=rule_namespaces,
+                channel_references=[
+                    # INFO: Can use either "channel_identifier" or "channel_config"
+                    {
+                        "channel_reference": "$1",
+                        "channel_identifier": vehicle_state_channel.fqn(),
+                    },
+                    {
+                        "channel_reference": "$2",
+                        "channel_config": velocity_channel,
+                    },
+                ],
             ),
         ],
         flows=[

@@ -18,3 +18,5 @@ python/protos/**/*
 python/build
 python/docs/sift_py
 *.egg-info/
+
+.vscode/*
