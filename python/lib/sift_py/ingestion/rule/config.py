@@ -24,9 +24,9 @@ class RuleConfig(AsJson):
     """
 
     name: str
-    description: str
-    expression: str
-    action: RuleAction
+    description: Optional[str]
+    expression: Optional[str]
+    action: Optional[RuleAction]
     channel_references: List[ExpressionChannelReference]
 
     def __init__(
@@ -68,23 +68,17 @@ class RuleConfig(AsJson):
 
         self.name = name
 
-        if namespace and namespace_rules:
+        if namespace:
             description, expression, action = self.__class__.interpolate_namespace_rule(
                 namespace, namespace_rules
             )
 
-        if action:
-            self.action = action
-
-        if description:
-            self.description = description
-
-        if expression:
-            self.expression = expression
-            if sub_expressions:
-                self.expression = self.__class__.interpolate_sub_expressions(
-                    expression, sub_expressions
-                )
+        self.action = action
+        self.description = description
+        self.expression = expression
+        self.expression = self.__class__.interpolate_sub_expressions(
+            expression, sub_expressions
+        )
 
     def as_json(self) -> Any:
         """
@@ -115,26 +109,31 @@ class RuleConfig(AsJson):
             if self.action.tags is not None and len(self.action.tags) > 0:
                 hash_map["tags"] = self.action.tags
         else:
-            raise TypeError(f"Unsupported rule action '{self.action.kind()}'.")
+            kind = self.action.kind() if self.action else self.action
+            raise TypeError(f"Unsupported rule action '{kind}'.")
 
         return hash_map
 
     @staticmethod
-    def interpolate_sub_expressions(expression: str, sub_expressions: Dict[str, str]) -> str:
-        for ref, expr in sub_expressions.items():
-            if ref not in expression:
-                raise ValueError(f"Couldn't find '{ref}' in expression '{expression}'.")
-            if isinstance(expr, str):
-                expression = expression.replace(ref, f'"{expr}"')
-            else:
-                expression = expression.replace(ref, str(expr))
+    def interpolate_sub_expressions(expression: Optional[str], sub_expressions: Optional[Dict[str, str]]) -> Optional[str]:
+        if expression and sub_expressions:
+            for ref, expr in sub_expressions.items():
+                if ref not in expression:
+                    raise ValueError(f"Couldn't find '{ref}' in expression '{expression}'.")
+                if isinstance(expr, str):
+                    expression = expression.replace(ref, f'"{expr}"')
+                else:
+                    expression = expression.replace(ref, str(expr))
 
         return expression
 
     @staticmethod
     def interpolate_namespace_rule(
-        namespace: str, namespace_rules: Dict[str, List[Dict]]
+        namespace: str, namespace_rules: Optional[Dict[str, List[Dict]]]
     ) -> Tuple[str, str, RuleAction]:
+        if not namespace_rules:
+            raise ValueError(f"Namespace rules must be provided with namespace key. Got: {namespace_rules}")
+
         rule_list = namespace_rules.get(namespace)
         if not rule_list:
             raise ValueError(
