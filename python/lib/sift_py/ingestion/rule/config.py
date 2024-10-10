@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
@@ -32,13 +32,15 @@ class RuleConfig(AsJson):
     def __init__(
         self,
         name: str,
-        description: str,
-        expression: str,
-        action: RuleAction,
         channel_references: List[
             Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
         ],
-        sub_expressions: Dict[str, Any] = {},
+        description: Optional[str] = "",
+        expression: Optional[str] = "",
+        action: Optional[RuleAction] = None,
+        sub_expressions: Optional[Dict[str, Any]] = {},
+        namespace: Optional[str] = "",
+        namespace_rules: Optional[Dict[str, List[Dict]]] = {},
     ):
         self.channel_references = []
 
@@ -65,9 +67,24 @@ class RuleConfig(AsJson):
                 )
 
         self.name = name
-        self.description = description
-        self.action = action
-        self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
+
+        if namespace and namespace_rules:
+            description, expression, action = self.__class__.interpolate_namespace_rule(
+                namespace, namespace_rules
+            )
+
+        if action:
+            self.action = action
+
+        if description:
+            self.description = description
+
+        if expression:
+            self.expression = expression
+            if sub_expressions:
+                self.expression = self.__class__.interpolate_sub_expressions(
+                    expression, sub_expressions
+                )
 
     def as_json(self) -> Any:
         """
@@ -113,6 +130,34 @@ class RuleConfig(AsJson):
                 expression = expression.replace(ref, str(expr))
 
         return expression
+
+    @staticmethod
+    def interpolate_namespace_rule(
+        namespace: str, namespace_rules: Dict[str, List[Dict]]
+    ) -> Tuple[str, str, RuleAction]:
+        rule_list = namespace_rules.get(namespace)
+        if not rule_list:
+            raise ValueError(
+                f"Couldn't find namespace '{namespace}' in namespace_rules: {namespace_rules}"
+            )
+
+        for rule in rule_list:
+            name = rule.get("name")
+            if name:
+                description = rule.get("description", "")
+                expression = rule.get("expression", "")
+                type = rule.get("type", "")
+                tags = rule.get("tags")
+                action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
+                if RuleActionAnnotationKind.from_str(type) == RuleActionAnnotationKind.REVIEW:
+                    action = RuleActionCreateDataReviewAnnotation(
+                        assignee=rule.get("assignee"), tags=tags
+                    )
+
+        if not name:
+            raise ValueError(f"Couldn't find rule name '{name}' in rule_list: {rule_list}")
+
+        return description, expression, action
 
 
 class RuleAction(ABC):

@@ -1,0 +1,12 @@
+namespace: velocity
+
+rules:
+  - name: vehicle_stuck
+    description: Checks that vehicle velocity becomes nonzero 5s after entering accelerating state
+    expression: $1 == "Accelerating" && persistence($2 == 0, 5)
+    type: review
+
+  - name: vehicle_not_stopped
+    description: Makes sure vehicle velocity remains 0 while stopped
+    expression: $1 == "Stopped" && $2 > 0
+    type: review
