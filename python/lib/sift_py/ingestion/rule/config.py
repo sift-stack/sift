@@ -153,11 +153,11 @@ class RuleConfig(AsJson):
                     action = RuleActionCreateDataReviewAnnotation(
                         assignee=rule.get("assignee"), tags=tags
                     )
+                return description, expression, action
 
-        if not expression:
-            raise ValueError(f"Couldn't find rule name '{name}' in rule_list: {rule_list}")
-
-        return description, expression, action
+        raise ValueError(
+            f"Could not find rule '{rule}'. Does this rule exist in the namespace? {rule_list}"
+        )
 
 
 class RuleAction(ABC):
