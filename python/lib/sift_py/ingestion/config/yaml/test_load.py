@@ -345,7 +345,6 @@ def test__validate_rule():
         )
 
 
-
 def test__validate_flow():
     load._validate_flow(
         {
