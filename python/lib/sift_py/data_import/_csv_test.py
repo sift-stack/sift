@@ -1,5 +1,6 @@
 import json
 
+import pandas as pd
 import pytest
 from pytest_mock import MockFixture
 from sift_py.data_import.config import CsvConfig
@@ -205,3 +206,55 @@ def test_csv_upload_service_upload_from_url_success(mocker: MockFixture):
         url="http://some_url.com/file.csv",
         csv_config=csv_config,
     )
+
+
+def test_simple_upload_invalid_csv(mocker: MockFixture):
+    mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
+    mock_path_is_file.return_value = True
+
+    mock_read_csv = mocker.patch("sift_py.data_import.csv.pd.read_csv")
+    mock_read_csv.return_value = pd.DataFrame(
+        {
+            "time": [1, 2, 3],
+            "channel_1": [1, 1.0, True],
+        }
+    )
+    with pytest.raises(Exception, match="Unable to upload.*Inferred type: mixed-integer"):
+        svc = CsvUploadService(rest_config)
+        svc.simple_upload("test_asset", "sample.csv")
+
+    mock_read_csv = mocker.patch("sift_py.data_import.csv.pd.read_csv")
+    mock_read_csv.return_value = pd.DataFrame(
+        {
+            "time": [1, 2, 3],
+            "channel_1": [complex(1), complex(1), complex(1)],
+        }
+    )
+    with pytest.raises(Exception, match="Unable to upload.*Inferred type: complex"):
+        svc = CsvUploadService(rest_config)
+        svc.simple_upload("test_asset", "sample.csv")
+
+    mock_read_csv = mocker.patch("sift_py.data_import.csv.pd.read_csv")
+    mock_read_csv.return_value = pd.DataFrame(
+        {
+            "time": [1, 2, 3],
+            "channel_bool": [True, True, False],
+            "channel_int": [-1, 2, 0],
+            "channel_double": [1.0, 2.0, -3.3],
+            "channel_string": ["a", "b", "c"],
+        }
+    )
+    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post.side_effect = [
+        MockResponse(
+            status_code=200,
+            text=json.dumps({"uploadUrl": "some_url.com", "dataImportId": "123-123-123"}),
+        ),
+        MockResponse(status_code=200, text=""),
+    ]
+    mocker.patch(
+        "sift_py.data_import.csv.open",
+        mocker.mock_open(),
+    )
+    svc = CsvUploadService(rest_config)
+    svc.simple_upload("test_asset", "sample.csv")

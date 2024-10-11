@@ -1,5 +1,6 @@
 import pytest
 from sift_py.data_import.config import CsvConfig
+from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
 
 
@@ -156,3 +157,9 @@ def test_time_column(csv_config_data):
         Exception, match="'relative_start_time' specified for non relative time format."
     ):
         CsvConfig(csv_config_data)
+
+    csv_config_data["time_column"] = {
+        "format": TimeFormatType.ABSOLUTE_DATETIME,
+        "column_number": 1,
+    }
+    CsvConfig(csv_config_data)

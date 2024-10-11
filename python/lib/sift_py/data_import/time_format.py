@@ -44,6 +44,34 @@ class TimeFormatType(Enum):
 
         return None
 
+    def as_human_str(self) -> str:
+        if self == self.__class__.ABSOLUTE_RFC339:
+            return "TIME_FORMAT_ABSOLUTE_RFC3339"
+        elif self == self.__class__.ABSOLUTE_DATETIME:
+            return "TIME_FORMAT_ABSOLUTE_DATETIME"
+        elif self == self.__class__.ABSOLUTE_UNIX_SECONDS:
+            return "TIME_FORMAT_ABSOLUTE_UNIX_SECONDS"
+        elif self == self.__class__.ABSOLUTE_UNIX_MILLISECONDS:
+            return "TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS"
+        elif self == self.__class__.ABSOLUTE_UNIX_MICROSECONDS:
+            return "TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS"
+        elif self == self.__class__.ABSOLUTE_UNIX_NANOSECONDS:
+            return "TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS"
+        elif self == self.__class__.RELATIVE_NANOSECONDS:
+            return "TIME_FORMAT_RELATIVE_NANOSECONDS"
+        elif self == self.__class__.RELATIVE_MICROSECONDS:
+            return "TIME_FORMAT_RELATIVE_MICROSECONDS"
+        elif self == self.__class__.RELATIVE_MILLISECONDS:
+            return "TIME_FORMAT_RELATIVE_MILLISECONDS"
+        elif self == self.__class__.RELATIVE_SECONDS:
+            return "TIME_FORMAT_RELATIVE_SECONDS"
+        elif self == self.__class__.RELATIVE_MINUTES:
+            return "TIME_FORMAT_RELATIVE_MINUTES"
+        elif self == self.__class__.RELATIVE_HOURS:
+            return "TIME_FORMAT_RELATIVE_HOURS"
+        else:
+            raise Exception("Unreachable")
+
     def is_relative(self):
         return self in [
             self.RELATIVE_NANOSECONDS,
