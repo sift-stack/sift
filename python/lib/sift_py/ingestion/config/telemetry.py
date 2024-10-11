@@ -188,7 +188,21 @@ class TelemetryConfig:
             )
 
         for rule in config_as_yaml.get("rules", []):
-            # Order matters -- capture the channel references before checking the namespace
+            namespace = rule.get("namespace")
+
+            if not namespace:
+                annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
+                tags = rule.get("tags")
+
+                action: Optional[RuleAction] = RuleActionCreatePhaseAnnotation(tags)
+                if annotation_type == RuleActionAnnotationKind.REVIEW:
+                    action = RuleActionCreateDataReviewAnnotation(
+                        assignee=rule.get("assignee"),
+                        tags=tags,
+                    )
+            else:
+                action = None
+
             channel_references: List[
                 ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
             ] = []
@@ -205,35 +219,7 @@ class TelemetryConfig:
                         }
                     )
 
-            namespace = rule.get("namespace")
-
-            if namespace:
-                rule_namespace = rule_namespaces.get(str(namespace))
-                if not rule_namespace:
-                    raise TelemetryConfigValidationError(f"Could not find namespace {namespace}")
-
-                found_rule = None
-                for rule_from_namespace in rule_namespace:
-                    if rule["name"] == rule_from_namespace["name"]:
-                        found_rule = rule_from_namespace
-                if not found_rule:
-                    raise TelemetryConfigValidationError(
-                        f"Could not find rule name {rule['name']} in {namespace}"
-                    )
-                rule = found_rule
-
-            annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
-
-            tags = rule.get("tags")
-
-            action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
-            if annotation_type == RuleActionAnnotationKind.REVIEW:
-                action = RuleActionCreateDataReviewAnnotation(
-                    assignee=rule.get("assignee"),
-                    tags=tags,
-                )
-
-            expression = rule["expression"]
+            expression = rule.get("expression", "")
             if isinstance(expression, str):
                 rules.append(
                     RuleConfig(
@@ -242,6 +228,8 @@ class TelemetryConfig:
                         expression=expression,
                         action=action,
                         channel_references=channel_references,
+                        namespace=namespace,
+                        namespace_rules=rule_namespaces,
                     )
                 )
             else:
