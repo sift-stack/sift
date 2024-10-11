@@ -327,6 +327,24 @@ def test__validate_rule():
             }
         )
 
+    with pytest.raises(YamlConfigError, match="should not have any other properties set"):
+        load._validate_rule(
+            {
+                "name": "overheat_rule",
+                "namespace": "my_namespace",
+                "description": "some_description",
+                "expression": "$1 > 10 && $2 > 10",
+                "type": "review",
+                "assignee": "homer@example.com",
+                "tags": ["foo", "bar"],
+                "channel_references": [
+                    {"$1": {"name": "voltage", "data_type": "double"}},
+                    {"$2": {"name": "vehicle_state", "data_type": "double"}},
+                ],
+            }
+        )
+
+
 
 def test__validate_flow():
     load._validate_flow(
