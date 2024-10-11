@@ -190,18 +190,17 @@ class TelemetryConfig:
         for rule in config_as_yaml.get("rules", []):
             namespace = rule.get("namespace")
 
+            action: Optional[RuleAction] = None
             if not namespace:
                 annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
                 tags = rule.get("tags")
 
-                action: Optional[RuleAction] = RuleActionCreatePhaseAnnotation(tags)
+                action = RuleActionCreatePhaseAnnotation(tags)
                 if annotation_type == RuleActionAnnotationKind.REVIEW:
                     action = RuleActionCreateDataReviewAnnotation(
                         assignee=rule.get("assignee"),
                         tags=tags,
                     )
-            else:
-                action = None
 
             channel_references: List[
                 ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
