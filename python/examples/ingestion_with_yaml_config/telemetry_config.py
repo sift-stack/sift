@@ -3,10 +3,9 @@ from pathlib import Path
 
 from sift_py.ingestion.service import TelemetryConfig
 
-TEMP = Path().joinpath("python/examples/ingestion_with_yaml_config")
-TELEMETRY_CONFIGS_DIR = Path().joinpath(TEMP).joinpath("telemetry_configs")
-EXPRESSION_MODULES_DIR = Path().joinpath(TEMP).joinpath("expression_modules")
-RULE_MODULES_DIR = Path().joinpath(TEMP).joinpath("rule_modules")
+TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
+EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
+RULE_MODULES_DIR = Path().joinpath("rule_modules")
 
 
 def nostromos_lv_426() -> TelemetryConfig:

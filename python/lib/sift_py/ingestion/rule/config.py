@@ -75,7 +75,6 @@ class RuleConfig(AsJson):
 
         self.action = action
         self.description = description
-        self.expression = expression
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
 
     def as_json(self) -> Any:
