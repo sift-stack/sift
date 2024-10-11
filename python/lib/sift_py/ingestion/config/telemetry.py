@@ -191,9 +191,11 @@ class TelemetryConfig:
             namespace = rule.get("namespace")
 
             action: Optional[RuleAction] = None
+            description: Optional[str] = ""
             if not namespace:
                 annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
                 tags = rule.get("tags")
+                description = rule.get("description", "")
 
                 action = RuleActionCreatePhaseAnnotation(tags)
                 if annotation_type == RuleActionAnnotationKind.REVIEW:
@@ -223,7 +225,7 @@ class TelemetryConfig:
                 rules.append(
                     RuleConfig(
                         name=rule["name"],
-                        description=rule.get("description", ""),
+                        description=description,
                         expression=expression,
                         action=action,
                         channel_references=channel_references,
@@ -251,11 +253,13 @@ class TelemetryConfig:
                 rules.append(
                     RuleConfig(
                         name=rule["name"],
-                        description=rule.get("description", ""),
+                        description=description,
                         expression=expr,
                         action=action,
                         channel_references=channel_references,
                         sub_expressions=sub_exprs,
+                        namespace=namespace,
+                        namespace_rules=rule_namespaces,
                     )
                 )
 

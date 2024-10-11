@@ -70,7 +70,7 @@ class RuleConfig(AsJson):
 
         if namespace:
             description, expression, action = self.__class__.interpolate_namespace_rule(
-                namespace, namespace_rules
+                name, namespace, namespace_rules
             )
 
         self.action = action
@@ -128,7 +128,7 @@ class RuleConfig(AsJson):
 
     @staticmethod
     def interpolate_namespace_rule(
-        namespace: str, namespace_rules: Optional[Dict[str, List[Dict]]]
+        name: str, namespace: str, namespace_rules: Optional[Dict[str, List[Dict]]]
     ) -> Tuple[str, str, RuleAction]:
         if not namespace_rules:
             raise ValueError(
@@ -142,8 +142,8 @@ class RuleConfig(AsJson):
             )
 
         for rule in rule_list:
-            name = rule.get("name")
-            if name:
+            candidate_name = rule.get("name")
+            if candidate_name == name:
                 description = rule.get("description", "")
                 expression = rule.get("expression", "")
                 type = rule.get("type", "")
@@ -154,7 +154,7 @@ class RuleConfig(AsJson):
                         assignee=rule.get("assignee"), tags=tags
                     )
 
-        if not name:
+        if not expression:
             raise ValueError(f"Couldn't find rule name '{name}' in rule_list: {rule_list}")
 
         return description, expression, action

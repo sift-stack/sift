@@ -142,7 +142,7 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
     assert overheating_rule.name == "overheating"
     assert overheating_rule.description == "Checks for vehicle overheating"
     assert overheating_rule.expression == '$1 == "Accelerating" && $2 > 80'
-    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
+    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION  # type: ignore
     assert isinstance(overheating_rule.action, RuleActionCreateDataReviewAnnotation)
 
     assert speeding_rule.name == "speeding"
@@ -169,13 +169,13 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
         == "Checks that vehicle velocity becomes nonzero 5s after entering accelerating state"
     )
     assert vehicle_stuck.expression == '$1 == "Accelerating" && persistence($2 == 0, 5)'
-    assert vehicle_stuck.action.kind() == RuleActionKind.ANNOTATION
+    assert vehicle_stuck.action.kind() == RuleActionKind.ANNOTATION  # type: ignore
     assert isinstance(vehicle_stuck.action, RuleActionCreateDataReviewAnnotation)
 
     assert vehicle_not_stopped.name == "vehicle_not_stopped"
     assert vehicle_not_stopped.description == "Makes sure vehicle velocity remains 0 while stopped"
     assert vehicle_not_stopped.expression == '$1 == "Stopped" && $2 > 0'
-    assert vehicle_not_stopped.action.kind() == RuleActionKind.ANNOTATION
+    assert vehicle_not_stopped.action.kind() == RuleActionKind.ANNOTATION  # type: ignore
     assert isinstance(vehicle_not_stopped.action, RuleActionCreateDataReviewAnnotation)
 
 
@@ -305,18 +305,6 @@ def test_telemetry_config_validations_flows_with_same_name():
                 ),
             ],
         )
-
-
-def test_telemetry_config_validations_rules_with_same_namespace():
-    pass
-
-
-def test_telemetry_config_validations_rule_missing_namespace():
-    pass
-
-
-def test_telemetry_config_validations_rule_missing_from_namespace():
-    pass
 
 
 TEST_YAML_CONFIG_STR = """
@@ -466,19 +454,4 @@ flows:
     channels:
       - <<: *velocity_channel
       - <<: *velocity_channel
-"""
-
-RULE_NAMESPACE_YAML_CONFIG = """
-namespace: velocity
-
-rules:
-  - name: vehicle_stuck
-    description: Checks that vehicle velocity becomes nonzero 5s after entering accelerating state
-    expression: $1 == "Accelerating" && persistence($2 == 0, 5)
-    type: review
-
-  - name: vehicle_not_stopped
-    description: Makes sure vehicle velocity remains 0 while stopped
-    expression: $1 == "Stopped" && $2 > 0
-    type: review
 """
