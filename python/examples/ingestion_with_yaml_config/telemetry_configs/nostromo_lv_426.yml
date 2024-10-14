@@ -88,6 +88,30 @@ rules:
         - failure
         - nostromo
 
+  - namespace: voltage
+    name: overvoltage
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+
+  - namespace: voltage
+    name: undervoltage
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+
+  - namespace: velocity
+    name: vehicle_stuck
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *velocity_channel
+
+  - namespace: velocity
+    name: vehicle_not_stopped
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *velocity_channel
+
 flows:
   - name: readings
     channels:
@@ -103,7 +127,7 @@ flows:
   - name: gpio_channel
     channels:
       - <<: *gpio_channel
-      
+
   - name: logs
     channels:
       - <<: *log_channel

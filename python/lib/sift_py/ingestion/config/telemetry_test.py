@@ -39,10 +39,33 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
         "kinetic_energy_gt": "0.5 * $mass * $1 * $1 > $threshold",
     }
 
+    mock_load_rule_namespaces = mocker.patch(
+        _mock_path(sift_py.ingestion.config.yaml.load.load_rule_namespaces)
+    )
+    mock_load_rule_namespaces.return_value = {
+        "velocity": [
+            {
+                "name": "vehicle_stuck",
+                "description": "Checks that vehicle velocity becomes nonzero 5s after entering accelerating state",
+                "expression": '$1 == "Accelerating" && persistence($2 == 0, 5)',
+                "type": "review",
+            },
+            {
+                "name": "vehicle_not_stopped",
+                "description": "Makes sure vehicle velocity remains 0 while stopped",
+                "expression": '$1 == "Stopped" && $2 > 0',
+                "type": "review",
+            },
+        ]
+    }
+
     dummy_yaml_path = Path()
     dummy_named_expr_mod_path = Path()
+    dummy_rule_namespace_path = [Path()]
 
-    telemetry_config = TelemetryConfig.try_from_yaml(dummy_yaml_path, [dummy_named_expr_mod_path])
+    telemetry_config = TelemetryConfig.try_from_yaml(
+        dummy_yaml_path, [dummy_named_expr_mod_path], dummy_rule_namespace_path
+    )
 
     assert telemetry_config.asset_name == "LunarVehicle426"
     assert telemetry_config.ingestion_client_key == "lunar_vehicle_426"
@@ -105,14 +128,21 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
     assert gpio_channel.bit_field_elements[3].index == 7
     assert gpio_channel.bit_field_elements[3].bit_count == 1
 
-    assert len(telemetry_config.rules) == 4
+    assert len(telemetry_config.rules) == 6
 
-    overheating_rule, speeding_rule, failures_rule, kinetic_energy_rule = telemetry_config.rules
+    (
+        overheating_rule,
+        speeding_rule,
+        failures_rule,
+        kinetic_energy_rule,
+        vehicle_stuck,
+        vehicle_not_stopped,
+    ) = telemetry_config.rules
 
     assert overheating_rule.name == "overheating"
     assert overheating_rule.description == "Checks for vehicle overheating"
     assert overheating_rule.expression == '$1 == "Accelerating" && $2 > 80'
-    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
+    assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION  # type: ignore
     assert isinstance(overheating_rule.action, RuleActionCreateDataReviewAnnotation)
 
     assert speeding_rule.name == "speeding"
@@ -132,6 +162,21 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
     assert kinetic_energy_rule.expression == "0.5 * 10 * $1 * $1 > 470"
     assert overheating_rule.action.kind() == RuleActionKind.ANNOTATION
     assert isinstance(kinetic_energy_rule.action, RuleActionCreateDataReviewAnnotation)
+
+    assert vehicle_stuck.name == "vehicle_stuck"
+    assert (
+        vehicle_stuck.description
+        == "Checks that vehicle velocity becomes nonzero 5s after entering accelerating state"
+    )
+    assert vehicle_stuck.expression == '$1 == "Accelerating" && persistence($2 == 0, 5)'
+    assert vehicle_stuck.action.kind() == RuleActionKind.ANNOTATION  # type: ignore
+    assert isinstance(vehicle_stuck.action, RuleActionCreateDataReviewAnnotation)
+
+    assert vehicle_not_stopped.name == "vehicle_not_stopped"
+    assert vehicle_not_stopped.description == "Makes sure vehicle velocity remains 0 while stopped"
+    assert vehicle_not_stopped.expression == '$1 == "Stopped" && $2 > 0'
+    assert vehicle_not_stopped.action.kind() == RuleActionKind.ANNOTATION  # type: ignore
+    assert isinstance(vehicle_not_stopped.action, RuleActionCreateDataReviewAnnotation)
 
 
 def test_telemetry_config_err_if_duplicate_channels_in_flow(mocker: MockerFixture):
@@ -360,6 +405,18 @@ rules:
       - $threshold: 470
     tags:
         - nostromo
+
+  - namespace: velocity
+    name: vehicle_stuck
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *velocity_channel
+
+  - namespace: velocity
+    name: vehicle_not_stopped
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *velocity_channel
 
 flows:
   - name: readings

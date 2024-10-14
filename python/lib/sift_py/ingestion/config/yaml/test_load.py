@@ -199,6 +199,18 @@ def test__validate_rule():
         }
     )
 
+    # Rule in referenced namespace
+    load._validate_rule(
+        {
+            "namespace": "voltage",
+            "name": "overvoltage_rule",
+            "channel_references": [
+                {"$1": {"name": "voltage", "data_type": "double"}},
+                {"$2": {"name": "vehicle_state", "data_type": "double"}},
+            ],
+        }
+    )
+
     with pytest.raises(YamlConfigError, match="Expected 'name' to be <str> but it is <int>"):
         load._validate_rule(
             {
@@ -311,6 +323,23 @@ def test__validate_rule():
                 ],
                 "sub_expressions": [
                     {"mass": None},
+                ],
+            }
+        )
+
+    with pytest.raises(YamlConfigError, match="should not have any other properties set"):
+        load._validate_rule(
+            {
+                "name": "overheat_rule",
+                "namespace": "my_namespace",
+                "description": "some_description",
+                "expression": "$1 > 10 && $2 > 10",
+                "type": "review",
+                "assignee": "homer@example.com",
+                "tags": ["foo", "bar"],
+                "channel_references": [
+                    {"$1": {"name": "voltage", "data_type": "double"}},
+                    {"$2": {"name": "vehicle_state", "data_type": "double"}},
                 ],
             }
         )

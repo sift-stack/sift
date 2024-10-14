@@ -12,7 +12,11 @@ from sift_py.ingestion.channel import (
     ChannelEnumType,
     _channel_fqn,
 )
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules, read_and_validate
+from sift_py.ingestion.config.yaml.load import (
+    load_named_expression_modules,
+    load_rule_namespaces,
+    read_and_validate,
+)
 from sift_py.ingestion.config.yaml.spec import TelemetryConfigYamlSpec
 from sift_py.ingestion.flow import FlowConfig
 from sift_py.ingestion.rule.config import (
@@ -111,6 +115,7 @@ class TelemetryConfig:
         cls,
         path: Path,
         named_expression_modules: Optional[List[Path]] = None,
+        named_rule_modules: Optional[List[Path]] = None,
     ) -> Self:
         """
         Initializes a telemetry config from a YAML file found at the provided `path` as well as optional
@@ -119,17 +124,21 @@ class TelemetryConfig:
 
         config_as_yaml = read_and_validate(path)
 
+        named_expressions = {}
+        rule_namespaces = {}
         if named_expression_modules is not None:
             named_expressions = load_named_expression_modules(named_expression_modules)
-            return cls._from_yaml(config_as_yaml, named_expressions)
-        else:
-            return cls._from_yaml(config_as_yaml)
+        if named_rule_modules is not None:
+            rule_namespaces = load_rule_namespaces(named_rule_modules)
+
+        return cls._from_yaml(config_as_yaml, named_expressions, rule_namespaces)
 
     @classmethod
     def _from_yaml(
         cls,
         config_as_yaml: TelemetryConfigYamlSpec,
         named_expressions: Dict[str, str] = {},
+        rule_namespaces: Dict[str, List] = {},
     ) -> Self:
         rules = []
         flows = []
@@ -179,16 +188,21 @@ class TelemetryConfig:
             )
 
         for rule in config_as_yaml.get("rules", []):
-            annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
+            namespace = rule.get("namespace", "")
 
-            tags = rule.get("tags")
+            action: Optional[RuleAction] = None
+            description: str = ""
+            if not namespace:
+                annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
+                tags = rule.get("tags")
+                description = rule.get("description", "")
 
-            action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
-            if annotation_type == RuleActionAnnotationKind.REVIEW:
-                action = RuleActionCreateDataReviewAnnotation(
-                    assignee=rule.get("assignee"),
-                    tags=tags,
-                )
+                action = RuleActionCreatePhaseAnnotation(tags)
+                if annotation_type == RuleActionAnnotationKind.REVIEW:
+                    action = RuleActionCreateDataReviewAnnotation(
+                        assignee=rule.get("assignee"),
+                        tags=tags,
+                    )
 
             channel_references: List[
                 ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
@@ -206,15 +220,17 @@ class TelemetryConfig:
                         }
                     )
 
-            expression = rule["expression"]
+            expression = rule.get("expression", "")
             if isinstance(expression, str):
                 rules.append(
                     RuleConfig(
                         name=rule["name"],
-                        description=rule.get("description", ""),
+                        description=description,
                         expression=expression,
                         action=action,
                         channel_references=channel_references,
+                        namespace=namespace,
+                        namespace_rules=rule_namespaces,
                     )
                 )
             else:
@@ -237,11 +253,13 @@ class TelemetryConfig:
                 rules.append(
                     RuleConfig(
                         name=rule["name"],
-                        description=rule.get("description", ""),
+                        description=description,
                         expression=expr,
                         action=action,
                         channel_references=channel_references,
                         sub_expressions=sub_exprs,
+                        namespace=namespace,
+                        namespace_rules=rule_namespaces,
                     )
                 )
 
