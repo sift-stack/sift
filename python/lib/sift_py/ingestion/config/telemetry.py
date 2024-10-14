@@ -188,10 +188,10 @@ class TelemetryConfig:
             )
 
         for rule in config_as_yaml.get("rules", []):
-            namespace = rule.get("namespace")
+            namespace = rule.get("namespace", "")
 
             action: Optional[RuleAction] = None
-            description: Optional[str] = ""
+            description: str = ""
             if not namespace:
                 annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
                 tags = rule.get("tags")
