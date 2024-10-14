@@ -24,8 +24,8 @@ class RuleConfig(AsJson):
     """
 
     name: str
-    description: Optional[str]
-    expression: Optional[str]
+    description: str
+    expression: str
     action: Optional[RuleAction]
     channel_references: List[ExpressionChannelReference]
 
@@ -35,12 +35,12 @@ class RuleConfig(AsJson):
         channel_references: List[
             Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
         ],
-        description: Optional[str] = "",
-        expression: Optional[str] = "",
+        description: str = "",
+        expression: str = "",
         action: Optional[RuleAction] = None,
-        sub_expressions: Optional[Dict[str, Any]] = {},
-        namespace: Optional[str] = "",
-        namespace_rules: Optional[Dict[str, List[Dict]]] = {},
+        sub_expressions: Dict[str, Any] = {},
+        namespace: str = "",
+        namespace_rules: Dict[str, List[Dict]] = {},
     ):
         self.channel_references = []
 
@@ -113,9 +113,9 @@ class RuleConfig(AsJson):
 
     @staticmethod
     def interpolate_sub_expressions(
-        expression: Optional[str], sub_expressions: Optional[Dict[str, str]]
-    ) -> Optional[str]:
-        if expression and sub_expressions:
+        expression: str, sub_expressions: Optional[Dict[str, str]]
+    ) -> str:
+        if sub_expressions:
             for ref, expr in sub_expressions.items():
                 if ref not in expression:
                     raise ValueError(f"Couldn't find '{ref}' in expression '{expression}'.")
