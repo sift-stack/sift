@@ -1,7 +1,8 @@
-import re
 from typing import TypedDict
 
 from typing_extensions import NotRequired
+
+from sift_py.grpc.transport import _clean_uri
 
 
 class SiftRestConfig(TypedDict):
@@ -19,12 +20,10 @@ class SiftRestConfig(TypedDict):
 
 def compute_uri(restconf: SiftRestConfig) -> str:
     uri = restconf["uri"]
+    use_ssl = restconf.get("use_ssl", True)
+    clean_uri = _clean_uri(uri, use_ssl)
 
-    scheme_match = re.match(r"^(\w+://).+", uri)
-    if scheme_match:
-        raise Exception(f"The URL scheme '{scheme_match.groups()[0]}' should not be included")
+    if use_ssl:
+        return f"https://{clean_uri}"
 
-    if restconf.get("use_ssl", True):
-        return f"https://{uri}"
-
-    return f"http://{uri}"
+    return f"http://{clean_uri}"

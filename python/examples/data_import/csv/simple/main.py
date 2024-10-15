@@ -2,11 +2,12 @@ import os
 
 from dotenv import load_dotenv
 from sift_py.data_import.csv import CsvUploadService
+from sift_py.data_import.status import DataImportService
 from sift_py.rest import SiftRestConfig
 
 if __name__ == "__main__":
     """
-    Example of uploading a CSV file into Sift.
+    Example of uploading a CSV file into Sift using default CSV config.
     """
 
     load_dotenv()
@@ -21,12 +22,13 @@ if __name__ == "__main__":
     assert asset_name, "expected 'ASSET_NAME' environment variable to be set"
 
     rest_config: SiftRestConfig = {
-        # Be sure to exclude the "https://" or "http://" scheme out of the uri
         "uri": sift_uri,
         "apikey": apikey,
     }
 
     csv_upload_service = CsvUploadService(rest_config)
-    status = csv_upload_service.simple_upload(asset_name, "sample_data.csv")
-    status.wait_until_complete()
+    import_service: DataImportService = csv_upload_service.simple_upload(
+        asset_name, "sample_data.csv"
+    )
+    import_service.wait_until_complete()
     print("Upload example complete!")

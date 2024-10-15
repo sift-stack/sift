@@ -1,4 +1,5 @@
 import pytest
+
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
@@ -22,13 +23,13 @@ def csv_config_data():
     }
 
 
-def test_empty_data_columns(csv_config_data):
+def test_empty_data_columns(csv_config_data: dict):
     csv_config_data["data_columns"] = {}
     with pytest.raises(Exception, match="Empty 'data_columns'"):
         CsvConfig(csv_config_data)
 
 
-def test_data_column_validation(csv_config_data):
+def test_data_column_validation(csv_config_data: dict):
     csv_config_data["data_columns"] = {
         1: {
             "name": "channel",
@@ -51,7 +52,7 @@ def test_data_column_validation(csv_config_data):
     CsvConfig(csv_config_data)
 
 
-def test_enums(csv_config_data):
+def test_enums(csv_config_data: dict):
     csv_config_data["data_columns"] = {
         1: {
             "name": "channel",
@@ -91,7 +92,7 @@ def test_enums(csv_config_data):
     CsvConfig(csv_config_data)
 
 
-def test_bit_field(csv_config_data):
+def test_bit_field(csv_config_data: dict):
     csv_config_data["data_columns"] = {
         1: {
             "name": "channel",
@@ -133,7 +134,7 @@ def test_bit_field(csv_config_data):
     CsvConfig(csv_config_data)
 
 
-def test_time_column(csv_config_data):
+def test_time_column(csv_config_data: dict):
     csv_config_data["time_column"] = {
         "format": "INVALID_TIME_FORMAT",
         "column_number": 1,

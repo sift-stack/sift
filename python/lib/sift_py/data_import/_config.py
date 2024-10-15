@@ -4,17 +4,24 @@ from typing import Dict, List, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic_core import PydanticCustomError
+from typing_extensions import Self
+
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType
-from typing_extensions import Self
 
 
 class ConfigBaseModel(BaseModel):
+    """
+    Specialized BaseMode that forbids extra fields.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
 
 class CsvConfigImpl(ConfigBaseModel):
-    """"""
+    """
+    Defines the CSV config spec.
+    """
 
     asset_name: str
     run_name: str = ""
@@ -31,14 +38,22 @@ class CsvConfigImpl(ConfigBaseModel):
 
 
 class EnumType(ConfigBaseModel, ChannelEnumType):
-    pass
+    """
+    Defines an enum entry in the CSV config.
+    """
 
 
 class BitFieldElement(ConfigBaseModel, ChannelBitFieldElement):
-    pass
+    """
+    Defines a bit field element entry in the CSV config.
+    """
 
 
 class TimeColumn(ConfigBaseModel):
+    """
+    Defines a time column entry in the CSV config.
+    """
+
     format: Union[str, TimeFormatType]
     column_number: int
     relative_start_time: Optional[str] = None
@@ -46,6 +61,9 @@ class TimeColumn(ConfigBaseModel):
     @field_validator("format", mode="before")
     @classmethod
     def convert_format(cls, raw: Union[str, TimeFormatType]) -> str:
+        """
+        Converts the provided format value to a string.
+        """
         if isinstance(raw, TimeFormatType):
             return raw.as_human_str()
         elif isinstance(raw, str):
@@ -57,6 +75,9 @@ class TimeColumn(ConfigBaseModel):
 
     @model_validator(mode="after")
     def validate_time(self) -> Self:
+        """
+        Validates the provided time format.
+        """
         format = TimeFormatType.from_str(self.format)  # type: ignore
         if format is None:
             raise PydanticCustomError(
@@ -77,17 +98,26 @@ class TimeColumn(ConfigBaseModel):
 
 
 class DataColumn(ConfigBaseModel):
+    """
+    Defines a data columns entry in the CSV config.
+    """
+
     name: str
     data_type: Union[str, ChannelDataType, Type]
     component: str = ""
     units: str = ""
     description: str = ""
+    # Only valid if data_type is "CHANNEL_DATA_TYPE_ENUM".
     enum_types: List[EnumType] = []
+    # Only valid if data_type is "CHANNEL_DATA_TYPE_BIT_FIELD"
     bit_field_elements: List[BitFieldElement] = []
 
     @field_validator("data_type", mode="before")
     @classmethod
     def convert_data_type(cls, raw: Union[str, ChannelDataType, Type]) -> str:
+        """
+        Converts the provided data_type value to a string.
+        """
         if isinstance(raw, type):
             if raw == int:
                 return ChannelDataType.INT_64.as_human_str(api_format=True)
@@ -108,6 +138,9 @@ class DataColumn(ConfigBaseModel):
 
     @model_validator(mode="after")
     def validate_enums(self) -> Self:
+        """
+        Validates the enum configuration.
+        """
         data_type = ChannelDataType.from_str(self.data_type)  # type: ignore
         if self.enum_types:
             if data_type != ChannelDataType.ENUM:
@@ -120,6 +153,9 @@ class DataColumn(ConfigBaseModel):
 
     @model_validator(mode="after")
     def validate_bit_fields(self) -> Self:
+        """
+        Validates the bit field configuration.
+        """
         data_type = ChannelDataType.from_str(self.data_type)  # type: ignore
         if self.bit_field_elements:
             if data_type != ChannelDataType.BIT_FIELD:

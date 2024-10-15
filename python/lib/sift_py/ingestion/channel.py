@@ -183,6 +183,37 @@ class ChannelEnumType(AsProtobuf):
         return cls(name=message.name, key=message.key)
 
 
+class ChannelDataTypeStrRep(Enum):
+    DOUBLE = "double"
+    STRING = "string"
+    ENUM = "enum"
+    BIT_FIELD = "bit_field"
+    BOOL = "bool"
+    FLOAT = "float"
+    INT_32 = "int32"
+    INT_64 = "int64"
+    UINT_32 = "uint32"
+    UINT_64 = "uint64"
+
+    @staticmethod
+    def from_api_format(val: str) -> Optional["ChannelDataTypeStrRep"]:
+        try:
+            return {
+                "CHANNEL_DATA_TYPE_DOUBLE": ChannelDataTypeStrRep.DOUBLE,
+                "CHANNEL_DATA_TYPE_STRING": ChannelDataTypeStrRep.STRING,
+                "CHANNEL_DATA_TYPE_ENUM": ChannelDataTypeStrRep.ENUM,
+                "CHANNEL_DATA_TYPE_BIT_FIELD": ChannelDataTypeStrRep.BIT_FIELD,
+                "CHANNEL_DATA_TYPE_BOOL": ChannelDataTypeStrRep.BOOL,
+                "CHANNEL_DATA_TYPE_FLOAT": ChannelDataTypeStrRep.FLOAT,
+                "CHANNEL_DATA_TYPE_INT_32": ChannelDataTypeStrRep.INT_32,
+                "CHANNEL_DATA_TYPE_INT_64": ChannelDataTypeStrRep.INT_64,
+                "CHANNEL_DATA_TYPE_UINT_32": ChannelDataTypeStrRep.UINT_32,
+                "CHANNEL_DATA_TYPE_UINT_64": ChannelDataTypeStrRep.UINT_64,
+            }[val]
+        except KeyError:
+            return None
+
+
 class ChannelDataType(Enum):
     """
     Utility enum class to simplify working with channel data-types generated from protobuf
@@ -225,76 +256,71 @@ class ChannelDataType(Enum):
             raise ValueError(f"Unknown channel data type '{val}'.")
 
     @classmethod
-    def from_str(cls, val: str) -> Optional["ChannelDataType"]:
-        val = val.strip()
+    def from_str(cls, raw: str) -> Optional["ChannelDataType"]:
+        if raw.startswith("CHANNEL_DATA_TYPE_"):
+            val = ChannelDataTypeStrRep.from_api_format(raw)
+            if val is None:
+                return None
+        else:
+            try:
+                val = ChannelDataTypeStrRep(raw)
+            except ValueError:
+                return None
 
-        if val == "CHANNEL_DATA_TYPE_DOUBLE" or val == ChannelDataTypeStrRep.DOUBLE.value:
+        if val == ChannelDataTypeStrRep.DOUBLE:
             return cls.DOUBLE
-        elif val == "CHANNEL_DATA_TYPE_STRING" or val == ChannelDataTypeStrRep.STRING.value:
+        elif val == ChannelDataTypeStrRep.STRING:
             return cls.STRING
-        elif val == "CHANNEL_DATA_TYPE_ENUM" or val == ChannelDataTypeStrRep.ENUM.value:
+        elif val == ChannelDataTypeStrRep.ENUM:
             return cls.ENUM
-        elif val == "CHANNEL_DATA_TYPE_BIT_FIELD" or val == ChannelDataTypeStrRep.BIT_FIELD.value:
+        elif val == ChannelDataTypeStrRep.BIT_FIELD:
             return cls.BIT_FIELD
-        elif val == "CHANNEL_DATA_TYPE_BOOL" or val == ChannelDataTypeStrRep.BOOL.value:
+        elif val == ChannelDataTypeStrRep.BOOL:
             return cls.BOOL
-        elif val == "CHANNEL_DATA_TYPE_FLOAT" or val == ChannelDataTypeStrRep.FLOAT.value:
+        elif val == ChannelDataTypeStrRep.FLOAT:
             return cls.FLOAT
-        elif val == "CHANNEL_DATA_TYPE_INT_32" or val == ChannelDataTypeStrRep.INT_32.value:
+        elif val == ChannelDataTypeStrRep.INT_32:
             return cls.INT_32
-        elif val == "CHANNEL_DATA_TYPE_INT_64" or val == ChannelDataTypeStrRep.INT_64.value:
+        elif val == ChannelDataTypeStrRep.INT_64:
             return cls.INT_64
-        elif val == "CHANNEL_DATA_TYPE_UINT_32" or val == ChannelDataTypeStrRep.UINT_32.value:
+        elif val == ChannelDataTypeStrRep.UINT_32:
             return cls.UINT_32
-        elif val == "CHANNEL_DATA_TYPE_UINT_64" or val == ChannelDataTypeStrRep.UINT_64.value:
+        elif val == ChannelDataTypeStrRep.UINT_64:
             return cls.UINT_64
-
-        return None
+        else:
+            raise Exception("Unreachable")
 
     def as_human_str(self, api_format: bool = False) -> str:
-        if self == self.__class__.DOUBLE:
+        if self == ChannelDataType.DOUBLE:
             return "CHANNEL_DATA_TYPE_DOUBLE" if api_format else ChannelDataTypeStrRep.DOUBLE.value
-        elif self == self.__class__.STRING:
+        elif self == ChannelDataType.STRING:
             return "CHANNEL_DATA_TYPE_STRING" if api_format else ChannelDataTypeStrRep.STRING.value
-        elif self == self.__class__.ENUM:
+        elif self == ChannelDataType.ENUM:
             return "CHANNEL_DATA_TYPE_ENUM" if api_format else ChannelDataTypeStrRep.ENUM.value
-        elif self == self.__class__.BIT_FIELD:
+        elif self == ChannelDataType.BIT_FIELD:
             return (
                 "CHANNEL_DATA_TYPE_BIT_FIELD"
                 if api_format
                 else ChannelDataTypeStrRep.BIT_FIELD.value
             )
-        elif self == self.__class__.BOOL:
+        elif self == ChannelDataType.BOOL:
             return "CHANNEL_DATA_TYPE_BOOL" if api_format else ChannelDataTypeStrRep.BOOL.value
-        elif self == self.__class__.FLOAT:
+        elif self == ChannelDataType.FLOAT:
             return "CHANNEL_DATA_TYPE_FLOAT" if api_format else ChannelDataTypeStrRep.FLOAT.value
-        elif self == self.__class__.INT_32:
+        elif self == ChannelDataType.INT_32:
             return "CHANNEL_DATA_TYPE_INT_32" if api_format else ChannelDataTypeStrRep.INT_32.value
-        elif self == self.__class__.INT_64:
+        elif self == ChannelDataType.INT_64:
             return "CHANNEL_DATA_TYPE_INT_64" if api_format else ChannelDataTypeStrRep.INT_64.value
-        elif self == self.__class__.UINT_32:
+        elif self == ChannelDataType.UINT_32:
             return (
                 "CHANNEL_DATA_TYPE_UINT_32" if api_format else ChannelDataTypeStrRep.UINT_32.value
             )
-        elif self == self.__class__.UINT_64:
+        elif self == ChannelDataType.UINT_64:
             return (
                 "CHANNEL_DATA_TYPE_UINT_64" if api_format else ChannelDataTypeStrRep.UINT_64.value
             )
         else:
             raise Exception("Unreachable.")
-
-
-class ChannelDataTypeStrRep(Enum):
-    DOUBLE = "double"
-    STRING = "string"
-    ENUM = "enum"
-    BIT_FIELD = "bit_field"
-    BOOL = "bool"
-    FLOAT = "float"
-    INT_32 = "int32"
-    INT_64 = "int64"
-    UINT_32 = "uint32"
-    UINT_64 = "uint64"
 
 
 def channel_fqn(channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, ChannelPb]) -> str:

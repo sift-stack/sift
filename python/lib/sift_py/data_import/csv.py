@@ -6,8 +6,9 @@ from urllib.parse import urljoin, urlparse
 
 import pandas as pd
 import requests
+
 from sift_py.data_import.config import CsvConfig
-from sift_py.data_import.status import DataImportStatus
+from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.rest import SiftRestConfig, compute_uri
 
@@ -32,7 +33,10 @@ class CsvUploadService:
         self,
         path: Union[str, Path],
         csv_config: CsvConfig,
-    ) -> DataImportStatus:
+    ) -> DataImportService:
+        """
+        Uploads the CSV file pointed to by `path` using a custom CSV config.
+        """
         content_encoding = self._validate_file_type(path)
 
         response = requests.post(
@@ -77,13 +81,16 @@ class CsvUploadService:
                     f"Data file upload request failed with status code {response.status_code}. {response.text}"
                 )
 
-            return DataImportStatus(self._rest_conf, data_import_id)
+            return DataImportService(self._rest_conf, data_import_id)
 
     def upload_from_url(
         self,
         url: str,
         csv_config: CsvConfig,
-    ) -> DataImportStatus:
+    ) -> DataImportService:
+        """
+        Uploads the CSV file pointed to by `url` using a custom CSV config.
+        """
         parsed_url = urlparse(url)
         if parsed_url.scheme not in ["s3", "http", "https"]:
             raise Exception(
@@ -120,18 +127,29 @@ class CsvUploadService:
         except KeyError as e:
             raise Exception(f"Response missing required keys: {e}")
 
-        return DataImportStatus(self._rest_conf, data_import_id)
+        return DataImportService(self._rest_conf, data_import_id)
 
     def simple_upload(
         self,
         asset_name: str,
         path: Union[str, Path],
-        run_name: Optional[str] = None,
-        run_id: Optional[str] = None,
         first_data_row: int = 2,
         time_column: int = 1,
         time_format: TimeFormatType = TimeFormatType.ABSOLUTE_DATETIME,
-    ) -> DataImportStatus:
+        run_name: Optional[str] = None,
+        run_id: Optional[str] = None,
+    ) -> DataImportService:
+        """
+        Uploads the CSV file pointed to by `path` to the specified asset. This function will
+        infer the data types and assume certain things about how the data is formatted. See the options
+        below for what parameters can be overridden. Use `upload` if you need to specify a custom CSV config.
+
+        Override `first_data_row` to specify which is the first row with data. Default is 2.
+        Override `time_column` to specify which column contains timestamp information. Default is 1.
+        Override `time_format` to specify the time data format. Default is `TimeFormatType.ABSOLUTE_DATETIME`.
+        Override `run_name` to specify the name of the run to create for this data. Default is None.
+        Override `run_id` to specify the id of the run to add this data to. Default is None.
+        """
         self._validate_file_type(path)
 
         types = {

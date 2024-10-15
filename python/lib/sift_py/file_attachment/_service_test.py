@@ -31,14 +31,15 @@ class MockMultipartEncoder:
 def test_file_attachments_service_upload_validate_uri():
     mock_channel = MockChannel()
 
-    with pytest.raises(Exception, match="URL scheme"):
-        svc = FileAttachmentService(
-            mock_channel,
-            {
-                "uri": "https://some_uri.com",
-                "apikey": "123123123",
-            },
-        )
+    svc = FileAttachmentService(
+        mock_channel,
+        {
+            "uri": "https://some_uri.com",
+            "apikey": "123123123",
+        },
+    )
+
+    assert svc is not None
 
     svc = FileAttachmentService(
         mock_channel,
