@@ -26,6 +26,8 @@ if __name__ == "__main__":
     }
 
     tdms_upload_service = TdmsUploadService(rest_config)
-    status = tdms_upload_service.upload("sample_data.tdms", asset_name, group_into_components=True)
-    status.wait_until_complete()
+    import_service = tdms_upload_service.upload(
+        "sample_data.tdms", asset_name, group_into_components=True
+    )
+    print(import_service.wait_until_complete())
     print("Upload example complete!")

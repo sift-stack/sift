@@ -30,5 +30,5 @@ if __name__ == "__main__":
     import_service: DataImportService = csv_upload_service.simple_upload(
         asset_name, "sample_data.csv"
     )
-    import_service.wait_until_complete()
+    print(import_service.wait_until_complete())
     print("Upload example complete!")
