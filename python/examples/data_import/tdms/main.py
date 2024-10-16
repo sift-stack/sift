@@ -23,7 +23,6 @@ if __name__ == "__main__":
     rest_config: SiftRestConfig = {
         "uri": sift_uri,
         "apikey": apikey,
-        "use_ssl": False,
     }
 
     tdms_upload_service = TdmsUploadService(rest_config)
