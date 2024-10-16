@@ -55,8 +55,8 @@ class CsvUploadService:
 
         try:
             upload_info = response.json()
-        except (json.decoder.JSONDecodeError, KeyError) as e:
-            raise Exception(f"Invalid response: {e}")
+        except (json.decoder.JSONDecodeError, KeyError):
+            raise Exception(f"Invalid response: {response.text}")
 
         try:
             upload_url: str = upload_info["uploadUrl"]

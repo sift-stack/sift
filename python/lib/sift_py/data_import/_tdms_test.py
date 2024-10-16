@@ -1,8 +1,9 @@
 import json
 from typing import Any, Dict, List, Optional
 
+import pandas as pd
 import pytest
-from nptdms import types  # type: ignore
+from nptdms import TdmsFile, types  # type: ignore
 from pytest_mock import MockFixture
 
 from sift_py.data_import.tdms import TdmsUploadService
@@ -28,7 +29,9 @@ class MockTdmsChannel:
 class MockTdmsGroup:
     def __init__(self, name, channels: List[MockTdmsChannel]):
         self.name: str = name
+        self.path: str = f"/'{name}'"
         self._channels: List[MockTdmsChannel] = channels
+        self.properties: Optional[Dict[str, str]] = {}
 
     def channels(self) -> List[MockTdmsChannel]:
         return self._channels
@@ -41,6 +44,9 @@ class MockTdmsFile:
 
     def groups(self) -> List[MockTdmsGroup]:
         return self._groups
+
+    def as_dataframe(self, *_, **__):
+        return pd.DataFrame()
 
 
 class MockResponse:
@@ -97,12 +103,23 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
     mock_path_is_file = mocker.patch("sift_py.data_import.tdms.Path.is_file")
     mock_path_is_file.return_value = True
 
-    mocker.patch("sift_py.data_import.tdms.TdmsWriter")
-
     mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
     mock_requests_post.return_value = MockResponse()
 
-    mocker.patch("sift_py.data_import.tdms.TdmsFile").return_value = mock_tdms_file
+    def mock_tdms_file_constructor(path):
+        """The first call should always return the mocked object since
+        it is mocking a call to open the orignal tdms file.
+
+        The second call should return a real TdmsFile since the unit
+        test will actually create one with filtered channels.
+        """
+        print(path)
+        if path == "some_tdms.tdms":
+            return mock_tdms_file
+        else:
+            return TdmsFile(path)
+
+    mocker.patch("sift_py.data_import.tdms.TdmsFile", mock_tdms_file_constructor)
 
     svc = TdmsUploadService(rest_config)
 
@@ -111,7 +128,7 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
         return json.loads(mock_requests_post.call_args_list[n].kwargs["data"])["csv_config"]
 
     # Test without grouping
-    svc.upload("some_tdms.csv", "asset_name")
+    svc.upload("some_tdms.tdms", "asset_name")
     config = get_csv_config(mock_requests_post, 0)
     expected_config: Dict[str, Any] = {
         "asset_name": "asset_name",
@@ -139,7 +156,7 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
     assert config == expected_config
 
     # Test with grouping
-    svc.upload("some_tdms.csv", "asset_name", group_into_components=True)
+    svc.upload("some_tdms.tdms", "asset_name", group_into_components=True)
     config = get_csv_config(mock_requests_post, 2)
     for i in range(5):
         for j in range(5):
@@ -148,7 +165,7 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
 
     # Test with run information
     svc.upload(
-        "some_tdms.csv",
+        "some_tdms.tdms",
         "asset_name",
         group_into_components=True,
         run_name="Run Name",
@@ -178,15 +195,29 @@ def test_tdms_upload_ignore_errors(mocker: MockFixture):
         for g in range(5)
     ]
     mock_tdms_file = MockTdmsFile(mock_tdms_groups)
-    mocker.patch("sift_py.data_import.tdms.TdmsFile").return_value = mock_tdms_file
+
+    def mock_tdms_file_constructor(path):
+        """The first call should always return the mocked object since
+        it is mocking a call to open the orignal tdms file.
+
+        The second call should return a real TdmsFile since the unit
+        test will actually create one with filtered channels.
+        """
+        print(path)
+        if path == "some_tdms.tdms":
+            return mock_tdms_file
+        else:
+            return TdmsFile(path)
+
+    mocker.patch("sift_py.data_import.tdms.TdmsFile", mock_tdms_file_constructor)
 
     svc = TdmsUploadService(rest_config)
 
     with pytest.raises(Exception, match="does not contain timing information"):
-        svc.upload("some_tdms.csv", "asset_name")
+        svc.upload("some_tdms.tdms", "asset_name")
 
     with pytest.raises(Exception, match="No valid channels remaining"):
-        svc.upload("some_tdms.csv", "asset_name", ignore_errors=True)
+        svc.upload("some_tdms.tdms", "asset_name", ignore_errors=True)
 
 
 def test_tdms_upload_unknown_data_type(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
@@ -204,4 +235,4 @@ def test_tdms_upload_unknown_data_type(mocker: MockFixture, mock_tdms_file: Mock
     svc = TdmsUploadService(rest_config)
 
     with pytest.raises(Exception, match="data type not supported"):
-        svc.upload("some_tdms.csv", "asset_name")
+        svc.upload("some_tdms.tdms", "asset_name")

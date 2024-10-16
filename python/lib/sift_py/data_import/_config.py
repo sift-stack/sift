@@ -99,7 +99,7 @@ class TimeColumn(ConfigBaseModel):
 
 class DataColumn(ConfigBaseModel):
     """
-    Defines a data columns entry in the CSV config.
+    Defines a data column entry in the CSV config.
     """
 
     name: str

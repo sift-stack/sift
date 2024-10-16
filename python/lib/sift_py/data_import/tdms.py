@@ -2,7 +2,14 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Dict, List, Optional, Union
 
-from nptdms import RootObject, TdmsChannel, TdmsFile, TdmsWriter, types  # type: ignore
+from nptdms import (  # type: ignore
+    ChannelObject,
+    RootObject,
+    TdmsChannel,
+    TdmsFile,
+    TdmsWriter,
+    types,
+)
 
 from sift_py.data_import._config import DataColumn, TimeColumn
 from sift_py.data_import.config import CsvConfig
@@ -91,19 +98,24 @@ class TdmsUploadService:
                 ]
             )
 
-        def normalize_channel_name(channel_name: str) -> str:
+        def normalize_name(channel_name: str) -> str:
             """Normalize channel names by invalid characters."""
             return " ".join(channel_name.replace("/", " ").split())
 
         src_file = TdmsFile(src_path)
 
         original_groups = src_file.groups()
-        valid_channels: List[TdmsChannel] = []
+        valid_channels: List[ChannelObject] = []
         for group in original_groups:
             for channel in group.channels():
                 if contains_timing(channel):
-                    channel.name = normalize_channel_name(channel.name)
-                    valid_channels.append(channel)
+                    new_channel = ChannelObject(
+                        group=normalize_name(channel.group_name),
+                        channel=normalize_name(channel.name),
+                        data=channel.data,
+                        properties=channel.properties,
+                    )
+                    valid_channels.append(new_channel)
                 else:
                     if ignore_errors:
                         print(
@@ -121,16 +133,11 @@ class TdmsUploadService:
                 root_object = RootObject(src_file.properties)
                 tdms_writer.write_segment([root_object] + original_groups + valid_channels)
 
-            filtered_tdms_file = TdmsFile.read(f.name)
+            filtered_tdms_file = TdmsFile(f.name)
             df = filtered_tdms_file.as_dataframe(time_index=True, absolute_time=True)
-
-            updated_names = {
-                original_name: normalize_channel_name(original_name) for original_name in df.keys()
-            }
-            df.rename(updated_names, axis=1, inplace=True)
             df.to_csv(dst_path, encoding="utf-8")
 
-        return valid_channels
+        return [channel for group in filtered_tdms_file.groups() for channel in group.channels()]
 
     def _create_csv_config(
         self,
