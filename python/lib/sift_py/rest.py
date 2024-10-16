@@ -2,6 +2,8 @@ from typing import TypedDict
 
 from typing_extensions import NotRequired
 
+from sift_py.grpc.transport import _clean_uri
+
 
 class SiftRestConfig(TypedDict):
     """
@@ -14,3 +16,14 @@ class SiftRestConfig(TypedDict):
     uri: str
     apikey: str
     use_ssl: NotRequired[bool]
+
+
+def compute_uri(restconf: SiftRestConfig) -> str:
+    uri = restconf["uri"]
+    use_ssl = restconf.get("use_ssl", True)
+    clean_uri = _clean_uri(uri, use_ssl)
+
+    if use_ssl:
+        return f"https://{clean_uri}"
+
+    return f"http://{clean_uri}"

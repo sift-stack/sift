@@ -22,10 +22,12 @@ keywords = [
 ]
 dependencies = [
   "grpcio~=1.64",
+  "npTDMS~=1.9",
   "PyYAML~=6.0",
   "pandas~=2.0",
   "protobuf~=5.26",
   "pydantic~=2.0",
+  "pydantic_core~=2.3",
   "requests~=2.25",
   "requests-toolbelt~=1.0",
 
