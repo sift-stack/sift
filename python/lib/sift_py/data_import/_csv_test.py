@@ -17,7 +17,7 @@ class MockResponse:
         self.status_code = status_code
         self.text = text
 
-    def json(self):
+    def json(self) -> dict:
         return json.loads(self.text)
 
 

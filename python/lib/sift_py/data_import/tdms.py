@@ -64,6 +64,9 @@ class TdmsUploadService:
 
         with NamedTemporaryFile(mode="w", suffix=".csv") as temp_file:
             valid_channels = self._convert_to_csv(path, temp_file.name, ignore_errors)
+            if not valid_channels:
+                raise Exception(f"No valid channels remaining in {path}")
+
             csv_config = self._create_csv_config(
                 valid_channels, asset_name, group_into_components, run_name, run_id
             )
@@ -99,6 +102,7 @@ class TdmsUploadService:
         for group in original_groups:
             for channel in group.channels():
                 if contains_timing(channel):
+                    channel.name = normalize_channel_name(channel.name)
                     valid_channels.append(channel)
                 else:
                     if ignore_errors:
