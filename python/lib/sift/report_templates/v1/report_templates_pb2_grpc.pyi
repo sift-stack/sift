@@ -31,6 +31,18 @@ class ReportTemplateServiceStub:
     ]
     """Create a report template."""
 
+    ListReportTemplates: grpc.UnaryUnaryMultiCallable[
+        sift.report_templates.v1.report_templates_pb2.ListReportTemplatesRequest,
+        sift.report_templates.v1.report_templates_pb2.ListReportTemplatesResponse,
+    ]
+    """List report templates."""
+
+    UpdateReportTemplate: grpc.UnaryUnaryMultiCallable[
+        sift.report_templates.v1.report_templates_pb2.UpdateReportTemplateRequest,
+        sift.report_templates.v1.report_templates_pb2.UpdateReportTemplateResponse,
+    ]
+    """Updates an existing report template using the list of fields specified in `update_mask`."""
+
 class ReportTemplateServiceAsyncStub:
     GetReportTemplate: grpc.aio.UnaryUnaryMultiCallable[
         sift.report_templates.v1.report_templates_pb2.GetReportTemplateRequest,
@@ -43,6 +55,18 @@ class ReportTemplateServiceAsyncStub:
         sift.report_templates.v1.report_templates_pb2.CreateReportTemplateResponse,
     ]
     """Create a report template."""
+
+    ListReportTemplates: grpc.aio.UnaryUnaryMultiCallable[
+        sift.report_templates.v1.report_templates_pb2.ListReportTemplatesRequest,
+        sift.report_templates.v1.report_templates_pb2.ListReportTemplatesResponse,
+    ]
+    """List report templates."""
+
+    UpdateReportTemplate: grpc.aio.UnaryUnaryMultiCallable[
+        sift.report_templates.v1.report_templates_pb2.UpdateReportTemplateRequest,
+        sift.report_templates.v1.report_templates_pb2.UpdateReportTemplateResponse,
+    ]
+    """Updates an existing report template using the list of fields specified in `update_mask`."""
 
 class ReportTemplateServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -60,5 +84,21 @@ class ReportTemplateServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.report_templates.v1.report_templates_pb2.CreateReportTemplateResponse, collections.abc.Awaitable[sift.report_templates.v1.report_templates_pb2.CreateReportTemplateResponse]]:
         """Create a report template."""
+
+    @abc.abstractmethod
+    def ListReportTemplates(
+        self,
+        request: sift.report_templates.v1.report_templates_pb2.ListReportTemplatesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.report_templates.v1.report_templates_pb2.ListReportTemplatesResponse, collections.abc.Awaitable[sift.report_templates.v1.report_templates_pb2.ListReportTemplatesResponse]]:
+        """List report templates."""
+
+    @abc.abstractmethod
+    def UpdateReportTemplate(
+        self,
+        request: sift.report_templates.v1.report_templates_pb2.UpdateReportTemplateRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.report_templates.v1.report_templates_pb2.UpdateReportTemplateResponse, collections.abc.Awaitable[sift.report_templates.v1.report_templates_pb2.UpdateReportTemplateResponse]]:
+        """Updates an existing report template using the list of fields specified in `update_mask`."""
 
 def add_ReportTemplateServiceServicer_to_server(servicer: ReportTemplateServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

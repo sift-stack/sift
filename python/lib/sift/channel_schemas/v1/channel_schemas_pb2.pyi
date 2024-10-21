@@ -90,7 +90,9 @@ class BatchCreateChannelSchemasRequest(google.protobuf.message.Message):
     This field is optional if the caller belongs to a single organization.
     """
     @property
-    def requests(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CreateChannelSchemaRequest]: ...
+    def requests(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CreateChannelSchemaRequest]:
+        """Limit of 1000 channels schemas per batch"""
+
     def __init__(
         self,
         *,

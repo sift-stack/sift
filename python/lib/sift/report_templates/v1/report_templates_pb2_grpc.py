@@ -24,6 +24,16 @@ class ReportTemplateServiceStub(object):
                 request_serializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.CreateReportTemplateRequest.SerializeToString,
                 response_deserializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.CreateReportTemplateResponse.FromString,
                 )
+        self.ListReportTemplates = channel.unary_unary(
+                '/sift.report_templates.v1.ReportTemplateService/ListReportTemplates',
+                request_serializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.ListReportTemplatesRequest.SerializeToString,
+                response_deserializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.ListReportTemplatesResponse.FromString,
+                )
+        self.UpdateReportTemplate = channel.unary_unary(
+                '/sift.report_templates.v1.ReportTemplateService/UpdateReportTemplate',
+                request_serializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.UpdateReportTemplateRequest.SerializeToString,
+                response_deserializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.UpdateReportTemplateResponse.FromString,
+                )
 
 
 class ReportTemplateServiceServicer(object):
@@ -43,6 +53,20 @@ class ReportTemplateServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListReportTemplates(self, request, context):
+        """List report templates.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateReportTemplate(self, request, context):
+        """Updates an existing report template using the list of fields specified in `update_mask`.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ReportTemplateServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -55,6 +79,16 @@ def add_ReportTemplateServiceServicer_to_server(servicer, server):
                     servicer.CreateReportTemplate,
                     request_deserializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.CreateReportTemplateRequest.FromString,
                     response_serializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.CreateReportTemplateResponse.SerializeToString,
+            ),
+            'ListReportTemplates': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListReportTemplates,
+                    request_deserializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.ListReportTemplatesRequest.FromString,
+                    response_serializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.ListReportTemplatesResponse.SerializeToString,
+            ),
+            'UpdateReportTemplate': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateReportTemplate,
+                    request_deserializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.UpdateReportTemplateRequest.FromString,
+                    response_serializer=sift_dot_report__templates_dot_v1_dot_report__templates__pb2.UpdateReportTemplateResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -97,5 +131,39 @@ class ReportTemplateService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.report_templates.v1.ReportTemplateService/CreateReportTemplate',
             sift_dot_report__templates_dot_v1_dot_report__templates__pb2.CreateReportTemplateRequest.SerializeToString,
             sift_dot_report__templates_dot_v1_dot_report__templates__pb2.CreateReportTemplateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListReportTemplates(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.report_templates.v1.ReportTemplateService/ListReportTemplates',
+            sift_dot_report__templates_dot_v1_dot_report__templates__pb2.ListReportTemplatesRequest.SerializeToString,
+            sift_dot_report__templates_dot_v1_dot_report__templates__pb2.ListReportTemplatesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UpdateReportTemplate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.report_templates.v1.ReportTemplateService/UpdateReportTemplate',
+            sift_dot_report__templates_dot_v1_dot_report__templates__pb2.UpdateReportTemplateRequest.SerializeToString,
+            sift_dot_report__templates_dot_v1_dot_report__templates__pb2.UpdateReportTemplateResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -120,10 +120,11 @@ class ListChannelsRequest(google.protobuf.message.Message):
     PAGE_SIZE_FIELD_NUMBER: builtins.int
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of channels to return. The service may return fewer than this value.
-    If unspecified, at most 50 channels will be returned. The maximum value is 1000; values above
-    1000 will be coerced to 1000. Optional.
+    If unspecified, at most 50 channels will be returned. The maximum value is 10,000; values above
+    10,000 will be coerced to 10,000. Optional.
     """
     page_token: builtins.str
     """A page token, received from a previous `ListChannels` call.
@@ -137,14 +138,17 @@ class ListChannelsRequest(google.protobuf.message.Message):
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#channel). Optional.
     """
+    organization_id: builtins.str
+    """This field is only required if your user belongs to multiple organizations."""
     def __init__(
         self,
         *,
         page_size: builtins.int = ...,
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
+        organization_id: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListChannelsRequest = ListChannelsRequest
 

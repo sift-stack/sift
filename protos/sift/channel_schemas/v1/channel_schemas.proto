@@ -63,6 +63,7 @@ message CreateChannelSchemaResponse {}
 
 // The request for a call to `ChannelSchemaService_BatchCreateChannelSchemas`.
 message BatchCreateChannelSchemasRequest {
+  // Limit of 1000 channels schemas per batch
   repeated CreateChannelSchemaRequest requests = 1 [(google.api.field_behavior) = REQUIRED];
   // The asset to which the channel schemas belong (case-insensitive).
   // If this field, and any of the child requests specify an asset, the assets must match.

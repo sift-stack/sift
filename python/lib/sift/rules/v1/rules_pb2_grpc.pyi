@@ -56,6 +56,12 @@ class RuleServiceStub:
     ]
     """Updates an existing rule."""
 
+    BatchUpdateRules: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchUpdateRulesRequest,
+        sift.rules.v1.rules_pb2.BatchUpdateRulesResponse,
+    ]
+    """Updates existing rules or creates rules that do not exist."""
+
     DeleteRule: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.DeleteRuleRequest,
         sift.rules.v1.rules_pb2.DeleteRuleResponse,
@@ -66,7 +72,7 @@ class RuleServiceStub:
         sift.rules.v1.rules_pb2.EvaluateRulesRequest,
         sift.rules.v1.rules_pb2.EvaluateRulesResponse,
     ]
-    """Evaluates the provided rules and generate annotations based on the result."""
+    """Deprecated - use RuleEvaluationService instead."""
 
     ViewHumanFriendlyRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.ViewHumanFriendlyRulesRequest,
@@ -147,6 +153,12 @@ class RuleServiceAsyncStub:
     ]
     """Updates an existing rule."""
 
+    BatchUpdateRules: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchUpdateRulesRequest,
+        sift.rules.v1.rules_pb2.BatchUpdateRulesResponse,
+    ]
+    """Updates existing rules or creates rules that do not exist."""
+
     DeleteRule: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.DeleteRuleRequest,
         sift.rules.v1.rules_pb2.DeleteRuleResponse,
@@ -157,7 +169,7 @@ class RuleServiceAsyncStub:
         sift.rules.v1.rules_pb2.EvaluateRulesRequest,
         sift.rules.v1.rules_pb2.EvaluateRulesResponse,
     ]
-    """Evaluates the provided rules and generate annotations based on the result."""
+    """Deprecated - use RuleEvaluationService instead."""
 
     ViewHumanFriendlyRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.ViewHumanFriendlyRulesRequest,
@@ -249,6 +261,14 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         """Updates an existing rule."""
 
     @abc.abstractmethod
+    def BatchUpdateRules(
+        self,
+        request: sift.rules.v1.rules_pb2.BatchUpdateRulesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.BatchUpdateRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.BatchUpdateRulesResponse]]:
+        """Updates existing rules or creates rules that do not exist."""
+
+    @abc.abstractmethod
     def DeleteRule(
         self,
         request: sift.rules.v1.rules_pb2.DeleteRuleRequest,
@@ -262,7 +282,7 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.EvaluateRulesRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.EvaluateRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.EvaluateRulesResponse]]:
-        """Evaluates the provided rules and generate annotations based on the result."""
+        """Deprecated - use RuleEvaluationService instead."""
 
     @abc.abstractmethod
     def ViewHumanFriendlyRules(

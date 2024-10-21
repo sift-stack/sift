@@ -60,6 +60,7 @@ enum NotificationKind {
   NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT = 3;
   NOTIFICATION_KIND_CONDITION_TRIGGERED = 4;
   NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED = 5;
+  NOTIFICATION_KIND_REPORT_READY = 6;
 }
 
 // The request for a call to `NotificationService_ListNotifications` to retrieve notifications.

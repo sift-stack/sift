@@ -36,7 +36,9 @@ class Asset(google.protobuf.message.Message):
     @property
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
-    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """The names of the tags to associate with this asset."""
+
     def __init__(
         self,
         *,

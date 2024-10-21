@@ -104,6 +104,7 @@ class Rule(google.protobuf.message.Message):
     CONDITIONS_FIELD_NUMBER: builtins.int
     RULE_VERSION_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
+    ASSET_CONFIGURATION_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     asset_id: builtins.str
     name: builtins.str
@@ -122,6 +123,8 @@ class Rule(google.protobuf.message.Message):
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___RuleCondition]: ...
     @property
     def rule_version(self) -> global___RuleVersion: ...
+    @property
+    def asset_configuration(self) -> global___RuleAssetConfiguration: ...
     def __init__(
         self,
         *,
@@ -138,9 +141,10 @@ class Rule(google.protobuf.message.Message):
         conditions: collections.abc.Iterable[global___RuleCondition] | None = ...,
         rule_version: global___RuleVersion | None = ...,
         client_key: builtins.str = ...,
+        asset_configuration: global___RuleAssetConfiguration | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "created_date", b"created_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
 
 global___Rule = Rule
 
@@ -236,14 +240,18 @@ class RuleAssetConfiguration(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ASSET_IDS_FIELD_NUMBER: builtins.int
+    TAG_IDS_FIELD_NUMBER: builtins.int
     @property
     def asset_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def tag_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     def __init__(
         self,
         *,
         asset_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        tag_ids: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["asset_ids", b"asset_ids"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_ids", b"asset_ids", "tag_ids", b"tag_ids"]) -> None: ...
 
 global___RuleAssetConfiguration = RuleAssetConfiguration
 
@@ -445,16 +453,20 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     VERSION_NOTES_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
+    ASSET_CONFIGURATION_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     name: builtins.str
     description: builtins.str
     asset_id: builtins.str
+    """Deprecated - use asset_configuration instead."""
     is_enabled: builtins.bool
     organization_id: builtins.str
     version_notes: builtins.str
     client_key: builtins.str
     @property
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateConditionRequest]: ...
+    @property
+    def asset_configuration(self) -> global___RuleAssetConfiguration: ...
     def __init__(
         self,
         *,
@@ -467,9 +479,10 @@ class UpdateRuleRequest(google.protobuf.message.Message):
         organization_id: builtins.str = ...,
         version_notes: builtins.str = ...,
         client_key: builtins.str | None = ...,
+        asset_configuration: global___RuleAssetConfiguration | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "client_key", b"client_key", "rule_id", b"rule_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "description", b"description", "is_enabled", b"is_enabled", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "rule_id", b"rule_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "description", b"description", "is_enabled", b"is_enabled", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -540,6 +553,45 @@ class UpdateRuleResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["rule_id", b"rule_id"]) -> None: ...
 
 global___UpdateRuleResponse = UpdateRuleResponse
+
+@typing.final
+class BatchUpdateRulesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULES_FIELD_NUMBER: builtins.int
+    @property
+    def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateRuleRequest]:
+        """rules are limited 1000 rules at a time"""
+
+    def __init__(
+        self,
+        *,
+        rules: collections.abc.Iterable[global___UpdateRuleRequest] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["rules", b"rules"]) -> None: ...
+
+global___BatchUpdateRulesRequest = BatchUpdateRulesRequest
+
+@typing.final
+class BatchUpdateRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SUCCESS_FIELD_NUMBER: builtins.int
+    RULES_CREATED_COUNT_FIELD_NUMBER: builtins.int
+    RULES_UPDATED_COUNT_FIELD_NUMBER: builtins.int
+    success: builtins.bool
+    rules_created_count: builtins.int
+    rules_updated_count: builtins.int
+    def __init__(
+        self,
+        *,
+        success: builtins.bool = ...,
+        rules_created_count: builtins.int = ...,
+        rules_updated_count: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["rules_created_count", b"rules_created_count", "rules_updated_count", b"rules_updated_count", "success", b"success"]) -> None: ...
+
+global___BatchUpdateRulesResponse = BatchUpdateRulesResponse
 
 @typing.final
 class DeleteRuleRequest(google.protobuf.message.Message):
@@ -1144,6 +1196,8 @@ global___AnnotationActionConfiguration = AnnotationActionConfiguration
 
 @typing.final
 class EvaluateRulesRequest(google.protobuf.message.Message):
+    """Deprecated - use RuleEvaluationService instead."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RULE_IDS_FIELD_NUMBER: builtins.int
@@ -1213,11 +1267,18 @@ global___TimeRangeQuery = TimeRangeQuery
 
 @typing.final
 class EvaluateRulesResponse(google.protobuf.message.Message):
+    """Deprecated - use RuleEvaluationService instead."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     CREATED_ANNOTATION_COUNT_FIELD_NUMBER: builtins.int
     DRY_RUN_ANNOTATIONS_FIELD_NUMBER: builtins.int
+    JOB_ID_FIELD_NUMBER: builtins.int
+    REPORT_ID_FIELD_NUMBER: builtins.int
     created_annotation_count: builtins.int
+    job_id: builtins.str
+    """job_id and report_id will be set if the job has an extended run time and is being processed asynchronously."""
+    report_id: builtins.str
     @property
     def dry_run_annotations(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___DryRunAnnotation]:
         """If dry_run is true, this will be populated with the annotations that would be created"""
@@ -1227,8 +1288,15 @@ class EvaluateRulesResponse(google.protobuf.message.Message):
         *,
         created_annotation_count: builtins.int = ...,
         dry_run_annotations: collections.abc.Iterable[global___DryRunAnnotation] | None = ...,
+        job_id: builtins.str | None = ...,
+        report_id: builtins.str | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["created_annotation_count", b"created_annotation_count", "dry_run_annotations", b"dry_run_annotations"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_job_id", b"_job_id", "_report_id", b"_report_id", "job_id", b"job_id", "report_id", b"report_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_job_id", b"_job_id", "_report_id", b"_report_id", "created_annotation_count", b"created_annotation_count", "dry_run_annotations", b"dry_run_annotations", "job_id", b"job_id", "report_id", b"report_id"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_job_id", b"_job_id"]) -> typing.Literal["job_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_report_id", b"_report_id"]) -> typing.Literal["report_id"] | None: ...
 
 global___EvaluateRulesResponse = EvaluateRulesResponse
 
