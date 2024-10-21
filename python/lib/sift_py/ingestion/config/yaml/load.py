@@ -388,7 +388,9 @@ def _validate_rule(val: Any):
         return
 
     if rule_client_key is not None and not isinstance(rule_client_key, str):
-        raise YamlConfigError._invalid_property(rule_client_key, "- rule_client_key", "str", ["rules"])
+        raise YamlConfigError._invalid_property(
+            rule_client_key, "- rule_client_key", "str", ["rules"]
+        )
 
     if description is not None and not isinstance(description, str):
         raise YamlConfigError._invalid_property(description, "- description", "str", ["rules"])

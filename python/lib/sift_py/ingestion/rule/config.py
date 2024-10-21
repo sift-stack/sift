@@ -71,8 +71,8 @@ class RuleConfig(AsJson):
         self.name = name
 
         if namespace:
-            description, expression, rule_client_key, action = self.__class__.interpolate_namespace_rule(
-                name, namespace, namespace_rules
+            description, expression, rule_client_key, action = (
+                self.__class__.interpolate_namespace_rule(name, namespace, namespace_rules)
             )
 
         self.action = action
