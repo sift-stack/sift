@@ -4,6 +4,7 @@ package sift.report_templates.v1;
 
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
@@ -32,8 +33,29 @@ service ReportTemplateService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "InsertReportTemplate",
+      summary: "CreateReportTemplate",
       description: "Create a report template."
+    };
+  }
+
+  // List report templates.
+  rpc ListReportTemplates(ListReportTemplatesRequest) returns (ListReportTemplatesResponse) {
+    option (google.api.http) = {get: "/api/v1/report-templates"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListReportTemplates"
+      description: "List report templates."
+    };
+  }
+
+  // Updates an existing report template using the list of fields specified in `update_mask`.
+  rpc UpdateReportTemplate(UpdateReportTemplateRequest) returns (UpdateReportTemplateResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/report-templates"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateReportTemplate"
+      description: "Updates an existing report template using the list of fields specified in `update_mask`."
     };
   }
 }
@@ -57,6 +79,7 @@ message ReportTemplateRule {
   string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
   string rule_version_id = 2 [(google.api.field_behavior) = REQUIRED];
   uint32 rule_version_number = 3 [(google.api.field_behavior) = REQUIRED];
+  string client_key = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ReportTemplateTag {
@@ -85,7 +108,7 @@ message CreateReportTemplateRequest {
   optional string description = 3 [(google.api.field_behavior) = OPTIONAL];
   repeated string tag_names = 4 [(google.api.field_behavior) = REQUIRED];
   // `organization_id` is only required if your user belongs to multiple organizations
-  string organization_id = 6 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 6 [(google.api.field_behavior) = OPTIONAL];
   oneof rule_identifiers {
     CreateReportTemplateRequestRuleIds rule_ids = 7 [(google.api.field_behavior) = OPTIONAL];
     CreateReportTemplateRequestClientKeys rule_client_keys = 8 [(google.api.field_behavior) = OPTIONAL];
@@ -102,5 +125,53 @@ message CreateReportTemplateRequestClientKeys {
 
 // The response of a call to `ReportTemplateService_CreateReportTemplate` to create a report template.
 message CreateReportTemplateResponse {
+  ReportTemplate report_template = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `ReportTemplateService_ListReportTemplates` to retrieve report templates.
+message ListReportTemplatesRequest {
+  // The maximum number of report templates to return. The service may return fewer than this value.
+  // If unspecified, at most 50 report templates will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListReportTemplates` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListReportTemplates` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `report_template_id`, `client_key`, and `name`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#report_templates). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // If `true` then archived report templates will be included in the query. Defaults to `false`.
+  bool include_archived = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `ReportTemplateService_ListReportTemplatesResponse`.
+message ListReportTemplatesResponse {
+  repeated ReportTemplate report_templates = 1;
+  string next_page_token = 2;
+}
+
+// The request for a call to `ReportTemplateService_UpdateReportTemplate` to update a report template. When updating
+// tags or rules, the update will perform a full replace. Additionally, when updating rules, only the rule ID or the rule client key
+// is required, but it is okay to provide both. If some rules contain only client keys and others only rule IDs, they will be consolidated.
+message UpdateReportTemplateRequest {
+  // The report template to update.
+  ReportTemplate report_template = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, and `rules`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `ReportTemplateService_UpdateReportTemplate`.
+message UpdateReportTemplateResponse {
   ReportTemplate report_template = 1 [(google.api.field_behavior) = REQUIRED];
 }

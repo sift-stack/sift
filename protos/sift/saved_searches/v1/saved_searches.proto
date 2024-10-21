@@ -99,6 +99,7 @@ message SavedSearchProperties {
   repeated SavedSearchFilterItem tag_items = 7 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchFilterItem annotation_items = 8 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchFilterItem run_items = 9 [(google.api.field_behavior) = OPTIONAL];
+  repeated SavedSearchFilterItem report_template_items = 10 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message SavedSearchFilterItem {
@@ -168,6 +169,7 @@ message DeleteSavedSearchResponse {}
 
 // The request for a call to `SavedSearchService_BatchDeleteSavedSearches` to delete saved searches.
 message BatchDeleteSavedSearchesRequest {
+  // Limit of 1000 searches per batch
   repeated string saved_search_ids = 1;
 }
 

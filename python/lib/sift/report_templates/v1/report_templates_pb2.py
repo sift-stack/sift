@@ -14,11 +14,12 @@ _sym_db = _symbol_database.Default()
 
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
+from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapiv2_dot_options_dot_annotations__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/sift/report_templates/v1/report_templates.proto\x12\x18sift.report_templates.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xda\x05\n\x0eReportTemplate\x12\x31\n\x12report_template_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x10reportTemplateId\x12,\n\x0forganization_id\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\'\n\nclient_key\x18\x03 \x01(\tB\x03\xe0\x41\x01H\x00R\tclientKey\x88\x01\x01\x12\x17\n\x04name\x18\x04 \x01(\tB\x03\xe0\x41\x02R\x04name\x12*\n\x0b\x64\x65scription\x18\x05 \x01(\tB\x03\xe0\x41\x01H\x01R\x0b\x64\x65scription\x88\x01\x01\x12I\n\rarchived_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x02R\x0c\x61rchivedDate\x88\x01\x01\x12\x30\n\x12\x63reated_by_user_id\x18\x07 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\x08 \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12\x42\n\x0c\x63reated_date\x18\t \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\n \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12G\n\x05rules\x18\x0b \x03(\x0b\x32,.sift.report_templates.v1.ReportTemplateRuleB\x03\xe0\x41\x02R\x05rules\x12\x44\n\x04tags\x18\x0c \x03(\x0b\x32+.sift.report_templates.v1.ReportTemplateTagB\x03\xe0\x41\x02R\x04tagsB\r\n\x0b_client_keyB\x0e\n\x0c_descriptionB\x10\n\x0e_archived_date\"\x94\x01\n\x12ReportTemplateRule\x12\x1c\n\x07rule_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x06ruleId\x12+\n\x0frule_version_id\x18\x02 \x01(\tB\x03\xe0\x41\x02R\rruleVersionId\x12\x33\n\x13rule_version_number\x18\x03 \x01(\rB\x03\xe0\x41\x02R\x11ruleVersionNumber\"3\n\x11ReportTemplateTag\x12\x1e\n\x08tag_name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x07tagName\"\x9f\x01\n\x18GetReportTemplateRequest\x12\x31\n\x12report_template_id\x18\x01 \x01(\tB\x03\xe0\x41\x01R\x10reportTemplateId\x12\"\n\nclient_key\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tclientKey\x12,\n\x0forganization_id\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\"s\n\x19GetReportTemplateResponse\x12V\n\x0freport_template\x18\x01 \x01(\x0b\x32(.sift.report_templates.v1.ReportTemplateB\x03\xe0\x41\x02R\x0ereportTemplate\"\xe0\x03\n\x1b\x43reateReportTemplateRequest\x12\x17\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x04name\x12\'\n\nclient_key\x18\x02 \x01(\tB\x03\xe0\x41\x01H\x01R\tclientKey\x88\x01\x01\x12*\n\x0b\x64\x65scription\x18\x03 \x01(\tB\x03\xe0\x41\x01H\x02R\x0b\x64\x65scription\x88\x01\x01\x12 \n\ttag_names\x18\x04 \x03(\tB\x03\xe0\x41\x02R\x08tagNames\x12,\n\x0forganization_id\x18\x06 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12^\n\x08rule_ids\x18\x07 \x01(\x0b\x32<.sift.report_templates.v1.CreateReportTemplateRequestRuleIdsB\x03\xe0\x41\x01H\x00R\x07ruleIds\x12p\n\x10rule_client_keys\x18\x08 \x01(\x0b\x32?.sift.report_templates.v1.CreateReportTemplateRequestClientKeysB\x03\xe0\x41\x01H\x00R\x0eruleClientKeysB\x12\n\x10rule_identifiersB\r\n\x0b_client_keyB\x0e\n\x0c_description\"D\n\"CreateReportTemplateRequestRuleIds\x12\x1e\n\x08rule_ids\x18\x01 \x03(\tB\x03\xe0\x41\x02R\x07ruleIds\"V\n%CreateReportTemplateRequestClientKeys\x12-\n\x10rule_client_keys\x18\x01 \x03(\tB\x03\xe0\x41\x02R\x0eruleClientKeys\"v\n\x1c\x43reateReportTemplateResponse\x12V\n\x0freport_template\x18\x01 \x01(\x0b\x32(.sift.report_templates.v1.ReportTemplateB\x03\xe0\x41\x02R\x0ereportTemplate2\xa7\x04\n\x15ReportTemplateService\x12\xac\x02\n\x11GetReportTemplate\x12\x32.sift.report_templates.v1.GetReportTemplateRequest\x1a\x33.sift.report_templates.v1.GetReportTemplateResponse\"\xad\x01\x92\x41\x30\x12\x11GetReportTemplate\x1a\x1bRetrieve a report template.\x82\xd3\xe4\x93\x02t\x12-/api/v1/report-templates/{report_template_id}ZC\x12\x41/v1/organizations/{organization_id}/report_templates/{client_key}\x12\xde\x01\n\x14\x43reateReportTemplate\x12\x35.sift.report_templates.v1.CreateReportTemplateRequest\x1a\x36.sift.report_templates.v1.CreateReportTemplateResponse\"W\x92\x41\x31\x12\x14InsertReportTemplate\x1a\x19\x43reate a report template.\x82\xd3\xe4\x93\x02\x1d\"\x18/api/v1/report-templates:\x01*B\xcf\x01\n\x1c\x63om.sift.report_templates.v1B\x14ReportTemplatesProtoP\x01\xa2\x02\x03SRX\xaa\x02\x17Sift.ReportTemplates.V1\xca\x02\x17Sift\\ReportTemplates\\V1\xe2\x02#Sift\\ReportTemplates\\V1\\GPBMetadata\xea\x02\x19Sift::ReportTemplates::V1\x92\x41\x1a\x12\x18\n\x16ReportTemplate serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/sift/report_templates/v1/report_templates.proto\x12\x18sift.report_templates.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xda\x05\n\x0eReportTemplate\x12\x31\n\x12report_template_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x10reportTemplateId\x12,\n\x0forganization_id\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\'\n\nclient_key\x18\x03 \x01(\tB\x03\xe0\x41\x01H\x00R\tclientKey\x88\x01\x01\x12\x17\n\x04name\x18\x04 \x01(\tB\x03\xe0\x41\x02R\x04name\x12*\n\x0b\x64\x65scription\x18\x05 \x01(\tB\x03\xe0\x41\x01H\x01R\x0b\x64\x65scription\x88\x01\x01\x12I\n\rarchived_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x02R\x0c\x61rchivedDate\x88\x01\x01\x12\x30\n\x12\x63reated_by_user_id\x18\x07 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\x08 \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12\x42\n\x0c\x63reated_date\x18\t \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\n \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12G\n\x05rules\x18\x0b \x03(\x0b\x32,.sift.report_templates.v1.ReportTemplateRuleB\x03\xe0\x41\x02R\x05rules\x12\x44\n\x04tags\x18\x0c \x03(\x0b\x32+.sift.report_templates.v1.ReportTemplateTagB\x03\xe0\x41\x02R\x04tagsB\r\n\x0b_client_keyB\x0e\n\x0c_descriptionB\x10\n\x0e_archived_date\"\xb8\x01\n\x12ReportTemplateRule\x12\x1c\n\x07rule_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x06ruleId\x12+\n\x0frule_version_id\x18\x02 \x01(\tB\x03\xe0\x41\x02R\rruleVersionId\x12\x33\n\x13rule_version_number\x18\x03 \x01(\rB\x03\xe0\x41\x02R\x11ruleVersionNumber\x12\"\n\nclient_key\x18\x04 \x01(\tB\x03\xe0\x41\x01R\tclientKey\"3\n\x11ReportTemplateTag\x12\x1e\n\x08tag_name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x07tagName\"\x9f\x01\n\x18GetReportTemplateRequest\x12\x31\n\x12report_template_id\x18\x01 \x01(\tB\x03\xe0\x41\x01R\x10reportTemplateId\x12\"\n\nclient_key\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tclientKey\x12,\n\x0forganization_id\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\"s\n\x19GetReportTemplateResponse\x12V\n\x0freport_template\x18\x01 \x01(\x0b\x32(.sift.report_templates.v1.ReportTemplateB\x03\xe0\x41\x02R\x0ereportTemplate\"\xe0\x03\n\x1b\x43reateReportTemplateRequest\x12\x17\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x04name\x12\'\n\nclient_key\x18\x02 \x01(\tB\x03\xe0\x41\x01H\x01R\tclientKey\x88\x01\x01\x12*\n\x0b\x64\x65scription\x18\x03 \x01(\tB\x03\xe0\x41\x01H\x02R\x0b\x64\x65scription\x88\x01\x01\x12 \n\ttag_names\x18\x04 \x03(\tB\x03\xe0\x41\x02R\x08tagNames\x12,\n\x0forganization_id\x18\x06 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\x12^\n\x08rule_ids\x18\x07 \x01(\x0b\x32<.sift.report_templates.v1.CreateReportTemplateRequestRuleIdsB\x03\xe0\x41\x01H\x00R\x07ruleIds\x12p\n\x10rule_client_keys\x18\x08 \x01(\x0b\x32?.sift.report_templates.v1.CreateReportTemplateRequestClientKeysB\x03\xe0\x41\x01H\x00R\x0eruleClientKeysB\x12\n\x10rule_identifiersB\r\n\x0b_client_keyB\x0e\n\x0c_description\"D\n\"CreateReportTemplateRequestRuleIds\x12\x1e\n\x08rule_ids\x18\x01 \x03(\tB\x03\xe0\x41\x02R\x07ruleIds\"V\n%CreateReportTemplateRequestClientKeys\x12-\n\x10rule_client_keys\x18\x01 \x03(\tB\x03\xe0\x41\x02R\x0eruleClientKeys\"v\n\x1c\x43reateReportTemplateResponse\x12V\n\x0freport_template\x18\x01 \x01(\x0b\x32(.sift.report_templates.v1.ReportTemplateB\x03\xe0\x41\x02R\x0ereportTemplate\"\xdd\x01\n\x1aListReportTemplatesRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\x12.\n\x10include_archived\x18\x05 \x01(\x08\x42\x03\xe0\x41\x01R\x0fincludeArchived\"\x9a\x01\n\x1bListReportTemplatesResponse\x12S\n\x10report_templates\x18\x01 \x03(\x0b\x32(.sift.report_templates.v1.ReportTemplateR\x0freportTemplates\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb7\x01\n\x1bUpdateReportTemplateRequest\x12V\n\x0freport_template\x18\x01 \x01(\x0b\x32(.sift.report_templates.v1.ReportTemplateB\x03\xe0\x41\x02R\x0ereportTemplate\x12@\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x03\xe0\x41\x02R\nupdateMask\"v\n\x1cUpdateReportTemplateResponse\x12V\n\x0freport_template\x18\x01 \x01(\x0b\x32(.sift.report_templates.v1.ReportTemplateB\x03\xe0\x41\x02R\x0ereportTemplate2\x9f\x08\n\x15ReportTemplateService\x12\xac\x02\n\x11GetReportTemplate\x12\x32.sift.report_templates.v1.GetReportTemplateRequest\x1a\x33.sift.report_templates.v1.GetReportTemplateResponse\"\xad\x01\x92\x41\x30\x12\x11GetReportTemplate\x1a\x1bRetrieve a report template.\x82\xd3\xe4\x93\x02t\x12-/api/v1/report-templates/{report_template_id}ZC\x12\x41/v1/organizations/{organization_id}/report_templates/{client_key}\x12\xde\x01\n\x14\x43reateReportTemplate\x12\x35.sift.report_templates.v1.CreateReportTemplateRequest\x1a\x36.sift.report_templates.v1.CreateReportTemplateResponse\"W\x92\x41\x31\x12\x14\x43reateReportTemplate\x1a\x19\x43reate a report template.\x82\xd3\xe4\x93\x02\x1d\"\x18/api/v1/report-templates:\x01*\x12\xd4\x01\n\x13ListReportTemplates\x12\x34.sift.report_templates.v1.ListReportTemplatesRequest\x1a\x35.sift.report_templates.v1.ListReportTemplatesResponse\"P\x92\x41-\x12\x13ListReportTemplates\x1a\x16List report templates.\x82\xd3\xe4\x93\x02\x1a\x12\x18/api/v1/report-templates\x12\x9e\x02\n\x14UpdateReportTemplate\x12\x35.sift.report_templates.v1.UpdateReportTemplateRequest\x1a\x36.sift.report_templates.v1.UpdateReportTemplateResponse\"\x96\x01\x92\x41p\x12\x14UpdateReportTemplate\x1aXUpdates an existing report template using the list of fields specified in `update_mask`.\x82\xd3\xe4\x93\x02\x1d\x32\x18/api/v1/report-templates:\x01*B\xcf\x01\n\x1c\x63om.sift.report_templates.v1B\x14ReportTemplatesProtoP\x01\xa2\x02\x03SRX\xaa\x02\x17Sift.ReportTemplates.V1\xca\x02\x17Sift\\ReportTemplates\\V1\xe2\x02#Sift\\ReportTemplates\\V1\\GPBMetadata\xea\x02\x19Sift::ReportTemplates::V1\x92\x41\x1a\x12\x18\n\x16ReportTemplate serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -56,6 +57,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_REPORTTEMPLATERULE'].fields_by_name['rule_version_id']._serialized_options = b'\340A\002'
   _globals['_REPORTTEMPLATERULE'].fields_by_name['rule_version_number']._loaded_options = None
   _globals['_REPORTTEMPLATERULE'].fields_by_name['rule_version_number']._serialized_options = b'\340A\002'
+  _globals['_REPORTTEMPLATERULE'].fields_by_name['client_key']._loaded_options = None
+  _globals['_REPORTTEMPLATERULE'].fields_by_name['client_key']._serialized_options = b'\340A\001'
   _globals['_REPORTTEMPLATETAG'].fields_by_name['tag_name']._loaded_options = None
   _globals['_REPORTTEMPLATETAG'].fields_by_name['tag_name']._serialized_options = b'\340A\002'
   _globals['_GETREPORTTEMPLATEREQUEST'].fields_by_name['report_template_id']._loaded_options = None
@@ -75,7 +78,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREATEREPORTTEMPLATEREQUEST'].fields_by_name['tag_names']._loaded_options = None
   _globals['_CREATEREPORTTEMPLATEREQUEST'].fields_by_name['tag_names']._serialized_options = b'\340A\002'
   _globals['_CREATEREPORTTEMPLATEREQUEST'].fields_by_name['organization_id']._loaded_options = None
-  _globals['_CREATEREPORTTEMPLATEREQUEST'].fields_by_name['organization_id']._serialized_options = b'\340A\002'
+  _globals['_CREATEREPORTTEMPLATEREQUEST'].fields_by_name['organization_id']._serialized_options = b'\340A\001'
   _globals['_CREATEREPORTTEMPLATEREQUEST'].fields_by_name['rule_ids']._loaded_options = None
   _globals['_CREATEREPORTTEMPLATEREQUEST'].fields_by_name['rule_ids']._serialized_options = b'\340A\001'
   _globals['_CREATEREPORTTEMPLATEREQUEST'].fields_by_name['rule_client_keys']._loaded_options = None
@@ -86,28 +89,56 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREATEREPORTTEMPLATEREQUESTCLIENTKEYS'].fields_by_name['rule_client_keys']._serialized_options = b'\340A\002'
   _globals['_CREATEREPORTTEMPLATERESPONSE'].fields_by_name['report_template']._loaded_options = None
   _globals['_CREATEREPORTTEMPLATERESPONSE'].fields_by_name['report_template']._serialized_options = b'\340A\002'
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['page_size']._serialized_options = b'\340A\001'
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['page_token']._serialized_options = b'\340A\001'
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['filter']._loaded_options = None
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['filter']._serialized_options = b'\340A\001'
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['organization_id']._loaded_options = None
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['organization_id']._serialized_options = b'\340A\001'
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['include_archived']._loaded_options = None
+  _globals['_LISTREPORTTEMPLATESREQUEST'].fields_by_name['include_archived']._serialized_options = b'\340A\001'
+  _globals['_UPDATEREPORTTEMPLATEREQUEST'].fields_by_name['report_template']._loaded_options = None
+  _globals['_UPDATEREPORTTEMPLATEREQUEST'].fields_by_name['report_template']._serialized_options = b'\340A\002'
+  _globals['_UPDATEREPORTTEMPLATEREQUEST'].fields_by_name['update_mask']._loaded_options = None
+  _globals['_UPDATEREPORTTEMPLATEREQUEST'].fields_by_name['update_mask']._serialized_options = b'\340A\002'
+  _globals['_UPDATEREPORTTEMPLATERESPONSE'].fields_by_name['report_template']._loaded_options = None
+  _globals['_UPDATEREPORTTEMPLATERESPONSE'].fields_by_name['report_template']._serialized_options = b'\340A\002'
   _globals['_REPORTTEMPLATESERVICE'].methods_by_name['GetReportTemplate']._loaded_options = None
   _globals['_REPORTTEMPLATESERVICE'].methods_by_name['GetReportTemplate']._serialized_options = b'\222A0\022\021GetReportTemplate\032\033Retrieve a report template.\202\323\344\223\002t\022-/api/v1/report-templates/{report_template_id}ZC\022A/v1/organizations/{organization_id}/report_templates/{client_key}'
   _globals['_REPORTTEMPLATESERVICE'].methods_by_name['CreateReportTemplate']._loaded_options = None
-  _globals['_REPORTTEMPLATESERVICE'].methods_by_name['CreateReportTemplate']._serialized_options = b'\222A1\022\024InsertReportTemplate\032\031Create a report template.\202\323\344\223\002\035\"\030/api/v1/report-templates:\001*'
-  _globals['_REPORTTEMPLATE']._serialized_start=222
-  _globals['_REPORTTEMPLATE']._serialized_end=952
-  _globals['_REPORTTEMPLATERULE']._serialized_start=955
-  _globals['_REPORTTEMPLATERULE']._serialized_end=1103
-  _globals['_REPORTTEMPLATETAG']._serialized_start=1105
-  _globals['_REPORTTEMPLATETAG']._serialized_end=1156
-  _globals['_GETREPORTTEMPLATEREQUEST']._serialized_start=1159
-  _globals['_GETREPORTTEMPLATEREQUEST']._serialized_end=1318
-  _globals['_GETREPORTTEMPLATERESPONSE']._serialized_start=1320
-  _globals['_GETREPORTTEMPLATERESPONSE']._serialized_end=1435
-  _globals['_CREATEREPORTTEMPLATEREQUEST']._serialized_start=1438
-  _globals['_CREATEREPORTTEMPLATEREQUEST']._serialized_end=1918
-  _globals['_CREATEREPORTTEMPLATEREQUESTRULEIDS']._serialized_start=1920
-  _globals['_CREATEREPORTTEMPLATEREQUESTRULEIDS']._serialized_end=1988
-  _globals['_CREATEREPORTTEMPLATEREQUESTCLIENTKEYS']._serialized_start=1990
-  _globals['_CREATEREPORTTEMPLATEREQUESTCLIENTKEYS']._serialized_end=2076
-  _globals['_CREATEREPORTTEMPLATERESPONSE']._serialized_start=2078
-  _globals['_CREATEREPORTTEMPLATERESPONSE']._serialized_end=2196
-  _globals['_REPORTTEMPLATESERVICE']._serialized_start=2199
-  _globals['_REPORTTEMPLATESERVICE']._serialized_end=2750
+  _globals['_REPORTTEMPLATESERVICE'].methods_by_name['CreateReportTemplate']._serialized_options = b'\222A1\022\024CreateReportTemplate\032\031Create a report template.\202\323\344\223\002\035\"\030/api/v1/report-templates:\001*'
+  _globals['_REPORTTEMPLATESERVICE'].methods_by_name['ListReportTemplates']._loaded_options = None
+  _globals['_REPORTTEMPLATESERVICE'].methods_by_name['ListReportTemplates']._serialized_options = b'\222A-\022\023ListReportTemplates\032\026List report templates.\202\323\344\223\002\032\022\030/api/v1/report-templates'
+  _globals['_REPORTTEMPLATESERVICE'].methods_by_name['UpdateReportTemplate']._loaded_options = None
+  _globals['_REPORTTEMPLATESERVICE'].methods_by_name['UpdateReportTemplate']._serialized_options = b'\222Ap\022\024UpdateReportTemplate\032XUpdates an existing report template using the list of fields specified in `update_mask`.\202\323\344\223\002\0352\030/api/v1/report-templates:\001*'
+  _globals['_REPORTTEMPLATE']._serialized_start=256
+  _globals['_REPORTTEMPLATE']._serialized_end=986
+  _globals['_REPORTTEMPLATERULE']._serialized_start=989
+  _globals['_REPORTTEMPLATERULE']._serialized_end=1173
+  _globals['_REPORTTEMPLATETAG']._serialized_start=1175
+  _globals['_REPORTTEMPLATETAG']._serialized_end=1226
+  _globals['_GETREPORTTEMPLATEREQUEST']._serialized_start=1229
+  _globals['_GETREPORTTEMPLATEREQUEST']._serialized_end=1388
+  _globals['_GETREPORTTEMPLATERESPONSE']._serialized_start=1390
+  _globals['_GETREPORTTEMPLATERESPONSE']._serialized_end=1505
+  _globals['_CREATEREPORTTEMPLATEREQUEST']._serialized_start=1508
+  _globals['_CREATEREPORTTEMPLATEREQUEST']._serialized_end=1988
+  _globals['_CREATEREPORTTEMPLATEREQUESTRULEIDS']._serialized_start=1990
+  _globals['_CREATEREPORTTEMPLATEREQUESTRULEIDS']._serialized_end=2058
+  _globals['_CREATEREPORTTEMPLATEREQUESTCLIENTKEYS']._serialized_start=2060
+  _globals['_CREATEREPORTTEMPLATEREQUESTCLIENTKEYS']._serialized_end=2146
+  _globals['_CREATEREPORTTEMPLATERESPONSE']._serialized_start=2148
+  _globals['_CREATEREPORTTEMPLATERESPONSE']._serialized_end=2266
+  _globals['_LISTREPORTTEMPLATESREQUEST']._serialized_start=2269
+  _globals['_LISTREPORTTEMPLATESREQUEST']._serialized_end=2490
+  _globals['_LISTREPORTTEMPLATESRESPONSE']._serialized_start=2493
+  _globals['_LISTREPORTTEMPLATESRESPONSE']._serialized_end=2647
+  _globals['_UPDATEREPORTTEMPLATEREQUEST']._serialized_start=2650
+  _globals['_UPDATEREPORTTEMPLATEREQUEST']._serialized_end=2833
+  _globals['_UPDATEREPORTTEMPLATERESPONSE']._serialized_start=2835
+  _globals['_UPDATEREPORTTEMPLATERESPONSE']._serialized_end=2953
+  _globals['_REPORTTEMPLATESERVICE']._serialized_start=2956
+  _globals['_REPORTTEMPLATESERVICE']._serialized_end=4011
 # @@protoc_insertion_point(module_scope)

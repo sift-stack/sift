@@ -74,12 +74,23 @@ message ExpressionIdentifier {
   string description = 2 [(google.api.field_behavior) = REQUIRED];
   ExpressionIdentifierType type = 3 [(google.api.field_behavior) = REQUIRED];
   string display_name = 4 [(google.api.field_behavior) = REQUIRED];
+  ExpressionIdentifierLibrary library = 5 [(google.api.field_behavior) = REQUIRED];
 }
 
 enum ExpressionIdentifierType {
   EXPRESSION_IDENTIFIER_TYPE_UNSPECIFIED = 0 [deprecated = true];
   EXPRESSION_IDENTIFIER_TYPE_FUNCTION = 1;
   EXPRESSION_IDENTIFIER_TYPE_CHANNEL = 2;
+}
+
+enum ExpressionIdentifierLibrary {
+  EXPRESSION_IDENTIFIER_LIBRARY_UNSPECIFIED = 0;
+  EXPRESSION_IDENTIFIER_LIBRARY_MATH = 1;
+  EXPRESSION_IDENTIFIER_LIBRARY_STRING = 2;
+  EXPRESSION_IDENTIFIER_LIBRARY_LIST = 3;
+  EXPRESSION_IDENTIFIER_LIBRARY_ITER = 4;
+  EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL = 5;
+  EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY = 6;
 }
 
 enum ExpressionMode {

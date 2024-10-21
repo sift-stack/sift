@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package sift.rule_evaluation.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/resource_identifier.proto";
+import "sift/rules/v1/rules.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Rule Evaluation Service"}
+};
+
+service RuleEvaluationService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "Service to evaluate rules."
+    external_docs: {
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265421102";
+      description: "Read more about what rules are.";
+    }
+  };
+
+  // Evaluate rules from a designated source against a run or asset and return the total amount of annotations created and the ID of the generated report.
+  rpc EvaluateRules(EvaluateRulesRequest) returns (EvaluateRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/evaluate-rules"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "EvaluateRules"
+      description: "Evaluate rules from a designated source against a run or asset and return the total amount of annotations created and the ID of the generated report."
+    };
+  }
+
+  // Perform a dry run evaluation for existing rules or rule configurations against a run and return the annotations that would be generated.
+  rpc EvaluateRulesPreview(EvaluateRulesPreviewRequest) returns (EvaluateRulesPreviewResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/evaluate-rules:preview"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "EvaluateRulesPreview"
+      description: "Perform a dry run evaluation for existing rules or rule configurations against a run and return the annotations that would be generated."
+    };
+  }
+}
+
+message EvaluateRulesRequest {
+  oneof time {
+    sift.common.type.v1.ResourceIdentifier run = 1;
+    AssetsTimeRange assets = 2;
+  }
+  oneof mode {
+    EvaluateRulesFromCurrentRuleVersions rules = 3;
+    EvaluateRulesFromRuleVersions rule_versions = 4;
+    EvaluateRulesFromReportTemplate report_template = 5;
+  }
+  EvaluateRulesAnnotationOptions annotation_options = 6;
+
+  // Only required if your user belongs to multiple organizations
+  string organization_id = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // If this request creates a report, this field will be used as the report name.
+  optional string report_name = 8 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message AssetsTimeRange {
+  sift.common.type.v1.NamedResources assets = 1 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp start_time = 2 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp end_time = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+message EvaluateRulesFromCurrentRuleVersions {
+  sift.common.type.v1.ResourceIdentifiers rules = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message EvaluateRulesFromReportTemplate {
+  sift.common.type.v1.ResourceIdentifier report_template = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message EvaluateRulesFromRuleVersions {
+  repeated string rule_version_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message EvaluateRulesAnnotationOptions {
+  sift.common.type.v1.NamedResources tags = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message EvaluateRulesResponse {
+  int32 created_annotation_count = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A report will be generated if rules were evaluated against a run.
+  optional string report_id = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // This will be set if the job has an extended run time and is being processed asynchronously.
+  optional string job_id = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message EvaluateRulesPreviewRequest {
+  oneof time {
+    sift.common.type.v1.ResourceIdentifier run = 1;
+
+    // Previewing rules against assets is not yet supported
+    // AssetsTimeRange assets = 2;
+  }
+  oneof mode {
+    EvaluateRulesFromCurrentRuleVersions rules = 3;
+    EvaluateRulesFromRuleVersions rule_versions = 4;
+    EvaluateRulesFromReportTemplate report_template = 5;
+    EvaluateRulesFromRuleConfigs rule_configs = 6;
+  }
+
+  // Only required if your user belongs to multiple organizations
+  string organization_id = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message EvaluateRulesFromRuleConfigs {
+  repeated sift.rules.v1.UpdateRuleRequest configs = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message EvaluateRulesPreviewResponse {
+  int32 created_annotation_count = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.rules.v1.DryRunAnnotation dry_run_annotations = 2;
+}

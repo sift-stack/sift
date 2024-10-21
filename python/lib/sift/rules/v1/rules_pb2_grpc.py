@@ -39,6 +39,11 @@ class RuleServiceStub(object):
                 request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateRuleRequest.SerializeToString,
                 response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateRuleResponse.FromString,
                 )
+        self.BatchUpdateRules = channel.unary_unary(
+                '/sift.rules.v1.RuleService/BatchUpdateRules',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchUpdateRulesRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchUpdateRulesResponse.FromString,
+                )
         self.DeleteRule = channel.unary_unary(
                 '/sift.rules.v1.RuleService/DeleteRule',
                 request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.DeleteRuleRequest.SerializeToString,
@@ -129,6 +134,13 @@ class RuleServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def BatchUpdateRules(self, request, context):
+        """Updates existing rules or creates rules that do not exist.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def DeleteRule(self, request, context):
         """Deletes a rule
         """
@@ -137,7 +149,7 @@ class RuleServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def EvaluateRules(self, request, context):
-        """Evaluates the provided rules and generate annotations based on the result.
+        """Deprecated - use RuleEvaluationService instead.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -226,6 +238,11 @@ def add_RuleServiceServicer_to_server(servicer, server):
                     servicer.UpdateRule,
                     request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateRuleRequest.FromString,
                     response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UpdateRuleResponse.SerializeToString,
+            ),
+            'BatchUpdateRules': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchUpdateRules,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchUpdateRulesRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchUpdateRulesResponse.SerializeToString,
             ),
             'DeleteRule': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteRule,
@@ -369,6 +386,23 @@ class RuleService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/UpdateRule',
             sift_dot_rules_dot_v1_dot_rules__pb2.UpdateRuleRequest.SerializeToString,
             sift_dot_rules_dot_v1_dot_rules__pb2.UpdateRuleResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchUpdateRules(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/BatchUpdateRules',
+            sift_dot_rules_dot_v1_dot_rules__pb2.BatchUpdateRulesRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.BatchUpdateRulesResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

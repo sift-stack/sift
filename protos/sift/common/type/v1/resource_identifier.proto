@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package sift.common.type.v1;
+
+import "google/api/field_behavior.proto";
+
+
+
+message ResourceIdentifier {
+  oneof identifier {
+    string id = 1;
+    string client_key = 2;
+  }
+}
+
+message NamedResource {
+  oneof resource {
+    string id = 1;
+    string name = 2;
+  }
+}
+
+message ResourceIdentifiers {
+  oneof identifiers {
+    Ids ids = 1;
+    ClientKeys client_keys = 2;
+  }
+}
+
+message NamedResources {
+  oneof resources {
+    Ids ids = 1;
+    Names names = 2;
+  }
+}
+
+message Ids {
+  repeated string ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ClientKeys {
+  repeated string client_keys = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Names {
+  repeated string names = 1 [(google.api.field_behavior) = REQUIRED];
+}

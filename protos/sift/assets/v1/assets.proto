@@ -69,6 +69,8 @@ message Asset {
   string created_by_user_id = 6 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+
+  // The names of the tags to associate with this asset.
   repeated string tags = 9 [(google.api.field_behavior) = REQUIRED];
 }
 

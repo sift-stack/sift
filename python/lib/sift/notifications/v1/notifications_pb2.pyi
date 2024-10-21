@@ -33,6 +33,7 @@ class _NotificationKindEnumTypeWrapper(google.protobuf.internal.enum_type_wrappe
     NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT: _NotificationKind.ValueType  # 3
     NOTIFICATION_KIND_CONDITION_TRIGGERED: _NotificationKind.ValueType  # 4
     NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED: _NotificationKind.ValueType  # 5
+    NOTIFICATION_KIND_REPORT_READY: _NotificationKind.ValueType  # 6
 
 class NotificationKind(_NotificationKind, metaclass=_NotificationKindEnumTypeWrapper): ...
 
@@ -42,6 +43,7 @@ NOTIFICATION_KIND_ANNOTATION_ASSIGNED: NotificationKind.ValueType  # 2
 NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT: NotificationKind.ValueType  # 3
 NOTIFICATION_KIND_CONDITION_TRIGGERED: NotificationKind.ValueType  # 4
 NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED: NotificationKind.ValueType  # 5
+NOTIFICATION_KIND_REPORT_READY: NotificationKind.ValueType  # 6
 global___NotificationKind = NotificationKind
 
 @typing.final

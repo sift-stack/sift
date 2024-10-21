@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+package sift.reports.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Report service"}
+};
+
+service ReportService {
+  // Retrieve a report.
+  rpc GetReport(GetReportRequest) returns (GetReportResponse) {
+    option (google.api.http) = {get: "/api/v1/reports/{report_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetReport",
+      description: "Retrieve a report."
+    };
+  }
+
+  // Create a report.
+  rpc CreateReport(CreateReportRequest) returns (CreateReportResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/reports"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateReport",
+      description: "Create a report."
+    };
+  }
+
+  // List reports.
+  rpc ListReports(ListReportsRequest) returns (ListReportsResponse) {
+    option (google.api.http) = {get: "/api/v1/reports"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListReports"
+      description: "List reports."
+    };
+  }
+
+  // Rerunning a report will create a new report with the same rule versions and run  as the original report and run the
+  // evaluation again using the most up-to-date set of data.
+  rpc RerunReport(RerunReportRequest) returns (RerunReportResponse) {
+    option (google.api.http) = {post: "/api/v1/reports/{report_id}:rerun"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "RerunReport",
+      description: "Rerunning a report will create a new report with the same rule versions and run as the original report and run the evaluation again using the most up-to-date set of data."
+    };
+  }
+
+  // Canceling a report will stop the evaluation of the report and mark it as canceled. Any results that have been
+  // calculated up to the point of cancellation will be saved.
+  rpc CancelReport(CancelReportRequest) returns (CancelReportResponse) {
+    option (google.api.http) = {post: "/api/v1/reports/{report_id}:cancel"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CancelReport",
+      description: "Canceling a report will stop the evaluation of the report and mark it as canceled. Any results that have been calculated up to the point of cancellation will be saved."
+    };
+  }
+}
+
+message Report {
+  string report_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string report_template_id = 2 [(google.api.field_behavior) = OPTIONAL];
+  string run_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 4 [(google.api.field_behavior) = REQUIRED];
+  string name = 5 [(google.api.field_behavior) = REQUIRED];
+  optional string description = 6 [(google.api.field_behavior) = OPTIONAL];
+  string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 9 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 10 [(google.api.field_behavior) = REQUIRED];
+  repeated ReportRuleSummary summaries = 11 [(google.api.field_behavior) = REQUIRED];
+  repeated ReportTag tags = 12 [(google.api.field_behavior) = REQUIRED];
+  optional string rerun_from_report_id = 13 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ReportRuleSummary {
+  string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string rule_client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+  string rule_version_id = 3 [(google.api.field_behavior) = REQUIRED];
+  uint32 rule_version_number = 4 [(google.api.field_behavior) = REQUIRED];
+  string report_rule_version_id = 5 [(google.api.field_behavior) = REQUIRED];
+  uint32 num_open = 6 [(google.api.field_behavior) = REQUIRED];
+  uint32 num_failed = 7 [(google.api.field_behavior) = REQUIRED];
+  uint32 num_passed = 8 [(google.api.field_behavior) = REQUIRED];
+  ReportRuleStatus status = 9 [(google.api.field_behavior) = REQUIRED];
+  ReportRuleStatusDetails status_details = 10 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 11 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 12 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ReportTag {
+  string tag_name = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+enum ReportRuleStatus {
+  REPORT_RULE_STATUS_UNSPECIFIED = 0;
+  REPORT_RULE_STATUS_CREATED = 1;
+  REPORT_RULE_STATUS_LIVE = 2;
+  REPORT_RULE_STATUS_FINISHED = 3;
+  REPORT_RULE_STATUS_FAILED = 4;
+  REPORT_RULE_STATUS_CANCELED = 5;
+}
+
+message ReportRuleStatusDetails {
+  oneof details {
+    ReportRuleStatusDetailsCreated created = 1;
+    ReportRuleStatusDetailsLive live = 2;
+    ReportRuleStatusDetailsFinished finished = 3;
+    ReportRuleStatusDetailsFailed failed = 4;
+  }
+}
+
+message ReportRuleStatusDetailsCreated {}
+message ReportRuleStatusDetailsLive {}
+message ReportRuleStatusDetailsFinished {}
+message ReportRuleStatusDetailsFailed {
+  string error_message = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request of a call to `ReportService_CreateReport` to create a report. A report can be created either via a report template
+// or an arbitrary report can be constructed depending on the variant of the `request` field.
+message CreateReportRequest {
+  oneof request {
+    CreateReportFromReportTemplateRequest report_from_report_template_request = 1 [(google.api.field_behavior) = OPTIONAL];
+    CreateReportFromRulesRequest report_from_rules_request = 2 [(google.api.field_behavior) = OPTIONAL];
+  }
+  string organization_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string run_id = 4 [(google.api.field_behavior) = REQUIRED];
+
+  // Override the name of the report. If not provided, the name will be generated based on the report template or run.
+  optional string name = 5 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `ReportService_CreateReport` to create a report.
+message CreateReportResponse {
+  Report report = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Used to create a report from a report template.
+message CreateReportFromReportTemplateRequest {
+  string report_template_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Used to construct an arbitrary report for an arbitrary set of rules. Rules can be specified either by rule ID
+// or client key based on the variant used in the `rule_identifiers` field.
+message CreateReportFromRulesRequest {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  optional string description = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated string tag_names = 3 [(google.api.field_behavior) = REQUIRED];
+  oneof rule_identifiers {
+    CreateReportRequestRuleIds rule_ids = 4 [(google.api.field_behavior) = OPTIONAL];
+    CreateReportRequestClientKeys rule_client_keys = 5 [(google.api.field_behavior) = OPTIONAL];
+  }
+}
+
+message CreateReportRequestRuleIds {
+  repeated string rule_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateReportRequestClientKeys {
+  repeated string rule_client_keys = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `ReportService_GetReport` to retrieve a report template.
+message GetReportRequest {
+  string report_id = 1 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request of a call to `ReportService_GetReport` to retrieve a report template.
+message GetReportResponse {
+  Report report = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `ReportService_ListReports` to retrieve report.
+message ListReportsRequest {
+  // The maximum number of reports to return. The service may return fewer than this value.
+  // If unspecified, at most 50 reports will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListReports` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListReports` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, and `run_id`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#reports). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `ReportService_ListReportsResponse`.
+message ListReportsResponse {
+  repeated Report reports = 1;
+  string next_page_token = 2;
+}
+
+message RerunReportRequest {
+  string report_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message RerunReportResponse {
+  string job_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string report_id = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CancelReportRequest {
+  string report_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CancelReportResponse {
+  // no response fields
+}

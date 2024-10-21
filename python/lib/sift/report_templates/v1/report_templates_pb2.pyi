@@ -6,6 +6,7 @@ isort:skip_file
 import builtins
 import collections.abc
 import google.protobuf.descriptor
+import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
@@ -80,17 +81,20 @@ class ReportTemplateRule(google.protobuf.message.Message):
     RULE_ID_FIELD_NUMBER: builtins.int
     RULE_VERSION_ID_FIELD_NUMBER: builtins.int
     RULE_VERSION_NUMBER_FIELD_NUMBER: builtins.int
+    CLIENT_KEY_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_version_id: builtins.str
     rule_version_number: builtins.int
+    client_key: builtins.str
     def __init__(
         self,
         *,
         rule_id: builtins.str = ...,
         rule_version_id: builtins.str = ...,
         rule_version_number: builtins.int = ...,
+        client_key: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["client_key", b"client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number"]) -> None: ...
 
 global___ReportTemplateRule = ReportTemplateRule
 
@@ -251,3 +255,118 @@ class CreateReportTemplateResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["report_template", b"report_template"]) -> None: ...
 
 global___CreateReportTemplateResponse = CreateReportTemplateResponse
+
+@typing.final
+class ListReportTemplatesRequest(google.protobuf.message.Message):
+    """The request for a call to `ReportTemplateService_ListReportTemplates` to retrieve report templates."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    INCLUDE_ARCHIVED_FIELD_NUMBER: builtins.int
+    page_size: builtins.int
+    """The maximum number of report templates to return. The service may return fewer than this value.
+    If unspecified, at most 50 report templates will be returned. The maximum value is 1000; values above
+    1000 will be coerced to 1000. Optional.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListReportTemplates` call.
+    Provide this to retrieve the subsequent page.
+    When paginating, all other parameters provided to `ListReportTemplates` must match
+    the call that provided the page token. Optional.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are `report_template_id`, `client_key`, and `name`.
+    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+    For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#report_templates). Optional.
+    """
+    organization_id: builtins.str
+    """This field is only required if your user belongs to multiple organizations."""
+    include_archived: builtins.bool
+    """If `true` then archived report templates will be included in the query. Defaults to `false`."""
+    def __init__(
+        self,
+        *,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        organization_id: builtins.str = ...,
+        include_archived: builtins.bool = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "include_archived", b"include_archived", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+
+global___ListReportTemplatesRequest = ListReportTemplatesRequest
+
+@typing.final
+class ListReportTemplatesResponse(google.protobuf.message.Message):
+    """The response of a call to `ReportTemplateService_ListReportTemplatesResponse`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_TEMPLATES_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def report_templates(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTemplate]: ...
+    def __init__(
+        self,
+        *,
+        report_templates: collections.abc.Iterable[global___ReportTemplate] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "report_templates", b"report_templates"]) -> None: ...
+
+global___ListReportTemplatesResponse = ListReportTemplatesResponse
+
+@typing.final
+class UpdateReportTemplateRequest(google.protobuf.message.Message):
+    """The request for a call to `ReportTemplateService_UpdateReportTemplate` to update a report template. When updating
+    tags or rules, the update will perform a full replace. Additionally, when updating rules, only the rule ID or the rule client key
+    is required, but it is okay to provide both. If some rules contain only client keys and others only rule IDs, they will be consolidated.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_TEMPLATE_FIELD_NUMBER: builtins.int
+    UPDATE_MASK_FIELD_NUMBER: builtins.int
+    @property
+    def report_template(self) -> global___ReportTemplate:
+        """The report template to update."""
+
+    @property
+    def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
+        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, and `rules`."""
+
+    def __init__(
+        self,
+        *,
+        report_template: global___ReportTemplate | None = ...,
+        update_mask: google.protobuf.field_mask_pb2.FieldMask | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["report_template", b"report_template", "update_mask", b"update_mask"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["report_template", b"report_template", "update_mask", b"update_mask"]) -> None: ...
+
+global___UpdateReportTemplateRequest = UpdateReportTemplateRequest
+
+@typing.final
+class UpdateReportTemplateResponse(google.protobuf.message.Message):
+    """The response of a call to `ReportTemplateService_UpdateReportTemplate`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_TEMPLATE_FIELD_NUMBER: builtins.int
+    @property
+    def report_template(self) -> global___ReportTemplate: ...
+    def __init__(
+        self,
+        *,
+        report_template: global___ReportTemplate | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["report_template", b"report_template"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["report_template", b"report_template"]) -> None: ...
+
+global___UpdateReportTemplateResponse = UpdateReportTemplateResponse

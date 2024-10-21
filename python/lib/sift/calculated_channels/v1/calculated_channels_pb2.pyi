@@ -37,6 +37,31 @@ EXPRESSION_IDENTIFIER_TYPE_FUNCTION: ExpressionIdentifierType.ValueType  # 1
 EXPRESSION_IDENTIFIER_TYPE_CHANNEL: ExpressionIdentifierType.ValueType  # 2
 global___ExpressionIdentifierType = ExpressionIdentifierType
 
+class _ExpressionIdentifierLibrary:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _ExpressionIdentifierLibraryEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ExpressionIdentifierLibrary.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    EXPRESSION_IDENTIFIER_LIBRARY_UNSPECIFIED: _ExpressionIdentifierLibrary.ValueType  # 0
+    EXPRESSION_IDENTIFIER_LIBRARY_MATH: _ExpressionIdentifierLibrary.ValueType  # 1
+    EXPRESSION_IDENTIFIER_LIBRARY_STRING: _ExpressionIdentifierLibrary.ValueType  # 2
+    EXPRESSION_IDENTIFIER_LIBRARY_LIST: _ExpressionIdentifierLibrary.ValueType  # 3
+    EXPRESSION_IDENTIFIER_LIBRARY_ITER: _ExpressionIdentifierLibrary.ValueType  # 4
+    EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL: _ExpressionIdentifierLibrary.ValueType  # 5
+    EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY: _ExpressionIdentifierLibrary.ValueType  # 6
+
+class ExpressionIdentifierLibrary(_ExpressionIdentifierLibrary, metaclass=_ExpressionIdentifierLibraryEnumTypeWrapper): ...
+
+EXPRESSION_IDENTIFIER_LIBRARY_UNSPECIFIED: ExpressionIdentifierLibrary.ValueType  # 0
+EXPRESSION_IDENTIFIER_LIBRARY_MATH: ExpressionIdentifierLibrary.ValueType  # 1
+EXPRESSION_IDENTIFIER_LIBRARY_STRING: ExpressionIdentifierLibrary.ValueType  # 2
+EXPRESSION_IDENTIFIER_LIBRARY_LIST: ExpressionIdentifierLibrary.ValueType  # 3
+EXPRESSION_IDENTIFIER_LIBRARY_ITER: ExpressionIdentifierLibrary.ValueType  # 4
+EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL: ExpressionIdentifierLibrary.ValueType  # 5
+EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY: ExpressionIdentifierLibrary.ValueType  # 6
+global___ExpressionIdentifierLibrary = ExpressionIdentifierLibrary
+
 class _ExpressionMode:
     ValueType = typing.NewType("ValueType", builtins.int)
     V: typing_extensions.TypeAlias = ValueType
@@ -163,10 +188,12 @@ class ExpressionIdentifier(google.protobuf.message.Message):
     DESCRIPTION_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int
     DISPLAY_NAME_FIELD_NUMBER: builtins.int
+    LIBRARY_FIELD_NUMBER: builtins.int
     name: builtins.str
     description: builtins.str
     type: global___ExpressionIdentifierType.ValueType
     display_name: builtins.str
+    library: global___ExpressionIdentifierLibrary.ValueType
     def __init__(
         self,
         *,
@@ -174,8 +201,9 @@ class ExpressionIdentifier(google.protobuf.message.Message):
         description: builtins.str = ...,
         type: global___ExpressionIdentifierType.ValueType = ...,
         display_name: builtins.str = ...,
+        library: global___ExpressionIdentifierLibrary.ValueType = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["description", b"description", "display_name", b"display_name", "name", b"name", "type", b"type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["description", b"description", "display_name", b"display_name", "library", b"library", "name", b"name", "type", b"type"]) -> None: ...
 
 global___ExpressionIdentifier = ExpressionIdentifier
 

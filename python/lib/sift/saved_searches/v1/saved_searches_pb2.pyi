@@ -67,6 +67,7 @@ class SavedSearchProperties(google.protobuf.message.Message):
     TAG_ITEMS_FIELD_NUMBER: builtins.int
     ANNOTATION_ITEMS_FIELD_NUMBER: builtins.int
     RUN_ITEMS_FIELD_NUMBER: builtins.int
+    REPORT_TEMPLATE_ITEMS_FIELD_NUMBER: builtins.int
     overview_mode: builtins.str
     search_term: builtins.str
     @property
@@ -83,6 +84,8 @@ class SavedSearchProperties(google.protobuf.message.Message):
     def annotation_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchFilterItem]: ...
     @property
     def run_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchFilterItem]: ...
+    @property
+    def report_template_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchFilterItem]: ...
     def __init__(
         self,
         *,
@@ -95,9 +98,10 @@ class SavedSearchProperties(google.protobuf.message.Message):
         tag_items: collections.abc.Iterable[global___SavedSearchFilterItem] | None = ...,
         annotation_items: collections.abc.Iterable[global___SavedSearchFilterItem] | None = ...,
         run_items: collections.abc.Iterable[global___SavedSearchFilterItem] | None = ...,
+        report_template_items: collections.abc.Iterable[global___SavedSearchFilterItem] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_search_term", b"_search_term", "_to_date_time", b"_to_date_time", "from_date_time", b"from_date_time", "search_term", b"search_term", "to_date_time", b"to_date_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_search_term", b"_search_term", "_to_date_time", b"_to_date_time", "annotation_items", b"annotation_items", "asset_items", b"asset_items", "from_date_time", b"from_date_time", "overview_mode", b"overview_mode", "run_items", b"run_items", "search_term", b"search_term", "tag_items", b"tag_items", "to_date_time", b"to_date_time", "user_items", b"user_items"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_search_term", b"_search_term", "_to_date_time", b"_to_date_time", "annotation_items", b"annotation_items", "asset_items", b"asset_items", "from_date_time", b"from_date_time", "overview_mode", b"overview_mode", "report_template_items", b"report_template_items", "run_items", b"run_items", "search_term", b"search_term", "tag_items", b"tag_items", "to_date_time", b"to_date_time", "user_items", b"user_items"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_from_date_time", b"_from_date_time"]) -> typing.Literal["from_date_time"] | None: ...
     @typing.overload
@@ -305,7 +309,9 @@ class BatchDeleteSavedSearchesRequest(google.protobuf.message.Message):
 
     SAVED_SEARCH_IDS_FIELD_NUMBER: builtins.int
     @property
-    def saved_search_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def saved_search_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Limit of 1000 searches per batch"""
+
     def __init__(
         self,
         *,
