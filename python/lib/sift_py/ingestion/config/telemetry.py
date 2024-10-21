@@ -221,6 +221,7 @@ class TelemetryConfig:
                     )
 
             expression = rule.get("expression", "")
+            rule_client_key = rule.get("rule_client_key", "")
             if isinstance(expression, str):
                 rules.append(
                     RuleConfig(
@@ -228,6 +229,7 @@ class TelemetryConfig:
                         description=description,
                         expression=expression,
                         action=action,
+                        rule_client_key=rule_client_key,
                         channel_references=channel_references,
                         namespace=namespace,
                         namespace_rules=rule_namespaces,
@@ -256,6 +258,7 @@ class TelemetryConfig:
                         description=description,
                         expression=expr,
                         action=action,
+                        rule_client_key=rule_client_key,
                         channel_references=channel_references,
                         sub_expressions=sub_exprs,
                         namespace=namespace,

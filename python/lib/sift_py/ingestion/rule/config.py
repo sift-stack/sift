@@ -39,7 +39,7 @@ class RuleConfig(AsJson):
         description: str = "",
         expression: str = "",
         action: Optional[RuleAction] = None,
-        rule_client_key: Optional[str] = None,  # TODO, might change after thinking about how to handle this
+        rule_client_key: Optional[str] = None,
         sub_expressions: Dict[str, Any] = {},
         namespace: str = "",
         namespace_rules: Dict[str, List[Dict]] = {},
@@ -151,7 +151,7 @@ class RuleConfig(AsJson):
                 expression = rule.get("expression", "")
                 type = rule.get("type", "")
                 tags = rule.get("tags")
-                rule_client_key = rule.get("rule_client_key", "")  # TODO: if it's not defined what to do
+                rule_client_key = rule.get("rule_client_key", "")
                 action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
                 if RuleActionAnnotationKind.from_str(type) == RuleActionAnnotationKind.REVIEW:
                     action = RuleActionCreateDataReviewAnnotation(

@@ -370,6 +370,7 @@ def _validate_rule(val: Any):
         for channel_reference in cast(List[Any], channel_references):
             _validate_channel_reference(channel_reference)
 
+    rule_client_key = rule.get("rule_client_key")
     description = rule.get("description")
     expression = rule.get("expression")
     rule_type = rule.get("type")
@@ -385,6 +386,9 @@ def _validate_rule(val: Any):
                 "may be defined in the referenced namespace."
             )
         return
+
+    if rule_client_key is not None and not isinstance(rule_client_key, str):
+        raise YamlConfigError._invalid_property(rule_client_key, "- rule_client_key", "str", ["rules"])
 
     if description is not None and not isinstance(description, str):
         raise YamlConfigError._invalid_property(description, "- description", "str", ["rules"])
