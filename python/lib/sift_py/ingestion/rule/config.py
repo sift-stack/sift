@@ -28,6 +28,7 @@ class RuleConfig(AsJson):
     expression: str
     action: Optional[RuleAction]
     channel_references: List[ExpressionChannelReference]
+    rule_client_key: Optional[str]
 
     def __init__(
         self,
@@ -38,6 +39,7 @@ class RuleConfig(AsJson):
         description: str = "",
         expression: str = "",
         action: Optional[RuleAction] = None,
+        rule_client_key: Optional[str] = None,  # TODO, might change after thinking about how to handle this
         sub_expressions: Dict[str, Any] = {},
         namespace: str = "",
         namespace_rules: Dict[str, List[Dict]] = {},
@@ -69,11 +71,12 @@ class RuleConfig(AsJson):
         self.name = name
 
         if namespace:
-            description, expression, action = self.__class__.interpolate_namespace_rule(
+            description, expression, rule_client_key, action = self.__class__.interpolate_namespace_rule(
                 name, namespace, namespace_rules
             )
 
         self.action = action
+        self.rule_client_key = rule_client_key
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
 
@@ -129,7 +132,7 @@ class RuleConfig(AsJson):
     @staticmethod
     def interpolate_namespace_rule(
         name: str, namespace: str, namespace_rules: Optional[Dict[str, List[Dict]]]
-    ) -> Tuple[str, str, RuleAction]:
+    ) -> Tuple[str, str, str, RuleAction]:
         if not namespace_rules:
             raise ValueError(
                 f"Namespace rules must be provided with namespace key. Got: {namespace_rules}"
@@ -148,12 +151,13 @@ class RuleConfig(AsJson):
                 expression = rule.get("expression", "")
                 type = rule.get("type", "")
                 tags = rule.get("tags")
+                rule_client_key = rule.get("rule_client_key", "")  # TODO: if it's not defined what to do
                 action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
                 if RuleActionAnnotationKind.from_str(type) == RuleActionAnnotationKind.REVIEW:
                     action = RuleActionCreateDataReviewAnnotation(
                         assignee=rule.get("assignee"), tags=tags
                     )
-                return description, expression, action
+                return description, expression, rule_client_key, action
 
         raise ValueError(
             f"Could not find rule '{rule}'. Does this rule exist in the namespace? {rule_list}"
