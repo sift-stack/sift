@@ -23,6 +23,8 @@ class RuleConfig(AsJson):
     - `channel_references`: Reference to channel. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
     - `rule_client_key`: User defined unique string that uniquely identifies this rule.
     - `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+    - `namespace`: A string key that refers to a namespace where a rule is defined. Namespaces are defined in YAML.
+    - `namespace_rules`: A dictionary of rules loaded from a namespace YAML.
     """
 
     name: str
@@ -31,7 +33,6 @@ class RuleConfig(AsJson):
     action: Optional[RuleAction]
     channel_references: List[ExpressionChannelReference]
     rule_client_key: Optional[str]
-    asset_names: Optional[List[str]]
 
     def __init__(
         self,
@@ -44,9 +45,10 @@ class RuleConfig(AsJson):
         action: Optional[RuleAction] = None,
         rule_client_key: Optional[str] = None,
         asset_names: Optional[List[str]] = None,
+        tag_names: Optional[List[str]] = None,
         sub_expressions: Dict[str, Any] = {},
         namespace: str = "",
-        namespace_rules: Dict[str, List[Dict]] = {},
+        namespace_rules: Dict[str, List[Dict]] = {},  # TODO: Rename to rule dict
     ):
         self.channel_references = []
 
@@ -81,7 +83,6 @@ class RuleConfig(AsJson):
 
         self.action = action
         self.rule_client_key = rule_client_key
-        self.asset_names = asset_names
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
 
