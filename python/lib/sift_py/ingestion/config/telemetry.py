@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from loguru import logger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
@@ -82,6 +83,12 @@ class TelemetryConfig:
                     f"Can't have two rules with identical names, '{rule.name}'."
                 )
             seen_rule_names.add(rule.name)
+            if rule.asset_names:
+                logger.warning(
+                    f"Rule '{rule.name}' has an 'asset_names' field, which is not allowed when defining rules in a telemetry config."
+                    "Please remove the 'asset_names' field from the rule, or create the rule outside of telemetry config."
+                    "Proceeding, but the asset_names field will be ignored."
+                )
 
     @staticmethod
     def validate_flows(flows: List[FlowConfig]):

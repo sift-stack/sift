@@ -377,9 +377,21 @@ def _validate_rule(val: Any):
     assignee = rule.get("assignee")
     tags = rule.get("tags")
     sub_expressions = rule.get("sub_expressions")
+    asset_names = rule.get("asset_names")
 
     if namespace:
-        if any([description, expression, rule_type, assignee, tags, sub_expressions]):
+        if any(
+            [
+                rule_client_key,
+                description,
+                expression,
+                rule_type,
+                assignee,
+                tags,
+                sub_expressions,
+                asset_names,
+            ]
+        ):
             raise YamlConfigError(
                 f"Rule '{name}' is a namespace and should not have any other properties set. "
                 "Properties 'description', 'expression', 'type', 'assignee', 'tags', and 'sub_expressions' "
@@ -451,6 +463,14 @@ def _validate_rule(val: Any):
 
         for sub_expression in cast(List[Any], sub_expressions):
             _validate_sub_expression(sub_expression)
+
+    if asset_names is not None and not isinstance(asset_names, list):
+        raise YamlConfigError._invalid_property(
+            asset_names,
+            "- asset_names",
+            "List[str]",
+            ["rules"],
+        )
 
 
 def _validate_channel_reference(val: Any):

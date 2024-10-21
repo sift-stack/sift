@@ -23,6 +23,7 @@ keywords = [
 dependencies = [
   "grpcio~=1.64",
   "npTDMS~=1.9",
+  "loguru~=0.7",
   "PyYAML~=6.0",
   "pandas~=2.0",
   "protobuf~=5.26",

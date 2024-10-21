@@ -21,6 +21,8 @@ class RuleConfig(AsJson):
     - `expression`: A CEL string expression, that, when evaluated to a truthy value, executes the `action`.
     - `action`: The action to execute if the result of an `expression` evaluates to a truthy value.
     - `channel_references`: Reference to channel. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
+    - `rule_client_key`: User defined unique string that uniquely identifies this rule.
+    - `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     """
 
     name: str
@@ -29,6 +31,7 @@ class RuleConfig(AsJson):
     action: Optional[RuleAction]
     channel_references: List[ExpressionChannelReference]
     rule_client_key: Optional[str]
+    asset_names: Optional[List[str]]
 
     def __init__(
         self,
@@ -40,6 +43,7 @@ class RuleConfig(AsJson):
         expression: str = "",
         action: Optional[RuleAction] = None,
         rule_client_key: Optional[str] = None,
+        asset_names: Optional[List[str]] = None,
         sub_expressions: Dict[str, Any] = {},
         namespace: str = "",
         namespace_rules: Dict[str, List[Dict]] = {},
@@ -71,12 +75,13 @@ class RuleConfig(AsJson):
         self.name = name
 
         if namespace:
-            description, expression, rule_client_key, action = (
+            description, expression, rule_client_key, action, asset_names = (
                 self.__class__.interpolate_namespace_rule(name, namespace, namespace_rules)
             )
 
         self.action = action
         self.rule_client_key = rule_client_key
+        self.asset_names = asset_names
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
 
@@ -132,7 +137,7 @@ class RuleConfig(AsJson):
     @staticmethod
     def interpolate_namespace_rule(
         name: str, namespace: str, namespace_rules: Optional[Dict[str, List[Dict]]]
-    ) -> Tuple[str, str, str, RuleAction]:
+    ) -> Tuple[str, str, str, RuleAction, List[str]]:
         if not namespace_rules:
             raise ValueError(
                 f"Namespace rules must be provided with namespace key. Got: {namespace_rules}"
@@ -152,12 +157,13 @@ class RuleConfig(AsJson):
                 type = rule.get("type", "")
                 tags = rule.get("tags")
                 rule_client_key = rule.get("rule_client_key", "")
+                asset_names = rule.get("asset_names", [])
                 action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
                 if RuleActionAnnotationKind.from_str(type) == RuleActionAnnotationKind.REVIEW:
                     action = RuleActionCreateDataReviewAnnotation(
                         assignee=rule.get("assignee"), tags=tags
                     )
-                return description, expression, rule_client_key, action
+                return description, expression, rule_client_key, action, asset_names
 
         raise ValueError(
             f"Could not find rule '{rule}'. Does this rule exist in the namespace? {rule_list}"
