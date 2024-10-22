@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
-from loguru import logger
 from typing_extensions import Self
 
 from sift_py.ingestion.channel import (
@@ -220,13 +219,6 @@ class TelemetryConfig:
                             "channel_identifier": _channel_fqn(name, component),
                         }
                     )
-
-            if rule.get("asset_names") or rule.get("tag_names"):
-                logger.warning(
-                    f"Rule '{rule['name']}' has an 'asset_names' or 'tag_names' field, which is not allowed when defining rules in a telemetry config."
-                    "Please remove the 'asset_names' or 'tag_names' field from the rule, or create the rule outside of telemetry config."
-                    "Proceeding, but the 'asset_names' and 'tag_names' fields will be ignored."
-                )
 
             expression = rule.get("expression", "")
             rule_client_key = rule.get("rule_client_key", "")
