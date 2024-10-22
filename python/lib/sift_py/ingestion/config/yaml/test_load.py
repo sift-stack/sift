@@ -196,6 +196,7 @@ def test__validate_rule():
                 {"$1": {"name": "voltage", "data_type": "double"}},
                 {"$2": {"name": "vehicle_state", "data_type": "double"}},
             ],
+            "rule_client_key": "overheat_rule_key",
         }
     )
 
@@ -210,6 +211,26 @@ def test__validate_rule():
             ],
         }
     )
+
+    # Rule with tag and asset names
+    load._validate_rule(
+        {
+            "name": "overheat_rule",
+            "description": "some_description",
+            "expression": "$1 > 10 && $2 > 10",
+            "type": "review",
+            "assignee": "homer@example.com",
+            "tags": ["foo", "bar"],
+            "channel_references": [
+                {"$1": {"name": "voltage", "data_type": "double"}},
+                {"$2": {"name": "vehicle_state", "data_type": "double"}},
+            ],
+            "asset_names": ["NostromoLV426"],
+            "tag_names": ["vehicle"],
+            "rule_client_key": "overheat_rule_key",
+        }
+    )
+
 
     with pytest.raises(YamlConfigError, match="Expected 'name' to be <str> but it is <int>"):
         load._validate_rule(
@@ -326,6 +347,43 @@ def test__validate_rule():
                 ],
             }
         )
+
+    with pytest.raises(YamlConfigError, match="Expected 'asset_names' to be"):
+       load._validate_rule(
+           {
+               "name": "overheat_rule",
+               "description": "some_description",
+               "expression": "$1 > 10 && $2 > 10",
+               "type": "review",
+               "assignee": "homer@example.com",
+               "tags": ["foo", "bar"],
+               "channel_references": [
+                   {"$1": {"name": "voltage", "data_type": "double"}},
+                   {"$2": {"name": "vehicle_state", "data_type": "double"}},
+               ],
+               "rule_client_key": "overheat_rule_key",
+               "asset_names": 123,
+           }
+       )
+
+    with pytest.raises(YamlConfigError, match="Expected 'tag_names' to be"):
+       load._validate_rule(
+           {
+               "name": "overheat_rule",
+               "description": "some_description",
+               "expression": "$1 > 10 && $2 > 10",
+               "type": "review",
+               "assignee": "homer@example.com",
+               "tags": ["foo", "bar"],
+               "channel_references": [
+                   {"$1": {"name": "voltage", "data_type": "double"}},
+                   {"$2": {"name": "vehicle_state", "data_type": "double"}},
+               ],
+               "rule_client_key": "overheat_rule_key",
+               "tag_names": 123,
+           }
+       )
+
 
     with pytest.raises(YamlConfigError, match="should not have any other properties set"):
         load._validate_rule(

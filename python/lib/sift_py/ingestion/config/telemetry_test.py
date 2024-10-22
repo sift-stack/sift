@@ -1,3 +1,4 @@
+from loguru import logger
 from pathlib import Path
 from typing import Any, Dict, cast
 
@@ -24,6 +25,13 @@ from sift_py.ingestion.rule.config import (
 )
 
 _mock_path = _mock_path_imp(sift_py.ingestion.config.telemetry)
+
+@pytest.fixture
+def caplog(caplog):
+    """Needed to capture loguru logs per: https://github.com/Delgan/loguru/pull/572"""
+    handler_id = logger.add(caplog.handler, format="{message}")
+    yield caplog
+    logger.remove(handler_id)
 
 
 def test_telemetry_config_load_from_yaml(mocker: MockFixture):
@@ -307,6 +315,17 @@ def test_telemetry_config_validations_flows_with_same_name():
         )
 
 
+def test_telemetry_config_validations_not_allowed_fields(mocker: MockerFixture, caplog):
+    raw_yaml_config = cast(Dict[Any, Any], yaml.safe_load(NOT_ALLOWED_FIELDS_IN_TELEMETRY_CONFIG))
+    yaml_config = _validate_yaml(raw_yaml_config)
+
+    mock_read_and_validate = mocker.patch(_mock_path(read_and_validate))
+    mock_read_and_validate.return_value = yaml_config
+
+    TelemetryConfig.try_from_yaml(Path())
+    assert "Please remove the 'asset_names' or 'tag_names' field from the rule, or create the rule outside of telemetry config." in caplog.text
+
+
 TEST_YAML_CONFIG_STR = """
 asset_name: LunarVehicle426
 ingestion_client_key: lunar_vehicle_426
@@ -453,5 +472,36 @@ flows:
   - name: readings
     channels:
       - <<: *velocity_channel
+      - <<: *velocity_channel
+"""
+
+NOT_ALLOWED_FIELDS_IN_TELEMETRY_CONFIG = """
+asset_name: LunarVehicle426
+ingestion_client_key: lunar_vehicle_426
+
+channels:
+  velocity_channel: &velocity_channel
+    name: velocity
+    data_type: double
+    description: speed
+    unit: Miles Per Hour
+    component: mainmotor
+
+rules:
+  - name: speeding
+    description: Checks high vehicle speed
+    type: phase
+    expression: $1 > 20
+    channel_references:
+      - $1: *velocity_channel
+    asset_names:
+      - my_asset
+    tag_names:
+      - foo
+      - bar
+
+flows:
+  - name: readings
+    channels:
       - <<: *velocity_channel
 """

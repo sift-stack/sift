@@ -229,11 +229,11 @@ class TelemetryConfig:
                         }
                     )
 
-            if rule.get("asset_names"):
+            if rule.get("asset_names") or rule.get("tag_names"):
                 logger.warning(
-                    f"Rule '{rule['name']}' has an 'asset_names' field, which is not allowed when defining rules in a telemetry config."
-                    "Please remove the 'asset_names' field from the rule, or create the rule outside of telemetry config."
-                    "Proceeding, but the asset_names field will be ignored."
+                    f"Rule '{rule['name']}' has an 'asset_names' or 'tag_names' field, which is not allowed when defining rules in a telemetry config."
+                    "Please remove the 'asset_names' or 'tag_names' field from the rule, or create the rule outside of telemetry config."
+                    "Proceeding, but the 'asset_names' and 'tag_names' fields will be ignored."
                 )
 
             expression = rule.get("expression", "")
