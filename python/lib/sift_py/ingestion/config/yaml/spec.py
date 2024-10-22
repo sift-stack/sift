@@ -118,6 +118,7 @@ class RuleYamlSpec(TypedDict):
     `channel_references`: A list of channel references that maps to an actual channel. More below.
     `sub_expressions`: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
     `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+    `tag_names`: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
 
     Namespaces:
     Rule may be defined in a separate YAML within a namespace. The reference to the namespace rule would look like the following:
@@ -191,6 +192,7 @@ class RuleYamlSpec(TypedDict):
     channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
     sub_expressions: NotRequired[List[Dict[str, str]]]
     asset_names: NotRequired[List[str]]
+    tag_names: NotRequired[List[str]]
 
 
 class NamedExpressionYamlSpec(TypedDict):

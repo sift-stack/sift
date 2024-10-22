@@ -378,6 +378,7 @@ def _validate_rule(val: Any):
     tags = rule.get("tags")
     sub_expressions = rule.get("sub_expressions")
     asset_names = rule.get("asset_names")
+    tag_names = rule.get("tag_names")
 
     if namespace:
         if any(
@@ -390,6 +391,7 @@ def _validate_rule(val: Any):
                 tags,
                 sub_expressions,
                 asset_names,
+                tag_names,
             ]
         ):
             raise YamlConfigError(
@@ -468,6 +470,14 @@ def _validate_rule(val: Any):
         raise YamlConfigError._invalid_property(
             asset_names,
             "- asset_names",
+            "List[str]",
+            ["rules"],
+        )
+
+    if tag_names is not None and not isinstance(tag_names, list):
+        raise YamlConfigError._invalid_property(
+            tag_names,
+            "- tag_names",
             "List[str]",
             ["rules"],
         )
