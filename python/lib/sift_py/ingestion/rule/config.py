@@ -49,7 +49,7 @@ class RuleConfig(AsJson):
         tag_names: Optional[List[str]] = None,
         sub_expressions: Dict[str, Any] = {},
         namespace: str = "",
-        namespace_rules: Dict[str, List[Dict]] = {},  # TODO: Rename to rule dict
+        namespace_rules: Dict[str, List[Dict]] = {},
     ):
         self.channel_references = []
 
