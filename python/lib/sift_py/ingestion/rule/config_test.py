@@ -136,7 +136,6 @@ def test_rule_namespace():
                 "rule_client_key": "another_valid_rule_client_key",
                 "asset_names": ["asset2"],
                 "tag_names": ["tag2"],
-
             },
         ]
     }

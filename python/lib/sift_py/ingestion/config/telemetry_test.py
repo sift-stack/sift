@@ -1,9 +1,9 @@
-from loguru import logger
 from pathlib import Path
 from typing import Any, Dict, cast
 
 import pytest
 import yaml
+from loguru import logger
 from pytest_mock import MockerFixture, MockFixture
 
 import sift_py.ingestion.config.telemetry
@@ -25,6 +25,7 @@ from sift_py.ingestion.rule.config import (
 )
 
 _mock_path = _mock_path_imp(sift_py.ingestion.config.telemetry)
+
 
 @pytest.fixture
 def caplog(caplog):
@@ -323,7 +324,10 @@ def test_telemetry_config_validations_not_allowed_fields(mocker: MockerFixture, 
     mock_read_and_validate.return_value = yaml_config
 
     TelemetryConfig.try_from_yaml(Path())
-    assert "Please remove the 'asset_names' or 'tag_names' field from the rule, or create the rule outside of telemetry config." in caplog.text
+    assert (
+        "Please remove the 'asset_names' or 'tag_names' field from the rule, or create the rule outside of telemetry config."
+        in caplog.text
+    )
 
 
 TEST_YAML_CONFIG_STR = """
