@@ -370,21 +370,41 @@ def _validate_rule(val: Any):
         for channel_reference in cast(List[Any], channel_references):
             _validate_channel_reference(channel_reference)
 
+    rule_client_key = rule.get("rule_client_key")
     description = rule.get("description")
     expression = rule.get("expression")
     rule_type = rule.get("type")
     assignee = rule.get("assignee")
     tags = rule.get("tags")
     sub_expressions = rule.get("sub_expressions")
+    asset_names = rule.get("asset_names")
+    tag_names = rule.get("tag_names")
 
     if namespace:
-        if any([description, expression, rule_type, assignee, tags, sub_expressions]):
+        if any(
+            [
+                rule_client_key,
+                description,
+                expression,
+                rule_type,
+                assignee,
+                tags,
+                sub_expressions,
+                asset_names,
+                tag_names,
+            ]
+        ):
             raise YamlConfigError(
                 f"Rule '{name}' is a namespace and should not have any other properties set. "
                 "Properties 'description', 'expression', 'type', 'assignee', 'tags', and 'sub_expressions' "
                 "may be defined in the referenced namespace."
             )
         return
+
+    if rule_client_key is not None and not isinstance(rule_client_key, str):
+        raise YamlConfigError._invalid_property(
+            rule_client_key, "- rule_client_key", "str", ["rules"]
+        )
 
     if description is not None and not isinstance(description, str):
         raise YamlConfigError._invalid_property(description, "- description", "str", ["rules"])
@@ -445,6 +465,22 @@ def _validate_rule(val: Any):
 
         for sub_expression in cast(List[Any], sub_expressions):
             _validate_sub_expression(sub_expression)
+
+    if asset_names is not None and not isinstance(asset_names, list):
+        raise YamlConfigError._invalid_property(
+            asset_names,
+            "- asset_names",
+            "List[str]",
+            ["rules"],
+        )
+
+    if tag_names is not None and not isinstance(tag_names, list):
+        raise YamlConfigError._invalid_property(
+            tag_names,
+            "- tag_names",
+            "List[str]",
+            ["rules"],
+        )
 
 
 def _validate_channel_reference(val: Any):

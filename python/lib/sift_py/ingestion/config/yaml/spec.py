@@ -108,6 +108,7 @@ class RuleYamlSpec(TypedDict):
 
     `name`: Name of the rule.
     `namespace`: Optional namespace of the rule. Only used if referencing a rule defined in a namespace.
+    `rule_client_key`: User-defined string-key that uniquely identifies this rule config.
     `description`: Description of rule.
     `expression`:
         Either an expression-string or a `sift_py.ingestion.config.yaml.spec.NamedExpressionYamlSpec` referencing a named expression.
@@ -116,6 +117,8 @@ class RuleYamlSpec(TypedDict):
     `tags`: Tags to associate with the rule.
     `channel_references`: A list of channel references that maps to an actual channel. More below.
     `sub_expressions`: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
+    `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+    `tag_names`: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
 
     Namespaces:
     Rule may be defined in a separate YAML within a namespace. The reference to the namespace rule would look like the following:
@@ -180,6 +183,7 @@ class RuleYamlSpec(TypedDict):
 
     name: str
     namespace: NotRequired[str]
+    rule_client_key: NotRequired[str]
     description: NotRequired[str]
     expression: Union[str, NamedExpressionYamlSpec]
     type: Union[Literal["phase"], Literal["review"]]
@@ -187,6 +191,8 @@ class RuleYamlSpec(TypedDict):
     tags: NotRequired[List[str]]
     channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
     sub_expressions: NotRequired[List[Dict[str, str]]]
+    asset_names: NotRequired[List[str]]
+    tag_names: NotRequired[List[str]]
 
 
 class NamedExpressionYamlSpec(TypedDict):
