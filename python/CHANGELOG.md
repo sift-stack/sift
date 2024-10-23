@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.0-rc.1] - October 22, 2024
+
+This is the release candidate for v0.3.0 for the purposes of allowing folks to test various
+new services introduced. This does not reflect the complete set of features that will be included
+in the next release and many of the new APIs have yet to be documented.
+
 ## [v0.2.2] - October 9, 2024
 
 Summary of changes:
