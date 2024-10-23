@@ -323,7 +323,14 @@ class ChannelDataType(Enum):
             raise Exception("Unreachable.")
 
 
-def channel_fqn(channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, ChannelPb]) -> str:
+class _AbstractChannel(TypedDict):
+    channel_name: str
+    component: NotRequired[str]
+
+
+def channel_fqn(
+    channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, ChannelPb, _AbstractChannel],
+) -> str:
     """
     Computes the fully qualified channel name.
 

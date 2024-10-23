@@ -9,6 +9,7 @@ from sift.rules.v1.rules_pb2 import ActionKind
 
 from sift_py._internal.convert.json import AsJson
 from sift_py.ingestion.channel import ChannelConfig
+from sift_py.ingestion.config.yaml.spec import RuleYamlSpec
 
 
 class RuleConfig(AsJson):
@@ -34,6 +35,7 @@ class RuleConfig(AsJson):
     action: Optional[RuleAction]
     channel_references: List[ExpressionChannelReference]
     rule_client_key: Optional[str]
+    asset_names: List[str]
 
     def __init__(
         self,
@@ -49,7 +51,7 @@ class RuleConfig(AsJson):
         tag_names: Optional[List[str]] = None,
         sub_expressions: Dict[str, Any] = {},
         namespace: str = "",
-        namespace_rules: Dict[str, List[Dict]] = {},
+        namespace_rules: Dict[str, List[RuleYamlSpec]] = {},
     ):
         self.channel_references = []
 
@@ -81,6 +83,9 @@ class RuleConfig(AsJson):
             description, expression, rule_client_key, action, asset_names, tag_names = (
                 self.__class__.interpolate_namespace_rule(name, namespace, namespace_rules)
             )
+
+        if asset_names:
+            self.asset_names = asset_names
 
         self.action = action
         self.rule_client_key = rule_client_key
@@ -138,7 +143,7 @@ class RuleConfig(AsJson):
 
     @staticmethod
     def interpolate_namespace_rule(
-        name: str, namespace: str, namespace_rules: Optional[Dict[str, List[Dict]]]
+        name: str, namespace: str, namespace_rules: Optional[Dict[str, List[RuleYamlSpec]]]
     ) -> Tuple[str, str, str, RuleAction, List[str], List[str]]:
         if not namespace_rules:
             raise ValueError(
@@ -151,8 +156,13 @@ class RuleConfig(AsJson):
                 f"Couldn't find namespace '{namespace}' in namespace_rules: {namespace_rules}"
             )
 
+        candidate_name = None
         for rule in rule_list:
             candidate_name = rule.get("name")
+
+            if not candidate_name:
+                break
+
             if candidate_name == name:
                 description = rule.get("description", "")
                 expression = rule.get("expression", "")
@@ -166,10 +176,17 @@ class RuleConfig(AsJson):
                     action = RuleActionCreateDataReviewAnnotation(
                         assignee=rule.get("assignee"), tags=tags
                     )
-                return description, expression, rule_client_key, action, asset_names, tag_names
+                return (
+                    description,
+                    cast(str, expression),
+                    rule_client_key,
+                    action,
+                    asset_names,
+                    tag_names,
+                )
 
         raise ValueError(
-            f"Could not find rule '{rule}'. Does this rule exist in the namespace? {rule_list}"
+            f"Could not find rule '{candidate_name}'. Does this rule exist in the namespace? {rule_list}"
         )
 
 
