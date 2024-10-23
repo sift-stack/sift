@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union
+from typing import LiteralString, Optional, Union, cast
 from urllib.parse import urljoin
 
 import requests
@@ -56,7 +56,7 @@ class DataImport(BaseModel):
                 return value
 
         raise PydanticCustomError(
-            "invalid_data_import_error", f"Invalid data import status: {raw}."
+            cast(LiteralString, "invalid_data_import_error"), cast(LiteralString, f"Invalid data import status: {raw}.")
         )
 
 
