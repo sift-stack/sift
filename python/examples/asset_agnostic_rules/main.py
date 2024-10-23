@@ -33,7 +33,7 @@ if __name__ == "__main__":
     velocity_rules_src = RULE_MODULES_DIR.joinpath("velocity.yml")
 
     # Create a gRPC transport channel configured specifically for the Sift API
-    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey, use_ssl=False)
+    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
 
     with use_sift_channel(sift_channel_config) as channel:
         # Create ingestion service using the telemetry config we loaded in.
