@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
+from typing_extensions import LiteralString, Self
 
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType
