@@ -1,2 +1,2 @@
 python-dotenv
-/Users/benjaminnguyen/Code/sift/python
+sift-stack-py
