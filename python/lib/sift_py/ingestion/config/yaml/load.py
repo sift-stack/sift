@@ -53,14 +53,14 @@ def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
     return named_expressions
 
 
-def load_rule_namespaces(paths: List[Path]) -> Dict[str, List]:
+def load_rule_namespaces(paths: List[Path]) -> Dict[str, List[RuleYamlSpec]]:
     """
     Takes in a list of paths which may either be directories or files containing rule namespace YAML files,
     and processes them into a `dict`. For more information on rule namespaces see
     RuleNamespaceYamlSpec in `sift_py.ingestion/config/yaml/spec.py`.
     """
 
-    rule_namespaces: Dict[str, List] = {}
+    rule_namespaces: Dict[str, List[RuleYamlSpec]] = {}
 
     def update_rule_namespaces(rule_module_path: Path):
         rule_module = _read_rule_namespace_yaml(rule_module_path)
