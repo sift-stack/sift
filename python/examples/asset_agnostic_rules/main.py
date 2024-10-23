@@ -4,10 +4,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
-from sift_py.ingestion.service import IngestionService
-from simulator import Simulator
-from sift_py.ingestion.service import TelemetryConfig
+from sift_py.ingestion.service import IngestionService, TelemetryConfig
 from sift_py.rule.service import RuleService, SubExpression
+from simulator import Simulator
 
 TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
