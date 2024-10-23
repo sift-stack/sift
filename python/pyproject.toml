@@ -49,6 +49,7 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 development = [
   "grpcio-testing==1.64.1",
   "mypy==1.10.0",
+  "pyright==1.1.386",
   "pytest==8.2.2",
   "pytest-asyncio==0.23.7",
   "pytest-benchmark==4.0.0",
@@ -66,6 +67,40 @@ build-backend = "setuptools.build_meta"
 
 [tool.mypy]
 python_version = "3.8"
+
+[tool.pyright]
+python_version = "3.8"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "lib/sift",
+    "lib/google",
+    "lib/protoc_gen_openapiv2",
+]
 
 # No official typing stubs for Python gRPC libraries yet.
 # https://github.com/grpc/grpc/issues/29041
