@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Type, Union
+from typing import Dict, List, Optional, Type, Union, cast
+from typing_extensions import LiteralString
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic_core import PydanticCustomError
@@ -33,7 +34,7 @@ class CsvConfigImpl(ConfigBaseModel):
     @model_validator(mode="after")
     def validate_config(self) -> Self:
         if not self.data_columns:
-            raise PydanticCustomError("invalid_config_error", "Empty 'data_columns'")
+            raise PydanticCustomError("invalid_config_error", cast(LiteralString, "Empty 'data_columns'"))
         return self
 
 
@@ -71,7 +72,7 @@ class TimeColumn(ConfigBaseModel):
             if value is not None:
                 return value.as_human_str()
 
-        raise PydanticCustomError("invalid_config_error", f"Invalid time format: {raw}.")
+        raise PydanticCustomError(cast(LiteralString, "invalid_config_error"), cast(LiteralString, f"Invalid time format: {raw}."))
 
     @model_validator(mode="after")
     def validate_time(self) -> Self:
@@ -81,17 +82,17 @@ class TimeColumn(ConfigBaseModel):
         format = TimeFormatType.from_str(self.format)  # type: ignore
         if format is None:
             raise PydanticCustomError(
-                "invalid_config_error", f"Invalid time format: {self.format}."
+                cast(LiteralString, "invalid_config_error"), cast(LiteralString, f"Invalid time format: {self.format}.")
             )
 
         if format.is_relative():
             if self.relative_start_time is None:
-                raise PydanticCustomError("invalid_config_error", "Missing 'relative_start_time'")
+                raise PydanticCustomError(cast(LiteralString, "invalid_config_error"), cast(LiteralString, "Missing 'relative_start_time'"))
         else:
             if self.relative_start_time is not None:
                 raise PydanticCustomError(
-                    "invalid_config_error",
-                    "'relative_start_time' specified for non relative time format.",
+                    cast(LiteralString, "invalid_config_error"),
+                    cast(LiteralString, "'relative_start_time' specified for non relative time format."),
                 )
 
         return self
@@ -134,7 +135,7 @@ class DataColumn(ConfigBaseModel):
             if value is not None:
                 return value.as_human_str(api_format=True)
 
-        raise PydanticCustomError("invalid_config_error", f"Invalid data_type: {raw}.")
+        raise PydanticCustomError(cast(LiteralString, "invalid_config_error"), cast(LiteralString, f"Invalid data_type: {raw}."))
 
     @model_validator(mode="after")
     def validate_enums(self) -> Self:
@@ -145,8 +146,8 @@ class DataColumn(ConfigBaseModel):
         if self.enum_types:
             if data_type != ChannelDataType.ENUM:
                 raise PydanticCustomError(
-                    "invalid_config_error",
-                    f"Enums can only be specified with the CHANNEL_DATA_TYPE_ENUM data type. {self.name} is {self.data_type}",
+                    cast(LiteralString, "invalid_config_error"),
+                    cast(LiteralString, f"Enums can only be specified with the CHANNEL_DATA_TYPE_ENUM data type. {self.name} is {self.data_type}"),
                 )
 
         return self
@@ -160,8 +161,8 @@ class DataColumn(ConfigBaseModel):
         if self.bit_field_elements:
             if data_type != ChannelDataType.BIT_FIELD:
                 raise PydanticCustomError(
-                    "invalid_config_error",
-                    f"Bit fields can only be specified with the CHANNEL_DATA_TYPE_BIT_FIELD data type. {self.name} is {self.data_type}",
+                    cast(LiteralString, "invalid_config_error"),
+                    cast(LiteralString, f"Bit fields can only be specified with the CHANNEL_DATA_TYPE_BIT_FIELD data type. {self.name} is {self.data_type}"),
                 )
 
         return self
