@@ -1,0 +1,20 @@
+namespace: voltage
+
+rules:
+  - name: overvoltage
+    rule_client_key: overvoltage-rule
+    description: Checks for overvoltage while accelerating
+    expression: vehicle_state == "Accelerating" && voltage > $1
+    type: review
+    assignee: benjamin@siftstack.com
+    asset_names:
+      - NostromoLV2024
+
+  - name: undervoltage
+    rule_client_key: undervoltage-rule
+    description: Checks for undervoltage while accelerating
+    expression: vehicle_state == "Accelerating" && voltage < $1
+    type: review
+    assignee: benjamin@siftstack.com
+    asset_names:
+      - NostromoLV2024
