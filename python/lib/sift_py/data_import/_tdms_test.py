@@ -15,7 +15,7 @@ class MockTdmsChannel:
         self,
         name: str,
         group_name: str,
-        properties: Optional[Dict[str, str]] = None,
+        properties: Optional[Dict[str, Any]] = None,
         data: Optional[List[int]] = None,
         data_type: type = types.Int32,
     ):

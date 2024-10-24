@@ -33,7 +33,7 @@ jobs:
       - name: Lint
         run: |
           ruff check
-          
+
       - name: Format
         run: |
           ruff format --check
@@ -41,6 +41,10 @@ jobs:
       - name: MyPy
         run: |
           mypy lib
+
+      - name: Pyright
+        run: |
+          pyright lib
 
       - name: Pytest
         run: |

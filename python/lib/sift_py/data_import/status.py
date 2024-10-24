@@ -1,14 +1,14 @@
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, cast
 from urllib.parse import urljoin
 
 import requests
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
+from typing_extensions import LiteralString, Self
 
 from sift_py.rest import SiftRestConfig, compute_uri
 
@@ -56,7 +56,8 @@ class DataImport(BaseModel):
                 return value
 
         raise PydanticCustomError(
-            "invalid_data_import_error", f"Invalid data import status: {raw}."
+            cast(LiteralString, "invalid_data_import_error"),
+            cast(LiteralString, f"Invalid data import status: {raw}."),
         )
 
 
