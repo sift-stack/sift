@@ -5,12 +5,12 @@ from typing import Any, Dict, List, Optional, cast
 
 from typing_extensions import Self
 
+from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py.ingestion.channel import (
     ChannelBitFieldElement,
     ChannelConfig,
     ChannelDataType,
     ChannelEnumType,
-    channel_fqn,
 )
 from sift_py.ingestion.config.yaml.load import (
     load_named_expression_modules,
@@ -216,7 +216,7 @@ class TelemetryConfig:
                     channel_references.append(
                         {
                             "channel_reference": ref,
-                            "channel_identifier": channel_fqn(name, component),
+                            "channel_identifier": _channel_fqn(name, component),
                         }
                     )
 
