@@ -2,11 +2,12 @@
 name = "sift_stack_py"
 version = "0.3.0-rc.1"
 description = "Python client library for the Sift API"
-requires-python = ">=3.8"
+requires-python = ">=3.7"
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 classifiers  = [
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -99,7 +100,7 @@ sift_py = ["py.typed"]
 [tool.ruff]
 line-length = 100
 indent-width = 4
-target-version = "py38" # Python 3.8
+target-version = "py37" # Python 3.7
 exclude = [
     ".bzr",
     ".direnv",
