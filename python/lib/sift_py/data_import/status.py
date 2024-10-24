@@ -8,7 +8,7 @@ import requests
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
-from typing_extensions import Self
+from typing_extensions import LiteralString, Self
 
 from sift_py.rest import SiftRestConfig, compute_uri
 
