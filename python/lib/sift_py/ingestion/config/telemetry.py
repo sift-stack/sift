@@ -10,7 +10,7 @@ from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelDataType,
     ChannelEnumType,
-    _channel_fqn,
+    channel_fqn,
 )
 from sift_py.ingestion.config.yaml.load import (
     load_named_expression_modules,
@@ -216,7 +216,7 @@ class TelemetryConfig:
                     channel_references.append(
                         {
                             "channel_reference": ref,
-                            "channel_identifier": _channel_fqn(name, component),
+                            "channel_identifier": channel_fqn(name, component),
                         }
                     )
 
