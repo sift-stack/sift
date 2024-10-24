@@ -17,12 +17,12 @@ from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
 from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingest import (
     _IngestionServiceImpl,
-    create_flow_configs,
-    get_ingestion_config_flows,
 )
 from sift_py.ingestion._internal.ingestion_config import (
+    create_flow_configs,
     create_ingestion_config,
     get_ingestion_config_by_client_key,
+    get_ingestion_config_flows,
 )
 from sift_py.ingestion._internal.rule import get_asset_rules_json, update_rules
 from sift_py.ingestion.channel import (
