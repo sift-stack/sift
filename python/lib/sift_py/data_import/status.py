@@ -56,7 +56,8 @@ class DataImport(BaseModel):
                 return value
 
         raise PydanticCustomError(
-            cast(LiteralString, "invalid_data_import_error"), cast(LiteralString, f"Invalid data import status: {raw}.")
+            cast(LiteralString, "invalid_data_import_error"),
+            cast(LiteralString, f"Invalid data import status: {raw}."),
         )
 
 
