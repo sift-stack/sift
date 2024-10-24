@@ -1,7 +1,8 @@
 import time
 from datetime import datetime
 from enum import Enum
-from typing import LiteralString, Optional, Union, cast
+from typing import Optional, Union, cast
+from typing_extensions import LiteralString
 from urllib.parse import urljoin
 
 import requests
