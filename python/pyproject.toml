@@ -33,9 +33,9 @@ dependencies = [
   "requests-toolbelt~=1.0",
 
   # May move these to optional dependencies in the future.
-  "pandas-stubs~=2.0",
+  "pandas-stubs~=1.4",
   "types-PyYAML~=6.0",
-  "types-protobuf~=5.26",
+  "types-protobuf~=4.24",
   "typing-extensions~=4.6",
   "types-requests~=2.25",
 ]
