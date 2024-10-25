@@ -55,6 +55,12 @@ run_pyright() {
   pyright lib
 }
 
+run_checks() {
+  lint_fix
+  run_mypy
+  run_pyright
+}
+
 fmt() {
   source venv/bin/activate
   ruff format
@@ -117,6 +123,9 @@ case "$1" in
         ;;
     pyright)
         run_pyright
+        ;;
+    check)
+        run_checks
         ;;
     test)
         run_tests
