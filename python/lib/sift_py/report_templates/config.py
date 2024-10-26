@@ -13,6 +13,7 @@ class ReportTemplateConfig(AsJson):
     """
     name: str
     template_client_key: str
+    organization_id: str = ""
     tags: Optional[List[str]]
     description: Optional[str]
     rules: List[RuleConfig]
