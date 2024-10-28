@@ -63,12 +63,12 @@ with use_sift_channel(sift_channel_config) as channel:
         entity_type=EntityType.RUN,
     )
 
-    # uploading the file attachment and attaching it to a run of `run_id`
+    # uploading the file attachment and attaching it to a run of `run_id`.
     remote_file = file_attachment_service.upload_attachment(
         path="path/to/foo.mp4",
         entity=run,
         # Metatadata.. optional but recommended for optimal viewing in the application
-        metadata=VideoMetadata(height=2160, width=3840, duration_seconds=5.5),
+        metadata=VideoMetadata(height=2160, width=3840, duration_seconds=5.5, timestamp=datetime(2024, 10, 19, 2, 22, 22),
         description="thrusters getting too hot" ,
     )
 

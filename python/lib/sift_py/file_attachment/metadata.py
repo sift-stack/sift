@@ -5,8 +5,10 @@ Though optional, providing this information could help improve quality of render
 
 from __future__ import annotations
 
-from typing import Any, Type
+from datetime import datetime
+from typing import Any, Optional, Type
 
+from google.protobuf.timestamp_pb2 import Timestamp
 from sift.remote_files.v1.remote_files_pb2 import (
     ImageMetadata as ImageMetadataPb,
 )
@@ -30,17 +32,28 @@ class VideoMetadata(AsProtobuf, Metadata):
     width: int
     height: int
     duration_seconds: float
+    timestamp: Optional[datetime]
 
-    def __init__(self, width: int, height: int, duration_seconds: float):
+    def __init__(
+        self, width: int, height: int, duration_seconds: float, timestamp: Optional[datetime] = None
+    ):
         self.width = width
         self.height = height
         self.duration_seconds = duration_seconds
+        self.timestamp = timestamp
 
     def as_pb(self, klass: Type[VideoMetadataPb]) -> VideoMetadataPb:
+        if self.timestamp is not None:
+            timestamp_pb = Timestamp()
+            timestamp_pb.FromDatetime(self.timestamp)
+        else:
+            timestamp_pb = None
+
         return klass(
             width=self.width,
             height=self.height,
             duration_seconds=self.duration_seconds,
+            timestamp=timestamp_pb,
         )
 
     @classmethod
@@ -49,13 +62,16 @@ class VideoMetadata(AsProtobuf, Metadata):
             width=message.width,
             height=message.height,
             duration_seconds=message.duration_seconds,
+            timestamp=message.timestamp.ToDateTime(),  # type: ignore
         )
 
     def as_json(self) -> Any:
+        timestamp = None if self.timestamp is None else self.timestamp.isoformat()
         return {
             "height": self.height,
             "width": self.width,
             "duration_seconds": self.duration_seconds,
+            "timestamp": timestamp,
         }
 
 
