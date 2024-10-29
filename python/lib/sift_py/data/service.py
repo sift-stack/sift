@@ -330,16 +330,19 @@ class DataService:
             if chans.get(fqn) is None:
                 channels_to_retrieve.append(fqn)
 
-        sift_channels = await self._get_channels_by_asset_id_and_channel_fqns(
-            asset.asset_id, channels_to_retrieve
-        )
+        sift_channels = []
+        if len(channels_to_retrieve) > 0:
+            sift_channels = await self._get_channels_by_asset_id_and_channel_fqns(
+                asset.asset_id, channels_to_retrieve
+            )
 
         channels = defaultdict(list)
 
         for c in sift_channels:
             channels[channel_fqn(c.name, c.component)].append(c)
 
-        self._cached_channels[asset.name].update(channels)
+        if len(channels) > 0:
+            self._cached_channels[asset.name].update(channels)
 
         return self._cached_channels[asset.name]
 
@@ -422,7 +425,7 @@ class DataService:
     async def _get_channels_by_asset_id_and_channel_fqns(
         self, asset_id: str, channel_fqns: List[str]
     ) -> List[Channel]:
-        if len(asset_id) == 0:
+        if len(asset_id) == 0 or len(channel_fqns) == 0:
             return []
 
         channels: List[Channel] = []
