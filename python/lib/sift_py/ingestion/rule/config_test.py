@@ -163,9 +163,9 @@ def test_rule_namespace():
     assert valid_namespace_rule.name == "valid_rule"
     assert valid_namespace_rule.description == "A rule in a namespace"
     assert valid_namespace_rule.expression == "$1 > 10"
-    assert valid_namespace_rule.action.assignee == "bob@example.com"  # type: ignore
-    assert valid_namespace_rule.action.tags == ["foo", "bar"]  # type: ignore
-    assert valid_namespace_rule.action.kind() == RuleActionKind.ANNOTATION  # type: ignore
+    assert valid_namespace_rule.action.assignee == "bob@example.com"
+    assert valid_namespace_rule.action.tags == ["foo", "bar"]
+    assert valid_namespace_rule.action.kind() == RuleActionKind.ANNOTATION
     assert valid_namespace_rule.rule_client_key == "valid_rule_client_key"
     assert isinstance(valid_namespace_rule.action, RuleActionCreateDataReviewAnnotation)
 

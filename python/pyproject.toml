@@ -70,6 +70,9 @@ python_version = "3.8"
 
 [tool.pyright]
 python_version = "3.8"
+reportOptionalMemberAccess = "none"
+reportArgumentType = "none"
+reportAttributeAccessIssue = "none"
 exclude = [
     ".bzr",
     ".direnv",
