@@ -1,6 +1,7 @@
 import pytest
 
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
+from sift_py.ingestion.config.yaml.spec import RuleYamlSpec
 
 from .config import (
     RuleActionCreateDataReviewAnnotation,
@@ -115,28 +116,32 @@ def test_rule_named_expressions():
 def test_rule_namespace():
     namespace_rules = {
         "valid_namespace": [
-            {
-                "name": "valid_rule",
-                "description": "A rule in a namespace",
-                "expression": "$1 > 10",
-                "type": "review",
-                "assignee": "bob@example.com",
-                "tags": ["foo", "bar"],
-                "rule_client_key": "valid_rule_client_key",
-                "asset_names": ["asset1", "asset2"],
-                "tag_names": ["tag1", "tag2"],
-            },
-            {
-                "name": "another_valid_rule",
-                "description": "Another rule in a namespace",
-                "expression": "$1 < 10",
-                "type": "review",
-                "assignee": "mary@example.com",
-                "tags": ["baz", "qux"],
-                "rule_client_key": "another_valid_rule_client_key",
-                "asset_names": ["asset2"],
-                "tag_names": ["tag2"],
-            },
+            RuleYamlSpec(
+                {
+                    "name": "valid_rule",
+                    "description": "A rule in a namespace",
+                    "expression": "$1 > 10",
+                    "type": "review",
+                    "assignee": "bob@example.com",
+                    "tags": ["foo", "bar"],
+                    "rule_client_key": "valid_rule_client_key",
+                    "asset_names": ["asset1", "asset2"],
+                    "tag_names": ["tag1", "tag2"],
+                }
+            ),
+            RuleYamlSpec(
+                {
+                    "name": "another_valid_rule",
+                    "description": "Another rule in a namespace",
+                    "expression": "$1 < 10",
+                    "type": "review",
+                    "assignee": "mary@example.com",
+                    "tags": ["baz", "qux"],
+                    "rule_client_key": "another_valid_rule_client_key",
+                    "asset_names": ["asset2"],
+                    "tag_names": ["tag2"],
+                }
+            ),
         ]
     }
 
@@ -186,24 +191,28 @@ def test_rule_namespace_missing_namespace():
     with pytest.raises(ValueError, match="Couldn't find namespace"):
         namespace_rules = {
             "a_namespace": [
-                {
-                    "name": "valid_rule",
-                    "description": "A rule in a namespace",
-                    "expression": "$1 > 10",
-                    "type": "review",
-                    "assignee": "bob@example.com",
-                    "tags": ["foo", "bar"],
-                },
+                RuleYamlSpec(
+                    {
+                        "name": "valid_rule",
+                        "description": "A rule in a namespace",
+                        "expression": "$1 > 10",
+                        "type": "review",
+                        "assignee": "bob@example.com",
+                        "tags": ["foo", "bar"],
+                    }
+                ),
             ],
             "another_namespace": [
-                {
-                    "name": "valid_rule",
-                    "description": "A rule in a namespace",
-                    "expression": "$1 > 10",
-                    "type": "review",
-                    "assignee": "bob@example.com",
-                    "tags": ["foo", "bar"],
-                },
+                RuleYamlSpec(
+                    {
+                        "name": "valid_rule",
+                        "description": "A rule in a namespace",
+                        "expression": "$1 > 10",
+                        "type": "review",
+                        "assignee": "bob@example.com",
+                        "tags": ["foo", "bar"],
+                    }
+                ),
             ],
         }
 
@@ -227,24 +236,28 @@ def test_rule_namespace_missing_rule():
     with pytest.raises(ValueError, match="Does this rule exist in the namespace?"):
         namespace_rules = {
             "a_namespace": [
-                {
-                    "name": "a_rule_in_namespace",
-                    "description": "A rule in a namespace",
-                    "expression": "$1 > 10",
-                    "type": "review",
-                    "assignee": "bob@example.com",
-                    "tags": ["foo", "bar"],
-                },
+                RuleYamlSpec(
+                    {
+                        "name": "a_rule_in_namespace",
+                        "description": "A rule in a namespace",
+                        "expression": "$1 > 10",
+                        "type": "review",
+                        "assignee": "bob@example.com",
+                        "tags": ["foo", "bar"],
+                    }
+                ),
             ],
             "another_namespace": [
-                {
-                    "name": "another_rule_in_namespace",
-                    "description": "A rule in a namespace",
-                    "expression": "$1 > 10",
-                    "type": "review",
-                    "assignee": "bob@example.com",
-                    "tags": ["foo", "bar"],
-                },
+                RuleYamlSpec(
+                    {
+                        "name": "another_rule_in_namespace",
+                        "description": "A rule in a namespace",
+                        "expression": "$1 > 10",
+                        "type": "review",
+                        "assignee": "bob@example.com",
+                        "tags": ["foo", "bar"],
+                    }
+                ),
             ],
         }
 

@@ -17,6 +17,7 @@ Subcommands:
   lint-fix       Runs 'ruff check --fix'
   lint           Runs 'ruff check' to lint the lib directory
   mypy           Runs 'mypy lib' for static analysis
+  pyright        Runs 'pyright lib' for type checking
   pip-install    Install project dependencies
   test           Execute tests
   update-dev     Copies changes to the dev script over to the venv bin
@@ -47,6 +48,17 @@ bootstrap() {
 run_mypy() {
   source venv/bin/activate
   mypy lib
+}
+
+run_pyright() {
+  source venv/bin/activate
+  pyright lib
+}
+
+run_checks() {
+  lint_fix
+  run_mypy
+  run_pyright
 }
 
 fmt() {
@@ -108,6 +120,12 @@ case "$1" in
         ;;
     mypy)
         run_mypy
+        ;;
+    pyright)
+        run_pyright
+        ;;
+    check)
+        run_checks
         ;;
     test)
         run_tests
