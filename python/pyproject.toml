@@ -25,7 +25,7 @@ dependencies = [
   "npTDMS~=1.9",
   "PyYAML~=6.0",
   "pandas~=2.0",
-  "protobuf~=5.26",
+  "protobuf>=4.0",
   "pydantic~=2.0",
   "pydantic_core~=2.3",
   "requests~=2.25",
@@ -34,7 +34,7 @@ dependencies = [
   # May move these to optional dependencies in the future.
   "pandas-stubs~=2.0",
   "types-PyYAML~=6.0",
-  "types-protobuf~=5.26",
+  "types-protobuf>=4.0",
   "typing-extensions~=4.6",
   "types-requests~=2.25",
 ]
