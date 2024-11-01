@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.0-rc.2] - November 1, 2024
+
+Summary of changes:
+- Loosen various dependency requirements
+
 ## [v0.3.0-rc.1] - October 22, 2024
 
 This is the release candidate for v0.3.0 for the purposes of allowing folks to test various
@@ -195,7 +200,7 @@ Summary of changes:
 ## [v0.1.0] - July 12, 2024
 
 Summary of changes:
-- Promote to `v0.1.0` from release candidate state. 
+- Promote to `v0.1.0` from release candidate state.
 - [Add module to download telemetry](https://github.com/sift-stack/sift/pull/72)
 
 In addition to the changes above, documentation is now also available online:
