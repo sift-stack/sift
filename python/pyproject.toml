@@ -21,7 +21,7 @@ keywords = [
   "sift_py",
 ]
 dependencies = [
-  "grpcio~=1.64",
+  "grpcio~=1.0",
   "npTDMS~=1.9",
   "PyYAML~=6.0",
   "pandas~=2.0",
@@ -47,7 +47,7 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
-  "grpcio-testing==1.64.1",
+  "grpcio-testing==1.0",
   "mypy==1.10.0",
   "pyright==1.1.386",
   "pytest==8.2.2",
