@@ -21,11 +21,11 @@ keywords = [
   "sift_py",
 ]
 dependencies = [
-  "grpcio~=1.64",
+  "grpcio~=1.13",
   "npTDMS~=1.9",
   "PyYAML~=6.0",
   "pandas~=2.0",
-  "protobuf~=5.26",
+  "protobuf>=4.0",
   "pydantic~=2.0",
   "pydantic_core~=2.3",
   "requests~=2.25",
@@ -34,7 +34,7 @@ dependencies = [
   # May move these to optional dependencies in the future.
   "pandas-stubs~=2.0",
   "types-PyYAML~=6.0",
-  "types-protobuf~=5.26",
+  "types-protobuf>=4.0",
   "typing-extensions~=4.6",
   "types-requests~=2.25",
 ]
@@ -47,7 +47,7 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
-  "grpcio-testing==1.64.1",
+  "grpcio-testing==1.13",
   "mypy==1.10.0",
   "pyright==1.1.386",
   "pytest==8.2.2",
