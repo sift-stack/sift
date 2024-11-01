@@ -13,6 +13,8 @@ rust/protos/**/*
 
 go/protos/**/*
 python/protos/**/*
+python/dependencies/**/*
+python/dist/**/*
 .DS_Store
 
 python/build
