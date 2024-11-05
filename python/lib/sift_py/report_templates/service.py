@@ -40,7 +40,7 @@ class ReportTemplateService():
             return None
 
     def _create_report_template(self, config: ReportTemplateConfig):
-        rule_client_keys = self._get_rule_client_keys(config)  # TODO only like this for reuse
+        rule_client_keys = self._get_rule_client_keys(config)
         client_keys_req = CreateReportTemplateRequestClientKeys(rule_client_keys=rule_client_keys)
         req = CreateReportTemplateRequest(
             name=config.name,
