@@ -1,6 +1,6 @@
-import pytest
-
 from unittest import mock
+
+import pytest
 
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py.report_templates.config import ReportTemplateConfig
@@ -21,7 +21,7 @@ def report_template_service():
     return ReportTemplateService(MockChannel())
 
 
-def test_report_template_service_create_report_template(report_template_service):  #, mock_create_report_template): #, mock_get_report_template_by_client_key):
+def test_report_template_service_create_report_template(report_template_service):
     report_template_config = ReportTemplateConfig(
         name="report-template",
         template_client_key="template-client-key",
