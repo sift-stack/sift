@@ -29,6 +29,7 @@ class ReportTemplateService():
             raise Exception(f"Report template {config.name} requires a template_client_key")
         if self._get_report_template_by_client_key(config.template_client_key):
             self._update_report_template(config)
+            return
         self._create_report_template(config)
 
     def _get_report_template_by_client_key(self, client_key: str) -> Optional[ReportTemplate]:
