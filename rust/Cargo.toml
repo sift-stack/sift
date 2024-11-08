@@ -1,5 +1,5 @@
 [package]
-name = "sift"
+name = "sift_rs"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,7 +12,9 @@ pbjson-types = "0.6.0"
 prost = "0.12.4"
 prost-types = "0.12.4"
 serde = { version = "1.0.203" }
+thiserror = "2.0.0"
 tonic = { version = "0.11.0", features = ["tls", "tls-roots", "tls-webpki-roots"] }
+tower = "0.4.13"
 
 [features]
 default = []
