@@ -24,13 +24,13 @@ global___PingRequest = PingRequest
 class PingResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    TEXT_FIELD_NUMBER: builtins.int
-    text: builtins.str
+    RESPONSE_FIELD_NUMBER: builtins.int
+    response: builtins.str
     def __init__(
         self,
         *,
-        text: builtins.str = ...,
+        response: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["text", b"text"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["response", b"response"]) -> None: ...
 
 global___PingResponse = PingResponse

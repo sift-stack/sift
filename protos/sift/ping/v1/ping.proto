@@ -20,5 +20,5 @@ service PingService {
 message PingRequest {}
 
 message PingResponse {
-  string text = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string response = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 }

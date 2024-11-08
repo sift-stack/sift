@@ -7,7 +7,7 @@ pub struct PingRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PingResponse {
     #[prost(string, tag="1")]
-    pub text: ::prost::alloc::string::String,
+    pub response: ::prost::alloc::string::String,
 }
 include!("sift.ping.v1.tonic.rs");
 include!("sift.ping.v1.serde.rs");

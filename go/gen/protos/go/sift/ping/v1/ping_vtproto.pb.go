@@ -45,7 +45,7 @@ func (m *PingResponse) CloneVT() *PingResponse {
 		return (*PingResponse)(nil)
 	}
 	r := new(PingResponse)
-	r.Text = m.Text
+	r.Response = m.Response
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -79,7 +79,7 @@ func (this *PingResponse) EqualVT(that *PingResponse) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.Text != that.Text {
+	if this.Response != that.Response {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -247,10 +247,10 @@ func (m *PingResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.Text) > 0 {
-		i -= len(m.Text)
-		copy(dAtA[i:], m.Text)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Text)))
+	if len(m.Response) > 0 {
+		i -= len(m.Response)
+		copy(dAtA[i:], m.Response)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Response)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -320,10 +320,10 @@ func (m *PingResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.Text) > 0 {
-		i -= len(m.Text)
-		copy(dAtA[i:], m.Text)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Text)))
+	if len(m.Response) > 0 {
+		i -= len(m.Response)
+		copy(dAtA[i:], m.Response)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Response)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -346,7 +346,7 @@ func (m *PingResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Text)
+	l = len(m.Response)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -436,7 +436,7 @@ func (m *PingResponse) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Text", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Response", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -464,7 +464,7 @@ func (m *PingResponse) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Text = string(dAtA[iNdEx:postIndex])
+			m.Response = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -570,7 +570,7 @@ func (m *PingResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Text", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Response", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -602,7 +602,7 @@ func (m *PingResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 			if intStringLen > 0 {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
-			m.Text = stringValue
+			m.Response = stringValue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
