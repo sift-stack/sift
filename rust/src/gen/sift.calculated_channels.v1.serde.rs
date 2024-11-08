@@ -221,6 +221,9 @@ impl serde::Serialize for ExpressionIdentifier {
         if !self.display_name.is_empty() {
             len += 1;
         }
+        if self.library != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v1.ExpressionIdentifier", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -235,6 +238,11 @@ impl serde::Serialize for ExpressionIdentifier {
         }
         if !self.display_name.is_empty() {
             struct_ser.serialize_field("displayName", &self.display_name)?;
+        }
+        if self.library != 0 {
+            let v = ExpressionIdentifierLibrary::try_from(self.library)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.library)))?;
+            struct_ser.serialize_field("library", &v)?;
         }
         struct_ser.end()
     }
@@ -251,6 +259,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionIdentifier {
             "type",
             "display_name",
             "displayName",
+            "library",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -259,6 +268,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionIdentifier {
             Description,
             Type,
             DisplayName,
+            Library,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -284,6 +294,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionIdentifier {
                             "description" => Ok(GeneratedField::Description),
                             "type" => Ok(GeneratedField::Type),
                             "displayName" | "display_name" => Ok(GeneratedField::DisplayName),
+                            "library" => Ok(GeneratedField::Library),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -307,6 +318,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionIdentifier {
                 let mut description__ = None;
                 let mut r#type__ = None;
                 let mut display_name__ = None;
+                let mut library__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -333,6 +345,12 @@ impl<'de> serde::Deserialize<'de> for ExpressionIdentifier {
                             }
                             display_name__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Library => {
+                            if library__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("library"));
+                            }
+                            library__ = Some(map_.next_value::<ExpressionIdentifierLibrary>()? as i32);
+                        }
                     }
                 }
                 Ok(ExpressionIdentifier {
@@ -340,10 +358,97 @@ impl<'de> serde::Deserialize<'de> for ExpressionIdentifier {
                     description: description__.unwrap_or_default(),
                     r#type: r#type__.unwrap_or_default(),
                     display_name: display_name__.unwrap_or_default(),
+                    library: library__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("sift.calculated_channels.v1.ExpressionIdentifier", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ExpressionIdentifierLibrary {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "EXPRESSION_IDENTIFIER_LIBRARY_UNSPECIFIED",
+            Self::Math => "EXPRESSION_IDENTIFIER_LIBRARY_MATH",
+            Self::String => "EXPRESSION_IDENTIFIER_LIBRARY_STRING",
+            Self::List => "EXPRESSION_IDENTIFIER_LIBRARY_LIST",
+            Self::Iter => "EXPRESSION_IDENTIFIER_LIBRARY_ITER",
+            Self::Stateful => "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL",
+            Self::Summary => "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ExpressionIdentifierLibrary {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "EXPRESSION_IDENTIFIER_LIBRARY_UNSPECIFIED",
+            "EXPRESSION_IDENTIFIER_LIBRARY_MATH",
+            "EXPRESSION_IDENTIFIER_LIBRARY_STRING",
+            "EXPRESSION_IDENTIFIER_LIBRARY_LIST",
+            "EXPRESSION_IDENTIFIER_LIBRARY_ITER",
+            "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL",
+            "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ExpressionIdentifierLibrary;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "EXPRESSION_IDENTIFIER_LIBRARY_UNSPECIFIED" => Ok(ExpressionIdentifierLibrary::Unspecified),
+                    "EXPRESSION_IDENTIFIER_LIBRARY_MATH" => Ok(ExpressionIdentifierLibrary::Math),
+                    "EXPRESSION_IDENTIFIER_LIBRARY_STRING" => Ok(ExpressionIdentifierLibrary::String),
+                    "EXPRESSION_IDENTIFIER_LIBRARY_LIST" => Ok(ExpressionIdentifierLibrary::List),
+                    "EXPRESSION_IDENTIFIER_LIBRARY_ITER" => Ok(ExpressionIdentifierLibrary::Iter),
+                    "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL" => Ok(ExpressionIdentifierLibrary::Stateful),
+                    "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY" => Ok(ExpressionIdentifierLibrary::Summary),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for ExpressionIdentifierType {
@@ -430,6 +535,7 @@ impl serde::Serialize for ExpressionMode {
             Self::Unspecified => "EXPRESSION_MODE_UNSPECIFIED",
             Self::Rules => "EXPRESSION_MODE_RULES",
             Self::CalculatedChannels => "EXPRESSION_MODE_CALCULATED_CHANNELS",
+            Self::Ruler => "EXPRESSION_MODE_RULER",
         };
         serializer.serialize_str(variant)
     }
@@ -444,6 +550,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionMode {
             "EXPRESSION_MODE_UNSPECIFIED",
             "EXPRESSION_MODE_RULES",
             "EXPRESSION_MODE_CALCULATED_CHANNELS",
+            "EXPRESSION_MODE_RULER",
         ];
 
         struct GeneratedVisitor;
@@ -487,6 +594,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionMode {
                     "EXPRESSION_MODE_UNSPECIFIED" => Ok(ExpressionMode::Unspecified),
                     "EXPRESSION_MODE_RULES" => Ok(ExpressionMode::Rules),
                     "EXPRESSION_MODE_CALCULATED_CHANNELS" => Ok(ExpressionMode::CalculatedChannels),
+                    "EXPRESSION_MODE_RULER" => Ok(ExpressionMode::Ruler),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

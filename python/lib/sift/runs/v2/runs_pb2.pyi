@@ -30,6 +30,7 @@ class Run(google.protobuf.message.Message):
     NAME_FIELD_NUMBER: builtins.int
     DESCRIPTION_FIELD_NUMBER: builtins.int
     TAGS_FIELD_NUMBER: builtins.int
+    DEFAULT_REPORT_ID_FIELD_NUMBER: builtins.int
     run_id: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
@@ -37,6 +38,7 @@ class Run(google.protobuf.message.Message):
     is_pinned: builtins.bool
     name: builtins.str
     description: builtins.str
+    default_report_id: builtins.str
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -62,9 +64,10 @@ class Run(google.protobuf.message.Message):
         name: builtins.str = ...,
         description: builtins.str = ...,
         tags: collections.abc.Iterable[builtins.str] | None = ...,
+        default_report_id: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_start_time", b"_start_time", "_stop_time", b"_stop_time", "created_date", b"created_date", "modified_date", b"modified_date", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_start_time", b"_start_time", "_stop_time", b"_stop_time", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_pinned", b"is_pinned", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_start_time", b"_start_time", "_stop_time", b"_stop_time", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "default_report_id", b"default_report_id", "description", b"description", "is_pinned", b"is_pinned", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_start_time", b"_start_time"]) -> typing.Literal["start_time"] | None: ...
     @typing.overload
@@ -118,6 +121,7 @@ class ListRunsRequest(google.protobuf.message.Message):
     PAGE_SIZE_FIELD_NUMBER: builtins.int
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of runs to return.
     The service may return fewer than this value.
@@ -133,9 +137,16 @@ class ListRunsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-    `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, and `is_pinned`.
+    `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, and `asset_name`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#run). Optional.
+    """
+    order_by: builtins.str
+    """How to order the retrieved runs. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+    Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `stop_time`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
     """
     def __init__(
         self,
@@ -143,8 +154,9 @@ class ListRunsRequest(google.protobuf.message.Message):
         page_size: builtins.int = ...,
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
+        order_by: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListRunsRequest = ListRunsRequest
 

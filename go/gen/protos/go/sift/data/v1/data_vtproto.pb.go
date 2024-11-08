@@ -135,6 +135,10 @@ func (m *CalculatedChannelQuery) CloneVT() *CalculatedChannelQuery {
 		tmpVal := *rhs
 		r.RunId = &tmpVal
 	}
+	if rhs := m.Mode; rhs != nil {
+		tmpVal := *rhs
+		r.Mode = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -898,6 +902,9 @@ func (this *CalculatedChannelQuery) EqualVT(that *CalculatedChannelQuery) bool {
 		return false
 	}
 	if p, q := this.RunId, that.RunId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.Mode, that.Mode; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2065,6 +2072,11 @@ func (m *CalculatedChannelQuery) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Mode != nil {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.Mode))
+		i--
+		dAtA[i] = 0x20
 	}
 	if m.RunId != nil {
 		i -= len(*m.RunId)
@@ -3818,6 +3830,11 @@ func (m *CalculatedChannelQuery) MarshalToSizedBufferVTStrict(dAtA []byte) (int,
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Mode != nil {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.Mode))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.RunId != nil {
 		i -= len(*m.RunId)
 		copy(dAtA[i:], *m.RunId)
@@ -5439,6 +5456,9 @@ func (m *CalculatedChannelQuery) SizeVT() (n int) {
 		l = len(*m.RunId)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.Mode != nil {
+		n += 1 + protohelpers.SizeOfVarint(uint64(*m.Mode))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -6600,6 +6620,26 @@ func (m *CalculatedChannelQuery) UnmarshalVT(dAtA []byte) error {
 			s := string(dAtA[iNdEx:postIndex])
 			m.RunId = &s
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			var v v1.ExpressionMode
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= v1.ExpressionMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Mode = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -10567,6 +10607,26 @@ func (m *CalculatedChannelQuery) UnmarshalVTUnsafe(dAtA []byte) error {
 			s := stringValue
 			m.RunId = &s
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
+			}
+			var v v1.ExpressionMode
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= v1.ExpressionMode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Mode = &v
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

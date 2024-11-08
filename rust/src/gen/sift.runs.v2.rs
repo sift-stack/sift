@@ -26,6 +26,8 @@ pub struct Run {
     pub description: ::prost::alloc::string::String,
     #[prost(string, repeated, tag="12")]
     pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag="13")]
+    pub default_report_id: ::prost::alloc::string::String,
 }
 /// The request for a call to `RunService_GetRun` to retrieve run.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -60,11 +62,18 @@ pub struct ListRunsRequest {
     pub page_token: ::prost::alloc::string::String,
     /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
     /// Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-    /// `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, and `is_pinned`.
+    /// `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, and `asset_name`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
     /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#run). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
+    /// How to order the retrieved runs. Formatted as a comma-separated string i.e. "<field_name>\[ desc\],...".
+    /// Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `stop_time`.
+    /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)
+    /// Example: "created_date desc,modified_date"
+    #[prost(string, tag="4")]
+    pub order_by: ::prost::alloc::string::String,
 }
 /// The response of a call to `RunService_ListRuns` containing requested runs.
 #[allow(clippy::derive_partial_eq_without_eq)]

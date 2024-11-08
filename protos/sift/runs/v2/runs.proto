@@ -111,6 +111,7 @@ message Run {
   string name = 10 [(google.api.field_behavior) = REQUIRED];
   string description = 11 [(google.api.field_behavior) = REQUIRED];
   repeated string tags = 12 [(google.api.field_behavior) = REQUIRED];
+  string default_report_id = 13 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The request for a call to `RunService_GetRun` to retrieve run.
@@ -140,10 +141,17 @@ message ListRunsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-  // `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, and `is_pinned`.
+  // `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, and `asset_name`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#run). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved runs. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+  // Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `stop_time`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `RunService_ListRuns` containing requested runs.

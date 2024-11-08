@@ -267,6 +267,7 @@ class ListReportTemplatesRequest(google.protobuf.message.Message):
     FILTER_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     INCLUDE_ARCHIVED_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of report templates to return. The service may return fewer than this value.
     If unspecified, at most 50 report templates will be returned. The maximum value is 1000; values above
@@ -280,7 +281,7 @@ class ListReportTemplatesRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `report_template_id`, `client_key`, and `name`.
+    Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, and `name`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#report_templates). Optional.
     """
@@ -288,6 +289,13 @@ class ListReportTemplatesRequest(google.protobuf.message.Message):
     """This field is only required if your user belongs to multiple organizations."""
     include_archived: builtins.bool
     """If `true` then archived report templates will be included in the query. Defaults to `false`."""
+    order_by: builtins.str
+    """How to order the retrieved report templates. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+    Available fields to order_by are `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
     def __init__(
         self,
         *,
@@ -296,8 +304,9 @@ class ListReportTemplatesRequest(google.protobuf.message.Message):
         filter: builtins.str = ...,
         organization_id: builtins.str = ...,
         include_archived: builtins.bool = ...,
+        order_by: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "include_archived", b"include_archived", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "include_archived", b"include_archived", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListReportTemplatesRequest = ListReportTemplatesRequest
 

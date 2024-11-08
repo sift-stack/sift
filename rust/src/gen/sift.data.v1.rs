@@ -51,6 +51,7 @@ pub mod query {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ChannelQuery {
+    /// channel_id is the uuid of the channel.
     #[prost(string, tag="1")]
     pub channel_id: ::prost::alloc::string::String,
     /// Optional.
@@ -73,6 +74,9 @@ pub struct CalculatedChannelQuery {
     /// If unset, all run / non-run data is returned.
     #[prost(string, optional, tag="3")]
     pub run_id: ::core::option::Option<::prost::alloc::string::String>,
+    /// Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS.
+    #[prost(enumeration="super::super::calculated_channels::v1::ExpressionMode", optional, tag="4")]
+    pub mode: ::core::option::Option<i32>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

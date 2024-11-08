@@ -119,6 +119,7 @@ class ReportRuleSummary(google.protobuf.message.Message):
     STATUS_DETAILS_FIELD_NUMBER: builtins.int
     CREATED_DATE_FIELD_NUMBER: builtins.int
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
+    ASSET_ID_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_client_key: builtins.str
     rule_version_id: builtins.str
@@ -128,6 +129,7 @@ class ReportRuleSummary(google.protobuf.message.Message):
     num_failed: builtins.int
     num_passed: builtins.int
     status: global___ReportRuleStatus.ValueType
+    asset_id: builtins.str
     @property
     def status_details(self) -> global___ReportRuleStatusDetails: ...
     @property
@@ -149,9 +151,10 @@ class ReportRuleSummary(google.protobuf.message.Message):
         status_details: global___ReportRuleStatusDetails | None = ...,
         created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        asset_id: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date", "status_details", b"status_details"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date", "num_failed", b"num_failed", "num_open", b"num_open", "num_passed", b"num_passed", "report_rule_version_id", b"report_rule_version_id", "rule_client_key", b"rule_client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number", "status", b"status", "status_details", b"status_details"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_date", b"created_date", "modified_date", b"modified_date", "num_failed", b"num_failed", "num_open", b"num_open", "num_passed", b"num_passed", "report_rule_version_id", b"report_rule_version_id", "rule_client_key", b"rule_client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number", "status", b"status", "status_details", b"status_details"]) -> None: ...
 
 global___ReportRuleSummary = ReportRuleSummary
 
@@ -437,6 +440,7 @@ class ListReportsRequest(google.protobuf.message.Message):
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of reports to return. The service may return fewer than this value.
     If unspecified, at most 50 reports will be returned. The maximum value is 1000; values above
@@ -456,6 +460,13 @@ class ListReportsRequest(google.protobuf.message.Message):
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""
+    order_by: builtins.str
+    """How to order the retrieved reports. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+    Available fields to order_by are `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
     def __init__(
         self,
         *,
@@ -463,8 +474,9 @@ class ListReportsRequest(google.protobuf.message.Message):
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
         organization_id: builtins.str = ...,
+        order_by: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListReportsRequest = ListReportsRequest
 

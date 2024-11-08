@@ -47,6 +47,8 @@ pub struct ExpressionIdentifier {
     pub r#type: i32,
     #[prost(string, tag="4")]
     pub display_name: ::prost::alloc::string::String,
+    #[prost(enumeration="ExpressionIdentifierLibrary", tag="5")]
+    pub library: i32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -116,10 +118,52 @@ impl ExpressionIdentifierType {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum ExpressionIdentifierLibrary {
+    Unspecified = 0,
+    Math = 1,
+    String = 2,
+    List = 3,
+    Iter = 4,
+    Stateful = 5,
+    Summary = 6,
+}
+impl ExpressionIdentifierLibrary {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            ExpressionIdentifierLibrary::Unspecified => "EXPRESSION_IDENTIFIER_LIBRARY_UNSPECIFIED",
+            ExpressionIdentifierLibrary::Math => "EXPRESSION_IDENTIFIER_LIBRARY_MATH",
+            ExpressionIdentifierLibrary::String => "EXPRESSION_IDENTIFIER_LIBRARY_STRING",
+            ExpressionIdentifierLibrary::List => "EXPRESSION_IDENTIFIER_LIBRARY_LIST",
+            ExpressionIdentifierLibrary::Iter => "EXPRESSION_IDENTIFIER_LIBRARY_ITER",
+            ExpressionIdentifierLibrary::Stateful => "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL",
+            ExpressionIdentifierLibrary::Summary => "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "EXPRESSION_IDENTIFIER_LIBRARY_UNSPECIFIED" => Some(Self::Unspecified),
+            "EXPRESSION_IDENTIFIER_LIBRARY_MATH" => Some(Self::Math),
+            "EXPRESSION_IDENTIFIER_LIBRARY_STRING" => Some(Self::String),
+            "EXPRESSION_IDENTIFIER_LIBRARY_LIST" => Some(Self::List),
+            "EXPRESSION_IDENTIFIER_LIBRARY_ITER" => Some(Self::Iter),
+            "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL" => Some(Self::Stateful),
+            "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY" => Some(Self::Summary),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum ExpressionMode {
     Unspecified = 0,
     Rules = 1,
     CalculatedChannels = 2,
+    Ruler = 3,
 }
 impl ExpressionMode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -131,6 +175,7 @@ impl ExpressionMode {
             ExpressionMode::Unspecified => "EXPRESSION_MODE_UNSPECIFIED",
             ExpressionMode::Rules => "EXPRESSION_MODE_RULES",
             ExpressionMode::CalculatedChannels => "EXPRESSION_MODE_CALCULATED_CHANNELS",
+            ExpressionMode::Ruler => "EXPRESSION_MODE_RULER",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -139,6 +184,7 @@ impl ExpressionMode {
             "EXPRESSION_MODE_UNSPECIFIED" => Some(Self::Unspecified),
             "EXPRESSION_MODE_RULES" => Some(Self::Rules),
             "EXPRESSION_MODE_CALCULATED_CHANNELS" => Some(Self::CalculatedChannels),
+            "EXPRESSION_MODE_RULER" => Some(Self::Ruler),
             _ => None,
         }
     }

@@ -58,6 +58,12 @@ impl serde::Serialize for Annotation {
         if self.created_by_condition_id.is_some() {
             len += 1;
         }
+        if self.created_by_rule_condition_version_id.is_some() {
+            len += 1;
+        }
+        if self.report_rule_version_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.Annotation", len)?;
         if !self.annotation_id.is_empty() {
             struct_ser.serialize_field("annotationId", &self.annotation_id)?;
@@ -114,6 +120,12 @@ impl serde::Serialize for Annotation {
         if let Some(v) = self.created_by_condition_id.as_ref() {
             struct_ser.serialize_field("createdByConditionId", v)?;
         }
+        if let Some(v) = self.created_by_rule_condition_version_id.as_ref() {
+            struct_ser.serialize_field("createdByRuleConditionVersionId", v)?;
+        }
+        if let Some(v) = self.report_rule_version_id.as_ref() {
+            struct_ser.serialize_field("reportRuleVersionId", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -154,6 +166,10 @@ impl<'de> serde::Deserialize<'de> for Annotation {
             "legendConfig",
             "created_by_condition_id",
             "createdByConditionId",
+            "created_by_rule_condition_version_id",
+            "createdByRuleConditionVersionId",
+            "report_rule_version_id",
+            "reportRuleVersionId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -175,6 +191,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
             Tags,
             LegendConfig,
             CreatedByConditionId,
+            CreatedByRuleConditionVersionId,
+            ReportRuleVersionId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -213,6 +231,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                             "tags" => Ok(GeneratedField::Tags),
                             "legendConfig" | "legend_config" => Ok(GeneratedField::LegendConfig),
                             "createdByConditionId" | "created_by_condition_id" => Ok(GeneratedField::CreatedByConditionId),
+                            "createdByRuleConditionVersionId" | "created_by_rule_condition_version_id" => Ok(GeneratedField::CreatedByRuleConditionVersionId),
+                            "reportRuleVersionId" | "report_rule_version_id" => Ok(GeneratedField::ReportRuleVersionId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -249,6 +269,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                 let mut tags__ = None;
                 let mut legend_config__ = None;
                 let mut created_by_condition_id__ = None;
+                let mut created_by_rule_condition_version_id__ = None;
+                let mut report_rule_version_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AnnotationId => {
@@ -353,6 +375,18 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                             }
                             created_by_condition_id__ = map_.next_value()?;
                         }
+                        GeneratedField::CreatedByRuleConditionVersionId => {
+                            if created_by_rule_condition_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdByRuleConditionVersionId"));
+                            }
+                            created_by_rule_condition_version_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::ReportRuleVersionId => {
+                            if report_rule_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportRuleVersionId"));
+                            }
+                            report_rule_version_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(Annotation {
@@ -373,6 +407,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                     tags: tags__.unwrap_or_default(),
                     legend_config: legend_config__,
                     created_by_condition_id: created_by_condition_id__,
+                    created_by_rule_condition_version_id: created_by_rule_condition_version_id__,
+                    report_rule_version_id: report_rule_version_id__,
                 })
             }
         }
@@ -1055,6 +1091,9 @@ impl serde::Serialize for CreateAnnotationRequest {
         if self.legend_config.is_some() {
             len += 1;
         }
+        if self.created_by_rule_condition_version_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.CreateAnnotationRequest", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -1102,6 +1141,9 @@ impl serde::Serialize for CreateAnnotationRequest {
         if let Some(v) = self.legend_config.as_ref() {
             struct_ser.serialize_field("legendConfig", v)?;
         }
+        if let Some(v) = self.created_by_rule_condition_version_id.as_ref() {
+            struct_ser.serialize_field("createdByRuleConditionVersionId", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1135,6 +1177,8 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
             "createdByConditionId",
             "legend_config",
             "legendConfig",
+            "created_by_rule_condition_version_id",
+            "createdByRuleConditionVersionId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1153,6 +1197,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
             AnnotationType,
             CreatedByConditionId,
             LegendConfig,
+            CreatedByRuleConditionVersionId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1188,6 +1233,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
                             "annotationType" | "annotation_type" => Ok(GeneratedField::AnnotationType),
                             "createdByConditionId" | "created_by_condition_id" => Ok(GeneratedField::CreatedByConditionId),
                             "legendConfig" | "legend_config" => Ok(GeneratedField::LegendConfig),
+                            "createdByRuleConditionVersionId" | "created_by_rule_condition_version_id" => Ok(GeneratedField::CreatedByRuleConditionVersionId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1221,6 +1267,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
                 let mut annotation_type__ = None;
                 let mut created_by_condition_id__ = None;
                 let mut legend_config__ = None;
+                let mut created_by_rule_condition_version_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -1307,6 +1354,12 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
                             }
                             legend_config__ = map_.next_value()?;
                         }
+                        GeneratedField::CreatedByRuleConditionVersionId => {
+                            if created_by_rule_condition_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdByRuleConditionVersionId"));
+                            }
+                            created_by_rule_condition_version_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(CreateAnnotationRequest {
@@ -1324,6 +1377,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
                     annotation_type: annotation_type__.unwrap_or_default(),
                     created_by_condition_id: created_by_condition_id__,
                     legend_config: legend_config__,
+                    created_by_rule_condition_version_id: created_by_rule_condition_version_id__,
                 })
             }
         }
@@ -1784,6 +1838,12 @@ impl serde::Serialize for ListAnnotationsRequest {
         if !self.filter.is_empty() {
             len += 1;
         }
+        if !self.organization_id.is_empty() {
+            len += 1;
+        }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.ListAnnotationsRequest", len)?;
         if self.page_size != 0 {
             struct_ser.serialize_field("pageSize", &self.page_size)?;
@@ -1793,6 +1853,12 @@ impl serde::Serialize for ListAnnotationsRequest {
         }
         if !self.filter.is_empty() {
             struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        if !self.organization_id.is_empty() {
+            struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
         }
         struct_ser.end()
     }
@@ -1809,6 +1875,10 @@ impl<'de> serde::Deserialize<'de> for ListAnnotationsRequest {
             "page_token",
             "pageToken",
             "filter",
+            "organization_id",
+            "organizationId",
+            "order_by",
+            "orderBy",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1816,6 +1886,8 @@ impl<'de> serde::Deserialize<'de> for ListAnnotationsRequest {
             PageSize,
             PageToken,
             Filter,
+            OrganizationId,
+            OrderBy,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1840,6 +1912,8 @@ impl<'de> serde::Deserialize<'de> for ListAnnotationsRequest {
                             "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
                             "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
                             "filter" => Ok(GeneratedField::Filter),
+                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1862,6 +1936,8 @@ impl<'de> serde::Deserialize<'de> for ListAnnotationsRequest {
                 let mut page_size__ = None;
                 let mut page_token__ = None;
                 let mut filter__ = None;
+                let mut organization_id__ = None;
+                let mut order_by__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PageSize => {
@@ -1884,12 +1960,26 @@ impl<'de> serde::Deserialize<'de> for ListAnnotationsRequest {
                             }
                             filter__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::OrganizationId => {
+                            if organization_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("organizationId"));
+                            }
+                            organization_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ListAnnotationsRequest {
                     page_size: page_size__.unwrap_or_default(),
                     page_token: page_token__.unwrap_or_default(),
                     filter: filter__.unwrap_or_default(),
+                    organization_id: organization_id__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
                 })
             }
         }

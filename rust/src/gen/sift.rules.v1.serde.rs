@@ -203,6 +203,189 @@ impl<'de> serde::Deserialize<'de> for AnnotationActionConfiguration {
         deserializer.deserialize_struct("sift.rules.v1.AnnotationActionConfiguration", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for BatchGetRuleVersionsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rule_version_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.BatchGetRuleVersionsRequest", len)?;
+        if !self.rule_version_ids.is_empty() {
+            struct_ser.serialize_field("ruleVersionIds", &self.rule_version_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchGetRuleVersionsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule_version_ids",
+            "ruleVersionIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RuleVersionIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "ruleVersionIds" | "rule_version_ids" => Ok(GeneratedField::RuleVersionIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchGetRuleVersionsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.BatchGetRuleVersionsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchGetRuleVersionsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule_version_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RuleVersionIds => {
+                            if rule_version_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersionIds"));
+                            }
+                            rule_version_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchGetRuleVersionsRequest {
+                    rule_version_ids: rule_version_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.BatchGetRuleVersionsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchGetRuleVersionsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rules.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.BatchGetRuleVersionsResponse", len)?;
+        if !self.rules.is_empty() {
+            struct_ser.serialize_field("rules", &self.rules)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchGetRuleVersionsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rules",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Rules,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "rules" => Ok(GeneratedField::Rules),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchGetRuleVersionsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.BatchGetRuleVersionsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchGetRuleVersionsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rules__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Rules => {
+                            if rules__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rules"));
+                            }
+                            rules__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchGetRuleVersionsResponse {
+                    rules: rules__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.BatchGetRuleVersionsResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for BatchGetRulesRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -214,9 +397,15 @@ impl serde::Serialize for BatchGetRulesRequest {
         if !self.rule_ids.is_empty() {
             len += 1;
         }
+        if !self.client_keys.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.BatchGetRulesRequest", len)?;
         if !self.rule_ids.is_empty() {
             struct_ser.serialize_field("ruleIds", &self.rule_ids)?;
+        }
+        if !self.client_keys.is_empty() {
+            struct_ser.serialize_field("clientKeys", &self.client_keys)?;
         }
         struct_ser.end()
     }
@@ -230,11 +419,14 @@ impl<'de> serde::Deserialize<'de> for BatchGetRulesRequest {
         const FIELDS: &[&str] = &[
             "rule_ids",
             "ruleIds",
+            "client_keys",
+            "clientKeys",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             RuleIds,
+            ClientKeys,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -257,6 +449,7 @@ impl<'de> serde::Deserialize<'de> for BatchGetRulesRequest {
                     {
                         match value {
                             "ruleIds" | "rule_ids" => Ok(GeneratedField::RuleIds),
+                            "clientKeys" | "client_keys" => Ok(GeneratedField::ClientKeys),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -277,6 +470,7 @@ impl<'de> serde::Deserialize<'de> for BatchGetRulesRequest {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut rule_ids__ = None;
+                let mut client_keys__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleIds => {
@@ -285,10 +479,17 @@ impl<'de> serde::Deserialize<'de> for BatchGetRulesRequest {
                             }
                             rule_ids__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ClientKeys => {
+                            if client_keys__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKeys"));
+                            }
+                            client_keys__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(BatchGetRulesRequest {
                     rule_ids: rule_ids__.unwrap_or_default(),
+                    client_keys: client_keys__.unwrap_or_default(),
                 })
             }
         }
@@ -384,6 +585,228 @@ impl<'de> serde::Deserialize<'de> for BatchGetRulesResponse {
             }
         }
         deserializer.deserialize_struct("sift.rules.v1.BatchGetRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUpdateRulesRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rules.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.BatchUpdateRulesRequest", len)?;
+        if !self.rules.is_empty() {
+            struct_ser.serialize_field("rules", &self.rules)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUpdateRulesRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rules",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Rules,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "rules" => Ok(GeneratedField::Rules),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUpdateRulesRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.BatchUpdateRulesRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUpdateRulesRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rules__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Rules => {
+                            if rules__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rules"));
+                            }
+                            rules__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchUpdateRulesRequest {
+                    rules: rules__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.BatchUpdateRulesRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUpdateRulesResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.success {
+            len += 1;
+        }
+        if self.rules_created_count != 0 {
+            len += 1;
+        }
+        if self.rules_updated_count != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.BatchUpdateRulesResponse", len)?;
+        if self.success {
+            struct_ser.serialize_field("success", &self.success)?;
+        }
+        if self.rules_created_count != 0 {
+            struct_ser.serialize_field("rulesCreatedCount", &self.rules_created_count)?;
+        }
+        if self.rules_updated_count != 0 {
+            struct_ser.serialize_field("rulesUpdatedCount", &self.rules_updated_count)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "success",
+            "rules_created_count",
+            "rulesCreatedCount",
+            "rules_updated_count",
+            "rulesUpdatedCount",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Success,
+            RulesCreatedCount,
+            RulesUpdatedCount,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "success" => Ok(GeneratedField::Success),
+                            "rulesCreatedCount" | "rules_created_count" => Ok(GeneratedField::RulesCreatedCount),
+                            "rulesUpdatedCount" | "rules_updated_count" => Ok(GeneratedField::RulesUpdatedCount),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUpdateRulesResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.BatchUpdateRulesResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUpdateRulesResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut success__ = None;
+                let mut rules_created_count__ = None;
+                let mut rules_updated_count__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Success => {
+                            if success__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("success"));
+                            }
+                            success__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RulesCreatedCount => {
+                            if rules_created_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rulesCreatedCount"));
+                            }
+                            rules_created_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::RulesUpdatedCount => {
+                            if rules_updated_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rulesUpdatedCount"));
+                            }
+                            rules_updated_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                    }
+                }
+                Ok(BatchUpdateRulesResponse {
+                    success: success__.unwrap_or_default(),
+                    rules_created_count: rules_created_count__.unwrap_or_default(),
+                    rules_updated_count: rules_updated_count__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.BatchUpdateRulesResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for CalculatedChannelConfig {
@@ -691,6 +1114,97 @@ impl<'de> serde::Deserialize<'de> for ConditionComparator {
         deserializer.deserialize_any(GeneratedVisitor)
     }
 }
+impl serde::Serialize for ContextualChannels {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.channels.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ContextualChannels", len)?;
+        if !self.channels.is_empty() {
+            struct_ser.serialize_field("channels", &self.channels)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ContextualChannels {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "channels",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Channels,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "channels" => Ok(GeneratedField::Channels),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ContextualChannels;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.ContextualChannels")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ContextualChannels, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut channels__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Channels => {
+                            if channels__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channels"));
+                            }
+                            channels__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ContextualChannels {
+                    channels: channels__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.ContextualChannels", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for CreateRuleRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -885,9 +1399,15 @@ impl serde::Serialize for DeleteRuleRequest {
         if !self.rule_id.is_empty() {
             len += 1;
         }
+        if !self.client_key.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.DeleteRuleRequest", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
+        }
+        if !self.client_key.is_empty() {
+            struct_ser.serialize_field("clientKey", &self.client_key)?;
         }
         struct_ser.end()
     }
@@ -901,11 +1421,14 @@ impl<'de> serde::Deserialize<'de> for DeleteRuleRequest {
         const FIELDS: &[&str] = &[
             "rule_id",
             "ruleId",
+            "client_key",
+            "clientKey",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             RuleId,
+            ClientKey,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -928,6 +1451,7 @@ impl<'de> serde::Deserialize<'de> for DeleteRuleRequest {
                     {
                         match value {
                             "ruleId" | "rule_id" => Ok(GeneratedField::RuleId),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -948,6 +1472,7 @@ impl<'de> serde::Deserialize<'de> for DeleteRuleRequest {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut rule_id__ = None;
+                let mut client_key__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -956,10 +1481,17 @@ impl<'de> serde::Deserialize<'de> for DeleteRuleRequest {
                             }
                             rule_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(DeleteRuleRequest {
                     rule_id: rule_id__.unwrap_or_default(),
+                    client_key: client_key__.unwrap_or_default(),
                 })
             }
         }
@@ -1037,6 +1569,169 @@ impl<'de> serde::Deserialize<'de> for DeleteRuleResponse {
         deserializer.deserialize_struct("sift.rules.v1.DeleteRuleResponse", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for DryRunAnnotation {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.condition_id.is_empty() {
+            len += 1;
+        }
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if self.start_time.is_some() {
+            len += 1;
+        }
+        if self.end_time.is_some() {
+            len += 1;
+        }
+        if !self.condition_version_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.DryRunAnnotation", len)?;
+        if !self.condition_id.is_empty() {
+            struct_ser.serialize_field("conditionId", &self.condition_id)?;
+        }
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if let Some(v) = self.start_time.as_ref() {
+            struct_ser.serialize_field("startTime", v)?;
+        }
+        if let Some(v) = self.end_time.as_ref() {
+            struct_ser.serialize_field("endTime", v)?;
+        }
+        if !self.condition_version_id.is_empty() {
+            struct_ser.serialize_field("conditionVersionId", &self.condition_version_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for DryRunAnnotation {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "condition_id",
+            "conditionId",
+            "name",
+            "start_time",
+            "startTime",
+            "end_time",
+            "endTime",
+            "condition_version_id",
+            "conditionVersionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ConditionId,
+            Name,
+            StartTime,
+            EndTime,
+            ConditionVersionId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "conditionId" | "condition_id" => Ok(GeneratedField::ConditionId),
+                            "name" => Ok(GeneratedField::Name),
+                            "startTime" | "start_time" => Ok(GeneratedField::StartTime),
+                            "endTime" | "end_time" => Ok(GeneratedField::EndTime),
+                            "conditionVersionId" | "condition_version_id" => Ok(GeneratedField::ConditionVersionId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = DryRunAnnotation;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.DryRunAnnotation")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DryRunAnnotation, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut condition_id__ = None;
+                let mut name__ = None;
+                let mut start_time__ = None;
+                let mut end_time__ = None;
+                let mut condition_version_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ConditionId => {
+                            if condition_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("conditionId"));
+                            }
+                            condition_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::StartTime => {
+                            if start_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("startTime"));
+                            }
+                            start_time__ = map_.next_value()?;
+                        }
+                        GeneratedField::EndTime => {
+                            if end_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("endTime"));
+                            }
+                            end_time__ = map_.next_value()?;
+                        }
+                        GeneratedField::ConditionVersionId => {
+                            if condition_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("conditionVersionId"));
+                            }
+                            condition_version_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(DryRunAnnotation {
+                    condition_id: condition_id__.unwrap_or_default(),
+                    name: name__.unwrap_or_default(),
+                    start_time: start_time__,
+                    end_time: end_time__,
+                    condition_version_id: condition_version_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.DryRunAnnotation", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for EvaluateRulesRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1051,6 +1746,9 @@ impl serde::Serialize for EvaluateRulesRequest {
         if self.annotation_options.is_some() {
             len += 1;
         }
+        if self.dry_run {
+            len += 1;
+        }
         if self.time.is_some() {
             len += 1;
         }
@@ -1060,6 +1758,9 @@ impl serde::Serialize for EvaluateRulesRequest {
         }
         if let Some(v) = self.annotation_options.as_ref() {
             struct_ser.serialize_field("annotationOptions", v)?;
+        }
+        if self.dry_run {
+            struct_ser.serialize_field("dryRun", &self.dry_run)?;
         }
         if let Some(v) = self.time.as_ref() {
             match v {
@@ -1085,6 +1786,8 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
             "ruleIds",
             "annotation_options",
             "annotationOptions",
+            "dry_run",
+            "dryRun",
             "run_id",
             "runId",
             "time_range",
@@ -1095,6 +1798,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
         enum GeneratedField {
             RuleIds,
             AnnotationOptions,
+            DryRun,
             RunId,
             TimeRange,
         }
@@ -1120,6 +1824,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                         match value {
                             "ruleIds" | "rule_ids" => Ok(GeneratedField::RuleIds),
                             "annotationOptions" | "annotation_options" => Ok(GeneratedField::AnnotationOptions),
+                            "dryRun" | "dry_run" => Ok(GeneratedField::DryRun),
                             "runId" | "run_id" => Ok(GeneratedField::RunId),
                             "timeRange" | "time_range" => Ok(GeneratedField::TimeRange),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
@@ -1143,6 +1848,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
             {
                 let mut rule_ids__ = None;
                 let mut annotation_options__ = None;
+                let mut dry_run__ = None;
                 let mut time__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -1157,6 +1863,12 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                                 return Err(serde::de::Error::duplicate_field("annotationOptions"));
                             }
                             annotation_options__ = map_.next_value()?;
+                        }
+                        GeneratedField::DryRun => {
+                            if dry_run__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dryRun"));
+                            }
+                            dry_run__ = Some(map_.next_value()?);
                         }
                         GeneratedField::RunId => {
                             if time__.is_some() {
@@ -1176,6 +1888,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                 Ok(EvaluateRulesRequest {
                     rule_ids: rule_ids__.unwrap_or_default(),
                     annotation_options: annotation_options__,
+                    dry_run: dry_run__.unwrap_or_default(),
                     time: time__,
                 })
             }
@@ -1194,9 +1907,27 @@ impl serde::Serialize for EvaluateRulesResponse {
         if self.created_annotation_count != 0 {
             len += 1;
         }
+        if !self.dry_run_annotations.is_empty() {
+            len += 1;
+        }
+        if self.job_id.is_some() {
+            len += 1;
+        }
+        if self.report_id.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.EvaluateRulesResponse", len)?;
         if self.created_annotation_count != 0 {
             struct_ser.serialize_field("createdAnnotationCount", &self.created_annotation_count)?;
+        }
+        if !self.dry_run_annotations.is_empty() {
+            struct_ser.serialize_field("dryRunAnnotations", &self.dry_run_annotations)?;
+        }
+        if let Some(v) = self.job_id.as_ref() {
+            struct_ser.serialize_field("jobId", v)?;
+        }
+        if let Some(v) = self.report_id.as_ref() {
+            struct_ser.serialize_field("reportId", v)?;
         }
         struct_ser.end()
     }
@@ -1210,11 +1941,20 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesResponse {
         const FIELDS: &[&str] = &[
             "created_annotation_count",
             "createdAnnotationCount",
+            "dry_run_annotations",
+            "dryRunAnnotations",
+            "job_id",
+            "jobId",
+            "report_id",
+            "reportId",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             CreatedAnnotationCount,
+            DryRunAnnotations,
+            JobId,
+            ReportId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1237,6 +1977,9 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesResponse {
                     {
                         match value {
                             "createdAnnotationCount" | "created_annotation_count" => Ok(GeneratedField::CreatedAnnotationCount),
+                            "dryRunAnnotations" | "dry_run_annotations" => Ok(GeneratedField::DryRunAnnotations),
+                            "jobId" | "job_id" => Ok(GeneratedField::JobId),
+                            "reportId" | "report_id" => Ok(GeneratedField::ReportId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1257,6 +2000,9 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesResponse {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut created_annotation_count__ = None;
+                let mut dry_run_annotations__ = None;
+                let mut job_id__ = None;
+                let mut report_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CreatedAnnotationCount => {
@@ -1267,10 +2013,31 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesResponse {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::DryRunAnnotations => {
+                            if dry_run_annotations__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dryRunAnnotations"));
+                            }
+                            dry_run_annotations__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::JobId => {
+                            if job_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("jobId"));
+                            }
+                            job_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::ReportId => {
+                            if report_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reportId"));
+                            }
+                            report_id__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(EvaluateRulesResponse {
                     created_annotation_count: created_annotation_count__.unwrap_or_default(),
+                    dry_run_annotations: dry_run_annotations__.unwrap_or_default(),
+                    job_id: job_id__,
+                    report_id: report_id__,
                 })
             }
         }
@@ -1380,9 +2147,15 @@ impl serde::Serialize for GetRuleRequest {
         if !self.rule_id.is_empty() {
             len += 1;
         }
+        if !self.client_key.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.GetRuleRequest", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
+        }
+        if !self.client_key.is_empty() {
+            struct_ser.serialize_field("clientKey", &self.client_key)?;
         }
         struct_ser.end()
     }
@@ -1396,11 +2169,14 @@ impl<'de> serde::Deserialize<'de> for GetRuleRequest {
         const FIELDS: &[&str] = &[
             "rule_id",
             "ruleId",
+            "client_key",
+            "clientKey",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             RuleId,
+            ClientKey,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1423,6 +2199,7 @@ impl<'de> serde::Deserialize<'de> for GetRuleRequest {
                     {
                         match value {
                             "ruleId" | "rule_id" => Ok(GeneratedField::RuleId),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1443,6 +2220,7 @@ impl<'de> serde::Deserialize<'de> for GetRuleRequest {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut rule_id__ = None;
+                let mut client_key__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -1451,10 +2229,17 @@ impl<'de> serde::Deserialize<'de> for GetRuleRequest {
                             }
                             rule_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(GetRuleRequest {
                     rule_id: rule_id__.unwrap_or_default(),
+                    client_key: client_key__.unwrap_or_default(),
                 })
             }
         }
@@ -1550,6 +2335,189 @@ impl<'de> serde::Deserialize<'de> for GetRuleResponse {
             }
         }
         deserializer.deserialize_struct("sift.rules.v1.GetRuleResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for GetRuleVersionRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rule_version_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.GetRuleVersionRequest", len)?;
+        if !self.rule_version_id.is_empty() {
+            struct_ser.serialize_field("ruleVersionId", &self.rule_version_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetRuleVersionRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule_version_id",
+            "ruleVersionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RuleVersionId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "ruleVersionId" | "rule_version_id" => Ok(GeneratedField::RuleVersionId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetRuleVersionRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.GetRuleVersionRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetRuleVersionRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule_version_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RuleVersionId => {
+                            if rule_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersionId"));
+                            }
+                            rule_version_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(GetRuleVersionRequest {
+                    rule_version_id: rule_version_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.GetRuleVersionRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for GetRuleVersionResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.rule.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.GetRuleVersionResponse", len)?;
+        if let Some(v) = self.rule.as_ref() {
+            struct_ser.serialize_field("rule", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for GetRuleVersionResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Rule,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "rule" => Ok(GeneratedField::Rule),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = GetRuleVersionResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.GetRuleVersionResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<GetRuleVersionResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Rule => {
+                            if rule__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("rule"));
+                            }
+                            rule__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(GetRuleVersionResponse {
+                    rule: rule__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.GetRuleVersionResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for JsonRulesRequest {
@@ -1940,6 +2908,263 @@ impl<'de> serde::Deserialize<'de> for LastValueThreshold {
         deserializer.deserialize_struct("sift.rules.v1.LastValueThreshold", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ListRuleVersionsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rule_id.is_empty() {
+            len += 1;
+        }
+        if self.page_size != 0 {
+            len += 1;
+        }
+        if !self.page_token.is_empty() {
+            len += 1;
+        }
+        if !self.filter.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ListRuleVersionsRequest", len)?;
+        if !self.rule_id.is_empty() {
+            struct_ser.serialize_field("ruleId", &self.rule_id)?;
+        }
+        if self.page_size != 0 {
+            struct_ser.serialize_field("pageSize", &self.page_size)?;
+        }
+        if !self.page_token.is_empty() {
+            struct_ser.serialize_field("pageToken", &self.page_token)?;
+        }
+        if !self.filter.is_empty() {
+            struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListRuleVersionsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule_id",
+            "ruleId",
+            "page_size",
+            "pageSize",
+            "page_token",
+            "pageToken",
+            "filter",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RuleId,
+            PageSize,
+            PageToken,
+            Filter,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "ruleId" | "rule_id" => Ok(GeneratedField::RuleId),
+                            "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
+                            "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
+                            "filter" => Ok(GeneratedField::Filter),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListRuleVersionsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.ListRuleVersionsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListRuleVersionsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule_id__ = None;
+                let mut page_size__ = None;
+                let mut page_token__ = None;
+                let mut filter__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RuleId => {
+                            if rule_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleId"));
+                            }
+                            rule_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::PageSize => {
+                            if page_size__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageSize"));
+                            }
+                            page_size__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PageToken => {
+                            if page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageToken"));
+                            }
+                            page_token__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Filter => {
+                            if filter__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("filter"));
+                            }
+                            filter__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListRuleVersionsRequest {
+                    rule_id: rule_id__.unwrap_or_default(),
+                    page_size: page_size__.unwrap_or_default(),
+                    page_token: page_token__.unwrap_or_default(),
+                    filter: filter__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.ListRuleVersionsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListRuleVersionsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rule_versions.is_empty() {
+            len += 1;
+        }
+        if !self.next_page_token.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.ListRuleVersionsResponse", len)?;
+        if !self.rule_versions.is_empty() {
+            struct_ser.serialize_field("ruleVersions", &self.rule_versions)?;
+        }
+        if !self.next_page_token.is_empty() {
+            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListRuleVersionsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule_versions",
+            "ruleVersions",
+            "next_page_token",
+            "nextPageToken",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RuleVersions,
+            NextPageToken,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "ruleVersions" | "rule_versions" => Ok(GeneratedField::RuleVersions),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListRuleVersionsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.ListRuleVersionsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListRuleVersionsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule_versions__ = None;
+                let mut next_page_token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RuleVersions => {
+                            if rule_versions__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersions"));
+                            }
+                            rule_versions__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListRuleVersionsResponse {
+                    rule_versions: rule_versions__.unwrap_or_default(),
+                    next_page_token: next_page_token__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.ListRuleVersionsResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for NotificationActionConfiguration {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -2052,9 +3277,6 @@ impl serde::Serialize for Rule {
         if !self.description.is_empty() {
             len += 1;
         }
-        if !self.current_status.is_empty() {
-            len += 1;
-        }
         if self.is_enabled {
             len += 1;
         }
@@ -2076,6 +3298,18 @@ impl serde::Serialize for Rule {
         if !self.conditions.is_empty() {
             len += 1;
         }
+        if self.rule_version.is_some() {
+            len += 1;
+        }
+        if !self.client_key.is_empty() {
+            len += 1;
+        }
+        if self.asset_configuration.is_some() {
+            len += 1;
+        }
+        if self.contextual_channels.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.Rule", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -2088,9 +3322,6 @@ impl serde::Serialize for Rule {
         }
         if !self.description.is_empty() {
             struct_ser.serialize_field("description", &self.description)?;
-        }
-        if !self.current_status.is_empty() {
-            struct_ser.serialize_field("currentStatus", &self.current_status)?;
         }
         if self.is_enabled {
             struct_ser.serialize_field("isEnabled", &self.is_enabled)?;
@@ -2113,6 +3344,18 @@ impl serde::Serialize for Rule {
         if !self.conditions.is_empty() {
             struct_ser.serialize_field("conditions", &self.conditions)?;
         }
+        if let Some(v) = self.rule_version.as_ref() {
+            struct_ser.serialize_field("ruleVersion", v)?;
+        }
+        if !self.client_key.is_empty() {
+            struct_ser.serialize_field("clientKey", &self.client_key)?;
+        }
+        if let Some(v) = self.asset_configuration.as_ref() {
+            struct_ser.serialize_field("assetConfiguration", v)?;
+        }
+        if let Some(v) = self.contextual_channels.as_ref() {
+            struct_ser.serialize_field("contextualChannels", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -2129,8 +3372,6 @@ impl<'de> serde::Deserialize<'de> for Rule {
             "assetId",
             "name",
             "description",
-            "current_status",
-            "currentStatus",
             "is_enabled",
             "isEnabled",
             "created_date",
@@ -2144,6 +3385,14 @@ impl<'de> serde::Deserialize<'de> for Rule {
             "organization_id",
             "organizationId",
             "conditions",
+            "rule_version",
+            "ruleVersion",
+            "client_key",
+            "clientKey",
+            "asset_configuration",
+            "assetConfiguration",
+            "contextual_channels",
+            "contextualChannels",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2152,7 +3401,6 @@ impl<'de> serde::Deserialize<'de> for Rule {
             AssetId,
             Name,
             Description,
-            CurrentStatus,
             IsEnabled,
             CreatedDate,
             ModifiedDate,
@@ -2160,6 +3408,10 @@ impl<'de> serde::Deserialize<'de> for Rule {
             ModifiedByUserId,
             OrganizationId,
             Conditions,
+            RuleVersion,
+            ClientKey,
+            AssetConfiguration,
+            ContextualChannels,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2185,7 +3437,6 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "name" => Ok(GeneratedField::Name),
                             "description" => Ok(GeneratedField::Description),
-                            "currentStatus" | "current_status" => Ok(GeneratedField::CurrentStatus),
                             "isEnabled" | "is_enabled" => Ok(GeneratedField::IsEnabled),
                             "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
@@ -2193,6 +3444,10 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "conditions" => Ok(GeneratedField::Conditions),
+                            "ruleVersion" | "rule_version" => Ok(GeneratedField::RuleVersion),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            "assetConfiguration" | "asset_configuration" => Ok(GeneratedField::AssetConfiguration),
+                            "contextualChannels" | "contextual_channels" => Ok(GeneratedField::ContextualChannels),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2216,7 +3471,6 @@ impl<'de> serde::Deserialize<'de> for Rule {
                 let mut asset_id__ = None;
                 let mut name__ = None;
                 let mut description__ = None;
-                let mut current_status__ = None;
                 let mut is_enabled__ = None;
                 let mut created_date__ = None;
                 let mut modified_date__ = None;
@@ -2224,6 +3478,10 @@ impl<'de> serde::Deserialize<'de> for Rule {
                 let mut modified_by_user_id__ = None;
                 let mut organization_id__ = None;
                 let mut conditions__ = None;
+                let mut rule_version__ = None;
+                let mut client_key__ = None;
+                let mut asset_configuration__ = None;
+                let mut contextual_channels__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -2249,12 +3507,6 @@ impl<'de> serde::Deserialize<'de> for Rule {
                                 return Err(serde::de::Error::duplicate_field("description"));
                             }
                             description__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::CurrentStatus => {
-                            if current_status__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("currentStatus"));
-                            }
-                            current_status__ = Some(map_.next_value()?);
                         }
                         GeneratedField::IsEnabled => {
                             if is_enabled__.is_some() {
@@ -2298,6 +3550,30 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             }
                             conditions__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::RuleVersion => {
+                            if rule_version__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersion"));
+                            }
+                            rule_version__ = map_.next_value()?;
+                        }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AssetConfiguration => {
+                            if asset_configuration__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetConfiguration"));
+                            }
+                            asset_configuration__ = map_.next_value()?;
+                        }
+                        GeneratedField::ContextualChannels => {
+                            if contextual_channels__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("contextualChannels"));
+                            }
+                            contextual_channels__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(Rule {
@@ -2305,7 +3581,6 @@ impl<'de> serde::Deserialize<'de> for Rule {
                     asset_id: asset_id__.unwrap_or_default(),
                     name: name__.unwrap_or_default(),
                     description: description__.unwrap_or_default(),
-                    current_status: current_status__.unwrap_or_default(),
                     is_enabled: is_enabled__.unwrap_or_default(),
                     created_date: created_date__,
                     modified_date: modified_date__,
@@ -2313,6 +3588,10 @@ impl<'de> serde::Deserialize<'de> for Rule {
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
                     organization_id: organization_id__.unwrap_or_default(),
                     conditions: conditions__.unwrap_or_default(),
+                    rule_version: rule_version__,
+                    client_key: client_key__.unwrap_or_default(),
+                    asset_configuration: asset_configuration__,
+                    contextual_channels: contextual_channels__,
                 })
             }
         }
@@ -2351,6 +3630,9 @@ impl serde::Serialize for RuleAction {
         if !self.modified_by_user_id.is_empty() {
             len += 1;
         }
+        if !self.rule_action_version_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.RuleAction", len)?;
         if !self.rule_action_id.is_empty() {
             struct_ser.serialize_field("ruleActionId", &self.rule_action_id)?;
@@ -2378,6 +3660,9 @@ impl serde::Serialize for RuleAction {
         if !self.modified_by_user_id.is_empty() {
             struct_ser.serialize_field("modifiedByUserId", &self.modified_by_user_id)?;
         }
+        if !self.rule_action_version_id.is_empty() {
+            struct_ser.serialize_field("ruleActionVersionId", &self.rule_action_version_id)?;
+        }
         struct_ser.end()
     }
 }
@@ -2403,6 +3688,8 @@ impl<'de> serde::Deserialize<'de> for RuleAction {
             "createdByUserId",
             "modified_by_user_id",
             "modifiedByUserId",
+            "rule_action_version_id",
+            "ruleActionVersionId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2415,6 +3702,7 @@ impl<'de> serde::Deserialize<'de> for RuleAction {
             ModifiedDate,
             CreatedByUserId,
             ModifiedByUserId,
+            RuleActionVersionId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2444,6 +3732,7 @@ impl<'de> serde::Deserialize<'de> for RuleAction {
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
+                            "ruleActionVersionId" | "rule_action_version_id" => Ok(GeneratedField::RuleActionVersionId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2471,6 +3760,7 @@ impl<'de> serde::Deserialize<'de> for RuleAction {
                 let mut modified_date__ = None;
                 let mut created_by_user_id__ = None;
                 let mut modified_by_user_id__ = None;
+                let mut rule_action_version_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleActionId => {
@@ -2521,6 +3811,12 @@ impl<'de> serde::Deserialize<'de> for RuleAction {
                             }
                             modified_by_user_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::RuleActionVersionId => {
+                            if rule_action_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleActionVersionId"));
+                            }
+                            rule_action_version_id__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(RuleAction {
@@ -2532,6 +3828,7 @@ impl<'de> serde::Deserialize<'de> for RuleAction {
                     modified_date: modified_date__,
                     created_by_user_id: created_by_user_id__.unwrap_or_default(),
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
+                    rule_action_version_id: rule_action_version_id__.unwrap_or_default(),
                 })
             }
         }
@@ -2647,6 +3944,116 @@ impl<'de> serde::Deserialize<'de> for RuleActionConfiguration {
         deserializer.deserialize_struct("sift.rules.v1.RuleActionConfiguration", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for RuleAssetConfiguration {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.asset_ids.is_empty() {
+            len += 1;
+        }
+        if !self.tag_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.RuleAssetConfiguration", len)?;
+        if !self.asset_ids.is_empty() {
+            struct_ser.serialize_field("assetIds", &self.asset_ids)?;
+        }
+        if !self.tag_ids.is_empty() {
+            struct_ser.serialize_field("tagIds", &self.tag_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for RuleAssetConfiguration {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "asset_ids",
+            "assetIds",
+            "tag_ids",
+            "tagIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AssetIds,
+            TagIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "assetIds" | "asset_ids" => Ok(GeneratedField::AssetIds),
+                            "tagIds" | "tag_ids" => Ok(GeneratedField::TagIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = RuleAssetConfiguration;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.RuleAssetConfiguration")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RuleAssetConfiguration, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut asset_ids__ = None;
+                let mut tag_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AssetIds => {
+                            if asset_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetIds"));
+                            }
+                            asset_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::TagIds => {
+                            if tag_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("tagIds"));
+                            }
+                            tag_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(RuleAssetConfiguration {
+                    asset_ids: asset_ids__.unwrap_or_default(),
+                    tag_ids: tag_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.RuleAssetConfiguration", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for RuleCondition {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -2664,9 +4071,6 @@ impl serde::Serialize for RuleCondition {
         if self.expression.is_some() {
             len += 1;
         }
-        if !self.status.is_empty() {
-            len += 1;
-        }
         if self.created_date.is_some() {
             len += 1;
         }
@@ -2682,6 +4086,9 @@ impl serde::Serialize for RuleCondition {
         if !self.actions.is_empty() {
             len += 1;
         }
+        if !self.rule_condition_version_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.RuleCondition", len)?;
         if !self.rule_condition_id.is_empty() {
             struct_ser.serialize_field("ruleConditionId", &self.rule_condition_id)?;
@@ -2691,9 +4098,6 @@ impl serde::Serialize for RuleCondition {
         }
         if let Some(v) = self.expression.as_ref() {
             struct_ser.serialize_field("expression", v)?;
-        }
-        if !self.status.is_empty() {
-            struct_ser.serialize_field("status", &self.status)?;
         }
         if let Some(v) = self.created_date.as_ref() {
             struct_ser.serialize_field("createdDate", v)?;
@@ -2710,6 +4114,9 @@ impl serde::Serialize for RuleCondition {
         if !self.actions.is_empty() {
             struct_ser.serialize_field("actions", &self.actions)?;
         }
+        if !self.rule_condition_version_id.is_empty() {
+            struct_ser.serialize_field("ruleConditionVersionId", &self.rule_condition_version_id)?;
+        }
         struct_ser.end()
     }
 }
@@ -2725,7 +4132,6 @@ impl<'de> serde::Deserialize<'de> for RuleCondition {
             "rule_id",
             "ruleId",
             "expression",
-            "status",
             "created_date",
             "createdDate",
             "modified_date",
@@ -2735,6 +4141,8 @@ impl<'de> serde::Deserialize<'de> for RuleCondition {
             "modified_by_user_id",
             "modifiedByUserId",
             "actions",
+            "rule_condition_version_id",
+            "ruleConditionVersionId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2742,12 +4150,12 @@ impl<'de> serde::Deserialize<'de> for RuleCondition {
             RuleConditionId,
             RuleId,
             Expression,
-            Status,
             CreatedDate,
             ModifiedDate,
             CreatedByUserId,
             ModifiedByUserId,
             Actions,
+            RuleConditionVersionId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2772,12 +4180,12 @@ impl<'de> serde::Deserialize<'de> for RuleCondition {
                             "ruleConditionId" | "rule_condition_id" => Ok(GeneratedField::RuleConditionId),
                             "ruleId" | "rule_id" => Ok(GeneratedField::RuleId),
                             "expression" => Ok(GeneratedField::Expression),
-                            "status" => Ok(GeneratedField::Status),
                             "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
                             "actions" => Ok(GeneratedField::Actions),
+                            "ruleConditionVersionId" | "rule_condition_version_id" => Ok(GeneratedField::RuleConditionVersionId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2800,12 +4208,12 @@ impl<'de> serde::Deserialize<'de> for RuleCondition {
                 let mut rule_condition_id__ = None;
                 let mut rule_id__ = None;
                 let mut expression__ = None;
-                let mut status__ = None;
                 let mut created_date__ = None;
                 let mut modified_date__ = None;
                 let mut created_by_user_id__ = None;
                 let mut modified_by_user_id__ = None;
                 let mut actions__ = None;
+                let mut rule_condition_version_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleConditionId => {
@@ -2825,12 +4233,6 @@ impl<'de> serde::Deserialize<'de> for RuleCondition {
                                 return Err(serde::de::Error::duplicate_field("expression"));
                             }
                             expression__ = map_.next_value()?;
-                        }
-                        GeneratedField::Status => {
-                            if status__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("status"));
-                            }
-                            status__ = Some(map_.next_value()?);
                         }
                         GeneratedField::CreatedDate => {
                             if created_date__.is_some() {
@@ -2862,18 +4264,24 @@ impl<'de> serde::Deserialize<'de> for RuleCondition {
                             }
                             actions__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::RuleConditionVersionId => {
+                            if rule_condition_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleConditionVersionId"));
+                            }
+                            rule_condition_version_id__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(RuleCondition {
                     rule_condition_id: rule_condition_id__.unwrap_or_default(),
                     rule_id: rule_id__.unwrap_or_default(),
                     expression: expression__,
-                    status: status__.unwrap_or_default(),
                     created_date: created_date__,
                     modified_date: modified_date__,
                     created_by_user_id: created_by_user_id__.unwrap_or_default(),
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
                     actions: actions__.unwrap_or_default(),
+                    rule_condition_version_id: rule_condition_version_id__.unwrap_or_default(),
                 })
             }
         }
@@ -2989,6 +4397,205 @@ impl<'de> serde::Deserialize<'de> for RuleConditionExpression {
             }
         }
         deserializer.deserialize_struct("sift.rules.v1.RuleConditionExpression", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for RuleVersion {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rule_id.is_empty() {
+            len += 1;
+        }
+        if !self.rule_version_id.is_empty() {
+            len += 1;
+        }
+        if !self.version.is_empty() {
+            len += 1;
+        }
+        if self.created_date.is_some() {
+            len += 1;
+        }
+        if !self.created_by_user_id.is_empty() {
+            len += 1;
+        }
+        if !self.version_notes.is_empty() {
+            len += 1;
+        }
+        if !self.generated_change_message.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.RuleVersion", len)?;
+        if !self.rule_id.is_empty() {
+            struct_ser.serialize_field("ruleId", &self.rule_id)?;
+        }
+        if !self.rule_version_id.is_empty() {
+            struct_ser.serialize_field("ruleVersionId", &self.rule_version_id)?;
+        }
+        if !self.version.is_empty() {
+            struct_ser.serialize_field("version", &self.version)?;
+        }
+        if let Some(v) = self.created_date.as_ref() {
+            struct_ser.serialize_field("createdDate", v)?;
+        }
+        if !self.created_by_user_id.is_empty() {
+            struct_ser.serialize_field("createdByUserId", &self.created_by_user_id)?;
+        }
+        if !self.version_notes.is_empty() {
+            struct_ser.serialize_field("versionNotes", &self.version_notes)?;
+        }
+        if !self.generated_change_message.is_empty() {
+            struct_ser.serialize_field("generatedChangeMessage", &self.generated_change_message)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for RuleVersion {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule_id",
+            "ruleId",
+            "rule_version_id",
+            "ruleVersionId",
+            "version",
+            "created_date",
+            "createdDate",
+            "created_by_user_id",
+            "createdByUserId",
+            "version_notes",
+            "versionNotes",
+            "generated_change_message",
+            "generatedChangeMessage",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RuleId,
+            RuleVersionId,
+            Version,
+            CreatedDate,
+            CreatedByUserId,
+            VersionNotes,
+            GeneratedChangeMessage,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "ruleId" | "rule_id" => Ok(GeneratedField::RuleId),
+                            "ruleVersionId" | "rule_version_id" => Ok(GeneratedField::RuleVersionId),
+                            "version" => Ok(GeneratedField::Version),
+                            "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
+                            "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
+                            "versionNotes" | "version_notes" => Ok(GeneratedField::VersionNotes),
+                            "generatedChangeMessage" | "generated_change_message" => Ok(GeneratedField::GeneratedChangeMessage),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = RuleVersion;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.RuleVersion")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RuleVersion, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule_id__ = None;
+                let mut rule_version_id__ = None;
+                let mut version__ = None;
+                let mut created_date__ = None;
+                let mut created_by_user_id__ = None;
+                let mut version_notes__ = None;
+                let mut generated_change_message__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RuleId => {
+                            if rule_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleId"));
+                            }
+                            rule_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RuleVersionId => {
+                            if rule_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleVersionId"));
+                            }
+                            rule_version_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Version => {
+                            if version__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("version"));
+                            }
+                            version__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::CreatedDate => {
+                            if created_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdDate"));
+                            }
+                            created_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::CreatedByUserId => {
+                            if created_by_user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdByUserId"));
+                            }
+                            created_by_user_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::VersionNotes => {
+                            if version_notes__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("versionNotes"));
+                            }
+                            version_notes__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::GeneratedChangeMessage => {
+                            if generated_change_message__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("generatedChangeMessage"));
+                            }
+                            generated_change_message__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(RuleVersion {
+                    rule_id: rule_id__.unwrap_or_default(),
+                    rule_version_id: rule_version_id__.unwrap_or_default(),
+                    version: version__.unwrap_or_default(),
+                    created_date: created_date__,
+                    created_by_user_id: created_by_user_id__.unwrap_or_default(),
+                    version_notes: version_notes__.unwrap_or_default(),
+                    generated_change_message: generated_change_message__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.RuleVersion", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for SearchOrder {
@@ -3839,9 +5446,6 @@ impl serde::Serialize for UpdateConditionRequest {
         if self.rule_condition_id.is_some() {
             len += 1;
         }
-        if !self.status.is_empty() {
-            len += 1;
-        }
         if self.expression.is_some() {
             len += 1;
         }
@@ -3851,9 +5455,6 @@ impl serde::Serialize for UpdateConditionRequest {
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.UpdateConditionRequest", len)?;
         if let Some(v) = self.rule_condition_id.as_ref() {
             struct_ser.serialize_field("ruleConditionId", v)?;
-        }
-        if !self.status.is_empty() {
-            struct_ser.serialize_field("status", &self.status)?;
         }
         if let Some(v) = self.expression.as_ref() {
             struct_ser.serialize_field("expression", v)?;
@@ -3873,7 +5474,6 @@ impl<'de> serde::Deserialize<'de> for UpdateConditionRequest {
         const FIELDS: &[&str] = &[
             "rule_condition_id",
             "ruleConditionId",
-            "status",
             "expression",
             "actions",
         ];
@@ -3881,7 +5481,6 @@ impl<'de> serde::Deserialize<'de> for UpdateConditionRequest {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             RuleConditionId,
-            Status,
             Expression,
             Actions,
         }
@@ -3906,7 +5505,6 @@ impl<'de> serde::Deserialize<'de> for UpdateConditionRequest {
                     {
                         match value {
                             "ruleConditionId" | "rule_condition_id" => Ok(GeneratedField::RuleConditionId),
-                            "status" => Ok(GeneratedField::Status),
                             "expression" => Ok(GeneratedField::Expression),
                             "actions" => Ok(GeneratedField::Actions),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
@@ -3929,7 +5527,6 @@ impl<'de> serde::Deserialize<'de> for UpdateConditionRequest {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut rule_condition_id__ = None;
-                let mut status__ = None;
                 let mut expression__ = None;
                 let mut actions__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -3939,12 +5536,6 @@ impl<'de> serde::Deserialize<'de> for UpdateConditionRequest {
                                 return Err(serde::de::Error::duplicate_field("ruleConditionId"));
                             }
                             rule_condition_id__ = map_.next_value()?;
-                        }
-                        GeneratedField::Status => {
-                            if status__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("status"));
-                            }
-                            status__ = Some(map_.next_value()?);
                         }
                         GeneratedField::Expression => {
                             if expression__.is_some() {
@@ -3962,7 +5553,6 @@ impl<'de> serde::Deserialize<'de> for UpdateConditionRequest {
                 }
                 Ok(UpdateConditionRequest {
                     rule_condition_id: rule_condition_id__,
-                    status: status__.unwrap_or_default(),
                     expression: expression__,
                     actions: actions__.unwrap_or_default(),
                 })
@@ -4438,6 +6028,18 @@ impl serde::Serialize for UpdateRuleRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
+        if !self.version_notes.is_empty() {
+            len += 1;
+        }
+        if self.client_key.is_some() {
+            len += 1;
+        }
+        if self.asset_configuration.is_some() {
+            len += 1;
+        }
+        if self.contextual_channels.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.UpdateRuleRequest", len)?;
         if let Some(v) = self.rule_id.as_ref() {
             struct_ser.serialize_field("ruleId", v)?;
@@ -4460,6 +6062,18 @@ impl serde::Serialize for UpdateRuleRequest {
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
         }
+        if !self.version_notes.is_empty() {
+            struct_ser.serialize_field("versionNotes", &self.version_notes)?;
+        }
+        if let Some(v) = self.client_key.as_ref() {
+            struct_ser.serialize_field("clientKey", v)?;
+        }
+        if let Some(v) = self.asset_configuration.as_ref() {
+            struct_ser.serialize_field("assetConfiguration", v)?;
+        }
+        if let Some(v) = self.contextual_channels.as_ref() {
+            struct_ser.serialize_field("contextualChannels", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -4481,6 +6095,14 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             "conditions",
             "organization_id",
             "organizationId",
+            "version_notes",
+            "versionNotes",
+            "client_key",
+            "clientKey",
+            "asset_configuration",
+            "assetConfiguration",
+            "contextual_channels",
+            "contextualChannels",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4492,6 +6114,10 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             IsEnabled,
             Conditions,
             OrganizationId,
+            VersionNotes,
+            ClientKey,
+            AssetConfiguration,
+            ContextualChannels,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4520,6 +6146,10 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             "isEnabled" | "is_enabled" => Ok(GeneratedField::IsEnabled),
                             "conditions" => Ok(GeneratedField::Conditions),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "versionNotes" | "version_notes" => Ok(GeneratedField::VersionNotes),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            "assetConfiguration" | "asset_configuration" => Ok(GeneratedField::AssetConfiguration),
+                            "contextualChannels" | "contextual_channels" => Ok(GeneratedField::ContextualChannels),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4546,6 +6176,10 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                 let mut is_enabled__ = None;
                 let mut conditions__ = None;
                 let mut organization_id__ = None;
+                let mut version_notes__ = None;
+                let mut client_key__ = None;
+                let mut asset_configuration__ = None;
+                let mut contextual_channels__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -4590,6 +6224,30 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             }
                             organization_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::VersionNotes => {
+                            if version_notes__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("versionNotes"));
+                            }
+                            version_notes__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = map_.next_value()?;
+                        }
+                        GeneratedField::AssetConfiguration => {
+                            if asset_configuration__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetConfiguration"));
+                            }
+                            asset_configuration__ = map_.next_value()?;
+                        }
+                        GeneratedField::ContextualChannels => {
+                            if contextual_channels__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("contextualChannels"));
+                            }
+                            contextual_channels__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(UpdateRuleRequest {
@@ -4600,6 +6258,10 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                     is_enabled: is_enabled__.unwrap_or_default(),
                     conditions: conditions__.unwrap_or_default(),
                     organization_id: organization_id__.unwrap_or_default(),
+                    version_notes: version_notes__.unwrap_or_default(),
+                    client_key: client_key__,
+                    asset_configuration: asset_configuration__,
+                    contextual_channels: contextual_channels__,
                 })
             }
         }

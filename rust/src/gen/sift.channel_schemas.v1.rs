@@ -33,6 +33,7 @@ pub struct CreateChannelSchemaResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchCreateChannelSchemasRequest {
+    /// Limit of 1000 channels schemas per batch
     #[prost(message, repeated, tag="1")]
     pub requests: ::prost::alloc::vec::Vec<CreateChannelSchemaRequest>,
     /// The asset to which the channel schemas belong (case-insensitive).

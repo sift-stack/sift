@@ -558,6 +558,9 @@ impl serde::Serialize for CalculatedChannelQuery {
         if self.run_id.is_some() {
             len += 1;
         }
+        if self.mode.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data.v1.CalculatedChannelQuery", len)?;
         if !self.channel_key.is_empty() {
             struct_ser.serialize_field("channelKey", &self.channel_key)?;
@@ -567,6 +570,11 @@ impl serde::Serialize for CalculatedChannelQuery {
         }
         if let Some(v) = self.run_id.as_ref() {
             struct_ser.serialize_field("runId", v)?;
+        }
+        if let Some(v) = self.mode.as_ref() {
+            let v = super::super::calculated_channels::v1::ExpressionMode::try_from(*v)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
+            struct_ser.serialize_field("mode", &v)?;
         }
         struct_ser.end()
     }
@@ -583,6 +591,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelQuery {
             "expression",
             "run_id",
             "runId",
+            "mode",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -590,6 +599,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelQuery {
             ChannelKey,
             Expression,
             RunId,
+            Mode,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -614,6 +624,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelQuery {
                             "channelKey" | "channel_key" => Ok(GeneratedField::ChannelKey),
                             "expression" => Ok(GeneratedField::Expression),
                             "runId" | "run_id" => Ok(GeneratedField::RunId),
+                            "mode" => Ok(GeneratedField::Mode),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -636,6 +647,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelQuery {
                 let mut channel_key__ = None;
                 let mut expression__ = None;
                 let mut run_id__ = None;
+                let mut mode__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelKey => {
@@ -656,12 +668,19 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelQuery {
                             }
                             run_id__ = map_.next_value()?;
                         }
+                        GeneratedField::Mode => {
+                            if mode__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("mode"));
+                            }
+                            mode__ = map_.next_value::<::std::option::Option<super::super::calculated_channels::v1::ExpressionMode>>()?.map(|x| x as i32);
+                        }
                     }
                 }
                 Ok(CalculatedChannelQuery {
                     channel_key: channel_key__.unwrap_or_default(),
                     expression: expression__,
                     run_id: run_id__,
+                    mode: mode__,
                 })
             }
         }

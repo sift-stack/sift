@@ -97,6 +97,41 @@ pub mod sift {
             // @@protoc_insertion_point(sift.notifications.v1)
         }
     }
+    pub mod ping {
+        // @@protoc_insertion_point(attribute:sift.ping.v1)
+        pub mod v1 {
+            include!("sift.ping.v1.rs");
+            // @@protoc_insertion_point(sift.ping.v1)
+        }
+    }
+    pub mod remote_files {
+        // @@protoc_insertion_point(attribute:sift.remote_files.v1)
+        pub mod v1 {
+            include!("sift.remote_files.v1.rs");
+            // @@protoc_insertion_point(sift.remote_files.v1)
+        }
+    }
+    pub mod report_templates {
+        // @@protoc_insertion_point(attribute:sift.report_templates.v1)
+        pub mod v1 {
+            include!("sift.report_templates.v1.rs");
+            // @@protoc_insertion_point(sift.report_templates.v1)
+        }
+    }
+    pub mod reports {
+        // @@protoc_insertion_point(attribute:sift.reports.v1)
+        pub mod v1 {
+            include!("sift.reports.v1.rs");
+            // @@protoc_insertion_point(sift.reports.v1)
+        }
+    }
+    pub mod rule_evaluation {
+        // @@protoc_insertion_point(attribute:sift.rule_evaluation.v1)
+        pub mod v1 {
+            include!("sift.rule_evaluation.v1.rs");
+            // @@protoc_insertion_point(sift.rule_evaluation.v1)
+        }
+    }
     pub mod rules {
         // @@protoc_insertion_point(attribute:sift.rules.v1)
         pub mod v1 {
@@ -111,6 +146,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.runs.v2)
         }
     }
+    pub mod saved_searches {
+        // @@protoc_insertion_point(attribute:sift.saved_searches.v1)
+        pub mod v1 {
+            include!("sift.saved_searches.v1.rs");
+            // @@protoc_insertion_point(sift.saved_searches.v1)
+        }
+    }
     pub mod tags {
         // @@protoc_insertion_point(attribute:sift.tags.v1)
         pub mod v1 {
@@ -123,6 +165,13 @@ pub mod sift {
         pub mod v2 {
             include!("sift.users.v2.rs");
             // @@protoc_insertion_point(sift.users.v2)
+        }
+    }
+    pub mod views {
+        // @@protoc_insertion_point(attribute:sift.views.v1)
+        pub mod v1 {
+            include!("sift.views.v1.rs");
+            // @@protoc_insertion_point(sift.views.v1)
         }
     }
 }

@@ -91,6 +91,13 @@ message ListChannelsRequest {
 
   // This field is only required if your user belongs to multiple organizations.
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved channels. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+  // Available fields to order_by are `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The result of a call to `ChannelService_ListChannels`.

@@ -16,6 +16,9 @@ pub struct Asset {
     pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(string, tag="8")]
     pub modified_by_user_id: ::prost::alloc::string::String,
+    /// The names of the tags to associate with this asset.
+    #[prost(string, repeated, tag="9")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// The request for a call to `AssetService_ListAssets`.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -40,6 +43,13 @@ pub struct ListAssetsRequest {
     /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#asset). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
+    /// How to order the retrieved assets. Formatted as a comma-separated string i.e. "<field_name>\[ desc\],...".
+    /// Available fields to order_by are `created_date` and `modified_date`.
+    /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)
+    /// Example: "created_date desc,modified_date"
+    #[prost(string, tag="4")]
+    pub order_by: ::prost::alloc::string::String,
 }
 /// The result of a call to `AssetService_ListAssets`.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -74,6 +84,23 @@ pub struct GetAssetRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAssetResponse {
+    #[prost(message, optional, tag="1")]
+    pub asset: ::core::option::Option<Asset>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateAssetRequest {
+    /// The asset to update. The asset's `asset_id` field is used to identify asset run to update
+    /// and is required.
+    #[prost(message, optional, tag="1")]
+    pub asset: ::core::option::Option<Asset>,
+    /// The list of fields to be updated. Currently, the only field available to be updated is `tags`.
+    #[prost(message, optional, tag="2")]
+    pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateAssetResponse {
     #[prost(message, optional, tag="1")]
     pub asset: ::core::option::Option<Asset>,
 }

@@ -125,6 +125,7 @@ func (m *ExpressionIdentifier) CloneVT() *ExpressionIdentifier {
 	r.Description = m.Description
 	r.Type = m.Type
 	r.DisplayName = m.DisplayName
+	r.Library = m.Library
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -371,6 +372,9 @@ func (this *ExpressionIdentifier) EqualVT(that *ExpressionIdentifier) bool {
 		return false
 	}
 	if this.DisplayName != that.DisplayName {
+		return false
+	}
+	if this.Library != that.Library {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -897,6 +901,11 @@ func (m *ExpressionIdentifier) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Library != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Library))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.DisplayName) > 0 {
 		i -= len(m.DisplayName)
 		copy(dAtA[i:], m.DisplayName)
@@ -1375,6 +1384,11 @@ func (m *ExpressionIdentifier) MarshalToSizedBufferVTStrict(dAtA []byte) (int, e
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Library != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Library))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.DisplayName) > 0 {
 		i -= len(m.DisplayName)
 		copy(dAtA[i:], m.DisplayName)
@@ -1717,6 +1731,9 @@ func (m *ExpressionIdentifier) SizeVT() (n int) {
 	l = len(m.DisplayName)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Library != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Library))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2512,6 +2529,25 @@ func (m *ExpressionIdentifier) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DisplayName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Library", wireType)
+			}
+			m.Library = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Library |= ExpressionIdentifierLibrary(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -3671,6 +3707,25 @@ func (m *ExpressionIdentifier) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.DisplayName = stringValue
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Library", wireType)
+			}
+			m.Library = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Library |= ExpressionIdentifierLibrary(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
