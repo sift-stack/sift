@@ -18,8 +18,6 @@ pub struct Error {
     help: Option<String>,
     kind: ErrorKind,
     inner: BoxedError,
-    
-
 }
 
 const SPACING: &str = "\n  ";
