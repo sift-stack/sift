@@ -81,6 +81,92 @@ pub struct Organization {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResourceIdentifier {
+    #[prost(oneof="resource_identifier::Identifier", tags="1, 2")]
+    pub identifier: ::core::option::Option<resource_identifier::Identifier>,
+}
+/// Nested message and enum types in `ResourceIdentifier`.
+pub mod resource_identifier {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Identifier {
+        #[prost(string, tag="1")]
+        Id(::prost::alloc::string::String),
+        #[prost(string, tag="2")]
+        ClientKey(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NamedResource {
+    #[prost(oneof="named_resource::Resource", tags="1, 2")]
+    pub resource: ::core::option::Option<named_resource::Resource>,
+}
+/// Nested message and enum types in `NamedResource`.
+pub mod named_resource {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Resource {
+        #[prost(string, tag="1")]
+        Id(::prost::alloc::string::String),
+        #[prost(string, tag="2")]
+        Name(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResourceIdentifiers {
+    #[prost(oneof="resource_identifiers::Identifiers", tags="1, 2")]
+    pub identifiers: ::core::option::Option<resource_identifiers::Identifiers>,
+}
+/// Nested message and enum types in `ResourceIdentifiers`.
+pub mod resource_identifiers {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Identifiers {
+        #[prost(message, tag="1")]
+        Ids(super::Ids),
+        #[prost(message, tag="2")]
+        ClientKeys(super::ClientKeys),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NamedResources {
+    #[prost(oneof="named_resources::Resources", tags="1, 2")]
+    pub resources: ::core::option::Option<named_resources::Resources>,
+}
+/// Nested message and enum types in `NamedResources`.
+pub mod named_resources {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Resources {
+        #[prost(message, tag="1")]
+        Ids(super::Ids),
+        #[prost(message, tag="2")]
+        Names(super::Names),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Ids {
+    #[prost(string, repeated, tag="1")]
+    pub ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ClientKeys {
+    #[prost(string, repeated, tag="1")]
+    pub client_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Names {
+    #[prost(string, repeated, tag="1")]
+    pub names: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct User {
     #[prost(string, tag="1")]
     pub user_id: ::prost::alloc::string::String,

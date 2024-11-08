@@ -102,6 +102,7 @@ class ChannelQuery(google.protobuf.message.Message):
     CHANNEL_ID_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
     channel_id: builtins.str
+    """channel_id is the uuid of the channel."""
     run_id: builtins.str
     """Optional.
     If set, only data associated with the specified run is returned.

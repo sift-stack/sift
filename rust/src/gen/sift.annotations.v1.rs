@@ -36,6 +36,10 @@ pub struct Annotation {
     pub legend_config: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="17")]
     pub created_by_condition_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="18")]
+    pub created_by_rule_condition_version_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="19")]
+    pub report_rule_version_id: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -117,6 +121,9 @@ pub struct CreateAnnotationRequest {
     /// A JSON string containing the axes configuration of the annotation's linked channels.
     #[prost(string, optional, tag="13")]
     pub legend_config: ::core::option::Option<::prost::alloc::string::String>,
+    /// The ID of the rule condition version that created this annotation.
+    #[prost(string, optional, tag="15")]
+    pub created_by_rule_condition_version_id: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// The result of a call to `AnnotationService_CreateAnnotation`.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -140,6 +147,7 @@ pub struct DeleteAnnotationResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchDeleteAnnotationsRequest {
+    /// Limit of 1000 annotations per batch
     #[prost(string, repeated, tag="1")]
     pub annotation_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
@@ -178,12 +186,22 @@ pub struct ListAnnotationsRequest {
     pub page_token: ::prost::alloc::string::String,
     /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
     /// Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
-    /// `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_condition_id`,
-    /// and `annotation_type`.
+    /// `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`,
+    /// `annotation_type`, `tag_name`, and `assignee`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
     /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#annotation). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
+    /// This field is only required if your user belongs to multiple organizations.
+    #[prost(string, tag="4")]
+    pub organization_id: ::prost::alloc::string::String,
+    /// How to order the retrieved annotations. Formatted as a comma-separated string i.e. "<field_name>\[ desc\],...".
+    /// Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `end_time`.
+    /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)
+    /// Example: "created_date desc,modified_date"
+    #[prost(string, tag="5")]
+    pub order_by: ::prost::alloc::string::String,
 }
 /// The result of a call to `AnnotationService_ListAnnotations`.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -191,6 +209,7 @@ pub struct ListAnnotationsRequest {
 pub struct ListAnnotationsResponse {
     #[prost(message, repeated, tag="1")]
     pub annotations: ::prost::alloc::vec::Vec<Annotation>,
+    /// Oops, we skipped to index 5! No reason for that; the indices between aren't reserved or anything.
     #[prost(string, tag="5")]
     pub next_page_token: ::prost::alloc::string::String,
 }

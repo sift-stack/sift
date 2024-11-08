@@ -723,6 +723,7 @@ impl serde::Serialize for NotificationKind {
             Self::MentionedInAnnotationComment => "NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT",
             Self::ConditionTriggered => "NOTIFICATION_KIND_CONDITION_TRIGGERED",
             Self::AnnotationStateChanged => "NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED",
+            Self::ReportReady => "NOTIFICATION_KIND_REPORT_READY",
         };
         serializer.serialize_str(variant)
     }
@@ -740,6 +741,7 @@ impl<'de> serde::Deserialize<'de> for NotificationKind {
             "NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT",
             "NOTIFICATION_KIND_CONDITION_TRIGGERED",
             "NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED",
+            "NOTIFICATION_KIND_REPORT_READY",
         ];
 
         struct GeneratedVisitor;
@@ -786,6 +788,7 @@ impl<'de> serde::Deserialize<'de> for NotificationKind {
                     "NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT" => Ok(NotificationKind::MentionedInAnnotationComment),
                     "NOTIFICATION_KIND_CONDITION_TRIGGERED" => Ok(NotificationKind::ConditionTriggered),
                     "NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED" => Ok(NotificationKind::AnnotationStateChanged),
+                    "NOTIFICATION_KIND_REPORT_READY" => Ok(NotificationKind::ReportReady),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

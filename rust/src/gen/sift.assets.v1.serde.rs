@@ -28,6 +28,9 @@ impl serde::Serialize for Asset {
         if !self.modified_by_user_id.is_empty() {
             len += 1;
         }
+        if !self.tags.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.assets.v1.Asset", len)?;
         if !self.asset_id.is_empty() {
             struct_ser.serialize_field("assetId", &self.asset_id)?;
@@ -49,6 +52,9 @@ impl serde::Serialize for Asset {
         }
         if !self.modified_by_user_id.is_empty() {
             struct_ser.serialize_field("modifiedByUserId", &self.modified_by_user_id)?;
+        }
+        if !self.tags.is_empty() {
+            struct_ser.serialize_field("tags", &self.tags)?;
         }
         struct_ser.end()
     }
@@ -73,6 +79,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
             "modifiedDate",
             "modified_by_user_id",
             "modifiedByUserId",
+            "tags",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -84,6 +91,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
             CreatedByUserId,
             ModifiedDate,
             ModifiedByUserId,
+            Tags,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -112,6 +120,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
                             "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
+                            "tags" => Ok(GeneratedField::Tags),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -138,6 +147,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
                 let mut created_by_user_id__ = None;
                 let mut modified_date__ = None;
                 let mut modified_by_user_id__ = None;
+                let mut tags__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AssetId => {
@@ -182,6 +192,12 @@ impl<'de> serde::Deserialize<'de> for Asset {
                             }
                             modified_by_user_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Tags => {
+                            if tags__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("tags"));
+                            }
+                            tags__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Asset {
@@ -192,6 +208,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
                     created_by_user_id: created_by_user_id__.unwrap_or_default(),
                     modified_date: modified_date__,
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
+                    tags: tags__.unwrap_or_default(),
                 })
             }
         }
@@ -561,6 +578,9 @@ impl serde::Serialize for ListAssetsRequest {
         if !self.filter.is_empty() {
             len += 1;
         }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.assets.v1.ListAssetsRequest", len)?;
         if self.page_size != 0 {
             struct_ser.serialize_field("pageSize", &self.page_size)?;
@@ -570,6 +590,9 @@ impl serde::Serialize for ListAssetsRequest {
         }
         if !self.filter.is_empty() {
             struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
         }
         struct_ser.end()
     }
@@ -586,6 +609,8 @@ impl<'de> serde::Deserialize<'de> for ListAssetsRequest {
             "page_token",
             "pageToken",
             "filter",
+            "order_by",
+            "orderBy",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -593,6 +618,7 @@ impl<'de> serde::Deserialize<'de> for ListAssetsRequest {
             PageSize,
             PageToken,
             Filter,
+            OrderBy,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -617,6 +643,7 @@ impl<'de> serde::Deserialize<'de> for ListAssetsRequest {
                             "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
                             "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
                             "filter" => Ok(GeneratedField::Filter),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -639,6 +666,7 @@ impl<'de> serde::Deserialize<'de> for ListAssetsRequest {
                 let mut page_size__ = None;
                 let mut page_token__ = None;
                 let mut filter__ = None;
+                let mut order_by__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PageSize => {
@@ -661,12 +689,19 @@ impl<'de> serde::Deserialize<'de> for ListAssetsRequest {
                             }
                             filter__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ListAssetsRequest {
                     page_size: page_size__.unwrap_or_default(),
                     page_token: page_token__.unwrap_or_default(),
                     filter: filter__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
                 })
             }
         }
@@ -780,5 +815,205 @@ impl<'de> serde::Deserialize<'de> for ListAssetsResponse {
             }
         }
         deserializer.deserialize_struct("sift.assets.v1.ListAssetsResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UpdateAssetRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.asset.is_some() {
+            len += 1;
+        }
+        if self.update_mask.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.assets.v1.UpdateAssetRequest", len)?;
+        if let Some(v) = self.asset.as_ref() {
+            struct_ser.serialize_field("asset", v)?;
+        }
+        if let Some(v) = self.update_mask.as_ref() {
+            struct_ser.serialize_field("updateMask", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UpdateAssetRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "asset",
+            "update_mask",
+            "updateMask",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Asset,
+            UpdateMask,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "asset" => Ok(GeneratedField::Asset),
+                            "updateMask" | "update_mask" => Ok(GeneratedField::UpdateMask),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UpdateAssetRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.assets.v1.UpdateAssetRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UpdateAssetRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut asset__ = None;
+                let mut update_mask__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Asset => {
+                            if asset__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("asset"));
+                            }
+                            asset__ = map_.next_value()?;
+                        }
+                        GeneratedField::UpdateMask => {
+                            if update_mask__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("updateMask"));
+                            }
+                            update_mask__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UpdateAssetRequest {
+                    asset: asset__,
+                    update_mask: update_mask__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.assets.v1.UpdateAssetRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UpdateAssetResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.asset.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.assets.v1.UpdateAssetResponse", len)?;
+        if let Some(v) = self.asset.as_ref() {
+            struct_ser.serialize_field("asset", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UpdateAssetResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "asset",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Asset,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "asset" => Ok(GeneratedField::Asset),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UpdateAssetResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.assets.v1.UpdateAssetResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UpdateAssetResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut asset__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Asset => {
+                            if asset__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("asset"));
+                            }
+                            asset__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UpdateAssetResponse {
+                    asset: asset__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.assets.v1.UpdateAssetResponse", FIELDS, GeneratedVisitor)
     }
 }

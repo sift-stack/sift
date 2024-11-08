@@ -96,6 +96,7 @@ pub enum NotificationKind {
     MentionedInAnnotationComment = 3,
     ConditionTriggered = 4,
     AnnotationStateChanged = 5,
+    ReportReady = 6,
 }
 impl NotificationKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -110,6 +111,7 @@ impl NotificationKind {
             NotificationKind::MentionedInAnnotationComment => "NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT",
             NotificationKind::ConditionTriggered => "NOTIFICATION_KIND_CONDITION_TRIGGERED",
             NotificationKind::AnnotationStateChanged => "NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED",
+            NotificationKind::ReportReady => "NOTIFICATION_KIND_REPORT_READY",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -121,6 +123,7 @@ impl NotificationKind {
             "NOTIFICATION_KIND_MENTIONED_IN_ANNOTATION_COMMENT" => Some(Self::MentionedInAnnotationComment),
             "NOTIFICATION_KIND_CONDITION_TRIGGERED" => Some(Self::ConditionTriggered),
             "NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED" => Some(Self::AnnotationStateChanged),
+            "NOTIFICATION_KIND_REPORT_READY" => Some(Self::ReportReady),
             _ => None,
         }
     }

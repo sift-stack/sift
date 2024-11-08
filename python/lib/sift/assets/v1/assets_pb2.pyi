@@ -65,6 +65,7 @@ class ListAssetsRequest(google.protobuf.message.Message):
     PAGE_SIZE_FIELD_NUMBER: builtins.int
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of assets to return.
     The service may return fewer than this value.
@@ -84,14 +85,22 @@ class ListAssetsRequest(google.protobuf.message.Message):
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#asset). Optional.
     """
+    order_by: builtins.str
+    """How to order the retrieved assets. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+    Available fields to order_by are `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
     def __init__(
         self,
         *,
         page_size: builtins.int = ...,
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
+        order_by: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListAssetsRequest = ListAssetsRequest
 

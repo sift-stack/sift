@@ -209,6 +209,33 @@ pub mod rule_service_client {
                 .insert(GrpcMethod::new("sift.rules.v1.RuleService", "UpdateRule"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn batch_update_rules(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchUpdateRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUpdateRulesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/BatchUpdateRules",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("sift.rules.v1.RuleService", "BatchUpdateRules"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn delete_rule(
             &mut self,
             request: impl tonic::IntoRequest<super::DeleteRuleRequest>,
@@ -396,6 +423,85 @@ pub mod rule_service_client {
                 .insert(GrpcMethod::new("sift.rules.v1.RuleService", "UpdateJsonRules"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn list_rule_versions(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListRuleVersionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListRuleVersionsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/ListRuleVersions",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("sift.rules.v1.RuleService", "ListRuleVersions"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_rule_version(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetRuleVersionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetRuleVersionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/GetRuleVersion",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.rules.v1.RuleService", "GetRuleVersion"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn batch_get_rule_versions(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchGetRuleVersionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchGetRuleVersionsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/BatchGetRuleVersions",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("sift.rules.v1.RuleService", "BatchGetRuleVersions"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -435,6 +541,13 @@ pub mod rule_service_server {
             request: tonic::Request<super::UpdateRuleRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UpdateRuleResponse>,
+            tonic::Status,
+        >;
+        async fn batch_update_rules(
+            &self,
+            request: tonic::Request<super::BatchUpdateRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUpdateRulesResponse>,
             tonic::Status,
         >;
         async fn delete_rule(
@@ -484,6 +597,27 @@ pub mod rule_service_server {
             request: tonic::Request<super::UpdateJsonRulesRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UpdateJsonRulesResponse>,
+            tonic::Status,
+        >;
+        async fn list_rule_versions(
+            &self,
+            request: tonic::Request<super::ListRuleVersionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListRuleVersionsResponse>,
+            tonic::Status,
+        >;
+        async fn get_rule_version(
+            &self,
+            request: tonic::Request<super::GetRuleVersionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetRuleVersionResponse>,
+            tonic::Status,
+        >;
+        async fn batch_get_rule_versions(
+            &self,
+            request: tonic::Request<super::BatchGetRuleVersionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchGetRuleVersionsResponse>,
             tonic::Status,
         >;
     }
@@ -781,6 +915,53 @@ pub mod rule_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = UpdateRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/BatchUpdateRules" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchUpdateRulesSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::BatchUpdateRulesRequest>
+                    for BatchUpdateRulesSvc<T> {
+                        type Response = super::BatchUpdateRulesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchUpdateRulesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::batch_update_rules(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BatchUpdateRulesSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -1114,6 +1295,146 @@ pub mod rule_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = UpdateJsonRulesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/ListRuleVersions" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListRuleVersionsSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::ListRuleVersionsRequest>
+                    for ListRuleVersionsSvc<T> {
+                        type Response = super::ListRuleVersionsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListRuleVersionsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::list_rule_versions(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ListRuleVersionsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/GetRuleVersion" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetRuleVersionSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::GetRuleVersionRequest>
+                    for GetRuleVersionSvc<T> {
+                        type Response = super::GetRuleVersionResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetRuleVersionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::get_rule_version(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = GetRuleVersionSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/BatchGetRuleVersions" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchGetRuleVersionsSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::BatchGetRuleVersionsRequest>
+                    for BatchGetRuleVersionsSvc<T> {
+                        type Response = super::BatchGetRuleVersionsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchGetRuleVersionsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::batch_get_rule_versions(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BatchGetRuleVersionsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

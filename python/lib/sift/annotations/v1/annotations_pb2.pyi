@@ -79,6 +79,7 @@ class Annotation(google.protobuf.message.Message):
     LEGEND_CONFIG_FIELD_NUMBER: builtins.int
     CREATED_BY_CONDITION_ID_FIELD_NUMBER: builtins.int
     CREATED_BY_RULE_CONDITION_VERSION_ID_FIELD_NUMBER: builtins.int
+    REPORT_RULE_VERSION_ID_FIELD_NUMBER: builtins.int
     annotation_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -92,6 +93,7 @@ class Annotation(google.protobuf.message.Message):
     legend_config: builtins.str
     created_by_condition_id: builtins.str
     created_by_rule_condition_version_id: builtins.str
+    report_rule_version_id: builtins.str
     @property
     def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -123,15 +125,18 @@ class Annotation(google.protobuf.message.Message):
         legend_config: builtins.str | None = ...,
         created_by_condition_id: builtins.str | None = ...,
         created_by_rule_condition_version_id: builtins.str | None = ...,
+        report_rule_version_id: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_date", b"created_date", "end_time", b"end_time", "legend_config", b"legend_config", "modified_date", b"modified_date", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_run_id", b"_run_id", "_state", b"_state", "annotation_id", b"annotation_id", "annotation_type", b"annotation_type", "assigned_to_user_id", b"assigned_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "end_time", b"end_time", "legend_config", b"legend_config", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_date", b"created_date", "end_time", b"end_time", "legend_config", b"legend_config", "modified_date", b"modified_date", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "annotation_id", b"annotation_id", "annotation_type", b"annotation_type", "assigned_to_user_id", b"assigned_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "end_time", b"end_time", "legend_config", b"legend_config", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_created_by_condition_id", b"_created_by_condition_id"]) -> typing.Literal["created_by_condition_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id"]) -> typing.Literal["created_by_rule_condition_version_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_legend_config", b"_legend_config"]) -> typing.Literal["legend_config"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_report_rule_version_id", b"_report_rule_version_id"]) -> typing.Literal["report_rule_version_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_run_id", b"_run_id"]) -> typing.Literal["run_id"] | None: ...
     @typing.overload
@@ -419,6 +424,7 @@ class ListAnnotationsRequest(google.protobuf.message.Message):
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of annotations to return. The service may return fewer than this value.
     If unspecified, at most 50 annotations will be returned. The maximum value is 1000; values above
@@ -440,6 +446,13 @@ class ListAnnotationsRequest(google.protobuf.message.Message):
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""
+    order_by: builtins.str
+    """How to order the retrieved annotations. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+    Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `end_time`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
     def __init__(
         self,
         *,
@@ -447,8 +460,9 @@ class ListAnnotationsRequest(google.protobuf.message.Message):
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
         organization_id: builtins.str = ...,
+        order_by: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListAnnotationsRequest = ListAnnotationsRequest
 
@@ -461,6 +475,7 @@ class ListAnnotationsResponse(google.protobuf.message.Message):
     ANNOTATIONS_FIELD_NUMBER: builtins.int
     NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
     next_page_token: builtins.str
+    """Oops, we skipped to index 5! No reason for that; the indices between aren't reserved or anything."""
     @property
     def annotations(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Annotation]: ...
     def __init__(

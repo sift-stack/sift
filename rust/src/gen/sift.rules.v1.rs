@@ -4,14 +4,13 @@
 pub struct Rule {
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
+    #[deprecated]
     #[prost(string, tag="2")]
     pub asset_id: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="4")]
     pub description: ::prost::alloc::string::String,
-    #[prost(string, tag="5")]
-    pub current_status: ::prost::alloc::string::String,
     #[prost(bool, tag="6")]
     pub is_enabled: bool,
     #[prost(message, optional, tag="7")]
@@ -26,6 +25,15 @@ pub struct Rule {
     pub organization_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="12")]
     pub conditions: ::prost::alloc::vec::Vec<RuleCondition>,
+    #[prost(message, optional, tag="13")]
+    pub rule_version: ::core::option::Option<RuleVersion>,
+    /// client_key is a client provided identifier for the rule. It is immutable after rule creation.
+    #[prost(string, tag="14")]
+    pub client_key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="15")]
+    pub asset_configuration: ::core::option::Option<RuleAssetConfiguration>,
+    #[prost(message, optional, tag="16")]
+    pub contextual_channels: ::core::option::Option<ContextualChannels>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -36,8 +44,6 @@ pub struct RuleCondition {
     pub rule_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="3")]
     pub expression: ::core::option::Option<RuleConditionExpression>,
-    #[prost(string, tag="4")]
-    pub status: ::prost::alloc::string::String,
     #[prost(message, optional, tag="5")]
     pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="6")]
@@ -48,6 +54,8 @@ pub struct RuleCondition {
     pub modified_by_user_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="9")]
     pub actions: ::prost::alloc::vec::Vec<RuleAction>,
+    #[prost(string, tag="10")]
+    pub rule_condition_version_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -68,6 +76,22 @@ pub struct RuleAction {
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="8")]
     pub modified_by_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag="9")]
+    pub rule_action_version_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RuleAssetConfiguration {
+    #[prost(string, repeated, tag="1")]
+    pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="2")]
+    pub tag_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ContextualChannels {
+    #[prost(message, repeated, tag="1")]
+    pub channels: ::prost::alloc::vec::Vec<ChannelReference>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -101,15 +125,18 @@ pub struct SearchRulesRequest {
 pub struct SearchRulesResponse {
     #[prost(uint32, tag="1")]
     pub count: u32,
-    /// Conditions are not included in the search response
+    /// Conditions are not included in the search response. The latest version of the rule is returned.
     #[prost(message, repeated, tag="2")]
     pub rules: ::prost::alloc::vec::Vec<Rule>,
 }
+/// GetRuleRequest is used to retrieve a rule by rule_id or client_key. If both are provided, only rule_id will be used.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetRuleRequest {
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub client_key: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -117,11 +144,14 @@ pub struct GetRuleResponse {
     #[prost(message, optional, tag="1")]
     pub rule: ::core::option::Option<Rule>,
 }
+/// BatchGetRulesRequest is used to retrieve rules by rule_ids or client_keys. If both are provided, both will be used to retrieve rules.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchGetRulesRequest {
     #[prost(string, repeated, tag="1")]
     pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="2")]
+    pub client_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -141,6 +171,7 @@ pub struct CreateRuleResponse {
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
 }
+/// UpdateRuleRequest is used to create or update a rule. If the rule_id or client_key is provided, the rule will be updated. If not, a new rule will be created.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateRuleRequest {
@@ -150,6 +181,8 @@ pub struct UpdateRuleRequest {
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
     pub description: ::prost::alloc::string::String,
+    /// Deprecated - use asset_configuration instead.
+    #[deprecated]
     #[prost(string, tag="4")]
     pub asset_id: ::prost::alloc::string::String,
     #[prost(bool, tag="5")]
@@ -158,14 +191,20 @@ pub struct UpdateRuleRequest {
     pub conditions: ::prost::alloc::vec::Vec<UpdateConditionRequest>,
     #[prost(string, tag="7")]
     pub organization_id: ::prost::alloc::string::String,
+    #[prost(string, tag="8")]
+    pub version_notes: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="9")]
+    pub client_key: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag="10")]
+    pub asset_configuration: ::core::option::Option<RuleAssetConfiguration>,
+    #[prost(message, optional, tag="11")]
+    pub contextual_channels: ::core::option::Option<ContextualChannels>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateConditionRequest {
     #[prost(string, optional, tag="1")]
     pub rule_condition_id: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, tag="2")]
-    pub status: ::prost::alloc::string::String,
     #[prost(message, optional, tag="3")]
     pub expression: ::core::option::Option<RuleConditionExpression>,
     #[prost(message, repeated, tag="4")]
@@ -189,9 +228,29 @@ pub struct UpdateRuleResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchUpdateRulesRequest {
+    /// rules are limited 1000 rules at a time
+    #[prost(message, repeated, tag="1")]
+    pub rules: ::prost::alloc::vec::Vec<UpdateRuleRequest>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchUpdateRulesResponse {
+    #[prost(bool, tag="1")]
+    pub success: bool,
+    #[prost(int32, tag="2")]
+    pub rules_created_count: i32,
+    #[prost(int32, tag="3")]
+    pub rules_updated_count: i32,
+}
+/// DeleteRuleRequest is used to delete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteRuleRequest {
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub client_key: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -297,6 +356,79 @@ pub struct UpdateJsonRulesResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRuleVersionsRequest {
+    #[prost(string, tag="1")]
+    pub rule_id: ::prost::alloc::string::String,
+    /// The maximum number of Rule Versions to return.
+    /// The service may return fewer than this value.
+    /// If unspecified, at most 50 Rule Versions will be returned.
+    /// The maximum value is 1000; values above 1000 will be coerced to 1000.
+    #[prost(uint32, tag="2")]
+    pub page_size: u32,
+    /// A page token, received from a previous `ListRuleVersions` call.
+    /// Provide this to retrieve the subsequent page.
+    /// When paginating, all other parameters provided to `ListRuleVersions` must match
+    /// the call that provided the page token.
+    #[prost(string, tag="3")]
+    pub page_token: ::prost::alloc::string::String,
+    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
+    /// Available fields to filter by are `rule_version_id`, `user_notes`,  and `change_message`.
+    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>). Optional.
+    #[prost(string, tag="4")]
+    pub filter: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RuleVersion {
+    #[prost(string, tag="1")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub rule_version_id: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(string, tag="5")]
+    pub created_by_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag="6")]
+    pub version_notes: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub generated_change_message: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRuleVersionsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub rule_versions: ::prost::alloc::vec::Vec<RuleVersion>,
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetRuleVersionRequest {
+    #[prost(string, tag="1")]
+    pub rule_version_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetRuleVersionResponse {
+    #[prost(message, optional, tag="1")]
+    pub rule: ::core::option::Option<Rule>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchGetRuleVersionsRequest {
+    #[prost(string, repeated, tag="1")]
+    pub rule_version_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchGetRuleVersionsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub rules: ::prost::alloc::vec::Vec<Rule>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RuleConditionExpression {
     #[prost(oneof="rule_condition_expression::Expression", tags="1, 2")]
     pub expression: ::core::option::Option<rule_condition_expression::Expression>,
@@ -312,6 +444,7 @@ pub mod rule_condition_expression {
         CalculatedChannel(super::CalculatedChannelConfig),
     }
 }
+/// Deprecated - use CalculatedChannelConfig.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SingleChannelComparisonExpression {
@@ -392,6 +525,7 @@ pub struct AnnotationActionConfiguration {
     #[prost(string, optional, tag="3")]
     pub assigned_to_user_id: ::core::option::Option<::prost::alloc::string::String>,
 }
+/// Deprecated - use RuleEvaluationService instead.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EvaluateRulesRequest {
@@ -399,6 +533,8 @@ pub struct EvaluateRulesRequest {
     pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag="2")]
     pub annotation_options: ::core::option::Option<EvaluatedAnnotationOptions>,
+    #[prost(bool, tag="5")]
+    pub dry_run: bool,
     #[prost(oneof="evaluate_rules_request::Time", tags="3, 4")]
     pub time: ::core::option::Option<evaluate_rules_request::Time>,
 }
@@ -427,11 +563,34 @@ pub struct TimeRangeQuery {
     #[prost(message, optional, tag="2")]
     pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
 }
+/// Deprecated - use RuleEvaluationService instead.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EvaluateRulesResponse {
     #[prost(int32, tag="1")]
     pub created_annotation_count: i32,
+    /// If dry_run is true, this will be populated with the annotations that would be created
+    #[prost(message, repeated, tag="2")]
+    pub dry_run_annotations: ::prost::alloc::vec::Vec<DryRunAnnotation>,
+    /// job_id and report_id will be set if the job has an extended run time and is being processed asynchronously.
+    #[prost(string, optional, tag="3")]
+    pub job_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="4")]
+    pub report_id: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DryRunAnnotation {
+    #[prost(string, tag="1")]
+    pub condition_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="3")]
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, optional, tag="4")]
+    pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(string, tag="5")]
+    pub condition_version_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

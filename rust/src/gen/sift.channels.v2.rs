@@ -50,8 +50,8 @@ pub struct GetChannelResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListChannelsRequest {
     /// The maximum number of channels to return. The service may return fewer than this value.
-    /// If unspecified, at most 50 channels will be returned. The maximum value is 1000; values above
-    /// 1000 will be coerced to 1000. Optional.
+    /// If unspecified, at most 50 channels will be returned. The maximum value is 10,000; values above
+    /// 10,000 will be coerced to 10,000. Optional.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
     /// A page token, received from a previous `ListChannels` call.
@@ -66,6 +66,16 @@ pub struct ListChannelsRequest {
     /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#channel). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
+    /// This field is only required if your user belongs to multiple organizations.
+    #[prost(string, tag="4")]
+    pub organization_id: ::prost::alloc::string::String,
+    /// How to order the retrieved channels. Formatted as a comma-separated string i.e. "<field_name>\[ desc\],...".
+    /// Available fields to order_by are `created_date` and `modified_date`.
+    /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)
+    /// Example: "created_date desc,modified_date"
+    #[prost(string, tag="5")]
+    pub order_by: ::prost::alloc::string::String,
 }
 /// The result of a call to `ChannelService_ListChannels`.
 #[allow(clippy::derive_partial_eq_without_eq)]

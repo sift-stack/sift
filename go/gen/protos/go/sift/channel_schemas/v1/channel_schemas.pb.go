@@ -176,6 +176,7 @@ type BatchCreateChannelSchemasRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Limit of 1000 channels schemas per batch
 	Requests []*CreateChannelSchemaRequest `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty"`
 	// The asset to which the channel schemas belong (case-insensitive).
 	// If this field, and any of the child requests specify an asset, the assets must match.

@@ -71,6 +71,7 @@ message Query {
 }
 
 message ChannelQuery {
+  // channel_id is the uuid of the channel.
   string channel_id = 1;
   // Optional.
   // If set, only data associated with the specified run is returned.

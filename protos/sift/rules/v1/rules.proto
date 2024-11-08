@@ -233,6 +233,7 @@ message Rule {
   string client_key = 14 [(google.api.field_behavior) = OPTIONAL];
 
   RuleAssetConfiguration asset_configuration = 15 [(google.api.field_behavior) = REQUIRED];
+  ContextualChannels contextual_channels = 16 [(google.api.field_behavior) = REQUIRED];
 }
 message RuleCondition {
   // 4 is reserved from old "status" column that lived directly on rule condition
@@ -262,6 +263,10 @@ message RuleAction {
 message RuleAssetConfiguration {
   repeated string asset_ids = 1;
   repeated string tag_ids = 2;
+}
+
+message ContextualChannels {
+  repeated ChannelReference channels = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message SearchRulesRequest {
@@ -333,6 +338,7 @@ message UpdateRuleRequest {
   string version_notes = 8;
   optional string client_key = 9;
   RuleAssetConfiguration asset_configuration = 10;
+  ContextualChannels contextual_channels = 11;
 }
 message UpdateConditionRequest {
   // 2 is reserved from old status update support on rule condition directly

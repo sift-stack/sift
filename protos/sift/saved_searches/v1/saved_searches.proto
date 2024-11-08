@@ -100,6 +100,7 @@ message SavedSearchProperties {
   repeated SavedSearchFilterItem annotation_items = 8 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchFilterItem run_items = 9 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchFilterItem report_template_items = 10 [(google.api.field_behavior) = OPTIONAL];
+  optional bool show_advanced_filters = 11 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message SavedSearchFilterItem {

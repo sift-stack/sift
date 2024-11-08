@@ -121,6 +121,7 @@ class ListChannelsRequest(google.protobuf.message.Message):
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of channels to return. The service may return fewer than this value.
     If unspecified, at most 50 channels will be returned. The maximum value is 10,000; values above
@@ -140,6 +141,13 @@ class ListChannelsRequest(google.protobuf.message.Message):
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""
+    order_by: builtins.str
+    """How to order the retrieved channels. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+    Available fields to order_by are `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
     def __init__(
         self,
         *,
@@ -147,8 +155,9 @@ class ListChannelsRequest(google.protobuf.message.Message):
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
         organization_id: builtins.str = ...,
+        order_by: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListChannelsRequest = ListChannelsRequest
 

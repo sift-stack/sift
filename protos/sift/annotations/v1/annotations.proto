@@ -105,6 +105,7 @@ message Annotation {
   optional string legend_config = 16 [(google.api.field_behavior) = OPTIONAL];
   optional string created_by_condition_id = 17 [(google.api.field_behavior) = OPTIONAL];
   optional string created_by_rule_condition_version_id = 18 [(google.api.field_behavior) = OPTIONAL];
+  optional string report_rule_version_id = 19 [(google.api.field_behavior) = OPTIONAL];
 }
 
 enum AnnotationState {
@@ -225,11 +226,19 @@ message ListAnnotationsRequest {
 
   // This field is only required if your user belongs to multiple organizations.
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved annotations. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+  // Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `end_time`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The result of a call to `AnnotationService_ListAnnotations`.
 message ListAnnotationsResponse {
   repeated Annotation annotations = 1;
+  // Oops, we skipped to index 5! No reason for that; the indices between aren't reserved or anything.
   string next_page_token = 5;
 }
 

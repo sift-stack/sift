@@ -105,6 +105,7 @@ class Rule(google.protobuf.message.Message):
     RULE_VERSION_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
     ASSET_CONFIGURATION_FIELD_NUMBER: builtins.int
+    CONTEXTUAL_CHANNELS_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     asset_id: builtins.str
     name: builtins.str
@@ -125,6 +126,8 @@ class Rule(google.protobuf.message.Message):
     def rule_version(self) -> global___RuleVersion: ...
     @property
     def asset_configuration(self) -> global___RuleAssetConfiguration: ...
+    @property
+    def contextual_channels(self) -> global___ContextualChannels: ...
     def __init__(
         self,
         *,
@@ -142,9 +145,10 @@ class Rule(google.protobuf.message.Message):
         rule_version: global___RuleVersion | None = ...,
         client_key: builtins.str = ...,
         asset_configuration: global___RuleAssetConfiguration | None = ...,
+        contextual_channels: global___ContextualChannels | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "created_date", b"created_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "contextual_channels", b"contextual_channels", "created_date", b"created_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
 
 global___Rule = Rule
 
@@ -254,6 +258,22 @@ class RuleAssetConfiguration(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["asset_ids", b"asset_ids", "tag_ids", b"tag_ids"]) -> None: ...
 
 global___RuleAssetConfiguration = RuleAssetConfiguration
+
+@typing.final
+class ContextualChannels(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNELS_FIELD_NUMBER: builtins.int
+    @property
+    def channels(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ChannelReference]: ...
+    def __init__(
+        self,
+        *,
+        channels: collections.abc.Iterable[global___ChannelReference] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channels", b"channels"]) -> None: ...
+
+global___ContextualChannels = ContextualChannels
 
 @typing.final
 class SearchRulesRequest(google.protobuf.message.Message):
@@ -454,6 +474,7 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     VERSION_NOTES_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
     ASSET_CONFIGURATION_FIELD_NUMBER: builtins.int
+    CONTEXTUAL_CHANNELS_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -467,6 +488,8 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateConditionRequest]: ...
     @property
     def asset_configuration(self) -> global___RuleAssetConfiguration: ...
+    @property
+    def contextual_channels(self) -> global___ContextualChannels: ...
     def __init__(
         self,
         *,
@@ -480,9 +503,10 @@ class UpdateRuleRequest(google.protobuf.message.Message):
         version_notes: builtins.str = ...,
         client_key: builtins.str | None = ...,
         asset_configuration: global___RuleAssetConfiguration | None = ...,
+        contextual_channels: global___ContextualChannels | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "rule_id", b"rule_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "description", b"description", "is_enabled", b"is_enabled", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "contextual_channels", b"contextual_channels", "rule_id", b"rule_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_enabled", b"is_enabled", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
