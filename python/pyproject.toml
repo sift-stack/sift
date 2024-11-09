@@ -60,6 +60,10 @@ build = [
   "pdoc==14.5.0",
   "build==1.2.1",
 ]
+other = [
+  "pyOpenSSL<24.0.0",
+  "cffi~=1.14",
+]
 
 [build-system]
 requires = ["setuptools"]
