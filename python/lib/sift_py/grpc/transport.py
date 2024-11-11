@@ -45,7 +45,6 @@ def get_ssl_credentials() -> grpc.ChannelCredentials:
         return grpc.ssl_channel_credentials()
 
 
-
 def use_sift_channel(
     config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
 ) -> SiftChannel:
