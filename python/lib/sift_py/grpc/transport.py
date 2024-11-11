@@ -45,7 +45,9 @@ def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
 
         return grpc.ssl_channel_credentials(certs_bytes)
     except ImportError as e:
-        raise Exception("Missing required dependencies for cert_via_openssl. Run `pip install sift-stack-py[openssl]` to install the required dependencies.") from e
+        raise Exception(
+            "Missing required dependencies for cert_via_openssl. Run `pip install sift-stack-py[openssl]` to install the required dependencies."
+        ) from e
 
 
 def use_sift_channel(

@@ -16,7 +16,7 @@ from sift.data.v1.data_pb2_grpc import (
 )
 
 from sift_py._internal.test_util.server_interceptor import ServerInterceptor
-from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel, get_ssl_credentials
+from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 
 
 class DataService(DataServiceServicer):
