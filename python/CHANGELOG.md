@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.0-rc.3] - November 11, 2024
+Summary of changes:
+- Adds optional openSSL certificate fetching
+
 ## [v0.3.0-rc.2] - November 1, 2024
 
 Summary of changes:
