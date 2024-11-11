@@ -20,7 +20,6 @@ from sift_py.grpc._interceptors.metadata import Metadata, MetadataInterceptor
 from sift_py.grpc._retry import RetryPolicy
 from sift_py.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 
-
 SiftChannel: TypeAlias = grpc.Channel
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 
