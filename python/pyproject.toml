@@ -62,6 +62,7 @@ build = [
 ]
 other = [
   "pyOpenSSL<24.0.0",
+  "types-pyOpenSSL<24.0.0",
   "cffi~=1.14",
 ]
 
