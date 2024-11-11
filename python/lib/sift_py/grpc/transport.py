@@ -24,6 +24,32 @@ SiftChannel: TypeAlias = grpc.Channel
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 
 
+def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
+    """
+    Returns SSL credentials for use with gRPC.
+    Workaround for this issue: https://github.com/grpc/grpc/issues/29682
+    """
+    if not cert_via_openssl:
+        return grpc.ssl_channel_credentials()
+
+    try:
+        import ssl
+
+        from OpenSSL import crypto
+
+        ssl_context = ssl.create_default_context()
+        certs_der = ssl_context.get_ca_certs(binary_form=True)
+        certs_x509 = [crypto.load_certificate(crypto.FILETYPE_ASN1, x) for x in certs_der]
+        certs_pem = [crypto.dump_certificate(crypto.FILETYPE_PEM, x) for x in certs_x509]
+        certs_bytes = b"".join(certs_pem)
+
+        return grpc.ssl_channel_credentials(certs_bytes)
+    except ImportError as e:
+        raise Exception(
+            "Missing required dependencies for cert_via_openssl. Run `pip install sift-stack-py[openssl]` to install the required dependencies."
+        ) from e
+
+
 def use_sift_channel(
     config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
 ) -> SiftChannel:
@@ -37,11 +63,12 @@ def use_sift_channel(
     are exceeded, after which the underlying exception will be raised.
     """
     use_ssl = config.get("use_ssl", True)
+    cert_via_openssl = config.get("cert_via_openssl", False)
 
     if not use_ssl:
         return _use_insecure_sift_channel(config, metadata)
 
-    credentials = grpc.ssl_channel_credentials()
+    credentials = get_ssl_credentials(cert_via_openssl)
     options = _compute_channel_options(config)
     api_uri = _clean_uri(config["uri"], use_ssl)
     channel = grpc.secure_channel(api_uri, credentials, options)
@@ -57,13 +84,14 @@ def use_sift_async_channel(
     of an async runtime when asynchonous I/O is required.
     """
     use_ssl = config.get("use_ssl", True)
+    cert_via_openssl = config.get("cert_via_openssl", False)
 
     if not use_ssl:
         return _use_insecure_sift_async_channel(config, metadata)
 
     return grpc_aio.secure_channel(
         target=_clean_uri(config["uri"], use_ssl),
-        credentials=grpc.ssl_channel_credentials(),
+        credentials=get_ssl_credentials(cert_via_openssl),
         options=_compute_channel_options(config),
         interceptors=_compute_sift_async_interceptors(config, metadata),
     )
@@ -194,9 +222,14 @@ class SiftChannelConfig(TypedDict):
     set to `True`, it will use the default values configured in `sift_py.grpc.keepalive` to configure keepalive. A custom
     `sift_py.grpc.keepalive.KeepaliveConfig` may also be provided. Default disabled.
     - `use_ssl`: INTERNAL USE. Meant to be used for local development.
+    - `cert_via_openssl`: Enable this if you want to use OpenSSL to load the certificates.
+    Run `pip install sift-stack-py[openssl]` to install the dependencies required to use this option.
+    This works around this issue with grpc loading SSL certificates: https://github.com/grpc/grpc/issues/29682.
+    Default is False.
     """
 
     uri: str
     apikey: str
     enable_keepalive: NotRequired[Union[bool, KeepaliveConfig]]
     use_ssl: NotRequired[bool]
+    cert_via_openssl: NotRequired[bool]
