@@ -9,6 +9,7 @@ jobs:
     uses: ./.github/workflows/rust_ci.yaml
 
   publish-to-crate-io-dry-run:
+    runs-on: ubuntu-latest
     name: Do a dry run publish to crates.io
     needs: rust-ci
     steps:
