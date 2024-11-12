@@ -10,7 +10,7 @@ pub mod gen;
 ///     grpc::{use_sift_channel, SiftChannelConfig},
 /// };
 /// use std::{env, error::Error};
-/// 
+///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn Error>> {
 ///     let uri = env::var("SIFT_URI")?;
