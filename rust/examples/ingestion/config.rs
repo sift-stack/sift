@@ -3,7 +3,7 @@ use sift_rs::gen::sift::{
     ingestion_configs::v1::{ChannelConfig, FlowConfig},
 };
 
-/// Name of the asset that we want to ingest dats for.
+/// Name of the asset that we want to ingest data for.
 pub const ASSET_NAME: &str = "LV426";
 
 /// Unique client-chosen identifier used to identify an ingestion config.

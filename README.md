@@ -27,7 +27,7 @@ the [Manual Protobuf Compilation](#manual-protobuf-compilation) section.
 
 ### Installation via Package Managers
 
-The following demonstrates how to install the Sift client library for each supporte language. Packages that are downloaded
+The following demonstrates how to install the Sift client library for each supported language. Packages that are downloaded
 from Github are in the process of being moved to their language's official package repository.
 
 #### Python
