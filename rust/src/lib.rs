@@ -2,7 +2,7 @@
 /// Protobuf generated code to interface with Sift's gRPC API.
 pub mod gen;
 
-/// Preconfigured gRPC utilities.
+/// Preconfigured gRPC utilities to initialize client stubs from the `gen` package.
 pub mod grpc;
 
 /// Error types specific for this library. Note that when using the `gen` module

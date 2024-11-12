@@ -6,7 +6,7 @@ use tonic::{
 use tower::ServiceBuilder;
 
 mod config;
-use config::SiftChannelConfig;
+pub use config::SiftChannelConfig;
 
 mod interceptor;
 use interceptor::AuthInterceptor;
@@ -15,7 +15,9 @@ use interceptor::AuthInterceptor;
 pub type SiftChannel = InterceptedService<Channel, AuthInterceptor>;
 
 /// Uses `channel_config` to initialize a lazy channel that will only establish a connection
-/// after first-use.
+/// after first-use. This can only be used within a [`Tokio 1.x runtime`].
+///
+/// [`Tokio 1.x runtime`]: https://docs.rs/tokio/latest/tokio/
 pub fn use_sift_channel(channel_config: SiftChannelConfig) -> Result<SiftChannel> {
     let SiftChannelConfig { uri, apikey } = channel_config;
 

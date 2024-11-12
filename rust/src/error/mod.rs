@@ -22,6 +22,8 @@ pub struct Error {
 
 const SPACING: &str = "\n  ";
 
+impl StdError for Error {}
+
 impl Error {
     pub fn new_user_error<E>(err: E) -> Self
     where
