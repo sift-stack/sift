@@ -8,7 +8,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags')
     uses: ./.github/workflows/rust_ci.yaml
 
-  publish-to-crate-io-dry-run:
+  publish-to-crate-io:
     runs-on: ubuntu-latest
     name: Publish to crates.io
     needs: rust-ci
