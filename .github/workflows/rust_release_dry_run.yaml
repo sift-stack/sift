@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Do a dry run publish to crates.io
     needs: rust-ci
+    environment:
+      name: crates.io (dry run)
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
