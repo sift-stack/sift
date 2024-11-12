@@ -58,6 +58,7 @@ run_pyright() {
 
 run_checks() {
   lint_fix
+  fmt
   run_mypy
   run_pyright
 }
