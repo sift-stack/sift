@@ -9,3 +9,11 @@ This library offers a Rust API on top of Sift's protocol buffers to ergonomicall
 ```
 $ cargo add sift_rs
 ```
+
+## Examples
+
+Various examples can be found in the [examples](./examples) directory. To run any of those examples clone this repo do the following:
+
+```
+$ SIFT_URI=<sift uri> SIFT_API_KEY=<api key> cargo run --example hello_sift 
+```
