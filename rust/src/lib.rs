@@ -2,7 +2,7 @@
 /// Protobuf generated code to interface with Sift's gRPC API.
 pub mod gen;
 
-/// Preconfigured gRPC utilities to initialize client stubs from the `gen` package.
+/// Preconfigured gRPC utilities to initialize client stubs from the [`gen`] package.
 ///
 /// ```
 /// use sift_rs::{

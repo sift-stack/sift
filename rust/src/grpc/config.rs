@@ -1,3 +1,5 @@
+/// Parameters used to configure a connection to Sift over gRPC. The `uri` field
+/// must include the scheme i.e. `https://`.
 pub struct SiftChannelConfig {
     pub uri: String,
     pub apikey: String,
