@@ -22,7 +22,7 @@ to compile the protocol buffers yourself there are instructions on how to go abo
 
 ## Installation
 
-The Sift client library can be installed using the package managers for the languages that are currently supported. If you are using a language that is yet officially supported see
+The Sift client library can be installed using the package managers for the languages that are currently supported. If you are using a language that isn't officially supported see
 the [Manual Protobuf Compilation](#manual-protobuf-compilation) section.
 
 ### Installation via Package Managers
