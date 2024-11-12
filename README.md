@@ -8,7 +8,7 @@
 [![Crates.io](https://img.shields.io/crates/v/sift_rs.svg)](https://crates.io/crates/sift_rs)
 
 This repository contains client libraries and protocol buffers to interact with Sift's API in various languages. Each client library contains pre-compiled protocol buffers, but should you wish
-to compile the protocol buffers yourself there are instructions on how to go about it in the [manual installation](#manual-protobuf-compilation) section.
+to compile the protocol buffers yourself there are instructions on how to go about it in the [Manual Protobuf Compilation](#manual-protobuf-compilation) section.
 
 ## Table of Contents
 
