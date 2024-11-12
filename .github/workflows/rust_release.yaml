@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Publish to crates.io
     needs: rust-ci
+    environment:
+      name: crates.io
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
