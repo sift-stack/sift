@@ -11,6 +11,7 @@ class ReportTemplateConfig(AsJson):
     """
     TODO: A nice doc
     """
+
     name: str
     template_client_key: str
     organization_id: str = ""

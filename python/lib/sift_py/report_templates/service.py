@@ -18,7 +18,7 @@ from sift_py.grpc.transport import SiftChannel
 from sift_py.report_templates.config import ReportTemplateConfig
 
 
-class ReportTemplateService():
+class ReportTemplateService:
     _report_template_service_stub: ReportTemplateServiceStub
 
     def __init__(self, channel: SiftChannel):
@@ -32,7 +32,9 @@ class ReportTemplateService():
             return
         self._create_report_template(config)
 
-    def get_report_template(self, client_key: str = "", report_template_id: str = "") -> Optional[ReportTemplate]:
+    def get_report_template(
+        self, client_key: str = "", report_template_id: str = ""
+    ) -> Optional[ReportTemplate]:
         if client_key:
             return self._get_report_template_by_client_key(client_key)
         if report_template_id:
@@ -42,7 +44,9 @@ class ReportTemplateService():
     def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(report_template_id=report_template_id)
         try:
-            res = cast(GetReportTemplateResponse, self._report_template_service_stub.GetReportTemplate(req))
+            res = cast(
+                GetReportTemplateResponse, self._report_template_service_stub.GetReportTemplate(req)
+            )
             return res.report_template or None
         except:
             return None
@@ -50,7 +54,9 @@ class ReportTemplateService():
     def _get_report_template_by_client_key(self, client_key: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(client_key=client_key)
         try:
-            res = cast(GetReportTemplateResponse, self._report_template_service_stub.GetReportTemplate(req))
+            res = cast(
+                GetReportTemplateResponse, self._report_template_service_stub.GetReportTemplate(req)
+            )
             return res.report_template or None
         except:
             return None
@@ -84,7 +90,9 @@ class ReportTemplateService():
             organization_id=config.organization_id,
             rules=rules,
         )
-        self._report_template_service_stub.UpdateReportTemplate(UpdateReportTemplateRequest(report_template=report_template))
+        self._report_template_service_stub.UpdateReportTemplate(
+            UpdateReportTemplateRequest(report_template=report_template)
+        )
 
     def _get_rule_client_keys(self, config: ReportTemplateConfig) -> list[str]:
         client_keys = []
