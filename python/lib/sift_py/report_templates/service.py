@@ -32,6 +32,21 @@ class ReportTemplateService():
             return
         self._create_report_template(config)
 
+    def get_report_template(self, client_key: str = "", report_template_id: str = "") -> Optional[ReportTemplate]:
+        if client_key:
+            return self._get_report_template_by_client_key(client_key)
+        if report_template_id:
+            return self._get_report_template_by_id(report_template_id)
+        raise ValueError("Either client_key or report_template_id must be provided")
+
+    def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:
+        req = GetReportTemplateRequest(report_template_id=report_template_id)
+        try:
+            res = cast(GetReportTemplateResponse, self._report_template_service_stub.GetReportTemplate(req))
+            return res.report_template or None
+        except:
+            return None
+
     def _get_report_template_by_client_key(self, client_key: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(client_key=client_key)
         try:
