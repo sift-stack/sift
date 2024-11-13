@@ -54,5 +54,6 @@ For manual installation instructions for a particular supported programming lang
 - [Go](/docs/go.md)
 - [Rust](/docs/rust.md)
 - [Python](/docs/python.md)
+- [C++](/cpp/README.md)
 
 Please keep in mind that the manual installation instructions aims to be general and do not need to be strictly followed. Users are encouraged to modify any of the steps or proceed with a custom setup if it better suits the needs of their project.
