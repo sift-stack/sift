@@ -78,7 +78,7 @@ def test_report_template_service_update_report_template(report_template_service)
 
 
 def test_report_template_service_missing_template_client_key(report_template_service):
-    report_template_config = ReportTemplateConfig(
+    report_template_config = ReportTemplateConfig.construct(  # Without model validation
         name="report-template",
         template_client_key="",
     )

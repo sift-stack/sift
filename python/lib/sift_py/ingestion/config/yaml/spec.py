@@ -4,9 +4,9 @@ Formal specification of the types that `sift_py` expects when loading a telemetr
 
 from __future__ import annotations
 
-from typing import Dict, List, Literal, TypedDict, Union
+from typing import Dict, List, Literal, Union
 
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypedDict
 
 
 class TelemetryConfigYamlSpec(TypedDict):
