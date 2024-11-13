@@ -1,0 +1,10 @@
+version: v1
+plugins:
+  - name: grpc_cpp
+    out: gen/proto/cpp
+    # grpc_cpp_plugin must be installed and accessible in PATH environment variable
+    path: grpc_cpp_plugin
+  - name: cpp
+    out: gen/proto/cpp
+    # Add path to protoc
+    protoc_path: <todo>
