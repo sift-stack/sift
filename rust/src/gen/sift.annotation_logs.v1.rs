@@ -57,7 +57,7 @@ pub struct ListAnnotationLogsRequest {
     /// Available fields to filter by are `annotation_log_id`, `annotation_id`, `created_by_user_id`,
     /// `created_date`, `modified_date`, and `kind`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#annotationlogsearchresult). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/annotation_logs#annotationlogsearchresult). Optional.
     #[prost(string, tag="4")]
     pub filter: ::prost::alloc::string::String,
 }

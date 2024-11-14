@@ -16,3 +16,11 @@ message Tag {
   google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = REQUIRED];
 }
+
+// Points to a tag by name or tag_id.
+// When this message is used for a request, you can use either name or tag_id to refer to a tag.
+// When this message is returned in a response, both of the fields will be populated and valid.
+message TagRef {
+  string tag_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string name = 2 [(google.api.field_behavior) = OPTIONAL];
+}

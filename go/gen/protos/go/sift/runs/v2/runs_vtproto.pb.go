@@ -50,6 +50,10 @@ func (m *Run) CloneVT() *Run {
 		copy(tmpContainer, rhs)
 		r.Tags = tmpContainer
 	}
+	if rhs := m.ClientKey; rhs != nil {
+		tmpVal := *rhs
+		r.ClientKey = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -153,6 +157,10 @@ func (m *CreateRunRequest) CloneVT() *CreateRunRequest {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.Tags = tmpContainer
+	}
+	if rhs := m.ClientKey; rhs != nil {
+		tmpVal := *rhs
+		r.ClientKey = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -372,6 +380,9 @@ func (this *Run) EqualVT(that *Run) bool {
 	if this.DefaultReportId != that.DefaultReportId {
 		return false
 	}
+	if p, q := this.ClientKey, that.ClientKey; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -512,6 +523,9 @@ func (this *CreateRunRequest) EqualVT(that *CreateRunRequest) bool {
 		return false
 	}
 	if this.OrganizationId != that.OrganizationId {
+		return false
+	}
+	if p, q := this.ClientKey, that.ClientKey; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1050,6 +1064,13 @@ func (m *Run) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.ClientKey != nil {
+		i -= len(*m.ClientKey)
+		copy(dAtA[i:], *m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ClientKey)))
+		i--
+		dAtA[i] = 0x72
+	}
 	if len(m.DefaultReportId) > 0 {
 		i -= len(m.DefaultReportId)
 		copy(dAtA[i:], m.DefaultReportId)
@@ -1384,6 +1405,13 @@ func (m *CreateRunRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ClientKey != nil {
+		i -= len(*m.ClientKey)
+		copy(dAtA[i:], *m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ClientKey)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if len(m.OrganizationId) > 0 {
 		i -= len(m.OrganizationId)
@@ -1835,6 +1863,13 @@ func (m *Run) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.ClientKey != nil {
+		i -= len(*m.ClientKey)
+		copy(dAtA[i:], *m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ClientKey)))
+		i--
+		dAtA[i] = 0x72
+	}
 	if len(m.DefaultReportId) > 0 {
 		i -= len(m.DefaultReportId)
 		copy(dAtA[i:], m.DefaultReportId)
@@ -2169,6 +2204,13 @@ func (m *CreateRunRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ClientKey != nil {
+		i -= len(*m.ClientKey)
+		copy(dAtA[i:], *m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ClientKey)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if len(m.OrganizationId) > 0 {
 		i -= len(m.OrganizationId)
@@ -2649,6 +2691,10 @@ func (m *Run) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.ClientKey != nil {
+		l = len(*m.ClientKey)
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2756,6 +2802,10 @@ func (m *CreateRunRequest) SizeVT() (n int) {
 	}
 	l = len(m.OrganizationId)
 	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ClientKey != nil {
+		l = len(*m.ClientKey)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -3334,6 +3384,39 @@ func (m *Run) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.DefaultReportId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.ClientKey = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -4038,6 +4121,39 @@ func (m *CreateRunRequest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.OrganizationId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.ClientKey = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -5273,6 +5389,43 @@ func (m *Run) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.DefaultReportId = stringValue
 			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.ClientKey = &s
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -6012,6 +6165,43 @@ func (m *CreateRunRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.OrganizationId = stringValue
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.ClientKey = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

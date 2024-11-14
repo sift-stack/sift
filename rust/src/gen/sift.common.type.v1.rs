@@ -54,33 +54,6 @@ impl ChannelDataType {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ChannelBitFieldElement {
-    #[prost(string, tag="1")]
-    pub name: ::prost::alloc::string::String,
-    /// The index of this element's first bit in the logical bit field array.
-    #[prost(int32, tag="2")]
-    pub index: i32,
-    #[prost(uint32, tag="3")]
-    pub bit_count: u32,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ChannelEnumType {
-    #[prost(string, tag="1")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(uint32, tag="2")]
-    pub key: u32,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Organization {
-    #[prost(string, tag="1")]
-    pub organization_id: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
-    pub organization_name: ::prost::alloc::string::String,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResourceIdentifier {
     #[prost(oneof="resource_identifier::Identifier", tags="1, 2")]
     pub identifier: ::core::option::Option<resource_identifier::Identifier>,
@@ -164,6 +137,33 @@ pub struct ClientKeys {
 pub struct Names {
     #[prost(string, repeated, tag="1")]
     pub names: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChannelBitFieldElement {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// The index of this element's first bit in the logical bit field array.
+    #[prost(int32, tag="2")]
+    pub index: i32,
+    #[prost(uint32, tag="3")]
+    pub bit_count: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChannelEnumType {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint32, tag="2")]
+    pub key: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Organization {
+    #[prost(string, tag="1")]
+    pub organization_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub organization_name: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

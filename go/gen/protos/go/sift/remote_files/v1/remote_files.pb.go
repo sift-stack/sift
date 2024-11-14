@@ -512,7 +512,7 @@ type ListRemoteFilesRequest struct {
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
 	// Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, and `file_name`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#remote_files). Optional.
+	// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/remote_files#remotefile). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// This field is only required if your user belongs to multiple organizations.
 	OrganizationId string `protobuf:"bytes,4,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`

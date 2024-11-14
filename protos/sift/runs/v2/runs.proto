@@ -112,6 +112,7 @@ message Run {
   string description = 11 [(google.api.field_behavior) = REQUIRED];
   repeated string tags = 12 [(google.api.field_behavior) = REQUIRED];
   string default_report_id = 13 [(google.api.field_behavior) = OPTIONAL];
+  optional string client_key = 14 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The request for a call to `RunService_GetRun` to retrieve run.
@@ -141,9 +142,9 @@ message ListRunsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-  // `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, and `asset_name`.
+  // `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, `client_key`, and `asset_name`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#run). Optional.
+  // For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/runs#run). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved runs. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
@@ -184,6 +185,9 @@ message CreateRunRequest {
 
   // An organization ID is only required if the user belongs to multiple organizations.
   string organization_id = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // An arbitrary user-chosen key that uniquely identifies this run. Optional, though it is recommended to provide.
+  optional string client_key = 8 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `RunService_CreateRuns` containing the newly created run.

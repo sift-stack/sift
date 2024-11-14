@@ -206,6 +206,9 @@ impl serde::Serialize for CreateRunRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
+        if self.client_key.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.runs.v2.CreateRunRequest", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -224,6 +227,9 @@ impl serde::Serialize for CreateRunRequest {
         }
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if let Some(v) = self.client_key.as_ref() {
+            struct_ser.serialize_field("clientKey", v)?;
         }
         struct_ser.end()
     }
@@ -244,6 +250,8 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
             "stopTime",
             "organization_id",
             "organizationId",
+            "client_key",
+            "clientKey",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -254,6 +262,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
             StartTime,
             StopTime,
             OrganizationId,
+            ClientKey,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -281,6 +290,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                             "startTime" | "start_time" => Ok(GeneratedField::StartTime),
                             "stopTime" | "stop_time" => Ok(GeneratedField::StopTime),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -306,6 +316,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                 let mut start_time__ = None;
                 let mut stop_time__ = None;
                 let mut organization_id__ = None;
+                let mut client_key__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -344,6 +355,12 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                             }
                             organization_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(CreateRunRequest {
@@ -353,6 +370,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                     start_time: start_time__,
                     stop_time: stop_time__,
                     organization_id: organization_id__.unwrap_or_default(),
+                    client_key: client_key__,
                 })
             }
         }
@@ -1099,6 +1117,9 @@ impl serde::Serialize for Run {
         if !self.default_report_id.is_empty() {
             len += 1;
         }
+        if self.client_key.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.runs.v2.Run", len)?;
         if !self.run_id.is_empty() {
             struct_ser.serialize_field("runId", &self.run_id)?;
@@ -1139,6 +1160,9 @@ impl serde::Serialize for Run {
         if !self.default_report_id.is_empty() {
             struct_ser.serialize_field("defaultReportId", &self.default_report_id)?;
         }
+        if let Some(v) = self.client_key.as_ref() {
+            struct_ser.serialize_field("clientKey", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1172,6 +1196,8 @@ impl<'de> serde::Deserialize<'de> for Run {
             "tags",
             "default_report_id",
             "defaultReportId",
+            "client_key",
+            "clientKey",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1189,6 +1215,7 @@ impl<'de> serde::Deserialize<'de> for Run {
             Description,
             Tags,
             DefaultReportId,
+            ClientKey,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1223,6 +1250,7 @@ impl<'de> serde::Deserialize<'de> for Run {
                             "description" => Ok(GeneratedField::Description),
                             "tags" => Ok(GeneratedField::Tags),
                             "defaultReportId" | "default_report_id" => Ok(GeneratedField::DefaultReportId),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1255,6 +1283,7 @@ impl<'de> serde::Deserialize<'de> for Run {
                 let mut description__ = None;
                 let mut tags__ = None;
                 let mut default_report_id__ = None;
+                let mut client_key__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RunId => {
@@ -1335,6 +1364,12 @@ impl<'de> serde::Deserialize<'de> for Run {
                             }
                             default_report_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(Run {
@@ -1351,6 +1386,7 @@ impl<'de> serde::Deserialize<'de> for Run {
                     description: description__.unwrap_or_default(),
                     tags: tags__.unwrap_or_default(),
                     default_report_id: default_report_id__.unwrap_or_default(),
+                    client_key: client_key__,
                 })
             }
         }
