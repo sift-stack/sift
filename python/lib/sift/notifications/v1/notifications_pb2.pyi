@@ -123,7 +123,7 @@ class ListNotificationsRequest(google.protobuf.message.Message):
     Available fields to filter by are `notification_id`, `created_by_user_id`, `recipient_user_id`,
     `created_date`, `notification_type`, and `is_read`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#notification). Optional.
+    For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/notifications#notification). Optional.
     """
     def __init__(
         self,

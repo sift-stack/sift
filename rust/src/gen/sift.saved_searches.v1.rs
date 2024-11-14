@@ -85,7 +85,7 @@ pub struct ListSavedSearchesRequest {
     /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
     /// Available fields to filter by are 'name' and 'saved_search_id'.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#saved_searches). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/saved_searches#savedsearch). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
     /// This field is only required if your user belongs to multiple organizations.

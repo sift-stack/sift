@@ -1014,7 +1014,7 @@ type ListAnnotationsRequest struct {
 	// `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`,
 	// `annotation_type`, `tag_name`, and `assignee`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#annotation). Optional.
+	// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/annotations#annotation). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// This field is only required if your user belongs to multiple organizations.
 	OrganizationId string `protobuf:"bytes,4,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`

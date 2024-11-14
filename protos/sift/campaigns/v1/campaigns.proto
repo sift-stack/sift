@@ -1,0 +1,214 @@
+syntax = "proto3";
+
+package sift.campaigns.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/resource_identifier.proto";
+import "sift/tags/v1/tags.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Campaign service"}
+};
+
+service CampaignService {
+  // Retrieve a campaign.
+  rpc GetCampaign(GetCampaignRequest) returns (GetCampaignResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/campaigns/{campaign_id}"
+      additional_bindings {get: "/v1/organizations/{organization_id}/campaigns/{client_key}"}
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetCampaign",
+      description: "Retrieve a campaign."
+    };
+  }
+
+  // Create a campaign.
+  rpc CreateCampaign(CreateCampaignRequest) returns (CreateCampaignResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/campaigns"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateCampaign",
+      description: "Create a campaign."
+    };
+  }
+
+  // List campaigns.
+  rpc ListCampaigns(ListCampaignsRequest) returns (ListCampaignsResponse) {
+    option (google.api.http) = {get: "/api/v1/campaigns"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListCampaigns"
+      description: "List campaigns."
+    };
+  }
+
+  // Updates an existing campaign using the list of fields specified in `update_mask`.
+  rpc UpdateCampaign(UpdateCampaignRequest) returns (UpdateCampaignResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/campaigns"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateCampaign"
+      description: "Updates an existing campaign using the list of fields specified in `update_mask`."
+    };
+  }
+}
+
+message Campaign {
+  string campaign_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string organization_id = 2 [(google.api.field_behavior) = IMMUTABLE];
+  string client_key = 3 [(google.api.field_behavior) = OPTIONAL];
+  string name = 4 [(google.api.field_behavior) = REQUIRED];
+  string description = 5 [(google.api.field_behavior) = OPTIONAL];
+  string created_by_user_id = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string modified_by_user_id = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp created_date = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp modified_date = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp archived_date = 10 [(google.api.field_behavior) = OPTIONAL];
+  repeated sift.tags.v1.TagRef tags = 11 [(google.api.field_behavior) = UNORDERED_LIST];
+
+  // A campaign, at its core, is a list of reports
+  repeated CampaignReport reports = 12 [(google.api.field_behavior) = UNORDERED_LIST];
+
+  // If this campaign was created by duplicating another campaign, that other campaign will be referenced here
+  string created_from_campaign_id = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// A top-level summary of the report's rules is provided here so clients needn't aggregate this information themselves
+message CampaignReport {
+  // Direct reference to the report. Set this on the client to tell the backend which report you're referring to.
+  string report_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string report_name = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // How many annotations exist under the report's various rules.
+  uint32 num_annotations = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // How many rules from this report were never triggered and generated NO annotations.
+  uint32 num_passed_rules = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // How many rules have annotations which are ALL marked as accepted.
+  uint32 num_accepted_rules = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // How many rules have ANY annotations which are marked as failed.
+  uint32 num_failed_rules = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // How many rules have annotations of which SOME are marked as open and NONE are marked as failed.
+  uint32 num_open_rules = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// The request for a call to `CampaignService_GetCampaign` to retrieve a campaign.
+// If `campaign_id` is provided then all other arguments will be ignored.
+// The `organization_id` argument is only required if using `client_key` and the user belongs to multiple organizations.
+message GetCampaignRequest {
+  string campaign_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+  string organization_id = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `CampaignService_GetCampaign` to retrieve a campaign.
+message GetCampaignResponse {
+  Campaign campaign = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request of a call to `CampaignService_CreateCampaign` to create a campaign.
+message CreateCampaignRequest {
+  // The descriptive display name of the created campaign
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A custom description for the campaign
+  string description = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Tags to be applied to the new campaign
+  sift.common.type.v1.NamedResources tags = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // `organization_id` is only required if your user belongs to multiple organizations
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // User-specified unique identifier.
+  string client_key = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Initialize the campaign, or leave this field empty to create an empty campaign to be populated later
+  CreateCampaignFrom create_from = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Campaigns can be created from a few different sources
+message CreateCampaignFrom {
+  oneof initializer {
+    // Create a campaign directly from a set of reports
+    sift.common.type.v1.ResourceIdentifiers report_ids = 1;
+
+    // Create a campaign from a set of runs by collecting all the reports generated by those runs
+    sift.common.type.v1.ResourceIdentifiers run_ids = 2;
+
+    // Duplicate another campaign
+    sift.common.type.v1.ResourceIdentifier campaign_id = 3;
+  }
+}
+
+// The response of a call to `CampaignService_CreateCampaign` to create a campaign.
+message CreateCampaignResponse {
+  Campaign campaign = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `CampaignService_ListCampaigns` to retrieve campaigns.
+message ListCampaignsRequest {
+  // The maximum number of campaigns to return. The service may return fewer than this value.
+  // If unspecified, at most 50 campaigns will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListCampaigns` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListCampaigns` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `campaign_id`, `tag_id`, `tag_name`, `client_key`, and `name`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#campaigns). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // If `true` then archived campaigns will be included in the query. Defaults to `false`.
+  bool include_archived = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved campaigns. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+  // Available fields to order_by are `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `CampaignService_ListCampaignsResponse`.
+message ListCampaignsResponse {
+  repeated Campaign campaigns = 1;
+  string next_page_token = 2;
+}
+
+// The request for a call to `CampaignService_UpdateCampaign` to update a campaign. When updating
+// tags or rules, the update will perform a full replace. Additionally, when updating rules, only the rule ID or the rule client key
+// is required, but it is okay to provide both. If some rules contain only client keys and others only rule IDs, they will be consolidated.
+message UpdateCampaignRequest {
+  // The campaign to update.
+  Campaign campaign = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, and `reports`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `CampaignService_UpdateCampaign`.
+message UpdateCampaignResponse {
+  Campaign campaign = 1 [(google.api.field_behavior) = REQUIRED];
+}

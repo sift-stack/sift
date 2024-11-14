@@ -46,3 +46,26 @@ class Tag(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "tag_id", b"tag_id"]) -> None: ...
 
 global___Tag = Tag
+
+@typing.final
+class TagRef(google.protobuf.message.Message):
+    """Points to a tag by name or tag_id.
+    When this message is used for a request, you can use either name or tag_id to refer to a tag.
+    When this message is returned in a response, both of the fields will be populated and valid.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TAG_ID_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    tag_id: builtins.str
+    name: builtins.str
+    def __init__(
+        self,
+        *,
+        tag_id: builtins.str = ...,
+        name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["name", b"name", "tag_id", b"tag_id"]) -> None: ...
+
+global___TagRef = TagRef

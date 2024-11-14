@@ -96,7 +96,7 @@ pub struct ListRemoteFilesRequest {
     /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
     /// Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, and `file_name`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#remote_files). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/remote_files#remotefile). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
     /// This field is only required if your user belongs to multiple organizations.
