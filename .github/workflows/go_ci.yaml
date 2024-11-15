@@ -12,10 +12,50 @@ jobs:
   lint-go:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout sources
+        uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - uses: dominikh/staticcheck-action@v1
+
+      - name: staticcheck
+        uses: dominikh/staticcheck-action@v1
         with:
           version: "latest"
           working-directory: go
+
+      - name: go fmt
+        uses: Jerome1337/gofmt-action@v1.0.5
+        with:
+          gofmt-path: './go'
+          gofmt-flags: '-l -d'
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.22
+
+      - name: Verify dependencies
+        run: go mod verify
+        working-directory: go
+
+      - name: Build
+        run: go build -v ./...
+        working-directory: go
+
+      - name: Run go vet
+        run: go vet ./...
+        working-directory: go
+
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+        working-directory: go
+
+      - name: Run staticcheck
+        run: staticcheck ./...
+        working-directory: go
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: go
+          version: v1.60
