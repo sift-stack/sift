@@ -63,7 +63,7 @@ func main() {
 	lastReading := time.Now()
 	lastLog := time.Now()
 
-	for time.Now().Sub(start) < duration {
+	for time.Since(start) < duration {
 		current := time.Now()
 
 		if current.Sub(lastReading) >= time.Duration(readingsInterval) {
