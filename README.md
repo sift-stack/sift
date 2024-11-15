@@ -27,8 +27,7 @@ the [Manual Protobuf Compilation](#manual-protobuf-compilation) section.
 
 ### Installation via Package Managers
 
-The following demonstrates how to install the Sift client library for each supported language. Packages that are downloaded
-from Github are in the process of being moved to their language's official package repository.
+The following demonstrates how to install the Sift client library for each supported language.
 
 #### Python
 
@@ -45,7 +44,7 @@ $ cargo add sift_rs
 #### Go
 
 ```
-$ go get github.com/sift-stack/sift/go@main && go mod tidy
+$ go get github.com/sift-stack/sift/go
 ```
 
 ### Manual Protobuf Compilation
