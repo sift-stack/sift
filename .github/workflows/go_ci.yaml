@@ -57,8 +57,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
+          working-directory: go
           version: v1.60
-        working-directory: go
 
       - name: Run golint
         run: golint ./...
