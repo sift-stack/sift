@@ -59,7 +59,3 @@ jobs:
         with:
           working-directory: go
           version: v1.60
-
-      - name: Run golint
-        run: golint ./...
-        working-directory: go
