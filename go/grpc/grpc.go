@@ -2,15 +2,14 @@ package grpc
 
 import (
 	"context"
-	"crypto/tls"
-	"net/url"
-	"strings"
+	"net"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Configuration for [SiftChannel].
 type SiftChannelConfig struct {
 	Uri    string
 	Apikey string
@@ -21,13 +20,8 @@ type SiftChannel = *grpc.ClientConn
 
 // Initializes a gRPC connection to Sift.
 func UseSiftChannel(ctx context.Context, config SiftChannelConfig) (SiftChannel, error) {
-	url, err := url.Parse(config.Uri)
-	if err != nil {
-		return nil, err
-	}
-
-	transportCred := grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
-	if !strings.Contains(url.Scheme, "https") {
+	transportCred := grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, ""))
+	if useInsecure(config.Uri) {
 		transportCred = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
 
@@ -50,4 +44,12 @@ func UseSiftChannel(ctx context.Context, config SiftChannelConfig) (SiftChannel,
 		unaryInterceptors,
 		streamInterceptors,
 	)
+}
+
+func useInsecure(uri string) bool {
+	host, _, err := net.SplitHostPort(uri)
+	if err != nil {
+		host = uri
+	}
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
