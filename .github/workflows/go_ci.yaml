@@ -36,21 +36,35 @@ jobs:
 
       - name: Verify dependencies
         run: go mod verify
+        with:
+          working-directory: go
 
       - name: Build
         run: go build -v ./...
+        with:
+          working-directory: go
 
       - name: Run go vet
         run: go vet ./...
+        with:
+          working-directory: go
 
       - name: Install staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
+        with:
+          working-directory: go
 
       - name: Run staticcheck
         run: staticcheck ./...
+        with:
+          working-directory: go
 
       - name: Install golint
         run: go install golang.org/x/lint/golint@latest
+        with:
+          working-directory: go
 
       - name: Run golint
         run: golint ./...
+        with:
+          working-directory: go
