@@ -24,6 +24,7 @@ jobs:
           working-directory: go
 
       - name: go fmt
+        uses: Jerome1337/gofmt-action@v1.0.5
         with:
           gofmt-path: './go'
           gofmt-flags: '-l -d'
