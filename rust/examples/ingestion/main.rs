@@ -112,7 +112,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         // Send data once buffer is full and re-init buffer
         if buffer.len() > send_threshold {
-            println!("ingestion {} flows", buffer.len());
+            println!("ingesting {} flows", buffer.len());
             let stream = tokio_stream::iter(buffer);
             ingestion_service
                 .ingest_with_config_data_stream(stream)
@@ -120,6 +120,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             buffer = Vec::new();
         }
     }
+    println!("done.");
 
     Ok(())
 }
