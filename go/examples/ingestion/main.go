@@ -79,9 +79,9 @@ func main() {
 					// voltage channel
 					{Type: &ingestv1.IngestWithConfigDataChannelValue_Double{Double: rng.Float64()}},
 				},
-				// Use this flag only for debugging purposes to get real-time data validation from
+				// Set this flag to `true` only for debugging purposes to get real-time data validation from
 				// the Sift API. Do not use in production as it will hurt performance.
-				EndStreamOnValidationError: true,
+				EndStreamOnValidationError: false,
 			}
 			if err := siftStream.Send(req); err != nil {
 				log.Fatalln(err)
@@ -99,9 +99,9 @@ func main() {
 					// log channel
 					{Type: &ingestv1.IngestWithConfigDataChannelValue_String_{String_: "test log emission"}},
 				},
-				// Use this flag only for debugging purposes to get real-time data validation from
+				// Set this flag to `true` only for debugging purposes to get real-time data validation from
 				// the Sift API. Do not use in production as it will hurt performance.
-				EndStreamOnValidationError: true,
+				EndStreamOnValidationError: false,
 			}
 			if err := siftStream.Send(req); err != nil {
 				log.Fatalln(err)

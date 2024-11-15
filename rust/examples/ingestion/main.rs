@@ -82,9 +82,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         r#type: Some(Type::Double(rng.gen_range(1.0..10.0))),
                     },
                 ],
-                // Use this flag only for debugging purposes to get real-time data validation from
+                // Set this flag to `true` only for debugging purposes to get real-time data validation from
                 // the Sift API. Do not use in production as it will hurt performance.
-                end_stream_on_validation_error: true,
+                end_stream_on_validation_error: false,
                 ..Default::default()
             });
             last_reading = current;
@@ -102,9 +102,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         r#type: Some(Type::String("test log emission".to_string())),
                     },
                 ],
-                // Use this flag only for debugging purposes to get real-time data validation from
+                // Set this flag to `true` only for debugging purposes to get real-time data validation from
                 // the Sift API. Do not use in production as it will hurt performance.
-                end_stream_on_validation_error: true,
+                end_stream_on_validation_error: false,
                 ..Default::default()
             });
             last_log = current;
