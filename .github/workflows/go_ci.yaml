@@ -12,10 +12,18 @@ jobs:
   lint-go:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout sources
+        uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - uses: dominikh/staticcheck-action@v1
+
+      - name: staticcheck
+        uses: dominikh/staticcheck-action@v1
         with:
           version: "latest"
           working-directory: go
+
+      - name: go fmt
+        with:
+          gofmt-path: './go'
+          gofmt-flags: '-l -d'
