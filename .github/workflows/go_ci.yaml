@@ -54,8 +54,10 @@ jobs:
         run: staticcheck ./...
         working-directory: go
 
-      - name: Install golint
-        run: go install golang.org/x/lint/golint@latest
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
         working-directory: go
 
       - name: Run golint
