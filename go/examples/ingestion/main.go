@@ -109,6 +109,12 @@ func main() {
 			log.Println("ingested a log flow")
 		}
 	}
+
+	// Close the stream when finished and check if there are any errors
+	if _, err := siftStream.CloseAndRecv(); err != nil {
+		log.Fatalln(err)
+	}
+
 	log.Println("done.")
 }
 
