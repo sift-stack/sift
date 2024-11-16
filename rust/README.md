@@ -1,7 +1,7 @@
 # Sift Rust
 
 [![Crates.io](https://img.shields.io/crates/v/sift_rs.svg)](https://crates.io/crates/sift_rs)
-[![docs](https://readthedocs.org/projects/pip/badge/)](https://docs.siftstack.com/sift_py/sift_py.html)
+![docs.rs](https://img.shields.io/docsrs/sift_rs)
 
 This library offers a Rust API on top of Sift's protocol buffers to ergonomically interface with the Sift gRPC API.
 
