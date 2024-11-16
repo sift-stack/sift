@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, model_validator
-from pydantic_core import PydanticCustomError
-from typing_extensions import Self
+from pydantic import BaseModel, ConfigDict
 
 from sift_py.ingestion.config.yaml.spec import RuleYamlSpec
 from sift_py.ingestion.rule.config import RuleConfig

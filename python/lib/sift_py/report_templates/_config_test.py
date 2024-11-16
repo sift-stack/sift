@@ -1,7 +1,8 @@
-from pydantic_core import ValidationError
 import pytest
+from pydantic_core import ValidationError
 
 from sift_py.report_templates.config import ReportTemplateConfig
+
 
 @pytest.fixture
 def report_template_dict() -> dict:
