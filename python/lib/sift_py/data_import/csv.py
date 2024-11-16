@@ -184,12 +184,14 @@ class CsvUploadService:
         units: List[str] = []
         if units_row is not None:
             df_units = pd.read_csv(path, nrows=units_row)
-            units = cast(List[str], df_units.iloc[units_row - 1].astype(str))
+            units = list(cast(List[str], df_units.iloc[units_row - 1].astype(str)))
 
         descriptions: List[str] = []
         if descriptions_row is not None:
             df_descriptions = pd.read_csv(path, nrows=descriptions_row)
-            descriptions = cast(List[str], df_descriptions.iloc[descriptions_row - 1].astype(str))
+            descriptions = list(
+                cast(List[str], df_descriptions.iloc[descriptions_row - 1].astype(str))
+            )
 
         for i, header in enumerate(df.columns):
             if i + 1 == time_column:

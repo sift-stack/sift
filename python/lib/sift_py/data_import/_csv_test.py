@@ -270,7 +270,7 @@ def test_simple_upload_metadata_csv(mocker: MockFixture):
             return pd.DataFrame(
                 {
                     "time": [1, 2, 3],
-                    "channel_int": [-1, 2, 0],
+                    "channel_int": [-1, 2, 1],
                 }
             )
         else:
