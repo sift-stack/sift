@@ -181,12 +181,12 @@ class CsvUploadService:
         data_config = {}
         df = pd.read_csv(path, skiprows=skip_rows)
 
-        units: Optional[List[str]] = None
+        units: List[str] = []
         if units_row is not None:
             df_units = pd.read_csv(path, nrows=units_row)
             units = cast(List[str], df_units.iloc[units_row - 1].astype(str))
 
-        descriptions: Optional[List[str]] = None
+        descriptions: List[str] = []
         if descriptions_row is not None:
             df_descriptions = pd.read_csv(path, nrows=descriptions_row)
             descriptions = cast(List[str], df_descriptions.iloc[descriptions_row - 1].astype(str))
@@ -206,10 +206,10 @@ class CsvUploadService:
 
             data_config[i + 1] = {"name": header, "data_type": dtype}
 
-            if units is not None:
+            if units:
                 data_config[i + 1]["units"] = units[i] if units[i] != "nan" else ""
 
-            if descriptions is not None:
+            if descriptions:
                 data_config[i + 1]["description"] = (
                     descriptions[i] if descriptions[i] != "nan" else ""
                 )
