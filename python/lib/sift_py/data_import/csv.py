@@ -10,6 +10,7 @@ import requests
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
+from sift_py.ingestion.channel import ChannelDataType
 from sift_py.rest import SiftRestConfig, compute_uri
 
 
@@ -167,17 +168,6 @@ class CsvUploadService:
             descriptions_row -= 1
             skip_rows.append(descriptions_row)
 
-        types = {
-            "integer": "int",
-            "string": "string",
-            "floating": "float",
-            "boolean": "bool",
-        }
-
-        def is_uint64(n: pd.Series) -> bool:
-            int64_max = 2**63 - 1
-            return bool((n > int64_max).any())
-
         data_config = {}
         df = pd.read_csv(path, skiprows=skip_rows)
 
@@ -197,16 +187,20 @@ class CsvUploadService:
             if i + 1 == time_column:
                 continue
 
-            inferred_dtype = pd.api.types.infer_dtype(df[df.columns[i]], skipna=False)
-            dtype = types.get(inferred_dtype)
-            if dtype is None:
-                raise Exception(
-                    f"Unable to upload data type in column {i+1} {header}. Inferred type: {inferred_dtype}"
-                )
-            if dtype == "int":
-                dtype = "uint64" if is_uint64(df.iloc[:, i]) else "int64"
+            raw_dtype = str(df[df.columns[i]].dtype)
+            if raw_dtype == "float64":
+                raw_dtype = "double"
+            # String columns are set to 'object'. Use infer_dtypes
+            # to verify this is a string column
+            elif raw_dtype == "object":
+                raw_dtype = pd.api.types.infer_dtype(df[df.columns[i]], skipna=False)
 
-            data_config[i + 1] = {"name": header, "data_type": dtype}
+            data_type = ChannelDataType.from_str(raw_dtype)
+            if data_type is None:
+                raise Exception(
+                    f"Unable to upload data type in column {i+1} {header}: Type: {raw_dtype}."
+                )
+            data_config[i + 1] = {"name": header, "data_type": data_type}
 
             if units:
                 data_config[i + 1]["units"] = units[i] if units[i] != "nan" else ""

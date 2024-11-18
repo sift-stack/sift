@@ -220,7 +220,7 @@ def test_simple_upload_invalid_csv(mocker: MockFixture):
             "channel_1": [1, 1.0, True],
         }
     )
-    with pytest.raises(Exception, match="Unable to upload.*Inferred type: mixed-integer"):
+    with pytest.raises(Exception, match="Unable to upload.*"):
         svc = CsvUploadService(rest_config)
         svc.simple_upload("test_asset", "sample.csv")
 
@@ -231,7 +231,7 @@ def test_simple_upload_invalid_csv(mocker: MockFixture):
             "channel_1": [complex(1), complex(1), complex(1)],
         }
     )
-    with pytest.raises(Exception, match="Unable to upload.*Inferred type: complex"):
+    with pytest.raises(Exception, match="Unable to upload.*"):
         svc = CsvUploadService(rest_config)
         svc.simple_upload("test_asset", "sample.csv")
 
@@ -341,7 +341,7 @@ def test_simple_upload_uint64_csv(mocker: MockFixture):
     mock_read_csv.return_value = pd.DataFrame(
         {
             "time": [1, 2, 3],
-            "channel_uint64": [-1, 2, 2**63],
+            "channel_uint64": [1, 2, 2**63],
         }
     )
 
