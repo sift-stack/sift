@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from python.build.lib.sift_py.report_templates.service import ReportTemplateService
+from sift_py.report_templates.service import ReportTemplateService
 from report_template_config import load_rules, nostromos_report_template
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.rule.service import RuleService, SubExpression
@@ -21,36 +21,13 @@ if __name__ == "__main__":
     assert base_uri, "Missing 'BASE_URI' environment variable."
 
     # Create a gRPC transport channel configured specifically for the Sift API
-    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
+    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey, use_ssl=False)
 
     with use_sift_channel(sift_channel_config) as channel:
         # First create rules
         rule_service = RuleService(channel)
         rules = load_rules()  # Load rules from python
-        rules += rule_service.load_rules_from_yaml(  # Load rules from yaml
-            paths=[
-                RULE_MODULES_DIR.joinpath("voltage.yml"),
-                RULE_MODULES_DIR.joinpath("velocity.yml"),
-            ],
-            sub_expressions=[
-                SubExpression("voltage.overvoltage", {"$1": 75}),
-                SubExpression("voltage.undervoltage", {"$1": 30}),
-                SubExpression(
-                    "velocity.vehicle_stuck",
-                    {
-                        "$1": "vehicle_state",
-                        "$2": "mainmotor.velocity",
-                    },
-                ),
-                SubExpression(
-                    "velocity.vehicle_not_stopped",
-                    {
-                        "$1": "vehicle_state",
-                        "$2": "10",
-                    },
-                ),
-            ],
-        )
+        [rule_service.create_or_update_rule(rule) for rule in rules]
 
         # Now create report template
         report_template_service = ReportTemplateService(channel)

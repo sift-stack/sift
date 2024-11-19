@@ -53,6 +53,7 @@ def load_rules() -> List[RuleConfig]:
             description="Checks for vehicle overheating",
             expression='$1 == "Accelerating" && $2 > 80',
             rule_client_key="overheating-rule",
+            asset_names=["NostromoLV2024"],
             channel_references=[
                 # INFO: Can use either "channel_identifier" or "channel_config"
                 {
@@ -71,6 +72,7 @@ def load_rules() -> List[RuleConfig]:
             description="Tracks high energy output while in motion",
             expression=named_expressions["kinetic_energy_gt"],
             rule_client_key="kinetic-energy-rule",
+            asset_names=["NostromoLV2024"],
             channel_references=[
                 {
                     "channel_reference": "$1",
@@ -92,6 +94,7 @@ def load_rules() -> List[RuleConfig]:
             description="Checks for failures reported by logs",
             expression=named_expressions["log_substring_contains"],
             rule_client_key="failure-rule",
+            asset_names=["NostromoLV2024"],
             channel_references=[
                 {
                     "channel_reference": "$1",
