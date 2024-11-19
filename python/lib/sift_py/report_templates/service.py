@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, cast
 
+from google.protobuf.field_mask_pb2 import FieldMask
 from sift.report_templates.v1.report_templates_pb2 import (
     CreateReportTemplateRequest,
     CreateReportTemplateRequestClientKeys,
@@ -27,15 +28,16 @@ class ReportTemplateService:
     def create_or_update_report_template(self, config: ReportTemplateConfig):
         if not config.template_client_key:
             raise Exception(f"Report template {config.name} requires a template_client_key")
-        if self._get_report_template_by_client_key(config.template_client_key):
-            self._update_report_template(config)
+        report_template = self._get_report_template_by_client_key(config.template_client_key)
+        if report_template:
+            self._update_report_template(config, report_template)
             return
         self._create_report_template(config)
 
     def get_report_template(
         self, client_key: str = "", report_template_id: str = ""
-    ) -> Optional[ReportTemplate]:
-        if client_key:
+    ) -> Optional[ReportTemplateConfig]:
+        if client_key:  # TODO: return config
             return self._get_report_template_by_client_key(client_key)
         if report_template_id:
             return self._get_report_template_by_id(report_template_id)
@@ -47,7 +49,7 @@ class ReportTemplateService:
             res = cast(
                 GetReportTemplateResponse, self._report_template_service_stub.GetReportTemplate(req)
             )
-            return res.report_template or None
+            return cast(ReportTemplate, res.report_template) or None
         except:
             return None
 
@@ -74,7 +76,7 @@ class ReportTemplateService:
         )
         self._report_template_service_stub.CreateReportTemplate(req)
 
-    def _update_report_template(self, config: ReportTemplateConfig):
+    def _update_report_template(self, config: ReportTemplateConfig, report_template: ReportTemplate):
         tags = []
         if config.tags:
             tags = [ReportTemplateTag(tag_name=tag) for tag in config.tags]
@@ -82,16 +84,16 @@ class ReportTemplateService:
         rule_client_keys = self._get_rule_client_keys(config)
         rules = [ReportTemplateRule(client_key=client_key) for client_key in rule_client_keys]
 
-        report_template = ReportTemplate(
-            name=config.name,
-            client_key=config.template_client_key,
-            description=config.description,
-            tags=tags,
-            organization_id=config.organization_id,
-            rules=rules,
-        )
+        # TODO: Flip this around, take report template id and whatever is needed and create new
+        report_template.name=config.name
+        report_template.description=config.description
+        report_template.tags=tags
+        report_template.organization_id=config.organization_id
+        report_template.rules=rules
+
+        field_mask = FieldMask(paths=["name", "description", "tags", "rules"])
         self._report_template_service_stub.UpdateReportTemplate(
-            UpdateReportTemplateRequest(report_template=report_template)
+            UpdateReportTemplateRequest(report_template=report_template, update_mask=field_mask)
         )
 
     def _get_rule_client_keys(self, config: ReportTemplateConfig) -> list[str]:

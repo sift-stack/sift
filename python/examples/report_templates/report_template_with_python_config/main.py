@@ -27,13 +27,13 @@ if __name__ == "__main__":
         # First create rules
         rule_service = RuleService(channel)
         rules = load_rules()  # Load rules from python
-        [rule_service.create_or_update_rule(rule) for rule in rules]
+        #[rule_service.create_or_update_rule(rule) for rule in rules]
 
         # Now create report template
         report_template_service = ReportTemplateService(channel)
-        report_template_to_create = nostromos_report_template()
-        report_template_to_create.rules = rules  # Add the rules we just created
-        report_template_service.create_or_update_report_template(report_template_to_create)
+        report_template = nostromos_report_template()
+        report_template.rules = rules  # Add the rules we just created
+        report_template_service.create_or_update_report_template(report_template)
 
         # Then make some updates to the template we created (for the sake of the example)
         report_template_to_update = report_template_service.get_report_template(
