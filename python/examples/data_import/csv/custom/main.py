@@ -63,5 +63,8 @@ if __name__ == "__main__":
     )
 
     import_service: DataImportService = csv_upload_service.upload(input_csv, csv_config)
-    print(import_service.wait_until_complete())
+    print(import_service.get_data_import())
+
+    print("Waiting for upload to complete...")
+    import_service.wait_until_complete()
     print("Upload example complete!")

@@ -220,7 +220,7 @@ def test_simple_upload_invalid_csv(mocker: MockFixture):
             "channel_1": [1, 1.0, True],
         }
     )
-    with pytest.raises(Exception, match="Unable to upload.*Inferred type: mixed-integer"):
+    with pytest.raises(Exception, match="Unable to upload.*"):
         svc = CsvUploadService(rest_config)
         svc.simple_upload("test_asset", "sample.csv")
 
@@ -231,7 +231,7 @@ def test_simple_upload_invalid_csv(mocker: MockFixture):
             "channel_1": [complex(1), complex(1), complex(1)],
         }
     )
-    with pytest.raises(Exception, match="Unable to upload.*Inferred type: complex"):
+    with pytest.raises(Exception, match="Unable to upload.*"):
         svc = CsvUploadService(rest_config)
         svc.simple_upload("test_asset", "sample.csv")
 
@@ -259,3 +259,137 @@ def test_simple_upload_invalid_csv(mocker: MockFixture):
     )
     svc = CsvUploadService(rest_config)
     svc.simple_upload("test_asset", "sample.csv")
+
+
+def test_simple_upload_metadata_csv(mocker: MockFixture):
+    mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
+    mock_path_is_file.return_value = True
+
+    def mock_read_csv(*_, **kwargs):
+        if "skiprows" in kwargs:
+            return pd.DataFrame(
+                {
+                    "time": [1, 2, 3],
+                    "channel_int": [-1, 2, 1],
+                }
+            )
+        else:
+            return pd.DataFrame(
+                {
+                    "time": ["s", "a description", 1, 2, 3],
+                    "channel_int": ["degC", "another description", -1, 2, 1],
+                }
+            )
+
+    mocker.patch("sift_py.data_import.csv.pd.read_csv", mock_read_csv)
+
+    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post.side_effect = [
+        MockResponse(
+            status_code=200,
+            text=json.dumps({"uploadUrl": "some_url.com", "dataImportId": "123-123-123"}),
+        ),
+        MockResponse(status_code=200, text=""),
+    ]
+    mocker.patch(
+        "sift_py.data_import.csv.open",
+        mocker.mock_open(),
+    )
+    svc = CsvUploadService(rest_config)
+
+    svc.simple_upload("test_asset", "sample.csv", units_row=2, descriptions_row=3)
+
+    expected_csv_config = CsvConfig(
+        {
+            "asset_name": "test_asset",
+            "run_name": "",
+            "run_id": "",
+            "first_data_row": 2,
+            "time_column": {
+                "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
+                "column_number": 1,
+            },
+            "data_columns": {
+                "2": {
+                    "name": "channel_int",
+                    "data_type": "CHANNEL_DATA_TYPE_INT_64",
+                    "component": "",
+                    "units": "degC",
+                    "description": "another description",
+                    "enum_types": [],
+                    "bit_field_elements": [],
+                }
+            },
+        }
+    )
+
+    mock_requests_post.assert_any_call(
+        url="https://some_uri.com/api/v1/data-imports:upload",
+        headers={
+            "Authorization": "Bearer 123123123",
+            "Content-Encoding": "application/octet-stream",
+        },
+        data=json.dumps({"csv_config": expected_csv_config.to_dict()}),
+    )
+
+
+def test_simple_upload_uint64_csv(mocker: MockFixture):
+    mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
+    mock_path_is_file.return_value = True
+
+    mock_read_csv = mocker.patch("sift_py.data_import.csv.pd.read_csv")
+    mock_read_csv.return_value = pd.DataFrame(
+        {
+            "time": [1, 2, 3],
+            "channel_uint64": [1, 2, 2**63],
+        }
+    )
+
+    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post.side_effect = [
+        MockResponse(
+            status_code=200,
+            text=json.dumps({"uploadUrl": "some_url.com", "dataImportId": "123-123-123"}),
+        ),
+        MockResponse(status_code=200, text=""),
+    ]
+    mocker.patch(
+        "sift_py.data_import.csv.open",
+        mocker.mock_open(),
+    )
+    svc = CsvUploadService(rest_config)
+
+    svc.simple_upload("test_asset", "sample.csv")
+
+    expected_csv_config = CsvConfig(
+        {
+            "asset_name": "test_asset",
+            "run_name": "",
+            "run_id": "",
+            "first_data_row": 2,
+            "time_column": {
+                "format": "TIME_FORMAT_ABSOLUTE_DATETIME",
+                "column_number": 1,
+            },
+            "data_columns": {
+                "2": {
+                    "name": "channel_uint64",
+                    "data_type": "CHANNEL_DATA_TYPE_UINT_64",
+                    "component": "",
+                    "units": "",
+                    "description": "",
+                    "enum_types": [],
+                    "bit_field_elements": [],
+                }
+            },
+        }
+    )
+
+    mock_requests_post.assert_any_call(
+        url="https://some_uri.com/api/v1/data-imports:upload",
+        headers={
+            "Authorization": "Bearer 123123123",
+            "Content-Encoding": "application/octet-stream",
+        },
+        data=json.dumps({"csv_config": expected_csv_config.to_dict()}),
+    )

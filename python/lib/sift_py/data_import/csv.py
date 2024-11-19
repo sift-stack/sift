@@ -1,7 +1,7 @@
 import json
 import mimetypes
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
@@ -10,6 +10,7 @@ import requests
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
+from sift_py.ingestion.channel import ChannelDataType
 from sift_py.rest import SiftRestConfig, compute_uri
 
 
@@ -138,6 +139,9 @@ class CsvUploadService:
         time_format: TimeFormatType = TimeFormatType.ABSOLUTE_DATETIME,
         run_name: Optional[str] = None,
         run_id: Optional[str] = None,
+        units_row: Optional[int] = None,
+        descriptions_row: Optional[int] = None,
+        relative_start_time: Optional[str] = None,
     ) -> DataImportService:
         """
         Uploads the CSV file pointed to by `path` to the specified asset. This function will
@@ -149,31 +153,64 @@ class CsvUploadService:
         Override `time_format` to specify the time data format. Default is `TimeFormatType.ABSOLUTE_DATETIME`.
         Override `run_name` to specify the name of the run to create for this data. Default is None.
         Override `run_id` to specify the id of the run to add this data to. Default is None.
+        Override `units_row` to specify which row contains unit information. Default is None.
+        Override `descriptions_row` to specify which row contains channel description information. Default is None.
+        Override `relative_start_time` if a relative time format is used. Default is None.
         """
         self._validate_file_type(path)
 
-        types = {
-            "integer": int,
-            "string": str,
-            "floating": float,
-            "boolean": bool,
-        }
+        # Convert to 0 index
+        skip_rows: List[int] = []
+        if units_row is not None:
+            units_row -= 1
+            skip_rows.append(units_row)
+        if descriptions_row is not None:
+            descriptions_row -= 1
+            skip_rows.append(descriptions_row)
+
         data_config = {}
-        df = pd.read_csv(path)
+        df = pd.read_csv(path, skiprows=skip_rows)
+
+        units: List[str] = []
+        if units_row is not None:
+            df_units = pd.read_csv(path, nrows=units_row)
+            units = list(cast(List[str], df_units.iloc[units_row - 1].astype(str)))
+
+        descriptions: List[str] = []
+        if descriptions_row is not None:
+            df_descriptions = pd.read_csv(path, nrows=descriptions_row)
+            descriptions = list(
+                cast(List[str], df_descriptions.iloc[descriptions_row - 1].astype(str))
+            )
+
         for i, header in enumerate(df.columns):
             if i + 1 == time_column:
                 continue
 
-            inferred_dtype = pd.api.types.infer_dtype(df[df.columns[i]], skipna=False)
-            dtype = types.get(inferred_dtype)
-            if dtype is None:
+            raw_dtype = str(df[df.columns[i]].dtype)
+            if raw_dtype == "float64":
+                raw_dtype = "double"
+            # String columns are set to 'object'. Use infer_dtypes
+            # to verify this is a string column
+            elif raw_dtype == "object":
+                raw_dtype = pd.api.types.infer_dtype(df[df.columns[i]], skipna=False)
+
+            data_type = ChannelDataType.from_str(raw_dtype)
+            if data_type is None:
                 raise Exception(
-                    f"Unable to upload data type in column {i+1} {header}. Inferred type: {inferred_dtype}"
+                    f"Unable to upload data type in column {i+1} {header}: Type: {raw_dtype}."
+                )
+            data_config[i + 1] = {"name": header, "data_type": data_type}
+
+            if units:
+                data_config[i + 1]["units"] = units[i] if units[i] != "nan" else ""
+
+            if descriptions:
+                data_config[i + 1]["description"] = (
+                    descriptions[i] if descriptions[i] != "nan" else ""
                 )
 
-            data_config[i + 1] = {"name": header, "data_type": dtype}
-
-        config_info = {
+        config_info: Dict[str, Any] = {
             "asset_name": asset_name,
             "first_data_row": first_data_row,
             "time_column": {
@@ -188,6 +225,9 @@ class CsvUploadService:
 
         if run_id is not None:
             config_info["run_id"] = run_name
+
+        if relative_start_time is not None:
+            config_info["time_column"]["relative_start_time"] = relative_start_time
 
         csv_config = CsvConfig(config_info)
 
