@@ -19,7 +19,7 @@ class ExampleCh10File(BaseCh10File):
 
 if __name__ == "__main__":
     """
-    Example of uploading a TDMS file into Sift.
+    Example of uploading a ch10 file into Sift.
     """
     load_dotenv()
 
