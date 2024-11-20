@@ -17,7 +17,39 @@ class BaseCh10File:
     a csv row of data on each iteration.
 
     Note: The first iteration must populate the csv_config_data_columns attribute
-    that is the data_columns entry in the CsvConfig.
+    that is the data_columns entry in the CsvConfig. See the Sift data_import module or
+    # API docs for the schema.
+
+    Example:
+    ```python
+
+    class Ch10(BaseCh10File):
+
+        def __init__(self, path):
+            self.file = open(path, "rb")
+            self.csv_config_data_columns = None
+
+        def process_ch10_computer_f1_packet(self) -> Dict[int, dict]:
+            # Processes the first Computer F1 packet
+            # and returns the measurements as a dict.
+            ...
+
+        def process_ch10_pcm_packet(self) -> str:
+            # Processed the data packets and returns
+            # a CSV row.
+            ...
+
+        def __next__(self) -> str:
+            # On the first iteration, parse the computer_f1 packet
+            # and set the `csv_config_data_columns` variable.
+            if not self.csv_config_data_columns:
+                self.csv_config_data_columns = self.process_ch10_computer_f1_packet()
+                return
+
+            # On the following iterations, parse the ch10 file
+            # until a CSV row can be returned.
+            return self.process_ch10_data_packet()
+    ```
     """
 
     csv_config_data_columns: Dict[int, dict]
@@ -25,7 +57,7 @@ class BaseCh10File:
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> str:
         raise NotImplementedError
 
 
@@ -51,6 +83,10 @@ class Ch10UploadService(CsvUploadService):
         # and csv_config_data_columns.
         next(ch10_file)
 
+        assert getattr(
+            ch10_file, "csv_config_data_columns"
+        ), "`csv_config_data_columns` was not set correctly on the first iteration"
+
         config_info: Dict[str, Any] = {
             "asset_name": asset_name,
             "first_data_row": 1,
@@ -60,10 +96,10 @@ class Ch10UploadService(CsvUploadService):
             },
             "data_columns": ch10_file.csv_config_data_columns,
         }
-        if run_name is not None:
+        if run_name:
             config_info["run_name"] = run_name
 
-        if run_id is not None:
+        if run_id:
             config_info["run_id"] = run_name
 
         csv_config = CsvConfig(config_info)
@@ -84,14 +120,16 @@ class Ch10UploadService(CsvUploadService):
 
         try:
             upload_info = response.json()
-        except (json.decoder.JSONDecodeError, KeyError):
-            raise Exception(f"Invalid response: {response.text}")
+        except (json.decoder.JSONDecodeError, KeyError) as e:
+            raise Exception(f"Invalid response: {response.text}.\n{e}")
 
         try:
             upload_url: str = upload_info["uploadUrl"]
             data_import_id: str = upload_info["dataImportId"]
         except KeyError as e:
-            raise Exception(f"Response missing required keys: {e}")
+            raise Exception(
+                f"Response missing required keys: {e}. This is unexpected. Please reach out to the Sift team about this error."
+            )
 
         headers = {
             "Authorization": f"Bearer {self._apikey}",
