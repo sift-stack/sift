@@ -17,6 +17,7 @@ from sift.report_templates.v1.report_templates_pb2_grpc import ReportTemplateSer
 
 from sift_py.grpc.transport import SiftChannel
 from sift_py.report_templates.config import ReportTemplateConfig
+from sift_py.rule.config import RuleConfig
 
 
 class ReportTemplateService:
@@ -33,15 +34,6 @@ class ReportTemplateService:
             self._update_report_template(config, report_template)
             return
         self._create_report_template(config)
-
-    def get_report_template(
-        self, client_key: str = "", report_template_id: str = ""
-    ) -> Optional[ReportTemplateConfig]:
-        if client_key:  # TODO: return config
-            return self._get_report_template_by_client_key(client_key)
-        if report_template_id:
-            return self._get_report_template_by_id(report_template_id)
-        raise ValueError("Either client_key or report_template_id must be provided")
 
     def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(report_template_id=report_template_id)
@@ -84,16 +76,19 @@ class ReportTemplateService:
         rule_client_keys = self._get_rule_client_keys(config)
         rules = [ReportTemplateRule(client_key=client_key) for client_key in rule_client_keys]
 
-        # TODO: Flip this around, take report template id and whatever is needed and create new
-        report_template.name=config.name
-        report_template.description=config.description
-        report_template.tags=tags
-        report_template.organization_id=config.organization_id
-        report_template.rules=rules
+        updated_report_template = ReportTemplate(
+            report_template_id=report_template.report_template_id,
+            organization_id=report_template.organization_id,
+            client_key=report_template.client_key,
+            name=config.name,
+            description=config.description,
+            tags=tags,
+            rules=rules,
+        )
 
         field_mask = FieldMask(paths=["name", "description", "tags", "rules"])
         self._report_template_service_stub.UpdateReportTemplate(
-            UpdateReportTemplateRequest(report_template=report_template, update_mask=field_mask)
+            UpdateReportTemplateRequest(report_template=updated_report_template, update_mask=field_mask)
         )
 
     def _get_rule_client_keys(self, config: ReportTemplateConfig) -> list[str]:

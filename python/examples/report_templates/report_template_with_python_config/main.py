@@ -36,15 +36,11 @@ if __name__ == "__main__":
         report_template_service.create_or_update_report_template(report_template)
 
         # Then make some updates to the template we created (for the sake of the example)
-        report_template_to_update = report_template_service.get_report_template(
-            client_key="nostromo-report-template"
+        rules = [
+            rule for rule in report_template.rules if rule.name != "overheating"
+        ]  # Remove some rules
+        report_template.rules = rules
+        report_template.description = (
+            "A report template for the Nostromo without overheating rule"
         )
-        if report_template_to_update:
-            rules = [
-                rule for rule in report_template_to_update.rules if rule.name != "overheating"
-            ]  # Remove some rules
-            report_template_to_update.rules = rules
-            report_template_to_update.description = (
-                "A report template for the Nostromo without overheating rule"
-            )
-            report_template_service.create_or_update_report_template(report_template_to_update)
+        report_template_service.create_or_update_report_template(report_template)
