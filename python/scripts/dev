@@ -31,7 +31,6 @@ pip_install() {
   source venv/bin/activate
   pip install '.[development]'
   pip install '.[build]'
-  pip install '.[openssl]'
   pip install -e .
 }
 
