@@ -16,9 +16,7 @@ class BaseCh10File:
     Implement a concrete version of this class that parses a ch10 stream and returns
     a csv row of data on each iteration.
 
-    Note: The first iteration must populate the csv_config_data_columns attribute
-    that is the data_columns entry in the CsvConfig. See the Sift data_import module or
-    # API docs for the schema.
+    Set `gzip` to `True` if sending a compressed stream.
 
     Example:
     ```python
@@ -27,7 +25,10 @@ class BaseCh10File:
 
         def __init__(self, path):
             self.file = open(path, "rb")
-            self.csv_config_data_columns = None
+            self.initialize_csv_data_columns = None
+
+        def initialize_csv_data_columns(self):
+            self.csv_config_data_columns = self.process_ch10_computer_f1_packet()
 
         def process_ch10_computer_f1_packet(self) -> Dict[int, dict]:
             # Processes the first Computer F1 packet
@@ -40,19 +41,25 @@ class BaseCh10File:
             ...
 
         def __next__(self) -> str:
-            # On the first iteration, parse the computer_f1 packet
-            # and set the `csv_config_data_columns` variable.
-            if not self.csv_config_data_columns:
-                self.csv_config_data_columns = self.process_ch10_computer_f1_packet()
-                return
-
-            # On the following iterations, parse the ch10 file
-            # until a CSV row can be returned.
-            return self.process_ch10_data_packet()
+            # On all iterations, return data for the CSV file.
+            if end_of_file:
+                raise StopIteration()
+            else:
+                return self.process_ch10_data_packet()
     ```
     """
 
     csv_config_data_columns: Dict[int, dict]
+    gzip: bool = False
+
+    def initialize_csv_data_columns(self) -> None:
+        """
+        Must populate the `csv_config_data_columns` attribute
+        that is the data_columns entry in the CsvConfig.
+
+        See the Sift data_import module or API docs for the schema.
+        """
+        raise NotImplementedError
 
     def __iter__(self):
         return self
@@ -79,9 +86,7 @@ class Ch10UploadService(CsvUploadService):
         Override `run_name` to specify the name of the run to create for this data. Default is None.
         Override `run_id` to specify the id of the run to add this data to. Default is None.
         """
-        # Trigger the first packet read to get the row headers
-        # and csv_config_data_columns.
-        next(ch10_file)
+        ch10_file.initialize_csv_data_columns()
 
         assert getattr(
             ch10_file, "csv_config_data_columns"
@@ -89,7 +94,7 @@ class Ch10UploadService(CsvUploadService):
 
         config_info: Dict[str, Any] = {
             "asset_name": asset_name,
-            "first_data_row": 1,
+            "first_data_row": 2,
             "time_column": {
                 "format": time_format,
                 "column_number": 1,
@@ -134,6 +139,9 @@ class Ch10UploadService(CsvUploadService):
         headers = {
             "Authorization": f"Bearer {self._apikey}",
         }
+
+        if ch10_file.gzip:
+            headers["Content-Encoding"] = "gzip"
 
         response = requests.post(
             url=upload_url,
