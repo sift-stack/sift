@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 /// Channel and flow configuration used to create an ingestion config.
 pub fn channel_configs() -> Vec<FlowConfig> {
-    return vec![FlowConfig {
+    vec![FlowConfig {
         name: String::from("velocity_reading"),
         channels: vec![ChannelConfig {
             name: String::from("velocity"),
@@ -88,7 +88,7 @@ pub fn channel_configs() -> Vec<FlowConfig> {
             data_type: ChannelDataType::Double.into(),
             ..Default::default()
         }],
-    }];
+    }]
 }
 
 /// Retrieves an existing ingestion config or create it.

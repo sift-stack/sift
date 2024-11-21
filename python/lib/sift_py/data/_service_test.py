@@ -52,13 +52,17 @@ async def test_data_service_execute_regular_channels(mocker: MockFixture):
                     channel_name="gpio",
                     run_name="[NostromoLV426].1720141748.047512",
                 ),
+                ChannelQuery(
+                    channel_name="valve.pressure",
+                    run_name="[NostromoLV426].1720141748.047512",
+                ),
             ],
         )
 
         result = await data_service.execute(query)
 
         mock_get_asset = mocks["mock_get_asset_by_name"]
-        mock_get_channels = mocks["mock_get_channels_by_asset_id_and_channel_fqns"]
+        mock_get_channels = mocks["mock_get_channels_by_asset_id"]
         mock_get_runs = mocks["mock_get_runs_by_names"]
 
         mock_get_asset.assert_called_once()
@@ -66,7 +70,7 @@ async def test_data_service_execute_regular_channels(mocker: MockFixture):
         mock_get_runs.assert_called_once()
 
         # bit field elements count as separate channels
-        assert len(result.all_channels()) == 3
+        assert len(result.all_channels()) == 4
         assert not result.channel("velocity")
         assert not result.channels("velocity")
         assert len(result.channels("mainmotor.velocity")) == 1
@@ -111,6 +115,27 @@ async def test_data_service_execute_regular_channels(mocker: MockFixture):
         assert len(gpio_heater.value_column()["gpio.heater"]) == 1
         assert len(gpio_heater.value_column("heater")["heater"]) == 1
 
+        pressure = result.channel("valve.pressure")
+        assert pressure is not None
+        assert len(pressure.timestamps) == 2
+        assert len(pressure.time_column()["time"]) == 2
+        assert len(pressure.time_column("custom_column_name")["custom_column_name"]) == 2
+        assert len(pressure.value_column()["valve.pressure"]) == 2
+        assert len(pressure.value_column("custom_column_name")["custom_column_name"]) == 2
+
+        all_columns = pressure.columns()
+        assert len(all_columns) == 2
+        assert len(all_columns["time"]) == 2
+        assert len(all_columns["valve.pressure"]) == 2
+
+        all_columns_custom = pressure.columns(
+            time_column_name="ts",
+            value_column_name="valve.pressure",
+        )
+        assert len(all_columns_custom) == 2
+        assert len(all_columns_custom["ts"]) == 2
+        assert len(all_columns_custom["valve.pressure"]) == 2
+
 
 @contextmanager
 def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockType]]:
@@ -119,10 +144,8 @@ def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockTyp
         asset_id="b7955799-9893-4acf-bf14-50052284020c", name="NostromoLV428"
     )
 
-    mock__get_channels_by_asset_id_and_channel_fqns = mocker.patch.object(
-        DataService, "_get_channels_by_asset_id_and_channel_fqns"
-    )
-    mock__get_channels_by_asset_id_and_channel_fqns.return_value = [
+    mock__get_channels_by_asset_id = mocker.patch.object(DataService, "_get_channels_by_asset_id")
+    mock__get_channels_by_asset_id.return_value = [
         Channel(
             channel_id="e8662647-12f7-465f-85dc-cb02513944e0",
             name="velocity",
@@ -133,6 +156,11 @@ def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockTyp
             channel_id="97e25141-ed3e-4538-b063-c3eac30838ce",
             name="gpio",
             data_type=CHANNEL_DATA_TYPE_BIT_FIELD,
+        ),
+        Channel(
+            channel_id="87e25141-ed3e-4538-b063-c3eac30838cd",
+            name="valve.pressure",
+            data_type=CHANNEL_DATA_TYPE_DOUBLE,
         ),
     ]
 
@@ -147,7 +175,7 @@ def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockTyp
     time_a = "2024-07-04T18:09:08.555-07:00"
     time_b = "2024-07-04T18:09:09.555-07:00"
 
-    double_values = DoubleValues(
+    velocity_values = DoubleValues(
         metadata=Metadata(
             data_type=CHANNEL_DATA_TYPE_DOUBLE,
             channel=Metadata.Channel(name="velocity", component="mainmotor"),
@@ -164,8 +192,31 @@ def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockTyp
         ],
     )
 
-    raw_double_values = Any()
-    raw_double_values.Pack(double_values)
+    raw_velocity_values = Any()
+    raw_velocity_values.Pack(velocity_values)
+
+    time_a = "2024-07-04T18:09:08.555-07:00"
+    time_b = "2024-07-04T18:09:09.555-07:00"
+
+    pressure_values = DoubleValues(
+        metadata=Metadata(
+            data_type=CHANNEL_DATA_TYPE_DOUBLE,
+            channel=Metadata.Channel(name="valve.pressure"),
+        ),
+        values=[
+            DoubleValue(
+                timestamp=to_timestamp_pb(time_a),
+                value=10,
+            ),
+            DoubleValue(
+                timestamp=to_timestamp_pb(time_b),
+                value=11,
+            ),
+        ],
+    )
+
+    raw_pressure_values = Any()
+    raw_pressure_values.Pack(pressure_values)
 
     bit_field_values = BitFieldValues(
         metadata=Metadata(
@@ -213,12 +264,13 @@ def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockTyp
 
     mock__get_data = mocker.patch.object(DataService, "_get_data")
     mock__get_data.side_effect = [
-        [[raw_double_values]],
+        [[raw_velocity_values]],
         [[raw_bit_field_values]],
+        [[raw_pressure_values]],
     ]
     yield {
         "mock_get_asset_by_name": mock__get_asset_by_name,
         "mock_get_runs_by_names": mock__get_runs_by_names,
-        "mock_get_channels_by_asset_id_and_channel_fqns": mock__get_channels_by_asset_id_and_channel_fqns,
+        "mock_get_channels_by_asset_id": mock__get_channels_by_asset_id,
         "mock_get_data": mock__get_data,
     }
