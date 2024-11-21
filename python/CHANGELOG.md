@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.0-rc.5] - November 21, 2024
+Summary of changes:
+- Allow uploading compressed chapter 10 files
+
 ## [v0.3.0-rc.4] - November 21, 2024
 Summary of changes:
 - Fix data download bug for channels with '.' delimited name.
