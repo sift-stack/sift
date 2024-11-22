@@ -33,7 +33,7 @@ class ReportTemplateService:
             self._update_report_template(config, report_template)
             return
         self._create_report_template(config)
-
+    # TODO: Can add back get after rule client key change
     def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(report_template_id=report_template_id)
         try:

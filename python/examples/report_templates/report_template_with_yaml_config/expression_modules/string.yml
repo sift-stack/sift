@@ -1,0 +1,2 @@
+log_substring_contains:
+  contains($1, $sub_string)

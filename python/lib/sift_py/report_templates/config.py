@@ -20,7 +20,7 @@ class ReportTemplateConfig(BaseModel):
     organization_id: str = ""
     tags: Optional[List[str]] = None
     description: Optional[str] = None
-    rules: List[RuleConfig] = []
+    rules: List[RuleConfig] = []  # TODO: Make this just rule client keys
     namespaces: Dict[str, List[RuleYamlSpec]] = {}
 
     def as_json(self) -> Any:
