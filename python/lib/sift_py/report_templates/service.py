@@ -17,7 +17,6 @@ from sift.report_templates.v1.report_templates_pb2_grpc import ReportTemplateSer
 
 from sift_py.grpc.transport import SiftChannel
 from sift_py.report_templates.config import ReportTemplateConfig
-from sift_py.rule.config import RuleConfig
 
 
 class ReportTemplateService:
@@ -68,7 +67,9 @@ class ReportTemplateService:
         )
         self._report_template_service_stub.CreateReportTemplate(req)
 
-    def _update_report_template(self, config: ReportTemplateConfig, report_template: ReportTemplate):
+    def _update_report_template(
+        self, config: ReportTemplateConfig, report_template: ReportTemplate
+    ):
         tags = []
         if config.tags:
             tags = [ReportTemplateTag(tag_name=tag) for tag in config.tags]
@@ -88,7 +89,9 @@ class ReportTemplateService:
 
         field_mask = FieldMask(paths=["name", "description", "tags", "rules"])
         self._report_template_service_stub.UpdateReportTemplate(
-            UpdateReportTemplateRequest(report_template=updated_report_template, update_mask=field_mask)
+            UpdateReportTemplateRequest(
+                report_template=updated_report_template, update_mask=field_mask
+            )
         )
 
     def _get_rule_client_keys(self, config: ReportTemplateConfig) -> list[str]:

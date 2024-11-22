@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sift_py.report_templates.service import ReportTemplateService
 from report_template_config import load_rules, nostromos_report_template
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
-from sift_py.rule.service import RuleService, SubExpression
+from sift_py.report_templates.service import ReportTemplateService
+from sift_py.rule.service import RuleService
 
 TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         # First create rules
         rule_service = RuleService(channel)
         rules = load_rules()  # Load rules from python
-        #[rule_service.create_or_update_rule(rule) for rule in rules]
+        # [rule_service.create_or_update_rule(rule) for rule in rules]
 
         # Now create report template
         report_template_service = ReportTemplateService(channel)
@@ -40,7 +40,5 @@ if __name__ == "__main__":
             rule for rule in report_template.rules if rule.name != "overheating"
         ]  # Remove some rules
         report_template.rules = rules
-        report_template.description = (
-            "A report template for the Nostromo without overheating rule"
-        )
+        report_template.description = "A report template for the Nostromo without overheating rule"
         report_template_service.create_or_update_report_template(report_template)

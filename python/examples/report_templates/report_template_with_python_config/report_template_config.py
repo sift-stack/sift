@@ -14,7 +14,6 @@ from sift_py.ingestion.rule.config import (
 from sift_py.report_templates.config import ReportTemplateConfig
 
 EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
-RULE_NAMESPACES_DIR = Path().joinpath("rule_modules")
 
 
 def load_rules() -> List[RuleConfig]:
