@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.0-rc.6] - November 22, 2024
+Summary of changes:
+- Support Windows mimetypes for CSV uploads
+
 ## [v0.3.0-rc.5] - November 21, 2024
 Summary of changes:
 - Allow uploading compressed chapter 10 files
