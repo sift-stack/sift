@@ -244,8 +244,11 @@ class CsvUploadService:
         if not mimetype:
             raise Exception(f"The MIME-type of '{posix_path}' could not be computed.")
 
-        if mimetype not in ["test/plain", "text/csv"]:
-            raise Exception(f"{path} is not a valid file type. Must be text or csv.")
+        valid_types = ["test/plain", "text/csv", "application/vnd.ms-excel"]
+        if mimetype not in valid_types:
+            raise Exception(
+                f"{path} is not a valid file type ({mimetype}). Must be {', '.join(valid_types)}."
+            )
 
         return content_encoding
 
