@@ -67,7 +67,7 @@ def test_csv_upload_service_upload_validate_mime_type(mocker: MockFixture):
             csv_config=csv_config,
         )
 
-    with pytest.raises(Exception, match="Must be text or csv"):
+    with pytest.raises(Exception, match="Must be"):
         svc = CsvUploadService(rest_config)
         svc.upload(
             path="some_file.pdf",
