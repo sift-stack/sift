@@ -93,13 +93,3 @@ class ReportTemplateService:
                 report_template=updated_report_template, update_mask=field_mask
             )
         )
-
-    def _get_rule_client_keys(self, config: ReportTemplateConfig) -> list[str]:
-        client_keys = []
-        for rule in config.rules:
-            client_key = rule.rule_client_key
-            if not client_key:
-                raise Exception(f"Rule {rule.name} requires a rule_client_key")
-            client_keys.append(client_key)
-
-        return client_keys
