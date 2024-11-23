@@ -34,7 +34,9 @@ class ReportTemplateService:
             return
         self._create_report_template(config)
 
-    def get_report_template(self, client_key: str = "", id: str = "") -> Optional[ReportTemplateConfig]:
+    def get_report_template(
+        self, client_key: str = "", id: str = ""
+    ) -> Optional[ReportTemplateConfig]:
         report_template = None
         if not client_key and not id:
             raise ValueError("Either client_key or id must be provided")
@@ -55,7 +57,6 @@ class ReportTemplateService:
             description=report_template.description,
             rule_client_keys=[rule.client_key for rule in report_template.rules],
         )
-
 
     def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(report_template_id=report_template_id)
@@ -78,7 +79,9 @@ class ReportTemplateService:
             return None
 
     def _create_report_template(self, config: ReportTemplateConfig):
-        client_keys_req = CreateReportTemplateRequestClientKeys(rule_client_keys=config.rule_client_keys)
+        client_keys_req = CreateReportTemplateRequestClientKeys(
+            rule_client_keys=config.rule_client_keys
+        )
         req = CreateReportTemplateRequest(
             name=config.name,
             client_key=config.template_client_key,
@@ -96,7 +99,9 @@ class ReportTemplateService:
         if config.tags:
             tags = [ReportTemplateTag(tag_name=tag) for tag in config.tags]
 
-        rules = [ReportTemplateRule(client_key=client_key) for client_key in config.rule_client_keys]
+        rules = [
+            ReportTemplateRule(client_key=client_key) for client_key in config.rule_client_keys
+        ]
 
         updated_report_template = ReportTemplate(
             report_template_id=report_template.report_template_id,

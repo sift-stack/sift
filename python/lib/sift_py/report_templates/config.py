@@ -4,9 +4,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from sift_py.ingestion.config.yaml.spec import RuleYamlSpec
-from sift_py.ingestion.rule.config import RuleConfig
-
 
 class ReportTemplateConfig(BaseModel):
     """

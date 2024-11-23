@@ -32,18 +32,24 @@ if __name__ == "__main__":
         # Now create report template
         report_template_service = ReportTemplateService(channel)
         report_template = nostromos_report_template()
-        report_template.rule_client_keys = [rule.rule_client_key for rule in rules if rule.rule_client_key] # Add the rules we just created
+        report_template.rule_client_keys = [
+            rule.rule_client_key for rule in rules if rule.rule_client_key
+        ]  # Add the rules we just created
         report_template_service.create_or_update_report_template(report_template)
         print(report_template)
 
         # Then make some updates to the template we created (for the sake of example)
-        rules = [
-            rule for rule in rules if rule.name != "overheating"
-        ]  # Remove some rules
+        rules = [rule for rule in rules if rule.name != "overheating"]  # Remove some rules
         # Get the report template (for the sake of example)
-        report_template_to_update = report_template_service.get_report_template(client_key=report_template.template_client_key)
+        report_template_to_update = report_template_service.get_report_template(
+            client_key=report_template.template_client_key
+        )
         if report_template_to_update:
-            report_template_to_update.rule_client_keys = [rule.rule_client_key for rule in rules if rule.rule_client_key]
-            report_template_to_update.description = "A report template for the Nostromo without overheating rule"
+            report_template_to_update.rule_client_keys = [
+                rule.rule_client_key for rule in rules if rule.rule_client_key
+            ]
+            report_template_to_update.description = (
+                "A report template for the Nostromo without overheating rule"
+            )
             print(report_template_to_update)
             report_template_service.create_or_update_report_template(report_template_to_update)
