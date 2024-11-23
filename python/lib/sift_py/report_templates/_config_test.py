@@ -19,8 +19,7 @@ def test_report_template_config(report_template_dict):
     assert report_template_config.organization_id == ""
     assert report_template_config.tags is None
     assert report_template_config.description is None
-    assert report_template_config.rules == []
-    assert report_template_config.namespaces == {}
+    assert report_template_config.rule_client_keys == []
 
 
 def test_report_template_config_validation(report_template_dict):

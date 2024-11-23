@@ -33,7 +33,30 @@ class ReportTemplateService:
             self._update_report_template(config, report_template)
             return
         self._create_report_template(config)
-    # TODO: Can add back get after rule client key change
+
+    def get_report_template(self, client_key: str = "", id: str = "") -> Optional[ReportTemplateConfig]:
+        report_template = None
+        if not client_key and not id:
+            raise ValueError("Either client_key or id must be provided")
+
+        if id:
+            report_template = self._get_report_template_by_id(id)
+        elif client_key:
+            report_template = self._get_report_template_by_client_key(client_key)
+
+        if not report_template:
+            raise Exception(f"Report template with client key {client_key} or id {id} not found.")
+
+        return ReportTemplateConfig(
+            name=report_template.name,
+            template_client_key=report_template.client_key,
+            organization_id=report_template.organization_id,
+            tags=[tag.tag_name for tag in report_template.tags],
+            description=report_template.description,
+            rule_client_keys=[rule.client_key for rule in report_template.rules],
+        )
+
+
     def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(report_template_id=report_template_id)
         try:
@@ -55,8 +78,7 @@ class ReportTemplateService:
             return None
 
     def _create_report_template(self, config: ReportTemplateConfig):
-        rule_client_keys = self._get_rule_client_keys(config)
-        client_keys_req = CreateReportTemplateRequestClientKeys(rule_client_keys=rule_client_keys)
+        client_keys_req = CreateReportTemplateRequestClientKeys(rule_client_keys=config.rule_client_keys)
         req = CreateReportTemplateRequest(
             name=config.name,
             client_key=config.template_client_key,
@@ -74,8 +96,7 @@ class ReportTemplateService:
         if config.tags:
             tags = [ReportTemplateTag(tag_name=tag) for tag in config.tags]
 
-        rule_client_keys = self._get_rule_client_keys(config)
-        rules = [ReportTemplateRule(client_key=client_key) for client_key in rule_client_keys]
+        rules = [ReportTemplateRule(client_key=client_key) for client_key in config.rule_client_keys]
 
         updated_report_template = ReportTemplate(
             report_template_id=report_template.report_template_id,
