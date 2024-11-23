@@ -27,7 +27,7 @@ if __name__ == "__main__":
         # First create rules
         rule_service = RuleService(channel)
         rules = load_rules()  # Load rules from python
-#        [rule_service.create_or_update_rule(rule) for rule in rules]
+        [rule_service.create_or_update_rule(rule) for rule in rules]
 
         # Now create report template
         report_template_service = ReportTemplateService(channel)
