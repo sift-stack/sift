@@ -27,13 +27,14 @@ if __name__ == "__main__":
         # First create rules
         rule_service = RuleService(channel)
         rules = load_rules()  # Load rules from python
-        [rule_service.create_or_update_rule(rule) for rule in rules]
+#        [rule_service.create_or_update_rule(rule) for rule in rules]
 
         # Now create report template
         report_template_service = ReportTemplateService(channel)
         report_template = nostromos_report_template()
-        report_template.rules = [rule.rule_client_key for rule in rules] # Add the rules we just created
+        report_template.rule_client_keys = [rule.rule_client_key for rule in rules if rule.rule_client_key] # Add the rules we just created
         report_template_service.create_or_update_report_template(report_template)
+        print(report_template)
 
         # Then make some updates to the template we created (for the sake of example)
         rules = [
@@ -42,6 +43,7 @@ if __name__ == "__main__":
         # Get the report template (for the sake of example)
         report_template_to_update = report_template_service.get_report_template(client_key=report_template.template_client_key)
         if report_template_to_update:
-            report_template_to_update.rules = [rule.rule_client_key for rule in rules]
+            report_template_to_update.rule_client_keys = [rule.rule_client_key for rule in rules if rule.rule_client_key]
             report_template_to_update.description = "A report template for the Nostromo without overheating rule"
+            print(report_template_to_update)
             report_template_service.create_or_update_report_template(report_template_to_update)
