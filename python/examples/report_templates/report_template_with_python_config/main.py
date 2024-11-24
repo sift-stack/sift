@@ -36,7 +36,6 @@ if __name__ == "__main__":
             rule.rule_client_key for rule in rules if rule.rule_client_key
         ]  # Add the rules we just created
         report_template_service.create_or_update_report_template(report_template)
-        print(report_template)
 
         # Then make some updates to the template we created (for the sake of example)
         rules = [rule for rule in rules if rule.name != "overheating"]  # Remove some rules
@@ -51,5 +50,4 @@ if __name__ == "__main__":
             report_template_to_update.description = (
                 "A report template for the Nostromo without overheating rule"
             )
-            print(report_template_to_update)
             report_template_service.create_or_update_report_template(report_template_to_update)

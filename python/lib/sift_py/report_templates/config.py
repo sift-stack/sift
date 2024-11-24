@@ -28,6 +28,3 @@ class ReportTemplateConfig(BaseModel):
 
     def as_json(self) -> Any:
         return self.model_dump_json()
-
-    def to_dict(self) -> Dict[str, Any]:
-        return self.model_dump()

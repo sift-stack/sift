@@ -1,7 +1,8 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Type, cast
+from typing import Any, Callable, Dict, List, Type, cast
 
+from sift_py.report_templates.config import ReportTemplateConfig
 import yaml
 
 from sift_py.ingestion.channel import ChannelDataTypeStrRep
@@ -29,6 +30,24 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     """
     raw_config = _read_yaml(path)
     return _validate_yaml(raw_config)
+
+def load_report_templates(paths: List[Path]) -> List[ReportTemplateConfig]:
+    """
+    Takes in a list of paths to YAML files which contains report templates and processes them into a list of
+    `ReportTemplateConfig` objects. For more information on report templates see
+    `sift_py.report_templates.config.ReportTemplateConfig`.
+    """
+    report_templates: List[ReportTemplateConfig] = []
+
+    def append_report_template(yaml_path: Path):
+        report_templates += _read_report_template_yaml(yaml_path)
+
+    for path in paths:
+        if path.is_dir():
+            _handle_subdir(path, append_report_template)
+        elif path.is_file():
+            append_report_template(path)
+    return report_templates
 
 
 def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
@@ -70,23 +89,24 @@ def load_rule_namespaces(paths: List[Path]) -> Dict[str, List[RuleYamlSpec]]:
                 raise YamlConfigError(
                     f"Encountered rules with identical names being loaded, '{key}'."
                 )
-
         rule_namespaces.update(rule_module)
-
-    def handle_dir(path: Path):
-        for file_in_dir in path.iterdir():
-            if file_in_dir.is_dir():
-                handle_dir(file_in_dir)
-            elif file_in_dir.is_file():
-                update_rule_namespaces(file_in_dir)
 
     for path in paths:
         if path.is_dir():
-            handle_dir(path)
+            _handle_subdir(path, update_rule_namespaces)
         elif path.is_file():
             update_rule_namespaces(path)
 
     return rule_namespaces
+
+
+def _handle_subdir(path: Path, file_handler: Callable):
+    """The file_handler callable must accept a Path object as its only argument."""
+    for file_in_dir in path.iterdir():
+        if file_in_dir.is_dir():
+            _handle_subdir(file_in_dir, file_handler)
+        elif file_in_dir.is_file():
+            file_handler(file_in_dir)
 
 
 def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
@@ -106,6 +126,30 @@ def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
         return cast(Dict[str, str], named_expressions)
 
 
+def _read_report_template_yaml(path: Path) -> List[ReportTemplateConfig]:
+    report_templates = []
+    with open(path, "r") as f:
+        report_templates_yaml = cast(Dict[str, Any], yaml.safe_load(f.read()))
+
+        report_template_list = report_templates_yaml.get("report_templates")
+        if not isinstance(report_template_list, list):
+            raise YamlConfigError(
+                f"Expected 'report_templates' to be a list in report template yaml: '{path}'"
+            )
+
+        for report_template in report_template_list:
+            try:
+                report_template_config = ReportTemplateConfig(**report_template)
+                report_templates.append(report_template_config)
+            except Exception as e:
+                raise YamlConfigError(
+                    f"Error parsing report template '{report_template}'"
+                ) from e
+
+        return report_templates
+
+
+
 def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:
     with open(path, "r") as f:
         namespace_rules = cast(Dict[Any, Any], yaml.safe_load(f.read()))
@@ -118,7 +162,7 @@ def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:
             )
 
         rules = namespace_rules.get("rules")
-        if not isinstance(namespace, str):
+        if not isinstance(rules, list):
             raise YamlConfigError(
                 f"Expected '{rules}' to be a list in rule namespace yaml: '{path}'"
                 f"{_type_fqn(RuleNamespaceYamlSpec)}"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional, cast
+from pathlib import Path
+from typing import List, Optional, cast
 
 from google.protobuf.field_mask_pb2 import FieldMask
 from sift.report_templates.v1.report_templates_pb2 import (
@@ -16,6 +17,7 @@ from sift.report_templates.v1.report_templates_pb2 import (
 from sift.report_templates.v1.report_templates_pb2_grpc import ReportTemplateServiceStub
 
 from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion.config.yaml.load import load_report_templates
 from sift_py.report_templates.config import ReportTemplateConfig
 
 
@@ -57,6 +59,9 @@ class ReportTemplateService:
             description=report_template.description,
             rule_client_keys=[rule.client_key for rule in report_template.rules],
         )
+
+    def load_report_templates_from_yaml(self, paths: List[Path]) -> List[ReportTemplateConfig]:
+        return load_report_templates(paths)
 
     def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(report_template_id=report_template_id)

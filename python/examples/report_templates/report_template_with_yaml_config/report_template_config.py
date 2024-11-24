@@ -16,7 +16,9 @@ from sift_py.report_templates.config import ReportTemplateConfig
 EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
 
 
-def load_rules() -> List[RuleConfig]:
+def load_rules_from_yaml() -> List[RuleConfig]:
+    # TODO: Update to load from YAML and load subexpressions
+    # TODO: Update namespace yamls to be like agnostic example?
     named_expressions = load_named_expression_modules(
         [
             EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
