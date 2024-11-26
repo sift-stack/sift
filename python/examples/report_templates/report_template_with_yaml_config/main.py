@@ -1,5 +1,5 @@
-from datetime import datetime
 import os
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -50,7 +50,9 @@ if __name__ == "__main__":
         report_template_service.load_report_templates_from_yaml([report_templates])
 
         # Archive one template, for the sake of example
-        report_template_to_update = report_template_service.get_report_template(client_key="nostromo-report-template-1")
+        report_template_to_update = report_template_service.get_report_template(
+            client_key="nostromo-report-template-1"
+        )
         if report_template_to_update:
             report_template_to_update.archived_date = datetime.now()
             report_template_service.create_or_update_report_template(report_template_to_update)
