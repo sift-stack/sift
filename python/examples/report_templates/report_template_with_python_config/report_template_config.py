@@ -112,7 +112,7 @@ def load_rules() -> List[RuleConfig]:
 def nostromos_report_template() -> ReportTemplateConfig:
     return ReportTemplateConfig(
         name="Nostromo Report Template",
-        template_client_key="nostromo-report-template",
+        template_client_key="nostromo-report-template-test",
         description="A report template for the Nostromo",
         rule_client_keys=[],
     )

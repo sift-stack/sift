@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -15,6 +16,8 @@ class ReportTemplateConfig(BaseModel):
     - `tags`: Tags to associate with the report template.
     - `description`: Description of the report template.
     - `rule_client_keys`: List of rule client keys associated with the report template.
+    - `archived_date`: Date when the report template was archived. Setting this field
+        will archive the report template, and unsetting it will unarchive the report template.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -25,6 +28,7 @@ class ReportTemplateConfig(BaseModel):
     tags: Optional[List[str]] = None
     description: Optional[str] = None
     rule_client_keys: List[str] = []
+    archived_date: Optional[datetime] = None
 
     def as_json(self) -> Any:
         return self.model_dump_json()

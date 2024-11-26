@@ -16,6 +16,7 @@ from sift.report_templates.v1.report_templates_pb2 import (
 )
 from sift.report_templates.v1.report_templates_pb2_grpc import ReportTemplateServiceStub
 
+from sift_py._internal.time import to_timestamp_pb
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.config.yaml.load import load_report_templates
 from sift_py.report_templates.config import ReportTemplateConfig
@@ -110,6 +111,10 @@ class ReportTemplateService:
         if config.tags:
             tags = [ReportTemplateTag(tag_name=tag) for tag in config.tags]
 
+        archived_date = None
+        if config.archived_date:
+            archived_date = to_timestamp_pb(config.archived_date)
+
         rules = [
             ReportTemplateRule(client_key=client_key) for client_key in config.rule_client_keys
         ]
@@ -122,9 +127,10 @@ class ReportTemplateService:
             description=config.description,
             tags=tags,
             rules=rules,
+            archived_date=archived_date,
         )
 
-        field_mask = FieldMask(paths=["name", "description", "tags", "rules"])
+        field_mask = FieldMask(paths=["name", "description", "tags", "rules", "archived_date"])
         self._report_template_service_stub.UpdateReportTemplate(
             UpdateReportTemplateRequest(
                 report_template=updated_report_template, update_mask=field_mask
