@@ -63,7 +63,10 @@ class ReportTemplateService:
 
     def load_report_templates_from_yaml(self, paths: List[Path]) -> List[ReportTemplateConfig]:
         report_templates = load_report_templates(paths)
-        [self.create_or_update_report_template(report_template) for report_template in report_templates]
+        [
+            self.create_or_update_report_template(report_template)
+            for report_template in report_templates
+        ]
         return report_templates
 
     def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:

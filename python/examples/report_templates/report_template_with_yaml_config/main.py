@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules, load_report_templates
+from sift_py.ingestion.config.yaml.load import load_named_expression_modules
 from sift_py.report_templates.service import ReportTemplateService
 from sift_py.rule.service import RuleService, SubExpression
 
