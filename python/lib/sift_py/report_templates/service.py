@@ -16,7 +16,7 @@ from sift.report_templates.v1.report_templates_pb2 import (
 )
 from sift.report_templates.v1.report_templates_pb2_grpc import ReportTemplateServiceStub
 
-from sift_py._internal.time import to_timestamp_pb
+from sift_py._internal.time import to_timestamp_nanos, to_timestamp_pb
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.config.yaml.load import load_report_templates
 from sift_py.report_templates.config import ReportTemplateConfig
@@ -60,6 +60,7 @@ class ReportTemplateService:
             tags=[tag.tag_name for tag in report_template.tags],
             description=report_template.description,
             rule_client_keys=[rule.client_key for rule in report_template.rules],
+            archived_date=to_timestamp_nanos(report_template.archived_date).to_pydatetime(),
         )
 
     def load_report_templates_from_yaml(self, paths: List[Path]) -> List[ReportTemplateConfig]:
