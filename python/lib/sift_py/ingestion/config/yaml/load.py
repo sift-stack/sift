@@ -39,14 +39,11 @@ def load_report_templates(paths: List[Path]) -> List[ReportTemplateConfig]:
     """
     report_templates: List[ReportTemplateConfig] = []
 
-    def append_report_template(yaml_path: Path):
-        report_templates += _read_report_template_yaml(yaml_path)
-
     for path in paths:
         if path.is_dir():
-            _handle_subdir(path, append_report_template)
+            report_templates += _handle_subdir(path, _read_report_template_yaml)
         elif path.is_file():
-            append_report_template(path)
+            report_templates += _read_report_template_yaml(path)
     return report_templates
 
 

@@ -2,14 +2,14 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from report_template_config import load_rules, nostromos_report_template
+from sift_py.ingestion.config.yaml.load import load_named_expression_modules, load_report_templates
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.report_templates.service import ReportTemplateService
-from sift_py.rule.service import RuleService
+from sift_py.rule.service import RuleService, SubExpression
 
-TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
+REPORT_TEMPLATES_DIR = Path().joinpath("report_templates")
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
-
+EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
 
 if __name__ == "__main__":
     load_dotenv()
@@ -21,37 +21,29 @@ if __name__ == "__main__":
     assert base_uri, "Missing 'BASE_URI' environment variable."
 
     # Create a gRPC transport channel configured specifically for the Sift API
-    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey, use_ssl=False)
+    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
 
+    # Paths to your rules, named expressions, and report template
+    report_templates = REPORT_TEMPLATES_DIR.joinpath("nostromo_report_template.yml")
+    rule_modules = RULE_MODULES_DIR.joinpath("rules.yml")
+    named_expressions = load_named_expression_modules(
+        [
+            EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
+            EXPRESSION_MODULES_DIR.joinpath("string.yml"),
+        ]
+    )
     with use_sift_channel(sift_channel_config) as channel:
         # First create rules
         rule_service = RuleService(channel)
-        rules = load_rules()  # Load rules from python
-        # TODO: Load rules from YAML like agnostic example
-        # TODO: update namespaced rule definitions
-        [rule_service.create_or_update_rule(rule) for rule in rules]
+        rules = rule_service.load_rules_from_yaml(
+            paths=[rule_modules],
+            sub_expressions=[
+                SubExpression("kinetic_energy", named_expressions),
+                SubExpression("failure", named_expressions),
+            ],
+        )
 
         # Now create report template
         report_template_service = ReportTemplateService(channel)
-        report_template = nostromos_report_template()
-        report_template.rule_client_keys = [
-            rule.rule_client_key for rule in rules if rule.rule_client_key
-        ]  # Add the rules we just created
-        report_template_service.create_or_update_report_template(report_template)
-        print(report_template)
-
-        # Then make some updates to the template we created (for the sake of example)
-        rules = [rule for rule in rules if rule.name != "overheating"]  # Remove some rules
-        # Get the report template (for the sake of example)
-        report_template_to_update = report_template_service.get_report_template(
-            client_key=report_template.template_client_key
-        )
-        if report_template_to_update:
-            report_template_to_update.rule_client_keys = [
-                rule.rule_client_key for rule in rules if rule.rule_client_key
-            ]
-            report_template_to_update.description = (
-                "A report template for the Nostromo without overheating rule"
-            )
-            print(report_template_to_update)
-            report_template_service.create_or_update_report_template(report_template_to_update)
+        report_templates_loaded = load_report_templates([report_templates])
+        [report_template_service.create_or_update_report_template(report_template) for report_template in report_templates_loaded]

@@ -7,9 +7,6 @@ from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.report_templates.service import ReportTemplateService
 from sift_py.rule.service import RuleService
 
-TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
-RULE_MODULES_DIR = Path().joinpath("rule_modules")
-
 
 if __name__ == "__main__":
     load_dotenv()
@@ -21,7 +18,7 @@ if __name__ == "__main__":
     assert base_uri, "Missing 'BASE_URI' environment variable."
 
     # Create a gRPC transport channel configured specifically for the Sift API
-    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey, use_ssl=False)
+    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
 
     with use_sift_channel(sift_channel_config) as channel:
         # First create rules
