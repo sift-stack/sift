@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules, load_report_templates
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
+from sift_py.ingestion.config.yaml.load import load_named_expression_modules, load_report_templates
 from sift_py.report_templates.service import ReportTemplateService
 from sift_py.rule.service import RuleService, SubExpression
 
@@ -32,6 +32,7 @@ if __name__ == "__main__":
             EXPRESSION_MODULES_DIR.joinpath("string.yml"),
         ]
     )
+
     with use_sift_channel(sift_channel_config) as channel:
         # First create rules
         rule_service = RuleService(channel)
@@ -43,7 +44,6 @@ if __name__ == "__main__":
             ],
         )
 
-        # Now create report template
+        # Now create report templates
         report_template_service = ReportTemplateService(channel)
-        report_templates_loaded = load_report_templates([report_templates])
-        [report_template_service.create_or_update_report_template(report_template) for report_template in report_templates_loaded]
+        report_template_service.load_report_templates_from_yaml([report_templates])

@@ -83,8 +83,6 @@ def load_rules() -> List[RuleConfig]:
                 "$threshold": 470,
             },
             action=RuleActionCreateDataReviewAnnotation(
-                # User in your organization to notify
-                # assignee="ellen.ripley@weylandcorp.com",
                 tags=["nostromo"],
             ),
         ),
@@ -104,8 +102,6 @@ def load_rules() -> List[RuleConfig]:
                 "$sub_string": "failure",
             },
             action=RuleActionCreateDataReviewAnnotation(
-                # User in your organization to notify
-                # assignee="ellen.ripley@weylandcorp.com",
                 tags=["nostromo", "failure"],
             ),
         ),

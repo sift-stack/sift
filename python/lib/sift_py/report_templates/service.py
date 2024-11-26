@@ -30,11 +30,12 @@ class ReportTemplateService:
     def create_or_update_report_template(self, config: ReportTemplateConfig):
         if not config.template_client_key:
             raise Exception(f"Report template {config.name} requires a template_client_key")
+
         report_template = self._get_report_template_by_client_key(config.template_client_key)
         if report_template:
             self._update_report_template(config, report_template)
-            return
-        self._create_report_template(config)
+        else:
+            self._create_report_template(config)
 
     def get_report_template(
         self, client_key: str = "", id: str = ""
@@ -61,7 +62,9 @@ class ReportTemplateService:
         )
 
     def load_report_templates_from_yaml(self, paths: List[Path]) -> List[ReportTemplateConfig]:
-        return load_report_templates(paths)
+        report_templates = load_report_templates(paths)
+        [self.create_or_update_report_template(report_template) for report_template in report_templates]
+        return report_templates
 
     def _get_report_template_by_id(self, report_template_id: str) -> Optional[ReportTemplate]:
         req = GetReportTemplateRequest(report_template_id=report_template_id)

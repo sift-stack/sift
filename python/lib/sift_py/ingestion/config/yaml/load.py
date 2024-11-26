@@ -2,7 +2,6 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Type, cast
 
-from sift_py.report_templates.config import ReportTemplateConfig
 import yaml
 
 from sift_py.ingestion.channel import ChannelDataTypeStrRep
@@ -17,6 +16,7 @@ from sift_py.ingestion.config.yaml.spec import (
     TelemetryConfigYamlSpec,
 )
 from sift_py.ingestion.rule.config import RuleActionAnnotationKind
+from sift_py.report_templates.config import ReportTemplateConfig
 
 _CHANNEL_REFERENCE_REGEX = re.compile(r"^\$\d+$")
 _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
@@ -31,6 +31,7 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     raw_config = _read_yaml(path)
     return _validate_yaml(raw_config)
 
+
 def load_report_templates(paths: List[Path]) -> List[ReportTemplateConfig]:
     """
     Takes in a list of paths to YAML files which contains report templates and processes them into a list of
@@ -39,11 +40,14 @@ def load_report_templates(paths: List[Path]) -> List[ReportTemplateConfig]:
     """
     report_templates: List[ReportTemplateConfig] = []
 
+    def update_report_templates(path: Path):
+        report_templates.extend(_read_report_template_yaml(path))
+
     for path in paths:
         if path.is_dir():
-            report_templates += _handle_subdir(path, _read_report_template_yaml)
+            _handle_subdir(path, update_report_templates)
         elif path.is_file():
-            report_templates += _read_report_template_yaml(path)
+            update_report_templates(path)
     return report_templates
 
 
@@ -139,12 +143,9 @@ def _read_report_template_yaml(path: Path) -> List[ReportTemplateConfig]:
                 report_template_config = ReportTemplateConfig(**report_template)
                 report_templates.append(report_template_config)
             except Exception as e:
-                raise YamlConfigError(
-                    f"Error parsing report template '{report_template}'"
-                ) from e
+                raise YamlConfigError(f"Error parsing report template '{report_template}'") from e
 
         return report_templates
-
 
 
 def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:
