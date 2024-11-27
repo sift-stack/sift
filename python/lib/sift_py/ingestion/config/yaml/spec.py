@@ -104,6 +104,7 @@ class ReportTemplateYamlSpec(TypedDict):
     `archived_date`: Date when the report template was archived. Setting this field
       will archive the report template, and unsetting it will unarchive the report template.
     """
+
     name: str
     template_client_key: str
     organization_id: str
