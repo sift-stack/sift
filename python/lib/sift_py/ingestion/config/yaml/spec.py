@@ -4,6 +4,7 @@ Formal specification of the types that `sift_py` expects when loading a telemetr
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Dict, List, Literal, Union
 
 from typing_extensions import NotRequired, TypedDict
@@ -88,6 +89,28 @@ class FlowYamlSpec(TypedDict):
 
     name: str
     channels: List[ChannelConfigYamlSpec]
+
+
+class ReportTemplateYamlSpec(TypedDict):
+    """
+    Formal spec for a report template.
+
+    `name`: Name of the report template.
+    `template_client_key`: Unique client key to identify the report template.
+    `organization_id`: Organization ID that the report template belongs to.
+    `tags`: Tags to associate with the report template.
+    `description`: Description of the report template.
+    `rule_client_keys`: List of rule client keys associated with the report template.
+    `archived_date`: Date when the report template was archived. Setting this field
+      will archive the report template, and unsetting it will unarchive the report template.
+    """
+    name: str
+    template_client_key: str
+    organization_id: str
+    tags: NotRequired[List[str]]
+    description: NotRequired[str]
+    rule_client_keys: List[str]
+    archived_date: NotRequired[datetime]
 
 
 class RuleNamespaceYamlSpec(TypedDict):
