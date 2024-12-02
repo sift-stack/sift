@@ -16,7 +16,6 @@ from sift_py.ingestion.config.yaml.spec import (
     TelemetryConfigYamlSpec,
 )
 from sift_py.ingestion.rule.config import RuleActionAnnotationKind
-from sift_py.report_templates.config import ReportTemplateConfig
 
 _CHANNEL_REFERENCE_REGEX = re.compile(r"^\$\d+$")
 _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
@@ -30,25 +29,6 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     """
     raw_config = _read_yaml(path)
     return _validate_yaml(raw_config)
-
-
-def load_report_templates(paths: List[Path]) -> List[ReportTemplateConfig]:
-    """
-    Takes in a list of paths to YAML files which contains report templates and processes them into a list of
-    `ReportTemplateConfig` objects. For more information on report templates see
-    `sift_py.report_templates.config.ReportTemplateConfig`.
-    """
-    report_templates: List[ReportTemplateConfig] = []
-
-    def update_report_templates(path: Path):
-        report_templates.extend(_read_report_template_yaml(path))
-
-    for path in paths:
-        if path.is_dir():
-            _handle_subdir(path, update_report_templates)
-        elif path.is_file():
-            update_report_templates(path)
-    return report_templates
 
 
 def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
@@ -125,27 +105,6 @@ def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
                 )
 
         return cast(Dict[str, str], named_expressions)
-
-
-def _read_report_template_yaml(path: Path) -> List[ReportTemplateConfig]:
-    report_templates = []
-    with open(path, "r") as f:
-        report_templates_yaml = cast(Dict[str, Any], yaml.safe_load(f.read()))
-
-        report_template_list = report_templates_yaml.get("report_templates")
-        if not isinstance(report_template_list, list):
-            raise YamlConfigError(
-                f"Expected 'report_templates' to be a list in report template yaml: '{path}'"
-            )
-
-        for report_template in report_template_list:
-            try:
-                report_template_config = ReportTemplateConfig(**report_template)
-                report_templates.append(report_template_config)
-            except Exception as e:
-                raise YamlConfigError(f"Error parsing report template '{report_template}'") from e
-
-        return report_templates
 
 
 def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:

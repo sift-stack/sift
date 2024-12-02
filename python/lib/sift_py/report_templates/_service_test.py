@@ -35,11 +35,13 @@ def test_report_template_service_get_report_template_by_id(report_template_servi
         mock_get_report_template_by_id.assert_called_once_with(report_template_id)
 
 
-def test_report_template_service_get_report_template_missing_client_key_and_id(
+def test_report_template_service_get_report_template_missing_or_both_client_key_and_id(
     report_template_service,
 ):
-    with pytest.raises(ValueError, match="Either client_key or id must be provided"):
+    with pytest.raises(ValueError, match="One of client_key or id must be provided"):
         report_template_service.get_report_template()
+    with pytest.raises(ValueError, match="One of client_key or id must be provided"):
+        report_template_service.get_report_template(client_key="abc", id="abc")
 
 
 def test_report_template_service_create_report_template(report_template_service):

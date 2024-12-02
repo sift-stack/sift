@@ -16,19 +16,31 @@ from sift.report_templates.v1.report_templates_pb2 import (
 )
 from sift.report_templates.v1.report_templates_pb2_grpc import ReportTemplateServiceStub
 
-from sift_py._internal.time import to_timestamp_nanos, to_timestamp_pb
+from sift_py._internal.time import to_timestamp_pb
 from sift_py.grpc.transport import SiftChannel
-from sift_py.ingestion.config.yaml.load import load_report_templates
 from sift_py.report_templates.config import ReportTemplateConfig
+from sift_py.yaml.report_templates import load_report_templates
 
 
 class ReportTemplateService:
+    """
+    A service for managing report templates. Allows for creating, updating, and retrieving report
+    templates.
+    """
+
     _report_template_service_stub: ReportTemplateServiceStub
 
     def __init__(self, channel: SiftChannel):
         self._report_template_service_stub = ReportTemplateServiceStub(channel)
 
     def create_or_update_report_template(self, config: ReportTemplateConfig):
+        """
+        Create or update a report template via a ReportTemplateConfig. The config must contain a
+        template_client_key, otherwise an exception will be raised. If a report template with the
+        same client key exists, it will be updated. Otherwise, a new report template will be created.
+        See `sift_py.report_templates.config.ReportTemplateConfig` for more information on available
+        fields to configure.
+        """
         if not config.template_client_key:
             raise Exception(f"Report template {config.name} requires a template_client_key")
 
@@ -39,31 +51,46 @@ class ReportTemplateService:
             self._create_report_template(config)
 
     def get_report_template(
-        self, client_key: str = "", id: str = ""
+        self, client_key: Optional[str] = None, id: Optional[str] = None
     ) -> Optional[ReportTemplateConfig]:
+        """
+        Retrieve a report template by client key or id. Only one of client_key or id should be
+        provided, otherwise an exception will be raised. If a report template is found, it will be
+        returned as a ReportTemplateConfig object.
+        """
         report_template = None
-        if not client_key and not id:
-            raise ValueError("Either client_key or id must be provided")
+        if (not client_key and not id) or (client_key and id):
+            raise ValueError("One of client_key or id must be provided")
 
         if id:
             report_template = self._get_report_template_by_id(id)
         elif client_key:
             report_template = self._get_report_template_by_client_key(client_key)
 
-        if not report_template:
-            raise Exception(f"Report template with client key {client_key} or id {id} not found.")
-
-        return ReportTemplateConfig(
-            name=report_template.name,
-            template_client_key=report_template.client_key,
-            organization_id=report_template.organization_id,
-            tags=[tag.tag_name for tag in report_template.tags],
-            description=report_template.description,
-            rule_client_keys=[rule.client_key for rule in report_template.rules],
-            archived_date=to_timestamp_nanos(report_template.archived_date).to_pydatetime(),
+        return (
+            ReportTemplateConfig(
+                name=report_template.name,
+                template_client_key=report_template.client_key,
+                organization_id=report_template.organization_id,
+                tags=[tag.tag_name for tag in report_template.tags],
+                description=report_template.description,
+                rule_client_keys=[rule.client_key for rule in report_template.rules],
+                archived_date=report_template.archived_date.ToDatetime()
+                if report_template.archived_date
+                else None,
+            )
+            if report_template
+            else None
         )
 
     def load_report_templates_from_yaml(self, paths: List[Path]) -> List[ReportTemplateConfig]:
+        """
+        Load report templates from YAML definitions. The YAML defined report template must have
+        a client key. If the report template with the given client key exists, it will be updated,
+        otherwise a new report template will be created.
+        See `sift_py.yaml.report_templates.load_report_templates` for more information on the YAML
+        spec for report templates.
+        """
         report_templates = load_report_templates(paths)
         [
             self.create_or_update_report_template(report_template)
@@ -108,6 +135,11 @@ class ReportTemplateService:
     def _update_report_template(
         self, config: ReportTemplateConfig, report_template: ReportTemplate
     ):
+        """
+        Uses the report template id, organization id, and client key from the existing report
+        template. Updates the name, description, tags, rules, and archived date from the config,
+        if they are provided. Always passes all fields to the field mask for updating.
+        """
         tags = []
         if config.tags:
             tags = [ReportTemplateTag(tag_name=tag) for tag in config.tags]

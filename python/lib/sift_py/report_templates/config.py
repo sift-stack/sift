@@ -5,8 +5,10 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from sift_py._internal.convert.json import AsJson
 
-class ReportTemplateConfig(BaseModel):
+
+class ReportTemplateConfig(BaseModel, AsJson):
     """
     Configuration for a report template.
 
