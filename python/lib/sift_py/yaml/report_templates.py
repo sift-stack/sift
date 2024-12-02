@@ -6,8 +6,8 @@ import yaml
 from typing_extensions import NotRequired, TypedDict
 
 from sift_py.ingestion.config.yaml.error import YamlConfigError
-from sift_py.ingestion.config.yaml.load import _handle_subdir
 from sift_py.report_templates.config import ReportTemplateConfig
+from sift_py.yaml.utils import _handle_subdir
 
 
 def load_report_templates(paths: List[Path]) -> List[ReportTemplateConfig]:

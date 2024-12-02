@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Type, cast
+from typing import Any, Dict, List, Type, cast
 
 import yaml
 
@@ -16,6 +16,7 @@ from sift_py.ingestion.config.yaml.spec import (
     TelemetryConfigYamlSpec,
 )
 from sift_py.ingestion.rule.config import RuleActionAnnotationKind
+from sift_py.yaml.utils import _handle_subdir
 
 _CHANNEL_REFERENCE_REGEX = re.compile(r"^\$\d+$")
 _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
@@ -79,15 +80,6 @@ def load_rule_namespaces(paths: List[Path]) -> Dict[str, List[RuleYamlSpec]]:
             update_rule_namespaces(path)
 
     return rule_namespaces
-
-
-def _handle_subdir(path: Path, file_handler: Callable):
-    """The file_handler callable must accept a Path object as its only argument."""
-    for file_in_dir in path.iterdir():
-        if file_in_dir.is_dir():
-            _handle_subdir(file_in_dir, file_handler)
-        elif file_in_dir.is_file():
-            file_handler(file_in_dir)
 
 
 def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
