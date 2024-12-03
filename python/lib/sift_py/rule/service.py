@@ -40,6 +40,10 @@ from sift_py.ingestion.rule.config import (
 
 
 class RuleService:
+    """
+    A service for managing rules. Allows for loading rules from YAML and creating or updating them in the Sift API.
+    """
+
     _asset_service_stub: AssetServiceStub
     _channel_service_stub: ChannelServiceStub
     _rule_service_stub: RuleServiceStub
@@ -50,25 +54,46 @@ class RuleService:
         self._rule_service_stub = RuleServiceStub(channel)
 
     def load_rules_from_yaml(
-        self, paths: List[Path], sub_expressions: List[SubExpression], channel_references_map: Optional[Dict[str, List[
-            Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]]]
+        self,
+        paths: List[Path],
+        sub_expressions: Optional[List[SubExpression]] = None,
+        channel_references_map: Optional[
+            Dict[
+                str,
+                List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]],
+            ]
         ] = None,
     ) -> List[RuleConfig]:
         """
-        TODO: Docstring usage
+        Loads rules from a YAML spec, and creates or updates the rules in the Sift API.
+        If the rule expression should be interpolated from sub-expressions, provide a list of `SubExpression` objects.
+        If the rule does not contain channel references in its YAML definition, provide a dict of rule names mapped
+        to a list of channel references. Otherwise if the YAML definition contains channel references, the `channel_references_map`
+        should be omitted. If channel references are present in both the YAML definition and provided in the `channel_references_map`,
+        or if they are not provided for a given rule, an exception will be thrown.
+        For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
         """
         namespaced_rules = load_rule_namespaces(paths)
 
         interpolation_map: Dict[str, Dict[str, Any]] = {}
-        for sub_expression in sub_expressions:
-            interpolation_map[sub_expression.fully_qualified_rule_name] = sub_expression.expressions
+        if sub_expressions:
+            for sub_expression in sub_expressions:
+                interpolation_map[sub_expression.fully_qualified_rule_name] = (
+                    sub_expression.expressions
+                )
 
         rule_configs = []
         for namespace, rule_yamls in namespaced_rules.items():
             for rule_yaml in rule_yamls:
                 yaml_channel_references = rule_yaml.get("channel_references", [])
-                arg_channel_references = channel_references_map.get(rule_yaml["name"]) if channel_references_map else None
-                channel_references: List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]] = []
+                arg_channel_references = (
+                    channel_references_map.get(rule_yaml["name"])
+                    if channel_references_map
+                    else None
+                )
+                channel_references: List[
+                    Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
+                ] = []
 
                 if yaml_channel_references:
                     for channel_ref in yaml_channel_references:
@@ -84,11 +109,20 @@ class RuleService:
                                     ),
                                 }
                             )
-                else:
-                    channel_references = cast(List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]], arg_channel_references)
+                elif arg_channel_references:
+                    channel_references = cast(
+                        List[
+                            Union[
+                                ExpressionChannelReference, ExpressionChannelReferenceChannelConfig
+                            ]
+                        ],
+                        arg_channel_references,
+                    )
 
                 if not channel_references:
-                    raise ValueError(f"Rule of name '{rule_yaml['name']}' requires channel_references")
+                    raise ValueError(
+                        f"Rule of name '{rule_yaml['name']}' requires channel_references"
+                    )
 
                 rule_name = rule_yaml["name"]
                 rule_fqn = f"{namespace}.{rule_name}"
@@ -114,6 +148,11 @@ class RuleService:
         return rule_configs
 
     def create_or_update_rule(self, config: RuleConfig):
+        """
+        Create or update a rule via a RuleConfig. The config must contain a rule_client_key or an exception will be raised.
+        If a rule with the given client key already exists it will be updated, otherwise it will be created.
+        See `sift_py.rule.config.RuleConfig` for more information on configuation parameters for rules.
+        """
         if not config.rule_client_key:
             raise Exception(f"rule of name '{config.name}' requires a rule_client_key")
 
@@ -211,8 +250,9 @@ class RuleService:
 
                 missing_channels = set(identifiers) ^ set(found_channels)
                 if missing_channels:
-                    raise Exception(f"asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}")  # TODO on exception type
-
+                    raise Exception(
+                        f"asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}"
+                    )  # TODO on exception type
 
         rule_id = None
         organization_id = ""
