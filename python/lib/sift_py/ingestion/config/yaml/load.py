@@ -16,6 +16,7 @@ from sift_py.ingestion.config.yaml.spec import (
     TelemetryConfigYamlSpec,
 )
 from sift_py.ingestion.rule.config import RuleActionAnnotationKind
+from sift_py.yaml.utils import _handle_subdir
 
 _CHANNEL_REFERENCE_REGEX = re.compile(r"^\$\d+$")
 _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
@@ -70,19 +71,11 @@ def load_rule_namespaces(paths: List[Path]) -> Dict[str, List[RuleYamlSpec]]:
                 raise YamlConfigError(
                     f"Encountered rules with identical names being loaded, '{key}'."
                 )
-
         rule_namespaces.update(rule_module)
-
-    def handle_dir(path: Path):
-        for file_in_dir in path.iterdir():
-            if file_in_dir.is_dir():
-                handle_dir(file_in_dir)
-            elif file_in_dir.is_file():
-                update_rule_namespaces(file_in_dir)
 
     for path in paths:
         if path.is_dir():
-            handle_dir(path)
+            _handle_subdir(path, update_rule_namespaces)
         elif path.is_file():
             update_rule_namespaces(path)
 
@@ -118,7 +111,7 @@ def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:
             )
 
         rules = namespace_rules.get("rules")
-        if not isinstance(namespace, str):
+        if not isinstance(rules, list):
             raise YamlConfigError(
                 f"Expected '{rules}' to be a list in rule namespace yaml: '{path}'"
                 f"{_type_fqn(RuleNamespaceYamlSpec)}"

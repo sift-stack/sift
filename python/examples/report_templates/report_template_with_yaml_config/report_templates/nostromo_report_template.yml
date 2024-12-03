@@ -1,0 +1,13 @@
+report_templates:
+  - name: Nostromo Report Template 1
+    description: A report tempate for the Nostromo
+    template_client_key: nostromo-report-template-1
+    rule_client_keys:
+      - kinetic-energy-rule
+      - failure-rule
+
+  - name: Nostromo Report Template Overheating
+    description: A report tempate for the Nostromo
+    template_client_key: nostromo-report-template-overheating
+    rule_client_keys:
+      - overheating-rule

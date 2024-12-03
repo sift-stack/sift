@@ -1,0 +1,4 @@
+kinetic_energy_gt:
+  0.5 * $mass * $1 * $1 > $threshold
+rod_torque_gt:
+  (1 / 12) * $mass * $rod_length * $rod_length * $1
