@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
+from sift.channels.v2.channels_pb2 import Channel, ListChannelsRequest, ListChannelsResponse
 from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
@@ -23,6 +24,7 @@ from sift.rules.v1.rules_pb2 import (
 )
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
+from sift_py._internal.cel import cel_in
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
 from sift_py.ingestion.channel import channel_fqn
@@ -48,8 +50,13 @@ class RuleService:
         self._rule_service_stub = RuleServiceStub(channel)
 
     def load_rules_from_yaml(
-        self, paths: List[Path], sub_expressions: List[SubExpression]
+        self, paths: List[Path], sub_expressions: List[SubExpression], channel_references_map: Optional[Dict[str, List[
+            Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]]]
+        ] = None,
     ) -> List[RuleConfig]:
+        """
+        TODO: Docstring usage
+        """
         namespaced_rules = load_rule_namespaces(paths)
 
         interpolation_map: Dict[str, Dict[str, Any]] = {}
@@ -59,23 +66,29 @@ class RuleService:
         rule_configs = []
         for namespace, rule_yamls in namespaced_rules.items():
             for rule_yaml in rule_yamls:
-                channel_references: List[
-                    Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
-                ] = []
+                yaml_channel_references = rule_yaml.get("channel_references", [])
+                arg_channel_references = channel_references_map.get(rule_yaml["name"]) if channel_references_map else None
+                channel_references: List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]] = []
 
-                for channel_ref in rule_yaml.get("channel_references", []):
-                    for ref, config in channel_ref.items():
-                        channel_references.append(
-                            {
-                                "channel_reference": ref,
-                                "channel_identifier": channel_fqn(
-                                    {
-                                        "channel_name": config.get("name", ""),
-                                        "component": config.get("component", ""),
-                                    }
-                                ),
-                            }
-                        )
+                if yaml_channel_references:
+                    for channel_ref in yaml_channel_references:
+                        for ref, config in channel_ref.items():
+                            channel_references.append(
+                                {
+                                    "channel_reference": ref,
+                                    "channel_identifier": channel_fqn(
+                                        {
+                                            "channel_name": config.get("name", ""),
+                                            "component": config.get("component", ""),
+                                        }
+                                    ),
+                                }
+                            )
+                else:
+                    channel_references = cast(List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]], arg_channel_references)
+
+                if not channel_references:
+                    raise ValueError(f"Rule of name '{rule_yaml['name']}' requires channel_references")
 
                 rule_name = rule_yaml["name"]
                 rule_fqn = f"{namespace}.{rule_name}"
@@ -94,6 +107,7 @@ class RuleService:
                         sub_expressions=rule_subexpr,
                     )
                 )
+                print(f"Rule config: {rule_configs[-1].__dict__}")  # TODO
 
         for rule_config in rule_configs:
             self.create_or_update_rule(rule_config)
@@ -129,7 +143,6 @@ class RuleService:
 
         # TODO:
         # - once we have TagService_ListTags we can do asset-agnostic rules via tags
-        # - we need to validate that that channel references refer to an actual channel for an asset
         assets = self._get_assets_by_names(config.asset_names) if config.asset_names else None
 
         actions = []
@@ -162,6 +175,40 @@ class RuleService:
             ref = channel_reference["channel_reference"]
             ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
             channel_references[ref] = ident
+        print(f"Channel references {channel_references}")
+
+        def search_channels(filter="", page_size=1_000, page_token="") -> Tuple[List[Channel], str]:
+            req = ListChannelsRequest(
+                filter=filter,
+                page_size=page_size,
+                page_token=page_token,
+            )
+            res = cast(ListChannelsResponse, self._channel_service_stub.ListChannels(req))
+            return list(res.channels), res.next_page_token
+
+        if assets and channel_references:
+            name_in = cel_in("name", [ident.name for ident in channel_references.values()])
+            component_in = cel_in("component", [ident.component for ident in channel_references.values()])
+            page_size = 1_000
+
+            for asset in assets:
+                filter = f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}"
+                print(f"Filter: {filter}")  # TODO
+                channels, next_page_token = search_channels(
+                    filter,
+                    page_size,
+                    "",
+                )
+                print(f"Found channels: {channels}")  # TODO
+
+                while len(next_page_token) > 0:
+                    channels, next_page_token = search_channels(
+                        filter,
+                        page_size,
+                        next_page_token,
+                    )
+                    print(f"Found channels: {channels}")  # TODO
+
 
         rule_id = None
         organization_id = ""
