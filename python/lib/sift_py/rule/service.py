@@ -107,7 +107,6 @@ class RuleService:
                         sub_expressions=rule_subexpr,
                     )
                 )
-                print(f"Rule config: {rule_configs[-1].__dict__}")  # TODO
 
         for rule_config in rule_configs:
             self.create_or_update_rule(rule_config)
@@ -175,7 +174,6 @@ class RuleService:
             ref = channel_reference["channel_reference"]
             ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
             channel_references[ref] = ident
-        print(f"Channel references {channel_references}")
 
         def search_channels(filter="", page_size=1_000, page_token="") -> Tuple[List[Channel], str]:
             req = ListChannelsRequest(
@@ -187,19 +185,21 @@ class RuleService:
             return list(res.channels), res.next_page_token
 
         if assets and channel_references:
-            name_in = cel_in("name", [ident.name for ident in channel_references.values()])
-            component_in = cel_in("component", [ident.component for ident in channel_references.values()])
+            identifiers = [ident.name for ident in channel_references.values()]
+            components = [ident.component for ident in channel_references.values()]
+            name_in = cel_in("name", identifiers)
+            component_in = cel_in("component", components)
             page_size = 1_000
 
             for asset in assets:
+                found_channels = []
                 filter = f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}"
-                print(f"Filter: {filter}")  # TODO
                 channels, next_page_token = search_channels(
                     filter,
                     page_size,
                     "",
                 )
-                print(f"Found channels: {channels}")  # TODO
+                found_channels.extend([channel.name for channel in channels])
 
                 while len(next_page_token) > 0:
                     channels, next_page_token = search_channels(
@@ -207,7 +207,11 @@ class RuleService:
                         page_size,
                         next_page_token,
                     )
-                    print(f"Found channels: {channels}")  # TODO
+                    found_channels.extend([channel.name for channel in channels])
+
+                missing_channels = set(identifiers) ^ set(found_channels)
+                if missing_channels:
+                    raise Exception(f"asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}")  # TODO on exception type
 
 
         rule_id = None
