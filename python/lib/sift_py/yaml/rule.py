@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+from typing import Dict, List, Literal, Union
+
+from typing_extensions import NotRequired, TypedDict
+
+from sift_py.yaml.channel import ChannelConfigYamlSpec
+
+
+class RuleNamespaceYamlSpec(TypedDict):
+    """
+    The formal definition of what a rule namespace looks like in YAML.
+
+    `namespace`: Name of the namespace.
+    `rules`: A list of rules that belong to the namespace.
+    """
+
+    namespace: str
+    rules: List[RuleYamlSpec]
+
+
+class RuleYamlSpec(TypedDict):
+    """
+    The formal definition of what a single rule looks like in YAML.
+
+    `name`: Name of the rule.
+    `namespace`: Optional namespace of the rule. Only used if referencing a rule defined in a namespace.
+    `rule_client_key`: User-defined string-key that uniquely identifies this rule config.
+    `description`: Description of rule.
+    `expression`:
+        Either an expression-string or a `sift_py.ingestion.config.yaml.spec.NamedExpressionYamlSpec` referencing a named expression.
+    `type`: Determines the action to perform if a rule gets evaluated to true.
+    `assignee`: If `type` is `review`, determines who to notify. Expects an email.
+    `tags`: Tags to associate with the rule.
+    `channel_references`: A list of channel references that maps to an actual channel. More below.
+    `sub_expressions`: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
+    `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+    `tag_names`: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
+
+    Namespaces:
+    Rule may be defined in a separate YAML within a namespace. The reference to the namespace rule would look like the following:
+    ```yaml
+    rules:
+      - namespace: voltage
+        name: overvoltage
+        channel_references:
+          - $1: *vehicle_state_channel
+          - $2: *voltage_channel
+    ```
+    With the corresponding rule being defined in a separate YAML file like the following:
+    ```yaml
+    namespace: voltage
+    rules:
+      - name: overvoltage
+        description: Checks for overvoltage while accelerating
+        expression: $1 == "Accelerating" && $2 > 80
+        type: review
+    ```
+
+    Channel references:
+    A channel reference is a string containing a numerical value prefixed with "$". Examples include "$1", "$2", "$11", and so on.
+    The channel reference is mapped to an actual channel config. In YAML it would look something like this:
+
+    ```yaml
+    channel_references:
+      - $1: *vehicle_state_channel
+      - $2: *voltage_channel
+    ```
+
+    Sub-expressions:
+    A sub-expression is made up of two components: A reference and the actual sub-expression. The sub-expression reference is
+    a string with a "$" prepended to another string comprised of characters in the following character set: `[a-zA-Z0-9_]`.
+    This reference should be mapped to the actual sub-expression. For example, say you have kinematic equations in `kinematics.yml`,
+    and the equation you're interested in using looks like the following:
+
+    ```yaml
+    kinetic_energy_gt:
+      0.5 * $mass * $1 * $1 > $threshold
+    ```
+
+    To properly use `kinetic_energy_gt` in your rule, it would look like the following:
+
+    ```yaml
+    rules:
+      - name: kinetic_energy
+        description: Tracks high energy output while in motion
+        type: review
+        assignee: bob@example.com
+        expression:
+          name: kinetic_energy_gt
+        channel_references:
+          - $1: *velocity_channel
+        sub_expressions:
+          - $mass: 10
+          - $threshold: 470
+        tags:
+            - nostromo
+    ```
+    """
+
+    name: str
+    namespace: NotRequired[str]
+    rule_client_key: NotRequired[str]
+    description: NotRequired[str]
+    expression: Union[str, NamedExpressionYamlSpec]
+    type: Union[Literal["phase"], Literal["review"]]
+    assignee: NotRequired[str]
+    tags: NotRequired[List[str]]
+    channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
+    sub_expressions: NotRequired[List[Dict[str, str]]]
+    asset_names: NotRequired[List[str]]
+    tag_names: NotRequired[List[str]]
+
+
+class NamedExpressionYamlSpec(TypedDict):
+    """
+    A named expression. This class is the formal definition of what a named expression
+    should look like in YAML. The value of `name` may contain a mix of channel references
+    and channel identifiers.
+
+    For a formal definition of channel references and channel identifiers see the following:
+    `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+    """
+
+    name: str
