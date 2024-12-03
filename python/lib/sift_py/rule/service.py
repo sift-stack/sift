@@ -154,7 +154,7 @@ class RuleService:
         See `sift_py.rule.config.RuleConfig` for more information on configuation parameters for rules.
         """
         if not config.rule_client_key:
-            raise Exception(f"rule of name '{config.name}' requires a rule_client_key")
+            raise ValueError(f"Rule of name '{config.name}' requires a rule_client_key")
 
         rule = self._get_rule_from_client_key(config.rule_client_key)
         if rule:
@@ -174,10 +174,16 @@ class RuleService:
         self, config: RuleConfig, rule: Optional[Rule] = None
     ) -> UpdateRuleRequest:
         if not config.expression:
-            raise Exception("cannot create a rule with an empty expression")
+            raise ValueError(
+                "Cannot create a rule with an empty expression."
+                "See `sift_py.rule.config.RuleConfig` for more information on rule configuration."
+            )
 
         if not config.action:
-            raise Exception("cannot create a rule with no corresponding action")
+            raise ValueError(
+                "Cannot create a rule with no corresponding action."
+                "See `sift_py.rule.config.RuleAction` for available actions."
+            )
 
         # TODO:
         # - once we have TagService_ListTags we can do asset-agnostic rules via tags
@@ -185,7 +191,10 @@ class RuleService:
 
         actions = []
         if config.action.kind() == RuleActionKind.NOTIFICATION:
-            raise Exception("notification actions are not yet supported")
+            raise NotImplementedError(
+                "Notification actions are not yet supported."
+                "Please contact the Sift team for assistance."
+            )
         elif config.action.kind() == RuleActionKind.ANNOTATION:
             if isinstance(config.action, RuleActionCreateDataReviewAnnotation):
                 action_config = UpdateActionRequest(
@@ -226,14 +235,17 @@ class RuleService:
         if assets and channel_references:
             identifiers = [ident.name for ident in channel_references.values()]
             components = [ident.component for ident in channel_references.values()]
+
+            # Create CEL search filters
             name_in = cel_in("name", identifiers)
             component_in = cel_in("component", components)
             page_size = 1_000
 
+            # Validate channels are present within each asset
             for asset in assets:
                 found_channels = []
                 filter = f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}"
-                channels, next_page_token = search_channels(
+                channels, next_page_token = search_channels(  # Initialize next_page_token
                     filter,
                     page_size,
                     "",
@@ -250,9 +262,9 @@ class RuleService:
 
                 missing_channels = set(identifiers) ^ set(found_channels)
                 if missing_channels:
-                    raise Exception(
-                        f"asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}"
-                    )  # TODO on exception type
+                    raise RuntimeError(
+                        f"Asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}"
+                    )
 
         rule_id = None
         organization_id = ""

@@ -19,7 +19,7 @@ class RuleConfig(AsJson):
 
     - `name`: Name of the rule.
     - `description`: Description of the rule.
-    - `expression`: A CEL string expression, that, when evaluated to a truthy value, executes the `action`.
+    - `expression`: A CEL string expression that executes the `action` when evaluated to a truthy value.
     - `action`: The action to execute if the result of an `expression` evaluates to a truthy value.
     - `channel_references`: Reference to channel. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
     - `rule_client_key`: User defined unique string that uniquely identifies this rule.

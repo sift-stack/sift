@@ -3,11 +3,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
+from python.examples.asset_agnostic_rules.simulator import Simulator
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService, TelemetryConfig
 from sift_py.rule.config import ExpressionChannelReference
 from sift_py.rule.service import RuleService, SubExpression
-from simulator import Simulator
 
 TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
@@ -61,28 +61,38 @@ if __name__ == "__main__":
             ],
             channel_references_map={
                 "overvoltage": [
-                    ExpressionChannelReference(channel_reference="$2", channel_identifier="vehicle_state"),
+                    ExpressionChannelReference(
+                        channel_reference="$2", channel_identifier="vehicle_state"
+                    ),
                 ],
                 "undervoltage": [
-                    ExpressionChannelReference(channel_reference="$2", channel_identifier="vehicle_state"),
+                    ExpressionChannelReference(
+                        channel_reference="$2", channel_identifier="vehicle_state"
+                    ),
                 ],
                 "vehicle_stuck": [
-                    ExpressionChannelReference(channel_reference="$1", channel_identifier="vehicle_state"),
-                    ExpressionChannelReference(channel_reference="$2", channel_identifier="mainmotor.velocity"),
+                    ExpressionChannelReference(
+                        channel_reference="$1", channel_identifier="vehicle_state"
+                    ),
+                    ExpressionChannelReference(
+                        channel_reference="$2", channel_identifier="mainmotor.velocity"
+                    ),
                 ],
                 "vehicle_not_stopped": [
-                    ExpressionChannelReference(channel_reference="$1", channel_identifier="vehicle_state"),
+                    ExpressionChannelReference(
+                        channel_reference="$1", channel_identifier="vehicle_state"
+                    ),
                 ],
-            }
+            },
         )
 
         # Create an optional run as part of this ingestion
-#        current_ts = datetime.now(timezone.utc)
-#        run_name = f"[{telemetry_config.asset_name}].{current_ts.timestamp()}"
-#        ingestion_service.attach_run(channel, run_name, "Run simulation")
-#
-#        # Create our simulator
-#        simulator = Simulator(ingestion_service)
-#
-#        # Run it
-#        simulator.run()
+        current_ts = datetime.now(timezone.utc)
+        run_name = f"[{telemetry_config.asset_name}].{current_ts.timestamp()}"
+        ingestion_service.attach_run(channel, run_name, "Run simulation")
+
+        # Create our simulator
+        simulator = Simulator(ingestion_service)
+
+        # Run it
+        simulator.run()
