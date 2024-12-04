@@ -14,7 +14,6 @@ from sift_py.yaml.rule import RuleYamlSpec
 from sift_py.yaml.utils import _type_fqn
 
 load_named_expression_modules = rule_yaml.load_named_expression_modules
-load_rule_namespaces = rule_yaml.load_rule_namespaces
 
 
 def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:

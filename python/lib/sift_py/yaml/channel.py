@@ -165,10 +165,11 @@ def _validate_channel_reference(val: Any):
                 f"Invalid channel reference key '{key}'. Expected an integer prefixed with '$' e.g. '$1', '$2', and so on."
             )
 
-        try:
-            _validate_channel(value)
-        except YamlConfigError as err:
-            raise YamlConfigError(f"Rule '{key}' contains an invalid channel reference:\n{err}")
+        if isinstance(value, dict):  # Do this for YamlConfigChannelSpec but not str
+            try:
+                _validate_channel(value)
+            except YamlConfigError as err:
+                raise YamlConfigError(f"Rule '{key}' contains an invalid channel reference:\n{err}")
 
 
 class ChannelConfigYamlSpec(TypedDict):

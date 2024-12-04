@@ -2,15 +2,21 @@ rules:
   - name: vehicle_stuck
     description: Triggers if the vehicle velocity is not 0 for 5s after entering accelerating state
     expression: $1 == "Accelerating" && persistence($2 == 0, 5)
+    rule_client_key: vehicle-stuck-rule
     type: review
     channel_references:
-      - $1: *vehicle_state_channel
-      - $2: *velocity_channel
+      - $1: vehicle_state
+      - $2: mainmotor.velocity
+    asset_names:
+      - NostromoLV426
 
   - name: vehicle_not_stopped
     description: Triggers if the vehicle velocity does not remain 0 while stopped
     expression: $1 == "Stopped" && $2 > 0
+    rule_client_key: vehicle-not-stopped-rule
     type: review
     channel_references:
-      - $1: *vehicle_state_channel
-      - $2: *velocity_channel
+      - $1: vehicle_state
+      - $2: mainmotor.velocity
+    asset_names:
+      - NostromoLV426

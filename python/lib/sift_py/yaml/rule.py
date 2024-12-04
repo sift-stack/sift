@@ -20,19 +20,18 @@ _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
 
 
 def load_sub_expressions(rule_module_paths: List[Path], named_module_paths: List[Path]) -> List[SubExpression]:
-    rules_dict = load_rule_namespaces(rule_module_paths)
+    rule_modules = load_rule_modules(rule_module_paths)
     named_expressions = load_named_expression_modules(named_module_paths)
 
     subexpressions: List[SubExpression] = []
-    for _, rules in rules_dict.items():
-        for rule in rules:
-            expression = rule.get("expression", "")
-            if isinstance(expression, dict):
-                expression = expression.get("name", "")
+    for rule in rule_modules:
+        expression = rule.get("expression", "")
+        if isinstance(expression, dict):
+            expression = expression.get("name", "")
 
-            subexpression = named_expressions.get(expression, "")
-            if subexpression:
-                subexpressions.append(SubExpression(rule.get("name", ""), {expression: subexpression}))
+        subexpression = named_expressions.get(expression, "")
+        if subexpression:
+            subexpressions.append(SubExpression(rule.get("name", ""), {expression: subexpression}))
 
     return subexpressions
 
@@ -60,24 +59,18 @@ def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
     return named_expressions
 
 
-def load_rule_namespaces(paths: List[Path]) -> Dict[str, List[RuleYamlSpec]]:
+def load_rule_modules(paths: List[Path]) -> List[RuleYamlSpec]:
     """
     Takes in a list of paths which may either be directories or files containing rule namespace YAML files,
     and processes them into a `dict`. For more information on rule namespaces see
     RuleNamespaceYamlSpec in `sift_py.ingestion/config/yaml/spec.py`.
     """
 
-    rule_namespaces: Dict[str, List[RuleYamlSpec]] = {}
+    rule_modules: List[RuleYamlSpec] = []
 
     def update_rule_namespaces(rule_module_path: Path):
-        rule_module = _read_rule_namespace_yaml(rule_module_path)
-
-        for key in rule_module.keys():
-            if key in rule_namespaces:
-                raise YamlConfigError(
-                    f"Encountered rules with identical names being loaded, '{key}'."
-                )
-        rule_namespaces.update(rule_module)
+        rule_module = _read_rule_module_yaml(rule_module_path)
+        rule_modules.extend(rule_module)
 
     for path in paths:
         if path.is_dir():
@@ -85,7 +78,7 @@ def load_rule_namespaces(paths: List[Path]) -> Dict[str, List[RuleYamlSpec]]:
         elif path.is_file():
             update_rule_namespaces(path)
 
-    return rule_namespaces
+    return rule_modules
 
 
 def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
@@ -105,34 +98,20 @@ def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
         return cast(Dict[str, str], named_expressions)
 
 
-def _read_rule_namespace_yaml(path: Path) -> Dict[str, List]:
+def _read_rule_module_yaml(path: Path) -> List[RuleYamlSpec]:
     with open(path, "r") as f:
-        namespace_rules = cast(Dict[Any, Any], yaml.safe_load(f.read()))
-        namespace = namespace_rules.get("namespace")
-
-        if not isinstance(namespace, str):
-            raise YamlConfigError(
-                f"Expected '{namespace} to be a string in rule namespace yaml: '{path}'"
-                f"{_type_fqn(RuleNamespaceYamlSpec)}"
-            )
-
-        rules = namespace_rules.get("rules")
+        module_rules = cast(Dict[Any, Any], yaml.safe_load(f.read()))
+        rules = module_rules.get("rules")
         if not isinstance(rules, list):
             raise YamlConfigError(
-                f"Expected '{rules}' to be a list in rule namespace yaml: '{path}'"
-                f"{_type_fqn(RuleNamespaceYamlSpec)}"
+                f"Expected '{rules}' to be a list in rule module yaml: '{path}'"
+                f"{_type_fqn(RuleYamlSpec)}"
             )
 
         for rule in cast(List[Any], rules):
-            nested_namespace = rule.get("namespace")
-            if nested_namespace:
-                raise YamlConfigError(
-                    "Rules referencing other namespaces cannot be nested. "
-                    f"Found nested namespace '{nested_namespace}' in '{path}'. "
-                )
             _validate_rule(rule)
 
-        return {namespace: cast(List[Any], rules)}
+        return cast(List[RuleYamlSpec], rules)
 
 
 def _validate_rule(val: Any):
