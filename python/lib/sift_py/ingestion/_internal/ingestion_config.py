@@ -29,19 +29,40 @@ def get_ingestion_config_by_client_key(
     """
     Returns `None` if no ingestion config can be matched with the provided `client_key`
     """
+    results = list_ingestion_configs(channel, f'client_key=="{client_key}"', page_size=1)
 
-    svc = IngestionConfigServiceStub(channel)
-    req = ListIngestionConfigsRequest(
-        filter=f'client_key=="{client_key}"',
-        page_token="",
-        page_size=1,
-    )
-    res = cast(ListIngestionConfigsResponse, svc.ListIngestionConfigs(req))
-
-    if len(res.ingestion_configs) == 0:
+    if len(results) == 0:
         return None
     else:
-        return res.ingestion_configs[0]
+        return results[0]
+
+
+def list_ingestion_configs(
+    channel: SiftChannel,
+    filter: str,
+    page_size: int = 1_000,
+) -> List[IngestionConfig]:
+    """
+    Returns a list of ingestion configs that can be matched with the provided `filter`.
+    """
+    svc = IngestionConfigServiceStub(channel)
+
+    results: List[IngestionConfig] = []
+    next_page_token = ""
+    while True:
+        req = ListIngestionConfigsRequest(
+            page_token=next_page_token,
+            filter=filter,
+            page_size=page_size,
+        )
+        res = cast(ListIngestionConfigsResponse, svc.ListIngestionConfigs(req))
+        results.extend(res.ingestion_configs)
+
+        next_page_token = res.next_page_token
+        if not next_page_token:
+            break
+
+    return results
 
 
 def create_ingestion_config(
