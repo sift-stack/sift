@@ -1,11 +1,18 @@
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService
+from sift_py.rule.service import RuleService
+from sift_py.yaml.rule import load_named_expression_modules, load_sub_expressions
 from simulator import Simulator
 from telemetry_config import nostromos_lv_426
+
+EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
+RULE_MODULES_DIR = Path().joinpath("rule_modules")
+
 
 if __name__ == "__main__":
     """
@@ -36,17 +43,38 @@ if __name__ == "__main__":
         ingestion_service = IngestionService(
             channel,
             telemetry_config,
-            overwrite_rules=True,  # Overwrite any rules created in the Sift UI that isn't in the config
             end_stream_on_error=True,  # End stream if errors occur API-side.
         )
 
+        sub_expressions = load_sub_expressions(
+            rule_module_paths=[
+                RULE_MODULES_DIR.joinpath("voltage.yml"),
+                RULE_MODULES_DIR.joinpath("velocity.yml"),
+                RULE_MODULES_DIR.joinpath("nostromo.yml"),
+            ],
+            named_module_paths=[
+                EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
+                EXPRESSION_MODULES_DIR.joinpath("string.yml"),
+            ]
+        )
+        print(sub_expressions)
+        rule_service = RuleService(channel)
+        rule_configs = rule_service.load_rules_from_yaml(
+            paths=[
+                RULE_MODULES_DIR.joinpath("voltage.yml"),
+                RULE_MODULES_DIR.joinpath("velocity.yml"),
+                RULE_MODULES_DIR.joinpath("nostromo.yml"),
+            ],
+            sub_expressions=sub_expressions,
+        )
+
         # Create an optional run as part of this ingestion
-        current_ts = datetime.now(timezone.utc)
-        run_name = f"[{telemetry_config.asset_name}].{current_ts.timestamp()}"
-        ingestion_service.attach_run(channel, run_name, "Run simulation")
-
-        # Create our simulator
-        simulator = Simulator(ingestion_service)
-
-        # Run it
-        simulator.run()
+#        current_ts = datetime.now(timezone.utc)
+#        run_name = f"[{telemetry_config.asset_name}].{current_ts.timestamp()}"
+#        ingestion_service.attach_run(channel, run_name, "Run simulation")
+#
+#        # Create our simulator
+#        simulator = Simulator(ingestion_service)
+#
+#        # Run it
+#        simulator.run()
