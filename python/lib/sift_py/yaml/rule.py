@@ -5,6 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union, cast
 
+from sift_py.rule.service import SubExpression
 import yaml
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from typing_extensions import NotRequired, TypedDict
@@ -17,6 +18,25 @@ from sift_py.yaml.channel import (
 from sift_py.yaml.utils import _handle_subdir, _type_fqn
 
 _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
+
+
+def load_sub_expressions(rule_module_paths: List[Path], named_module_paths: List[Path]) -> List[SubExpression]:
+    rules_dict = load_rule_namespaces(rule_module_paths)
+    named_expressions = load_named_expression_modules(named_module_paths)
+
+    subexpressions: List[SubExpression] = []
+    for _, rules in rules_dict.items():
+        for rule in rules:
+            expression = rule.get("expression", "")
+            if isinstance(expression, dict):
+                expression = expression.get("name", "")
+
+            subexpression = named_expressions.get(expression, "")
+            if subexpression:
+                subexpressions.append(SubExpression(rule.get("name", ""), {expression: subexpression}))
+
+    return subexpressions
+
 
 
 def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
