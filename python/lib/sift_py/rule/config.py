@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 
-from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
 
 from sift_py._internal.convert.json import AsJson
@@ -249,6 +248,7 @@ class RuleActionKind(Enum):
 class RuleActionKindStrRep(Enum):
     NOTIFICATION = "notification"
     ANNOTATION = "annotation"
+
 
 class ExpressionChannelReference(TypedDict):
     """

@@ -1,7 +1,7 @@
 import pytest
 
-from sift_py.yaml import rule
 from sift_py.ingestion.config.yaml.error import YamlConfigError
+from sift_py.yaml import rule
 
 
 def test__validate_sub_expression():

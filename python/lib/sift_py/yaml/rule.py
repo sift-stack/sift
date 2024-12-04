@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from enum import Enum
 import re
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union, cast
 
-from sift.annotations.v1.annotations_pb2 import AnnotationType
 import yaml
+from sift.annotations.v1.annotations_pb2 import AnnotationType
 from typing_extensions import NotRequired, TypedDict
 
 from sift_py.ingestion.config.yaml.error import YamlConfigError
@@ -395,6 +395,7 @@ class NamedExpressionYamlSpec(TypedDict):
 
     name: str
 
+
 class RuleActionAnnotationKind(Enum):
     REVIEW = "review"
     PHASE = "phase"
@@ -413,4 +414,3 @@ class RuleActionAnnotationKind(Enum):
             return cls.PHASE
         else:
             raise ValueError("Argument 'val' is not a valid annotation kind.")
-
