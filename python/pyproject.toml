@@ -47,9 +47,11 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
+  "click",
   "grpcio-testing==1.13",
   "mypy==1.10.0",
   "pyright==1.1.386",
+  "python-dotenv",
   "pytest==8.2.2",
   "pytest-asyncio==0.23.7",
   "pytest-benchmark==4.0.0",
@@ -177,3 +179,6 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["F", "W", "I", "N", "TID"]
+
+[project.scripts]
+sift-cli = "sift_cli:main"
