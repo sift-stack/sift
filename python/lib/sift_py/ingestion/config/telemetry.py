@@ -14,7 +14,6 @@ from sift_py.ingestion.channel import (
 )
 from sift_py.ingestion.config.yaml.load import (
     load_named_expression_modules,
-    load_rule_namespaces,
     read_and_validate,
 )
 from sift_py.ingestion.config.yaml.spec import TelemetryConfigYamlSpec
@@ -28,6 +27,7 @@ from sift_py.ingestion.rule.config import (
     RuleActionCreatePhaseAnnotation,
     RuleConfig,
 )
+from sift_py.yaml.rule import RuleYamlSpec, load_rule_modules
 
 
 class TelemetryConfig:
@@ -125,20 +125,20 @@ class TelemetryConfig:
         config_as_yaml = read_and_validate(path)
 
         named_expressions = {}
-        rule_namespaces = {}
+        rule_modules = []
         if named_expression_modules is not None:
             named_expressions = load_named_expression_modules(named_expression_modules)
         if named_rule_modules is not None:
-            rule_namespaces = load_rule_namespaces(named_rule_modules)
+            rule_modules = load_rule_modules(named_rule_modules)
 
-        return cls._from_yaml(config_as_yaml, named_expressions, rule_namespaces)
+        return cls._from_yaml(config_as_yaml, named_expressions, rule_modules)
 
     @classmethod
     def _from_yaml(
         cls,
         config_as_yaml: TelemetryConfigYamlSpec,
         named_expressions: Dict[str, str] = {},
-        rule_namespaces: Dict[str, List] = {},
+        rule_modules: List[RuleYamlSpec] = [],
     ) -> Self:
         rules = []
         flows = []
@@ -187,22 +187,22 @@ class TelemetryConfig:
                 )
             )
 
-        for rule in config_as_yaml.get("rules", []):
-            namespace = rule.get("namespace", "")
+        yaml_rules = config_as_yaml.get("rules", []) + rule_modules
+
+        for rule in yaml_rules:
 
             action: Optional[RuleAction] = None
             description: str = ""
-            if not namespace:
-                annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
-                tags = rule.get("tags")
-                description = rule.get("description", "")
+            annotation_type = RuleActionAnnotationKind.from_str(rule["type"])
+            tags = rule.get("tags")
+            description = rule.get("description", "")
 
-                action = RuleActionCreatePhaseAnnotation(tags)
-                if annotation_type == RuleActionAnnotationKind.REVIEW:
-                    action = RuleActionCreateDataReviewAnnotation(
-                        assignee=rule.get("assignee"),
-                        tags=tags,
-                    )
+            action = RuleActionCreatePhaseAnnotation(tags)
+            if annotation_type == RuleActionAnnotationKind.REVIEW:
+                action = RuleActionCreateDataReviewAnnotation(
+                    assignee=rule.get("assignee"),
+                    tags=tags,
+                )
 
             channel_references: List[
                 ExpressionChannelReference | ExpressionChannelReferenceChannelConfig
@@ -231,8 +231,6 @@ class TelemetryConfig:
                         action=action,
                         rule_client_key=rule_client_key,
                         channel_references=channel_references,
-                        namespace=namespace,
-                        namespace_rules=rule_namespaces,
                     )
                 )
             else:
@@ -261,8 +259,6 @@ class TelemetryConfig:
                         rule_client_key=rule_client_key,
                         channel_references=channel_references,
                         sub_expressions=sub_exprs,
-                        namespace=namespace,
-                        namespace_rules=rule_namespaces,
                     )
                 )
 

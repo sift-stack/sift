@@ -57,7 +57,7 @@ if __name__ == "__main__":
                 EXPRESSION_MODULES_DIR.joinpath("string.yml"),
             ]
         )
-        print(sub_expressions)
+        print([sub_expression.__dict__ for sub_expression in sub_expressions])
         rule_service = RuleService(channel)
         rule_configs = rule_service.load_rules_from_yaml(
             paths=[
