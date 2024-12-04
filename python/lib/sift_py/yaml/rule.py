@@ -5,7 +5,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union, cast
 
-from sift_py.rule.service import SubExpression
 import yaml
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from typing_extensions import NotRequired, TypedDict
@@ -434,3 +433,12 @@ class RuleActionAnnotationKind(Enum):
             return cls.PHASE
         else:
             raise ValueError("Argument 'val' is not a valid annotation kind.")
+
+
+class SubExpression:
+    fully_qualified_rule_name: str
+    expressions: Dict[str, Any]
+
+    def __init__(self, fully_qualified_rule_name: str, expressions: Dict[str, Any]):
+        self.fully_qualified_rule_name = fully_qualified_rule_name
+        self.expressions = expressions

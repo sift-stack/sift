@@ -25,13 +25,13 @@ from sift.rules.v1.rules_pb2 import (
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift.users.v2.users_pb2_grpc import UserServiceStub
 
+import sift_py.yaml.rule as rule_yaml
 from sift_py._internal.cel import cel_in
 from sift_py._internal.channel import get_channels
 from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
 from sift_py.ingestion.channel import channel_fqn
-from sift_py.ingestion.config.yaml.load import load_rule_namespaces
 from sift_py.ingestion.rule.config import (
     ExpressionChannelReference,
     ExpressionChannelReferenceChannelConfig,
@@ -42,6 +42,9 @@ from sift_py.ingestion.rule.config import (
 )
 from sift_py.rule.config import RuleAction
 from sift_py.yaml.rule import RuleActionAnnotationKind
+
+load_rule_namespaces = rule_yaml.load_rule_namespaces
+SubExpression = rule_yaml.SubExpression
 
 
 class RuleService:
