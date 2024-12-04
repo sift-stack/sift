@@ -70,7 +70,7 @@ class RuleService:
         If the rule does not contain channel references in its YAML definition, provide a dict of rule names mapped
         to a list of channel references. Otherwise if the YAML definition contains channel references, the `channel_references_map`
         should be omitted. If channel references are present in both the YAML definition and provided in the `channel_references_map`,
-        or if they are not provided for a given rule, an exception will be thrown.
+        or if neither are provided for a given rule, an exception will be thrown.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
         """
         namespaced_rules = load_rule_namespaces(paths)
@@ -239,7 +239,6 @@ class RuleService:
             # Create CEL search filters
             name_in = cel_in("name", identifiers)
             component_in = cel_in("component", components)
-            page_size = 1_000
 
             # Validate channels are present within each asset
             for asset in assets:
@@ -247,7 +246,6 @@ class RuleService:
                 filter = f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}"
                 channels, next_page_token = search_channels(  # Initialize next_page_token
                     filter,
-                    page_size,
                     "",
                 )
                 found_channels.extend([channel.name for channel in channels])
@@ -255,7 +253,6 @@ class RuleService:
                 while len(next_page_token) > 0:
                     channels, next_page_token = search_channels(
                         filter,
-                        page_size,
                         next_page_token,
                     )
                     found_channels.extend([channel.name for channel in channels])
