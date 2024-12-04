@@ -10,6 +10,7 @@ from sift.rules.v1.rules_pb2 import ActionKind
 from sift_py._internal.convert.json import AsJson
 from sift_py.ingestion.channel import ChannelConfig
 from sift_py.ingestion.config.yaml.spec import RuleYamlSpec
+from sift_py.yaml.rule import RuleActionAnnotationKind
 
 
 class RuleConfig(AsJson):
@@ -231,26 +232,6 @@ class RuleActionCreatePhaseAnnotation(RuleAction):
         return RuleActionKind.ANNOTATION
 
 
-class RuleActionAnnotationKind(Enum):
-    REVIEW = "review"
-    PHASE = "phase"
-
-    @classmethod
-    def from_annotation_type(cls, annotation_type: AnnotationType) -> "RuleActionAnnotationKind":
-        if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
-            return cls.PHASE
-        return cls.PHASE
-
-    @classmethod
-    def from_str(cls, val: str) -> "RuleActionAnnotationKind":
-        if val == cls.REVIEW.value:
-            return cls.REVIEW
-        elif val == cls.PHASE.value:
-            return cls.PHASE
-        else:
-            raise ValueError("Argument 'val' is not a valid annotation kind.")
-
-
 class RuleActionKind(Enum):
     NOTIFICATION = ActionKind.NOTIFICATION
     ANNOTATION = ActionKind.ANNOTATION
@@ -268,7 +249,6 @@ class RuleActionKind(Enum):
 class RuleActionKindStrRep(Enum):
     NOTIFICATION = "notification"
     ANNOTATION = "annotation"
-
 
 class ExpressionChannelReference(TypedDict):
     """
