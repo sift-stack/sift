@@ -19,7 +19,9 @@ from sift_py.yaml.utils import _handle_subdir, _type_fqn
 _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
 
 
-def load_sub_expressions(rule_module_paths: List[Path], named_module_paths: List[Path]) -> List[SubExpression]:
+def load_sub_expressions(
+    rule_module_paths: List[Path], named_module_paths: List[Path]
+) -> List[SubExpression]:
     rule_modules = load_rule_modules(rule_module_paths)
     named_expressions = load_named_expression_modules(named_module_paths)
 
@@ -36,12 +38,11 @@ def load_sub_expressions(rule_module_paths: List[Path], named_module_paths: List
     return subexpressions
 
 
-
 def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
     """
     Takes in a list of paths to YAML files which contains named expressions and processes them into a `dict`.
     The key is the name of the expression and the value is the expression itself. For more information on
-    named expression modules see `sift_py.ingestion/config/yaml/spec.py`.
+    named expression modules see `sift_py/yaml/rule.py`.
     """
 
     named_expressions = {}
@@ -61,22 +62,22 @@ def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
 
 def load_rule_modules(paths: List[Path]) -> List[RuleYamlSpec]:
     """
-    Takes in a list of paths which may either be directories or files containing rule namespace YAML files,
-    and processes them into a `dict`. For more information on rule namespaces see
-    RuleNamespaceYamlSpec in `sift_py.ingestion/config/yaml/spec.py`.
+    Takes in a list of paths which may either be directories or files containing rule module YAML files,
+    and processes them into a `list`. For more information on rule modules see
+    RulemoduleYamlSpec in `sift_py/yaml/rule.py`.
     """
 
     rule_modules: List[RuleYamlSpec] = []
 
-    def update_rule_namespaces(rule_module_path: Path):
+    def update_rule_modules(rule_module_path: Path):
         rule_module = _read_rule_module_yaml(rule_module_path)
         rule_modules.extend(rule_module)
 
     for path in paths:
         if path.is_dir():
-            _handle_subdir(path, update_rule_namespaces)
+            _handle_subdir(path, update_rule_modules)
         elif path.is_file():
-            update_rule_namespaces(path)
+            update_rule_modules(path)
 
     return rule_modules
 
@@ -117,15 +118,6 @@ def _read_rule_module_yaml(path: Path) -> List[RuleYamlSpec]:
 def _validate_rule(val: Any):
     rule = cast(Dict[Any, Any], val)
 
-    namespace = rule.get("namespace")
-    if namespace is not None and not isinstance(namespace, str):
-        raise YamlConfigError._invalid_property(
-            namespace,
-            "- namespace",
-            "str",
-            ["rules"],
-        )
-
     name = rule.get("name")
 
     if not isinstance(name, str):
@@ -133,7 +125,7 @@ def _validate_rule(val: Any):
 
     channel_references = rule.get("channel_references")
 
-    if namespace or (channel_references is not None):
+    if channel_references is not None:
         if not isinstance(channel_references, list):
             raise YamlConfigError._invalid_property(
                 channel_references,
@@ -154,27 +146,6 @@ def _validate_rule(val: Any):
     sub_expressions = rule.get("sub_expressions")
     asset_names = rule.get("asset_names")
     tag_names = rule.get("tag_names")
-
-    if namespace:
-        if any(
-            [
-                rule_client_key,
-                description,
-                expression,
-                rule_type,
-                assignee,
-                tags,
-                sub_expressions,
-                asset_names,
-                tag_names,
-            ]
-        ):
-            raise YamlConfigError(
-                f"Rule '{name}' is a namespace and should not have any other properties set. "
-                "Properties 'description', 'expression', 'type', 'assignee', 'tags', and 'sub_expressions' "
-                "may be defined in the referenced namespace."
-            )
-        return
 
     if rule_client_key is not None and not isinstance(rule_client_key, str):
         raise YamlConfigError._invalid_property(
@@ -276,15 +247,13 @@ def _validate_sub_expression(val: Any):
             )
 
 
-class RuleNamespaceYamlSpec(TypedDict):
+class RuleModuleYamlSpec(TypedDict):
     """
-    The formal definition of what a rule namespace looks like in YAML.
+    The formal definition of what a rule module looks like in YAML.
 
-    `namespace`: Name of the namespace.
-    `rules`: A list of rules that belong to the namespace.
+    `rules`: A list of rules that belong to the module.
     """
 
-    namespace: str
     rules: List[RuleYamlSpec]
 
 
@@ -293,7 +262,6 @@ class RuleYamlSpec(TypedDict):
     The formal definition of what a single rule looks like in YAML.
 
     `name`: Name of the rule.
-    `namespace`: Optional namespace of the rule. Only used if referencing a rule defined in a namespace.
     `rule_client_key`: User-defined string-key that uniquely identifies this rule config.
     `description`: Description of rule.
     `expression`:
@@ -305,26 +273,6 @@ class RuleYamlSpec(TypedDict):
     `sub_expressions`: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
     `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     `tag_names`: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
-
-    Namespaces:
-    Rule may be defined in a separate YAML within a namespace. The reference to the namespace rule would look like the following:
-    ```yaml
-    rules:
-      - namespace: voltage
-        name: overvoltage
-        channel_references:
-          - $1: *vehicle_state_channel
-          - $2: *voltage_channel
-    ```
-    With the corresponding rule being defined in a separate YAML file like the following:
-    ```yaml
-    namespace: voltage
-    rules:
-      - name: overvoltage
-        description: Checks for overvoltage while accelerating
-        expression: $1 == "Accelerating" && $2 > 80
-        type: review
-    ```
 
     Channel references:
     A channel reference is a string containing a numerical value prefixed with "$". Examples include "$1", "$2", "$11", and so on.
@@ -368,7 +316,6 @@ class RuleYamlSpec(TypedDict):
     """
 
     name: str
-    namespace: NotRequired[str]
     rule_client_key: NotRequired[str]
     description: NotRequired[str]
     expression: Union[str, NamedExpressionYamlSpec]

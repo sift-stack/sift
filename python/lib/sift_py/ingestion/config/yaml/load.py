@@ -9,7 +9,7 @@ from sift_py.ingestion.config.yaml.spec import (
     FlowYamlSpec,
     TelemetryConfigYamlSpec,
 )
-from sift_py.yaml.channel import _validate_channel, _validate_channel_anchor, ChannelConfigYamlSpec
+from sift_py.yaml.channel import ChannelConfigYamlSpec, _validate_channel, _validate_channel_anchor
 from sift_py.yaml.rule import RuleYamlSpec
 from sift_py.yaml.utils import _type_fqn
 

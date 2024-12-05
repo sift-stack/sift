@@ -190,7 +190,6 @@ class TelemetryConfig:
         yaml_rules = config_as_yaml.get("rules", []) + rule_modules
 
         for rule in yaml_rules:
-
             action: Optional[RuleAction] = None
             description: str = ""
             annotation_type = RuleActionAnnotationKind.from_str(rule["type"])

@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from sift_py.rule.config import RuleAction
-import sift_py.yaml.rule as rule_yaml
-
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
@@ -27,6 +24,7 @@ from sift.rules.v1.rules_pb2 import (
 )
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
+import sift_py.yaml.rule as rule_yaml
 from sift_py._internal.cel import cel_in
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
@@ -39,9 +37,11 @@ from sift_py.ingestion.rule.config import (
     RuleActionKind,
     RuleConfig,
 )
+from sift_py.rule.config import RuleAction
 
 load_rule_modules = rule_yaml.load_rule_modules
 SubExpression = rule_yaml.SubExpression
+
 
 class RuleService:
     """
@@ -90,9 +90,7 @@ class RuleService:
         for rule in module_rules:
             yaml_channel_references = rule.get("channel_references", [])
             arg_channel_references = (
-                channel_references_map.get(rule["name"])
-                if channel_references_map
-                else None
+                channel_references_map.get(rule["name"]) if channel_references_map else None
             )
             channel_references: List[
                 Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
@@ -125,17 +123,13 @@ class RuleService:
             elif arg_channel_references:  # Or parse channel references provided as an argument
                 channel_references = cast(
                     List[
-                        Union[
-                            ExpressionChannelReference, ExpressionChannelReferenceChannelConfig
-                        ]
+                        Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
                     ],
                     arg_channel_references,
                 )
 
             if not channel_references:
-                raise ValueError(
-                    f"Rule of name '{rule['name']}' requires channel_references"
-                )
+                raise ValueError(f"Rule of name '{rule['name']}' requires channel_references")
 
             rule_name = rule["name"]
             rule_fqn = rule_name
@@ -249,7 +243,9 @@ class RuleService:
             ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
             channel_references[ref] = ident
 
-        def search_channels(filter: str = "", page_size: int = 1_000, page_token: str = "") -> Tuple[List[Channel], str]:
+        def search_channels(
+            filter: str = "", page_size: int = 1_000, page_token: str = ""
+        ) -> Tuple[List[Channel], str]:
             req = ListChannelsRequest(
                 filter=filter,
                 page_size=page_size,
@@ -343,4 +339,3 @@ class RuleService:
             next_page_token = res.next_page_token
 
         return assets
-

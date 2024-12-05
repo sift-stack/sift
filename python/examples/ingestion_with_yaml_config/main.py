@@ -1,13 +1,11 @@
 import os
-from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService
 from sift_py.rule.service import RuleService
-from sift_py.yaml.rule import load_named_expression_modules, load_sub_expressions
-from simulator import Simulator
+from sift_py.yaml.rule import load_sub_expressions
 from telemetry_config import nostromos_lv_426
 
 EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
@@ -55,7 +53,7 @@ if __name__ == "__main__":
             named_module_paths=[
                 EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
                 EXPRESSION_MODULES_DIR.joinpath("string.yml"),
-            ]
+            ],
         )
         print([sub_expression.__dict__ for sub_expression in sub_expressions])
         rule_service = RuleService(channel)
