@@ -5,8 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService, TelemetryConfig
-from sift_py.rule.config import ExpressionChannelReference
-from sift_py.rule.service import RuleService, SubExpression
+from sift_py.rule.service import RuleChannelReference, RuleService, SubExpression
 from simulator import Simulator
 
 TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
@@ -59,31 +58,14 @@ if __name__ == "__main__":
                 SubExpression("voltage.undervoltage", {"$1": 30}),
                 SubExpression("velocity.vehicle_not_stopped", {"$2": 10}),
             ],
-            channel_references_map={
-                "overvoltage": [
-                    ExpressionChannelReference(
-                        channel_reference="$2", channel_identifier="vehicle_state"
-                    ),
-                ],
-                "undervoltage": [
-                    ExpressionChannelReference(
-                        channel_reference="$2", channel_identifier="vehicle_state"
-                    ),
-                ],
-                "vehicle_stuck": [
-                    ExpressionChannelReference(
-                        channel_reference="$1", channel_identifier="vehicle_state"
-                    ),
-                    ExpressionChannelReference(
-                        channel_reference="$2", channel_identifier="mainmotor.velocity"
-                    ),
-                ],
-                "vehicle_not_stopped": [
-                    ExpressionChannelReference(
-                        channel_reference="$1", channel_identifier="vehicle_state"
-                    ),
-                ],
-            },
+            channel_references=[
+                RuleChannelReference("overvoltage", {"$2": "vehicle_state"}),
+                RuleChannelReference("undervoltage", {"$2": "vehicle_state"}),
+                RuleChannelReference(
+                    "vehicle_stuck", {"$1": "vehicle_state", "$2": "mainmotor.velocity"}
+                ),
+                RuleChannelReference("vehicle_not_stopped", {"$1": "vehicle_state"}),
+            ],
         )
 
         # Create an optional run as part of this ingestion

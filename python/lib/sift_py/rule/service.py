@@ -57,12 +57,7 @@ class RuleService:
         self,
         paths: List[Path],
         sub_expressions: Optional[List[SubExpression]] = None,
-        channel_references_map: Optional[
-            Dict[
-                str,
-                List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]],
-            ]
-        ] = None,
+        channel_references: Optional[List[RuleChannelReference]] = None,
     ) -> List[RuleConfig]:
         """
         Loads rules from a YAML spec, and creates or updates the rules in the Sift API.
@@ -86,40 +81,57 @@ class RuleService:
         for namespace, rule_yamls in namespaced_rules.items():
             for rule_yaml in rule_yamls:
                 yaml_channel_references = rule_yaml.get("channel_references", [])
-                arg_channel_references = (
-                    channel_references_map.get(rule_yaml["name"])
-                    if channel_references_map
-                    else None
-                )
-                channel_references: List[
+
+                if channel_references:
+                    for channel_map in channel_references:
+                        if channel_map.fully_qualified_rule_name == rule_yaml["name"]:
+                            arg_channel_references = channel_map.channel_references
+                else:
+                    arg_channel_references = None
+
+                if yaml_channel_references and arg_channel_references:
+                    raise ValueError(
+                        f"Rule of name '{rule_yaml['name']}' cannot have both YAML and channel_references argument provided. "
+                        "Please provide only one or the other."
+                    )
+
+                rule_channel_references: List[
                     Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
                 ] = []
 
+                def parse_channel_refs(channel_ref: Dict[str, Any]):
+                    for ref, channel_config in channel_ref.items():
+                        if isinstance(channel_config, dict):
+                            name = channel_config.get("name", "")
+                            component = channel_config.get("component", "")
+                        elif isinstance(channel_config, str):
+                            channel_reference = channel_reference_from_fqn(channel_config)
+                            name = channel_reference.name
+                            component = channel_reference.component
+                        else:
+                            raise ValueError(
+                                f"Channel reference '{channel_config}' must be a string or a ChannelConfigYamlSpec"
+                            )
+
+                        rule_channel_references.append(
+                            {
+                                "channel_reference": ref,
+                                "channel_identifier": channel_fqn(
+                                    {
+                                        "channel_name": name,
+                                        "component": component,
+                                    }
+                                ),
+                            }
+                        )
+
                 if yaml_channel_references:
                     for channel_ref in yaml_channel_references:
-                        for ref, config in channel_ref.items():
-                            channel_references.append(
-                                {
-                                    "channel_reference": ref,
-                                    "channel_identifier": channel_fqn(
-                                        {
-                                            "channel_name": config.get("name", ""),
-                                            "component": config.get("component", ""),
-                                        }
-                                    ),
-                                }
-                            )
+                        parse_channel_refs(channel_ref)
                 elif arg_channel_references:
-                    channel_references = cast(
-                        List[
-                            Union[
-                                ExpressionChannelReference, ExpressionChannelReferenceChannelConfig
-                            ]
-                        ],
-                        arg_channel_references,
-                    )
+                    parse_channel_refs(arg_channel_references)
 
-                if not channel_references:
+                if not rule_channel_references:
                     raise ValueError(
                         f"Rule of name '{rule_yaml['name']}' requires channel_references"
                     )
@@ -136,7 +148,7 @@ class RuleService:
                         rule_client_key=rule_yaml.get("rule_client_key"),
                         description=rule_yaml.get("description", ""),
                         expression=cast(str, rule_yaml["expression"]),
-                        channel_references=channel_references,
+                        channel_references=rule_channel_references,
                         asset_names=rule_yaml.get("asset_names", []),
                         sub_expressions=rule_subexpr,
                     )
@@ -245,15 +257,14 @@ class RuleService:
                 found_channels = []
                 filter = f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}"
                 channels, next_page_token = search_channels(  # Initialize next_page_token
-                    filter,
-                    "",
+                    filter=filter,
                 )
                 found_channels.extend([channel.name for channel in channels])
 
                 while len(next_page_token) > 0:
                     channels, next_page_token = search_channels(
-                        filter,
-                        next_page_token,
+                        filter=filter,
+                        page_token=next_page_token,
                     )
                     found_channels.extend([channel.name for channel in channels])
 
@@ -327,3 +338,17 @@ class SubExpression:
     def __init__(self, fully_qualified_rule_name: str, expressions: Dict[str, Any]):
         self.fully_qualified_rule_name = fully_qualified_rule_name
         self.expressions = expressions
+
+
+class RuleChannelReference:
+    """
+    Convenient wrapper to map fully qualified rule names to relevant channel references
+    when creating rules from yaml.
+    """
+
+    fully_qualified_rule_name: str
+    channel_references: Dict[str, Any]
+
+    def __init__(self, fully_qualified_rule_name: str, channel_references: Dict[str, Any]):
+        self.fully_qualified_rule_name = fully_qualified_rule_name
+        self.channel_references = channel_references
