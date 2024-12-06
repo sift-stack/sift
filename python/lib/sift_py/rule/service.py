@@ -81,13 +81,12 @@ class RuleService:
         for namespace, rule_yamls in namespaced_rules.items():
             for rule_yaml in rule_yamls:
                 yaml_channel_references = rule_yaml.get("channel_references", [])
+                arg_channel_references = None
 
                 if channel_references:
                     for channel_map in channel_references:
                         if channel_map.fully_qualified_rule_name == rule_yaml["name"]:
                             arg_channel_references = channel_map.channel_references
-                else:
-                    arg_channel_references = None
 
                 if yaml_channel_references and arg_channel_references:
                     raise ValueError(
