@@ -212,7 +212,6 @@ class RuleService:
 
         # TODO:
         # - once we have TagService_ListTags we can do asset-agnostic rules via tags
-        print(f"Creating rule {config.__dict__} with expression {config.expression}")  # TODO
         assets = self._get_assets_by_names(config.asset_names) if config.asset_names else None
 
         actions = []
