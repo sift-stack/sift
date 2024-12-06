@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 
@@ -7,6 +8,7 @@ from sift_py.ingestion.service import IngestionService
 from sift_py.rule.service import RuleService
 from sift_py.yaml.rule import load_sub_expressions
 from telemetry_config import nostromos_lv_426
+from simulator import Simulator
 
 EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
@@ -44,6 +46,7 @@ if __name__ == "__main__":
             end_stream_on_error=True,  # End stream if errors occur API-side.
         )
 
+        # Create/update rules
         sub_expressions = load_sub_expressions(
             rule_module_paths=[
                 RULE_MODULES_DIR.joinpath("voltage.yml"),
@@ -55,7 +58,6 @@ if __name__ == "__main__":
                 EXPRESSION_MODULES_DIR.joinpath("string.yml"),
             ],
         )
-        print([sub_expression.__dict__ for sub_expression in sub_expressions])
         rule_service = RuleService(channel)
         rule_configs = rule_service.load_rules_from_yaml(
             paths=[
@@ -67,12 +69,12 @@ if __name__ == "__main__":
         )
 
         # Create an optional run as part of this ingestion
-#        current_ts = datetime.now(timezone.utc)
-#        run_name = f"[{telemetry_config.asset_name}].{current_ts.timestamp()}"
-#        ingestion_service.attach_run(channel, run_name, "Run simulation")
-#
-#        # Create our simulator
-#        simulator = Simulator(ingestion_service)
-#
-#        # Run it
-#        simulator.run()
+        current_ts = datetime.now(timezone.utc)
+        run_name = f"[{telemetry_config.asset_name}].{current_ts.timestamp()}"
+        ingestion_service.attach_run(channel, run_name, "Run simulation")
+
+        # Create our simulator
+        simulator = Simulator(ingestion_service)
+
+        # Run it
+        simulator.run()
