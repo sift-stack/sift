@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 
-from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
 
 from sift_py._internal.convert.json import AsJson
 from sift_py.ingestion.channel import ChannelConfig
 from sift_py.ingestion.config.yaml.spec import RuleYamlSpec
+from sift_py.yaml.rule import RuleActionAnnotationKind
 
 
 class RuleConfig(AsJson):
@@ -19,7 +19,7 @@ class RuleConfig(AsJson):
 
     - `name`: Name of the rule.
     - `description`: Description of the rule.
-    - `expression`: A CEL string expression, that, when evaluated to a truthy value, executes the `action`.
+    - `expression`: A CEL string expression that executes the `action` when evaluated to a truthy value.
     - `action`: The action to execute if the result of an `expression` evaluates to a truthy value.
     - `channel_references`: Reference to channel. If an expression is "$1 < 10", then "$1" is the reference and thus should the key in the dict.
     - `rule_client_key`: User defined unique string that uniquely identifies this rule.
@@ -229,26 +229,6 @@ class RuleActionCreatePhaseAnnotation(RuleAction):
 
     def kind(self) -> RuleActionKind:
         return RuleActionKind.ANNOTATION
-
-
-class RuleActionAnnotationKind(Enum):
-    REVIEW = "review"
-    PHASE = "phase"
-
-    @classmethod
-    def from_annotation_type(cls, annotation_type: AnnotationType) -> "RuleActionAnnotationKind":
-        if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
-            return cls.PHASE
-        return cls.PHASE
-
-    @classmethod
-    def from_str(cls, val: str) -> "RuleActionAnnotationKind":
-        if val == cls.REVIEW.value:
-            return cls.REVIEW
-        elif val == cls.PHASE.value:
-            return cls.PHASE
-        else:
-            raise ValueError("Argument 'val' is not a valid annotation kind.")
 
 
 class RuleActionKind(Enum):
