@@ -26,7 +26,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
-        fail-fast: false
 
     steps:
       - uses: actions/checkout@v4
