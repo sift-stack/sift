@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
-from sift.channels.v2.channels_pb2 import Channel, ListChannelsRequest, ListChannelsResponse
 from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
@@ -26,7 +26,7 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
 from sift_py._internal.cel import cel_in
 from sift_py.grpc.transport import SiftChannel
-from sift_py.ingestion._internal.channel import channel_reference_from_fqn
+from sift_py.ingestion._internal.channel import channel_reference_from_fqn, get_asset_channels
 from sift_py.ingestion.channel import channel_fqn
 from sift_py.ingestion.config.yaml.load import load_rule_namespaces
 from sift_py.ingestion.rule.config import (
@@ -81,12 +81,12 @@ class RuleService:
         for namespace, rule_yamls in namespaced_rules.items():
             for rule_yaml in rule_yamls:
                 yaml_channel_references = rule_yaml.get("channel_references", [])
-                arg_channel_references = None
+                arg_channel_references: Dict[str, Any] = {}
 
                 if channel_references:
-                    for channel_map in channel_references:
-                        if channel_map.fully_qualified_rule_name == rule_yaml["name"]:
-                            arg_channel_references = channel_map.channel_references
+                    for rule_channel_refs in channel_references:
+                        if rule_channel_refs.fully_qualified_rule_name == rule_yaml["name"]:
+                            arg_channel_references = rule_channel_refs.channel_references
 
                 if yaml_channel_references and arg_channel_references:
                     raise ValueError(
@@ -234,15 +234,6 @@ class RuleService:
             ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
             channel_references[ref] = ident
 
-        def search_channels(filter="", page_size=1_000, page_token="") -> Tuple[List[Channel], str]:
-            req = ListChannelsRequest(
-                filter=filter,
-                page_size=page_size,
-                page_token=page_token,
-            )
-            res = cast(ListChannelsResponse, self._channel_service_stub.ListChannels(req))
-            return list(res.channels), res.next_page_token
-
         if assets and channel_references:
             identifiers = [ident.name for ident in channel_references.values()]
             components = [ident.component for ident in channel_references.values()]
@@ -253,21 +244,13 @@ class RuleService:
 
             # Validate channels are present within each asset
             for asset in assets:
-                found_channels = []
-                filter = f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}"
-                channels, next_page_token = search_channels(  # Initialize next_page_token
-                    filter=filter,
+                found_channels = get_asset_channels(
+                    channel_service=self._channel_service_stub,
+                    filter=f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}",
                 )
-                found_channels.extend([channel.name for channel in channels])
+                found_channels_names = [channel.name for channel in found_channels]
 
-                while len(next_page_token) > 0:
-                    channels, next_page_token = search_channels(
-                        filter=filter,
-                        page_token=next_page_token,
-                    )
-                    found_channels.extend([channel.name for channel in channels])
-
-                missing_channels = set(identifiers) ^ set(found_channels)
+                missing_channels = set(identifiers) ^ set(found_channels_names)
                 if missing_channels:
                     raise RuntimeError(
                         f"Asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}"
@@ -330,6 +313,7 @@ class RuleService:
         return assets
 
 
+@dataclass
 class SubExpression:
     fully_qualified_rule_name: str
     expressions: Dict[str, Any]
@@ -339,6 +323,7 @@ class SubExpression:
         self.expressions = expressions
 
 
+@dataclass
 class RuleChannelReference:
     """
     Convenient wrapper to map fully qualified rule names to relevant channel references

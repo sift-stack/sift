@@ -5,35 +5,34 @@ from sift.channels.v2.channels_pb2 import ListChannelsRequest, ListChannelsRespo
 from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import ChannelReference
 
-from sift_py.grpc.transport import SiftChannel
-
 
 def get_asset_channels(
-    transport_channel: SiftChannel,
-    asset_id: str,
+    channel_service: ChannelServiceStub,
+    filter: str,
+    page_size: int = 1_000,
+    page_token: str = "",
 ) -> List[ChannelPb]:
     """
     Queries all channels for the given `asset_id`.
     """
     channels_pb: List[ChannelPb] = []
 
-    svc = ChannelServiceStub(transport_channel)
     req = ListChannelsRequest(
-        filter=f'asset_id=="{asset_id}"',
-        page_size=1_000,
-        page_token="",
+        filter=filter,
+        page_size=page_size,
+        page_token=page_token,
     )
-    res = cast(ListChannelsResponse, svc.ListChannels(req))
+    res = cast(ListChannelsResponse, channel_service.ListChannels(req))
     channels_pb.extend(res.channels)
     next_page_token = res.next_page_token
 
     while len(next_page_token) > 0:
         req = ListChannelsRequest(
-            filter=f'asset_id=="{asset_id}"',
-            page_size=1_000,
-            page_token=next_page_token,
+            filter=filter,
+            page_size=page_size,
+            page_token=page_token,
         )
-        res = cast(ListChannelsResponse, svc.ListChannels(req))
+        res = cast(ListChannelsResponse, channel_service.ListChannels(req))
         channels_pb.extend(res.channels)
         next_page_token = res.next_page_token
 
