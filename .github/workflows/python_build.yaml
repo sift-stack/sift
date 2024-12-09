@@ -26,6 +26,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
+        fail-fast: false
 
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +49,7 @@ jobs:
           # Install all optional dependencies for building
           CIBW_BEFORE_BUILD: >-
             pip install build &&
-            pip install .[openssl,build,dev]
+            pip install -e {project}[openssl,build,dev]
           # Test dependencies and commands
           CIBW_TEST_REQUIRES: "pytest"
           # Test both with and without optional dependencies
