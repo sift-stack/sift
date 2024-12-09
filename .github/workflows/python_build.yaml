@@ -62,7 +62,6 @@ jobs:
           CIBW_BUILD_FRONTEND: "pip; args: --config-settings=--build-option=--with-openssl"
         run: |
           python -m cibuildwheel python --output-dir wheelhouse
-        working-directory: python
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
