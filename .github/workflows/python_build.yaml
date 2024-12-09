@@ -4,82 +4,109 @@ on:
   workflow_dispatch:
 
 jobs:
-  python-ci:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags')
-    uses: ./.github/workflows/python_ci.yaml
+  get-python-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      python-versions: ${{ steps.get-versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get Python versions from pyproject.toml
+        id: get-versions
+        run: |
+          versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
+          echo "versions=$versions" >> $GITHUB_OUTPUT
 
-  build_matrix:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    needs: get-python-versions
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python_version: [3.9, 3.11]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
 
-    name: Build Python ${{ matrix.python_version }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
-    permissions:
-      id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Get build metadata
-        id: metadata
-        run: |
-          export VERSION="$(basename ${{ github.ref_name }})"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Create builds directory
-        working-directory: python
-        run: |
-          mkdir builds
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: "${{ matrix.python_version }}"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Pip install
-        run: |
-          python -m pip install --upgrade pip
-          pip install pip-tools
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel
 
-      - name: Compile requirements
-        working-directory: python
-        run: |
-          pip-compile pyproject.toml --output-file requirements.txt
-
-      - name: Build Windows
-        working-directory: python
+      - name: Build wheels
         env:
-          PLATFORM: win_amd64
-          ARTIFACT_NAME: sift_stack_py-${{ steps.metadata.outputs.version }}-py${{ matrix.python_version }}-win_amd64
+          CIBW_BUILD: "cp*"
+          CIBW_SKIP: "cp36-* cp37-* *-win32 *-manylinux_i686 *-musllinux*"
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ARCHS_LINUX: "x86_64"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+          # Add any build dependencies your package needs
+          CIBW_BEFORE_BUILD: "pip install build"
+          # Test dependencies and commands if needed
+          CIBW_TEST_REQUIRES: "pytest"
+          CIBW_TEST_COMMAND: "pytest {project}/tests"
         run: |
-          pip download -r requirements.txt -d dist --platform=${PLATFORM} --only-binary=:all: --python-version=${{ matrix.python_version }}
-          python setup.py bdist_wheel
-          zip ${ARTIFACT_NAME}.zip dist -r
-          sha1sum ${ARTIFACT_NAME}.zip | cut -f1 -d' ' > ${ARTIFACT_NAME}.sha1
-          mv ${ARTIFACT_NAME}.zip builds
-          mv ${ARTIFACT_NAME}.sha1 builds
-          rm -rf dist
+          python -m cibuildwheel python --output-dir wheelhouse
 
-      - name: Build Linux
-        working-directory: python
-        env:
-          PLATFORM: manylinux_2_17_x86_64
-          ARTIFACT_NAME: sift_stack_py-${{ steps.metadata.outputs.version }}-py${{ matrix.python_version }}-manylinux_2_17_x86_64
-        run: |
-          pip download -r requirements.txt -d dist --platform=${PLATFORM} --only-binary=:all: --python-version=${{ matrix.python_version }}
-          python setup.py bdist_wheel
-          zip ${ARTIFACT_NAME}.zip dist -r
-          sha1sum ${ARTIFACT_NAME}.zip | cut -f1 -d' ' > ${ARTIFACT_NAME}.sha1
-          mv ${ARTIFACT_NAME}.zip builds
-          mv ${ARTIFACT_NAME}.sha1 builds
-          rm -rf dist
-
-      - name: Upload artifact
+      - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: sift_stack_py-${{ steps.metadata.outputs.version }}-py${{ matrix.python_version }}
-          path: python/builds
+          name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: ./wheelhouse/*.whl
+          retention-days: 7
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+
+      - name: Install build
+        run: python -m pip install build
+
+      - name: Build sdist
+        run: python -m build --sdist python
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: python/dist/*.tar.gz
+          retention-days: 7
+
+  verify_wheels:
+    name: Verify wheels
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+
+      - name: Install twine
+        run: python -m pip install twine
+
+      - name: Check wheels
+        run: |
+          twine check dist/*
