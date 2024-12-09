@@ -10,7 +10,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/resource_identifier.proto";
 import "sift/tags/v1/tags.proto";
 
-option go_package = "azimuth/gen/protos/go/sift/campaigns/v1;campaignsv1pb";
+
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Campaign service"}
 };
