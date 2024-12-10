@@ -218,6 +218,7 @@ jobs:
       - name: Upload merged archives
         uses: actions/upload-artifact@v4
         with:
-          name: sift-py-dist-all-platforms
+          name: sift-py-dist-platform-archives
           path: sift-py-dist-*-all-python.zip
           retention-days: 7
+          separate-files: true
