@@ -24,20 +24,19 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - id: set-matrix
-        run: |
-          matrix=$(cat << 'EOF'
-          {
-            "config": [
-              {"os": "ubuntu", "arch": "x86_64", "runner": "ubuntu-latest"},
-              {"os": "ubuntu", "arch": "aarch64", "runner": "ubuntu-latest"},
-              {"os": "macos", "arch": "x86_64", "runner": "macos-latest"},
-              {"os": "macos", "arch": "arm64", "runner": "macos-14"},
-              {"os": "windows", "arch": "amd64", "runner": "windows-latest"}
-            ]
-          }
-          EOF
-          )
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const matrix = {
+              config: [
+                {os: 'ubuntu', arch: 'x86_64', runner: 'ubuntu-latest'},
+                {os: 'ubuntu', arch: 'aarch64', runner: 'ubuntu-latest'},
+                {os: 'macos', arch: 'x86_64', runner: 'macos-latest'},
+                {os: 'macos', arch: 'arm64', runner: 'macos-14'},
+                {os: 'windows', arch: 'amd64', runner: 'windows-latest'}
+              ]
+            };
+            core.setOutput('matrix', JSON.stringify(matrix));
 
   build_and_verify:
     name: Build and verify on ${{ matrix.config.os }} (${{ matrix.config.arch }}) with Python ${{ matrix.python-version }}
