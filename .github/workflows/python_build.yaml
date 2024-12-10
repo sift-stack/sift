@@ -5,10 +5,12 @@ on:
   pull_request:
 
 jobs:
-  get-python-versions:
+  get-matrix-config:
+    name: Get matrix configuration
     runs-on: ubuntu-latest
     outputs:
       python-versions: ${{ steps.get-versions.outputs.versions }}
+      platforms: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
       
@@ -18,12 +20,8 @@ jobs:
           versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
           echo "versions=$versions" >> $GITHUB_OUTPUT
 
-  define-platforms:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - id: set-matrix
+      - name: Set platform matrix
+        id: set-matrix
         uses: actions/github-script@v7
         with:
           script: |
@@ -40,15 +38,15 @@ jobs:
 
   build_and_verify:
     name: Build and verify on ${{ matrix.config.os }} (${{ matrix.config.arch }}) with Python ${{ matrix.python-version }}
-    needs: [get-python-versions, define-platforms]
+    needs: get-matrix-config
     runs-on: ${{ matrix.config.runner }}
     env:
       DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
     strategy:
-      fail-fast: false  # Continue with other builds even if one fails
+      fail-fast: false
       matrix:
-        config: ${{ fromJson(needs.define-platforms.outputs.matrix).config }}
-        python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
+        config: ${{ fromJson(needs.get-matrix-config.outputs.platforms).config }}
+        python-version: ${{fromJson(needs.get-matrix-config.outputs.python-versions)}}
     outputs:
       matrix-config: ${{ toJson(matrix.config) }}
 
@@ -160,11 +158,11 @@ jobs:
 
   merge_platform_archives:
     name: Merge archives for ${{ matrix.platform.os }} (${{ matrix.platform.arch }})
-    needs: [build_and_verify, define-platforms]
+    needs: [build_and_verify, get-matrix-config]
     runs-on: ubuntu-latest
     strategy:
       matrix: 
-        platform: ${{ fromJson(needs.define-platforms.outputs.matrix).config }}
+        platform: ${{ fromJson(needs.get-matrix-config.outputs.platforms).config }}
     env:
       DIST_PLATFORM: ${{ matrix.platform.os == 'windows' && format('win_{0}', matrix.platform.arch) || format('{0}-{1}', matrix.platform.os, matrix.platform.arch) }}
     steps:
@@ -184,10 +182,25 @@ jobs:
           # Extract and merge all archives for this platform
           for zip in platform_archives/*/sift-py-dist-${{ env.DIST_PLATFORM }}-py*.zip; do
             echo "Processing archive: $zip"
+            
+            # Create fresh temp directory
+            rm -rf temp_extract
+            mkdir -p temp_extract
+            
+            # Extract and show contents
             unzip -o "$zip" -d "temp_extract"
-            cp -r temp_extract/dist/* merged/dist/
+            echo "Contents of temp_extract:"
+            ls -R temp_extract
+            
+            # Find all files recursively and copy them
+            find temp_extract -type f -exec cp {} merged/dist/ \;
+            
+            # Cleanup
             rm -rf temp_extract
           done
+          
+          echo "Contents of merged directory:"
+          ls -R merged/dist/
           
           # Create merged archive
           cd merged
