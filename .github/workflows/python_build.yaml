@@ -18,6 +18,27 @@ jobs:
           versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
           echo "versions=$versions" >> $GITHUB_OUTPUT
 
+  define-platforms:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          matrix=$(cat << 'EOF'
+          {
+            "config": [
+              {"os": "ubuntu", "arch": "x86_64", "runner": "ubuntu-latest"},
+              {"os": "ubuntu", "arch": "aarch64", "runner": "ubuntu-latest"},
+              {"os": "macos", "arch": "x86_64", "runner": "macos-latest"},
+              {"os": "macos", "arch": "arm64", "runner": "macos-14"},
+              {"os": "windows", "arch": "amd64", "runner": "windows-latest"}
+            ]
+          }
+          EOF
+          )
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
   build_and_verify:
     name: Build and verify on ${{ matrix.config.os }} (${{ matrix.config.arch }}) with Python ${{ matrix.python-version }}
     needs: get-python-versions
@@ -26,31 +47,9 @@ jobs:
       DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
     strategy:
       fail-fast: false  # Continue with other builds even if one fails
-      matrix:
-        config:
-          # Ubuntu builds (x86_64 and aarch64)
-          - os: ubuntu
-            arch: x86_64
-            runner: ubuntu-latest
-          - os: ubuntu
-            arch: aarch64
-            runner: ubuntu-latest
-            
-          # macOS builds (x86_64 and arm64)
-          - os: macos
-            arch: x86_64
-            runner: macos-latest
-          - os: macos
-            arch: arm64
-            runner: macos-14
-            
-          # Windows builds (x64)
-          - os: windows
-            arch: amd64
-            runner: windows-latest
-        python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
+      matrix: ${{ fromJson(needs.define-platforms.outputs.matrix) }}
     outputs:
-      platforms: ${{ toJson(matrix.config.*) }}
+      matrix-config: ${{ toJson(matrix.config) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -159,14 +158,14 @@ jobs:
           retention-days: 7
 
   merge_platform_archives:
-    name: Merge archives for ${{ matrix.config.os }} (${{ matrix.config.arch }})
-    needs: [build_and_verify]
+    name: Merge archives for ${{ matrix.platform.os }} (${{ matrix.platform.arch }})
+    needs: [build_and_verify, define-platforms]
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        config: ${{ fromJson(needs.build_and_verify.outputs.platforms) }}
+      matrix: 
+        platform: ${{ fromJson(needs.define-platforms.outputs.matrix).config }}
     env:
-      DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
+      DIST_PLATFORM: ${{ matrix.platform.os == 'windows' && format('win_{0}', matrix.platform.arch) || format('{0}-{1}', matrix.platform.os, matrix.platform.arch) }}
     steps:
       - name: Download platform archives
         uses: actions/download-artifact@v4
