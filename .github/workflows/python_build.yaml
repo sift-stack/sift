@@ -143,3 +143,60 @@ jobs:
           name: sift-py-dist-${{ env.DIST_PLATFORM }}-py${{ matrix.python-version }}
           path: python/dist/sift-py-dist-*.zip
           retention-days: 7
+
+  merge_platform_archives:
+    name: Merge archives for ${{ matrix.config.os }} (${{ matrix.config.arch }})
+    needs: [build_and_verify]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config:
+          # Ubuntu builds (x86_64 and aarch64)
+          - os: ubuntu
+            arch: x86_64
+          - os: ubuntu
+            arch: aarch64
+            
+          # macOS builds (x86_64 and arm64)
+          - os: macos
+            arch: x86_64
+          - os: macos
+            arch: arm64
+            
+          # Windows builds (x64)
+          - os: windows
+            arch: amd64
+    env:
+      DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
+    steps:
+      - name: Download all Python version archives for platform
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sift-py-dist-${{ env.DIST_PLATFORM }}-py*
+          path: platform_archives
+          merge-multiple: false
+
+      - name: Merge archives
+        shell: bash
+        run: |
+          # Create directory for merged wheels
+          mkdir -p merged/dist/deps
+          
+          # Extract all archives and merge unique wheels
+          for zip in platform_archives/*/sift-py-dist-*.zip; do
+            unzip -o "$zip" -d "temp_extract"
+            # Copy all wheels, letting newer ones overwrite older ones
+            cp -r temp_extract/dist/* merged/dist/
+            rm -rf temp_extract
+          done
+          
+          # Create merged archive
+          cd merged
+          zip -r "../sift-py-dist-${{ env.DIST_PLATFORM }}-all-python.zip" dist/
+
+      - name: Upload merged archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: sift-py-dist-${{ env.DIST_PLATFORM }}-all-python
+          path: sift-py-dist-*.zip
+          retention-days: 7
