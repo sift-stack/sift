@@ -73,7 +73,10 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          pip-compile pyproject.toml --all-extras -o requirements-all.txt
+          # Generate requirements file with only openssl extras
+          # npTDMS doesn't have wheels for all platforms, 
+          # so we need to build it from source which was causing issues on windows
+          pip-compile pyproject.toml --extra=openssl -o requirements-all.txt
 
       - name: Download dependencies
         working-directory: python
@@ -124,8 +127,7 @@ jobs:
           test_install ""  # no extras
           test_install "openssl"
           test_install "build"
-          test_install "dev"
-          test_install "openssl,build,dev"
+          test_install "openssl,build"
 
       - name: Create distribution archive
         working-directory: python
