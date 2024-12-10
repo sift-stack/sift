@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Type
 
 
 def _handle_subdir(path: Path, file_handler: Callable):
@@ -9,3 +9,7 @@ def _handle_subdir(path: Path, file_handler: Callable):
             _handle_subdir(file_in_dir, file_handler)
         elif file_in_dir.is_file():
             file_handler(file_in_dir)
+
+
+def _type_fqn(typ: Type) -> str:
+    return f"{typ.__module__}.{typ.__name__}"
