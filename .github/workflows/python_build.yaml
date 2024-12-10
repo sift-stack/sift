@@ -42,16 +42,16 @@ jobs:
       - name: debug 2
         if: always()
         run: |
-          echo "${{ toJson(steps.set-matrix.outputs.matrix) }}" 
+          echo "${{ fromJson(steps.set-matrix.outputs.matrix)[0].runner }}" 
       - name: debug 3
         if: always()
         run: |  
-          echo "${{ toJson(needs.get-matrix-config.outputs.matrix).runner }}" 
+          echo "${{ needs.get-matrix-config.outputs.matrix[0].runner }}" 
 
   build_and_verify:
     name: Build and verify on ${{ matrix.os }} (${{ matrix.arch }}) with Python ${{ matrix.python-version }}
     needs: get-matrix-config
-    runs-on: ${{ fromJson(needs.get-matrix-config.outputs.platforms).runner }}
+    runs-on: ${{ matrix.platform.runner }}
     strategy:
       fail-fast: false
       matrix:
