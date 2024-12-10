@@ -163,7 +163,8 @@ jobs:
     needs: [build_and_verify]
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.build_and_verify.outputs.platforms) }}
+      matrix:
+        config: ${{ fromJson(needs.build_and_verify.outputs.platforms) }}
     env:
       DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
     steps:
