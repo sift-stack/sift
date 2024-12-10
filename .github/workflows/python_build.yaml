@@ -181,11 +181,26 @@ jobs:
             
             # Extract all archives and merge unique wheels
             for zip in platform_archives/*/sift-py-dist-$platform-py*.zip; do
+              echo "Processing archive: $zip"
+              
+              # Create fresh temp directory
+              rm -rf temp_extract
+              mkdir -p temp_extract
+              
+              # Extract and show contents
               unzip -o "$zip" -d "temp_extract"
-              # Copy all wheels, letting newer ones overwrite older ones
-              cp -r temp_extract/dist/* "merged_$platform/dist/"
+              echo "Contents of temp_extract:"
+              ls -R temp_extract
+              
+              # Find and copy all files from dist directory
+              find temp_extract -type f -exec cp {} "merged_$platform/dist/" \;
+              
+              # Cleanup
               rm -rf temp_extract
             done
+            
+            echo "Contents of merged directory:"
+            ls -R "merged_$platform/dist/"
             
             # Create merged archive
             cd "merged_$platform"
