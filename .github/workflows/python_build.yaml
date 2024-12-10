@@ -18,8 +18,8 @@ jobs:
           versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
           echo "versions=$versions" >> $GITHUB_OUTPUT
 
-  build_packages:
-    name: Build on ${{ matrix.os }} (${{ matrix.arch }}) with Python ${{ matrix.python-version }}
+  build_and_verify:
+    name: Build and verify on ${{ matrix.os }} (${{ matrix.arch }}) with Python ${{ matrix.python-version }}
     needs: get-python-versions
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -65,22 +65,24 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install build tools
+        shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install build pip-tools
+          pip install build pip-tools twine
 
       - name: Generate requirements
         working-directory: python
+        shell: bash
         run: |
           pip-compile pyproject.toml --all-extras -o requirements-all.txt
 
       - name: Download dependencies
         working-directory: python
+        shell: bash
         env:
           PIP_PLATFORM: ${{ matrix.os == 'windows' && format('{0}_win32', matrix.arch) || format('{0}-{1}', matrix.os, matrix.arch) }}
         run: |
           mkdir -p dist/deps
-          # Download all wheels
           pip download -r requirements-all.txt -d dist/deps \
             --platform $PIP_PLATFORM \
             --python-version ${{ matrix.python-version }} \
@@ -88,11 +90,45 @@ jobs:
 
       - name: Build sift-py wheel
         working-directory: python
+        shell: bash
         run: |
           python -m build --wheel
 
+      - name: Verify wheel
+        working-directory: python
+        shell: bash
+        run: |
+          twine check dist/*.whl
+
+      - name: Test installations
+        working-directory: python
+        shell: bash
+        run: |
+          # Function to create venv and test installation
+          test_install() {
+            local extras=$1
+            echo "Testing installation with extras: ${extras:-none}"
+            python -m venv test_venv
+            source test_venv/bin/activate || source test_venv/Scripts/activate
+            if [ -z "$extras" ]; then
+              pip install --no-index --find-links=dist/deps dist/*.whl
+            else
+              pip install --no-index --find-links=dist/deps "dist/*.whl[$extras]"
+            fi
+            deactivate
+            rm -rf test_venv
+          }
+
+          # Test each combination in a fresh venv
+          test_install ""  # no extras
+          test_install "openssl"
+          test_install "build"
+          test_install "dev"
+          test_install "openssl,build,dev"
+
       - name: Create distribution archive
         working-directory: python
+        shell: bash
         run: |
           python -c "import shutil; shutil.make_archive('dist/sift-py-dist-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}', 'zip', 'dist')"
 
@@ -102,47 +138,3 @@ jobs:
           name: sift-py-dist-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}
           path: python/dist/sift-py-dist-*.zip
           retention-days: 7
-
-  verify_distributions:
-    name: Verify distributions
-    needs: build_packages
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: sift-py-dist-*
-          path: dist
-          merge-multiple: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.8"
-
-      - name: Install twine
-        run: python -m pip install twine
-
-      - name: Extract and verify distributions
-        run: |
-          # Extract all zip files
-          for zip in dist/*.zip; do
-            unzip -o "$zip" -d "./extracted/$(basename "$zip" .zip)"
-          done
-          
-          # Check all wheels with twine
-          find ./extracted -name "*.whl" -exec twine check {} +
-
-      - name: Test installations
-        run: |
-          # Test installation from each distribution
-          for dist_dir in ./extracted/*; do
-            echo "Testing installation from $dist_dir"
-            # Install the main package wheel with different combinations of extras
-            main_wheel=$(find "$dist_dir" -name "sift_stack_py*.whl")
-            pip install --no-index --find-links="$dist_dir" "$main_wheel"
-            pip install --no-index --find-links="$dist_dir" "$main_wheel[openssl]"
-            pip install --no-index --find-links="$dist_dir" "$main_wheel[build]"
-            pip install --no-index --find-links="$dist_dir" "$main_wheel[dev]"
-            pip install --no-index --find-links="$dist_dir" "$main_wheel[openssl,build,dev]"
-            pip uninstall -y sift_stack_py
-          done
