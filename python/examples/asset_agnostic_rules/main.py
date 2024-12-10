@@ -58,12 +58,18 @@ if __name__ == "__main__":
                 SubExpression("voltage.undervoltage", {"undervoltage_threshold": 30}),
             ],
             channel_references=[
-                RuleChannelReference("overvoltage", {"$1": "mainmotor.voltage", "$2": "vehicle_state"}),
-                RuleChannelReference("undervoltage", {"$1": "mainmotor.voltage", "$2": "vehicle_state"}),
+                RuleChannelReference(
+                    "overvoltage", {"$1": "mainmotor.voltage", "$2": "vehicle_state"}
+                ),
+                RuleChannelReference(
+                    "undervoltage", {"$1": "mainmotor.voltage", "$2": "vehicle_state"}
+                ),
                 RuleChannelReference(
                     "vehicle_stuck", {"$1": "vehicle_state", "$2": "mainmotor.velocity"}
                 ),
-                RuleChannelReference("vehicle_not_stopped", {"$1": "vehicle_state", "$2": "mainmotor.velocity"}),
+                RuleChannelReference(
+                    "vehicle_not_stopped", {"$1": "vehicle_state", "$2": "mainmotor.velocity"}
+                ),
             ],
         )
 
