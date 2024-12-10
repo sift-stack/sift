@@ -50,7 +50,7 @@ jobs:
             runner: windows-latest
         python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
     outputs:
-      platforms: ${{ toJson(matrix.config) }}
+      platforms: ${{ toJson(matrix.config.*) }}
 
     steps:
       - uses: actions/checkout@v4
