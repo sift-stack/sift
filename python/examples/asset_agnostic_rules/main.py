@@ -54,17 +54,16 @@ if __name__ == "__main__":
                 velocity_rules_src,
             ],
             sub_expressions=[
-                SubExpression("voltage.overvoltage", {"$1": 75}),
-                SubExpression("voltage.undervoltage", {"$1": 30}),
-                SubExpression("velocity.vehicle_not_stopped", {"$2": 10}),
+                SubExpression("voltage.overvoltage", {"overvoltage_threshold": 75}),
+                SubExpression("voltage.undervoltage", {"undervoltage_threshold": 30}),
             ],
             channel_references=[
-                RuleChannelReference("overvoltage", {"$2": "vehicle_state"}),
-                RuleChannelReference("undervoltage", {"$2": "vehicle_state"}),
+                RuleChannelReference("overvoltage", {"$1": "mainmotor.voltage", "$2": "vehicle_state"}),
+                RuleChannelReference("undervoltage", {"$1": "mainmotor.voltage", "$2": "vehicle_state"}),
                 RuleChannelReference(
                     "vehicle_stuck", {"$1": "vehicle_state", "$2": "mainmotor.velocity"}
                 ),
-                RuleChannelReference("vehicle_not_stopped", {"$1": "vehicle_state"}),
+                RuleChannelReference("vehicle_not_stopped", {"$1": "vehicle_state", "$2": "mainmotor.velocity"}),
             ],
         )
 

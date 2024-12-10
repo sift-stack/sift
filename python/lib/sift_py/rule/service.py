@@ -37,6 +37,8 @@ from sift_py.ingestion.rule.config import (
     RuleActionKind,
     RuleConfig,
 )
+from sift_py.rule.config import RuleAction
+from sift_py.yaml.rule import RuleActionAnnotationKind
 
 
 class RuleService:
@@ -139,11 +141,25 @@ class RuleService:
                 rule_fqn = f"{namespace}.{rule_name}"
                 rule_subexpr = interpolation_map.get(rule_fqn, {})
 
+                expression = rule_yaml["expression"]
+                if isinstance(expression, dict):  # Handle named expressions
+                    expression = expression.get("name", "")
+
+                tags = rule_yaml.get("tags", [])
+                annotation_type = RuleActionAnnotationKind.from_str(rule_yaml["type"])
+                action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
+                if annotation_type == RuleActionAnnotationKind.REVIEW:
+                    action = RuleActionCreateDataReviewAnnotation(
+                        assignee=rule_yaml.get("assignee"),
+                        tags=tags,
+                    )
+
                 rule_configs.append(
                     RuleConfig(
                         name=rule_yaml["name"],
                         namespace=namespace,
                         namespace_rules=namespaced_rules,
+                        action=action,
                         rule_client_key=rule_yaml.get("rule_client_key"),
                         description=rule_yaml.get("description", ""),
                         expression=cast(str, rule_yaml["expression"]),
