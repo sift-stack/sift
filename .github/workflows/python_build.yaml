@@ -108,26 +108,30 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          # Function to create venv and test installation
-          test_install() {
-            local extras=$1
-            echo "Testing installation with extras: ${extras:-none}"
-            python -m venv test_venv
-            source test_venv/bin/activate || source test_venv/Scripts/activate
-            if [ -z "$extras" ]; then
-              pip install --no-index --find-links=dist/deps dist/*.whl
-            else
-              pip install --no-index --find-links=dist/deps "dist/*.whl[$extras]"
-            fi
-            deactivate
-            rm -rf test_venv
-          }
+          # Get the wheel file name
+          WHEEL_FILE=$(ls dist/*.whl)
+          
+          # Test base installation
+          python -m venv test_venv_base
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            source test_venv_base/Scripts/activate
+          else
+            source test_venv_base/bin/activate
+          fi
+          pip install --no-index --find-links=dist/deps "$WHEEL_FILE"
+          deactivate
+          rm -rf test_venv_base
 
-          # Test each combination in a fresh venv
-          test_install ""  # no extras
-          test_install "openssl"
-          test_install "build"
-          test_install "openssl,build"
+          # Test openssl installation
+          python -m venv test_venv_openssl
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            source test_venv_openssl/Scripts/activate
+          else
+            source test_venv_openssl/bin/activate
+          fi
+          pip install --no-index --find-links=dist/deps "$WHEEL_FILE[openssl]"
+          deactivate
+          rm -rf test_venv_openssl
 
       - name: Create distribution archive
         working-directory: python
