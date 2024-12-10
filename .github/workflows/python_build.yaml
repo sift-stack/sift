@@ -72,7 +72,7 @@ jobs:
       - name: Generate requirements
         working-directory: python
         run: |
-          pip-compile pyproject.toml --extra=openssl,build,dev -o requirements-all.txt
+          pip-compile pyproject.toml --all-extras -o requirements-all.txt
 
       - name: Download dependencies
         working-directory: python
@@ -80,7 +80,11 @@ jobs:
           PIP_PLATFORM: ${{ matrix.os == 'windows' && format('{0}_win32', matrix.arch) || format('{0}-{1}', matrix.os, matrix.arch) }}
         run: |
           mkdir -p dist/deps
-          pip download -r requirements-all.txt -d dist/deps --platform $PIP_PLATFORM --only-binary=:all:
+          # Download all wheels
+          pip download -r requirements-all.txt -d dist/deps \
+            --platform $PIP_PLATFORM \
+            --python-version ${{ matrix.python-version }} \
+            --no-deps
 
       - name: Build sift-py wheel
         working-directory: python
