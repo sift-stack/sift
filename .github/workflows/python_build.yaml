@@ -82,13 +82,10 @@ jobs:
       - name: Download dependencies
         working-directory: python
         shell: bash
-        env:
-          PIP_PLATFORM: ${{ env.DIST_PLATFORM }}
         run: |
           mkdir -p dist/deps
-          # Try to download all packages, preferring wheels but allowing source if wheels aren't available
+          # Download and build packages for the current platform
           pip download -r requirements-all.txt -d dist/deps \
-            --platform $PIP_PLATFORM \
             --python-version ${{ matrix.python-version }} \
             --prefer-binary \
             --no-deps
