@@ -41,13 +41,15 @@ jobs:
 
   build_and_verify:
     name: Build and verify on ${{ matrix.config.os }} (${{ matrix.config.arch }}) with Python ${{ matrix.python-version }}
-    needs: get-python-versions
+    needs: [get-python-versions, define-platforms]
     runs-on: ${{ matrix.config.runner }}
     env:
       DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
     strategy:
       fail-fast: false  # Continue with other builds even if one fails
-      matrix: ${{ fromJson(needs.define-platforms.outputs.matrix) }}
+      matrix:
+        config: ${{ fromJson(needs.define-platforms.outputs.matrix).config }}
+        python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
     outputs:
       matrix-config: ${{ toJson(matrix.config) }}
 
