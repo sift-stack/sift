@@ -36,9 +36,17 @@ jobs:
             ];
             core.setOutput('matrix', JSON.stringify(matrix));
       - name: debug 
+        always: true
         run: |
-          echo "${{ steps.set-matrix.outputs.matrix }}" ||
-          echo "${{ fromJson(steps.set-matrix.outputs.matrix) }}" || 
+          echo "${{ steps.set-matrix.outputs.matrix }}"
+            - name: debug 
+      - name: debug 2
+        always: true
+        run: |
+          echo "${{ fromJson(steps.set-matrix.outputs.matrix) }}" 
+      - name: debug 3
+        always: true
+        run: |  
           echo "${{ fromJson(needs.get-matrix-config.outputs.matrix).runner }}" 
 
   build_and_verify:
