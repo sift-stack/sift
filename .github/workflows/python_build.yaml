@@ -39,7 +39,7 @@ jobs:
   build_and_verify:
     name: Build and verify on ${{ matrix.os }} (${{ matrix.arch }}) with Python ${{ matrix.python-version }}
     needs: get-matrix-config
-    runs-on: ${{ needs.get-matrix-config.outputs.platforms.runner }}
+    runs-on: ${{ fromJson(needs.get-matrix-config.outputs.platforms).runner }}
     strategy:
       fail-fast: false
       matrix:
