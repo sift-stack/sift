@@ -23,10 +23,13 @@ from sift.rules.v1.rules_pb2 import (
     UpdateRuleRequest,
 )
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
+from sift.users.v2.users_pb2_grpc import UserServiceStub
 
 from sift_py._internal.cel import cel_in
+from sift_py._internal.channel import get_asset_channels
+from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
-from sift_py.ingestion._internal.channel import channel_reference_from_fqn, get_asset_channels
+from sift_py.ingestion._internal.channel import channel_reference_from_fqn
 from sift_py.ingestion.channel import channel_fqn
 from sift_py.ingestion.config.yaml.load import load_rule_namespaces
 from sift_py.ingestion.rule.config import (
@@ -49,11 +52,13 @@ class RuleService:
     _asset_service_stub: AssetServiceStub
     _channel_service_stub: ChannelServiceStub
     _rule_service_stub: RuleServiceStub
+    _user_service_stub: UserServiceStub
 
     def __init__(self, channel: SiftChannel):
         self._asset_service_stub = AssetServiceStub(channel)
         self._channel_service_stub = ChannelServiceStub(channel)
         self._rule_service_stub = RuleServiceStub(channel)
+        self._user_service_stub = UserServiceStub(channel)
 
     def load_rules_from_yaml(
         self,
@@ -224,12 +229,21 @@ class RuleService:
             )
         elif config.action.kind() == RuleActionKind.ANNOTATION:
             if isinstance(config.action, RuleActionCreateDataReviewAnnotation):
+                users = get_active_users(
+                    user_service=self._user_service_stub, filter=f"name=='{config.action.assignee}'"
+                )
+                if not users:
+                    raise ValueError(f"Cannot find user '{config.action.assignee}'.")
+                if len(users) > 1:
+                    raise ValueError(f"Multiple users found with name '{config.action.assignee}'.")
+                user_id = users[0].user_id
+
                 action_config = UpdateActionRequest(
                     action_type=ANNOTATION,
                     configuration=RuleActionConfiguration(
                         annotation=AnnotationActionConfiguration(
-                            assigned_to_user_id=config.action.assignee,
-                            tag_ids=config.action.tags,
+                            assigned_to_user_id=user_id,
+                            # tag_ids=config.action.tags,  # TODO: Requires TagService
                         )
                     ),
                 )
@@ -239,7 +253,7 @@ class RuleService:
                     action_type=ANNOTATION,
                     configuration=RuleActionConfiguration(
                         annotation=AnnotationActionConfiguration(
-                            tag_ids=config.action.tags,
+                            # tag_ids=config.action.tags,  # TODO: Requires TagService
                         )
                     ),
                 )

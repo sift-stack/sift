@@ -6,7 +6,6 @@ rules:
     description: Checks for overvoltage while accelerating
     expression: $2 == "Accelerating" && $1 > overvoltage_threshold
     type: review
-    assignee: benjamin@siftstack.com
     asset_names:
       - NostromoLV2024
 
@@ -15,6 +14,5 @@ rules:
     description: Checks for undervoltage while accelerating
     expression: $2 == "Accelerating" && $1 < undervoltage_threshold
     type: review
-    assignee: benjamin@siftstack.com
     asset_names:
       - NostromoLV2024
