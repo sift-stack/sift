@@ -1,4 +1,4 @@
-name: Build Wheels
+name: Offline Installation Archive
 
 on:
   workflow_dispatch:
@@ -18,95 +18,97 @@ jobs:
           versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
           echo "versions=$versions" >> $GITHUB_OUTPUT
 
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+  build_packages:
+    name: Build on ${{ matrix.os }} (${{ matrix.arch }}) with Python ${{ matrix.python-version }}
     needs: get-python-versions
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          # Ubuntu builds (x86_64 and aarch64)
+          - os: ubuntu
+            arch: x86_64
+            runner: ubuntu-latest
+          - os: ubuntu
+            arch: aarch64
+            runner: ubuntu-latest
+            
+          # macOS builds (x86_64 and arm64)
+          - os: macos
+            arch: x86_64
+            runner: macos-latest
+          - os: macos
+            arch: arm64
+            runner: macos-14
+            
+          # Windows builds (x86 and x64)
+          - os: windows
+            arch: x86
+            runner: windows-latest
+          - os: windows
+            arch: x64
+            runner: windows-latest
         python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel
-
-      - name: Build wheels
-        env:
-          CIBW_BUILD: "cp*"
-          CIBW_SKIP: "cp36-* cp37-* *-win32 *-manylinux_i686 *-musllinux*"
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
-          CIBW_ARCHS_LINUX: "x86_64"
-          CIBW_ARCHS_WINDOWS: "AMD64"
-          # Install all optional dependencies for building
-          CIBW_BEFORE_BUILD: >-
-            cd python &&
-            pip install build &&
-            pip install -e .[openssl,build,dev]
-          # Test dependencies and commands
-          CIBW_TEST_REQUIRES: "pytest"
-          # Test both with and without optional dependencies
-          CIBW_TEST_COMMAND: >-
-            pip install {package} &&
-            pytest {project}/tests &&
-            pip install {package}[openssl] &&
-            pytest {project}/tests
+      - name: Install build tools
         run: |
-          python -m cibuildwheel python --output-dir wheelhouse
+          python -m pip install --upgrade pip
+          pip install build pip-tools
 
-      - name: Upload wheels
+      - name: Generate requirements
+        working-directory: python
+        run: |
+          pip-compile pyproject.toml --extra=openssl,build,dev -o requirements-all.txt
+
+      - name: Download dependencies
+        working-directory: python
+        env:
+          PIP_PLATFORM: ${{ matrix.os == 'windows' && format('{0}_win32', matrix.arch) || format('{0}-{1}', matrix.os, matrix.arch) }}
+        run: |
+          mkdir -p dist/deps
+          pip download -r requirements-all.txt -d dist/deps --platform $PIP_PLATFORM --only-binary=:all:
+
+      - name: Build sift-py wheel
+        working-directory: python
+        run: |
+          python -m build --wheel
+
+      - name: Create distribution archive
+        working-directory: python
+        run: |
+          python -c "import shutil; shutil.make_archive('dist/sift-py-dist-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}', 'zip', 'dist')"
+
+      - name: Upload distribution archive
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
-          path: ./wheelhouse/*.whl
+          name: sift-py-dist-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}
+          path: python/dist/sift-py-dist-*.zip
           retention-days: 7
 
-  build_sdist:
-    name: Build source distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.8"
-
-      - name: Install build
-        run: python -m pip install build
-
-      - name: Build sdist
-        run: python -m build --sdist python
-
-      - name: Upload sdist
-        uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: python/dist/*.tar.gz
-          retention-days: 7
-
-  verify_wheels:
-    name: Verify wheels
-    needs: [build_wheels, build_sdist]
+  verify_distributions:
+    name: Verify distributions
+    needs: build_packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheels-*
+          pattern: sift-py-dist-*
           path: dist
           merge-multiple: true
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: sdist
-          path: dist
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -116,12 +118,27 @@ jobs:
       - name: Install twine
         run: python -m pip install twine
 
-      - name: Check wheels and test installation
+      - name: Extract and verify distributions
         run: |
-          twine check dist/*
-          # Test installation with different combinations of extras
-          python -m pip install --force-reinstall dist/*.whl
-          python -m pip install --force-reinstall dist/*.whl[openssl]
-          python -m pip install --force-reinstall dist/*.whl[build]
-          python -m pip install --force-reinstall dist/*.whl[dev]
-          python -m pip install --force-reinstall dist/*.whl[openssl,build,dev]
+          # Extract all zip files
+          for zip in dist/*.zip; do
+            unzip -o "$zip" -d "./extracted/$(basename "$zip" .zip)"
+          done
+          
+          # Check all wheels with twine
+          find ./extracted -name "*.whl" -exec twine check {} +
+
+      - name: Test installations
+        run: |
+          # Test installation from each distribution
+          for dist_dir in ./extracted/*; do
+            echo "Testing installation from $dist_dir"
+            # Install the main package wheel with different combinations of extras
+            main_wheel=$(find "$dist_dir" -name "sift_stack_py*.whl")
+            pip install --no-index --find-links="$dist_dir" "$main_wheel"
+            pip install --no-index --find-links="$dist_dir" "$main_wheel[openssl]"
+            pip install --no-index --find-links="$dist_dir" "$main_wheel[build]"
+            pip install --no-index --find-links="$dist_dir" "$main_wheel[dev]"
+            pip install --no-index --find-links="$dist_dir" "$main_wheel[openssl,build,dev]"
+            pip uninstall -y sift_stack_py
+          done
