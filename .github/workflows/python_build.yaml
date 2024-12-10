@@ -84,7 +84,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist/deps
-          # Download and build packages for the current platform
+          # First download build dependencies
+          pip download -d dist/deps \
+            setuptools wheel Cython \
+            --prefer-binary \
+            --no-deps
+
+          # Then download package dependencies
           pip download -r requirements-all.txt -d dist/deps \
             --python-version ${{ matrix.python-version }} \
             --prefer-binary \
@@ -145,58 +151,52 @@ jobs:
           retention-days: 7
 
   merge_platform_archives:
-    name: Merge archives for ${{ matrix.config.os }} (${{ matrix.config.arch }})
+    name: Merge platform archives
     needs: [build_and_verify]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        config:
-          # Ubuntu builds (x86_64 and aarch64)
-          - os: ubuntu
-            arch: x86_64
-          - os: ubuntu
-            arch: aarch64
-            
-          # macOS builds (x86_64 and arm64)
-          - os: macos
-            arch: x86_64
-          - os: macos
-            arch: arm64
-            
-          # Windows builds (x64)
-          - os: windows
-            arch: amd64
-    env:
-      DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
     steps:
-      - name: Download all Python version archives for platform
+      - name: Download all archives
         uses: actions/download-artifact@v4
         with:
-          pattern: sift-py-dist-${{ env.DIST_PLATFORM }}-py*
+          pattern: sift-py-dist-*-py*
           path: platform_archives
           merge-multiple: false
 
-      - name: Merge archives
+      - name: Merge archives by platform
         shell: bash
         run: |
-          # Create directory for merged wheels
-          mkdir -p merged/dist/deps
-          
-          # Extract all archives and merge unique wheels
-          for zip in platform_archives/*/sift-py-dist-*.zip; do
-            unzip -o "$zip" -d "temp_extract"
-            # Copy all wheels, letting newer ones overwrite older ones
-            cp -r temp_extract/dist/* merged/dist/
-            rm -rf temp_extract
-          done
-          
-          # Create merged archive
-          cd merged
-          zip -r "../sift-py-dist-${{ env.DIST_PLATFORM }}-all-python.zip" dist/
+          # Function to merge archives for a platform
+          merge_platform_archives() {
+            local platform=$1
+            echo "Merging archives for platform: $platform"
+            
+            # Create directory for merged wheels
+            mkdir -p "merged_$platform/dist/deps"
+            
+            # Extract all archives and merge unique wheels
+            for zip in platform_archives/*/sift-py-dist-$platform-py*.zip; do
+              unzip -o "$zip" -d "temp_extract"
+              # Copy all wheels, letting newer ones overwrite older ones
+              cp -r temp_extract/dist/* "merged_$platform/dist/"
+              rm -rf temp_extract
+            done
+            
+            # Create merged archive
+            cd "merged_$platform"
+            zip -r "../sift-py-dist-$platform-all-python.zip" dist/
+            cd ..
+          }
 
-      - name: Upload merged archive
+          # Merge archives for each platform
+          merge_platform_archives "ubuntu-x86_64"
+          merge_platform_archives "ubuntu-aarch64"
+          merge_platform_archives "macos-x86_64"
+          merge_platform_archives "macos-arm64"
+          merge_platform_archives "win_amd64"
+
+      - name: Upload merged archives
         uses: actions/upload-artifact@v4
         with:
-          name: sift-py-dist-${{ env.DIST_PLATFORM }}-all-python
-          path: sift-py-dist-*.zip
+          name: sift-py-dist-all-platforms
+          path: sift-py-dist-*-all-python.zip
           retention-days: 7
