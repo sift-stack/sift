@@ -141,7 +141,13 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          cd dist && zip -r "sift-py-dist-${{ env.DIST_PLATFORM }}-py${{ matrix.python-version }}.zip" *
+          if [ "${{ matrix.config.os }}" = "windows" ]; then
+            # Use PowerShell's Compress-Archive on Windows
+            pwsh -Command "Compress-Archive -Path dist/* -DestinationPath dist/sift-py-dist-${{ env.DIST_PLATFORM }}-py${{ matrix.python-version }}.zip -Force"
+          else
+            # Use zip on Unix-like systems
+            cd dist && zip -r "sift-py-dist-${{ env.DIST_PLATFORM }}-py${{ matrix.python-version }}.zip" *
+          fi
 
       - name: Upload distribution archive
         uses: actions/upload-artifact@v4
