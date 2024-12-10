@@ -141,7 +141,7 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          python -c "import shutil; shutil.make_archive('dist/sift-py-dist-${{ env.DIST_PLATFORM }}-py${{ matrix.python-version }}', 'zip', 'dist')"
+          cd dist && zip -r "sift-py-dist-${{ env.DIST_PLATFORM }}-py${{ matrix.python-version }}.zip" *
 
       - name: Upload distribution archive
         uses: actions/upload-artifact@v4
