@@ -28,11 +28,11 @@ jobs:
         with:
           script: |
             const matrix = [
-              {os: 'ubuntu', arch: 'x86_64', runner: 'ubuntu-latest', platform: 'ubuntu-x86_64'},
-              {os: 'ubuntu', arch: 'aarch64', runner: 'ubuntu-latest', platform: 'ubuntu-aarch64'},
-              {os: 'macos', arch: 'x86_64', runner: 'macos-latest', platform: 'macos-x86_64'},
-              {os: 'macos', arch: 'arm64', runner: 'macos-14', platform: 'macos-arm64'},
-              {os: 'windows', arch: 'amd64', runner: 'windows-latest', platform: 'win_amd64'}
+              {os: 'ubuntu', arch: 'x86_64', runner: 'ubuntu-latest', platform_tag: 'ubuntu-x86_64'},
+              {os: 'ubuntu', arch: 'aarch64', runner: 'ubuntu-latest', platform_tag: 'ubuntu-aarch64'},
+              {os: 'macos', arch: 'x86_64', runner: 'macos-latest', platform_tag: 'macos-x86_64'},
+              {os: 'macos', arch: 'arm64', runner: 'macos-14', platform_tag: 'macos-arm64'},
+              {os: 'windows', arch: 'amd64', runner: 'windows-latest', platform_tag: 'win_amd64'}
             ];
             core.setOutput('matrix', JSON.stringify(matrix));
       - name: debug 
@@ -49,7 +49,7 @@ jobs:
           echo "${{ needs.get-matrix-config.outputs.matrix[0].runner }}" 
 
   build_and_verify:
-    name: Build and verify on ${{ matrix.os }} (${{ matrix.arch }}) with Python ${{ matrix.python-version }}
+    name: Build and verify on ${{ matrix.platform.os }} (${{ matrix.platform.arch }}) with Python ${{ matrix.python-version }}
     needs: get-matrix-config
     runs-on: ${{ matrix.platform.runner }}
     strategy:
@@ -125,7 +125,7 @@ jobs:
           
           # Test base installation
           python -m venv test_venv_base
-          if [ "${{ matrix.os }}" = "windows" ]; then
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then
             source test_venv_base/Scripts/activate
           else
             source test_venv_base/bin/activate
@@ -136,7 +136,7 @@ jobs:
 
           # Test openssl installation
           python -m venv test_venv_openssl
-          if [ "${{ matrix.os }}" = "windows" ]; then
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then
             source test_venv_openssl/Scripts/activate
           else
             source test_venv_openssl/bin/activate
@@ -149,21 +149,21 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "windows" ]; then
-            pwsh -Command "Compress-Archive -Path dist/* -DestinationPath dist/sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform }}.zip -Force"
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then
+            pwsh -Command "Compress-Archive -Path dist/* -DestinationPath dist/sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}.zip -Force"
           else
-            cd dist && zip -r "sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform }}.zip" *
+            cd dist && zip -r "sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}.zip" *
           fi
 
       - name: Upload distribution archive
         uses: actions/upload-artifact@v4
         with:
-          name: sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform }}
+          name: sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}
           path: python/dist/sift-py-dist-*.zip
           retention-days: 7
 
   merge_platform_archives:
-    name: Merge archives for ${{ matrix.os }} (${{ matrix.arch }})
+    name: Merge archives for ${{ matrix.platform.os }} (${{ matrix.platform.arch }})
     needs: [build_and_verify, get-matrix-config]
     runs-on: ubuntu-latest
     strategy:
@@ -172,7 +172,7 @@ jobs:
       - name: Download platform archives
         uses: actions/download-artifact@v4
         with:
-          pattern: sift-py-dist-py*-${{ matrix.platform }}
+          pattern: sift-py-dist-py*-${{ matrix.platform.platform_tag }}
           path: platform_archives
           merge-multiple: false
     
@@ -188,7 +188,7 @@ jobs:
           mkdir -p merged/dist/deps
           
           # Extract and merge all archives for this platform
-          for zip in platform_archives/*/sift-py-dist-py*-${{ matrix.platform }}.zip; do
+          for zip in platform_archives/*/sift-py-dist-py*-${{ matrix.platform.platform_tag }}.zip; do
             echo "Processing archive: $zip"
             
             # Create fresh temp directory
@@ -212,11 +212,11 @@ jobs:
           
           # Create merged archive
           cd merged
-          zip -r "../sift-py-dist-py3-${{ matrix.platform }}.zip" dist/
+          zip -r "../sift-py-dist-py3-${{ matrix.platform.platform_tag }}.zip" dist/
 
       - name: Upload merged archive
         uses: actions/upload-artifact@v4
         with:
-          name: sift-py-dist-py3-${{ matrix.platform }}
+          name: sift-py-dist-py3-${{ matrix.platform.platform_tag }}
           path: sift-py-dist-py3-*.zip
           retention-days: 7
