@@ -19,14 +19,15 @@ jobs:
           echo "versions=$versions" >> $GITHUB_OUTPUT
 
   build_and_verify:
-    name: Build and verify on ${{ matrix.os }} (${{ matrix.arch }}) with Python ${{ matrix.python-version }}
+    name: Build and verify on ${{ matrix.config.os }} (${{ matrix.config.arch }}) with Python ${{ matrix.python-version }}
     needs: get-python-versions
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.config.runner }}
     env:
-      DIST_PLATFORM: ${{ matrix.os == 'windows' && format('win_{0}', matrix.arch) || format('{0}-{1}', matrix.os, matrix.arch) }}
+      DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
     strategy:
+      fail-fast: false  # Continue with other builds even if one fails
       matrix:
-        include:
+        config:
           # Ubuntu builds (x86_64 and aarch64)
           - os: ubuntu
             arch: x86_64
@@ -53,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up QEMU
-        if: matrix.arch == 'aarch64'
+        if: matrix.config.arch == 'aarch64'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -113,7 +114,7 @@ jobs:
           
           # Test base installation
           python -m venv test_venv_base
-          if [ "${{ matrix.os }}" = "windows" ]; then
+          if [ "${{ matrix.config.os }}" = "windows" ]; then
             source test_venv_base/Scripts/activate
           else
             source test_venv_base/bin/activate
@@ -124,7 +125,7 @@ jobs:
 
           # Test openssl installation
           python -m venv test_venv_openssl
-          if [ "${{ matrix.os }}" = "windows" ]; then
+          if [ "${{ matrix.config.os }}" = "windows" ]; then
             source test_venv_openssl/Scripts/activate
           else
             source test_venv_openssl/bin/activate
