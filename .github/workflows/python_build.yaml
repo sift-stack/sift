@@ -22,6 +22,8 @@ jobs:
     name: Build and verify on ${{ matrix.os }} (${{ matrix.arch }}) with Python ${{ matrix.python-version }}
     needs: get-python-versions
     runs-on: ${{ matrix.runner }}
+    env:
+      PIP_PLATFORM: ${{ matrix.os == 'windows' && format('win_{0}', matrix.arch) || format('{0}-{1}', matrix.os, matrix.arch) }}
     strategy:
       matrix:
         include:
@@ -41,12 +43,9 @@ jobs:
             arch: arm64
             runner: macos-14
             
-          # Windows builds (x86 and x64)
+          # Windows builds (x64)
           - os: windows
-            arch: x86
-            runner: windows-latest
-          - os: windows
-            arch: x64
+            arch: amd64
             runner: windows-latest
         python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
 
@@ -55,7 +54,7 @@ jobs:
 
       - name: Set up QEMU
         if: matrix.arch == 'aarch64'
-        uses: docker/setup-qemu-action@v3
+       uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
@@ -79,8 +78,6 @@ jobs:
       - name: Download dependencies
         working-directory: python
         shell: bash
-        env:
-          PIP_PLATFORM: ${{ matrix.os == 'windows' && format('{0}_win32', matrix.arch) || format('{0}-{1}', matrix.os, matrix.arch) }}
         run: |
           mkdir -p dist/deps
           # Try to download all packages, preferring wheels but allowing source if wheels aren't available
@@ -132,11 +129,11 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          python -c "import shutil; shutil.make_archive('dist/sift-py-dist-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}', 'zip', 'dist')"
+          python -c "import shutil; shutil.make_archive('dist/sift-py-dist-${{ env.PIP_PLATFORM }}-py${{ matrix.python-version }}', 'zip', 'dist')"
 
       - name: Upload distribution archive
         uses: actions/upload-artifact@v4
         with:
-          name: sift-py-dist-${{ matrix.os }}-${{ matrix.arch }}-py${{ matrix.python-version }}
+          name: sift-py-dist-${{ env.PIP_PLATFORM }}-py${{ matrix.python-version }}
           path: python/dist/sift-py-dist-*.zip
           retention-days: 7
