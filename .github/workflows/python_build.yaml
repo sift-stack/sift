@@ -163,11 +163,12 @@ jobs:
           retention-days: 7
 
   merge_platform_archives:
-    name: Merge archives for ${{ matrix.platform.os }} (${{ matrix.platform.arch }})
+    name: Merge archives for ${{ matrix.os }} (${{ matrix.arch }})
     needs: [build_and_verify, get-matrix-config]
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.get-matrix-config.outputs.platforms) }}
+      matrix:
+        platform: ${{ fromJson(needs.get-matrix-config.outputs.platforms) }}
     steps:
       - name: Download platform archives
         uses: actions/download-artifact@v4
