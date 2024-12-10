@@ -49,6 +49,8 @@ jobs:
             arch: amd64
             runner: windows-latest
         python-version: ${{fromJson(needs.get-python-versions.outputs.python-versions)}}
+    outputs:
+      platforms: ${{ toJson(matrix.config) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -157,68 +159,42 @@ jobs:
           retention-days: 7
 
   merge_platform_archives:
-    name: Merge platform archives
+    name: Merge archives for ${{ matrix.config.os }} (${{ matrix.config.arch }})
     needs: [build_and_verify]
     runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.build_and_verify.outputs.platforms) }}
+    env:
+      DIST_PLATFORM: ${{ matrix.config.os == 'windows' && format('win_{0}', matrix.config.arch) || format('{0}-{1}', matrix.config.os, matrix.config.arch) }}
     steps:
-      - name: Download all archives
+      - name: Download platform archives
         uses: actions/download-artifact@v4
         with:
-          pattern: sift-py-dist-*-py*
+          pattern: sift-py-dist-${{ env.DIST_PLATFORM }}-py*
           path: platform_archives
           merge-multiple: false
 
-      - name: Merge archives by platform
+      - name: Merge archives
         shell: bash
         run: |
-          # Function to merge archives for a platform
-          merge_platform_archives() {
-            local platform=$1
-            echo "Merging archives for platform: $platform"
-            
-            # Create directory for merged wheels
-            mkdir -p "merged_$platform/dist/deps"
-            
-            # Extract all archives and merge unique wheels
-            for zip in platform_archives/*/sift-py-dist-$platform-py*.zip; do
-              echo "Processing archive: $zip"
-              
-              # Create fresh temp directory
-              rm -rf temp_extract
-              mkdir -p temp_extract
-              
-              # Extract and show contents
-              unzip -o "$zip" -d "temp_extract"
-              echo "Contents of temp_extract:"
-              ls -R temp_extract
-              
-              # Find and copy all files from dist directory
-              find temp_extract -type f -exec cp {} "merged_$platform/dist/" \;
-              
-              # Cleanup
-              rm -rf temp_extract
-            done
-            
-            echo "Contents of merged directory:"
-            ls -R "merged_$platform/dist/"
-            
-            # Create merged archive
-            cd "merged_$platform"
-            zip -r "../sift-py-dist-$platform-all-python.zip" dist/
-            cd ..
-          }
+          # Create directory for merged wheels
+          mkdir -p merged/dist/deps
+          
+          # Extract and merge all archives for this platform
+          for zip in platform_archives/*/sift-py-dist-${{ env.DIST_PLATFORM }}-py*.zip; do
+            echo "Processing archive: $zip"
+            unzip -o "$zip" -d "temp_extract"
+            cp -r temp_extract/dist/* merged/dist/
+            rm -rf temp_extract
+          done
+          
+          # Create merged archive
+          cd merged
+          zip -r "../sift-py-dist-${{ env.DIST_PLATFORM }}-all-python.zip" dist/
 
-          # Merge archives for each platform
-          merge_platform_archives "ubuntu-x86_64"
-          merge_platform_archives "ubuntu-aarch64"
-          merge_platform_archives "macos-x86_64"
-          merge_platform_archives "macos-arm64"
-          merge_platform_archives "win_amd64"
-
-      - name: Upload merged archives
+      - name: Upload merged archive
         uses: actions/upload-artifact@v4
         with:
-          name: sift-py-dist-platform-archives
+          name: sift-py-dist-${{ env.DIST_PLATFORM }}-all-python
           path: sift-py-dist-*-all-python.zip
           retention-days: 7
-          separate-files: true
