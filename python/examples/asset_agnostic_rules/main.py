@@ -55,9 +55,9 @@ if __name__ == "__main__":
                 velocity_rules_src,
             ],
             sub_expressions=[
-                SubExpression("voltage.overvoltage", {"$1": 75}),
-                SubExpression("voltage.undervoltage", {"$1": 30}),
-                SubExpression("velocity.vehicle_not_stopped", {"$2": 10}),
+                SubExpression("overvoltage", {"$1": 75}),
+                SubExpression("undervoltage", {"$1": 30}),
+                SubExpression("vehicle_not_stopped", {"$2": 10}),
             ],
             channel_references_map={
                 "overvoltage": [
