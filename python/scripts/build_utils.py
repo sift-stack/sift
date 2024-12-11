@@ -7,8 +7,9 @@ import venv
 from itertools import combinations
 from pathlib import Path
 from typing import List, Optional
-from wheel.pkginfo import read_pkg_info_bytes
 from zipfile import ZipFile
+
+from wheel.pkginfo import read_pkg_info_bytes
 
 
 def get_extras_from_wheel(wheel_path: str) -> List[str]:
@@ -22,11 +23,10 @@ def get_extras_from_wheel(wheel_path: str) -> List[str]:
     """
     with ZipFile(wheel_path) as wheel:
         for name in wheel.namelist():
-            if name.endswith('.dist-info/METADATA'):
+            if name.endswith(".dist-info/METADATA"):
                 metadata = read_pkg_info_bytes(wheel.read(name))
                 return [
-                    line.split(':')[1].strip()
-                    for line in metadata.get_all('Provides-Extra') or []
+                    line.split(":")[1].strip() for line in metadata.get_all("Provides-Extra") or []
                 ]
     return []
 
@@ -42,16 +42,12 @@ def get_extra_combinations(extras: List[str]) -> List[str]:
     """
     all_combinations = []
     for r in range(len(extras) + 1):
-        all_combinations.extend(','.join(c) for c in combinations(extras, r))
+        all_combinations.extend(",".join(c) for c in combinations(extras, r))
     return all_combinations
 
 
 def test_install(
-    package_name: str,
-    extras: Optional[str],
-    dist_dir: str,
-    venv_dir: str,
-    is_windows: bool
+    package_name: str, extras: Optional[str], dist_dir: str, venv_dir: str, is_windows: bool
 ) -> None:
     """Test package installation with given extras in a fresh venv.
 
@@ -63,10 +59,10 @@ def test_install(
         is_windows: Whether running on Windows platform.
     """
     print(f"Testing installation with extras: {extras or 'none'}")
-    
+
     # Create and activate venv
     venv.create(venv_dir, with_pip=True)
-    
+
     # Build activation command based on OS
     if is_windows:
         activate_script = os.path.join(venv_dir, "Scripts", "activate")
@@ -81,30 +77,34 @@ def test_install(
 
     # Run installation in the venv
     full_cmd = f'source "{activate_script}" && {install_cmd} && deactivate'
-    subprocess.run(full_cmd, shell=True, check=True, executable='/bin/bash')
+    subprocess.run(full_cmd, shell=True, check=True, executable="/bin/bash")
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Test package installation with all extra combinations')
-    parser.add_argument('--dist-dir', required=True, help='Directory containing wheel and dependencies')
-    parser.add_argument('--package-name', required=True, help='Name of the package to install')
-    parser.add_argument('--is-windows', action='store_true', help='Whether running on Windows')
+    parser = argparse.ArgumentParser(
+        description="Test package installation with all extra combinations"
+    )
+    parser.add_argument(
+        "--dist-dir", required=True, help="Directory containing wheel and dependencies"
+    )
+    parser.add_argument("--package-name", required=True, help="Name of the package to install")
+    parser.add_argument("--is-windows", action="store_true", help="Whether running on Windows")
     args = parser.parse_args()
 
     dist_dir = Path(args.dist_dir)
     wheel_file = next(dist_dir.glob(f"{args.package_name.replace('-', '_')}*.whl"))
-    
+
     # Get all extras from the wheel
     extras = get_extras_from_wheel(str(wheel_file))
     combinations = get_extra_combinations(extras)
-    
+
     # Test base installation first
     test_install(
         package_name=args.package_name,
         extras=None,
         dist_dir=str(dist_dir),
-        venv_dir='test_venv_base',
-        is_windows=args.is_windows
+        venv_dir="test_venv_base",
+        is_windows=args.is_windows,
     )
 
     # Test each combination of extras
@@ -115,9 +115,9 @@ def main():
                 extras=combo,
                 dist_dir=str(dist_dir),
                 venv_dir=f'test_venv_{combo.replace(",", "_")}',
-                is_windows=args.is_windows
+                is_windows=args.is_windows,
             )
 
 
-if __name__ == '__main__':
-    main() 
+if __name__ == "__main__":
+    main()
