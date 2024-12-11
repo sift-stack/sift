@@ -1,0 +1,240 @@
+syntax = "proto3";
+
+package sift.calculated_channels.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/calculated_channels/v1/calculated_channels.proto";
+
+
+
+service CalculatedChannelService {
+  // Retrieve the latest version of a calculated channel
+  rpc GetCalculatedChannel(GetCalculatedChannelRequest) returns (GetCalculatedChannelResponse) {
+    option (google.api.http) = {
+      get: "/api/v2/calculated-channels/{calculated_channel_id}"
+      additional_bindings {get: "/v2/organizations/{organization_id}/calculated-channels/{client_key}"}
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetCalculatedChannel",
+      description: "Retrieve the latest version of a calculated channel."
+    };
+  }
+
+  // Create a calculated channel.
+  rpc CreateCalculatedChannel(CreateCalculatedChannelRequest) returns (CreateCalculatedChannelResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/calculated-channels"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateCalculatedChannel",
+      description: "Create a calculated channel."
+    };
+  }
+
+  // Retrieve the latest versions of calculated channels based on an optional filter.
+  rpc ListCalculatedChannels(ListCalculatedChannelsRequest) returns (ListCalculatedChannelsResponse) {
+    option (google.api.http) = {get: "/api/v2/calculated-channels"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListCalculatedChannels",
+      description: "Retrieve the latest versions of calculated channels based on an optional filter."
+    };
+  }
+
+  // Update and create a new version of a calculated channel.
+  rpc UpdateCalculatedChannel(UpdateCalculatedChannelRequest) returns (UpdateCalculatedChannelResponse) {
+    option (google.api.http) = {
+      patch: "/api/v2/calculated-channels"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateCalculatedChannel",
+      description: "Update and create a new version of a calculated channel."
+    };
+  }
+
+  // List versions of a particular calculated channel with an optional filter.
+  rpc ListCalculatedChannelVersions(ListCalculatedChannelVersionsRequest) returns (ListCalculatedChannelVersionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v2/calculated-channels/{calculated_channel_id}/versions"
+      additional_bindings {get: "/v2/organizations/{organization_id}/calculated-channels/{client_key}/versions"}
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListCalculatedChannelVersions",
+      description: "List versions of a particular calculated channel with an optional filter."
+    };
+  }
+}
+
+message CalculatedChannel {
+  string calculated_channel_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
+  optional string client_key = 3 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Timestamp archived_date = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  string version_id = 5 [(google.api.field_behavior) = REQUIRED];
+  uint32 version = 6 [(google.api.field_behavior) = REQUIRED];
+  string name = 7 [(google.api.field_behavior) = REQUIRED];
+  string description = 8 [(google.api.field_behavior) = REQUIRED];
+  string change_message = 9 [(google.api.field_behavior) = REQUIRED];
+  string user_notes = 10 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 11 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 12 [(google.api.field_behavior) = REQUIRED];
+  CalculatedChannelAssetConfiguration asset_configuration = 13 [(google.api.field_behavior) = REQUIRED];
+  CalculatedChannelQueryConfiguration query_configuration = 14 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CalculatedChannelAssetConfiguration {
+  message AssetSelection {
+    repeated string asset_ids = 1;
+    repeated string tag_ids = 2;
+  }
+  oneof asset_scope {
+    bool all_assets = 1;
+    AssetSelection selection = 2;
+  }
+}
+
+message CalculatedChannelQueryConfiguration {
+  // Sift Expression Language
+  message Sel {
+    string expression = 1;
+    repeated sift.calculated_channels.v1.ExpressionChannelReference expression_channel_references = 2;
+  }
+
+  oneof query {
+    Sel sel = 1;
+  }
+}
+
+// The request for a call to `CalculatedChannelService_GetCalculatedChannel` to retrieve the latest version of a calculated channel.
+// If `calculated_channel_id` is provided then all other arguments will be ignored. The argument `calculated_channel_id`
+// should not be used together with `client_key`. The `organization_id` argument is only required
+// if using `client_key` and the user belongs to multiple organizations.
+message GetCalculatedChannelRequest {
+  string calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+  string organization_id = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message GetCalculatedChannelResponse {
+  CalculatedChannel calculated_channel = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateCalculatedChannelRequest {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  string description = 2 [(google.api.field_behavior) = OPTIONAL];
+  string user_notes = 3 [(google.api.field_behavior) = OPTIONAL];
+  optional string client_key = 4 [(google.api.field_behavior) = OPTIONAL];
+  CalculatedChannelAssetConfiguration asset_configuration = 5 [(google.api.field_behavior) = REQUIRED];
+  CalculatedChannelQueryConfiguration query_configuration = 6 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateCalculatedChannelResponse {
+  CalculatedChannel calculated_channel = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `CalculatedChannelService_ListCalculatedChannels` to retrieve lateset vesrions of calculated channels.
+message ListCalculatedChannelsRequest {
+  // The maximum number of calculated channels to return. The service may return fewer than this value.
+  // If unspecified, at most 50 calculated channels will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListCalculatedChannels` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListCalculatedChannels` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, and `description`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // If `true` then archived calculated channels will be included in the query. Defaults to `false`.
+  bool include_archived = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved calculated channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `CalculatedChannelService_ListCalculatedChannelsResponse`.
+message ListCalculatedChannelsResponse {
+  repeated CalculatedChannel calculated_channels = 1;
+  string next_page_token = 2;
+}
+
+// The request for a call to `CalculatedChannelService_UpdateCalculatedChannel` to update a calculated channel. Updating a calculated
+// channel creates a new version of the calculated channel, leaving the previous untouched. If no update is deemed necessary, then the
+// the current version is returned. To archive calculated channel, specify `archived_date` in the `update mask` as well as a non-null
+// value for `archived_date` in the `calculated_channel` object. To unarchive a calculated channel, specify `archived_date` in the
+// `update mask` and a `null` value for `archived_date` in the `calculated_channel` object.
+message UpdateCalculatedChannelRequest {
+  // The calculated channel to update.
+  CalculatedChannel calculated_channel = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to be updated. The fields available to be updated are `name`, `description`,
+  // `query_configuration`, `archived_date`, and `asset_configuration`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Optional user notes to describe changes.
+  optional string user_notes = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `CalculatedChannelService_UpdateCalculatedChannel`.
+message UpdateCalculatedChannelResponse {
+  CalculatedChannel calculated_channel = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `CalculatedChannelService_ListCalculatedChannelVersions` to retrieve versions
+// of a particular calculated channel. If `calculated_channel_id` is provided then `client_key` is ignored.
+message ListCalculatedChannelVersionsRequest {
+  string calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The maximum number of calculated channel versions to return. The service may return fewer than this value.
+  // If unspecified, at most 50 calculated channels will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListCalculatedChannelVersions` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListCalculatedChannelVersions` must match
+  // the call that provided the page token. Optional.
+  string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `calculated_channel_id`, `name`, and `description`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
+  string filter = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved calculated channel versions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `CalculatedChannelService_ListCalculatedChannelVersionsResponse`.
+message ListCalculatedChannelVersionsResponse {
+  repeated CalculatedChannel calculated_channel_versions = 1;
+  string next_page_token = 2;
+}

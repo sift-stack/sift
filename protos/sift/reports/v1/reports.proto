@@ -195,13 +195,13 @@ message ListReportsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, and `run_id`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-  // For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/reports#report). Optional.
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // This field is only required if your user belongs to multiple organizations.
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
 
-  // How to order the retrieved reports. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+  // How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
   // Available fields to order_by are `created_date` and `modified_date`.
   // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)

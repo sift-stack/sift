@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package sift.common.type.v1;
+
+import "google/api/field_behavior.proto";
+
+
+
+// ResourceRef is meant to be embedded as a field in other resources. It's used by one resource to point to another resource.
+// In a request, use the `find_by` field to select a resource to point to.
+// In a response, the fields marked `google.api.field_behavior = OUTPUT_ONLY` will be populated by the backend.
+message ResourceRef {
+  // The global unique id of the resource, e.g. the asset_id, run_id, or report_id.
+  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // If a resource has a client_key associated with it, it will be included.
+  optional string client_key = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The name of the resource.
+  string name = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Use this field to 'construct' a ResourceRef.
+  // You can give just the name, id, or client_key and the backend will find the resource you're referring to.
+  FindResourceBy find_by = 4 [(google.api.field_behavior) = INPUT_ONLY];
+}
+
+message FindResourceBy {
+  oneof identifier {
+    // Find by the resource's global id, e.g. asset_id, run_id, report_id.
+    string id = 1;
+
+    // Find by the resource's client_key, if available.
+    string client_key = 2;
+
+    // Find by the resource's name. If multiple resources are found with the same name, an error will be returned.
+    string name = 3;
+  }
+
+  // When finding by `client_key` or `name`, the `organization_id` should also be specified.
+  // Only required if the user belongs to more than one organization.
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+}
