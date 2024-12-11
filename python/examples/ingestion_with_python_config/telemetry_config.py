@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List, Tuple
 
 from sift_py.ingestion.channel import (
     ChannelBitFieldElement,
@@ -7,7 +8,7 @@ from sift_py.ingestion.channel import (
     ChannelEnumType,
 )
 from sift_py.ingestion.config.telemetry import FlowConfig, TelemetryConfig
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules, load_rule_namespaces
+from sift_py.ingestion.config.yaml.load import load_named_expression_modules
 from sift_py.ingestion.rule.config import (
     RuleActionCreateDataReviewAnnotation,
     RuleConfig,
@@ -17,17 +18,11 @@ EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
 RULE_NAMESPACES_DIR = Path().joinpath("rule_modules")
 
 
-def nostromos_lv_426() -> TelemetryConfig:
+def nostromos_lv_426() -> Tuple[TelemetryConfig, List[RuleConfig]]:
     named_expressions = load_named_expression_modules(
         [
             EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
             EXPRESSION_MODULES_DIR.joinpath("string.yml"),
-        ]
-    )
-
-    rule_namespaces = load_rule_namespaces(
-        [
-            RULE_NAMESPACES_DIR,
         ]
     )
 
@@ -71,131 +66,166 @@ def nostromos_lv_426() -> TelemetryConfig:
         ],
     )
 
+    rules = [
+        RuleConfig(
+            name="overheating",
+            description="Checks for vehicle overheating",
+            expression='$1 == "Accelerating" && $2 > 80',
+            rule_client_key="overheating-rule",
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                # INFO: Can use either "channel_identifier" or "channel_config"
+                {
+                    "channel_reference": "$1",
+                    "channel_identifier": vehicle_state_channel.fqn(),
+                },
+                {
+                    "channel_reference": "$2",
+                    "channel_config": voltage_channel,
+                },
+            ],
+            action=RuleActionCreateDataReviewAnnotation(),
+        ),
+        RuleConfig(
+            name="kinetic_energy",
+            description="Tracks high energy output while in motion",
+            expression=named_expressions["kinetic_energy_gt"],
+            rule_client_key="kinetic-energy-rule",
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                {
+                    "channel_reference": "$1",
+                    "channel_config": voltage_channel,
+                },
+            ],
+            sub_expressions={
+                "$mass": 10,
+                "$threshold": 470,
+            },
+            action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
+                tags=["nostromo"],
+            ),
+        ),
+        RuleConfig(
+            name="failure",
+            description="Checks for failures reported by logs",
+            expression=named_expressions["log_substring_contains"],
+            rule_client_key="failure-rule",
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                {
+                    "channel_reference": "$1",
+                    "channel_config": log_channel,
+                },
+            ],
+            sub_expressions={
+                "$sub_string": "failure",
+            },
+            action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
+                tags=["nostromo", "failure"],
+            ),
+        ),
+        RuleConfig(
+            name="overvoltage",
+            description="Checks for overvoltage while accelerating",
+            expression='$1 == "Accelerating" && $2 > 80',
+            rule_client_key="overvoltage-rule",
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                # INFO: Can use either "channel_identifier" or "channel_config"
+                {
+                    "channel_reference": "$1",
+                    "channel_identifier": vehicle_state_channel.fqn(),
+                },
+                {
+                    "channel_reference": "$2",
+                    "channel_config": voltage_channel,
+                },
+            ],
+            action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
+                tags=["nostromo"],
+            ),
+        ),
+        RuleConfig(
+            name="undervoltage",
+            description="Checks for undervoltage while accelerating",
+            expression='$1 == "Accelerating" && $2 < 40',
+            rule_client_key="undervoltage-rule",
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                # INFO: Can use either "channel_identifier" or "channel_config"
+                {
+                    "channel_reference": "$1",
+                    "channel_identifier": vehicle_state_channel.fqn(),
+                },
+                {
+                    "channel_reference": "$2",
+                    "channel_config": voltage_channel,
+                },
+            ],
+            action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
+                tags=["nostromo"],
+            ),
+        ),
+        RuleConfig(
+            name="vehicle_stuck",
+            description="Triggers if the vehicle velocity is not 0 for 5s after entering accelerating state",
+            expression='$1 == "Accelerating" && persistence($2 == 0, 5)',
+            rule_client_key="vehicle-stuck-rule",
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                # INFO: Can use either "channel_identifier" or "channel_config"
+                {
+                    "channel_reference": "$1",
+                    "channel_identifier": vehicle_state_channel.fqn(),
+                },
+                {
+                    "channel_reference": "$2",
+                    "channel_config": velocity_channel,
+                },
+            ],
+            action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
+                tags=["nostromo"],
+            ),
+        ),
+        RuleConfig(
+            name="vehicle_not_stopped",
+            description="Triggers if the vehicle velocity does not remain 0 while stopped",
+            expression='$1 == "Stopped" && $2 > 0',
+            rule_client_key="vehicle-not-stopped-rule",
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                # INFO: Can use either "channel_identifier" or "channel_config"
+                {
+                    "channel_reference": "$1",
+                    "channel_identifier": vehicle_state_channel.fqn(),
+                },
+                {
+                    "channel_reference": "$2",
+                    "channel_config": velocity_channel,
+                },
+            ],
+            action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
+                tags=["nostromo"],
+            ),
+        ),
+    ]
+
     return TelemetryConfig(
         asset_name="NostromoLV426",
         ingestion_client_key="nostromo_lv_426",
-        rules=[
-            RuleConfig(
-                name="overheating",
-                description="Checks for vehicle overheating",
-                expression='$1 == "Accelerating" && $2 > 80',
-                channel_references=[
-                    # INFO: Can use either "channel_identifier" or "channel_config"
-                    {
-                        "channel_reference": "$1",
-                        "channel_identifier": vehicle_state_channel.fqn(),
-                    },
-                    {
-                        "channel_reference": "$2",
-                        "channel_config": voltage_channel,
-                    },
-                ],
-                action=RuleActionCreateDataReviewAnnotation(),
-            ),
-            RuleConfig(
-                name="kinetic_energy",
-                description="Tracks high energy output while in motion",
-                expression=named_expressions["kinetic_energy_gt"],
-                channel_references=[
-                    {
-                        "channel_reference": "$1",
-                        "channel_config": voltage_channel,
-                    },
-                ],
-                sub_expressions={
-                    "$mass": 10,
-                    "$threshold": 470,
-                },
-                action=RuleActionCreateDataReviewAnnotation(
-                    # User in your organization to notify
-                    # assignee="ellen.ripley@weylandcorp.com",
-                    tags=["nostromo"],
-                ),
-            ),
-            RuleConfig(
-                name="failure",
-                description="Checks for failures reported by logs",
-                expression=named_expressions["log_substring_contains"],
-                channel_references=[
-                    {
-                        "channel_reference": "$1",
-                        "channel_config": log_channel,
-                    },
-                ],
-                sub_expressions={
-                    "$sub_string": "failure",
-                },
-                action=RuleActionCreateDataReviewAnnotation(
-                    # User in your organization to notify
-                    # assignee="ellen.ripley@weylandcorp.com",
-                    tags=["nostromo", "failure"],
-                ),
-            ),
-            RuleConfig(
-                name="overvoltage",
-                namespace="voltage",
-                namespace_rules=rule_namespaces,
-                channel_references=[
-                    # INFO: Can use either "channel_identifier" or "channel_config"
-                    {
-                        "channel_reference": "$1",
-                        "channel_identifier": vehicle_state_channel.fqn(),
-                    },
-                    {
-                        "channel_reference": "$2",
-                        "channel_config": voltage_channel,
-                    },
-                ],
-            ),
-            RuleConfig(
-                name="undervoltage",
-                namespace="voltage",
-                namespace_rules=rule_namespaces,
-                channel_references=[
-                    # INFO: Can use either "channel_identifier" or "channel_config"
-                    {
-                        "channel_reference": "$1",
-                        "channel_identifier": vehicle_state_channel.fqn(),
-                    },
-                    {
-                        "channel_reference": "$2",
-                        "channel_config": voltage_channel,
-                    },
-                ],
-            ),
-            RuleConfig(
-                name="vehicle_stuck",
-                namespace="velocity",
-                namespace_rules=rule_namespaces,
-                channel_references=[
-                    # INFO: Can use either "channel_identifier" or "channel_config"
-                    {
-                        "channel_reference": "$1",
-                        "channel_identifier": vehicle_state_channel.fqn(),
-                    },
-                    {
-                        "channel_reference": "$2",
-                        "channel_config": velocity_channel,
-                    },
-                ],
-            ),
-            RuleConfig(
-                name="vehicle_not_stopped",
-                namespace="velocity",
-                namespace_rules=rule_namespaces,
-                channel_references=[
-                    # INFO: Can use either "channel_identifier" or "channel_config"
-                    {
-                        "channel_reference": "$1",
-                        "channel_identifier": vehicle_state_channel.fqn(),
-                    },
-                    {
-                        "channel_reference": "$2",
-                        "channel_config": velocity_channel,
-                    },
-                ],
-            ),
-        ],
         flows=[
             FlowConfig(
                 name="readings",
@@ -216,4 +246,4 @@ def nostromos_lv_426() -> TelemetryConfig:
             ),
             FlowConfig(name="logs", channels=[log_channel]),
         ],
-    )
+    ), rules

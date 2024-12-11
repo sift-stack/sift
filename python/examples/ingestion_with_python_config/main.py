@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService
+from sift_py.rule.service import RuleService
 from simulator import Simulator
 from telemetry_config import nostromos_lv_426
 
@@ -26,7 +27,7 @@ if __name__ == "__main__":
         raise Exception("Missing 'BASE_URI' environment variable.")
 
     # Load your telemetry config
-    telemetry_config = nostromos_lv_426()
+    telemetry_config, rules = nostromos_lv_426()
 
     # Create a gRPC transport channel configured specifically for the Sift API
     sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
@@ -39,6 +40,9 @@ if __name__ == "__main__":
             overwrite_rules=True,  # Overwrite any rules created in the Sift UI that isn't in the config
             end_stream_on_error=True,  # End stream if errors occur API-side.
         )
+
+        rule_service = RuleService(channel)
+        [rule_service.create_or_update_rule(rule) for rule in rules]
 
         # Create an optional run as part of this ingestion
         current_ts = datetime.now(timezone.utc)
