@@ -28,25 +28,13 @@ jobs:
         with:
           script: |
             const matrix = [
-              {os: 'ubuntu', arch: 'x86_64', runner: 'ubuntu-latest', platform_tag: 'ubuntu-x86_64'},
-              {os: 'ubuntu', arch: 'aarch64', runner: 'ubuntu-latest', platform_tag: 'ubuntu-aarch64'},
-              {os: 'macos', arch: 'x86_64', runner: 'macos-latest', platform_tag: 'macos-x86_64'},
-              {os: 'macos', arch: 'arm64', runner: 'macos-14', platform_tag: 'macos-arm64'},
+              {os: 'ubuntu', arch: 'x86_64', runner: 'ubuntu-latest', platform_tag: 'linux_x86_64'},
+              {os: 'ubuntu', arch: 'aarch64', runner: 'ubuntu-latest', platform_tag: 'linux_aarch64'},
+              {os: 'macos', arch: 'x86_64', runner: 'macos-latest', platform_tag: 'macos_x86_64'},
+              {os: 'macos', arch: 'arm64', runner: 'macos-latest', platform_tag: 'macos_arm64'},
               {os: 'windows', arch: 'amd64', runner: 'windows-latest', platform_tag: 'win_amd64'}
             ];
             core.setOutput('matrix', JSON.stringify(matrix));
-      - name: debug 
-        if: always()
-        run: |
-          echo "${{ steps.set-matrix.outputs.matrix }}"
-      - name: debug 2
-        if: always()
-        run: |
-          echo "${{ fromJson(steps.set-matrix.outputs.matrix)[0].runner }}" 
-      - name: debug 3
-        if: always()
-        run: |  
-          echo "${{ needs.get-matrix-config.outputs.matrix[0].runner }}" 
 
   build_and_verify:
     name: Build and verify on ${{ matrix.platform.os }} (${{ matrix.platform.arch }}) with Python ${{ matrix.python-version }}
@@ -73,10 +61,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install build pip-tools twine
-
-      - name: debug 
-        run: |
-          python -c "import sysconfig;import re;print(re.sub(r'[-.]', '_', sysconfig.get_platform()))"
 
       - name: Generate requirements
         working-directory: python
@@ -163,7 +147,7 @@ jobs:
           retention-days: 7
 
   merge_platform_archives:
-    name: Merge archives for ${{ matrix.os }} (${{ matrix.arch }})
+    name: Merge archives for ${{ matrix.platform.os }} (${{ matrix.platform.arch }})
     needs: [build_and_verify, get-matrix-config]
     runs-on: ubuntu-latest
     strategy:
@@ -177,11 +161,6 @@ jobs:
           path: platform_archives
           merge-multiple: false
     
-      - name: debug 
-        run: |
-          echo "{{ needs.build_and_verify.outputs.matrix-config }}"
-          python -c "import sysconfig;import re;print(re.sub(r'[-.]', '_', sysconfig.get_platform()))"
-
       - name: Merge archives
         shell: bash
         run: |
@@ -213,6 +192,7 @@ jobs:
           
           # Create merged archive
           cd merged
+          rm -rf deps/ # this is now an empty directory
           zip -r "../sift-py-dist-py3-${{ matrix.platform.platform_tag }}.zip" dist/
 
       - name: Upload merged archive
@@ -220,4 +200,4 @@ jobs:
         with:
           name: sift-py-dist-py3-${{ matrix.platform.platform_tag }}
           path: sift-py-dist-py3-*.zip
-          retention-days: 7
+          retention-days: 14
