@@ -1,0 +1,224 @@
+name: Offline Installation Archive
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  # Run ci on workflow_dispatch to ensure we have a clean build.
+  # If using workflow_call, we expect the caller (python_release.yaml) to have already run ci.
+  python-ci:
+    if: github.event_name == 'workflow_dispatch' && !github.event.workflow
+    uses: ./.github/workflows/python_ci.yaml
+
+  get-matrix-config:
+    name: Get matrix configuration
+    runs-on: ubuntu-latest
+    outputs:
+      supported_python_versions: ${{ steps.get-python-versions.outputs.versions }}
+      platforms: ${{ steps.set-matrix.outputs.matrix }}
+      sift_package_version: ${{ steps.get-sift-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get supported Python versions from pyproject.toml
+        id: get-python-versions
+        run: |
+          versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
+          echo "versions=$versions" >> $GITHUB_OUTPUT
+
+      - name: Get sift-stack-py package version from pyproject.toml
+        id: get-sift-version
+        run: |
+          version=$(grep '^version = ' python/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      # We define the platforms here so we can reuse the matrix in multiple jobs
+      # This is a workaround for the fact that we can't use the same matrix in multiple jobs
+      - name: Set platform matrix
+        id: set-matrix
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const matrix = [
+              {os: 'ubuntu', arch: 'x86_64', runner: 'ubuntu-latest', platform_tag: 'linux_x86_64'},
+              {os: 'ubuntu', arch: 'aarch64', runner: 'ubuntu-latest', platform_tag: 'linux_aarch64'},
+              {os: 'macos', arch: 'x86_64', runner: 'macos-latest', platform_tag: 'macos_x86_64'},
+              {os: 'macos', arch: 'arm64', runner: 'macos-latest', platform_tag: 'macos_arm64'},
+              {os: 'windows', arch: 'amd64', runner: 'windows-latest', platform_tag: 'win_amd64'}
+            ];
+            core.setOutput('matrix', JSON.stringify(matrix));
+
+  build_wheel:
+    name: Build sift-stack-py distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8" # Use lowest supported version for maximum compatibility
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build distributions
+        working-directory: python
+        run: |
+          python -m build
+
+      - name: Verify distributions
+        working-directory: python
+        shell: bash
+        run: |
+          # Check all distributions with twine
+          twine check dist/*
+
+          # Verify we have a universal wheel
+          # We want to ensure that the wheel is compatible with all Python versions
+          # and all architectures. If this fails, we will need to update our build strategy to
+          # build separate wheels for each Python version and architecture.
+          WHEEL_NAME=$(ls dist/sift_stack_py*.whl)
+          if [[ ! $WHEEL_NAME =~ "py3-none-any.whl" ]]; then
+            echo "Error: Expected a universal wheel (py3-none-any) but got: $WHEEL_NAME"
+            exit 1
+          fi
+          echo "Verified universal wheel: $WHEEL_NAME"
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: sift-stack-py-dist
+          path: python/dist/*
+          retention-days: 14
+
+  build_and_verify:
+    name: Build offline archive for ${{ matrix.platform.os }} (${{ matrix.platform.arch }}) with Python ${{ matrix.python-version }}
+    needs: [get-matrix-config, build_wheel]
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJson(needs.get-matrix-config.outputs.platforms) }}
+        python-version: ${{fromJson(needs.get-matrix-config.outputs.supported_python_versions)}}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install build tools
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install build pip-tools
+
+      - name: Generate requirements
+        working-directory: python
+        shell: bash
+        run: |
+          # Generate requirements file with all extras
+          pip-compile pyproject.toml --all-extras -o requirements-all.txt
+
+      - name: Build dependency wheels
+        working-directory: python
+        shell: bash
+        run: |
+          # Build wheels for all dependencies directly to dist directory
+          # First build wheels for build dependencies
+          pip wheel -w dist \
+            setuptools wheel Cython \
+            --prefer-binary \
+            --no-deps
+
+          # Then build wheels for package dependencies
+          pip wheel -r requirements-all.txt -w dist \
+            --prefer-binary \
+            --no-deps
+
+      - name: Download sift-stack-py wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: sift-stack-py-dist
+          path: python/dist/
+
+      - name: Test installations
+        working-directory: python
+        shell: bash
+        run: |
+          python scripts/build_utils.py \
+            --dist-dir dist \
+            --package-name sift-stack-py \
+            ${{ matrix.platform.os == 'windows' && '--is-windows' || '' }}
+
+      - name: Create distribution archive
+        working-directory: python
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then
+            pwsh -Command "Compress-Archive -Path dist/* -DestinationPath dist/sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}.zip -Force"
+          else
+            cd dist && zip -r "sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}.zip" *
+          fi
+
+      - name: Upload distribution archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}
+          path: python/dist/sift-py-dist-*.zip
+          retention-days: 14
+
+  merge_platform_archives:
+    name: Merge archives for ${{ matrix.platform.os }} (${{ matrix.platform.arch }})
+    needs: [build_and_verify, get-matrix-config]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.get-matrix-config.outputs.platforms) }}
+    steps:
+      - name: Download platform archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py*-${{ matrix.platform.platform_tag }}
+          path: platform_archives
+          merge-multiple: false
+
+      - name: Merge archives
+        shell: bash
+        run: |
+          # Create directory for merged files
+          mkdir -p merged
+
+          # Extract and merge all archives for this platform
+          for zip in platform_archives/*/sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py*-${{ matrix.platform.platform_tag }}.zip; do
+            echo "Processing archive: $zip"
+            unzip -o "$zip" -d "merged"
+            echo "Contents after extracting $zip:"
+            ls -R merged
+          done
+
+          # Create base name for archives
+          ARCHIVE_BASE="sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py3-${{ matrix.platform.platform_tag }}"
+
+          # Create zip archive
+          cd merged
+          zip -r "../${ARCHIVE_BASE}.zip" *
+
+          # Create tar.gz archive
+          tar -czf "../${ARCHIVE_BASE}.tar.gz" *
+          cd ..
+
+      - name: Upload merged archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py3-${{ matrix.platform.platform_tag }}
+          path: |
+            sift-py-dist-*.zip
+            sift-py-dist-*.tar.gz
+          retention-days: 14

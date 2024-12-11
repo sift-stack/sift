@@ -8,39 +8,83 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags')
     uses: ./.github/workflows/python_ci.yaml
 
+  build-offline-archives:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags')
+    needs: python-ci
+    uses: ./.github/workflows/python_build.yaml
+
   publish-to-pypi:
     name: Upload release to PyPI
-    needs: python-ci
+    needs: [python-ci, build-offline-archives]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
     environment:
       name: pypi
       url: https://pypi.org/p/sift_py
     permissions:
       id-token: write  
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Download distributions
+        uses: actions/download-artifact@v4
         with:
-          python-version: "3.8"
-
-      - name: Pip install
-        run: |
-          python -m pip install --upgrade pip
-          pip install '.[build]'
-          pip install .
-
-      - name: Build distributions
-        working-directory: python
-        run: |
-          python -m build
+          name: sift-stack-py-dist
+          path: python/dist/
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: ./python/dist/
+          packages-dir: python/dist/
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [build-offline-archives]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: sift-stack-py-dist
+          path: python/dist/
+
+      - name: Download all platform archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sift-py-dist-*-py3-*
+          path: platform_archives
+          merge-multiple: false
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          # Create release notes
+          cat > release_notes.md << 'EOL'
+          See [CHANGELOG.md](https://github.com/sift-stack/sift/blob/main/python/CHANGELOG.md) for details.
+
+          Offline archives are available for download for multiple platforms. Offline archives include wheels for all dependencies including build extras, e.g. openssl, development, and build.
+
+          Use `pip install sift-stack-py --find-links={path/to/archive} --no-index` to install.
+          EOL
+
+          # Create the release
+          gh release create "$TAG_NAME" \
+            --title "sift-stack-py $TAG_NAME" \
+            --notes-file release_notes.md
+
+          # Upload Python package distributions
+          for dist in python/dist/*; do
+            echo "Uploading distribution: $dist"
+            gh release upload "$TAG_NAME" "$dist" --clobber
+          done
+
+          # Upload platform archives (both .zip and .tar.gz)
+          for archive in platform_archives/*/sift-py-dist-*-py3-*.{zip,tar.gz}; do
+            echo "Uploading archive: $archive"
+            gh release upload "$TAG_NAME" "$archive" --clobber
+          done
+          
