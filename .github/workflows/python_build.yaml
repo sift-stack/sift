@@ -78,19 +78,19 @@ jobs:
           # so we need to build it from source which was causing issues on windows
           pip-compile pyproject.toml --extra=openssl -o requirements-all.txt
 
-      - name: Download dependencies
+      - name: Build dependency wheels
         working-directory: python
         shell: bash
         run: |
-          # Download all dependencies directly to dist directory
-          # First download build dependencies
-          pip download -d dist \
+          # Build wheels for all dependencies directly to dist directory
+          # First build wheels for build dependencies
+          pip wheel -w dist \
             setuptools wheel Cython \
             --prefer-binary \
             --no-deps
 
-          # Then download package dependencies
-          pip download -r requirements-all.txt -d dist \
+          # Then build wheels for package dependencies
+          pip wheel -r requirements-all.txt -w dist \
             --python-version ${{ matrix.python-version }} \
             --prefer-binary \
             --no-deps
