@@ -82,8 +82,8 @@ jobs:
             gh release upload "$TAG_NAME" "$dist" --clobber
           done
 
-          # Upload platform archives
-          for archive in platform_archives/*/sift-py-dist-*-py3-*.zip; do
+          # Upload platform archives (both .zip and .tar.gz)
+          for archive in platform_archives/*/sift-py-dist-*-py3-*.{zip,tar.gz}; do
             echo "Uploading archive: $archive"
             gh release upload "$TAG_NAME" "$archive" --clobber
           done

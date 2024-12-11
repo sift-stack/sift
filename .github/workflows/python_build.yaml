@@ -5,6 +5,12 @@ on:
   workflow_call:
 
 jobs:
+  # Run ci on workflow_dispatch to ensure we have a clean build.
+  # If using workflow_call, we expect the caller (python_release.yaml) to have already run ci.
+  python-ci:
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/python_ci.yaml
+
   get-matrix-config:
     name: Get matrix configuration
     runs-on: ubuntu-latest
@@ -14,7 +20,7 @@ jobs:
       sift_package_version: ${{ steps.get-sift-version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Get supported Python versions from pyproject.toml
         id: get-python-versions
         run: |
@@ -52,7 +58,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.8"  # Use lowest supported version for maximum compatibility
+          python-version: "3.8" # Use lowest supported version for maximum compatibility
 
       - name: Install build tools
         run: |
@@ -182,30 +188,37 @@ jobs:
           pattern: sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py*-${{ matrix.platform.platform_tag }}
           path: platform_archives
           merge-multiple: false
-    
+
       - name: Merge archives
         shell: bash
         run: |
           # Create directory for merged files
           mkdir -p merged
-          
+
           # Extract and merge all archives for this platform
           for zip in platform_archives/*/sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py*-${{ matrix.platform.platform_tag }}.zip; do
             echo "Processing archive: $zip"
-            
-            # Extract directly to merged directory
             unzip -o "$zip" -d "merged"
             echo "Contents after extracting $zip:"
             ls -R merged
           done
-          
-          # Create merged archive
-          cd merged
-          zip -r "../sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py3-${{ matrix.platform.platform_tag }}.zip" *
 
-      - name: Upload merged archive
+          # Create base name for archives
+          ARCHIVE_BASE="sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py3-${{ matrix.platform.platform_tag }}"
+
+          # Create zip archive
+          cd merged
+          zip -r "../${ARCHIVE_BASE}.zip" *
+
+          # Create tar.gz archive
+          tar -czf "../${ARCHIVE_BASE}.tar.gz" *
+          cd ..
+
+      - name: Upload merged archives
         uses: actions/upload-artifact@v4
         with:
           name: sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py3-${{ matrix.platform.platform_tag }}
-          path: sift-py-dist-*.zip
+          path: |
+            sift-py-dist-*.zip
+            sift-py-dist-*.tar.gz
           retention-days: 14
