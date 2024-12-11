@@ -66,21 +66,22 @@ def test_install(
     # Create and activate venv
     venv.create(venv_dir, with_pip=True)
 
-    # Build activation command based on OS
-    if is_windows:
-        activate_script = os.path.join(venv_dir, "Scripts", "activate")
-    else:
-        activate_script = os.path.join(venv_dir, "bin", "activate")
-
     # Build installation command
     if extras:
         install_cmd = f'pip install --no-index --find-links="{dist_dir}" "{package_name}[{extras}]"'
     else:
         install_cmd = f'pip install --no-index --find-links="{dist_dir}" {package_name}'
 
-    # Run installation in the venv
-    full_cmd = f'source "{activate_script}" && {install_cmd} && deactivate'
-    subprocess.run(full_cmd, shell=True, check=True, executable="/bin/bash")
+    if is_windows:
+        # Windows uses different activation and command syntax
+        activate_script = os.path.join(venv_dir, "Scripts", "activate.bat")
+        full_cmd = f'"{activate_script}" && {install_cmd} && deactivate'
+        subprocess.run(full_cmd, shell=True, check=True)
+    else:
+        # Unix systems use bash
+        activate_script = os.path.join(venv_dir, "bin", "activate")
+        full_cmd = f'source "{activate_script}" && {install_cmd} && deactivate'
+        subprocess.run(full_cmd, shell=True, check=True, executable="/bin/bash")
 
 
 def main():
