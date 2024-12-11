@@ -43,17 +43,61 @@ jobs:
             ];
             core.setOutput('matrix', JSON.stringify(matrix));
 
+  build_wheel:
+    name: Build sift-stack-py distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"  # Use lowest supported version for maximum compatibility
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build distributions
+        working-directory: python
+        run: |
+          python -m build
+
+      - name: Verify distributions
+        working-directory: python
+        shell: bash
+        run: |
+          # Check all distributions with twine
+          twine check dist/*
+
+          # Verify we have a universal wheel
+          # We want to ensure that the wheel is compatible with all Python versions
+          # and all architectures. If this fails, we will need to update our build strategy to
+          # build separate wheels for each Python version and architecture.
+          WHEEL_NAME=$(ls dist/sift_stack_py*.whl)
+          if [[ ! $WHEEL_NAME =~ "py3-none-any.whl" ]]; then
+            echo "Error: Expected a universal wheel (py3-none-any) but got: $WHEEL_NAME"
+            exit 1
+          fi
+          echo "Verified universal wheel: $WHEEL_NAME"
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: sift-stack-py-dist
+          path: python/dist/*
+          retention-days: 14
+
   build_and_verify:
-    name: Build and verify on ${{ matrix.platform.os }} (${{ matrix.platform.arch }}) with Python ${{ matrix.python-version }}
-    needs: get-matrix-config
+    name: Build offline archive for ${{ matrix.platform.os }} (${{ matrix.platform.arch }}) with Python ${{ matrix.python-version }}
+    needs: [get-matrix-config, build_wheel]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.get-matrix-config.outputs.platforms) }}
         python-version: ${{fromJson(needs.get-matrix-config.outputs.supported_python_versions)}}
-    outputs:
-      matrix-config: ${{ toJson(matrix) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -92,53 +136,21 @@ jobs:
             --prefer-binary \
             --no-deps
 
-      - name: Build sift-py wheel
-        working-directory: python
-        shell: bash
-        run: |
-          python -m build --wheel
-
-      - name: Verify wheel
-        working-directory: python
-        shell: bash
-        run: |
-          twine check dist/sift_stack_py*.whl
+      - name: Download sift-stack-py wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: sift-stack-py-wheel
+          path: python/dist/
 
       - name: Test installations
         working-directory: python
         shell: bash
         run: |
-          # Get the wheel file name
-          WHEEL_FILE=$(ls dist/sift_stack_py*.whl)
-          
-          # Function to test installation with specific extras
-          test_install() {
-            local extras=$1
-            echo "Testing installation with extras: ${extras:-none}"
-            python -m venv "test_venv_${extras:-base}"
-            if [ "${{ matrix.platform.os }}" = "windows" ]; then
-              source "test_venv_${extras:-base}/Scripts/activate"
-            else
-              source "test_venv_${extras:-base}/bin/activate"
-            fi
-            if [ -z "$extras" ]; then
-              pip install --no-index --find-links=dist/ "$WHEEL_FILE"
-            else
-              pip install --no-index --find-links=dist/ "$WHEEL_FILE[$extras]"
-            fi
-            deactivate
-            rm -rf "test_venv_${extras:-base}"
-          }
-          
-          # Test each combination
-          test_install ""  # base installation
-          test_install "openssl"
-          test_install "build"
-          test_install "development"
-          test_install "openssl,build"
-          test_install "openssl,development"
-          test_install "build,development"
-          test_install "openssl,build,development"
+          pip install wheel
+          python scripts/build_utils.py \
+            --dist-dir dist \
+            --package-name sift-stack-py \
+            --is-windows ${{ matrix.platform.os == 'windows' }}
 
       - name: Create distribution archive
         working-directory: python

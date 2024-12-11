@@ -17,38 +17,22 @@ jobs:
     name: Upload release to PyPI
     needs: [python-ci, build-offline-archives]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
     environment:
       name: pypi
       url: https://pypi.org/p/sift_py
     permissions:
       id-token: write  
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Download distributions
+        uses: actions/download-artifact@v4
         with:
-          python-version: "3.8"
-
-      - name: Pip install
-        run: |
-          python -m pip install --upgrade pip
-          pip install '.[build]'
-          pip install .
-
-      - name: Build distributions
-        working-directory: python
-        run: |
-          python -m build
+          name: sift-stack-py-dist
+          path: python/dist/
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: ./python/dist/
+          packages-dir: python/dist/
 
   create-github-release:
     name: Create GitHub Release
@@ -59,6 +43,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: sift-stack-py-dist
+          path: python/dist/
 
       - name: Download all platform archives
         uses: actions/download-artifact@v4
@@ -86,10 +76,15 @@ jobs:
             --title "sift-stack-py $TAG_NAME" \
             --notes-file release_notes.md
 
-          # Upload each platform archive
+          # Upload Python package distributions
+          for dist in python/dist/*; do
+            echo "Uploading distribution: $dist"
+            gh release upload "$TAG_NAME" "$dist" --clobber
+          done
+
+          # Upload platform archives
           for archive in platform_archives/*/sift-py-dist-*-py3-*.zip; do
-            echo "Uploading $archive to release $TAG_NAME"
-            gh release upload "$TAG_NAME" "$archive" \
-              --clobber
+            echo "Uploading archive: $archive"
+            gh release upload "$TAG_NAME" "$archive" --clobber
           done
           
