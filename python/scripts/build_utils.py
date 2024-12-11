@@ -22,16 +22,15 @@ def get_extras_from_wheel(wheel_path: str) -> List[str]:
     with ZipFile(wheel_path) as wheel:
         # Find the METADATA file in the .dist-info directory
         metadata_file = next(
-            name for name in wheel.namelist() 
-            if name.endswith('.dist-info/METADATA')
+            name for name in wheel.namelist() if name.endswith(".dist-info/METADATA")
         )
-        metadata = wheel.read(metadata_file).decode('utf-8')
-        
+        metadata = wheel.read(metadata_file).decode("utf-8")
+
         # Parse Provides-Extra lines from metadata
         extras = []
         for line in metadata.splitlines():
-            if line.startswith('Provides-Extra:'):
-                extras.append(line.split(':', 1)[1].strip())
+            if line.startswith("Provides-Extra:"):
+                extras.append(line.split(":", 1)[1].strip())
         return extras
 
 
