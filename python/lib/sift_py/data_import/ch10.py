@@ -71,7 +71,7 @@ class BaseCh10File:
 class Ch10UploadService(CsvUploadService):
     """Service to upload ch10 files."""
 
-    def upload_ch10(
+    def upload(  # type: ignore
         self,
         ch10_file: BaseCh10File,
         asset_name: str,
