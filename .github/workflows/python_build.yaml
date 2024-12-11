@@ -105,14 +105,14 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          twine check dist/sift-stack-py*.whl
+          twine check dist/sift_stack_py*.whl
 
       - name: Test installations
         working-directory: python
         shell: bash
         run: |
           # Get the wheel file name
-          WHEEL_FILE=$(ls dist/sift-stack-py*.whl)
+          WHEEL_FILE=$(ls dist/sift_stack_py*.whl)
           
           # Test base installation
           python -m venv test_venv_base
