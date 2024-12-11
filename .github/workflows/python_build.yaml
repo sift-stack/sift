@@ -73,10 +73,8 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          # Generate requirements file with only openssl extras
-          # npTDMS doesn't have wheels for all platforms, 
-          # so we need to build it from source which was causing issues on windows
-          pip-compile pyproject.toml --extra=openssl -o requirements-all.txt
+          # Generate requirements file with all extras
+          pip-compile pyproject.toml --all-extras -o requirements-all.txt
 
       - name: Build dependency wheels
         working-directory: python
@@ -113,27 +111,34 @@ jobs:
           # Get the wheel file name
           WHEEL_FILE=$(ls dist/sift_stack_py*.whl)
           
-          # Test base installation
-          python -m venv test_venv_base
-          if [ "${{ matrix.platform.os }}" = "windows" ]; then
-            source test_venv_base/Scripts/activate
-          else
-            source test_venv_base/bin/activate
-          fi
-          pip install --no-index --find-links=dist/ "$WHEEL_FILE"
-          deactivate
-          rm -rf test_venv_base
-
-          # Test openssl installation
-          python -m venv test_venv_openssl
-          if [ "${{ matrix.platform.os }}" = "windows" ]; then
-            source test_venv_openssl/Scripts/activate
-          else
-            source test_venv_openssl/bin/activate
-          fi
-          pip install --no-index --find-links=dist/ "$WHEEL_FILE[openssl]"
-          deactivate
-          rm -rf test_venv_openssl
+          # Function to test installation with specific extras
+          test_install() {
+            local extras=$1
+            echo "Testing installation with extras: ${extras:-none}"
+            python -m venv "test_venv_${extras:-base}"
+            if [ "${{ matrix.platform.os }}" = "windows" ]; then
+              source "test_venv_${extras:-base}/Scripts/activate"
+            else
+              source "test_venv_${extras:-base}/bin/activate"
+            fi
+            if [ -z "$extras" ]; then
+              pip install --no-index --find-links=dist/ "$WHEEL_FILE"
+            else
+              pip install --no-index --find-links=dist/ "$WHEEL_FILE[$extras]"
+            fi
+            deactivate
+            rm -rf "test_venv_${extras:-base}"
+          }
+          
+          # Test each combination
+          test_install ""  # base installation
+          test_install "openssl"
+          test_install "build"
+          test_install "development"
+          test_install "openssl,build"
+          test_install "openssl,development"
+          test_install "build,development"
+          test_install "openssl,build,development"
 
       - name: Create distribution archive
         working-directory: python
