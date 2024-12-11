@@ -149,7 +149,7 @@ jobs:
           python scripts/build_utils.py \
             --dist-dir dist \
             --package-name sift-stack-py \
-            --is-windows ${{ matrix.platform.os == 'windows' }}
+            ${{ matrix.platform.os == 'windows' && '--is-windows' || '' }}
 
       - name: Create distribution archive
         working-directory: python
