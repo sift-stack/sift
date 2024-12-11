@@ -9,8 +9,6 @@ from pathlib import Path
 from typing import List, Optional
 from zipfile import ZipFile
 
-from wheel.pkginfo import read_pkg_info_bytes
-
 
 def get_extras_from_wheel(wheel_path: str) -> List[str]:
     """Extract the list of extras from a wheel's metadata.
@@ -22,13 +20,19 @@ def get_extras_from_wheel(wheel_path: str) -> List[str]:
         List of extra names declared in the wheel metadata.
     """
     with ZipFile(wheel_path) as wheel:
-        for name in wheel.namelist():
-            if name.endswith(".dist-info/METADATA"):
-                metadata = read_pkg_info_bytes(wheel.read(name))
-                return [
-                    line.split(":")[1].strip() for line in metadata.get_all("Provides-Extra") or []
-                ]
-    return []
+        # Find the METADATA file in the .dist-info directory
+        metadata_file = next(
+            name for name in wheel.namelist() 
+            if name.endswith('.dist-info/METADATA')
+        )
+        metadata = wheel.read(metadata_file).decode('utf-8')
+        
+        # Parse Provides-Extra lines from metadata
+        extras = []
+        for line in metadata.splitlines():
+            if line.startswith('Provides-Extra:'):
+                extras.append(line.split(':', 1)[1].strip())
+        return extras
 
 
 def get_extra_combinations(extras: List[str]) -> List[str]:

@@ -146,7 +146,6 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          pip install wheel
           python scripts/build_utils.py \
             --dist-dir dist \
             --package-name sift-stack-py \
