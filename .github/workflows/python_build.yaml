@@ -51,7 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.get-matrix-config.outputs.platforms) }}
-        python-version: ${{fromJson(needs.get-matrix-config.outputs.python-versions)}}
+        python-version: ${{fromJson(needs.get-matrix-config.outputs.supported_python_versions)}}
     outputs:
       matrix-config: ${{ toJson(matrix) }}
 
