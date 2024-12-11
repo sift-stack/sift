@@ -6,7 +6,6 @@ rules:
     description: Triggers if the vehicle velocity is not 0 for 5s after entering accelerating state
     expression: $1 == "Accelerating" && persistence($2 == 0, 5)
     type: review
-    assignee: benjamin@siftstack.com
     asset_names:
       - NostromoLV2024
 
@@ -15,6 +14,5 @@ rules:
     description: Triggers if the vehicle velocity does not remain 0 while stopped
     expression: $1 == "Stopped" && $2 > 0
     type: review
-    assignee: benjamin@siftstack.com
     asset_names:
       - NostromoLV2024
