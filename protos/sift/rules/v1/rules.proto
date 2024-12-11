@@ -14,6 +14,7 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/annotations/v1/annotations.proto";
+import "sift/common/type/v1/resource_identifier.proto";
 
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -110,6 +111,42 @@ service RuleService {
     };
   }
 
+  // Deletes multiple rules
+  rpc BatchDeleteRules(BatchDeleteRulesRequest) returns (BatchDeleteRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/batchDelete"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchDeleteRules"
+      description: "Deletes multiple rules."
+    };
+  }
+
+  // Undeletes a rule
+  rpc UndeleteRule(UndeleteRuleRequest) returns (UndeleteRuleResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/undelete"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UndeleteRule"
+      description: "Undeletes a rule."
+    };
+  }
+
+  // Undeletes multiple rules
+  rpc BatchUndeleteRules(BatchUndeleteRulesRequest) returns (BatchUndeleteRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/batchUndelete"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchUndeleteRules"
+      description: "Undeletes multiple rules."
+    };
+  }
+
   // Deprecated - use RuleEvaluationService instead.
   rpc EvaluateRules(EvaluateRulesRequest) returns (EvaluateRulesResponse) {
     option deprecated = true;
@@ -133,8 +170,9 @@ service RuleService {
     };
   }
 
-  // Retrieve a JSON object containing all of the rules for a given asset.
+  // Deprecated - use BatchGetRules instead. Retrieve a JSON object containing all of the rules for a given asset.
   rpc ViewJsonRules(ViewJsonRulesRequest) returns (ViewJsonRulesResponse) {
+    option deprecated = true;
     option (google.api.http) = {get: "/api/v1/rules:viewJson"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "ViewJsonRules"
@@ -142,7 +180,7 @@ service RuleService {
     };
   }
 
-  // Deprecated - use UpdateJsonRules instead. Batch update rules given the `rules_json` which is a JSON list of rules.
+  // Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules.
   rpc UpdateHumanFriendlyRules(UpdateHumanFriendlyRulesRequest) returns (UpdateHumanFriendlyRulesResponse) {
     option deprecated = true;
     option (google.api.http) = {
@@ -155,8 +193,9 @@ service RuleService {
     };
   }
 
-  // Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation.
+  // Deprecated - use BatchUpdateRules with validate_only flag instead. Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation.
   rpc ValidateJsonRules(ValidateJsonRulesRequest) returns (ValidateJsonRulesResponse) {
+    option deprecated = true;
     option (google.api.http) = {
       post: "/api/v1/rules:validateJson"
       body: "*"
@@ -167,8 +206,9 @@ service RuleService {
     };
   }
 
-  // Batch update rules given the `rules_json` which is a JSON list of rules.
+  // Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules.
   rpc UpdateJsonRules(UpdateJsonRulesRequest) returns (UpdateJsonRulesResponse) {
+    option deprecated = true;
     option (google.api.http) = {
       post: "/api/v1/rules:updateJson"
       body: "*"
@@ -234,6 +274,7 @@ message Rule {
 
   RuleAssetConfiguration asset_configuration = 15 [(google.api.field_behavior) = REQUIRED];
   ContextualChannels contextual_channels = 16 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp deleted_date = 17 [(google.api.field_behavior) = OPTIONAL];
 }
 message RuleCondition {
   // 4 is reserved from old "status" column that lived directly on rule condition
@@ -269,6 +310,14 @@ message ContextualChannels {
   repeated ChannelReference channels = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+message AssetExpressionValidationResult {
+  string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string asset_name = 2 [(google.api.field_behavior) = REQUIRED];
+  // asset_tag_id is the tag_id that caused this asset to be included in the rule
+  string asset_tag_id = 3 [(google.api.field_behavior) = OPTIONAL];
+  optional string error = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
 message SearchRulesRequest {
   // Max number of rules to return (returns all if omitted).
   optional uint32 limit = 1;
@@ -282,8 +331,11 @@ message SearchRulesRequest {
   optional string order_by = 7;
   // If provided, only returns rules with the given ids
   repeated string rule_ids = 8;
-  // If provided, only returns rules with the given asset ids
+  // If provided, only returns rules that apply to the given asset ids
   repeated string asset_ids = 9;
+  bool include_deleted = 10;
+  // If provided, returns rules with assets that have the given tags
+  sift.common.type.v1.NamedResources asset_tags = 11;
 }
 enum SearchOrder {
   SEARCH_ORDER_UNSPECIFIED = 0 [deprecated = true];
@@ -336,6 +388,7 @@ message UpdateRuleRequest {
   repeated UpdateConditionRequest conditions = 6 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 7;
   string version_notes = 8;
+  // client_key is a client provided identifier for the rule. It is immutable after being set
   optional string client_key = 9;
   RuleAssetConfiguration asset_configuration = 10;
   ContextualChannels contextual_channels = 11;
@@ -360,14 +413,45 @@ enum ActionKind {
 message UpdateRuleResponse {
   string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
+
+message ValidationResult {
+  string rule_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // If the expression is invalid for an asset, one or more AssetExpressionValidationResult will be returned. This may block
+  // saving if the override_expression_validation flag is not set.
+  repeated AssetExpressionValidationResult asset_expression_validation_results = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // If the rule is invalid and unable to be saved, this will contain the error message. Expression errors will be returned in
+  // the asset_expression_validation_results.
+  optional string error = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
 message BatchUpdateRulesRequest {
   // rules are limited 1000 rules at a time
   repeated UpdateRuleRequest rules = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // If validate_only is true, the request will only validate the request and not save the rules.
+  bool validate_only = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // If override_expression_validation is true, the request will save the rules even if the expressions are invalid. This
+  // can be useful for multi-asset rules where an invalid expression for one asset should not prevent the rule from being saved.
+  bool override_expression_validation = 3 [(google.api.field_behavior) = REQUIRED];
 }
 message BatchUpdateRulesResponse {
   bool success = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The total number of rules created in the request. If validate_only is true, this will indicate how many rules would have been created.
   int32 rules_created_count = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // The total number of rules updated in the request. If validate_only is true, this will indicate how many rules would have been updated.
   int32 rules_updated_count = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // This will be true if the request only validated the request and did not save the rules.
+  bool validate_only = 4 [(google.api.field_behavior) = REQUIRED];
+
+  // One ValidationResult per rule in the request will be returned
+  repeated ValidationResult validation_results = 5 [(google.api.field_behavior) = REQUIRED];
 }
 
 // DeleteRuleRequest is used to delete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
@@ -376,6 +460,27 @@ message DeleteRuleRequest {
   string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 message DeleteRuleResponse {}
+
+// BatchDeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used.
+message BatchDeleteRulesRequest {
+  repeated string rule_ids = 1 [(google.api.field_behavior) = OPTIONAL];
+  repeated string client_keys = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+message BatchDeleteRulesResponse {}
+
+// UndeleteRuleRequest is used to undelete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
+message UndeleteRuleRequest {
+  string rule_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+message UndeleteRuleResponse {}
+
+// BatchUndeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used.
+message BatchUndeleteRulesRequest {
+  repeated string rule_ids = 1 [(google.api.field_behavior) = OPTIONAL];
+  repeated string client_keys = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+message BatchUndeleteRulesResponse {}
 
 // Deprecated - use ViewJsonRulesRequest.
 message ViewHumanFriendlyRulesRequest {
