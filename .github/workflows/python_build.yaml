@@ -9,16 +9,23 @@ jobs:
     name: Get matrix configuration
     runs-on: ubuntu-latest
     outputs:
-      python-versions: ${{ steps.get-versions.outputs.versions }}
+      supported_python_versions: ${{ steps.get-python-versions.outputs.versions }}
       platforms: ${{ steps.set-matrix.outputs.matrix }}
+      sift_package_version: ${{ steps.get-sift-version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       
-      - name: Get Python versions from pyproject.toml
-        id: get-versions
+      - name: Get supported Python versions from pyproject.toml
+        id: get-python-versions
         run: |
           versions=$(grep "Programming Language :: Python :: " python/pyproject.toml | sed 's/.*Python :: \([0-9.]*\).*/\1/' | jq -R -s -c 'split("\n")[:-1]')
           echo "versions=$versions" >> $GITHUB_OUTPUT
+
+      - name: Get sift-stack-py package version from pyproject.toml
+        id: get-sift-version
+        run: |
+          version=$(grep '^version = ' python/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       # We define the platforms here so we can reuse the matrix in multiple jobs
       # This is a workaround for the fact that we can't use the same matrix in multiple jobs
@@ -75,15 +82,15 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          mkdir -p dist/deps
+          # Download all dependencies directly to dist directory
           # First download build dependencies
-          pip download -d dist/deps \
+          pip download -d dist \
             setuptools wheel Cython \
             --prefer-binary \
             --no-deps
 
           # Then download package dependencies
-          pip download -r requirements-all.txt -d dist/deps \
+          pip download -r requirements-all.txt -d dist \
             --python-version ${{ matrix.python-version }} \
             --prefer-binary \
             --no-deps
@@ -98,14 +105,14 @@ jobs:
         working-directory: python
         shell: bash
         run: |
-          twine check dist/*.whl
+          twine check dist/sift-stack-py*.whl
 
       - name: Test installations
         working-directory: python
         shell: bash
         run: |
           # Get the wheel file name
-          WHEEL_FILE=$(ls dist/*.whl)
+          WHEEL_FILE=$(ls dist/sift-stack-py*.whl)
           
           # Test base installation
           python -m venv test_venv_base
@@ -114,7 +121,7 @@ jobs:
           else
             source test_venv_base/bin/activate
           fi
-          pip install --no-index --find-links=dist/deps "$WHEEL_FILE"
+          pip install --no-index --find-links=dist/ "$WHEEL_FILE"
           deactivate
           rm -rf test_venv_base
 
@@ -125,7 +132,7 @@ jobs:
           else
             source test_venv_openssl/bin/activate
           fi
-          pip install --no-index --find-links=dist/deps "$WHEEL_FILE[openssl]"
+          pip install --no-index --find-links=dist/ "$WHEEL_FILE[openssl]"
           deactivate
           rm -rf test_venv_openssl
 
@@ -134,17 +141,17 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.platform.os }}" = "windows" ]; then
-            pwsh -Command "Compress-Archive -Path dist/* -DestinationPath dist/sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}.zip -Force"
+            pwsh -Command "Compress-Archive -Path dist/* -DestinationPath dist/sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}.zip -Force"
           else
-            cd dist && zip -r "sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}.zip" *
+            cd dist && zip -r "sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}.zip" *
           fi
 
       - name: Upload distribution archive
         uses: actions/upload-artifact@v4
         with:
-          name: sift-py-dist-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}
+          name: sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py${{ matrix.python-version }}-${{ matrix.platform.platform_tag }}
           path: python/dist/sift-py-dist-*.zip
-          retention-days: 7
+          retention-days: 14
 
   merge_platform_archives:
     name: Merge archives for ${{ matrix.platform.os }} (${{ matrix.platform.arch }})
@@ -157,47 +164,33 @@ jobs:
       - name: Download platform archives
         uses: actions/download-artifact@v4
         with:
-          pattern: sift-py-dist-py*-${{ matrix.platform.platform_tag }}
+          pattern: sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py*-${{ matrix.platform.platform_tag }}
           path: platform_archives
           merge-multiple: false
     
       - name: Merge archives
         shell: bash
         run: |
-          # Create directory for merged wheels
-          mkdir -p merged/dist/deps
+          # Create directory for merged files
+          mkdir -p merged
           
           # Extract and merge all archives for this platform
-          for zip in platform_archives/*/sift-py-dist-py*-${{ matrix.platform.platform_tag }}.zip; do
+          for zip in platform_archives/*/sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py*-${{ matrix.platform.platform_tag }}.zip; do
             echo "Processing archive: $zip"
             
-            # Create fresh temp directory
-            rm -rf temp_extract
-            mkdir -p temp_extract
-            
-            # Extract and show contents
-            unzip -o "$zip" -d "temp_extract"
-            echo "Contents of temp_extract:"
-            ls -R temp_extract
-            
-            # Find all files recursively and copy them
-            find temp_extract -type f -exec cp {} merged/dist/ \;
-            
-            # Cleanup
-            rm -rf temp_extract
+            # Extract directly to merged directory
+            unzip -o "$zip" -d "merged"
+            echo "Contents after extracting $zip:"
+            ls -R merged
           done
-          
-          echo "Contents of merged directory:"
-          ls -R merged/dist/
           
           # Create merged archive
           cd merged
-          rm -rf deps/ # this is now an empty directory
-          zip -r "../sift-py-dist-py3-${{ matrix.platform.platform_tag }}.zip" dist/
+          zip -r "../sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py3-${{ matrix.platform.platform_tag }}.zip" *
 
       - name: Upload merged archive
         uses: actions/upload-artifact@v4
         with:
-          name: sift-py-dist-py3-${{ matrix.platform.platform_tag }}
-          path: sift-py-dist-py3-*.zip
+          name: sift-py-dist-${{ needs.get-matrix-config.outputs.sift_package_version }}-py3-${{ matrix.platform.platform_tag }}
+          path: sift-py-dist-*.zip
           retention-days: 14
