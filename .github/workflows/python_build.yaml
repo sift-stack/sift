@@ -2,7 +2,7 @@ name: Offline Installation Archive
 
 on:
   workflow_dispatch:
-  pull_request:
+  workflow_call:
 
 jobs:
   get-matrix-config:
