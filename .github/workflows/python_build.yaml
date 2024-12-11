@@ -91,7 +91,6 @@ jobs:
 
           # Then build wheels for package dependencies
           pip wheel -r requirements-all.txt -w dist \
-            --python-version ${{ matrix.python-version }} \
             --prefer-binary \
             --no-deps
 
