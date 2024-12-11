@@ -22,6 +22,7 @@ keywords = [
 ]
 dependencies = [
   "grpcio~=1.13",
+  "npTDMS~=1.9",
   "PyYAML~=6.0",
   "pandas~=2.0",
   "protobuf>=4.0",
@@ -47,7 +48,6 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 [project.optional-dependencies]
 development = [
   "grpcio-testing~=1.13",
-  "npTDMS~=1.9",
   "mypy==1.10.0",
   "pyright==1.1.386",
   "pytest==8.2.2",
