@@ -12,7 +12,8 @@ def get_active_users(
     page_token: str = "",
 ) -> List[User]:
     """
-    Queries all channels for the given `asset_id`.
+    Get active users from the user service with the given filter.
+    The filter must be a CEL expression.
     """
     users_pb: List[User] = []
 
