@@ -18,7 +18,7 @@ from sift_py.ingestion.config.yaml.load import (
 )
 from sift_py.ingestion.config.yaml.spec import TelemetryConfigYamlSpec
 from sift_py.ingestion.flow import FlowConfig
-from sift_py.ingestion.rule.config import (
+from sift_py.rule.config import (
     ExpressionChannelReference,
     ExpressionChannelReferenceChannelConfig,
     RuleAction,

@@ -31,16 +31,17 @@ from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
 from sift_py.ingestion.channel import channel_fqn
-from sift_py.ingestion.rule.config import (
+from sift_py.rule.config import (
     ExpressionChannelReference,
     ExpressionChannelReferenceChannelConfig,
+    RuleAction,
+    RuleActionAnnotationKind,
     RuleActionCreateDataReviewAnnotation,
     RuleActionCreatePhaseAnnotation,
     RuleActionKind,
     RuleConfig,
 )
-from sift_py.rule.config import RuleAction
-from sift_py.yaml.rule import RuleActionAnnotationKind, load_rule_modules
+from sift_py.yaml.rule import SubExpression, load_rule_modules
 
 
 class RuleService:
@@ -338,16 +339,6 @@ class RuleService:
             next_page_token = res.next_page_token
 
         return assets
-
-
-@dataclass
-class SubExpression:
-    fully_qualified_rule_name: str
-    expressions: Dict[str, Any]
-
-    def __init__(self, fully_qualified_rule_name: str, expressions: Dict[str, Any]):
-        self.fully_qualified_rule_name = fully_qualified_rule_name
-        self.expressions = expressions
 
 
 @dataclass
