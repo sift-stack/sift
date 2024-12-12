@@ -1,10 +1,11 @@
 import sift_py.rule.config as rule_config
+from sift_py.yaml import rule as rule_spec
 
 RuleConfig = rule_config.RuleConfig
 RuleAction = rule_config.RuleAction
 RuleActionCreateDataReviewAnnotation = rule_config.RuleActionCreateDataReviewAnnotation
 RuleActionCreatePhaseAnnotation = rule_config.RuleActionCreatePhaseAnnotation
-RuleActionAnnotationKind = rule_config.RuleActionAnnotationKind
+RuleActionAnnotationKind = rule_spec.RuleActionAnnotationKind
 RuleActionKind = rule_config.RuleActionKind
 RuleActionKindStrRep = rule_config.RuleActionKindStrRep
 ExpressionChannelReference = rule_config.ExpressionChannelReference

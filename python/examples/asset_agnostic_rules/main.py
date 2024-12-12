@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService, TelemetryConfig
-from sift_py.rule.service import RuleService, SubExpression
+from sift_py.rule.service import RuleChannelReference, RuleService, SubExpression
 from simulator import Simulator
 
 TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
@@ -54,21 +54,21 @@ if __name__ == "__main__":
                 velocity_rules_src,
             ],
             sub_expressions=[
-                SubExpression("voltage.overvoltage", {"$1": 75}),
-                SubExpression("voltage.undervoltage", {"$1": 30}),
-                SubExpression(
-                    "velocity.vehicle_stuck",
-                    {
-                        "$1": "vehicle_state",
-                        "$2": "mainmotor.velocity",
-                    },
+                SubExpression("voltage.overvoltage", {"overvoltage_threshold": 75}),
+                SubExpression("voltage.undervoltage", {"undervoltage_threshold": 30}),
+            ],
+            channel_references=[
+                RuleChannelReference(
+                    "overvoltage", {"$1": "mainmotor.voltage", "$2": "vehicle_state"}
                 ),
-                SubExpression(
-                    "velocity.vehicle_not_stopped",
-                    {
-                        "$1": "vehicle_state",
-                        "$2": "10",
-                    },
+                RuleChannelReference(
+                    "undervoltage", {"$1": "mainmotor.voltage", "$2": "vehicle_state"}
+                ),
+                RuleChannelReference(
+                    "vehicle_stuck", {"$1": "vehicle_state", "$2": "mainmotor.velocity"}
+                ),
+                RuleChannelReference(
+                    "vehicle_not_stopped", {"$1": "vehicle_state", "$2": "mainmotor.velocity"}
                 ),
             ],
         )
