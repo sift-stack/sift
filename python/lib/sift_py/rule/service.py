@@ -229,14 +229,18 @@ class RuleService:
             )
         elif config.action.kind() == RuleActionKind.ANNOTATION:
             if isinstance(config.action, RuleActionCreateDataReviewAnnotation):
-                users = get_active_users(
-                    user_service=self._user_service_stub, filter=f"name=='{config.action.assignee}'"
-                )
-                if not users:
-                    raise ValueError(f"Cannot find user '{config.action.assignee}'.")
-                if len(users) > 1:
-                    raise ValueError(f"Multiple users found with name '{config.action.assignee}'.")
-                user_id = users[0].user_id
+                assignee = config.action.assignee
+                user_id = None
+                if assignee:
+                    users = get_active_users(
+                        user_service=self._user_service_stub,
+                        filter=f"name=='{assignee}'",
+                    )
+                    if not users:
+                        raise ValueError(f"Cannot find user '{assignee}'.")
+                    if len(users) > 1:
+                        raise ValueError(f"Multiple users found with name '{assignee}'.")
+                    user_id = users[0].user_id
 
                 action_config = UpdateActionRequest(
                     action_type=ANNOTATION,
