@@ -144,7 +144,8 @@ class RuleService:
 
             expression = rule_yaml["expression"]
             if isinstance(expression, dict):  # Handle named expressions
-                expression = expression.get("name", "")
+                expression_name = expression.get("name", "")
+                expression = rule_subexpr.get(expression_name, "")
 
             tags = rule_yaml.get("tags", [])
             annotation_type = RuleActionAnnotationKind.from_str(rule_yaml["type"])
@@ -155,16 +156,22 @@ class RuleService:
                     tags=tags,
                 )
 
+            yaml_subexprs = rule_yaml.get("sub_expressions", [])
+            subexpr: Dict[str, Any] = {}
+            for sub in yaml_subexprs:
+                for iden, value in sub.items():
+                    subexpr[iden] = value
+
             rule_configs.append(
                 RuleConfig(
                     name=rule_yaml["name"],
                     rule_client_key=rule_yaml.get("rule_client_key"),
                     description=rule_yaml.get("description", ""),
-                    expression=expression,
+                    expression=str(expression),
                     action=action,
                     channel_references=rule_channel_references,
                     asset_names=rule_yaml.get("asset_names", []),
-                    sub_expressions=rule_subexpr,
+                    sub_expressions=subexpr,
                 )
             )
 

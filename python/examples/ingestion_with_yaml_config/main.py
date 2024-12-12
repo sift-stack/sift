@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -7,8 +7,8 @@ from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService
 from sift_py.rule.service import RuleService
 from sift_py.yaml.rule import load_sub_expressions
-from telemetry_config import nostromos_lv_426
 from simulator import Simulator
+from telemetry_config import nostromos_lv_426
 
 EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
