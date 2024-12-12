@@ -26,7 +26,7 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift.users.v2.users_pb2_grpc import UserServiceStub
 
 from sift_py._internal.cel import cel_in
-from sift_py._internal.channel import get_asset_channels
+from sift_py._internal.channel import get_channels
 from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
@@ -274,7 +274,7 @@ class RuleService:
 
             # Validate channels are present within each asset
             for asset in assets:
-                found_channels = get_asset_channels(
+                found_channels = get_channels(
                     channel_service=self._channel_service_stub,
                     filter=f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}",
                 )

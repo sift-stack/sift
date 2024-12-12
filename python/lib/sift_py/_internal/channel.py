@@ -9,14 +9,14 @@ def channel_fqn(name: str, component: Optional[str]) -> str:
     return name if component is None or len(component) == 0 else f"{component}.{name}"
 
 
-def get_asset_channels(
+def get_channels(
     channel_service: ChannelServiceStub,
     filter: str,
     page_size: int = 1_000,
     page_token: str = "",
 ) -> List[ChannelPb]:
     """
-    Queries all channels for the given `asset_id`.
+    Queries all channels with the given filter. Filter must be a CEL expression.
     """
     channels_pb: List[ChannelPb] = []
 
