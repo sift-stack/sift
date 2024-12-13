@@ -3,11 +3,11 @@ from typing import TypedDict
 DEFAULT_KEEPALIVE_TIME_MS = 20_000
 """Interval with which to send keepalive pings"""
 
-DEFAULT_KEEPALIVE_TIMEOUT_MS = 60_000
+DEFAULT_KEEPALIVE_TIMEOUT_MS = 20_000
 """Timeout while waiting for server to acknowledge keepalive ping"""
 
-DEFAULT_KEEPALIVE_PERMIT_WITHOUT_CALLS = 0
-"""Disabled"""
+DEFAULT_KEEPALIVE_PERMIT_WITHOUT_CALLS = 1
+"""Allows connection without any active RPCs"""
 
 DEFAULT_MAX_PINGS_WITHOUT_DATA = 0
 """Disabled"""
