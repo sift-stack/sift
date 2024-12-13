@@ -51,6 +51,19 @@ impl Error {
         }
     }
 
+    pub fn new_api_error<E>(err: E) -> Self
+    where
+        E: StdError + Send + Sync + 'static,
+    {
+        let inner = Box::new(err);
+        Self {
+            inner,
+            kind: ErrorKind::Api,
+            context: None,
+            help: None,
+        }
+    }
+
     pub fn into_inner(self) -> BoxedError {
         self.inner
     }
@@ -60,6 +73,7 @@ impl Error {
 pub enum ErrorKind {
     Internal,
     User,
+    Api,
 }
 
 impl<T, C> SiftError<T, C> for Result<T>
@@ -86,6 +100,7 @@ impl fmt::Display for ErrorKind {
         match self {
             Self::Internal => writeln!(f, "Internal error"),
             Self::User => writeln!(f, "User error"),
+            Self::Api => writeln!(f, "API error"),
         }
     }
 }
