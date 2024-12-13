@@ -5,8 +5,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService
-from sift_py.rule.service import RuleService
-from sift_py.yaml.rule import load_sub_expressions
+from sift_py.rule.service import RuleChannelReference, RuleService
+from sift_py.yaml.rule import load_named_expression_modules
 from simulator import Simulator
 from telemetry_config import nostromos_lv_426
 
@@ -47,13 +47,8 @@ if __name__ == "__main__":
         )
 
         # Create/update rules
-        sub_expressions = load_sub_expressions(
-            rule_module_paths=[
-                RULE_MODULES_DIR.joinpath("voltage.yml"),
-                RULE_MODULES_DIR.joinpath("velocity.yml"),
-                RULE_MODULES_DIR.joinpath("nostromo.yml"),
-            ],
-            named_module_paths=[
+        named_expressions = load_named_expression_modules(
+            [
                 EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
                 EXPRESSION_MODULES_DIR.joinpath("string.yml"),
             ],
@@ -65,7 +60,11 @@ if __name__ == "__main__":
                 RULE_MODULES_DIR.joinpath("velocity.yml"),
                 RULE_MODULES_DIR.joinpath("nostromo.yml"),
             ],
-            sub_expressions=sub_expressions,
+            named_expressions=named_expressions,
+            channel_references=[
+                RuleChannelReference("overvoltage", {"$1": "vehicle_state", "$2": "voltage"}),
+                RuleChannelReference("undervoltage", {"$1": "vehicle_state", "$2": "voltage"}),
+            ],
         )
 
         # Create an optional run as part of this ingestion

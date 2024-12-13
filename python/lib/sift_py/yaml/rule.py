@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union, cast
 
@@ -17,25 +16,6 @@ from sift_py.yaml.channel import (
 from sift_py.yaml.utils import _handle_subdir, _type_fqn
 
 _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
-
-
-def load_sub_expressions(
-    rule_module_paths: List[Path], named_module_paths: List[Path]
-) -> List[SubExpression]:
-    rule_modules = load_rule_modules(rule_module_paths)
-    named_expressions = load_named_expression_modules(named_module_paths)
-
-    subexpressions: List[SubExpression] = []
-    for rule in rule_modules:
-        expression = rule.get("expression", "")
-        if isinstance(expression, dict):
-            expression = expression.get("name", "")
-
-        subexpression = named_expressions.get(expression, "")
-        if subexpression:
-            subexpressions.append(SubExpression(rule.get("name", ""), {expression: subexpression}))
-
-    return subexpressions
 
 
 def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
@@ -339,13 +319,3 @@ class NamedExpressionYamlSpec(TypedDict):
     """
 
     name: str
-
-
-@dataclass
-class SubExpression:
-    fully_qualified_rule_name: str
-    expressions: Dict[str, Any]
-
-    def __init__(self, fully_qualified_rule_name: str, expressions: Dict[str, Any]):
-        self.fully_qualified_rule_name = fully_qualified_rule_name
-        self.expressions = expressions

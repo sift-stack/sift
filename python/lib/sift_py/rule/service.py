@@ -41,7 +41,7 @@ from sift_py.rule.config import (
     RuleActionKind,
     RuleConfig,
 )
-from sift_py.yaml.rule import SubExpression, load_rule_modules
+from sift_py.yaml.rule import load_rule_modules
 
 
 class RuleService:
@@ -63,12 +63,11 @@ class RuleService:
     def load_rules_from_yaml(
         self,
         paths: List[Path],
-        sub_expressions: Optional[List[SubExpression]] = None,
+        named_expressions: Optional[Dict[str, str]] = None,
         channel_references: Optional[List[RuleChannelReference]] = None,
     ) -> List[RuleConfig]:
         """
         Loads rules from a YAML spec, and creates or updates the rules in the Sift API.
-        If the rule expression should be interpolated from sub-expressions, provide a list of `SubExpression` objects.
         If the rule does not contain channel references in its YAML definition, provide a dict of rule names mapped
         to a list of channel references. Otherwise if the YAML definition contains channel references, the `channel_references_map`
         should be omitted. If channel references are present in both the YAML definition and provided in the `channel_references_map`,
@@ -77,21 +76,17 @@ class RuleService:
         """
         module_rules = load_rule_modules(paths)
 
-        interpolation_map: Dict[str, Dict[str, Any]] = {}
-        if sub_expressions:
-            for sub_expression in sub_expressions:
-                interpolation_map[sub_expression.fully_qualified_rule_name] = (
-                    sub_expression.expressions
-                )
-
         rule_configs = []
         for rule_yaml in module_rules:
+            rule_name = rule_yaml["name"]
+
+            # First validate channel references
             yaml_channel_references = rule_yaml.get("channel_references", [])
             arg_channel_references: Dict[str, Any] = {}
 
             if channel_references:
                 for rule_channel_refs in channel_references:
-                    if rule_channel_refs.fully_qualified_rule_name == rule_yaml["name"]:
+                    if rule_channel_refs.rule_name == rule_name:
                         arg_channel_references = rule_channel_refs.channel_references
 
             if yaml_channel_references and arg_channel_references:
@@ -139,14 +134,25 @@ class RuleService:
             if not rule_channel_references:
                 raise ValueError(f"Rule of name '{rule_yaml['name']}' requires channel_references")
 
-            rule_fqn = rule_yaml["name"]
-            rule_subexpr = interpolation_map.get(rule_fqn, {})
-
+            # Parse expression for named expressions and sub expressions
             expression = rule_yaml["expression"]
-            if isinstance(expression, dict):  # Handle named expressions
+            if isinstance(expression, dict):
                 expression_name = expression.get("name", "")
-                expression = rule_subexpr.get(expression_name, "")
+                if not named_expressions:
+                    raise ValueError(
+                        f"Rule '{rule_name}' requires named expressions, but none were provided."
+                    )
+                expression = named_expressions.get(expression_name, "")
+                if not expression:
+                    raise ValueError(f"Named expression '{expression_name}' could not be found.")
 
+            yaml_subexprs = rule_yaml.get("sub_expressions", [])
+            subexpr: Dict[str, Any] = {}
+            for sub in yaml_subexprs:
+                for iden, value in sub.items():
+                    subexpr[iden] = value
+
+            # Create rule actions
             tags = rule_yaml.get("tags", [])
             annotation_type = RuleActionAnnotationKind.from_str(rule_yaml["type"])
             action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
@@ -156,15 +162,10 @@ class RuleService:
                     tags=tags,
                 )
 
-            yaml_subexprs = rule_yaml.get("sub_expressions", [])
-            subexpr: Dict[str, Any] = {}
-            for sub in yaml_subexprs:
-                for iden, value in sub.items():
-                    subexpr[iden] = value
-
+            # Append rule config to list
             rule_configs.append(
                 RuleConfig(
-                    name=rule_yaml["name"],
+                    name=rule_name,
                     rule_client_key=rule_yaml.get("rule_client_key"),
                     description=rule_yaml.get("description", ""),
                     expression=str(expression),
@@ -175,6 +176,7 @@ class RuleService:
                 )
             )
 
+        # Create all the rules
         for rule_config in rule_configs:
             self.create_or_update_rule(rule_config)
 
@@ -351,13 +353,9 @@ class RuleService:
 @dataclass
 class RuleChannelReference:
     """
-    Convenient wrapper to map fully qualified rule names to relevant channel references
+    Convenient wrapper to map rule names to relevant channel references
     when creating rules from yaml.
     """
 
-    fully_qualified_rule_name: str
+    rule_name: str
     channel_references: Dict[str, Any]
-
-    def __init__(self, fully_qualified_rule_name: str, channel_references: Dict[str, Any]):
-        self.fully_qualified_rule_name = fully_qualified_rule_name
-        self.channel_references = channel_references
