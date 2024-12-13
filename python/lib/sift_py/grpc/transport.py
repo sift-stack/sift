@@ -156,11 +156,12 @@ def _compute_channel_options(opts: SiftChannelConfig) -> List[Tuple[str, Any]]:
         ("grpc.secondary_user_agent", _compute_user_agent()),
     ]
 
-    if keepalive := opts.get("enable_keepalive", True):
-        options.extend(_compute_keep_alive_channel_opts(DEFAULT_KEEPALIVE_CONFIG))
-    elif isinstance(keepalive, dict):
-        config = cast(KeepaliveConfig, keepalive)
+    enable_keepalive = opts.get("enable_keepalive", True)
+    if isinstance(enable_keepalive, dict):
+        config = cast(KeepaliveConfig, enable_keepalive)
         options.extend(_compute_keep_alive_channel_opts(config))
+    elif enable_keepalive:
+        options.extend(_compute_keep_alive_channel_opts(DEFAULT_KEEPALIVE_CONFIG))
 
     return options
 
