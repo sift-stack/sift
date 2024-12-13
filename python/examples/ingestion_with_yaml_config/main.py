@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService
-from sift_py.rule.service import RuleChannelReference, RuleService
+from sift_py.rule.service import RuleService
 from sift_py.yaml.rule import load_named_expression_modules
 from simulator import Simulator
 from telemetry_config import nostromos_lv_426
@@ -61,10 +61,6 @@ if __name__ == "__main__":
                 RULE_MODULES_DIR.joinpath("nostromo.yml"),
             ],
             named_expressions=named_expressions,
-            channel_references=[
-                RuleChannelReference("overvoltage", {"$1": "vehicle_state", "$2": "voltage"}),
-                RuleChannelReference("undervoltage", {"$1": "vehicle_state", "$2": "voltage"}),
-            ],
         )
 
         # Create an optional run as part of this ingestion

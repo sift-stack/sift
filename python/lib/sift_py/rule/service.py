@@ -64,14 +64,9 @@ class RuleService:
         self,
         paths: List[Path],
         named_expressions: Optional[Dict[str, str]] = None,
-        channel_references: Optional[List[RuleChannelReference]] = None,
     ) -> List[RuleConfig]:
         """
         Loads rules from a YAML spec, and creates or updates the rules in the Sift API.
-        If the rule does not contain channel references in its YAML definition, provide a dict of rule names mapped
-        to a list of channel references. Otherwise if the YAML definition contains channel references, the `channel_references_map`
-        should be omitted. If channel references are present in both the YAML definition and provided in the `channel_references_map`,
-        or if neither are provided for a given rule, an exception will be thrown.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
         """
         module_rules = load_rule_modules(paths)
@@ -80,26 +75,14 @@ class RuleService:
         for rule_yaml in module_rules:
             rule_name = rule_yaml["name"]
 
-            # First validate channel references
+            # First parse channel references
             yaml_channel_references = rule_yaml.get("channel_references", [])
-            arg_channel_references: Dict[str, Any] = {}
-
-            if channel_references:
-                for rule_channel_refs in channel_references:
-                    if rule_channel_refs.rule_name == rule_name:
-                        arg_channel_references = rule_channel_refs.channel_references
-
-            if yaml_channel_references and arg_channel_references:
-                raise ValueError(
-                    f"Rule of name '{rule_yaml['name']}' cannot have both YAML and channel_references argument provided. "
-                    "Please provide only one or the other."
-                )
 
             rule_channel_references: List[
                 Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
             ] = []
 
-            def parse_channel_refs(channel_ref: Dict[str, Any]):
+            for channel_ref in yaml_channel_references:
                 for ref, channel_config in channel_ref.items():
                     if isinstance(channel_config, dict):
                         name = channel_config.get("name", "")
@@ -124,12 +107,6 @@ class RuleService:
                             ),
                         }
                     )
-
-            if yaml_channel_references:
-                for channel_ref in yaml_channel_references:
-                    parse_channel_refs(channel_ref)
-            elif arg_channel_references:
-                parse_channel_refs(arg_channel_references)
 
             if not rule_channel_references:
                 raise ValueError(f"Rule of name '{rule_yaml['name']}' requires channel_references")
