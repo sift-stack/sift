@@ -17,15 +17,14 @@ rules:
     asset_names:
       - NostromoLV426
     # assignee: ellen.ripley@weylandcorp.com
-    expression:
-      name: kinetic_energy_gt
+    expression: 0.5 * $mass * $1 * $1 > $threshold
     channel_references:
       - $1: mainmotor.velocity
     sub_expressions:
       - $mass: 10
       - $threshold: 470
     tags:
-        - nostromo
+      - nostromo
 
   - name: failure
     description: Checks for failures reported by logs
@@ -34,13 +33,11 @@ rules:
     asset_names:
       - NostromoLV426
     # assignee: ellen.ripley@weylandcorp.com
-    expression:
-      name: log_substring_contains
+    expression: contains($1, $sub_string)
     channel_references:
       - $1: log
     sub_expressions:
       - $sub_string: failure
     tags:
-        - failure
-        - nostromo
-
+      - failure
+      - nostromo

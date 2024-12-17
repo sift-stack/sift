@@ -14,7 +14,7 @@ rules:
     description: Tracks high energy output while in motion
     type: review
     expression:
-      name: kinetic_energy_gt
+      0.5 * $mass * $1 * $1 > $threshold
     rule_client_key: kinetic-energy-rule
     channel_references:
       - $1: *velocity_channel
@@ -29,7 +29,7 @@ rules:
     type: review
     rule_client_key: failure-rule
     expression:
-      name: log_substring_contains
+      contains($1, $sub_string)
     channel_references:
       - $1: *log_channel
     sub_expressions:

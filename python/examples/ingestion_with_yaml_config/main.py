@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService
 from sift_py.rule.service import RuleService
-from sift_py.yaml.rule import load_named_expression_modules
 from simulator import Simulator
 from telemetry_config import nostromos_lv_426
 
@@ -47,12 +46,6 @@ if __name__ == "__main__":
         )
 
         # Create/update rules
-        named_expressions = load_named_expression_modules(
-            [
-                EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
-                EXPRESSION_MODULES_DIR.joinpath("string.yml"),
-            ],
-        )
         rule_service = RuleService(channel)
         rule_configs = rule_service.load_rules_from_yaml(
             paths=[
@@ -60,7 +53,6 @@ if __name__ == "__main__":
                 RULE_MODULES_DIR.joinpath("velocity.yml"),
                 RULE_MODULES_DIR.joinpath("nostromo.yml"),
             ],
-            named_expressions=named_expressions,
         )
 
         # Create an optional run as part of this ingestion

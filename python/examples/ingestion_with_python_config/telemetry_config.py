@@ -8,24 +8,15 @@ from sift_py.ingestion.channel import (
     ChannelEnumType,
 )
 from sift_py.ingestion.config.telemetry import FlowConfig, TelemetryConfig
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules
 from sift_py.ingestion.rule.config import (
     RuleActionCreateDataReviewAnnotation,
     RuleConfig,
 )
 
-EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
 RULE_NAMESPACES_DIR = Path().joinpath("rule_modules")
 
 
 def nostromos_lv_426() -> Tuple[TelemetryConfig, List[RuleConfig]]:
-    named_expressions = load_named_expression_modules(
-        [
-            EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
-            EXPRESSION_MODULES_DIR.joinpath("string.yml"),
-        ]
-    )
-
     log_channel = ChannelConfig(
         name="log",
         data_type=ChannelDataType.STRING,
@@ -89,7 +80,7 @@ def nostromos_lv_426() -> Tuple[TelemetryConfig, List[RuleConfig]]:
         RuleConfig(
             name="kinetic_energy",
             description="Tracks high energy output while in motion",
-            expression=named_expressions["kinetic_energy_gt"],
+            expression="0.5 * $mass * $1 * $1 > $threshold",
             rule_client_key="kinetic-energy-rule",
             asset_names=["NostromoLV426"],
             channel_references=[
@@ -111,7 +102,7 @@ def nostromos_lv_426() -> Tuple[TelemetryConfig, List[RuleConfig]]:
         RuleConfig(
             name="failure",
             description="Checks for failures reported by logs",
-            expression=named_expressions["log_substring_contains"],
+            expression="contains($1, $sub_string)",
             rule_client_key="failure-rule",
             asset_names=["NostromoLV426"],
             channel_references=[
