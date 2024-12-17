@@ -159,6 +159,60 @@ class RuleService:
 
         return rule_configs
 
+    def create_or_update_rules(self, rule_configs: List[RuleConfig]):
+        """
+        Create or update a list of rules via a list of RuleConfigs.
+        See `sift_py.rule.config.RuleConfig` for more information on configuation parameters for rules.
+        """
+        for config in rule_configs:
+            self.create_or_update_rule(config)
+
+    def attach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]):
+        """
+        Associates a rule with an asset by name. The asset must already exist in the Sift API.
+        The provided rule may either be a rule client key, rule id, or a RuleConfig.
+        """
+        self._attach_or_detatch_asset(rule, asset_names, attach=True)
+
+    def detatch_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]):
+        """
+        Disassociates a rule from an asset by name. The asset must already exist in the Sift API.
+        The provided rule may either be a rule client key, rule id, or a RuleConfig.
+        """
+        self._attach_or_detatch_asset(rule, asset_names, attach=False)
+
+    def _attach_or_detatch_asset(
+        self, rule: Union[str, RuleConfig], asset_names: List[str], attach: bool
+    ):
+        assets = self._get_assets_by_names(asset_names)
+        if not assets:
+            raise ValueError(
+                f"Cannot find all assets in list '{asset_names}'. One of these assets does not exist."
+            )
+
+        if isinstance(rule, str):
+            rule_pb = self._get_rule_from_client_key(rule) or self._get_rule_from_rule_id(rule)
+            if not rule_pb:
+                raise ValueError(f"Cannot find rule '{rule}'.")
+            asset_ids = list(
+                set(rule_pb.asset_configuration.asset_ids) ^ {asset.asset_id for asset in assets}
+            )
+            if attach:
+                rule_pb.asset_configuration.asset_ids.extend([asset.asset_id for asset in assets])
+            else:
+                rule_pb.asset_configuration.asset_ids[:] = asset_ids
+            req = self._update_req_from_rule(rule_pb)
+        elif isinstance(rule, RuleConfig):
+            if attach:
+                if not rule.asset_names:
+                    rule.asset_names = asset_names
+                else:
+                    rule.asset_names.extend(asset_names)
+            else:
+                rule.asset_names = list(set(rule.asset_names) ^ set(asset_names))
+            req = self._update_req_from_rule_config(rule)
+        self._rule_service_stub.UpdateRule(req)
+
     def create_or_update_rule(self, config: RuleConfig):
         """
         Create or update a rule via a RuleConfig. The config must contain a rule_client_key or an exception will be raised.
@@ -181,6 +235,33 @@ class RuleService:
     def _create_rule(self, config: RuleConfig):
         req = self._update_req_from_rule_config(config)
         self._rule_service_stub.CreateRule(CreateRuleRequest(update=req))
+
+    def _update_req_from_rule(self, rule: Rule) -> UpdateRuleRequest:
+        return UpdateRuleRequest(
+            organization_id=rule.organization_id,
+            rule_id=rule.rule_id,
+            client_key=rule.client_key,
+            name=rule.name,
+            description=rule.description,
+            conditions=[
+                UpdateConditionRequest(
+                    rule_condition_id=condition.rule_condition_id,
+                    actions=[
+                        UpdateActionRequest(
+                            rule_action_id=action.rule_action_id,
+                            action_type=action.action_type,
+                            configuration=action.configuration,
+                        )
+                        for action in condition.actions
+                    ],
+                    expression=condition.expression,
+                )
+                for condition in rule.conditions
+            ],
+            asset_configuration=RuleAssetConfiguration(
+                asset_ids=rule.asset_configuration.asset_ids,
+            ),
+        )
 
     def _update_req_from_rule_config(
         self, config: RuleConfig, rule: Optional[Rule] = None
@@ -300,6 +381,14 @@ class RuleService:
 
     def _get_rule_from_client_key(self, client_key: str) -> Optional[Rule]:
         req = GetRuleRequest(client_key=client_key)
+        try:
+            res = cast(GetRuleResponse, self._rule_service_stub.GetRule(req))
+            return res.rule or None
+        except:
+            return None
+
+    def _get_rule_from_rule_id(self, rule_id: str) -> Optional[Rule]:
+        req = GetRuleRequest(rule_id=rule_id)
         try:
             res = cast(GetRuleResponse, self._rule_service_stub.GetRule(req))
             return res.rule or None
