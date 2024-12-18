@@ -184,7 +184,7 @@ class RuleService:
     def _attach_or_detatch_asset(
         self, rule: Union[str, RuleConfig], asset_names: List[str], attach: bool
     ):
-        assets = self._get_assets_by_names(asset_names)
+        assets = self._get_assets(names=asset_names)
         if not assets:
             raise ValueError(
                 f"Cannot find all assets in list '{asset_names}'. One of these assets does not exist."
@@ -293,7 +293,7 @@ class RuleService:
 
         # TODO:
         # - once we have TagService_ListTags we can do asset-agnostic rules via tags
-        assets = self._get_assets_by_names(config.asset_names) if config.asset_names else None
+        assets = self._get_assets(names=config.asset_names) if config.asset_names else None
 
         actions = []
         if config.action.kind() == RuleActionKind.NOTIFICATION:
@@ -392,6 +392,57 @@ class RuleService:
             ),
         )
 
+    def get_rule(self, rule: str) -> Optional[RuleConfig]:
+        """
+        Get a rule by rule id or client key. Returns a RuleConfig if the rule exists, otherwise None.
+        """
+        rule_pb = self._get_rule_from_client_key(rule) or self._get_rule_from_rule_id(rule)
+        if not rule_pb:
+            return None
+
+        channel_references: List[ExpressionChannelReference] = []
+        expression = ""
+        action: Optional[
+            Union[RuleActionCreateDataReviewAnnotation, RuleActionCreatePhaseAnnotation]
+        ] = None
+        for condition in rule_pb.conditions:
+            expression = condition.expression.calculated_channel.expression
+            for ref, id in condition.expression.calculated_channel.channel_references.items():
+                channel_references.append(
+                    {
+                        "channel_reference": ref,
+                        "channel_identifier": id.name,
+                    }
+                )
+            for action_config in condition.actions:
+                if action_config.action_type == ANNOTATION:
+                    assignee = action_config.configuration.annotation.assigned_to_user_id
+                    if assignee:  # TODO: Better way to disambiguate
+                        action = RuleActionCreateDataReviewAnnotation(
+                            assignee=action_config.configuration.annotation.assigned_to_user_id,
+                            tags=[tag for tag in action_config.configuration.annotation.tag_ids],
+                        )
+                    else:
+                        action = RuleActionCreatePhaseAnnotation(
+                            tags=[tag for tag in action_config.configuration.annotation.tag_ids],
+                        )
+        assets = self._get_assets(
+            ids=[asset_id for asset_id in rule_pb.asset_configuration.asset_ids]
+        )
+        asset_names = [asset.name for asset in assets]
+
+        rule_config = RuleConfig(
+            name=rule_pb.name,
+            description=rule_pb.description,
+            rule_client_key=rule_pb.client_key,
+            channel_references=channel_references,  # type: ignore
+            asset_names=asset_names,
+            action=action,
+            expression=expression,
+        )
+
+        return rule_config
+
     def _get_rule_from_client_key(self, client_key: str) -> Optional[Rule]:
         req = GetRuleRequest(client_key=client_key)
         try:
@@ -408,25 +459,33 @@ class RuleService:
         except:
             return None
 
-    def _get_assets_by_names(self, names: List[str]) -> List[Asset]:
-        quoted_names = [f"'{name}'" for name in names]
+    def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
+        def get_assets_with_filter(cel_filter: str):
+            assets: List[Asset] = []
+            next_page_token = ""
+            while True:
+                req = ListAssetsRequest(
+                    filter=cel_filter,
+                    page_size=1_000,
+                    page_token=next_page_token,
+                )
+                res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
+                assets.extend(res.assets)
 
-        assets: List[Asset] = []
-        next_page_token = ""
-        while True:
-            req = ListAssetsRequest(
-                filter="name in [{}]".format(",".join(quoted_names)),
-                page_size=1_000,
-                page_token=next_page_token,
-            )
-            res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
-            assets.extend(res.assets)
+                if not res.next_page_token:
+                    break
+                next_page_token = res.next_page_token
 
-            if not res.next_page_token:
-                break
-            next_page_token = res.next_page_token
+            return assets
 
-        return assets
+        if names:
+            names_cel = cel_in("name", names)
+            return get_assets_with_filter(names_cel)
+        elif ids:
+            ids_cel = cel_in("asset_id", ids)
+            return get_assets_with_filter(ids_cel)
+        else:
+            return []
 
 
 @dataclass
