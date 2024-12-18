@@ -63,7 +63,7 @@ def load_rules() -> List[RuleConfig]:
             description="Tracks high energy output while in motion",
             expression="0.5 * $mass * $1 * $1 > $threshold",
             rule_client_key="kinetic-energy-rule",
-            asset_names=["NostromoLV426"],
+            asset_names=["NostromoLV2024"],
             channel_references=[
                 {
                     "channel_reference": "$1",
@@ -85,7 +85,7 @@ def load_rules() -> List[RuleConfig]:
             description="Checks for failures reported by logs",
             expression="contains($1, $sub_string)",
             rule_client_key="failure-rule",
-            asset_names=["NostromoLV426"],
+            asset_names=["NostromoLV2024"],
             channel_references=[
                 {
                     "channel_reference": "$1",
