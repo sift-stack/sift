@@ -174,7 +174,7 @@ class RuleService:
         """
         self._attach_or_detatch_asset(rule, asset_names, attach=True)
 
-    def detatch_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]):
+    def detach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]):
         """
         Disassociates a rule from an asset by name. The asset must already exist in the Sift API.
         The provided rule may either be a rule client key, rule id, or a RuleConfig.
