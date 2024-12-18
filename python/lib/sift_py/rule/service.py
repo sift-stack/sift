@@ -167,23 +167,23 @@ class RuleService:
         for config in rule_configs:
             self.create_or_update_rule(config)
 
-    def attach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]):
+    def attach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]) -> RuleConfig:
         """
         Associates a rule with an asset by name. The asset must already exist in the Sift API.
         The provided rule may either be a rule client key, rule id, or a RuleConfig.
         """
-        self._attach_or_detach_asset(rule, asset_names, attach=True)
+        return self._attach_or_detach_asset(rule, asset_names, attach=True)
 
-    def detach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]):
+    def detach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]) -> RuleConfig:
         """
         Disassociates a rule from an asset by name. The asset must already exist in the Sift API.
         The provided rule may either be a rule client key, rule id, or a RuleConfig.
         """
-        self._attach_or_detach_asset(rule, asset_names, attach=False)
+        return self._attach_or_detach_asset(rule, asset_names, attach=False)
 
     def _attach_or_detach_asset(
         self, rule: Union[str, RuleConfig], asset_names: List[str], attach: bool
-    ):
+    ) -> RuleConfig:
         assets = self._get_assets(names=asset_names)
         if not assets:
             raise ValueError(
@@ -191,40 +191,23 @@ class RuleService:
             )
 
         if isinstance(rule, str):
-            rule_pb = self._get_rule_from_client_key(rule) or self._get_rule_from_rule_id(rule)
-            if not rule_pb:
-                raise ValueError(f"Cannot find rule '{rule}'.")
+            rule = cast(RuleConfig, self.get_rule(rule))
 
-            if attach:
-                asset_ids = [asset.asset_id for asset in assets]
-                rule_pb.asset_configuration.asset_ids.extend(asset_ids)
-            else:
-                asset_ids = list(
-                    set(rule_pb.asset_configuration.asset_ids)
-                    ^ {asset.asset_id for asset in assets}
-                )
-                rule_pb.asset_configuration.asset_ids[:] = asset_ids
-
-            if not asset_ids:
-                raise ValueError(
-                    f"Rule '{rule_pb.name}' must be associated with at least one asset."
-                )
-            req = self._update_req_from_rule(rule_pb)
-
-        elif isinstance(rule, RuleConfig):
-            if attach:
-                if not rule.asset_names:
-                    rule.asset_names = asset_names
-                else:
-                    rule.asset_names.extend(asset_names)
-            else:
-                rule.asset_names = list(set(rule.asset_names) ^ set(asset_names))
-
+        if attach:
             if not rule.asset_names:
-                raise ValueError(f"Rule '{rule.name}' must be associated with at least one asset.")
-            req = self._update_req_from_rule_config(rule)
+                rule.asset_names = asset_names
+            else:
+                rule.asset_names.extend(asset_names)
+        else:
+            rule.asset_names = list(set(rule.asset_names) ^ set(asset_names))
+
+        if not rule.asset_names:
+            raise ValueError(f"Rule '{rule.name}' must be associated with at least one asset.")
+        req = self._update_req_from_rule_config(rule)
 
         self._rule_service_stub.UpdateRule(req)
+
+        return rule
 
     def create_or_update_rule(self, config: RuleConfig):
         """
