@@ -6,7 +6,8 @@ and should generally be used within a with-block for correct resource management
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
+from importlib.metadata import PackageNotFoundError, version
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 from urllib.parse import ParseResult, urlparse
 
 import grpc
@@ -103,7 +104,7 @@ def _use_insecure_sift_channel(
     """
     FOR DEVELOPMENT PURPOSES ONLY
     """
-    options = _compute_channel_options()
+    options = _compute_channel_options(config)
     api_uri = _clean_uri(config["uri"], False)
     channel = grpc.insecure_channel(api_uri, options)
     interceptors = _compute_sift_interceptors(config, metadata)
@@ -118,7 +119,7 @@ def _use_insecure_sift_async_channel(
     """
     return grpc_aio.insecure_channel(
         target=config["uri"],
-        options=_compute_channel_options(),
+        options=_compute_channel_options(config),
         interceptors=_compute_sift_async_interceptors(config, metadata),
     )
 
@@ -142,26 +143,25 @@ def _compute_sift_async_interceptors(
     ]
 
 
-def _compute_channel_options(opts: Optional[SiftChannelConfig] = None) -> List[Tuple[str, Any]]:
+def _compute_channel_options(opts: SiftChannelConfig) -> List[Tuple[str, Any]]:
     """
     Initialize all [channel options](https://github.com/grpc/grpc/blob/v1.64.x/include/grpc/impl/channel_arg_names.h) here.
     """
 
-    options = [("grpc.enable_retries", 1), ("grpc.service_config", RetryPolicy.default().as_json())]
+    options = [
+        ("grpc.enable_retries", 1),
+        ("grpc.service_config", RetryPolicy.default().as_json()),
+        # Primary cannot be overriden:
+        #  https://github.com/grpc/grpc/blob/0498194240f55d7f4b12633ad01339fb690621bf/src/core/ext/filters/http/client/http_client_filter.cc#L97
+        ("grpc.secondary_user_agent", _compute_user_agent()),
+    ]
 
-    if opts is None:
-        return options
-
-    if keepalive := opts.get("enable_keepalive"):
-        config = DEFAULT_KEEPALIVE_CONFIG if isinstance(keepalive, bool) else keepalive
-        options.extend(
-            [
-                ("grpc.keepalive_time_ms", config["keepalive_time_ms"]),
-                ("grpc.keepalive_timeout_ms", config["keepalive_timeout_ms"]),
-                ("grpc.http2.max_pings_without_data", config["max_pings_without_data"]),
-                ("grpc.keepalive_permit_without_calls", config["keepalive_permit_without_calls"]),
-            ]
-        )
+    enable_keepalive = opts.get("enable_keepalive", True)
+    if isinstance(enable_keepalive, dict):
+        config = cast(KeepaliveConfig, enable_keepalive)
+        options.extend(_compute_keep_alive_channel_opts(config))
+    elif enable_keepalive:
+        options.extend(_compute_keep_alive_channel_opts(DEFAULT_KEEPALIVE_CONFIG))
 
     return options
 
@@ -213,14 +213,29 @@ def _clean_uri(uri: str, use_ssl: bool) -> str:
     return parsed_res.netloc
 
 
+def _compute_user_agent() -> str:
+    try:
+        return f"sift_stack_py/{version('sift_stack_py')}"
+    except PackageNotFoundError:
+        return "sift-stack-py"
+
+
+def _compute_keep_alive_channel_opts(config: KeepaliveConfig) -> List[Tuple[str, int]]:
+    return [
+        ("grpc.keepalive_time_ms", config["keepalive_time_ms"]),
+        ("grpc.keepalive_timeout_ms", config["keepalive_timeout_ms"]),
+        ("grpc.http2.max_pings_without_data", config["max_pings_without_data"]),
+        ("grpc.keepalive_permit_without_calls", config["keepalive_permit_without_calls"]),
+    ]
+
+
 class SiftChannelConfig(TypedDict):
     """
     Config class used to instantiate a `SiftChannel` via `use_sift_channel`.
     - `uri`: The URI of Sift's gRPC API. The scheme portion of the URI i.e. `https://` should be ommitted.
     - `apikey`: User-generated API key generated via the Sift application.
-    - `enable_keepalive`: Enable HTTP/2 PING-based keepalive to allow long-lived connections with idle long periods. If
-    set to `True`, it will use the default values configured in `sift_py.grpc.keepalive` to configure keepalive. A custom
-    `sift_py.grpc.keepalive.KeepaliveConfig` may also be provided. Default disabled.
+    - `enable_keepalive`: Enabled by default, but can be disabled by passing in `False`. HTTP/2 keep-alive prevents connections from
+    being terminated during idle periods. A custom `sift_py.grpc.keepalive.KeepaliveConfig` may also be provided.
     - `use_ssl`: INTERNAL USE. Meant to be used for local development.
     - `cert_via_openssl`: Enable this if you want to use OpenSSL to load the certificates.
     Run `pip install sift-stack-py[openssl]` to install the dependencies required to use this option.
