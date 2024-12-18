@@ -1,6 +1,7 @@
 #[allow(clippy::all)]
 /// Protobuf generated code to interface with Sift's gRPC API.
 pub mod gen;
+pub use gen::sift::*;
 
 /// Preconfigured gRPC utilities to initialize client stubs from the `gen` package.
 ///

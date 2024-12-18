@@ -1,6 +1,6 @@
 [package]
 name = "sift_rs"
-version = "0.1.0-rc.2"
+version = "0.1.0"
 edition = "2021"
 authors = ["Sift Software Engineers <engineering@siftstack.com>"]
 description = """
