@@ -194,14 +194,23 @@ class RuleService:
             rule_pb = self._get_rule_from_client_key(rule) or self._get_rule_from_rule_id(rule)
             if not rule_pb:
                 raise ValueError(f"Cannot find rule '{rule}'.")
-            asset_ids = list(
-                set(rule_pb.asset_configuration.asset_ids) ^ {asset.asset_id for asset in assets}
-            )
+
             if attach:
-                rule_pb.asset_configuration.asset_ids.extend([asset.asset_id for asset in assets])
+                asset_ids = [asset.asset_id for asset in assets]
+                rule_pb.asset_configuration.asset_ids.extend(asset_ids)
             else:
+                asset_ids = list(
+                    set(rule_pb.asset_configuration.asset_ids)
+                    ^ {asset.asset_id for asset in assets}
+                )
                 rule_pb.asset_configuration.asset_ids[:] = asset_ids
+
+            if not asset_ids:
+                raise ValueError(
+                    f"Rule '{rule_pb.name}' must be associated with at least one asset."
+                )
             req = self._update_req_from_rule(rule_pb)
+
         elif isinstance(rule, RuleConfig):
             if attach:
                 if not rule.asset_names:
@@ -210,7 +219,11 @@ class RuleService:
                     rule.asset_names.extend(asset_names)
             else:
                 rule.asset_names = list(set(rule.asset_names) ^ set(asset_names))
+
+            if not rule.asset_names:
+                raise ValueError(f"Rule '{rule.name}' must be associated with at least one asset.")
             req = self._update_req_from_rule_config(rule)
+
         self._rule_service_stub.UpdateRule(req)
 
     def create_or_update_rule(self, config: RuleConfig):
