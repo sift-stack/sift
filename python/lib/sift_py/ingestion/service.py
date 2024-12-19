@@ -45,7 +45,6 @@ class IngestionService(_IngestionServiceImpl):
     flow_configs_by_name: Dict[str, FlowConfig]
     run_id: Optional[str]
     organization_id: Optional[str]
-    overwrite_rules: bool
     end_stream_on_error: bool
 
     def __init__(

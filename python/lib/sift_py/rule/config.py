@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, TypedDict, Union, cast
 
+from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
 
 from sift_py._internal.convert.json import AsJson
 from sift_py.ingestion.channel import ChannelConfig
-from sift_py.ingestion.config.yaml.spec import RuleYamlSpec
-from sift_py.yaml.rule import RuleActionAnnotationKind
 
 
 class RuleConfig(AsJson):
@@ -25,8 +24,6 @@ class RuleConfig(AsJson):
     - `rule_client_key`: User defined unique string that uniquely identifies this rule.
     - `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `tag_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
-    - `namespace`: A string key that refers to a namespace where a rule is defined. Namespaces are defined in YAML.
-    - `namespace_rules`: A dictionary of rules loaded from a namespace YAML.
     """
 
     name: str
@@ -50,8 +47,6 @@ class RuleConfig(AsJson):
         asset_names: Optional[List[str]] = None,
         tag_names: Optional[List[str]] = None,
         sub_expressions: Dict[str, Any] = {},
-        namespace: str = "",
-        namespace_rules: Dict[str, List[RuleYamlSpec]] = {},
     ):
         self.channel_references = []
 
@@ -78,15 +73,7 @@ class RuleConfig(AsJson):
                 )
 
         self.name = name
-
-        if namespace:
-            description, expression, rule_client_key, action, asset_names, tag_names = (
-                self.__class__.interpolate_namespace_rule(name, namespace, namespace_rules)
-            )
-
-        if asset_names:
-            self.asset_names = asset_names
-
+        self.asset_names = asset_names or []
         self.action = action
         self.rule_client_key = rule_client_key
         self.description = description
@@ -140,54 +127,6 @@ class RuleConfig(AsJson):
                     expression = expression.replace(ref, str(expr))
 
         return expression
-
-    @staticmethod
-    def interpolate_namespace_rule(
-        name: str, namespace: str, namespace_rules: Optional[Dict[str, List[RuleYamlSpec]]]
-    ) -> Tuple[str, str, str, RuleAction, List[str], List[str]]:
-        if not namespace_rules:
-            raise ValueError(
-                f"Namespace rules must be provided with namespace key. Got: {namespace_rules}"
-            )
-
-        rule_list = namespace_rules.get(namespace)
-        if not rule_list:
-            raise ValueError(
-                f"Couldn't find namespace '{namespace}' in namespace_rules: {namespace_rules}"
-            )
-
-        candidate_name = None
-        for rule in rule_list:
-            candidate_name = rule.get("name")
-
-            if not candidate_name:
-                break
-
-            if candidate_name == name:
-                description = rule.get("description", "")
-                expression = rule.get("expression", "")
-                type = rule.get("type", "")
-                tags = rule.get("tags")
-                rule_client_key = rule.get("rule_client_key", "")
-                asset_names = rule.get("asset_names", [])
-                tag_names = rule.get("tag_names", [])
-                action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
-                if RuleActionAnnotationKind.from_str(type) == RuleActionAnnotationKind.REVIEW:
-                    action = RuleActionCreateDataReviewAnnotation(
-                        assignee=rule.get("assignee"), tags=tags
-                    )
-                return (
-                    description,
-                    cast(str, expression),
-                    rule_client_key,
-                    action,
-                    asset_names,
-                    tag_names,
-                )
-
-        raise ValueError(
-            f"Could not find rule '{candidate_name}'. Does this rule exist in the namespace? {rule_list}"
-        )
 
 
 class RuleAction(ABC):
@@ -243,6 +182,26 @@ class RuleActionKind(Enum):
             return cls.ANNOTATION
 
         return None
+
+
+class RuleActionAnnotationKind(Enum):
+    REVIEW = "review"
+    PHASE = "phase"
+
+    @classmethod
+    def from_annotation_type(cls, annotation_type: AnnotationType) -> "RuleActionAnnotationKind":
+        if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
+            return cls.PHASE
+        return cls.PHASE
+
+    @classmethod
+    def from_str(cls, val: str) -> "RuleActionAnnotationKind":
+        if val == cls.REVIEW.value:
+            return cls.REVIEW
+        elif val == cls.PHASE.value:
+            return cls.PHASE
+        else:
+            raise ValueError(f"Argument '{val}' is not a valid annotation kind.")
 
 
 class RuleActionKindStrRep(Enum):
