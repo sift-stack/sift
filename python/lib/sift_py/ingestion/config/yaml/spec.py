@@ -12,7 +12,6 @@ import sift_py.yaml.channel as channel_yaml
 import sift_py.yaml.rule as rule_yaml
 
 RuleYamlSpec = rule_yaml.RuleYamlSpec
-RuleNamespaceYamlSpec = rule_yaml.RuleNamespaceYamlSpec
 NamedExpressionYamlSpec = rule_yaml.NamedExpressionYamlSpec
 ChannelConfigYamlSpec = channel_yaml.ChannelConfigYamlSpec
 ChannelEnumTypeYamlSpec = channel_yaml.ChannelEnumTypeYamlSpec
