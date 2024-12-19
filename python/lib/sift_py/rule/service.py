@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast
 
+from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
@@ -398,17 +399,18 @@ class RuleService:
                     }
                 )
             for action_config in condition.actions:
-                if action_config.action_type == ANNOTATION:
+                annotation_type = action_config.configuration.annotation.annotation_type
+                if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
+                    action = RuleActionCreatePhaseAnnotation(
+                        tags=[tag for tag in action_config.configuration.annotation.tag_ids],
+                    )
+                else:
                     assignee = action_config.configuration.annotation.assigned_to_user_id
-                    if assignee:  # TODO: Better way to disambiguate
-                        action = RuleActionCreateDataReviewAnnotation(
-                            assignee=action_config.configuration.annotation.assigned_to_user_id,
-                            tags=[tag for tag in action_config.configuration.annotation.tag_ids],
-                        )
-                    else:
-                        action = RuleActionCreatePhaseAnnotation(
-                            tags=[tag for tag in action_config.configuration.annotation.tag_ids],
-                        )
+                    action = RuleActionCreateDataReviewAnnotation(
+                        assignee=assignee,
+                        tags=[tag for tag in action_config.configuration.annotation.tag_ids],
+                    )
+
         assets = self._get_assets(
             ids=[asset_id for asset_id in rule_pb.asset_configuration.asset_ids]
         )
