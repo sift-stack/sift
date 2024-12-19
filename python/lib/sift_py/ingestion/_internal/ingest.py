@@ -65,7 +65,7 @@ class _IngestionServiceImpl:
             )
 
         self.rule_service = RuleService(channel)
-        if len(config.rules) > 0:
+        if config.rules:
             for rule in config.rules:
                 if config.asset_name not in rule.asset_names:
                     rule.asset_names.append(config.asset_name)
