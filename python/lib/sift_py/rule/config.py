@@ -204,7 +204,7 @@ class RuleActionAnnotationKind(Enum):
         elif val == cls.PHASE.value:
             return cls.PHASE
         else:
-            raise ValueError("Argument 'val' is not a valid annotation kind.")
+            raise ValueError(f"Argument '{val}' is not a valid annotation kind.")
 
 
 class RuleActionKindStrRep(Enum):

@@ -203,8 +203,8 @@ class RuleService:
 
         if not rule.asset_names:
             raise ValueError(f"Rule '{rule.name}' must be associated with at least one asset.")
-        req = self._update_req_from_rule_config(rule)
 
+        req = self._update_req_from_rule_config(rule)
         self._rule_service_stub.UpdateRule(req)
 
         return rule
