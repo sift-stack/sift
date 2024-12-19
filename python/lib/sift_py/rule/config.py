@@ -73,10 +73,7 @@ class RuleConfig(AsJson):
                 )
 
         self.name = name
-
-        if asset_names:
-            self.asset_names = asset_names
-
+        self.asset_names = asset_names or []
         self.action = action
         self.rule_client_key = rule_client_key
         self.description = description
