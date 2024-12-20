@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.0-rc.7] - December 20, 2024
+Summary of changes:
+- Fix status bug with CSV uploads
+
 ## [v0.3.0-rc.6] - November 22, 2024
 Summary of changes:
 - Support Windows mimetypes for CSV uploads
