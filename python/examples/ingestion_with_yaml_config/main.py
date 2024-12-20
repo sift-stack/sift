@@ -1,11 +1,17 @@
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.ingestion.service import IngestionService
+from sift_py.rule.service import RuleService
 from simulator import Simulator
 from telemetry_config import nostromos_lv_426
+
+EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
+RULE_MODULES_DIR = Path().joinpath("rule_modules")
+
 
 if __name__ == "__main__":
     """
@@ -36,8 +42,17 @@ if __name__ == "__main__":
         ingestion_service = IngestionService(
             channel,
             telemetry_config,
-            overwrite_rules=True,  # Overwrite any rules created in the Sift UI that isn't in the config
             end_stream_on_error=True,  # End stream if errors occur API-side.
+        )
+
+        # Create/update rules
+        rule_service = RuleService(channel)
+        rule_configs = rule_service.load_rules_from_yaml(
+            paths=[
+                RULE_MODULES_DIR.joinpath("voltage.yml"),
+                RULE_MODULES_DIR.joinpath("velocity.yml"),
+                RULE_MODULES_DIR.joinpath("nostromo.yml"),
+            ],
         )
 
         # Create an optional run as part of this ingestion

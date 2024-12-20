@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 from typing import Dict, List, Optional
+from warnings import warn
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sift.ingest.v1.ingest_pb2 import (
@@ -21,7 +22,6 @@ from sift_py.ingestion._internal.ingestion_config import (
     get_ingestion_config_by_client_key,
     get_ingestion_config_flows,
 )
-from sift_py.ingestion._internal.rule import get_asset_rules_json, update_rules
 from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
 from sift_py.ingestion.channel import (
     ChannelConfig,
@@ -33,6 +33,7 @@ from sift_py.ingestion.channel import (
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import Flow, FlowConfig, FlowOrderedChannelValues
 from sift_py.ingestion.rule.config import RuleConfig
+from sift_py.rule.service import RuleService
 
 
 class _IngestionServiceImpl:
@@ -43,10 +44,10 @@ class _IngestionServiceImpl:
     rules: List[RuleConfig]
     run_id: Optional[str]
     organization_id: Optional[str]
-    overwrite_rules: bool
     end_stream_on_error: bool
 
     ingest_service_stub: IngestServiceStub
+    rule_service: RuleService
 
     def __init__(
         self,
@@ -58,13 +59,17 @@ class _IngestionServiceImpl:
     ):
         ingestion_config = self.__class__._get_or_create_ingestion_config(channel, config)
 
-        if not overwrite_rules:
-            self.__class__._validate_rules_synchronized(
-                channel, ingestion_config.asset_id, config.rules
+        if overwrite_rules:
+            warn(
+                "The 'overwrite_rules' argument is deprecated and will be removed in release 0.4.0."
             )
 
-        if len(config.rules) > 0:
-            update_rules(channel, ingestion_config.asset_id, config.rules)
+        self.rule_service = RuleService(channel)
+        if config.rules:
+            for rule in config.rules:
+                if config.asset_name not in rule.asset_names:
+                    rule.asset_names.append(config.asset_name)
+            self.rule_service.create_or_update_rules(config.rules)
 
         self.rules = config.rules
         self.ingestion_config = ingestion_config
@@ -343,35 +348,3 @@ class _IngestionServiceImpl:
         )
 
         return ingestion_config
-
-    @staticmethod
-    def _validate_rules_synchronized(
-        transport_channel: SiftChannel,
-        asset_id: str,
-        rule_configs: List[RuleConfig],
-    ):
-        """
-        Ensures that rules defined in the telemetry config and the rules in Sift are in sync, otherwise error.
-        Namely, if a rule was added via a Sift UI and wasn't added immediately to the telemetry config, then
-        this will raise an exception.
-        """
-        if len(rule_configs) == 0:
-            return
-
-        rules_json = get_asset_rules_json(transport_channel, asset_id)
-
-        rule_names_from_config = set()
-
-        for rule_config in rule_configs:
-            rule_names_from_config.add(rule_config.name)
-
-        for rule_json in rules_json:
-            rule_name: str = rule_json.get("name", "")
-
-            if len(rule_name) == 0:
-                raise IngestionValidationError("Encountered rule without a name from Sift API.")
-
-            if rule_name not in rule_names_from_config:
-                raise IngestionValidationError(
-                    f"Encountered rule '{rule_name}' on asset '{asset_id}' not found in local telemetry config. Add it."
-                )

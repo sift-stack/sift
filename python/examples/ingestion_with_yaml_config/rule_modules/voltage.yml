@@ -1,12 +1,22 @@
-namespace: voltage
-
 rules:
   - name: overvoltage
     description: Checks for overvoltage while accelerating
     expression: $1 == "Accelerating" && $2 > 80
+    rule_client_key: overvoltage-rule
     type: review
+    channel_references:
+      - $1: vehicle_state
+      - $2: voltage
+    asset_names:
+      - NostromoLV426
 
   - name: undervoltage
     description: Checks for undervoltage while accelerating
     expression: $1 == "Accelerating" && $2 < 40
+    rule_client_key: undervoltage-rule
     type: review
+    channel_references:
+      - $1: vehicle_state
+      - $2: voltage
+    asset_names:
+      - NostromoLV426

@@ -4,8 +4,6 @@ from pathlib import Path
 from sift_py.ingestion.service import TelemetryConfig
 
 TELEMETRY_CONFIGS_DIR = Path().joinpath("telemetry_configs")
-EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
-RULE_MODULES_DIR = Path().joinpath("rule_modules")
 
 
 def nostromos_lv_426() -> TelemetryConfig:
@@ -19,9 +17,4 @@ def nostromos_lv_426() -> TelemetryConfig:
     # Load your telemetry config with your reusable expressions modules and rule modules
     return TelemetryConfig.try_from_yaml(
         telemetry_config_path,
-        [
-            EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
-            EXPRESSION_MODULES_DIR.joinpath("string.yml"),
-        ],
-        [RULE_MODULES_DIR],
     )

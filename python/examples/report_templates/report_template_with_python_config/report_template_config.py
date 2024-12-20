@@ -6,7 +6,6 @@ from sift_py.ingestion.channel import (
     ChannelDataType,
     ChannelEnumType,
 )
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules
 from sift_py.ingestion.rule.config import (
     RuleActionCreateDataReviewAnnotation,
     RuleConfig,
@@ -17,13 +16,6 @@ EXPRESSION_MODULES_DIR = Path().joinpath("expression_modules")
 
 
 def load_rules() -> List[RuleConfig]:
-    named_expressions = load_named_expression_modules(
-        [
-            EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
-            EXPRESSION_MODULES_DIR.joinpath("string.yml"),
-        ]
-    )
-
     log_channel = ChannelConfig(
         name="log",
         data_type=ChannelDataType.STRING,
@@ -69,7 +61,7 @@ def load_rules() -> List[RuleConfig]:
         RuleConfig(
             name="kinetic_energy",
             description="Tracks high energy output while in motion",
-            expression=named_expressions["kinetic_energy_gt"],
+            expression="0.5 * $mass * $1 * $1 > $threshold",
             rule_client_key="kinetic-energy-rule",
             asset_names=["NostromoLV2024"],
             channel_references=[
@@ -83,13 +75,15 @@ def load_rules() -> List[RuleConfig]:
                 "$threshold": 470,
             },
             action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
                 tags=["nostromo"],
             ),
         ),
         RuleConfig(
             name="failure",
             description="Checks for failures reported by logs",
-            expression=named_expressions["log_substring_contains"],
+            expression="contains($1, $sub_string)",
             rule_client_key="failure-rule",
             asset_names=["NostromoLV2024"],
             channel_references=[
@@ -102,6 +96,8 @@ def load_rules() -> List[RuleConfig]:
                 "$sub_string": "failure",
             },
             action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
                 tags=["nostromo", "failure"],
             ),
         ),
