@@ -35,7 +35,7 @@ class DataImportStatusType(Enum):
 class DataImport(BaseModel):
     """Metadata regarding the data import."""
 
-    model_config = ConfigDict(extra="forbid", alias_generator=to_camel, populate_by_name=True)
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     data_import_id: str
     created_date: datetime
