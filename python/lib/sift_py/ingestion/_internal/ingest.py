@@ -61,7 +61,7 @@ class _IngestionServiceImpl:
 
         if overwrite_rules:
             warn(
-                "The 'overwrite_rules' argument is deprecated and will be removed in a future release."
+                "The 'overwrite_rules' argument is deprecated and will be removed in release 0.4.0."
             )
 
         self.rule_service = RuleService(channel)
