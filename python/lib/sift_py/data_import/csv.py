@@ -224,7 +224,7 @@ class CsvUploadService:
             config_info["run_name"] = run_name
 
         if run_id is not None:
-            config_info["run_id"] = run_name
+            config_info["run_id"] = run_id
 
         if relative_start_time is not None:
             config_info["time_column"]["relative_start_time"] = relative_start_time
