@@ -4,9 +4,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
-from sift_py.ingestion.config.yaml.load import load_named_expression_modules
 from sift_py.report_templates.service import ReportTemplateService
-from sift_py.rule.service import RuleService, SubExpression
+from sift_py.rule.service import RuleService
 
 REPORT_TEMPLATES_DIR = Path().joinpath("report_templates")
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
@@ -27,22 +26,12 @@ if __name__ == "__main__":
     # Paths to your rules, named expressions, and report template
     report_templates = REPORT_TEMPLATES_DIR.joinpath("nostromo_report_template.yml")
     rule_modules = RULE_MODULES_DIR.joinpath("rules.yml")
-    named_expressions = load_named_expression_modules(
-        [
-            EXPRESSION_MODULES_DIR.joinpath("kinematics.yml"),
-            EXPRESSION_MODULES_DIR.joinpath("string.yml"),
-        ]
-    )
 
     with use_sift_channel(sift_channel_config) as channel:
         # First create rules
         rule_service = RuleService(channel)
         rules = rule_service.load_rules_from_yaml(
             paths=[rule_modules],
-            sub_expressions=[
-                SubExpression("kinetic_energy", named_expressions),
-                SubExpression("failure", named_expressions),
-            ],
         )
 
         # Now create report templates

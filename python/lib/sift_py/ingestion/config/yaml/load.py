@@ -6,16 +6,14 @@ import yaml
 import sift_py.yaml.rule as rule_yaml
 from sift_py.ingestion.config.yaml.error import YamlConfigError
 from sift_py.ingestion.config.yaml.spec import (
-    ChannelConfigYamlSpec,
     FlowYamlSpec,
-    RuleYamlSpec,
     TelemetryConfigYamlSpec,
 )
-from sift_py.yaml.channel import _validate_channel, _validate_channel_anchor
+from sift_py.yaml.channel import ChannelConfigYamlSpec, _validate_channel, _validate_channel_anchor
+from sift_py.yaml.rule import RuleYamlSpec
 from sift_py.yaml.utils import _type_fqn
 
 load_named_expression_modules = rule_yaml.load_named_expression_modules
-load_rule_namespaces = rule_yaml.load_rule_namespaces
 
 
 def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:

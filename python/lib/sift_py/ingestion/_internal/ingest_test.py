@@ -24,7 +24,6 @@ from sift_py.ingestion._internal.ingestion_config import (
     get_ingestion_config_by_client_key,
     get_ingestion_config_flows,
 )
-from sift_py.ingestion._internal.rule import get_asset_rules_json, update_rules
 from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelDataType,
@@ -216,16 +215,13 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
     mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "_update_flow_configs")
     mock_update_flow_configs.return_value = None
 
-    mock_update_rules = mocker.patch(_mock_path(update_rules))
-    mock_update_rules.return_value = None
-
     transport_channel = MockChannel()
 
-    svc = _IngestionServiceImpl(
-        channel=transport_channel,
-        config=telemetry_config,
-        overwrite_rules=True,
-    )
+    with mocker.patch("sift_py.ingestion._internal.ingest.RuleService"):
+        svc = _IngestionServiceImpl(
+            channel=transport_channel,
+            config=telemetry_config,
+        )
 
     # Non-existent flow
     with pytest.raises(IngestionValidationError, match="could not be found"):
@@ -269,12 +265,10 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
         )
 
 
-def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
+def test_ingestion_service_init_with_rules(mocker: MockFixture):
     """
-    Ensures that rules in Sift match rules in config, otherwise an exception is
-    raised asking user to update their local config. Also test `overwrite_rules`
-    which will ignore the difference and replace all rules in Sift with what's
-    in the config
+    Ensures that rules are created and updated to include the asset from the
+    telemetry config when the ingestion service is initialized.
     """
     voltage_channel = ChannelConfig(
         name="voltage",
@@ -301,6 +295,7 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
             assignee="bob@example.com",
             tags=["motor"],
         ),
+        rule_client_key="voltage-rule-key",
     )
 
     rule_on_pressure = RuleConfig(
@@ -314,20 +309,7 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
             assignee="bob@example.com",
             tags=["barometer"],
         ),
-    )
-
-    # This rule won't be in the config. It will be "returned" by the API.
-    rule_on_logs = RuleConfig(
-        name="log_rule",
-        description="",
-        expression='contains($1, "ERROR")',
-        channel_references=[
-            {"channel_reference": "$1", "channel_identifier": logs_channel.fqn()},
-        ],
-        action=RuleActionCreateDataReviewAnnotation(
-            assignee="bob@example.com",
-            tags=["log"],
-        ),
+        rule_client_key="pressure-rule-key",
     )
 
     mock_ingestion_config = IngestionConfigPb(
@@ -343,14 +325,6 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
 
     mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "_update_flow_configs")
     mock_update_flow_configs.return_value = None
-
-    mock_get_asset_rules_json = mocker.patch(_mock_path(get_asset_rules_json))
-
-    mock_get_asset_rules_json.return_value = [
-        rule_on_logs.as_json(),
-        rule_on_pressure.as_json(),
-        rule_on_voltage.as_json(),
-    ]
 
     telemetry_config = TelemetryConfig(
         asset_name="my-asset",
@@ -374,24 +348,10 @@ def test_ingestion_service_init_ensures_rules_synchonized(mocker: MockFixture):
 
     mock_channel = MockChannel()
 
-    with pytest.raises(Exception, match="not found in local"):
-        _ = _IngestionServiceImpl(
+    with mocker.patch("sift_py.ingestion._internal.ingest.RuleService"):
+        svc = _IngestionServiceImpl(
             channel=mock_channel,
             config=telemetry_config,
         )
-
-    # Now we make sure that we can overwrite rules
-    mock_update_rules = mocker.patch(_mock_path(update_rules))
-    mock_update_rules.return_value = None
-
-    _ = _IngestionServiceImpl(
-        channel=mock_channel,
-        config=telemetry_config,
-        overwrite_rules=True,
-    )
-
-    mock_update_rules.assert_called_once_with(
-        mock_channel,
-        mock_ingestion_config.asset_id,
-        telemetry_config.rules,
-    )
+        for rule in svc.rules:
+            assert rule.asset_names == ["my-asset"]
