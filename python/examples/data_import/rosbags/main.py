@@ -28,8 +28,8 @@ if __name__ == "__main__":
 
     ros2_upload_service = RosbagsUploadService(rest_config)
     import_service = ros2_upload_service.upload(
-        "sample_rosbag2",
-        ["sample_msgs"],
+        "data/talker",
+        ["data/builtin_interfaces", "data/rcl_interfaces", "data/std_msgs"],
         Stores.ROS2_HUMBLE,
         asset_name,
     )
