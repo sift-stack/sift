@@ -82,7 +82,7 @@ class Ch10UploadService(CsvUploadService):
         """
         Uploads the ch10 file to the specified asset.
 
-        # Override `time_format` to specify the time data format. Default is `TimeFormatType.ABSOLUTE_UNIX_NANOSECONDS`.
+        Override `time_format` to specify the time data format. Default is `TimeFormatType.ABSOLUTE_UNIX_NANOSECONDS`.
         Override `run_name` to specify the name of the run to create for this data. Default is None.
         Override `run_id` to specify the id of the run to add this data to. Default is None.
         """
