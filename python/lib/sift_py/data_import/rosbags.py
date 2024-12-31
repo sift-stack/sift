@@ -1,41 +1,26 @@
-from ast import Set
-from collections import namedtuple
+"""
+Service to upload ROS2 bag files.
+"""
+
+import csv
 from glob import glob
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Set, Union
 
+from rosbags.interfaces.typing import Typesdict
 from rosbags.rosbag2.reader import Reader
 from rosbags.typesys import Stores, get_types_from_msg, get_typestore
+from rosbags.typesys.store import Typestore
+from tqdm import tqdm
 
 from sift_py.data_import._config import DataColumn, TimeColumn
+from sift_py.data_import._ros_channel import RosChannel
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.csv import CsvUploadService
 from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
-from sift_py.ingestion.channel import ChannelDataType
 from sift_py.rest import SiftRestConfig
-
-RosChannel = namedtuple("RosChannel", ["channel_name", "data_type"])
-
-import csv
-
-import numpy as np
-from tqdm import tqdm
-
-ROSBAG_TO_SIFT_TYPES = {
-    "bool": ChannelDataType.BOOL,
-    "int8": ChannelDataType.INT_32,
-    "int16": ChannelDataType.INT_32,
-    "int32": ChannelDataType.INT_32,
-    "int64": ChannelDataType.INT_64,
-    "uint8": ChannelDataType.UINT_32,
-    "uint16": ChannelDataType.UINT_32,
-    "uint32": ChannelDataType.UINT_32,
-    "uint64": ChannelDataType.UINT_64,
-    "float32": ChannelDataType.FLOAT,
-    "float64": ChannelDataType.DOUBLE,
-}
 
 
 class RosbagsUploadService:
@@ -64,7 +49,7 @@ class RosbagsUploadService:
         Arguments:
             path: Path to the ROS2 bag file.
             msg_dirs: List of directories containing custom message definitions. Each entry should be a path
-                the root directory of the msg definitions.
+                the root directory of the msg definitions (e.g, '/path/to/std_msgs').
             store: The Store type to use for the message definitions.
             asset_name: Name of the asset to upload the data to.
             ignore_errors: If True, will skip messages without definitions.
@@ -84,7 +69,7 @@ class RosbagsUploadService:
                 raise Exception(f"No valid channels remaining in {path}")
 
             csv_config = self._create_csv_config(valid_channels, asset_name, run_name, run_id)
-            print("Uploading file")
+            print("Uploading file...")
             return self._csv_upload_service.upload(temp_file.name, csv_config)
 
     def _convert_to_csv(
@@ -97,19 +82,19 @@ class RosbagsUploadService:
     ) -> List[RosChannel]:
         """Converts the ROS2 bag file to a temporary CSV on disk that we will upload.
 
-        Returns the valid channels after parsing the ROS2 bag file. Valid channels have associated msg types.
+        Returns the valid channels after parsing the ROS2 bag file.
         """
         typestore = get_typestore(store)
         custom_types = self._register_types(typestore, msg_dirs)
 
-        channels = []
+        ros_channels = {}
 
-        def get_name(topic_name, field_name):
-            """Convert the ROS topic and message field name to a channel name."""
-            topic = "_".join(topic_name.split("/"))[1::]
-            return f"{topic}.{field_name}"
+        def sanitize(name):
+            result = "_".join(name.split("/"))
+            if result.startswith("_"):
+                result = result[1:]
+            return result
 
-        # TODO: compress
         with open(dst_path, "w") as f:
             with Reader(src_path) as reader:
                 # Collect all channel information from the connections.
@@ -125,39 +110,17 @@ class RosbagsUploadService:
 
                     msg_def = typestore.get_msgdef(connection.msgtype)
                     for field in msg_def.fields:
-                        field_name = field[0]
-                        node_type = field[1][0]
-                        # Example of `field` for single value:
-                        # ('timestamp', (<Nodetype.BASE: 1>, ('uint64', 0)))
-                        if node_type.name == "BASE":
-                            data_type = field[1][1][0]
-                            size = 1
-                        #  Example of `field` for an array value:
-                        # ('position', (<Nodetype.ARRAY: 3>, ((<Nodetype.BASE: 1>, ('float32', 0)), 3)))
-                        elif node_type.name == "ARRAY":
-                            data_type = field[1][1][0][1][0]
-                            size = field[1][1][1]
-                        else:
-                            raise Exception(
-                                f"Node type {node_type.name} not supported for field: {field_name}"
-                            )
+                        key = f"{msg_def.name}:{field}"
+                        if key in ros_channels:
+                            raise Exception(f"Duplicate key: {key}")
+                        ros_channels[key] = RosChannel.get_underlying_fields(
+                            sanitize(connection.topic), field, typestore
+                        )
 
-                        if data_type not in ROSBAG_TO_SIFT_TYPES:
-                            raise Exception(
-                                f"Data type {data_type} not supported for field: {field_name}"
-                            )
-                        data_type = ROSBAG_TO_SIFT_TYPES[data_type]
-
-                        if size > 1:
-                            for i in range(size):
-                                full_channel_name = get_name(connection.topic, f"{field_name}[{i}]")
-                                channels.append(RosChannel(full_channel_name, data_type))
-                        else:
-                            full_channel_name = get_name(connection.topic, field_name)
-                            channels.append(RosChannel(full_channel_name, data_type))
-
-                columns = ["time"] + [c.channel_name for c in channels]
-                w = csv.DictWriter(f, columns)
+                headers = ["time"] + [
+                    c.channel_name for channels in ros_channels.values() for c in channels
+                ]
+                w = csv.DictWriter(f, headers)
                 w.writeheader()
 
                 print("Processing rosbag messages")
@@ -177,23 +140,23 @@ class RosbagsUploadService:
                     msg_def = typestore.get_msgdef(connection.msgtype)
                     row["time"] = timestamp
                     for field in msg_def.fields:
-                        field_name = field[0]
-                        value = getattr(msg, field_name)
-                        if isinstance(value, np.ndarray):
-                            for i, val in enumerate(value):
-                                full_channel_name = get_name(connection.topic, f"{field_name}[{i}]")
-                                row[full_channel_name] = val
-                        else:
-                            full_channel_name = get_name(connection.topic, field_name)
-                            row[full_channel_name] = getattr(msg, field_name)
+                        key = f"{msg_def.name}:{field}"
+                        if key not in ros_channels:
+                            if ignore_errors:
+                                continue
+                            else:
+                                raise Exception(f"Message field {key} not found in custom types.")
+                        channels = ros_channels[key]
+                        for c in channels:
+                            row[c.channel_name] = c.extract_value(msg)
 
                     w.writerow(row)
 
-        return channels
+        return [c for ros_channels in ros_channels.values() for c in ros_channels]
 
-    def _register_types(self, typestore, msg_dirs: List[Union[str, Path]]) -> Set:
+    def _register_types(self, typestore: Typestore, msg_dirs: List[Union[str, Path]]) -> Set[str]:
         """Register custom message types with the typestore."""
-        custom_types = {}
+        custom_types: Typesdict = {}
         for dir_pathname in msg_dirs:
             dir_path = Path(dir_pathname)
             for msg_pathname in glob(str(dir_path / "**" / "*.msg")):
@@ -207,7 +170,7 @@ class RosbagsUploadService:
 
         typestore.register(custom_types)
 
-        return cast(Set, set(custom_types.keys()))
+        return set(custom_types.keys())
 
     def _create_csv_config(
         self,
