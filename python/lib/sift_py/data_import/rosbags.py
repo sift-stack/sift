@@ -3,6 +3,7 @@ Service to upload ROS2 bag files.
 """
 
 import csv
+import os
 from glob import glob
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -30,8 +31,19 @@ class RosbagsUploadService:
 
     _csv_upload_service: CsvUploadService
 
-    def __init__(self, rest_conf: SiftRestConfig):
+    def __init__(
+        self, rest_conf: SiftRestConfig, temp_dir: Optional[Union[str, Path]] = None
+    ):
         self._csv_upload_service = CsvUploadService(rest_conf)
+        if temp_dir:
+            temp_path = Path(temp_dir)
+            if not temp_path.exists():
+                raise ValueError(f"Specified temp_dir '{temp_dir}' does not exist")
+            if not os.access(temp_path, os.W_OK):
+                raise ValueError(f"No write permission for temp_dir '{temp_dir}'")
+            self._temp_dir = temp_path
+        else:
+            self._temp_dir = None
 
     def upload(
         self,
@@ -61,14 +73,18 @@ class RosbagsUploadService:
         if not posix_path.is_dir():
             raise Exception(f"Provided path, '{path}', does not point to a directory.")
 
-        with NamedTemporaryFile(mode="w", suffix=".csv") as temp_file:
+        with NamedTemporaryFile(
+            mode="w", suffix=".csv", dir=self._temp_dir
+        ) as temp_file:
             valid_channels = self._convert_to_csv(
                 path, temp_file.name, msg_dirs, store, ignore_errors
             )
             if not valid_channels:
                 raise Exception(f"No valid channels remaining in {path}")
 
-            csv_config = self._create_csv_config(valid_channels, asset_name, run_name, run_id)
+            csv_config = self._create_csv_config(
+                valid_channels, asset_name, run_name, run_id
+            )
             print("Uploading file...")
             return self._csv_upload_service.upload(temp_file.name, csv_config)
 
@@ -101,7 +117,9 @@ class RosbagsUploadService:
                 for connection in reader.connections:
                     if connection.msgtype not in custom_types:
                         if ignore_errors:
-                            print(f"WARNING: Skipping {connection.msgtype}. msg file not found.")
+                            print(
+                                f"WARNING: Skipping {connection.msgtype}. msg file not found."
+                            )
                             continue
                         else:
                             raise Exception(
@@ -118,7 +136,9 @@ class RosbagsUploadService:
                         )
 
                 headers = ["time"] + [
-                    c.channel_name for channels in ros_channels.values() for c in channels
+                    c.channel_name
+                    for channels in ros_channels.values()
+                    for c in channels
                 ]
                 w = csv.DictWriter(f, headers)
                 w.writeheader()
@@ -145,7 +165,9 @@ class RosbagsUploadService:
                             if ignore_errors:
                                 continue
                             else:
-                                raise Exception(f"Message field {key} not found in custom types.")
+                                raise Exception(
+                                    f"Message field {key} not found in custom types."
+                                )
                         channels = ros_channels[key]
                         for c in channels:
                             row[c.channel_name] = c.extract_value(msg)
@@ -154,7 +176,9 @@ class RosbagsUploadService:
 
         return [c for ros_channels in ros_channels.values() for c in ros_channels]
 
-    def _register_types(self, typestore: Typestore, msg_dirs: List[Union[str, Path]]) -> Set[str]:
+    def _register_types(
+        self, typestore: Typestore, msg_dirs: List[Union[str, Path]]
+    ) -> Set[str]:
         """Register custom message types with the typestore."""
         custom_types: Typesdict = {}
         for dir_pathname in msg_dirs:
@@ -164,7 +188,8 @@ class RosbagsUploadService:
                 msg_path_from_root = dir_path.name / relative_msg_path
                 custom_types.update(
                     get_types_from_msg(
-                        Path(msg_pathname).read_text(), str(msg_path_from_root).replace(".msg", "")
+                        Path(msg_pathname).read_text(),
+                        str(msg_path_from_root).replace(".msg", ""),
                     )
                 )
 

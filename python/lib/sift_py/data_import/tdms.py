@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Dict, List, Optional, Union
@@ -41,8 +42,19 @@ class TdmsUploadService:
 
     _csv_upload_service: CsvUploadService
 
-    def __init__(self, rest_conf: SiftRestConfig):
+    def __init__(
+        self, rest_conf: SiftRestConfig, temp_dir: Optional[Union[str, Path]] = None
+    ):
         self._csv_upload_service = CsvUploadService(rest_conf)
+        if temp_dir:
+            temp_path = Path(temp_dir)
+            if not temp_path.exists():
+                raise ValueError(f"Specified temp_dir '{temp_dir}' does not exist")
+            if not os.access(temp_path, os.W_OK):
+                raise ValueError(f"No write permission for temp_dir '{temp_dir}'")
+            self._temp_dir = temp_path
+        else:
+            self._temp_dir = None
 
     def upload(
         self,
@@ -67,9 +79,13 @@ class TdmsUploadService:
         posix_path = Path(path) if isinstance(path, str) else path
 
         if not posix_path.is_file():
-            raise Exception(f"Provided path, '{path}', does not point to a regular file.")
+            raise Exception(
+                f"Provided path, '{path}', does not point to a regular file."
+            )
 
-        with NamedTemporaryFile(mode="w", suffix=".csv") as temp_file:
+        with NamedTemporaryFile(
+            mode="w", suffix=".csv", dir=self._temp_dir
+        ) as temp_file:
             valid_channels = self._convert_to_csv(path, temp_file.name, ignore_errors)
             if not valid_channels:
                 raise Exception(f"No valid channels remaining in {path}")
@@ -80,7 +96,10 @@ class TdmsUploadService:
             return self._csv_upload_service.upload(temp_file.name, csv_config)
 
     def _convert_to_csv(
-        self, src_path: Union[str, Path], dst_path: Union[str, Path], ignore_errors: bool
+        self,
+        src_path: Union[str, Path],
+        dst_path: Union[str, Path],
+        ignore_errors: bool,
     ) -> List[TdmsChannel]:
         """Converts the TDMS file to a temporary CSV on disk that we will upload.
 
@@ -128,16 +147,22 @@ class TdmsUploadService:
                         )
 
         # Write out the new TDMS file with invalid channels removed, then convert to csv.
-        with NamedTemporaryFile(mode="w") as f:
+        with NamedTemporaryFile(mode="w", suffix=".csv", dir=self._temp_dir) as f:
             with TdmsWriter(f.name) as tdms_writer:
                 root_object = RootObject(src_file.properties)
-                tdms_writer.write_segment([root_object] + original_groups + valid_channels)
+                tdms_writer.write_segment(
+                    [root_object] + original_groups + valid_channels
+                )
 
             filtered_tdms_file = TdmsFile(f.name)
             df = filtered_tdms_file.as_dataframe(time_index=True, absolute_time=True)
             df.to_csv(dst_path, encoding="utf-8")
 
-        return [channel for group in filtered_tdms_file.groups() for channel in group.channels()]
+        return [
+            channel
+            for group in filtered_tdms_file.groups()
+            for channel in group.channels()
+        ]
 
     def _create_csv_config(
         self,
@@ -153,12 +178,16 @@ class TdmsUploadService:
         first_data_column = 2
         for i, channel in enumerate(channels):
             try:
-                data_type = TDMS_TO_SIFT_TYPES[channel.data_type].as_human_str(api_format=True)
+                data_type = TDMS_TO_SIFT_TYPES[channel.data_type].as_human_str(
+                    api_format=True
+                )
             except KeyError:
                 data_type = None
 
             if data_type is None:
-                raise Exception(f"{channel.name} data type not supported: {channel.data_type}")
+                raise Exception(
+                    f"{channel.name} data type not supported: {channel.data_type}"
+                )
 
             extra_info = ""
             for k, v in channel.properties.items():
