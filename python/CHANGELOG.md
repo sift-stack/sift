@@ -5,17 +5,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.3.0] - January 7, 2025
 Summary of changes:
-- Updates most examples to use RuleService to create rules
-- Adds ReportTemplateService and example usage
-- Enables keepalive by default and configures user-agent
-- Fix status and run id bugs with CSV uploads
-- Support Windows mimetypes for CSV uploads
-- Allow uploading compressed chapter 10 files
-- Fix data download bug for channels with '.' delimited name.
-- Improvements to CSV importing
-- Ping Example added
-- Adds optional openSSL certificate fetching
-- Loosen various dependency requirements
+- [Updates most examples to use RuleService to create rules](https://github.com/sift-stack/sift/pull/154)
+- [Adds ReportTemplateService and example usage](https://github.com/sift-stack/sift/pull/145)
+- [Enables keepalive by default and configures user-agent](https://github.com/sift-stack/sift/pull/152)
+- [Fix status bug with CSV uploads](https://github.com/sift-stack/sift/pull/155)
+- [Support Windows mimetypes for CSV uploads](https://github.com/sift-stack/sift/pull/143)
+- [Allow uploading compressed chapter 10 files](https://github.com/sift-stack/sift/pull/139)
+- [Fix data download bug for channels with '.' delimited name.](https://github.com/sift-stack/sift/pull/138)
+- [Improvements to CSV importing](https://github.com/sift-stack/sift/pull/136)
+- [Ping Example added](https://github.com/sift-stack/sift/pull/130)
+- [Adds optional openSSL certificate fetching](https://github.com/sift-stack/sift/pull/119)
+- [Loosen various dependency requirements](https://github.com/sift-stack/sift/pull/103)
 
 ## [v0.2.2] - October 9, 2024
 
