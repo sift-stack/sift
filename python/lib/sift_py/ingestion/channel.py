@@ -42,6 +42,7 @@ class ChannelConfig(AsProtobuf):
     component: Optional[str]
     bit_field_elements: List[ChannelBitFieldElement]
     enum_types: List[ChannelEnumType]
+    identifier: str
 
     def __init__(
         self,
@@ -60,6 +61,7 @@ class ChannelConfig(AsProtobuf):
         self.component = component
         self.bit_field_elements = bit_field_elements
         self.enum_types = enum_types
+        self.identifier = self.fqn()
 
     def value_from(
         self, value: Optional[Union[int, float, bool, str]]

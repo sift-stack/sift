@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast
 
+from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
@@ -31,17 +32,17 @@ from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
 from sift_py.ingestion.channel import channel_fqn
-from sift_py.ingestion.config.yaml.load import load_rule_namespaces
-from sift_py.ingestion.rule.config import (
+from sift_py.rule.config import (
     ExpressionChannelReference,
     ExpressionChannelReferenceChannelConfig,
+    RuleAction,
+    RuleActionAnnotationKind,
     RuleActionCreateDataReviewAnnotation,
     RuleActionCreatePhaseAnnotation,
     RuleActionKind,
     RuleConfig,
 )
-from sift_py.rule.config import RuleAction
-from sift_py.yaml.rule import RuleActionAnnotationKind
+from sift_py.yaml.rule import load_rule_modules
 
 
 class RuleService:
@@ -63,121 +64,151 @@ class RuleService:
     def load_rules_from_yaml(
         self,
         paths: List[Path],
-        sub_expressions: Optional[List[SubExpression]] = None,
-        channel_references: Optional[List[RuleChannelReference]] = None,
+        named_expressions: Optional[Dict[str, str]] = None,
     ) -> List[RuleConfig]:
         """
         Loads rules from a YAML spec, and creates or updates the rules in the Sift API.
-        If the rule expression should be interpolated from sub-expressions, provide a list of `SubExpression` objects.
-        If the rule does not contain channel references in its YAML definition, provide a dict of rule names mapped
-        to a list of channel references. Otherwise if the YAML definition contains channel references, the `channel_references_map`
-        should be omitted. If channel references are present in both the YAML definition and provided in the `channel_references_map`,
-        or if neither are provided for a given rule, an exception will be thrown.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
         """
-        namespaced_rules = load_rule_namespaces(paths)
-
-        interpolation_map: Dict[str, Dict[str, Any]] = {}
-        if sub_expressions:
-            for sub_expression in sub_expressions:
-                interpolation_map[sub_expression.fully_qualified_rule_name] = (
-                    sub_expression.expressions
-                )
+        module_rules = load_rule_modules(paths)
 
         rule_configs = []
-        for namespace, rule_yamls in namespaced_rules.items():
-            for rule_yaml in rule_yamls:
-                yaml_channel_references = rule_yaml.get("channel_references", [])
-                arg_channel_references: Dict[str, Any] = {}
+        for rule_yaml in module_rules:
+            rule_name = rule_yaml["name"]
 
-                if channel_references:
-                    for rule_channel_refs in channel_references:
-                        if rule_channel_refs.fully_qualified_rule_name == rule_yaml["name"]:
-                            arg_channel_references = rule_channel_refs.channel_references
+            # First parse channel references
+            yaml_channel_references = rule_yaml.get("channel_references", [])
 
-                if yaml_channel_references and arg_channel_references:
-                    raise ValueError(
-                        f"Rule of name '{rule_yaml['name']}' cannot have both YAML and channel_references argument provided. "
-                        "Please provide only one or the other."
-                    )
+            rule_channel_references: List[
+                Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
+            ] = []
 
-                rule_channel_references: List[
-                    Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
-                ] = []
-
-                def parse_channel_refs(channel_ref: Dict[str, Any]):
-                    for ref, channel_config in channel_ref.items():
-                        if isinstance(channel_config, dict):
-                            name = channel_config.get("name", "")
-                            component = channel_config.get("component", "")
-                        elif isinstance(channel_config, str):
-                            channel_reference = channel_reference_from_fqn(channel_config)
-                            name = channel_reference.name
-                            component = channel_reference.component
-                        else:
-                            raise ValueError(
-                                f"Channel reference '{channel_config}' must be a string or a ChannelConfigYamlSpec"
-                            )
-
-                        rule_channel_references.append(
-                            {
-                                "channel_reference": ref,
-                                "channel_identifier": channel_fqn(
-                                    {
-                                        "channel_name": name,
-                                        "component": component,
-                                    }
-                                ),
-                            }
+            for channel_ref in yaml_channel_references:
+                for ref, channel_config in channel_ref.items():
+                    if isinstance(channel_config, dict):
+                        name = channel_config.get("name", "")
+                        component = channel_config.get("component", "")
+                    elif isinstance(channel_config, str):
+                        channel_reference = channel_reference_from_fqn(channel_config)
+                        name = channel_reference.name
+                        component = channel_reference.component
+                    else:
+                        raise ValueError(
+                            f"Channel reference '{channel_config}' must be a string or a ChannelConfigYamlSpec"
                         )
 
-                if yaml_channel_references:
-                    for channel_ref in yaml_channel_references:
-                        parse_channel_refs(channel_ref)
-                elif arg_channel_references:
-                    parse_channel_refs(arg_channel_references)
+                    rule_channel_references.append(
+                        {
+                            "channel_reference": ref,
+                            "channel_identifier": channel_fqn(
+                                {
+                                    "channel_name": name,
+                                    "component": component,
+                                }
+                            ),
+                        }
+                    )
 
-                if not rule_channel_references:
+            if not rule_channel_references:
+                raise ValueError(f"Rule of name '{rule_yaml['name']}' requires channel_references")
+
+            # Parse expression for named expressions and sub expressions
+            expression = rule_yaml["expression"]
+            if isinstance(expression, dict):
+                expression_name = expression.get("name", "")
+                if not named_expressions:
                     raise ValueError(
-                        f"Rule of name '{rule_yaml['name']}' requires channel_references"
+                        f"Rule '{rule_name}' requires named expressions, but none were provided."
                     )
+                expression = named_expressions.get(expression_name, "")
+                if not expression:
+                    raise ValueError(f"Named expression '{expression_name}' could not be found.")
 
-                rule_name = rule_yaml["name"]
-                rule_fqn = f"{namespace}.{rule_name}"
-                rule_subexpr = interpolation_map.get(rule_fqn, {})
+            yaml_subexprs = rule_yaml.get("sub_expressions", [])
+            subexpr: Dict[str, Any] = {}
+            for sub in yaml_subexprs:
+                for iden, value in sub.items():
+                    subexpr[iden] = value
 
-                expression = rule_yaml["expression"]
-                if isinstance(expression, dict):  # Handle named expressions
-                    expression = expression.get("name", "")
-
-                tags = rule_yaml.get("tags", [])
-                annotation_type = RuleActionAnnotationKind.from_str(rule_yaml["type"])
-                action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
-                if annotation_type == RuleActionAnnotationKind.REVIEW:
-                    action = RuleActionCreateDataReviewAnnotation(
-                        assignee=rule_yaml.get("assignee"),
-                        tags=tags,
-                    )
-
-                rule_configs.append(
-                    RuleConfig(
-                        name=rule_yaml["name"],
-                        namespace=namespace,
-                        namespace_rules=namespaced_rules,
-                        action=action,
-                        rule_client_key=rule_yaml.get("rule_client_key"),
-                        description=rule_yaml.get("description", ""),
-                        expression=cast(str, rule_yaml["expression"]),
-                        channel_references=rule_channel_references,
-                        asset_names=rule_yaml.get("asset_names", []),
-                        sub_expressions=rule_subexpr,
-                    )
+            # Create rule actions
+            tags = rule_yaml.get("tags", [])
+            annotation_type = RuleActionAnnotationKind.from_str(rule_yaml["type"])
+            action: RuleAction = RuleActionCreatePhaseAnnotation(tags)
+            if annotation_type == RuleActionAnnotationKind.REVIEW:
+                action = RuleActionCreateDataReviewAnnotation(
+                    assignee=rule_yaml.get("assignee"),
+                    tags=tags,
                 )
 
+            # Append rule config to list
+            rule_configs.append(
+                RuleConfig(
+                    name=rule_name,
+                    rule_client_key=rule_yaml.get("rule_client_key"),
+                    description=rule_yaml.get("description", ""),
+                    expression=str(expression),
+                    action=action,
+                    channel_references=rule_channel_references,
+                    asset_names=rule_yaml.get("asset_names", []),
+                    sub_expressions=subexpr,
+                )
+            )
+
+        # Create all the rules
         for rule_config in rule_configs:
             self.create_or_update_rule(rule_config)
 
         return rule_configs
+
+    def create_or_update_rules(self, rule_configs: List[RuleConfig]):
+        """
+        Create or update a list of rules via a list of RuleConfigs.
+        See `sift_py.rule.config.RuleConfig` for more information on configuation parameters for rules.
+        """
+        for config in rule_configs:
+            self.create_or_update_rule(config)
+
+    def attach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]) -> RuleConfig:
+        """
+        Associates a rule with an asset by name. The asset must already exist in the Sift API.
+        The provided rule may either be a rule client key, rule id, or a RuleConfig.
+        """
+        return self._attach_or_detach_asset(rule, asset_names, attach=True)
+
+    def detach_asset(self, rule: Union[str, RuleConfig], asset_names: List[str]) -> RuleConfig:
+        """
+        Disassociates a rule from an asset by name. The asset must already exist in the Sift API.
+        The provided rule may either be a rule client key, rule id, or a RuleConfig.
+        """
+        return self._attach_or_detach_asset(rule, asset_names, attach=False)
+
+    def _attach_or_detach_asset(
+        self, rule: Union[str, RuleConfig], asset_names: List[str], attach: bool
+    ) -> RuleConfig:
+        assets = self._get_assets(names=asset_names)
+        if not assets:
+            raise ValueError(
+                f"Cannot find all assets in list '{asset_names}'. One of these assets does not exist."
+            )
+
+        if isinstance(rule, str):
+            rule = cast(RuleConfig, self.get_rule(rule))
+
+        if attach:
+            if not rule.asset_names:
+                rule.asset_names = asset_names
+            else:
+                rule.asset_names.extend(asset_names)
+        else:
+            rule.asset_names = list(set(rule.asset_names) ^ set(asset_names))
+
+        if not rule.asset_names:
+            raise ValueError(f"Rule '{rule.name}' must be associated with at least one asset.")
+
+        req = self._update_req_from_rule_config(rule)
+        self._rule_service_stub.UpdateRule(req)
+
+        return rule
 
     def create_or_update_rule(self, config: RuleConfig):
         """
@@ -202,6 +233,33 @@ class RuleService:
         req = self._update_req_from_rule_config(config)
         self._rule_service_stub.CreateRule(CreateRuleRequest(update=req))
 
+    def _update_req_from_rule(self, rule: Rule) -> UpdateRuleRequest:
+        return UpdateRuleRequest(
+            organization_id=rule.organization_id,
+            rule_id=rule.rule_id,
+            client_key=rule.client_key,
+            name=rule.name,
+            description=rule.description,
+            conditions=[
+                UpdateConditionRequest(
+                    rule_condition_id=condition.rule_condition_id,
+                    actions=[
+                        UpdateActionRequest(
+                            rule_action_id=action.rule_action_id,
+                            action_type=action.action_type,
+                            configuration=action.configuration,
+                        )
+                        for action in condition.actions
+                    ],
+                    expression=condition.expression,
+                )
+                for condition in rule.conditions
+            ],
+            asset_configuration=RuleAssetConfiguration(
+                asset_ids=rule.asset_configuration.asset_ids,
+            ),
+        )
+
     def _update_req_from_rule_config(
         self, config: RuleConfig, rule: Optional[Rule] = None
     ) -> UpdateRuleRequest:
@@ -219,7 +277,7 @@ class RuleService:
 
         # TODO:
         # - once we have TagService_ListTags we can do asset-agnostic rules via tags
-        assets = self._get_assets_by_names(config.asset_names) if config.asset_names else None
+        assets = self._get_assets(names=config.asset_names) if config.asset_names else None
 
         actions = []
         if config.action.kind() == RuleActionKind.NOTIFICATION:
@@ -318,6 +376,58 @@ class RuleService:
             ),
         )
 
+    def get_rule(self, rule: str) -> Optional[RuleConfig]:
+        """
+        Get a rule by rule id or client key. Returns a RuleConfig if the rule exists, otherwise None.
+        """
+        rule_pb = self._get_rule_from_client_key(rule) or self._get_rule_from_rule_id(rule)
+        if not rule_pb:
+            return None
+
+        channel_references: List[ExpressionChannelReference] = []
+        expression = ""
+        action: Optional[
+            Union[RuleActionCreateDataReviewAnnotation, RuleActionCreatePhaseAnnotation]
+        ] = None
+        for condition in rule_pb.conditions:
+            expression = condition.expression.calculated_channel.expression
+            for ref, id in condition.expression.calculated_channel.channel_references.items():
+                channel_references.append(
+                    {
+                        "channel_reference": ref,
+                        "channel_identifier": id.name,
+                    }
+                )
+            for action_config in condition.actions:
+                annotation_type = action_config.configuration.annotation.annotation_type
+                if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
+                    action = RuleActionCreatePhaseAnnotation(
+                        tags=[tag for tag in action_config.configuration.annotation.tag_ids],
+                    )
+                else:
+                    assignee = action_config.configuration.annotation.assigned_to_user_id
+                    action = RuleActionCreateDataReviewAnnotation(
+                        assignee=assignee,
+                        tags=[tag for tag in action_config.configuration.annotation.tag_ids],
+                    )
+
+        assets = self._get_assets(
+            ids=[asset_id for asset_id in rule_pb.asset_configuration.asset_ids]
+        )
+        asset_names = [asset.name for asset in assets]
+
+        rule_config = RuleConfig(
+            name=rule_pb.name,
+            description=rule_pb.description,
+            rule_client_key=rule_pb.client_key,
+            channel_references=channel_references,  # type: ignore
+            asset_names=asset_names,
+            action=action,
+            expression=expression,
+        )
+
+        return rule_config
+
     def _get_rule_from_client_key(self, client_key: str) -> Optional[Rule]:
         req = GetRuleRequest(client_key=client_key)
         try:
@@ -326,47 +436,49 @@ class RuleService:
         except:
             return None
 
-    def _get_assets_by_names(self, names: List[str]) -> List[Asset]:
-        quoted_names = [f"'{name}'" for name in names]
+    def _get_rule_from_rule_id(self, rule_id: str) -> Optional[Rule]:
+        req = GetRuleRequest(rule_id=rule_id)
+        try:
+            res = cast(GetRuleResponse, self._rule_service_stub.GetRule(req))
+            return res.rule or None
+        except:
+            return None
 
-        assets: List[Asset] = []
-        next_page_token = ""
-        while True:
-            req = ListAssetsRequest(
-                filter="name in [{}]".format(",".join(quoted_names)),
-                page_size=1_000,
-                page_token=next_page_token,
-            )
-            res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
-            assets.extend(res.assets)
+    def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
+        def get_assets_with_filter(cel_filter: str):
+            assets: List[Asset] = []
+            next_page_token = ""
+            while True:
+                req = ListAssetsRequest(
+                    filter=cel_filter,
+                    page_size=1_000,
+                    page_token=next_page_token,
+                )
+                res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
+                assets.extend(res.assets)
 
-            if not res.next_page_token:
-                break
-            next_page_token = res.next_page_token
+                if not res.next_page_token:
+                    break
+                next_page_token = res.next_page_token
 
-        return assets
+            return assets
 
-
-@dataclass
-class SubExpression:
-    fully_qualified_rule_name: str
-    expressions: Dict[str, Any]
-
-    def __init__(self, fully_qualified_rule_name: str, expressions: Dict[str, Any]):
-        self.fully_qualified_rule_name = fully_qualified_rule_name
-        self.expressions = expressions
+        if names:
+            names_cel = cel_in("name", names)
+            return get_assets_with_filter(names_cel)
+        elif ids:
+            ids_cel = cel_in("asset_id", ids)
+            return get_assets_with_filter(ids_cel)
+        else:
+            return []
 
 
 @dataclass
 class RuleChannelReference:
     """
-    Convenient wrapper to map fully qualified rule names to relevant channel references
+    Convenient wrapper to map rule names to relevant channel references
     when creating rules from yaml.
     """
 
-    fully_qualified_rule_name: str
+    rule_name: str
     channel_references: Dict[str, Any]
-
-    def __init__(self, fully_qualified_rule_name: str, channel_references: Dict[str, Any]):
-        self.fully_qualified_rule_name = fully_qualified_rule_name
-        self.channel_references = channel_references
