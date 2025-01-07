@@ -1,28 +1,24 @@
 [project]
 name = "sift_stack_py"
-version = "0.3.0-rc.7"
+version = "0.3.0"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
-readme = {file = "README.md", content-type = "text/markdown"}
-license = {file = "LICENSE"}
-classifiers  = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { file = "LICENSE" }
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
-maintainers = [ {name = "Sift Software Engineers", email = "engineering@siftstack.com"} ]
-keywords = [
-  "sift",
-  "sift-stack",
-  "siftstack",
-  "sift_py",
+maintainers = [
+  { name = "Sift Software Engineers", email = "engineering@siftstack.com" },
 ]
+keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
   "grpcio~=1.13",
-  "npTDMS~=1.9",
   "PyYAML~=6.0",
   "pandas~=2.0",
   "protobuf>=4.0",
@@ -32,6 +28,7 @@ dependencies = [
   "requests-toolbelt~=1.0",
 
   # May move these to optional dependencies in the future.
+  "npTDMS~=1.9",
   "pandas-stubs~=2.0",
   "types-PyYAML~=6.0",
   "types-protobuf>=4.0",
@@ -56,15 +53,8 @@ development = [
   "pytest-mock==3.14.0",
   "ruff",
 ]
-build = [
-  "pdoc==14.5.0",
-  "build==1.2.1",
-]
-openssl = [
-  "pyOpenSSL<24.0.0",
-  "types-pyOpenSSL<24.0.0",
-  "cffi~=1.14",
-]
+build = ["pdoc==14.5.0", "build==1.2.1"]
+openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 
 [build-system]
 requires = ["setuptools"]
@@ -79,35 +69,35 @@ reportOptionalMemberAccess = "none"
 reportArgumentType = "none"
 reportAttributeAccessIssue = "none"
 exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".ipynb_checkpoints",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pyenv",
-    ".pytest_cache",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    ".vscode",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "site-packages",
-    "venv",
-    "lib/sift",
-    "lib/google",
-    "lib/protoc_gen_openapiv2",
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".ipynb_checkpoints",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pyenv",
+  ".pytest_cache",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  ".vscode",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "site-packages",
+  "venv",
+  "lib/sift",
+  "lib/google",
+  "lib/protoc_gen_openapiv2",
 ]
 
 # No official typing stubs for Python gRPC libraries yet.
@@ -144,35 +134,35 @@ line-length = 100
 indent-width = 4
 target-version = "py38" # Python 3.8
 exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".ipynb_checkpoints",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pyenv",
-    ".pytest_cache",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    ".vscode",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "site-packages",
-    "venv",
-    "lib/sift",
-    "lib/google",
-    "lib/protoc_gen_openapiv2",
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".ipynb_checkpoints",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pyenv",
+  ".pytest_cache",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  ".vscode",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "site-packages",
+  "venv",
+  "lib/sift",
+  "lib/google",
+  "lib/protoc_gen_openapiv2",
 ]
 
 [tool.ruff.lint]
