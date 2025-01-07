@@ -3,38 +3,19 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.3.0-rc.7] - December 20, 2024
+## [v0.3.0] - January 7, 2025
 Summary of changes:
-- Fix status bug with CSV uploads
-
-## [v0.3.0-rc.6] - November 22, 2024
-Summary of changes:
+- Updates most examples to use RuleService to create rules
+- Adds ReportTemplateService and example usage
+- Enables keepalive by default and configures user-agent
+- Fix status and run id bugs with CSV uploads
 - Support Windows mimetypes for CSV uploads
-
-## [v0.3.0-rc.5] - November 21, 2024
-Summary of changes:
 - Allow uploading compressed chapter 10 files
-
-## [v0.3.0-rc.4] - November 21, 2024
-Summary of changes:
 - Fix data download bug for channels with '.' delimited name.
 - Improvements to CSV importing
 - Ping Example added
-
-## [v0.3.0-rc.3] - November 11, 2024
-Summary of changes:
 - Adds optional openSSL certificate fetching
-
-## [v0.3.0-rc.2] - November 1, 2024
-
-Summary of changes:
 - Loosen various dependency requirements
-
-## [v0.3.0-rc.1] - October 22, 2024
-
-This is the release candidate for v0.3.0 for the purposes of allowing folks to test various
-new services introduced. This does not reflect the complete set of features that will be included
-in the next release and many of the new APIs have yet to be documented.
 
 ## [v0.2.2] - October 9, 2024
 
