@@ -13,7 +13,7 @@ try:
     )
 except ImportError as e:
     raise RuntimeError(
-        "The nptdms package is required to use the TDMS upload service. "
+        "The npTDMS package is required to use the TDMS upload service. "
         "Please include this dependency in your project by specifying `sift-stack-py[tdms]`."
     ) from e
 
