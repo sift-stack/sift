@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.1] - January 8, 2025
+- [Moves npTDMS dependency to optional](https://github.com/sift-stack/sift/pull/159)
+Specify `sift-stack-py[tdms]` in your project dependencies if you need to use the TDMS upload service.
+
 ## [v0.3.0] - January 7, 2025
 - [What's New](#whats-new)
 - [Bugfixes](#bugfixes)
