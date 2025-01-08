@@ -4,7 +4,45 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.3.0] - January 7, 2025
-Summary of changes:
+- [What's New](#whats-new)
+- [Bugfixes](#bugfixes)
+- [Deprecation Notices](#deprecation-notices)
+- [Full Changelog](#full-changelog)
+
+### What's New
+#### Report Template Service
+There is now a `ReportTemplateService` that is available from `sift_py.report_templates.service`. This service allows for creating,
+updating, and retrieving report templates with a client key, where client keys are unique user defined strings associated with a given report
+template. Report templates may either by defined via a python config (using the `ReportTemplateConfig` class) or a YAML file, which
+follows the same schema.
+Please see `examples/report_templates` for some examples of how to manage report templates via python and YAML using the `ReportTemplateService`. 
+- [Adds ReportTemplateService and example usage](https://github.com/sift-stack/sift/pull/145)
+
+#### Rule Service
+There is now a `RuleService` that is available from `sift_py.rule.service`. This service allows for creating, updating, and retrieving rules.
+Rules created through this service should now include a rule client key, a unique user defined string associated with a given rule. As before,
+rules may be defined in python (via the `RuleConfigClass`) or via YAML (following the `RuleYamlSpec` class). 
+Please see `examples/ingestion_with_yaml_config` for an example of how to create rules from YAML using the `RuleService`. 
+- [Updates most examples to use RuleService to create rules](https://github.com/sift-stack/sift/pull/154)
+
+#### Chapter 10 Support
+There is now a base class, `BaseCh10File`, and an upload service, `Ch10UploadService` that allows for easily parsing and uploading IRIG Chapter 10 files.
+Please see `examples/data_import/ch10` for an example of how to use these classes.
+- [Allow uploading compressed chapter 10 files](https://github.com/sift-stack/sift/pull/139)
+
+#### Other Improvements
+- [Enables keepalive by default and configures user-agent](https://github.com/sift-stack/sift/pull/152)
+- [Ping Example added](https://github.com/sift-stack/sift/pull/130)
+- [Adds optional openSSL certificate fetching](https://github.com/sift-stack/sift/pull/119)
+
+### Bugfixes
+- [Fix status bug with CSV uploads](https://github.com/sift-stack/sift/pull/155)
+- [Fix data download bug for channels with '.' delimited name.](https://github.com/sift-stack/sift/pull/138)
+
+### Deprecation Notices
+The `overwrite_rules` option of `IngestionService` is going to be deprecated in the next release, and will emit a warning if set.
+
+### Full Changelog
 - [Updates most examples to use RuleService to create rules](https://github.com/sift-stack/sift/pull/154)
 - [Adds ReportTemplateService and example usage](https://github.com/sift-stack/sift/pull/145)
 - [Enables keepalive by default and configures user-agent](https://github.com/sift-stack/sift/pull/152)
@@ -16,6 +54,9 @@ Summary of changes:
 - [Ping Example added](https://github.com/sift-stack/sift/pull/130)
 - [Adds optional openSSL certificate fetching](https://github.com/sift-stack/sift/pull/119)
 - [Loosen various dependency requirements](https://github.com/sift-stack/sift/pull/103)
+
+
+
 
 ## [v0.2.2] - October 9, 2024
 
