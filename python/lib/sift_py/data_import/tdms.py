@@ -2,14 +2,20 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Dict, List, Optional, Union
 
-from nptdms import (  # type: ignore
-    ChannelObject,
-    RootObject,
-    TdmsChannel,
-    TdmsFile,
-    TdmsWriter,
-    types,
-)
+try:
+    from nptdms import (  # type: ignore
+        ChannelObject,
+        RootObject,
+        TdmsChannel,
+        TdmsFile,
+        TdmsWriter,
+        types,
+    )
+except ImportError as e:
+    raise RuntimeError(
+        "The npTDMS package is required to use the TDMS upload service. "
+        "Please include this dependency in your project by specifying `sift-stack-py[tdms]`."
+    ) from e
 
 from sift_py.data_import._config import DataColumn, TimeColumn
 from sift_py.data_import.config import CsvConfig

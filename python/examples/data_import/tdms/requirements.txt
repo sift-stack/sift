@@ -1,2 +1,2 @@
 python-dotenv
-sift-stack-py
+sift-stack-py[tdms]

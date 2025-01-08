@@ -28,7 +28,6 @@ dependencies = [
   "requests-toolbelt~=1.0",
 
   # May move these to optional dependencies in the future.
-  "npTDMS~=1.9",
   "pandas-stubs~=2.0",
   "types-PyYAML~=6.0",
   "types-protobuf>=4.0",
@@ -55,6 +54,7 @@ development = [
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
+tdms = ["npTDMS~=1.9"]
 
 [build-system]
 requires = ["setuptools"]
