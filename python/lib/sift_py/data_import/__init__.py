@@ -34,6 +34,7 @@ contains datetime formatted time stamps. See docstring for `simple_upload` to se
 
 ## TDMS Upload
 
+Specify `sift-stack-py[tdms]` in your dependencies to use the TDMS upload service.
 TDMS files can be uploaded like so:
 ```python
 from sift_py.data_import.csv import TdmsUploadService
