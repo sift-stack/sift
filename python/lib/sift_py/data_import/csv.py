@@ -198,7 +198,7 @@ class CsvUploadService:
             data_type = ChannelDataType.from_str(raw_dtype)
             if data_type is None:
                 raise Exception(
-                    f"Unable to upload data type in column {i+1} {header}: Type: {raw_dtype}."
+                    f"Unable to upload data type in column {i + 1} {header}: Type: {raw_dtype}."
                 )
             data_config[i + 1] = {"name": header, "data_type": data_type}
 
