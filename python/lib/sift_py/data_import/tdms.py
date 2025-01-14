@@ -1,5 +1,4 @@
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Dict, List, Optional, Union
 
 try:
@@ -21,6 +20,7 @@ from sift_py.data_import._config import DataColumn, TimeColumn
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.csv import CsvUploadService
 from sift_py.data_import.status import DataImportService
+from sift_py.data_import.tempfile import NamedTemporaryFile
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
 from sift_py.rest import SiftRestConfig

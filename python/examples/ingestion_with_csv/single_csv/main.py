@@ -26,9 +26,9 @@ def parse_csv(
 
         for row in reader:
             timestamp_str, values = row[0], row[1:]
-            assert len(values) == len(
-                flow.channels
-            ), "number of channels don't match number of data points in row"
+            assert len(values) == len(flow.channels), (
+                "number of channels don't match number of data points in row"
+            )
 
             flows.append(
                 {

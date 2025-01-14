@@ -118,7 +118,7 @@ def main():
                 package_name=args.package_name,
                 extras=combo,
                 dist_dir=str(dist_dir),
-                venv_dir=f'test_venv_{combo.replace(",", "_")}',
+                venv_dir=f"test_venv_{combo.replace(',', '_')}",
                 is_windows=args.is_windows,
             )
 
