@@ -5,7 +5,6 @@ Service to upload ROS2 bag files.
 import csv
 from glob import glob
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Dict, List, Optional, Set, Union
 
 from rosbags.interfaces.typing import Typesdict
@@ -19,6 +18,7 @@ from sift_py.data_import._ros_channel import RosChannel
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.csv import CsvUploadService
 from sift_py.data_import.status import DataImportService
+from sift_py.data_import.tempfile import NamedTemporaryFile
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.rest import SiftRestConfig
 
@@ -164,7 +164,7 @@ class RosbagsUploadService:
                 msg_path_from_root = dir_path.name / relative_msg_path
                 custom_types.update(
                     get_types_from_msg(
-                        Path(msg_pathname).read_text(), str(msg_path_from_root).replace(".msg", "")
+                        Path(msg_pathname).read_text(), str(msg_path_from_root).replace("\\", "/").replace(".msg", "")
                     )
                 )
 
