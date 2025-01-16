@@ -1,4 +1,4 @@
-from typing import Optional, Union, Tuple, cast
+from typing import Optional, Tuple, Union, cast
 
 from rosbags.interfaces import Nodetype  # type: ignore
 from rosbags.typesys.store import Typestore  # type: ignore

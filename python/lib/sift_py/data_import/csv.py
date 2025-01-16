@@ -1,17 +1,41 @@
 import json
 import mimetypes
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
 import requests
+from tqdm import tqdm
 
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
 from sift_py.rest import SiftRestConfig, compute_uri
+
+
+class FileWithStatus:
+    """Allows us to see the status of the upload."""
+
+    def __init__(self, path: str):
+        self.path = path
+        self.file_size = os.path.getsize(self.path)
+        self._file = open(self.path, mode="rb")
+        self._pbar = tqdm(total=self.file_size, unit="bytes")
+
+    def read(self, *args, **kwargs):
+        chunk = self._file.read(*args, **kwargs)
+        self._pbar.update(len(chunk))
+        return chunk
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self._pbar.close()
+        return
 
 
 class CsvUploadService:
@@ -65,7 +89,7 @@ class CsvUploadService:
         except KeyError as e:
             raise Exception(f"Response missing required keys: {e}")
 
-        with open(path, "rb") as f:
+        with FileWithStatus(path) as f:
             headers = {
                 "Authorization": f"Bearer {self._apikey}",
                 "Content-Encoding": content_encoding,
