@@ -1,10 +1,12 @@
 import json
 import mimetypes
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
+from tqdm import tqdm
 
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
@@ -61,15 +63,16 @@ class CsvUploadService(_RestService):
         except KeyError as e:
             raise Exception(f"Response missing required keys: {e}")
 
-        with open(path, "rb") as f:
+        with open(path) as f:
             headers = {
                 "Content-Encoding": content_encoding,
             }
 
+            file_size = os.path.getsize(path)
             response = self._session.post(
                 url=upload_url,
                 headers=headers,
-                data=f,
+                data=tqdm(f, total=file_size, unit="bytes"),
             )
 
             if response.status_code != 200:

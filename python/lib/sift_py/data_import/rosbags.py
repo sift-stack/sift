@@ -5,7 +5,7 @@ Service to upload ROS2 bag files.
 import csv
 from glob import glob
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union
+from typing import BinaryIO, Dict, List, Optional, Set, Union
 
 from rosbags.interfaces.typing import Typesdict
 from rosbags.rosbag2.reader import Reader
@@ -62,9 +62,7 @@ class RosbagsUploadService:
             raise Exception(f"Provided path, '{path}', does not point to a directory.")
 
         with NamedTemporaryFile(mode="w", suffix=".csv") as temp_file:
-            valid_channels = self._convert_to_csv(
-                path, temp_file.name, msg_dirs, store, ignore_errors
-            )
+            valid_channels = self._convert_to_csv(path, temp_file, msg_dirs, store, ignore_errors)
             if not valid_channels:
                 raise Exception(f"No valid channels remaining in {path}")
 
@@ -75,7 +73,7 @@ class RosbagsUploadService:
     def _convert_to_csv(
         self,
         src_path: Union[str, Path],
-        dst_path: Union[str, Path],
+        dst_file: BinaryIO,
         msg_dirs: List[Union[str, Path]],
         store: Stores,
         ignore_errors: bool,
@@ -95,62 +93,61 @@ class RosbagsUploadService:
                 result = result[1:]
             return result
 
-        with open(dst_path, "w") as f:
-            with Reader(src_path) as reader:
-                # Collect all channel information from the connections.
-                for connection in reader.connections:
-                    if connection.msgtype not in custom_types:
-                        if ignore_errors:
-                            print(f"WARNING: Skipping {connection.msgtype}. msg file not found.")
-                            continue
-                        else:
-                            raise Exception(
-                                f"Message type {connection.msgtype} not found in custom types."
-                            )
-
-                    msg_def = typestore.get_msgdef(connection.msgtype)
-                    for field in msg_def.fields:
-                        key = f"{msg_def.name}:{field}"
-                        if key in ros_channels:
-                            raise Exception(f"Duplicate key: {key}")
-                        ros_channels[key] = RosChannel.get_underlying_fields(
-                            sanitize(connection.topic), field, typestore
+        with Reader(src_path) as reader:
+            # Collect all channel information from the connections.
+            for connection in reader.connections:
+                if connection.msgtype not in custom_types:
+                    if ignore_errors:
+                        print(f"WARNING: Skipping {connection.msgtype}. msg file not found.")
+                        continue
+                    else:
+                        raise Exception(
+                            f"Message type {connection.msgtype} not found in custom types."
                         )
 
-                headers = ["time"] + [
-                    c.channel_name for channels in ros_channels.values() for c in channels
-                ]
-                w = csv.DictWriter(f, headers)
-                w.writeheader()
+                msg_def = typestore.get_msgdef(connection.msgtype)
+                for field in msg_def.fields:
+                    key = f"{msg_def.name}:{field}"
+                    if key in ros_channels:
+                        raise Exception(f"Duplicate key: {key}")
+                    ros_channels[key] = RosChannel.get_underlying_fields(
+                        sanitize(connection.topic), field, typestore
+                    )
 
-                print("Processing rosbag messages")
-                pbar = tqdm(total=reader.message_count)
-                for connection, timestamp, raw_data in reader.messages():
-                    pbar.update(1)
-                    if connection.msgtype not in custom_types:
+            headers = ["time"] + [
+                c.channel_name for channels in ros_channels.values() for c in channels
+            ]
+            w = csv.DictWriter(dst_file, headers)
+            w.writeheader()
+
+            print("Processing rosbag messages")
+            pbar = tqdm(total=reader.message_count, unit="messages")
+            for connection, timestamp, raw_data in reader.messages():
+                pbar.update(1)
+                if connection.msgtype not in custom_types:
+                    if ignore_errors:
+                        continue
+                    else:
+                        raise Exception(
+                            f"Message type {connection.msgtype} not found in custom types."
+                        )
+
+                row = {}
+                msg = typestore.deserialize_cdr(raw_data, connection.msgtype)
+                msg_def = typestore.get_msgdef(connection.msgtype)
+                row["time"] = timestamp
+                for field in msg_def.fields:
+                    key = f"{msg_def.name}:{field}"
+                    if key not in ros_channels:
                         if ignore_errors:
                             continue
                         else:
-                            raise Exception(
-                                f"Message type {connection.msgtype} not found in custom types."
-                            )
+                            raise Exception(f"Message field {key} not found in custom types.")
+                    channels = ros_channels[key]
+                    for c in channels:
+                        row[c.channel_name] = c.extract_value(msg)
 
-                    row = {}
-                    msg = typestore.deserialize_cdr(raw_data, connection.msgtype)
-                    msg_def = typestore.get_msgdef(connection.msgtype)
-                    row["time"] = timestamp
-                    for field in msg_def.fields:
-                        key = f"{msg_def.name}:{field}"
-                        if key not in ros_channels:
-                            if ignore_errors:
-                                continue
-                            else:
-                                raise Exception(f"Message field {key} not found in custom types.")
-                        channels = ros_channels[key]
-                        for c in channels:
-                            row[c.channel_name] = c.extract_value(msg)
-
-                    w.writerow(row)
+                w.writerow(row)
 
         return [c for ros_channels in ros_channels.values() for c in ros_channels]
 
@@ -164,7 +161,8 @@ class RosbagsUploadService:
                 msg_path_from_root = dir_path.name / relative_msg_path
                 custom_types.update(
                     get_types_from_msg(
-                        Path(msg_pathname).read_text(), str(msg_path_from_root).replace("\\", "/").replace(".msg", "")
+                        Path(msg_pathname).read_text(),
+                        str(msg_path_from_root).replace("\\", "/").replace(".msg", ""),
                     )
                 )
 
