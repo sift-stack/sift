@@ -5,7 +5,7 @@ Service to upload ROS2 bag files.
 import csv
 from glob import glob
 from pathlib import Path
-from typing import BinaryIO, Dict, List, Optional, Set, Union
+from typing import BinaryIO, Callable, Dict, List, Optional, Set, Union, Tuple
 
 from rosbags.interfaces.typing import Typesdict
 from rosbags.rosbag2.reader import Reader
@@ -27,7 +27,6 @@ class RosbagsUploadService:
     """
     Service to upload ROS2 bag files.
     """
-
     _csv_upload_service: CsvUploadService
 
     def __init__(self, rest_conf: SiftRestConfig):
@@ -42,6 +41,7 @@ class RosbagsUploadService:
         ignore_errors: bool = False,
         run_name: Optional[str] = None,
         run_id: Optional[str] = None,
+        handlers: Optional[Dict[str, Callable]] = None,
     ) -> DataImportService:
         """
         Uploads the ROS2 bag file pointed to by `path` to the specified asset.
@@ -62,7 +62,7 @@ class RosbagsUploadService:
             raise Exception(f"Provided path, '{path}', does not point to a directory.")
 
         with NamedTemporaryFile(mode="w", suffix=".csv") as temp_file:
-            valid_channels = self._convert_to_csv(path, temp_file, msg_dirs, store, ignore_errors)
+            valid_channels = self._convert_to_csv(path, temp_file, msg_dirs, store, ignore_errors, handlers)
             if not valid_channels:
                 raise Exception(f"No valid channels remaining in {path}")
 
@@ -77,13 +77,15 @@ class RosbagsUploadService:
         msg_dirs: List[Union[str, Path]],
         store: Stores,
         ignore_errors: bool,
+        handlers: Optional[Dict[str, Callable]] = None ,
     ) -> List[RosChannel]:
         """Converts the ROS2 bag file to a temporary CSV on disk that we will upload.
 
         Returns the valid channels after parsing the ROS2 bag file.
         """
+        handlers = handlers or {}
         typestore = get_typestore(store)
-        custom_types = self._register_types(typestore, msg_dirs)
+        msg_types = self._register_types(typestore, msg_dirs)
 
         ros_channels = {}
 
@@ -96,7 +98,7 @@ class RosbagsUploadService:
         with Reader(src_path) as reader:
             # Collect all channel information from the connections.
             for connection in reader.connections:
-                if connection.msgtype not in custom_types:
+                if connection.msgtype not in msg_types:
                     if ignore_errors:
                         print(f"WARNING: Skipping {connection.msgtype}. msg file not found.")
                         continue
@@ -105,7 +107,10 @@ class RosbagsUploadService:
                             f"Message type {connection.msgtype} not found in custom types."
                         )
 
+                # Special types (typically sequences) are handled differently
                 msg_def = typestore.get_msgdef(connection.msgtype)
+                if connection.msgtype in handlers:
+                    continue
                 for field in msg_def.fields:
                     key = f"{msg_def.name}:{field}"
                     if key in ros_channels:
@@ -124,7 +129,7 @@ class RosbagsUploadService:
             pbar = tqdm(total=reader.message_count, unit="messages")
             for connection, timestamp, raw_data in reader.messages():
                 pbar.update(1)
-                if connection.msgtype not in custom_types:
+                if connection.msgtype not in msg_types:
                     if ignore_errors:
                         continue
                     else:
@@ -136,16 +141,20 @@ class RosbagsUploadService:
                 msg = typestore.deserialize_cdr(raw_data, connection.msgtype)
                 msg_def = typestore.get_msgdef(connection.msgtype)
                 row["time"] = timestamp
-                for field in msg_def.fields:
-                    key = f"{msg_def.name}:{field}"
-                    if key not in ros_channels:
-                        if ignore_errors:
-                            continue
-                        else:
-                            raise Exception(f"Message field {key} not found in custom types.")
-                    channels = ros_channels[key]
-                    for c in channels:
-                        row[c.channel_name] = c.extract_value(msg)
+
+                if connection.msgtype in handlers:
+                    handlers[connection.msgtype](connection.topic, timestamp, msg)
+                else:
+                    for field in msg_def.fields:
+                        key = f"{msg_def.name}:{field}"
+                        if key not in ros_channels:
+                            if ignore_errors:
+                                continue
+                            else:
+                                raise Exception(f"Message field {key} not found in custom types.")
+                        channels = ros_channels[key]
+                        for c in channels:
+                            row[c.channel_name] = c.extract_value(msg)
 
                 w.writerow(row)
 
@@ -153,22 +162,22 @@ class RosbagsUploadService:
 
     def _register_types(self, typestore: Typestore, msg_dirs: List[Union[str, Path]]) -> Set[str]:
         """Register custom message types with the typestore."""
-        custom_types: Typesdict = {}
+        msg_types: Typesdict = {}
         for dir_pathname in msg_dirs:
             dir_path = Path(dir_pathname)
             for msg_pathname in glob(str(dir_path / "**" / "*.msg")):
                 relative_msg_path = Path(msg_pathname).relative_to(dir_pathname)
                 msg_path_from_root = dir_path.name / relative_msg_path
-                custom_types.update(
+                msg_types.update(
                     get_types_from_msg(
                         Path(msg_pathname).read_text(),
                         str(msg_path_from_root).replace("\\", "/").replace(".msg", ""),
                     )
                 )
 
-        typestore.register(custom_types)
+        typestore.register(msg_types)
 
-        return set(custom_types.keys())
+        return set(msg_types.keys())
 
     def _create_csv_config(
         self,
