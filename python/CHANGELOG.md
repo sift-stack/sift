@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.2] - January 17, 2025
+- [Fixes tempfile compatibility issues on Windows](https://github.com/sift-stack/sift/pull/163)
+
 ## [v0.3.1] - January 8, 2025
 - [Moves npTDMS dependency to optional](https://github.com/sift-stack/sift/pull/159)
 Specify `sift-stack-py[tdms]` in your project dependencies if you need to use the TDMS upload service.
@@ -19,14 +22,14 @@ There is now a `ReportTemplateService` that is available from `sift_py.report_te
 updating, and retrieving report templates with a client key, where client keys are unique user defined strings associated with a given report
 template. Report templates may either by defined via a python config (using the `ReportTemplateConfig` class) or a YAML file, which
 follows the same schema.
-Please see `examples/report_templates` for some examples of how to manage report templates via python and YAML using the `ReportTemplateService`. 
+Please see `examples/report_templates` for some examples of how to manage report templates via python and YAML using the `ReportTemplateService`.
 - [Adds ReportTemplateService and example usage](https://github.com/sift-stack/sift/pull/145)
 
 #### Rule Service
 There is now a `RuleService` that is available from `sift_py.rule.service`. This service allows for creating, updating, and retrieving rules.
 Rules created through this service should now include a rule client key, a unique user defined string associated with a given rule. As before,
-rules may be defined in python (via the `RuleConfigClass`) or via YAML (following the `RuleYamlSpec` class). 
-Please see `examples/ingestion_with_yaml_config` for an example of how to create rules from YAML using the `RuleService`. 
+rules may be defined in python (via the `RuleConfigClass`) or via YAML (following the `RuleYamlSpec` class).
+Please see `examples/ingestion_with_yaml_config` for an example of how to create rules from YAML using the `RuleService`.
 - [Updates most examples to use RuleService to create rules](https://github.com/sift-stack/sift/pull/154)
 
 #### Chapter 10 Support
