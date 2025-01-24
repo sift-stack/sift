@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.3] - January 24, 2025
+- [Don't upload TDMS channel properties to Sift channel description](https://github.com/sift-stack/sift/pull/165)
+
 ## [v0.3.2] - January 17, 2025
 - [Fixes tempfile compatibility issues on Windows](https://github.com/sift-stack/sift/pull/163)
 
