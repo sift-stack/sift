@@ -149,7 +149,7 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
                 "data_type": "CHANNEL_DATA_TYPE_INT_32",
                 "component": "",
                 "units": "",
-                "description": "None\nwf_start_time: 0\nwf_increment: 0.1\nwf_start_offset: 0\nextra: info\n",
+                "description": "",
                 "enum_types": [],
                 "bit_field_elements": [],
             }

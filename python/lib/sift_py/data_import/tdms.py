@@ -166,20 +166,10 @@ class TdmsUploadService:
             if data_type is None:
                 raise Exception(f"{channel.name} data type not supported: {channel.data_type}")
 
-            extra_info = ""
-            for k, v in channel.properties.items():
-                # Skip these since the csv config has dedicated fields for them.
-                if k in ["description", "unit_string"]:
-                    continue
-                # Must convert datetime to a string
-                elif k == "wf_start_time":
-                    v = str(v)
-                extra_info += f"{k}: {v}\n"
-
             channel_config = DataColumn(
                 name=channel.name,
                 data_type=data_type,
-                description=f"{channel.properties.get('description')}\n{extra_info}",
+                description=channel.properties.get("description", ""),
                 units=channel.properties.get("unit_string") or "",
             )
             if group_into_components and channel.group_name:
