@@ -32,7 +32,7 @@ impl DataSource {
         let (data_tx, data_rx) = channel(1);
 
         let task_handler = task::spawn_blocking(move || {
-            let duration = Duration::from_secs(180);
+            let duration = Duration::from_secs(60);
             let start = Instant::now();
             let mut rng = rand::thread_rng();
 
