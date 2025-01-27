@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let run = create_run(grpc_channel.clone(), ASSET_NAME).await?;
     println!("initialized run {}", &run.name);
 
-    // Initialize the data source and create a tokio stream.
+    // Initialize the data source
     let data_source = DataSource::new(ingestion_config, run);
 
     IngestServiceClient::new(grpc_channel)
