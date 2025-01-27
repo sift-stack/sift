@@ -10,12 +10,15 @@ use sift_rs::{
     runs::v2::Run,
 };
 use std::{
-    iter::Iterator,
-    ops::Drop,
-    sync::mpsc::{channel, Receiver},
-    thread::{self, JoinHandle},
+    pin::Pin,
+    task::{Context, Poll},
     time::{Duration, Instant},
 };
+use tokio::{
+    sync::mpsc::{channel, Receiver},
+    task::{self, JoinHandle},
+};
+use tokio_stream::Stream;
 
 pub struct DataSource {
     ingestion_config: IngestionConfig,
@@ -26,20 +29,22 @@ pub struct DataSource {
 
 impl DataSource {
     pub fn new(ingestion_config: IngestionConfig, run: Run) -> Self {
-        let (data_tx, data_rx) = channel();
-        let thread_handler = thread::spawn(move || {
-            let duration = Duration::from_secs(60);
+        let (data_tx, data_rx) = channel(1);
+
+        let task_handler = task::spawn_blocking(move || {
+            let duration = Duration::from_secs(180);
             let start = Instant::now();
             let mut rng = rand::thread_rng();
 
             while Instant::now().duration_since(start) < duration {
                 data_tx
-                    .send((Utc::now(), rng.gen_range(0.0..100.0)))
+                    .blocking_send((Utc::now(), rng.gen_range(0.0..100.0)))
                     .unwrap();
-                thread::sleep(Duration::from_millis(500));
+                std::thread::sleep(Duration::from_millis(500));
             }
         });
-        let source = Some(thread_handler);
+
+        let source = Some(task_handler);
 
         Self {
             ingestion_config,
@@ -50,35 +55,38 @@ impl DataSource {
     }
 }
 
-impl Iterator for DataSource {
+impl Stream for DataSource {
     type Item = IngestWithConfigDataStreamRequest;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let Ok((timestamp, value)) = self.data_rx.recv() else {
-            return None;
-        };
-
-        println!("ingestion velocity_reading");
-
-        let req = IngestWithConfigDataStreamRequest {
-            run_id: self.run.run_id.clone(),
-            ingestion_config_id: String::from(&self.ingestion_config.ingestion_config_id),
-            flow: String::from("velocity_reading"),
-            timestamp: Some(Timestamp::from(timestamp)),
-            channel_values: vec![IngestWithConfigDataChannelValue {
-                r#type: Some(Type::Double(value)),
-            }],
-            // Set this flag to `true` only for debugging purposes to get real-time data validation from
-            // the Sift API. Do not use in production as it will hurt performance.
-            end_stream_on_validation_error: false,
-            ..Default::default()
-        };
-        Some(req)
+    fn poll_next(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        match self.data_rx.poll_recv(ctx) {
+            Poll::Ready(Some((ts, val))) => {
+                let req = IngestWithConfigDataStreamRequest {
+                    run_id: self.run.run_id.clone(),
+                    ingestion_config_id: String::from(&self.ingestion_config.ingestion_config_id),
+                    flow: String::from("velocity_reading"),
+                    timestamp: Some(Timestamp::from(ts)),
+                    channel_values: vec![IngestWithConfigDataChannelValue {
+                        r#type: Some(Type::Double(val)),
+                    }],
+                    // Set this flag to `true` only for debugging purposes to get real-time data validation from
+                    // the Sift API. Do not use in production as it will hurt performance.
+                    end_stream_on_validation_error: false,
+                    ..Default::default()
+                };
+                println!("Emitting value for velocity_reading");
+                Poll::Ready(Some(req))
+            }
+            Poll::Ready(_) => Poll::Ready(None),
+            _ => Poll::Pending,
+        }
     }
 }
 
 impl Drop for DataSource {
     fn drop(&mut self) {
-        let _ = self.source.take().map(|h| h.join());
+        if let Some(handle) = self.source.take() {
+            handle.abort();
+        }
     }
 }

@@ -45,10 +45,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Initialize the data source and create a tokio stream.
     let data_source = DataSource::new(ingestion_config, run);
-    let data_stream = tokio_stream::iter(data_source);
 
     IngestServiceClient::new(grpc_channel)
-        .ingest_with_config_data_stream(data_stream)
+        .ingest_with_config_data_stream(data_source)
         .await?;
 
     println!("done.");
