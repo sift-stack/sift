@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package sift.channels.v3;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/channel_bit_field_element.proto";
+import "sift/common/type/v1/channel_data_type.proto";
+import "sift/common/type/v1/channel_enum_type.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Channel service"}
+};
+
+service ChannelService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "Service to programmatically interact with [channels](/glossary#channel)."
+    external_docs: {
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265453943";
+      description: "Read more about what channels are.";
+    }
+  };
+
+  // Retrieve a channel
+  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {
+    option (google.api.http) = {get: "/api/v3/channels/{channel_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetChannel"
+      description: "Retrieve a channel."
+      operation_id: "ChannelService_GetChannelV2"
+    };
+  }
+
+  // Retrieve channels using an optional filter.
+  rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse) {
+    option (google.api.http) = {get: "/api/v3/channels"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListChannels"
+      description: "Retrieve channels using an optional filter."
+      operation_id: "ChannelService_ListChannelsV2"
+    };
+  }
+}
+
+message Channel {
+  string channel_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // The full name of the channel.
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string asset_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string description = 4 [(google.api.field_behavior) = REQUIRED];
+  string unit_id = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 9 [(google.api.field_behavior) = REQUIRED];
+  sift.common.type.v1.ChannelDataType data_type = 10 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.ChannelEnumType enum_types = 11;
+  repeated sift.common.type.v1.ChannelBitFieldElement bit_field_elements = 12;
+}
+
+// The request for a call to `ChannelService_GetChannel`.
+message GetChannelRequest {
+  string channel_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `ChannelService_GetChannel`.
+message GetChannelResponse {
+  Channel channel = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `ChannelService_ListChannels` to retrieve channels.
+message ListChannelsRequest {
+  // The maximum number of channels to return. The service may return fewer than this value.
+  // If unspecified, at most 50 channels will be returned. The maximum value is 10,000; values above
+  // 10,000 will be coerced to 10,000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListChannels` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListChannels` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `channel_id`, `asset_id`, `name`, `description`, `active`,
+  // `run_id`, `run_name`, `run_client_key`, `created_date`, and `modified_date`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The result of a call to `ChannelService_ListChannels`.
+message ListChannelsResponse {
+  repeated Channel channels = 1;
+  string next_page_token = 2;
+}

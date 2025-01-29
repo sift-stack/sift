@@ -202,10 +202,11 @@ message UpdateRunRequest {
   Run run = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The list of fields to be updated. The fields available to be updated are `name`, `description`,
-  // `start_time`, `stop_time`, `is_pinned`,  and `tags`.
+  // `start_time`, `stop_time`, `is_pinned`, `client_key`  and `tags`.
   // Important Note: When updating the `start_time`, please be aware that if a subsequent data ingestion
   // commences for this run, the `start_time` will be automatically overwritten and set to the timestamp
-  // corresponding to the beginning of the latest run.
+  // corresponding to the beginning of the latest run. Additionally, `client_key` can only be set once either in run creation or in update.
+  // Any subsequent attempt to update `client_key` will result in an error.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 

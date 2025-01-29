@@ -578,6 +578,7 @@ message RuleVersion {
   string created_by_user_id = 5 [(google.api.field_behavior) = REQUIRED];
   string version_notes = 6 [(google.api.field_behavior) = REQUIRED];
   string generated_change_message = 7 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp deleted_date = 8 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListRuleVersionsResponse {

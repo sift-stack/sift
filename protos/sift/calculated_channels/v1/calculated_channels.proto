@@ -98,6 +98,7 @@ enum ExpressionMode {
   EXPRESSION_MODE_RULES = 1;
   EXPRESSION_MODE_CALCULATED_CHANNELS = 2;
   EXPRESSION_MODE_RULER = 3;
+  EXPRESSION_MODE_STRUCTURED_DATA = 4;
 }
 
 message ValidateExpressionRequest {

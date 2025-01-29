@@ -101,6 +101,7 @@ message RemoteFile {
   oneof metadata {
     VideoMetadata video_metadata = 11 [(google.api.field_behavior) = OPTIONAL];
     ImageMetadata image_metadata = 12 [(google.api.field_behavior) = OPTIONAL];
+    AudioMetadata audio_metadata = 17 [(google.api.field_behavior) = OPTIONAL];
   }
   string created_by_user_id = 13 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 14 [(google.api.field_behavior) = REQUIRED];
@@ -118,6 +119,11 @@ message VideoMetadata {
 message ImageMetadata {
   uint32 height = 1 [(google.api.field_behavior) = OPTIONAL];
   uint32 width = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message AudioMetadata {
+  float duration_seconds = 1 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp timestamp = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
 enum EntityType {
@@ -182,6 +188,7 @@ message CreateRemoteFileRequest {
   oneof metadata {
     VideoMetadata video_metadata = 9 [(google.api.field_behavior) = OPTIONAL];
     ImageMetadata image_metadata = 10 [(google.api.field_behavior) = OPTIONAL];
+    AudioMetadata audio_metadata = 12 [(google.api.field_behavior) = OPTIONAL];
   }
 
   // A custom UUID used to generate the object key. Recommended to be left unset.

@@ -1,0 +1,257 @@
+syntax = "proto3";
+
+package sift.data.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/calculated_channels/v1/calculated_channels.proto";
+import "sift/common/type/v1/channel_bit_field_element.proto";
+import "sift/common/type/v1/channel_data_type.proto";
+import "sift/common/type/v1/channel_enum_type.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Data Service"}
+};
+
+service DataService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to query data"};
+
+  // Query data
+  rpc GetData(GetDataRequest) returns (GetDataResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/data"
+      body: "*",
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetData"
+      description: "Query data"
+      operation_id: "DataService_GetDataV2"
+    };
+  }
+}
+
+message GetDataRequest {
+  repeated Query queries = 1;
+
+  // Required. The starting timestamp of the data to retrieve. This is an inclusive bound.
+  google.protobuf.Timestamp start_time = 2;
+
+  // Required. The end timestamp of the data to retrieve. This is an exclusive bound.
+  google.protobuf.Timestamp end_time = 3;
+
+  // The rate to sample the returned data at. The data is sampled using [LTTB](https://github.com/sveinn-steinarsson/flot-downsample)
+  // which will return one point approximately every sample_ms milliseconds that retains the shape of the raw data.
+  // Sampling is only supported for numeric data types, if sample_ms is provided for non-numeric data, it will be
+  // ignored and the full-fidelity data will be returned.
+  uint32 sample_ms = 4;
+
+  // The maximum number of channel values to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 10,000 values will be returned.
+  // The maximum value is 100,000; values above 100,000 will be coerced to 100,000.
+  // For variable data types (i.e. string channels), at most page_size elements
+  // will be read, or 1MB, whichever occurs first.
+  uint32 page_size = 5;
+
+  // A page token, received from a previous `GetData` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `GetData` must match
+  // the call that provided the page token.
+  string page_token = 6;
+}
+
+message Query {
+  oneof query {
+    ChannelQuery channel = 1;
+    CalculatedChannelQuery calculated_channel = 2;
+  }
+}
+
+message ChannelQuery {
+  // channel_id is the uuid of the channel.
+  string channel_id = 1;
+  // Optional.
+  // If set, only data associated with the specified run is returned.
+  // If set to the empty string, only non-run data is returned.
+  // If unset, all run / non-run data is returned.
+  optional string run_id = 2;
+}
+
+message CalculatedChannelQuery {
+  string channel_key = 1 [(google.api.field_behavior) = REQUIRED];
+  sift.calculated_channels.v1.ExpressionRequest expression = 2 [(google.api.field_behavior) = REQUIRED];
+  // Optional.
+  // If set, only data for the specified run is returned
+  // If set to the empty string, only non-run data is returned.
+  // If unset, all run / non-run data is returned.
+  optional string run_id = 3;
+  // Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS.
+  optional sift.calculated_channels.v1.ExpressionMode mode = 4;
+}
+
+message GetDataResponse {
+  string next_page_token = 1;
+
+  // data contains the result of the supplied queries.
+  // Be aware that each query can generate multiple data responses.
+  // For example, if run_id is omitted from a ChannelQuery, the query returns
+  // data for all runs containing that channel. Channel data for each run is
+  // returned in a separate data object.
+  // Possible message types:
+  //   sift.data.v2.DoubleValues
+  //   sift.data.v2.FloatValues
+  //   sift.data.v2.StringValues
+  //   sift.data.v2.EnumValues
+  //   sift.data.v2.BitFieldValues
+  //   sift.data.v2.BoolValues
+  //   sift.data.v2.Int32Values
+  //   sift.data.v2.Int64Values
+  //   sift.data.v2.Uint32Values
+  //   sift.data.v2.Uint64Values
+  repeated google.protobuf.Any data = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Metadata {
+  sift.common.type.v1.ChannelDataType data_type = 1 [(google.api.field_behavior) = REQUIRED];
+  uint32 sampled_ms = 2 [(google.api.field_behavior) = REQUIRED];
+
+  message Asset {
+    string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+    string name = 2 [(google.api.field_behavior) = REQUIRED];
+  }
+  Asset asset = 3 [(google.api.field_behavior) = REQUIRED];
+
+  message Run {
+    // The run_id that was sent with the data during ingestion (if any).
+    // Note that this may be different from the run_id that was requested in the query.
+    string run_id = 1 [(google.api.field_behavior) = REQUIRED];
+    string name = 2 [(google.api.field_behavior) = REQUIRED];
+  }
+  optional Run run = 4;
+
+  message Channel {
+    // For channel queries, this will contain the requested backing channel id.
+    // For calculated channel queries, this will contain the requested channel key.
+    string channel_id = 1 [(google.api.field_behavior) = REQUIRED];
+    string name = 2;
+
+    message Unit {
+      string name = 1 [(google.api.field_behavior) = REQUIRED];
+      string abbreviated_name = 2 [(google.api.field_behavior) = REQUIRED];
+    }
+    Unit unit = 3;
+
+    repeated sift.common.type.v1.ChannelEnumType enum_types = 4;
+    repeated sift.common.type.v1.ChannelBitFieldElement bit_field_elements = 5;
+  }
+  optional Channel channel = 5;
+}
+
+message DoubleValue {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  double value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DoubleValues {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated DoubleValue values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message StringValue {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  string value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message StringValues {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated StringValue values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message EnumValue {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  uint32 value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message EnumValues {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated EnumValue values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BitFieldValue {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  uint32 value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BitFieldElementValues {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated BitFieldValue values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BitFieldValues {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated BitFieldElementValues values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BoolValue {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  bool value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BoolValues {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated BoolValue values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message FloatValue {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  float value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message FloatValues {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated FloatValue values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Int32Value {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  int32 value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Int32Values {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated Int32Value values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Uint32Value {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  uint32 value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Uint32Values {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated Uint32Value values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Int64Value {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  int64 value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Int64Values {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated Int64Value values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Uint64Value {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  uint64 value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Uint64Values {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated Uint64Value values = 2 [(google.api.field_behavior) = REQUIRED];
+}
