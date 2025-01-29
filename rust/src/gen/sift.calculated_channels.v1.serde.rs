@@ -536,6 +536,7 @@ impl serde::Serialize for ExpressionMode {
             Self::Rules => "EXPRESSION_MODE_RULES",
             Self::CalculatedChannels => "EXPRESSION_MODE_CALCULATED_CHANNELS",
             Self::Ruler => "EXPRESSION_MODE_RULER",
+            Self::StructuredData => "EXPRESSION_MODE_STRUCTURED_DATA",
         };
         serializer.serialize_str(variant)
     }
@@ -551,6 +552,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionMode {
             "EXPRESSION_MODE_RULES",
             "EXPRESSION_MODE_CALCULATED_CHANNELS",
             "EXPRESSION_MODE_RULER",
+            "EXPRESSION_MODE_STRUCTURED_DATA",
         ];
 
         struct GeneratedVisitor;
@@ -595,6 +597,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionMode {
                     "EXPRESSION_MODE_RULES" => Ok(ExpressionMode::Rules),
                     "EXPRESSION_MODE_CALCULATED_CHANNELS" => Ok(ExpressionMode::CalculatedChannels),
                     "EXPRESSION_MODE_RULER" => Ok(ExpressionMode::Ruler),
+                    "EXPRESSION_MODE_STRUCTURED_DATA" => Ok(ExpressionMode::StructuredData),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

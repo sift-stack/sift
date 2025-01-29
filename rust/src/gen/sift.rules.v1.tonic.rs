@@ -261,6 +261,85 @@ pub mod rule_service_client {
                 .insert(GrpcMethod::new("sift.rules.v1.RuleService", "DeleteRule"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn batch_delete_rules(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchDeleteRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchDeleteRulesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/BatchDeleteRules",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("sift.rules.v1.RuleService", "BatchDeleteRules"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn undelete_rule(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UndeleteRuleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UndeleteRuleResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/UndeleteRule",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.rules.v1.RuleService", "UndeleteRule"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn batch_undelete_rules(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchUndeleteRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUndeleteRulesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.rules.v1.RuleService/BatchUndeleteRules",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("sift.rules.v1.RuleService", "BatchUndeleteRules"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn evaluate_rules(
             &mut self,
             request: impl tonic::IntoRequest<super::EvaluateRulesRequest>,
@@ -555,6 +634,27 @@ pub mod rule_service_server {
             request: tonic::Request<super::DeleteRuleRequest>,
         ) -> std::result::Result<
             tonic::Response<super::DeleteRuleResponse>,
+            tonic::Status,
+        >;
+        async fn batch_delete_rules(
+            &self,
+            request: tonic::Request<super::BatchDeleteRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchDeleteRulesResponse>,
+            tonic::Status,
+        >;
+        async fn undelete_rule(
+            &self,
+            request: tonic::Request<super::UndeleteRuleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UndeleteRuleResponse>,
+            tonic::Status,
+        >;
+        async fn batch_undelete_rules(
+            &self,
+            request: tonic::Request<super::BatchUndeleteRulesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUndeleteRulesResponse>,
             tonic::Status,
         >;
         async fn evaluate_rules(
@@ -1008,6 +1108,146 @@ pub mod rule_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = DeleteRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/BatchDeleteRules" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchDeleteRulesSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::BatchDeleteRulesRequest>
+                    for BatchDeleteRulesSvc<T> {
+                        type Response = super::BatchDeleteRulesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchDeleteRulesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::batch_delete_rules(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BatchDeleteRulesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/UndeleteRule" => {
+                    #[allow(non_camel_case_types)]
+                    struct UndeleteRuleSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::UndeleteRuleRequest>
+                    for UndeleteRuleSvc<T> {
+                        type Response = super::UndeleteRuleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UndeleteRuleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::undelete_rule(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = UndeleteRuleSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.rules.v1.RuleService/BatchUndeleteRules" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchUndeleteRulesSvc<T: RuleService>(pub Arc<T>);
+                    impl<
+                        T: RuleService,
+                    > tonic::server::UnaryService<super::BatchUndeleteRulesRequest>
+                    for BatchUndeleteRulesSvc<T> {
+                        type Response = super::BatchUndeleteRulesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchUndeleteRulesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as RuleService>::batch_undelete_rules(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BatchUndeleteRulesSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -120,6 +120,7 @@ class ReportRuleSummary(google.protobuf.message.Message):
     CREATED_DATE_FIELD_NUMBER: builtins.int
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     ASSET_ID_FIELD_NUMBER: builtins.int
+    DELETED_DATE_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_client_key: builtins.str
     rule_version_id: builtins.str
@@ -136,6 +137,8 @@ class ReportRuleSummary(google.protobuf.message.Message):
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def deleted_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -152,9 +155,10 @@ class ReportRuleSummary(google.protobuf.message.Message):
         created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         asset_id: builtins.str = ...,
+        deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date", "status_details", b"status_details"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_date", b"created_date", "modified_date", b"modified_date", "num_failed", b"num_failed", "num_open", b"num_open", "num_passed", b"num_passed", "report_rule_version_id", b"report_rule_version_id", "rule_client_key", b"rule_client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number", "status", b"status", "status_details", b"status_details"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "status_details", b"status_details"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "num_failed", b"num_failed", "num_open", b"num_open", "num_passed", b"num_passed", "report_rule_version_id", b"report_rule_version_id", "rule_client_key", b"rule_client_key", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "rule_version_number", b"rule_version_number", "status", b"status", "status_details", b"status_details"]) -> None: ...
 
 global___ReportRuleSummary = ReportRuleSummary
 
@@ -456,12 +460,12 @@ class ListReportsRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, and `run_id`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/reports#report). Optional.
+    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""
     order_by: builtins.str
-    """How to order the retrieved reports. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+    """How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
     Available fields to order_by are `created_date` and `modified_date`.
     If left empty, items are ordered by `created_date` in ascending order (oldest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)

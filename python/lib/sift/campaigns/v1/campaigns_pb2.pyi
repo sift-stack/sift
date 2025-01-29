@@ -59,9 +59,9 @@ class Campaign(google.protobuf.message.Message):
         *,
         campaign_id: builtins.str = ...,
         organization_id: builtins.str = ...,
-        client_key: builtins.str = ...,
+        client_key: builtins.str | None = ...,
         name: builtins.str = ...,
-        description: builtins.str = ...,
+        description: builtins.str | None = ...,
         created_by_user_id: builtins.str = ...,
         modified_by_user_id: builtins.str = ...,
         created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
@@ -69,16 +69,22 @@ class Campaign(google.protobuf.message.Message):
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         tags: collections.abc.Iterable[sift.tags.v1.tags_pb2.TagRef] | None = ...,
         reports: collections.abc.Iterable[global___CampaignReport] | None = ...,
-        created_from_campaign_id: builtins.str = ...,
+        created_from_campaign_id: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "campaign_id", b"campaign_id", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "reports", b"reports", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "modified_date", b"modified_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "campaign_id", b"campaign_id", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "reports", b"reports", "tags", b"tags"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_created_from_campaign_id", b"_created_from_campaign_id"]) -> typing.Literal["created_from_campaign_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
 
 global___Campaign = Campaign
 
 @typing.final
 class CampaignReport(google.protobuf.message.Message):
-    """A top-level summary of the report's rules is provided here so clients needn't aggregate this information themselves"""
+    """A top-level summary of the report's rules is provided here so clients needn't aggregate this information themselves."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -194,48 +200,52 @@ class CreateCampaignRequest(google.protobuf.message.Message):
         self,
         *,
         name: builtins.str = ...,
-        description: builtins.str = ...,
+        description: builtins.str | None = ...,
         tags: sift.common.type.v1.resource_identifier_pb2.NamedResources | None = ...,
         organization_id: builtins.str = ...,
-        client_key: builtins.str = ...,
+        client_key: builtins.str | None = ...,
         create_from: global___CreateCampaignFrom | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["create_from", b"create_from", "tags", b"tags"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["client_key", b"client_key", "create_from", b"create_from", "description", b"description", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_description", b"_description", "client_key", b"client_key", "create_from", b"create_from", "description", b"description", "tags", b"tags"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_description", b"_description", "client_key", b"client_key", "create_from", b"create_from", "description", b"description", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
 
 global___CreateCampaignRequest = CreateCampaignRequest
 
 @typing.final
 class CreateCampaignFrom(google.protobuf.message.Message):
-    """Campaigns can be created from a few different sources"""
+    """Campaigns can be created from a few different sources."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    REPORT_IDS_FIELD_NUMBER: builtins.int
-    RUN_IDS_FIELD_NUMBER: builtins.int
-    CAMPAIGN_ID_FIELD_NUMBER: builtins.int
+    REPORTS_FIELD_NUMBER: builtins.int
+    RUNS_FIELD_NUMBER: builtins.int
+    OTHER_CAMPAIGN_FIELD_NUMBER: builtins.int
     @property
-    def report_ids(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifiers:
+    def reports(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifiers:
         """Create a campaign directly from a set of reports"""
 
     @property
-    def run_ids(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifiers:
+    def runs(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifiers:
         """Create a campaign from a set of runs by collecting all the reports generated by those runs"""
 
     @property
-    def campaign_id(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier:
+    def other_campaign(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier:
         """Duplicate another campaign"""
 
     def __init__(
         self,
         *,
-        report_ids: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifiers | None = ...,
-        run_ids: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifiers | None = ...,
-        campaign_id: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
+        reports: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifiers | None = ...,
+        runs: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifiers | None = ...,
+        other_campaign: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["campaign_id", b"campaign_id", "initializer", b"initializer", "report_ids", b"report_ids", "run_ids", b"run_ids"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["campaign_id", b"campaign_id", "initializer", b"initializer", "report_ids", b"report_ids", "run_ids", b"run_ids"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["initializer", b"initializer"]) -> typing.Literal["report_ids", "run_ids", "campaign_id"] | None: ...
+    def HasField(self, field_name: typing.Literal["initializer", b"initializer", "other_campaign", b"other_campaign", "reports", b"reports", "runs", b"runs"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["initializer", b"initializer", "other_campaign", b"other_campaign", "reports", b"reports", "runs", b"runs"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["initializer", b"initializer"]) -> typing.Literal["reports", "runs", "other_campaign"] | None: ...
 
 global___CreateCampaignFrom = CreateCampaignFrom
 
@@ -283,16 +293,17 @@ class ListCampaignsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `campaign_id`, `tag_id`, `tag_name`, `client_key`, and `name`.
+    Available fields to filter by are:
+    `created_by_user_id`, `tag_id`, `tag_name`, `report_id`, `report_name`, `campaign_id`, `client_key`, `description`, `run_id`, and `name`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#campaigns). Optional.
+    For more information about the fields used for filtering, please refer to this definition. Optional.
     """
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""
     include_archived: builtins.bool
     """If `true` then archived campaigns will be included in the query. Defaults to `false`."""
     order_by: builtins.str
-    """How to order the retrieved campaigns. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+    """How to order the retrieved campaigns. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
     Available fields to order_by are `created_date` and `modified_date`.
     If left empty, items are ordered by `created_date` in ascending order (oldest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)

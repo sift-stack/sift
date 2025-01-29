@@ -124,6 +124,237 @@ impl<'de> serde::Deserialize<'de> for Contact {
         deserializer.deserialize_struct("grpc.gateway.protoc_gen_openapiv2.options.Contact", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for EnumSchema {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.description.is_empty() {
+            len += 1;
+        }
+        if !self.default.is_empty() {
+            len += 1;
+        }
+        if !self.title.is_empty() {
+            len += 1;
+        }
+        if self.required {
+            len += 1;
+        }
+        if self.read_only {
+            len += 1;
+        }
+        if self.external_docs.is_some() {
+            len += 1;
+        }
+        if !self.example.is_empty() {
+            len += 1;
+        }
+        if !self.r#ref.is_empty() {
+            len += 1;
+        }
+        if !self.extensions.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("grpc.gateway.protoc_gen_openapiv2.options.EnumSchema", len)?;
+        if !self.description.is_empty() {
+            struct_ser.serialize_field("description", &self.description)?;
+        }
+        if !self.default.is_empty() {
+            struct_ser.serialize_field("default", &self.default)?;
+        }
+        if !self.title.is_empty() {
+            struct_ser.serialize_field("title", &self.title)?;
+        }
+        if self.required {
+            struct_ser.serialize_field("required", &self.required)?;
+        }
+        if self.read_only {
+            struct_ser.serialize_field("readOnly", &self.read_only)?;
+        }
+        if let Some(v) = self.external_docs.as_ref() {
+            struct_ser.serialize_field("externalDocs", v)?;
+        }
+        if !self.example.is_empty() {
+            struct_ser.serialize_field("example", &self.example)?;
+        }
+        if !self.r#ref.is_empty() {
+            struct_ser.serialize_field("ref", &self.r#ref)?;
+        }
+        if !self.extensions.is_empty() {
+            struct_ser.serialize_field("extensions", &self.extensions)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for EnumSchema {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "description",
+            "default",
+            "title",
+            "required",
+            "read_only",
+            "readOnly",
+            "external_docs",
+            "externalDocs",
+            "example",
+            "ref",
+            "extensions",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Description,
+            Default,
+            Title,
+            Required,
+            ReadOnly,
+            ExternalDocs,
+            Example,
+            Ref,
+            Extensions,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "description" => Ok(GeneratedField::Description),
+                            "default" => Ok(GeneratedField::Default),
+                            "title" => Ok(GeneratedField::Title),
+                            "required" => Ok(GeneratedField::Required),
+                            "readOnly" | "read_only" => Ok(GeneratedField::ReadOnly),
+                            "externalDocs" | "external_docs" => Ok(GeneratedField::ExternalDocs),
+                            "example" => Ok(GeneratedField::Example),
+                            "ref" => Ok(GeneratedField::Ref),
+                            "extensions" => Ok(GeneratedField::Extensions),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = EnumSchema;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct grpc.gateway.protoc_gen_openapiv2.options.EnumSchema")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<EnumSchema, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut description__ = None;
+                let mut default__ = None;
+                let mut title__ = None;
+                let mut required__ = None;
+                let mut read_only__ = None;
+                let mut external_docs__ = None;
+                let mut example__ = None;
+                let mut r#ref__ = None;
+                let mut extensions__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Description => {
+                            if description__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("description"));
+                            }
+                            description__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Default => {
+                            if default__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("default"));
+                            }
+                            default__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Title => {
+                            if title__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("title"));
+                            }
+                            title__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Required => {
+                            if required__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("required"));
+                            }
+                            required__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ReadOnly => {
+                            if read_only__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("readOnly"));
+                            }
+                            read_only__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ExternalDocs => {
+                            if external_docs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("externalDocs"));
+                            }
+                            external_docs__ = map_.next_value()?;
+                        }
+                        GeneratedField::Example => {
+                            if example__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("example"));
+                            }
+                            example__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Ref => {
+                            if r#ref__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ref"));
+                            }
+                            r#ref__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Extensions => {
+                            if extensions__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("extensions"));
+                            }
+                            extensions__ = Some(
+                                map_.next_value::<std::collections::HashMap<_, _>>()?
+                            );
+                        }
+                    }
+                }
+                Ok(EnumSchema {
+                    description: description__.unwrap_or_default(),
+                    default: default__.unwrap_or_default(),
+                    title: title__.unwrap_or_default(),
+                    required: required__.unwrap_or_default(),
+                    read_only: read_only__.unwrap_or_default(),
+                    external_docs: external_docs__,
+                    example: example__.unwrap_or_default(),
+                    r#ref: r#ref__.unwrap_or_default(),
+                    extensions: extensions__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("grpc.gateway.protoc_gen_openapiv2.options.EnumSchema", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ExternalDocumentation {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>

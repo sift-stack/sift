@@ -164,6 +164,7 @@ pub enum ExpressionMode {
     Rules = 1,
     CalculatedChannels = 2,
     Ruler = 3,
+    StructuredData = 4,
 }
 impl ExpressionMode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -176,6 +177,7 @@ impl ExpressionMode {
             ExpressionMode::Rules => "EXPRESSION_MODE_RULES",
             ExpressionMode::CalculatedChannels => "EXPRESSION_MODE_CALCULATED_CHANNELS",
             ExpressionMode::Ruler => "EXPRESSION_MODE_RULER",
+            ExpressionMode::StructuredData => "EXPRESSION_MODE_STRUCTURED_DATA",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -185,6 +187,7 @@ impl ExpressionMode {
             "EXPRESSION_MODE_RULES" => Some(Self::Rules),
             "EXPRESSION_MODE_CALCULATED_CHANNELS" => Some(Self::CalculatedChannels),
             "EXPRESSION_MODE_RULER" => Some(Self::Ruler),
+            "EXPRESSION_MODE_STRUCTURED_DATA" => Some(Self::StructuredData),
             _ => None,
         }
     }

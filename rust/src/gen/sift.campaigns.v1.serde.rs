@@ -13,13 +13,13 @@ impl serde::Serialize for Campaign {
         if !self.organization_id.is_empty() {
             len += 1;
         }
-        if !self.client_key.is_empty() {
+        if self.client_key.is_some() {
             len += 1;
         }
         if !self.name.is_empty() {
             len += 1;
         }
-        if !self.description.is_empty() {
+        if self.description.is_some() {
             len += 1;
         }
         if !self.created_by_user_id.is_empty() {
@@ -43,7 +43,7 @@ impl serde::Serialize for Campaign {
         if !self.reports.is_empty() {
             len += 1;
         }
-        if !self.created_from_campaign_id.is_empty() {
+        if self.created_from_campaign_id.is_some() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.Campaign", len)?;
@@ -53,14 +53,14 @@ impl serde::Serialize for Campaign {
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
         }
-        if !self.client_key.is_empty() {
-            struct_ser.serialize_field("clientKey", &self.client_key)?;
+        if let Some(v) = self.client_key.as_ref() {
+            struct_ser.serialize_field("clientKey", v)?;
         }
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
         }
-        if !self.description.is_empty() {
-            struct_ser.serialize_field("description", &self.description)?;
+        if let Some(v) = self.description.as_ref() {
+            struct_ser.serialize_field("description", v)?;
         }
         if !self.created_by_user_id.is_empty() {
             struct_ser.serialize_field("createdByUserId", &self.created_by_user_id)?;
@@ -83,8 +83,8 @@ impl serde::Serialize for Campaign {
         if !self.reports.is_empty() {
             struct_ser.serialize_field("reports", &self.reports)?;
         }
-        if !self.created_from_campaign_id.is_empty() {
-            struct_ser.serialize_field("createdFromCampaignId", &self.created_from_campaign_id)?;
+        if let Some(v) = self.created_from_campaign_id.as_ref() {
+            struct_ser.serialize_field("createdFromCampaignId", v)?;
         }
         struct_ser.end()
     }
@@ -219,7 +219,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             if client_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("clientKey"));
                             }
-                            client_key__ = Some(map_.next_value()?);
+                            client_key__ = map_.next_value()?;
                         }
                         GeneratedField::Name => {
                             if name__.is_some() {
@@ -231,7 +231,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             if description__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("description"));
                             }
-                            description__ = Some(map_.next_value()?);
+                            description__ = map_.next_value()?;
                         }
                         GeneratedField::CreatedByUserId => {
                             if created_by_user_id__.is_some() {
@@ -279,16 +279,16 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             if created_from_campaign_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("createdFromCampaignId"));
                             }
-                            created_from_campaign_id__ = Some(map_.next_value()?);
+                            created_from_campaign_id__ = map_.next_value()?;
                         }
                     }
                 }
                 Ok(Campaign {
                     campaign_id: campaign_id__.unwrap_or_default(),
                     organization_id: organization_id__.unwrap_or_default(),
-                    client_key: client_key__.unwrap_or_default(),
+                    client_key: client_key__,
                     name: name__.unwrap_or_default(),
-                    description: description__.unwrap_or_default(),
+                    description: description__,
                     created_by_user_id: created_by_user_id__.unwrap_or_default(),
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
                     created_date: created_date__,
@@ -296,7 +296,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                     archived_date: archived_date__,
                     tags: tags__.unwrap_or_default(),
                     reports: reports__.unwrap_or_default(),
-                    created_from_campaign_id: created_from_campaign_id__.unwrap_or_default(),
+                    created_from_campaign_id: created_from_campaign_id__,
                 })
             }
         }
@@ -527,14 +527,14 @@ impl serde::Serialize for CreateCampaignFrom {
         let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.CreateCampaignFrom", len)?;
         if let Some(v) = self.initializer.as_ref() {
             match v {
-                create_campaign_from::Initializer::ReportIds(v) => {
-                    struct_ser.serialize_field("reportIds", v)?;
+                create_campaign_from::Initializer::Reports(v) => {
+                    struct_ser.serialize_field("reports", v)?;
                 }
-                create_campaign_from::Initializer::RunIds(v) => {
-                    struct_ser.serialize_field("runIds", v)?;
+                create_campaign_from::Initializer::Runs(v) => {
+                    struct_ser.serialize_field("runs", v)?;
                 }
-                create_campaign_from::Initializer::CampaignId(v) => {
-                    struct_ser.serialize_field("campaignId", v)?;
+                create_campaign_from::Initializer::OtherCampaign(v) => {
+                    struct_ser.serialize_field("otherCampaign", v)?;
                 }
             }
         }
@@ -548,19 +548,17 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignFrom {
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
-            "report_ids",
-            "reportIds",
-            "run_ids",
-            "runIds",
-            "campaign_id",
-            "campaignId",
+            "reports",
+            "runs",
+            "other_campaign",
+            "otherCampaign",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
-            ReportIds,
-            RunIds,
-            CampaignId,
+            Reports,
+            Runs,
+            OtherCampaign,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -582,9 +580,9 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignFrom {
                         E: serde::de::Error,
                     {
                         match value {
-                            "reportIds" | "report_ids" => Ok(GeneratedField::ReportIds),
-                            "runIds" | "run_ids" => Ok(GeneratedField::RunIds),
-                            "campaignId" | "campaign_id" => Ok(GeneratedField::CampaignId),
+                            "reports" => Ok(GeneratedField::Reports),
+                            "runs" => Ok(GeneratedField::Runs),
+                            "otherCampaign" | "other_campaign" => Ok(GeneratedField::OtherCampaign),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -607,25 +605,25 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignFrom {
                 let mut initializer__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
-                        GeneratedField::ReportIds => {
+                        GeneratedField::Reports => {
                             if initializer__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("reportIds"));
+                                return Err(serde::de::Error::duplicate_field("reports"));
                             }
-                            initializer__ = map_.next_value::<::std::option::Option<_>>()?.map(create_campaign_from::Initializer::ReportIds)
+                            initializer__ = map_.next_value::<::std::option::Option<_>>()?.map(create_campaign_from::Initializer::Reports)
 ;
                         }
-                        GeneratedField::RunIds => {
+                        GeneratedField::Runs => {
                             if initializer__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("runIds"));
+                                return Err(serde::de::Error::duplicate_field("runs"));
                             }
-                            initializer__ = map_.next_value::<::std::option::Option<_>>()?.map(create_campaign_from::Initializer::RunIds)
+                            initializer__ = map_.next_value::<::std::option::Option<_>>()?.map(create_campaign_from::Initializer::Runs)
 ;
                         }
-                        GeneratedField::CampaignId => {
+                        GeneratedField::OtherCampaign => {
                             if initializer__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("campaignId"));
+                                return Err(serde::de::Error::duplicate_field("otherCampaign"));
                             }
-                            initializer__ = map_.next_value::<::std::option::Option<_>>()?.map(create_campaign_from::Initializer::CampaignId)
+                            initializer__ = map_.next_value::<::std::option::Option<_>>()?.map(create_campaign_from::Initializer::OtherCampaign)
 ;
                         }
                     }
@@ -649,7 +647,7 @@ impl serde::Serialize for CreateCampaignRequest {
         if !self.name.is_empty() {
             len += 1;
         }
-        if !self.description.is_empty() {
+        if self.description.is_some() {
             len += 1;
         }
         if self.tags.is_some() {
@@ -658,7 +656,7 @@ impl serde::Serialize for CreateCampaignRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
-        if !self.client_key.is_empty() {
+        if self.client_key.is_some() {
             len += 1;
         }
         if self.create_from.is_some() {
@@ -668,8 +666,8 @@ impl serde::Serialize for CreateCampaignRequest {
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
         }
-        if !self.description.is_empty() {
-            struct_ser.serialize_field("description", &self.description)?;
+        if let Some(v) = self.description.as_ref() {
+            struct_ser.serialize_field("description", v)?;
         }
         if let Some(v) = self.tags.as_ref() {
             struct_ser.serialize_field("tags", v)?;
@@ -677,8 +675,8 @@ impl serde::Serialize for CreateCampaignRequest {
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
         }
-        if !self.client_key.is_empty() {
-            struct_ser.serialize_field("clientKey", &self.client_key)?;
+        if let Some(v) = self.client_key.as_ref() {
+            struct_ser.serialize_field("clientKey", v)?;
         }
         if let Some(v) = self.create_from.as_ref() {
             struct_ser.serialize_field("createFrom", v)?;
@@ -776,7 +774,7 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
                             if description__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("description"));
                             }
-                            description__ = Some(map_.next_value()?);
+                            description__ = map_.next_value()?;
                         }
                         GeneratedField::Tags => {
                             if tags__.is_some() {
@@ -794,7 +792,7 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
                             if client_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("clientKey"));
                             }
-                            client_key__ = Some(map_.next_value()?);
+                            client_key__ = map_.next_value()?;
                         }
                         GeneratedField::CreateFrom => {
                             if create_from__.is_some() {
@@ -806,10 +804,10 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
                 }
                 Ok(CreateCampaignRequest {
                     name: name__.unwrap_or_default(),
-                    description: description__.unwrap_or_default(),
+                    description: description__,
                     tags: tags__,
                     organization_id: organization_id__.unwrap_or_default(),
-                    client_key: client_key__.unwrap_or_default(),
+                    client_key: client_key__,
                     create_from: create_from__,
                 })
             }

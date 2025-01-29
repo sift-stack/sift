@@ -2187,6 +2187,9 @@ impl serde::Serialize for ReportRuleSummary {
         if !self.asset_id.is_empty() {
             len += 1;
         }
+        if self.deleted_date.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleSummary", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -2229,6 +2232,9 @@ impl serde::Serialize for ReportRuleSummary {
         if !self.asset_id.is_empty() {
             struct_ser.serialize_field("assetId", &self.asset_id)?;
         }
+        if let Some(v) = self.deleted_date.as_ref() {
+            struct_ser.serialize_field("deletedDate", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -2264,6 +2270,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             "modifiedDate",
             "asset_id",
             "assetId",
+            "deleted_date",
+            "deletedDate",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2281,6 +2289,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
             CreatedDate,
             ModifiedDate,
             AssetId,
+            DeletedDate,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2315,6 +2324,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
+                            "deletedDate" | "deleted_date" => Ok(GeneratedField::DeletedDate),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2347,6 +2357,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                 let mut created_date__ = None;
                 let mut modified_date__ = None;
                 let mut asset_id__ = None;
+                let mut deleted_date__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -2435,6 +2446,12 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                             }
                             asset_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::DeletedDate => {
+                            if deleted_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("deletedDate"));
+                            }
+                            deleted_date__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(ReportRuleSummary {
@@ -2451,6 +2468,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleSummary {
                     created_date: created_date__,
                     modified_date: modified_date__,
                     asset_id: asset_id__.unwrap_or_default(),
+                    deleted_date: deleted_date__,
                 })
             }
         }

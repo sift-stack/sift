@@ -68,6 +68,24 @@ class RuleServiceStub:
     ]
     """Deletes a rule"""
 
+    BatchDeleteRules: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchDeleteRulesRequest,
+        sift.rules.v1.rules_pb2.BatchDeleteRulesResponse,
+    ]
+    """Deletes multiple rules"""
+
+    UndeleteRule: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.UndeleteRuleRequest,
+        sift.rules.v1.rules_pb2.UndeleteRuleResponse,
+    ]
+    """Undeletes a rule"""
+
+    BatchUndeleteRules: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchUndeleteRulesRequest,
+        sift.rules.v1.rules_pb2.BatchUndeleteRulesResponse,
+    ]
+    """Undeletes multiple rules"""
+
     EvaluateRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.EvaluateRulesRequest,
         sift.rules.v1.rules_pb2.EvaluateRulesResponse,
@@ -84,25 +102,25 @@ class RuleServiceStub:
         sift.rules.v1.rules_pb2.ViewJsonRulesRequest,
         sift.rules.v1.rules_pb2.ViewJsonRulesResponse,
     ]
-    """Retrieve a JSON object containing all of the rules for a given asset."""
+    """Deprecated - use BatchGetRules instead. Retrieve a JSON object containing all of the rules for a given asset."""
 
     UpdateHumanFriendlyRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.UpdateHumanFriendlyRulesRequest,
         sift.rules.v1.rules_pb2.UpdateHumanFriendlyRulesResponse,
     ]
-    """Deprecated - use UpdateJsonRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
+    """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
 
     ValidateJsonRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.ValidateJsonRulesRequest,
         sift.rules.v1.rules_pb2.ValidateJsonRulesResponse,
     ]
-    """Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation."""
+    """Deprecated - use BatchUpdateRules with validate_only flag instead. Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation."""
 
     UpdateJsonRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.UpdateJsonRulesRequest,
         sift.rules.v1.rules_pb2.UpdateJsonRulesResponse,
     ]
-    """Batch update rules given the `rules_json` which is a JSON list of rules."""
+    """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
 
     ListRuleVersions: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.ListRuleVersionsRequest,
@@ -165,6 +183,24 @@ class RuleServiceAsyncStub:
     ]
     """Deletes a rule"""
 
+    BatchDeleteRules: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchDeleteRulesRequest,
+        sift.rules.v1.rules_pb2.BatchDeleteRulesResponse,
+    ]
+    """Deletes multiple rules"""
+
+    UndeleteRule: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.UndeleteRuleRequest,
+        sift.rules.v1.rules_pb2.UndeleteRuleResponse,
+    ]
+    """Undeletes a rule"""
+
+    BatchUndeleteRules: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchUndeleteRulesRequest,
+        sift.rules.v1.rules_pb2.BatchUndeleteRulesResponse,
+    ]
+    """Undeletes multiple rules"""
+
     EvaluateRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.EvaluateRulesRequest,
         sift.rules.v1.rules_pb2.EvaluateRulesResponse,
@@ -181,25 +217,25 @@ class RuleServiceAsyncStub:
         sift.rules.v1.rules_pb2.ViewJsonRulesRequest,
         sift.rules.v1.rules_pb2.ViewJsonRulesResponse,
     ]
-    """Retrieve a JSON object containing all of the rules for a given asset."""
+    """Deprecated - use BatchGetRules instead. Retrieve a JSON object containing all of the rules for a given asset."""
 
     UpdateHumanFriendlyRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.UpdateHumanFriendlyRulesRequest,
         sift.rules.v1.rules_pb2.UpdateHumanFriendlyRulesResponse,
     ]
-    """Deprecated - use UpdateJsonRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
+    """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
 
     ValidateJsonRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.ValidateJsonRulesRequest,
         sift.rules.v1.rules_pb2.ValidateJsonRulesResponse,
     ]
-    """Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation."""
+    """Deprecated - use BatchUpdateRules with validate_only flag instead. Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation."""
 
     UpdateJsonRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.UpdateJsonRulesRequest,
         sift.rules.v1.rules_pb2.UpdateJsonRulesResponse,
     ]
-    """Batch update rules given the `rules_json` which is a JSON list of rules."""
+    """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
 
     ListRuleVersions: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.ListRuleVersionsRequest,
@@ -277,6 +313,30 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         """Deletes a rule"""
 
     @abc.abstractmethod
+    def BatchDeleteRules(
+        self,
+        request: sift.rules.v1.rules_pb2.BatchDeleteRulesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.BatchDeleteRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.BatchDeleteRulesResponse]]:
+        """Deletes multiple rules"""
+
+    @abc.abstractmethod
+    def UndeleteRule(
+        self,
+        request: sift.rules.v1.rules_pb2.UndeleteRuleRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.UndeleteRuleResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.UndeleteRuleResponse]]:
+        """Undeletes a rule"""
+
+    @abc.abstractmethod
+    def BatchUndeleteRules(
+        self,
+        request: sift.rules.v1.rules_pb2.BatchUndeleteRulesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.BatchUndeleteRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.BatchUndeleteRulesResponse]]:
+        """Undeletes multiple rules"""
+
+    @abc.abstractmethod
     def EvaluateRules(
         self,
         request: sift.rules.v1.rules_pb2.EvaluateRulesRequest,
@@ -298,7 +358,7 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.ViewJsonRulesRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.ViewJsonRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.ViewJsonRulesResponse]]:
-        """Retrieve a JSON object containing all of the rules for a given asset."""
+        """Deprecated - use BatchGetRules instead. Retrieve a JSON object containing all of the rules for a given asset."""
 
     @abc.abstractmethod
     def UpdateHumanFriendlyRules(
@@ -306,7 +366,7 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.UpdateHumanFriendlyRulesRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.UpdateHumanFriendlyRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.UpdateHumanFriendlyRulesResponse]]:
-        """Deprecated - use UpdateJsonRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
+        """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
 
     @abc.abstractmethod
     def ValidateJsonRules(
@@ -314,7 +374,7 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.ValidateJsonRulesRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.ValidateJsonRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.ValidateJsonRulesResponse]]:
-        """Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation."""
+        """Deprecated - use BatchUpdateRules with validate_only flag instead. Validate a batch update for rules given the `rules_json` which is a JSON list of rules. This is a dry-run operation."""
 
     @abc.abstractmethod
     def UpdateJsonRules(
@@ -322,7 +382,7 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.UpdateJsonRulesRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.UpdateJsonRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.UpdateJsonRulesResponse]]:
-        """Batch update rules given the `rules_json` which is a JSON list of rules."""
+        """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
 
     @abc.abstractmethod
     def ListRuleVersions(
