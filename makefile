@@ -12,8 +12,8 @@ gen-python:
 gen-rust:
 	bash scripts/gen.sh rust 
 
-remove-go-pkg:
-	bash scripts/remove_go_pkg.sh
+sanitize:
+	bash scripts/sanitize.sh
 
 git-hooks:
 	git config core.hooksPath .githooks

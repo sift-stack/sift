@@ -18,8 +18,8 @@ service RuleEvaluationService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to evaluate rules."
     external_docs: {
-      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265421102";
-      description: "Read more about what rules are.";
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265421102"
+      description: "Read more about what rules are."
     }
   };
 
