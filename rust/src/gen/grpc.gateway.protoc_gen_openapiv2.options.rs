@@ -489,6 +489,55 @@ pub struct Schema {
     #[prost(string, tag="6")]
     pub example: ::prost::alloc::string::String,
 }
+/// `EnumSchema` is subset of fields from the OpenAPI v2 specification's Schema object.
+/// Only fields that are applicable to Enums are included
+/// See: <https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#schemaObject>
+///
+/// Example:
+///
+///   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_enum) = {
+///     ...
+///     title: "MyEnum";
+///     description:"This is my nice enum";
+///     example: "ZERO";
+///     required: true;
+///     ...
+///   };
+///
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EnumSchema {
+    /// A short description of the schema.
+    #[prost(string, tag="1")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub default: ::prost::alloc::string::String,
+    /// The title of the schema.
+    #[prost(string, tag="3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(bool, tag="4")]
+    pub required: bool,
+    #[prost(bool, tag="5")]
+    pub read_only: bool,
+    /// Additional external documentation for this schema.
+    #[prost(message, optional, tag="6")]
+    pub external_docs: ::core::option::Option<ExternalDocumentation>,
+    #[prost(string, tag="7")]
+    pub example: ::prost::alloc::string::String,
+    /// Ref is used to define an external reference to include in the message.
+    /// This could be a fully qualified proto message reference, and that type must
+    /// be imported into the protofile. If no message is identified, the Ref will
+    /// be used verbatim in the output.
+    /// For example:
+    ///   `ref: ".google.protobuf.Timestamp"`.
+    #[prost(string, tag="8")]
+    pub r#ref: ::prost::alloc::string::String,
+    /// Custom properties that start with "x-" such as "x-foo" used to describe
+    /// extra functionality that is not covered by the standard OpenAPI Specification.
+    /// See: <https://swagger.io/docs/specification/2-0/swagger-extensions/>
+    #[prost(map="string, message", tag="9")]
+    pub extensions: ::std::collections::HashMap<::prost::alloc::string::String, ::pbjson_types::Value>,
+}
 /// `JSONSchema` represents properties from JSON Schema taken, and as used, in
 /// the OpenAPI v2 spec.
 ///

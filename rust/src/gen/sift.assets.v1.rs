@@ -40,10 +40,10 @@ pub struct ListAssetsRequest {
     /// Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
     /// `created_date`, `modified_date`, and `name`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/assets#asset). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/assets#asset). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
-    /// How to order the retrieved assets. Formatted as a comma-separated string i.e. "<field_name>\[ desc\],...".
+    /// How to order the retrieved assets. Formatted as a comma-separated string i.e. "FIELD_NAME\[ desc\],...".
     /// Available fields to order_by are `created_date` and `modified_date`.
     /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
     /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)

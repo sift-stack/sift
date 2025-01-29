@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package sift.channel_schemas.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/channel_bit_field_element.proto";
+import "sift/common/type/v1/channel_data_type.proto";
+import "sift/common/type/v1/channel_enum_type.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Channel Schema Service"}
+};
+
+service ChannelSchemaService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to programmatically interact with channel schemas"};
+
+  // Create a channel schema
+  rpc CreateChannelSchema(CreateChannelSchemaRequest) returns (CreateChannelSchemaResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/channel-schemas",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateChannelSchema"
+      description: "Create a channel schema"
+      operation_id: "ChannelSchemaService_CreateChannelSchemaV2"
+    };
+  }
+
+  // Create a batch of channel schemas
+  rpc BatchCreateChannelSchemas(BatchCreateChannelSchemasRequest) returns (BatchCreateChannelSchemasResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/channel-schemas:batch-create"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchCreateChannelSchemas"
+      description: "Create a batch of channel schemas"
+      operation_id: "ChannelSchemaService_BatchCreateChannelSchemasV2"
+    };
+  }
+}
+
+// The request for a call to `ChannelSchemaService_CreateChannelSchema`.
+message CreateChannelSchemaRequest {
+  string channel = 1 [(google.api.field_behavior) = REQUIRED];
+  string unit = 2 [(google.api.field_behavior) = OPTIONAL];
+  sift.common.type.v1.ChannelDataType data_type = 3 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.ChannelEnumType enum_types = 4 [(google.api.field_behavior) = OPTIONAL];
+  repeated sift.common.type.v1.ChannelBitFieldElement bit_field_elements = 5 [(google.api.field_behavior) = OPTIONAL];
+  // The name of the asset (case-insensitive).
+  string asset_name = 6 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `ChannelSchemaService_CreateChannelSchema`.
+message CreateChannelSchemaResponse {}
+
+// The request for a call to `ChannelSchemaService_BatchCreateChannelSchemas`.
+message BatchCreateChannelSchemasRequest {
+  // Limit of 1000 channels schemas per batch
+  repeated CreateChannelSchemaRequest requests = 1 [(google.api.field_behavior) = REQUIRED];
+  // The asset to which the channel schemas belong (case-insensitive).
+  // If this field, and any of the child requests specify an asset, the assets must match.
+  string asset_name = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `ChannelSchemaService_BatchCreateChannelSchemas`.
+message BatchCreateChannelSchemasResponse {}

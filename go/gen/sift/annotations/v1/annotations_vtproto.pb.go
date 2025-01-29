@@ -45,6 +45,7 @@ func (m *Annotation) CloneVT() *Annotation {
 	r.OrganizationId = m.OrganizationId
 	r.AssignedToUserId = m.AssignedToUserId
 	r.AnnotationType = m.AnnotationType
+	r.Pending = m.Pending
 	if rhs := m.RunId; rhs != nil {
 		tmpVal := *rhs
 		r.RunId = &tmpVal
@@ -490,6 +491,9 @@ func (this *Annotation) EqualVT(that *Annotation) bool {
 		return false
 	}
 	if p, q := this.ReportRuleVersionId, that.ReportRuleVersionId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if this.Pending != that.Pending {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1262,6 +1266,18 @@ func (m *Annotation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Pending {
+		i--
+		if m.Pending {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
 	}
 	if m.ReportRuleVersionId != nil {
 		i -= len(*m.ReportRuleVersionId)
@@ -2250,6 +2266,18 @@ func (m *Annotation) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Pending {
+		i--
+		if m.Pending {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
 	}
 	if m.ReportRuleVersionId != nil {
 		i -= len(*m.ReportRuleVersionId)
@@ -3296,6 +3324,9 @@ func (m *Annotation) SizeVT() (n int) {
 		l = len(*m.ReportRuleVersionId)
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.Pending {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4249,6 +4280,26 @@ func (m *Annotation) UnmarshalVT(dAtA []byte) error {
 			s := string(dAtA[iNdEx:postIndex])
 			m.ReportRuleVersionId = &s
 			iNdEx = postIndex
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pending", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Pending = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -6858,6 +6909,26 @@ func (m *Annotation) UnmarshalVTUnsafe(dAtA []byte) error {
 			s := stringValue
 			m.ReportRuleVersionId = &s
 			iNdEx = postIndex
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pending", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Pending = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

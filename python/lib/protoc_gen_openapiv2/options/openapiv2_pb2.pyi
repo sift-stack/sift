@@ -926,6 +926,98 @@ class Schema(google.protobuf.message.Message):
 global___Schema = Schema
 
 @typing.final
+class EnumSchema(google.protobuf.message.Message):
+    """`EnumSchema` is subset of fields from the OpenAPI v2 specification's Schema object.
+    Only fields that are applicable to Enums are included
+    See: https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#schemaObject
+
+    Example:
+
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_enum) = {
+       ...
+       title: "MyEnum";
+       description:"This is my nice enum";
+       example: "ZERO";
+       required: true;
+       ...
+     };
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    @typing.final
+    class ExtensionsEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        @property
+        def value(self) -> google.protobuf.struct_pb2.Value: ...
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: google.protobuf.struct_pb2.Value | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+
+    DESCRIPTION_FIELD_NUMBER: builtins.int
+    DEFAULT_FIELD_NUMBER: builtins.int
+    TITLE_FIELD_NUMBER: builtins.int
+    REQUIRED_FIELD_NUMBER: builtins.int
+    READ_ONLY_FIELD_NUMBER: builtins.int
+    EXTERNAL_DOCS_FIELD_NUMBER: builtins.int
+    EXAMPLE_FIELD_NUMBER: builtins.int
+    REF_FIELD_NUMBER: builtins.int
+    EXTENSIONS_FIELD_NUMBER: builtins.int
+    description: builtins.str
+    """A short description of the schema."""
+    default: builtins.str
+    title: builtins.str
+    """The title of the schema."""
+    required: builtins.bool
+    read_only: builtins.bool
+    example: builtins.str
+    ref: builtins.str
+    """Ref is used to define an external reference to include in the message.
+    This could be a fully qualified proto message reference, and that type must
+    be imported into the protofile. If no message is identified, the Ref will
+    be used verbatim in the output.
+    For example:
+     `ref: ".google.protobuf.Timestamp"`.
+    """
+    @property
+    def external_docs(self) -> global___ExternalDocumentation:
+        """Additional external documentation for this schema."""
+
+    @property
+    def extensions(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, google.protobuf.struct_pb2.Value]:
+        """Custom properties that start with "x-" such as "x-foo" used to describe
+        extra functionality that is not covered by the standard OpenAPI Specification.
+        See: https://swagger.io/docs/specification/2-0/swagger-extensions/
+        """
+
+    def __init__(
+        self,
+        *,
+        description: builtins.str = ...,
+        default: builtins.str = ...,
+        title: builtins.str = ...,
+        required: builtins.bool = ...,
+        read_only: builtins.bool = ...,
+        external_docs: global___ExternalDocumentation | None = ...,
+        example: builtins.str = ...,
+        ref: builtins.str = ...,
+        extensions: collections.abc.Mapping[builtins.str, google.protobuf.struct_pb2.Value] | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["external_docs", b"external_docs"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["default", b"default", "description", b"description", "example", b"example", "extensions", b"extensions", "external_docs", b"external_docs", "read_only", b"read_only", "ref", b"ref", "required", b"required", "title", b"title"]) -> None: ...
+
+global___EnumSchema = EnumSchema
+
+@typing.final
 class JSONSchema(google.protobuf.message.Message):
     """`JSONSchema` represents properties from JSON Schema taken, and as used, in
     the OpenAPI v2 spec.

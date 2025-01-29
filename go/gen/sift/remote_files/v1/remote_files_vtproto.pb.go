@@ -84,6 +84,15 @@ func (m *RemoteFile_ImageMetadata) CloneVT() isRemoteFile_Metadata {
 	return r
 }
 
+func (m *RemoteFile_AudioMetadata) CloneVT() isRemoteFile_Metadata {
+	if m == nil {
+		return (*RemoteFile_AudioMetadata)(nil)
+	}
+	r := new(RemoteFile_AudioMetadata)
+	r.AudioMetadata = m.AudioMetadata.CloneVT()
+	return r
+}
+
 func (m *VideoMetadata) CloneVT() *VideoMetadata {
 	if m == nil {
 		return (*VideoMetadata)(nil)
@@ -119,6 +128,24 @@ func (m *ImageMetadata) CloneVT() *ImageMetadata {
 }
 
 func (m *ImageMetadata) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *AudioMetadata) CloneVT() *AudioMetadata {
+	if m == nil {
+		return (*AudioMetadata)(nil)
+	}
+	r := new(AudioMetadata)
+	r.DurationSeconds = m.DurationSeconds
+	r.Timestamp = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.Timestamp).CloneVT())
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *AudioMetadata) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -251,6 +278,15 @@ func (m *CreateRemoteFileRequest_ImageMetadata) CloneVT() isCreateRemoteFileRequ
 	}
 	r := new(CreateRemoteFileRequest_ImageMetadata)
 	r.ImageMetadata = m.ImageMetadata.CloneVT()
+	return r
+}
+
+func (m *CreateRemoteFileRequest_AudioMetadata) CloneVT() isCreateRemoteFileRequest_Metadata {
+	if m == nil {
+		return (*CreateRemoteFileRequest_AudioMetadata)(nil)
+	}
+	r := new(CreateRemoteFileRequest_AudioMetadata)
+	r.AudioMetadata = m.AudioMetadata.CloneVT()
 	return r
 }
 
@@ -530,6 +566,31 @@ func (this *RemoteFile_ImageMetadata) EqualVT(thatIface isRemoteFile_Metadata) b
 	return true
 }
 
+func (this *RemoteFile_AudioMetadata) EqualVT(thatIface isRemoteFile_Metadata) bool {
+	that, ok := thatIface.(*RemoteFile_AudioMetadata)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.AudioMetadata, that.AudioMetadata; p != q {
+		if p == nil {
+			p = &AudioMetadata{}
+		}
+		if q == nil {
+			q = &AudioMetadata{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
 func (this *VideoMetadata) EqualVT(that *VideoMetadata) bool {
 	if this == that {
 		return true
@@ -575,6 +636,28 @@ func (this *ImageMetadata) EqualVT(that *ImageMetadata) bool {
 
 func (this *ImageMetadata) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*ImageMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *AudioMetadata) EqualVT(that *AudioMetadata) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DurationSeconds != that.DurationSeconds {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.Timestamp).EqualVT((*timestamppb1.Timestamp)(that.Timestamp)) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AudioMetadata) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*AudioMetadata)
 	if !ok {
 		return false
 	}
@@ -779,6 +862,31 @@ func (this *CreateRemoteFileRequest_ImageMetadata) EqualVT(thatIface isCreateRem
 		}
 		if q == nil {
 			q = &ImageMetadata{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *CreateRemoteFileRequest_AudioMetadata) EqualVT(thatIface isCreateRemoteFileRequest_Metadata) bool {
+	that, ok := thatIface.(*CreateRemoteFileRequest_AudioMetadata)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.AudioMetadata, that.AudioMetadata; p != q {
+		if p == nil {
+			p = &AudioMetadata{}
+		}
+		if q == nil {
+			q = &AudioMetadata{}
 		}
 		if !p.EqualVT(q) {
 			return false
@@ -1465,6 +1573,27 @@ func (m *RemoteFile_ImageMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	}
 	return len(dAtA) - i, nil
 }
+func (m *RemoteFile_AudioMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RemoteFile_AudioMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.AudioMetadata != nil {
+		size, err := m.AudioMetadata.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
+	return len(dAtA) - i, nil
+}
 func (m *VideoMetadata) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1563,6 +1692,55 @@ func (m *ImageMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Height))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AudioMetadata) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AudioMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AudioMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Timestamp != nil {
+		size, err := (*timestamppb1.Timestamp)(m.Timestamp).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.DurationSeconds != 0 {
+		i -= 4
+		binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.DurationSeconds))))
+		i--
+		dAtA[i] = 0xd
 	}
 	return len(dAtA) - i, nil
 }
@@ -1897,6 +2075,25 @@ func (m *CreateRemoteFileRequest_ImageMetadata) MarshalToSizedBufferVT(dAtA []by
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x52
+	}
+	return len(dAtA) - i, nil
+}
+func (m *CreateRemoteFileRequest_AudioMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CreateRemoteFileRequest_AudioMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.AudioMetadata != nil {
+		size, err := m.AudioMetadata.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x62
 	}
 	return len(dAtA) - i, nil
 }
@@ -2297,6 +2494,13 @@ func (m *RemoteFile) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if msg, ok := m.Metadata.(*RemoteFile_AudioMetadata); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if m.ModifiedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.ModifiedDate).MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -2454,6 +2658,27 @@ func (m *RemoteFile_ImageMetadata) MarshalToSizedBufferVTStrict(dAtA []byte) (in
 	}
 	return len(dAtA) - i, nil
 }
+func (m *RemoteFile_AudioMetadata) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *RemoteFile_AudioMetadata) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.AudioMetadata != nil {
+		size, err := m.AudioMetadata.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
+	return len(dAtA) - i, nil
+}
 func (m *VideoMetadata) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2552,6 +2777,55 @@ func (m *ImageMetadata) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Height))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AudioMetadata) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AudioMetadata) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *AudioMetadata) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Timestamp != nil {
+		size, err := (*timestamppb1.Timestamp)(m.Timestamp).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.DurationSeconds != 0 {
+		i -= 4
+		binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.DurationSeconds))))
+		i--
+		dAtA[i] = 0xd
 	}
 	return len(dAtA) - i, nil
 }
@@ -2780,6 +3054,13 @@ func (m *CreateRemoteFileRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if msg, ok := m.Metadata.(*CreateRemoteFileRequest_AudioMetadata); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if m.CustomUuid != nil {
 		i -= len(*m.CustomUuid)
 		copy(dAtA[i:], *m.CustomUuid)
@@ -2891,6 +3172,25 @@ func (m *CreateRemoteFileRequest_ImageMetadata) MarshalToSizedBufferVTStrict(dAt
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x52
+	}
+	return len(dAtA) - i, nil
+}
+func (m *CreateRemoteFileRequest_AudioMetadata) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *CreateRemoteFileRequest_AudioMetadata) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.AudioMetadata != nil {
+		size, err := m.AudioMetadata.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x62
 	}
 	return len(dAtA) - i, nil
 }
@@ -3352,6 +3652,18 @@ func (m *RemoteFile_ImageMetadata) SizeVT() (n int) {
 	}
 	return n
 }
+func (m *RemoteFile_AudioMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.AudioMetadata != nil {
+		l = m.AudioMetadata.SizeVT()
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
 func (m *VideoMetadata) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3386,6 +3698,23 @@ func (m *ImageMetadata) SizeVT() (n int) {
 	}
 	if m.Width != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Width))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AudioMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.DurationSeconds != 0 {
+		n += 5
+	}
+	if m.Timestamp != nil {
+		l = (*timestamppb1.Timestamp)(m.Timestamp).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -3531,6 +3860,18 @@ func (m *CreateRemoteFileRequest_ImageMetadata) SizeVT() (n int) {
 	_ = l
 	if m.ImageMetadata != nil {
 		l = m.ImageMetadata.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
+func (m *CreateRemoteFileRequest_AudioMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.AudioMetadata != nil {
+		l = m.AudioMetadata.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	return n
@@ -4201,6 +4542,47 @@ func (m *RemoteFile) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AudioMetadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Metadata.(*RemoteFile_AudioMetadata); ok {
+				if err := oneof.AudioMetadata.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &AudioMetadata{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Metadata = &RemoteFile_AudioMetadata{AudioMetadata: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -4426,6 +4808,104 @@ func (m *ImageMetadata) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AudioMetadata) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AudioMetadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AudioMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DurationSeconds", wireType)
+			}
+			var v uint32
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			v = uint32(binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			iNdEx += 4
+			m.DurationSeconds = float32(math.Float32frombits(v))
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.Timestamp).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5275,6 +5755,47 @@ func (m *CreateRemoteFileRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			s := string(dAtA[iNdEx:postIndex])
 			m.CustomUuid = &s
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AudioMetadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Metadata.(*CreateRemoteFileRequest_AudioMetadata); ok {
+				if err := oneof.AudioMetadata.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &AudioMetadata{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Metadata = &CreateRemoteFileRequest_AudioMetadata{AudioMetadata: v}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -6611,6 +7132,47 @@ func (m *RemoteFile) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AudioMetadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Metadata.(*RemoteFile_AudioMetadata); ok {
+				if err := oneof.AudioMetadata.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &AudioMetadata{}
+				if err := v.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Metadata = &RemoteFile_AudioMetadata{AudioMetadata: v}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -6836,6 +7398,104 @@ func (m *ImageMetadata) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AudioMetadata) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AudioMetadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AudioMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DurationSeconds", wireType)
+			}
+			var v uint32
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			v = uint32(binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			iNdEx += 4
+			m.DurationSeconds = float32(math.Float32frombits(v))
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.Timestamp).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7733,6 +8393,47 @@ func (m *CreateRemoteFileRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			s := stringValue
 			m.CustomUuid = &s
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AudioMetadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Metadata.(*CreateRemoteFileRequest_AudioMetadata); ok {
+				if err := oneof.AudioMetadata.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &AudioMetadata{}
+				if err := v.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Metadata = &CreateRemoteFileRequest_AudioMetadata{AudioMetadata: v}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

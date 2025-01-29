@@ -30,7 +30,7 @@ pub struct RemoteFile {
     pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="16")]
     pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
-    #[prost(oneof="remote_file::Metadata", tags="11, 12")]
+    #[prost(oneof="remote_file::Metadata", tags="11, 12, 17")]
     pub metadata: ::core::option::Option<remote_file::Metadata>,
 }
 /// Nested message and enum types in `RemoteFile`.
@@ -42,6 +42,8 @@ pub mod remote_file {
         VideoMetadata(super::VideoMetadata),
         #[prost(message, tag="12")]
         ImageMetadata(super::ImageMetadata),
+        #[prost(message, tag="17")]
+        AudioMetadata(super::AudioMetadata),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -63,6 +65,14 @@ pub struct ImageMetadata {
     pub height: u32,
     #[prost(uint32, tag="2")]
     pub width: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AudioMetadata {
+    #[prost(float, tag="1")]
+    pub duration_seconds: f32,
+    #[prost(message, optional, tag="2")]
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 /// The request for a call to `RemoteFileService_GetRemoteFile` to retrieve a remote file;
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -96,7 +106,7 @@ pub struct ListRemoteFilesRequest {
     /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
     /// Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, and `file_name`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/remote_files#remotefile). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/remote_files#remotefile). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
     /// This field is only required if your user belongs to multiple organizations.
@@ -136,7 +146,7 @@ pub struct CreateRemoteFileRequest {
     /// A custom UUID used to generate the object key. Recommended to be left unset.
     #[prost(string, optional, tag="11")]
     pub custom_uuid: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(oneof="create_remote_file_request::Metadata", tags="9, 10")]
+    #[prost(oneof="create_remote_file_request::Metadata", tags="9, 10, 12")]
     pub metadata: ::core::option::Option<create_remote_file_request::Metadata>,
 }
 /// Nested message and enum types in `CreateRemoteFileRequest`.
@@ -148,6 +158,8 @@ pub mod create_remote_file_request {
         VideoMetadata(super::VideoMetadata),
         #[prost(message, tag="10")]
         ImageMetadata(super::ImageMetadata),
+        #[prost(message, tag="12")]
+        AudioMetadata(super::AudioMetadata),
     }
 }
 /// The response for a call to `RemoteFileService_CreateRemoteFile`.

@@ -8,6 +8,8 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/calculated_channels/v1/calculated_channels.proto";
+import "sift/common/type/v1/channel_data_type.proto";
+import "sift/common/type/v1/resource_identifier.proto";
 
 
 
@@ -68,6 +70,30 @@ service CalculatedChannelService {
       description: "List versions of a particular calculated channel with an optional filter."
     };
   }
+
+  // Resolve a calculated channel into an expression with references.
+  rpc ResolveCalculatedChannel(ResolveCalculatedChannelRequest) returns (ResolveCalculatedChannelResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/calculated-channels/resolve"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ResolveCalculatedChannel",
+      description: "Resolve a calculated channel into an expression with references"
+    };
+  }
+
+  // Resolve a batch of calculated channels into expressions with references.
+  rpc BatchResolveCalculatedChannels(BatchResolveCalculatedChannelsRequest) returns (BatchResolveCalculatedChannelsResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/calculated-channels/resolve:batch"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchResolveCalculatedChannel",
+      description: "Resolve a batch of calculated channels into expressions with references"
+    };
+  }
 }
 
 message CalculatedChannel {
@@ -82,16 +108,23 @@ message CalculatedChannel {
   string description = 8 [(google.api.field_behavior) = REQUIRED];
   string change_message = 9 [(google.api.field_behavior) = REQUIRED];
   string user_notes = 10 [(google.api.field_behavior) = REQUIRED];
+  optional string units = 18 [(google.api.field_behavior) = OPTIONAL];
   google.protobuf.Timestamp created_date = 11 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 12 [(google.api.field_behavior) = REQUIRED];
-  CalculatedChannelAssetConfiguration asset_configuration = 13 [(google.api.field_behavior) = REQUIRED];
-  CalculatedChannelQueryConfiguration query_configuration = 14 [(google.api.field_behavior) = REQUIRED];
+  CalculatedChannelConfiguration calculated_channel_configuration = 15 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 16 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 17 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CalculatedChannelConfiguration {
+  CalculatedChannelAssetConfiguration asset_configuration = 1 [(google.api.field_behavior) = REQUIRED];
+  CalculatedChannelQueryConfiguration query_configuration = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message CalculatedChannelAssetConfiguration {
   message AssetSelection {
-    repeated string asset_ids = 1;
-    repeated string tag_ids = 2;
+    repeated string asset_ids = 1 [(google.api.field_behavior) = REQUIRED];
+    repeated string tag_ids = 2 [(google.api.field_behavior) = REQUIRED];
   }
   oneof asset_scope {
     bool all_assets = 1;
@@ -100,15 +133,30 @@ message CalculatedChannelAssetConfiguration {
 }
 
 message CalculatedChannelQueryConfiguration {
-  // Sift Expression Language
+  // Sift Expression Language.
   message Sel {
-    string expression = 1;
-    repeated sift.calculated_channels.v1.ExpressionChannelReference expression_channel_references = 2;
+    string expression = 1 [(google.api.field_behavior) = REQUIRED];
+    repeated CalculatedChannelAbstractChannelReference expression_channel_references = 2 [(google.api.field_behavior) = REQUIRED];
   }
 
   oneof query {
     Sel sel = 1;
   }
+}
+
+message CalculatedChannelAbstractChannelReference {
+  string channel_reference = 1 [(google.api.field_behavior) = REQUIRED];
+  string channel_identifier = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CalculatedChannelValidationResult {
+  string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // Only included if asset was named in the request
+  optional string asset_name = 2 [(google.api.field_behavior) = OPTIONAL];
+  // Includes all tags that have this asset
+  repeated string tag_names = 3 [(google.api.field_behavior) = REQUIRED];
+  // Names of the channels that asset does not have
+  repeated string missing_channels = 4 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `CalculatedChannelService_GetCalculatedChannel` to retrieve the latest version of a calculated channel.
@@ -129,13 +177,14 @@ message CreateCalculatedChannelRequest {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
   string description = 2 [(google.api.field_behavior) = OPTIONAL];
   string user_notes = 3 [(google.api.field_behavior) = OPTIONAL];
+  optional string units = 7 [(google.api.field_behavior) = OPTIONAL];
   optional string client_key = 4 [(google.api.field_behavior) = OPTIONAL];
-  CalculatedChannelAssetConfiguration asset_configuration = 5 [(google.api.field_behavior) = REQUIRED];
-  CalculatedChannelQueryConfiguration query_configuration = 6 [(google.api.field_behavior) = REQUIRED];
+  CalculatedChannelConfiguration calculated_channel_configuration = 5 [(google.api.field_behavior) = REQUIRED];
 }
 
 message CreateCalculatedChannelResponse {
   CalculatedChannel calculated_channel = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated CalculatedChannelValidationResult inapplicable_assets = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `CalculatedChannelService_ListCalculatedChannels` to retrieve lateset vesrions of calculated channels.
@@ -152,7 +201,7 @@ message ListCalculatedChannelsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, and `description`.
+  // Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, and `archived_date.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -160,21 +209,18 @@ message ListCalculatedChannelsRequest {
   // This field is only required if your user belongs to multiple organizations.
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
 
-  // If `true` then archived calculated channels will be included in the query. Defaults to `false`.
-  bool include_archived = 5 [(google.api.field_behavior) = OPTIONAL];
-
   // How to order the retrieved calculated channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
   // Available fields to order_by are `created_date` and `modified_date`.
   // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date"
-  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `CalculatedChannelService_ListCalculatedChannelsResponse`.
 message ListCalculatedChannelsResponse {
-  repeated CalculatedChannel calculated_channels = 1;
-  string next_page_token = 2;
+  repeated CalculatedChannel calculated_channels = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The request for a call to `CalculatedChannelService_UpdateCalculatedChannel` to update a calculated channel. Updating a calculated
@@ -186,7 +232,7 @@ message UpdateCalculatedChannelRequest {
   // The calculated channel to update.
   CalculatedChannel calculated_channel = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // The list of fields to be updated. The fields available to be updated are `name`, `description`,
+  // The list of fields to be updated. The fields available to be updated are `name`, `description`, `units`,
   // `query_configuration`, `archived_date`, and `asset_configuration`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 
@@ -197,6 +243,7 @@ message UpdateCalculatedChannelRequest {
 // The response of a call to `CalculatedChannelService_UpdateCalculatedChannel`.
 message UpdateCalculatedChannelResponse {
   CalculatedChannel calculated_channel = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated CalculatedChannelValidationResult inapplicable_assets = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `CalculatedChannelService_ListCalculatedChannelVersions` to retrieve versions
@@ -217,7 +264,7 @@ message ListCalculatedChannelVersionsRequest {
   string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `calculated_channel_id`, `name`, and `description`.
+  // Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, and `archived_date.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
   string filter = 5 [(google.api.field_behavior) = OPTIONAL];
@@ -226,15 +273,75 @@ message ListCalculatedChannelVersionsRequest {
   string organization_id = 6 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved calculated channel versions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-  // Available fields to order_by are `created_date` and `modified_date`.
+  // Available fields to order_by are `created_date`, `modified_date`, and `version`.
   // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
-  // Example: "created_date desc,modified_date"
+  // Example: "created_date desc,modified_date".
   string order_by = 7 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `CalculatedChannelService_ListCalculatedChannelVersionsResponse`.
 message ListCalculatedChannelVersionsResponse {
-  repeated CalculatedChannel calculated_channel_versions = 1;
-  string next_page_token = 2;
+  repeated CalculatedChannel calculated_channel_versions = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for a call to `CalculatedChannelService_ResolveCalculatedChannel` to get the all possible calculated channels.
+// 1) If the calculated channel has a selection of assets and tags then those assets will be used as a base and then filtered down by the given assets and assets from the run.
+// 2) If the calculated channel is enabled for all assets then:
+//   a) If the request has run and assets from the run will be used as a base and then filtered down by the given assets.
+//   b) If the request has run and no assets then those assets will be used.
+//   c) If the request has only assets then those assets will be used.
+// The `organization_id` argument is only required if using `client_key` and the user belongs to multiple organizations.
+message ResolveCalculatedChannelRequest {
+  oneof calculated_channel {
+    // The calculated channel to resolve.
+    sift.common.type.v1.ResourceIdentifier calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
+    // A configuration for the calculated channel to resolve.
+    CalculatedChannelConfiguration calculated_channel_configuration = 2 [(google.api.field_behavior) = OPTIONAL];
+  }
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 3 [(google.api.field_behavior) = OPTIONAL];
+  // Assets to be included or filtered through.  See above.
+  sift.common.type.v1.NamedResources assets = 4 [(google.api.field_behavior) = OPTIONAL];
+  // Run to get assets to be included or filtered through.  See above.
+  optional sift.common.type.v1.ResourceIdentifier run = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `CalculatedChannelService_ResolveCalculatedChannel`.
+message ResolveCalculatedChannelResponse {
+  // A specific calculated channel including the asset and exact channels to query.
+  message ResolvedCalculatedChannel {
+    // The name of the specific asset that was resolved.
+    string asset_name = 1 [(google.api.field_behavior) = REQUIRED];
+    // The expression resolved including channel references.
+    sift.calculated_channels.v1.ExpressionRequest expression_request = 2 [(google.api.field_behavior) = REQUIRED];
+    sift.common.type.v1.ChannelDataType output_data_type = 3 [(google.api.field_behavior) = REQUIRED];
+  }
+
+  // Any failure in resolution.
+  message UnresolvedCalculatedChannel {
+    // The name of the specific asset that was not resolved.
+    string asset_name = 1 [(google.api.field_behavior) = REQUIRED];
+    string error_message = 2 [(google.api.field_behavior) = REQUIRED];
+  }
+
+  // If provided in the request, the calculated channel resolved.
+  optional sift.common.type.v1.ResourceIdentifier calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  // All resolved calculated channels.
+  repeated ResolvedCalculatedChannel resolved = 2 [(google.api.field_behavior) = REQUIRED];
+  // All assets with any issues in resolution.
+  repeated UnresolvedCalculatedChannel unresolved = 3 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request of a call to `CalculatedChannelService_BatchResolveCalculatedChannels`.
+message BatchResolveCalculatedChannelsRequest {
+  // All calculated channels to resolve.
+  repeated ResolveCalculatedChannelRequest requests = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `CalculatedChannelService_BatchResolveCalculatedChannels`.
+message BatchResolveCalculatedChannelsResponse {
+  // All calculated channels that attempted resolution.
+  repeated ResolveCalculatedChannelResponse responses = 1 [(google.api.field_behavior) = REQUIRED];
 }

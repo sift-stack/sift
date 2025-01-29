@@ -18,6 +18,7 @@ import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
 import sift.annotations.v1.annotations_pb2
+import sift.common.type.v1.resource_identifier_pb2
 import sys
 import typing
 
@@ -106,6 +107,7 @@ class Rule(google.protobuf.message.Message):
     CLIENT_KEY_FIELD_NUMBER: builtins.int
     ASSET_CONFIGURATION_FIELD_NUMBER: builtins.int
     CONTEXTUAL_CHANNELS_FIELD_NUMBER: builtins.int
+    DELETED_DATE_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     asset_id: builtins.str
     name: builtins.str
@@ -128,6 +130,8 @@ class Rule(google.protobuf.message.Message):
     def asset_configuration(self) -> global___RuleAssetConfiguration: ...
     @property
     def contextual_channels(self) -> global___ContextualChannels: ...
+    @property
+    def deleted_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -146,9 +150,10 @@ class Rule(google.protobuf.message.Message):
         client_key: builtins.str = ...,
         asset_configuration: global___RuleAssetConfiguration | None = ...,
         contextual_channels: global___ContextualChannels | None = ...,
+        deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "contextual_channels", b"contextual_channels", "created_date", b"created_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "contextual_channels", b"contextual_channels", "created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "is_enabled", b"is_enabled", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
 
 global___Rule = Rule
 
@@ -276,6 +281,33 @@ class ContextualChannels(google.protobuf.message.Message):
 global___ContextualChannels = ContextualChannels
 
 @typing.final
+class AssetExpressionValidationResult(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_ID_FIELD_NUMBER: builtins.int
+    ASSET_NAME_FIELD_NUMBER: builtins.int
+    ASSET_TAG_ID_FIELD_NUMBER: builtins.int
+    ERROR_FIELD_NUMBER: builtins.int
+    asset_id: builtins.str
+    asset_name: builtins.str
+    asset_tag_id: builtins.str
+    """asset_tag_id is the tag_id that caused this asset to be included in the rule"""
+    error: builtins.str
+    def __init__(
+        self,
+        *,
+        asset_id: builtins.str = ...,
+        asset_name: builtins.str = ...,
+        asset_tag_id: builtins.str = ...,
+        error: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_error", b"_error", "asset_id", b"asset_id", "asset_name", b"asset_name", "asset_tag_id", b"asset_tag_id", "error", b"error"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
+
+global___AssetExpressionValidationResult = AssetExpressionValidationResult
+
+@typing.final
 class SearchRulesRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -288,6 +320,8 @@ class SearchRulesRequest(google.protobuf.message.Message):
     ORDER_BY_FIELD_NUMBER: builtins.int
     RULE_IDS_FIELD_NUMBER: builtins.int
     ASSET_IDS_FIELD_NUMBER: builtins.int
+    INCLUDE_DELETED_FIELD_NUMBER: builtins.int
+    ASSET_TAGS_FIELD_NUMBER: builtins.int
     limit: builtins.int
     """Max number of rules to return (returns all if omitted)."""
     offset: builtins.int
@@ -298,13 +332,18 @@ class SearchRulesRequest(google.protobuf.message.Message):
     case_sensitive: builtins.bool
     regexp: builtins.bool
     order_by: builtins.str
+    include_deleted: builtins.bool
     @property
     def rule_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
         """If provided, only returns rules with the given ids"""
 
     @property
     def asset_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """If provided, only returns rules with the given asset ids"""
+        """If provided, only returns rules that apply to the given asset ids"""
+
+    @property
+    def asset_tags(self) -> sift.common.type.v1.resource_identifier_pb2.NamedResources:
+        """If provided, returns rules with assets that have the given tags"""
 
     def __init__(
         self,
@@ -318,9 +357,11 @@ class SearchRulesRequest(google.protobuf.message.Message):
         order_by: builtins.str | None = ...,
         rule_ids: collections.abc.Iterable[builtins.str] | None = ...,
         asset_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        include_deleted: builtins.bool = ...,
+        asset_tags: sift.common.type.v1.resource_identifier_pb2.NamedResources | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_limit", b"_limit", "_order", b"_order", "_order_by", b"_order_by", "limit", b"limit", "order", b"order", "order_by", b"order_by"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_limit", b"_limit", "_order", b"_order", "_order_by", b"_order_by", "asset_ids", b"asset_ids", "case_sensitive", b"case_sensitive", "limit", b"limit", "name_matches", b"name_matches", "offset", b"offset", "order", b"order", "order_by", b"order_by", "regexp", b"regexp", "rule_ids", b"rule_ids"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_limit", b"_limit", "_order", b"_order", "_order_by", b"_order_by", "asset_tags", b"asset_tags", "limit", b"limit", "order", b"order", "order_by", b"order_by"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_limit", b"_limit", "_order", b"_order", "_order_by", b"_order_by", "asset_ids", b"asset_ids", "asset_tags", b"asset_tags", "case_sensitive", b"case_sensitive", "include_deleted", b"include_deleted", "limit", b"limit", "name_matches", b"name_matches", "offset", b"offset", "order", b"order", "order_by", b"order_by", "regexp", b"regexp", "rule_ids", b"rule_ids"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_limit", b"_limit"]) -> typing.Literal["limit"] | None: ...
     @typing.overload
@@ -484,6 +525,7 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     organization_id: builtins.str
     version_notes: builtins.str
     client_key: builtins.str
+    """client_key is a client provided identifier for the rule. It is immutable after being set"""
     @property
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateConditionRequest]: ...
     @property
@@ -579,10 +621,52 @@ class UpdateRuleResponse(google.protobuf.message.Message):
 global___UpdateRuleResponse = UpdateRuleResponse
 
 @typing.final
+class ValidationResult(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_ID_FIELD_NUMBER: builtins.int
+    CLIENT_KEY_FIELD_NUMBER: builtins.int
+    ASSET_EXPRESSION_VALIDATION_RESULTS_FIELD_NUMBER: builtins.int
+    ERROR_FIELD_NUMBER: builtins.int
+    rule_id: builtins.str
+    client_key: builtins.str
+    error: builtins.str
+    """If the rule is invalid and unable to be saved, this will contain the error message. Expression errors will be returned in
+    the asset_expression_validation_results.
+    """
+    @property
+    def asset_expression_validation_results(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___AssetExpressionValidationResult]:
+        """If the expression is invalid for an asset, one or more AssetExpressionValidationResult will be returned. This may block
+        saving if the override_expression_validation flag is not set.
+        """
+
+    def __init__(
+        self,
+        *,
+        rule_id: builtins.str = ...,
+        client_key: builtins.str = ...,
+        asset_expression_validation_results: collections.abc.Iterable[global___AssetExpressionValidationResult] | None = ...,
+        error: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_error", b"_error", "asset_expression_validation_results", b"asset_expression_validation_results", "client_key", b"client_key", "error", b"error", "rule_id", b"rule_id"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
+
+global___ValidationResult = ValidationResult
+
+@typing.final
 class BatchUpdateRulesRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RULES_FIELD_NUMBER: builtins.int
+    VALIDATE_ONLY_FIELD_NUMBER: builtins.int
+    OVERRIDE_EXPRESSION_VALIDATION_FIELD_NUMBER: builtins.int
+    validate_only: builtins.bool
+    """If validate_only is true, the request will only validate the request and not save the rules."""
+    override_expression_validation: builtins.bool
+    """If override_expression_validation is true, the request will save the rules even if the expressions are invalid. This
+    can be useful for multi-asset rules where an invalid expression for one asset should not prevent the rule from being saved.
+    """
     @property
     def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateRuleRequest]:
         """rules are limited 1000 rules at a time"""
@@ -591,8 +675,10 @@ class BatchUpdateRulesRequest(google.protobuf.message.Message):
         self,
         *,
         rules: collections.abc.Iterable[global___UpdateRuleRequest] | None = ...,
+        validate_only: builtins.bool = ...,
+        override_expression_validation: builtins.bool = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["rules", b"rules"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["override_expression_validation", b"override_expression_validation", "rules", b"rules", "validate_only", b"validate_only"]) -> None: ...
 
 global___BatchUpdateRulesRequest = BatchUpdateRulesRequest
 
@@ -603,17 +689,29 @@ class BatchUpdateRulesResponse(google.protobuf.message.Message):
     SUCCESS_FIELD_NUMBER: builtins.int
     RULES_CREATED_COUNT_FIELD_NUMBER: builtins.int
     RULES_UPDATED_COUNT_FIELD_NUMBER: builtins.int
+    VALIDATE_ONLY_FIELD_NUMBER: builtins.int
+    VALIDATION_RESULTS_FIELD_NUMBER: builtins.int
     success: builtins.bool
     rules_created_count: builtins.int
+    """The total number of rules created in the request. If validate_only is true, this will indicate how many rules would have been created."""
     rules_updated_count: builtins.int
+    """The total number of rules updated in the request. If validate_only is true, this will indicate how many rules would have been updated."""
+    validate_only: builtins.bool
+    """This will be true if the request only validated the request and did not save the rules."""
+    @property
+    def validation_results(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ValidationResult]:
+        """One ValidationResult per rule in the request will be returned"""
+
     def __init__(
         self,
         *,
         success: builtins.bool = ...,
         rules_created_count: builtins.int = ...,
         rules_updated_count: builtins.int = ...,
+        validate_only: builtins.bool = ...,
+        validation_results: collections.abc.Iterable[global___ValidationResult] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["rules_created_count", b"rules_created_count", "rules_updated_count", b"rules_updated_count", "success", b"success"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["rules_created_count", b"rules_created_count", "rules_updated_count", b"rules_updated_count", "success", b"success", "validate_only", b"validate_only", "validation_results", b"validation_results"]) -> None: ...
 
 global___BatchUpdateRulesResponse = BatchUpdateRulesResponse
 
@@ -646,6 +744,100 @@ class DeleteRuleResponse(google.protobuf.message.Message):
     ) -> None: ...
 
 global___DeleteRuleResponse = DeleteRuleResponse
+
+@typing.final
+class BatchDeleteRulesRequest(google.protobuf.message.Message):
+    """BatchDeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_IDS_FIELD_NUMBER: builtins.int
+    CLIENT_KEYS_FIELD_NUMBER: builtins.int
+    @property
+    def rule_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def client_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        rule_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        client_keys: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["client_keys", b"client_keys", "rule_ids", b"rule_ids"]) -> None: ...
+
+global___BatchDeleteRulesRequest = BatchDeleteRulesRequest
+
+@typing.final
+class BatchDeleteRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___BatchDeleteRulesResponse = BatchDeleteRulesResponse
+
+@typing.final
+class UndeleteRuleRequest(google.protobuf.message.Message):
+    """UndeleteRuleRequest is used to undelete a rule by rule_id or client_key. If both are provided, only rule_id will be used."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_ID_FIELD_NUMBER: builtins.int
+    CLIENT_KEY_FIELD_NUMBER: builtins.int
+    rule_id: builtins.str
+    client_key: builtins.str
+    def __init__(
+        self,
+        *,
+        rule_id: builtins.str = ...,
+        client_key: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["client_key", b"client_key", "rule_id", b"rule_id"]) -> None: ...
+
+global___UndeleteRuleRequest = UndeleteRuleRequest
+
+@typing.final
+class UndeleteRuleResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___UndeleteRuleResponse = UndeleteRuleResponse
+
+@typing.final
+class BatchUndeleteRulesRequest(google.protobuf.message.Message):
+    """BatchUndeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_IDS_FIELD_NUMBER: builtins.int
+    CLIENT_KEYS_FIELD_NUMBER: builtins.int
+    @property
+    def rule_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def client_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        rule_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        client_keys: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["client_keys", b"client_keys", "rule_ids", b"rule_ids"]) -> None: ...
+
+global___BatchUndeleteRulesRequest = BatchUndeleteRulesRequest
+
+@typing.final
+class BatchUndeleteRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___BatchUndeleteRulesResponse = BatchUndeleteRulesResponse
 
 @typing.final
 class ViewHumanFriendlyRulesRequest(google.protobuf.message.Message):
@@ -927,6 +1119,7 @@ class RuleVersion(google.protobuf.message.Message):
     CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
     VERSION_NOTES_FIELD_NUMBER: builtins.int
     GENERATED_CHANGE_MESSAGE_FIELD_NUMBER: builtins.int
+    DELETED_DATE_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_version_id: builtins.str
     version: builtins.str
@@ -935,6 +1128,8 @@ class RuleVersion(google.protobuf.message.Message):
     generated_change_message: builtins.str
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def deleted_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -945,9 +1140,10 @@ class RuleVersion(google.protobuf.message.Message):
         created_by_user_id: builtins.str = ...,
         version_notes: builtins.str = ...,
         generated_change_message: builtins.str = ...,
+        deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["created_date", b"created_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "generated_change_message", b"generated_change_message", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "version", b"version", "version_notes", b"version_notes"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["created_date", b"created_date", "deleted_date", b"deleted_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "generated_change_message", b"generated_change_message", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "version", b"version", "version_notes", b"version_notes"]) -> None: ...
 
 global___RuleVersion = RuleVersion
 

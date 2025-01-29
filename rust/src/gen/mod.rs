@@ -45,6 +45,11 @@ pub mod sift {
             include!("sift.calculated_channels.v1.rs");
             // @@protoc_insertion_point(sift.calculated_channels.v1)
         }
+        // @@protoc_insertion_point(attribute:sift.calculated_channels.v2)
+        pub mod v2 {
+            include!("sift.calculated_channels.v2.rs");
+            // @@protoc_insertion_point(sift.calculated_channels.v2)
+        }
     }
     pub mod campaigns {
         // @@protoc_insertion_point(attribute:sift.campaigns.v1)
@@ -59,12 +64,22 @@ pub mod sift {
             include!("sift.channel_schemas.v1.rs");
             // @@protoc_insertion_point(sift.channel_schemas.v1)
         }
+        // @@protoc_insertion_point(attribute:sift.channel_schemas.v2)
+        pub mod v2 {
+            include!("sift.channel_schemas.v2.rs");
+            // @@protoc_insertion_point(sift.channel_schemas.v2)
+        }
     }
     pub mod channels {
         // @@protoc_insertion_point(attribute:sift.channels.v2)
         pub mod v2 {
             include!("sift.channels.v2.rs");
             // @@protoc_insertion_point(sift.channels.v2)
+        }
+        // @@protoc_insertion_point(attribute:sift.channels.v3)
+        pub mod v3 {
+            include!("sift.channels.v3.rs");
+            // @@protoc_insertion_point(sift.channels.v3)
         }
     }
     pub mod common {
@@ -82,6 +97,11 @@ pub mod sift {
             include!("sift.data.v1.rs");
             // @@protoc_insertion_point(sift.data.v1)
         }
+        // @@protoc_insertion_point(attribute:sift.data.v2)
+        pub mod v2 {
+            include!("sift.data.v2.rs");
+            // @@protoc_insertion_point(sift.data.v2)
+        }
     }
     pub mod ingest {
         // @@protoc_insertion_point(attribute:sift.ingest.v1)
@@ -95,6 +115,11 @@ pub mod sift {
         pub mod v1 {
             include!("sift.ingestion_configs.v1.rs");
             // @@protoc_insertion_point(sift.ingestion_configs.v1)
+        }
+        // @@protoc_insertion_point(attribute:sift.ingestion_configs.v2)
+        pub mod v2 {
+            include!("sift.ingestion_configs.v2.rs");
+            // @@protoc_insertion_point(sift.ingestion_configs.v2)
         }
     }
     pub mod notifications {
@@ -179,6 +204,11 @@ pub mod sift {
         pub mod v1 {
             include!("sift.views.v1.rs");
             // @@protoc_insertion_point(sift.views.v1)
+        }
+        // @@protoc_insertion_point(attribute:sift.views.v2)
+        pub mod v2 {
+            include!("sift.views.v2.rs");
+            // @@protoc_insertion_point(sift.views.v2)
         }
     }
 }

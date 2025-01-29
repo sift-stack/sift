@@ -201,7 +201,7 @@ class ListIngestionConfigsRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `ingestion_config_id`, `client_key`, `asset_id`, `created_date`, and `modified_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/ingestion_configs#ingestionconfigservice). Optional.
+    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/ingestion_configs#ingestionconfigservice). Optional.
     """
     def __init__(
         self,
@@ -296,7 +296,7 @@ class ListIngestionConfigFlowsRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `flow_name`, `flow_id`, `created_date`, and `modified_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-    For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/ingestion_configs#ingestionconfig). Optional.
+    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/ingestion_configs#ingestionconfig). Optional.
     """
     def __init__(
         self,

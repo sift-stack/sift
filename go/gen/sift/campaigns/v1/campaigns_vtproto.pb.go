@@ -37,15 +37,20 @@ func (m *Campaign) CloneVT() *Campaign {
 	r := new(Campaign)
 	r.CampaignId = m.CampaignId
 	r.OrganizationId = m.OrganizationId
-	r.ClientKey = m.ClientKey
 	r.Name = m.Name
-	r.Description = m.Description
 	r.CreatedByUserId = m.CreatedByUserId
 	r.ModifiedByUserId = m.ModifiedByUserId
 	r.CreatedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.CreatedDate).CloneVT())
 	r.ModifiedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ModifiedDate).CloneVT())
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
-	r.CreatedFromCampaignId = m.CreatedFromCampaignId
+	if rhs := m.ClientKey; rhs != nil {
+		tmpVal := *rhs
+		r.ClientKey = &tmpVal
+	}
+	if rhs := m.Description; rhs != nil {
+		tmpVal := *rhs
+		r.Description = &tmpVal
+	}
 	if rhs := m.Tags; rhs != nil {
 		tmpContainer := make([]*v1.TagRef, len(rhs))
 		for k, v := range rhs {
@@ -63,6 +68,10 @@ func (m *Campaign) CloneVT() *Campaign {
 			tmpContainer[k] = v.CloneVT()
 		}
 		r.Reports = tmpContainer
+	}
+	if rhs := m.CreatedFromCampaignId; rhs != nil {
+		tmpVal := *rhs
+		r.CreatedFromCampaignId = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -140,16 +149,22 @@ func (m *CreateCampaignRequest) CloneVT() *CreateCampaignRequest {
 	}
 	r := new(CreateCampaignRequest)
 	r.Name = m.Name
-	r.Description = m.Description
 	r.OrganizationId = m.OrganizationId
-	r.ClientKey = m.ClientKey
 	r.CreateFrom = m.CreateFrom.CloneVT()
+	if rhs := m.Description; rhs != nil {
+		tmpVal := *rhs
+		r.Description = &tmpVal
+	}
 	if rhs := m.Tags; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v11.NamedResources }); ok {
 			r.Tags = vtpb.CloneVT()
 		} else {
 			r.Tags = proto.Clone(rhs).(*v11.NamedResources)
 		}
+	}
+	if rhs := m.ClientKey; rhs != nil {
+		tmpVal := *rhs
+		r.ClientKey = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -183,52 +198,52 @@ func (m *CreateCampaignFrom) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *CreateCampaignFrom_ReportIds) CloneVT() isCreateCampaignFrom_Initializer {
+func (m *CreateCampaignFrom_Reports) CloneVT() isCreateCampaignFrom_Initializer {
 	if m == nil {
-		return (*CreateCampaignFrom_ReportIds)(nil)
+		return (*CreateCampaignFrom_Reports)(nil)
 	}
-	r := new(CreateCampaignFrom_ReportIds)
-	if rhs := m.ReportIds; rhs != nil {
+	r := new(CreateCampaignFrom_Reports)
+	if rhs := m.Reports; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
 			CloneVT() *v11.ResourceIdentifiers
 		}); ok {
-			r.ReportIds = vtpb.CloneVT()
+			r.Reports = vtpb.CloneVT()
 		} else {
-			r.ReportIds = proto.Clone(rhs).(*v11.ResourceIdentifiers)
+			r.Reports = proto.Clone(rhs).(*v11.ResourceIdentifiers)
 		}
 	}
 	return r
 }
 
-func (m *CreateCampaignFrom_RunIds) CloneVT() isCreateCampaignFrom_Initializer {
+func (m *CreateCampaignFrom_Runs) CloneVT() isCreateCampaignFrom_Initializer {
 	if m == nil {
-		return (*CreateCampaignFrom_RunIds)(nil)
+		return (*CreateCampaignFrom_Runs)(nil)
 	}
-	r := new(CreateCampaignFrom_RunIds)
-	if rhs := m.RunIds; rhs != nil {
+	r := new(CreateCampaignFrom_Runs)
+	if rhs := m.Runs; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
 			CloneVT() *v11.ResourceIdentifiers
 		}); ok {
-			r.RunIds = vtpb.CloneVT()
+			r.Runs = vtpb.CloneVT()
 		} else {
-			r.RunIds = proto.Clone(rhs).(*v11.ResourceIdentifiers)
+			r.Runs = proto.Clone(rhs).(*v11.ResourceIdentifiers)
 		}
 	}
 	return r
 }
 
-func (m *CreateCampaignFrom_CampaignId) CloneVT() isCreateCampaignFrom_Initializer {
+func (m *CreateCampaignFrom_OtherCampaign) CloneVT() isCreateCampaignFrom_Initializer {
 	if m == nil {
-		return (*CreateCampaignFrom_CampaignId)(nil)
+		return (*CreateCampaignFrom_OtherCampaign)(nil)
 	}
-	r := new(CreateCampaignFrom_CampaignId)
-	if rhs := m.CampaignId; rhs != nil {
+	r := new(CreateCampaignFrom_OtherCampaign)
+	if rhs := m.OtherCampaign; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
 			CloneVT() *v11.ResourceIdentifier
 		}); ok {
-			r.CampaignId = vtpb.CloneVT()
+			r.OtherCampaign = vtpb.CloneVT()
 		} else {
-			r.CampaignId = proto.Clone(rhs).(*v11.ResourceIdentifier)
+			r.OtherCampaign = proto.Clone(rhs).(*v11.ResourceIdentifier)
 		}
 	}
 	return r
@@ -344,13 +359,13 @@ func (this *Campaign) EqualVT(that *Campaign) bool {
 	if this.OrganizationId != that.OrganizationId {
 		return false
 	}
-	if this.ClientKey != that.ClientKey {
+	if p, q := this.ClientKey, that.ClientKey; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	if this.Name != that.Name {
 		return false
 	}
-	if this.Description != that.Description {
+	if p, q := this.Description, that.Description; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	if this.CreatedByUserId != that.CreatedByUserId {
@@ -406,7 +421,7 @@ func (this *Campaign) EqualVT(that *Campaign) bool {
 			}
 		}
 	}
-	if this.CreatedFromCampaignId != that.CreatedFromCampaignId {
+	if p, q := this.CreatedFromCampaignId, that.CreatedFromCampaignId; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -509,7 +524,7 @@ func (this *CreateCampaignRequest) EqualVT(that *CreateCampaignRequest) bool {
 	if this.Name != that.Name {
 		return false
 	}
-	if this.Description != that.Description {
+	if p, q := this.Description, that.Description; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	if equal, ok := interface{}(this.Tags).(interface {
@@ -524,7 +539,7 @@ func (this *CreateCampaignRequest) EqualVT(that *CreateCampaignRequest) bool {
 	if this.OrganizationId != that.OrganizationId {
 		return false
 	}
-	if this.ClientKey != that.ClientKey {
+	if p, q := this.ClientKey, that.ClientKey; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	if !this.CreateFrom.EqualVT(that.CreateFrom) {
@@ -568,8 +583,8 @@ func (this *CreateCampaignFrom) EqualMessageVT(thatMsg proto.Message) bool {
 	}
 	return this.EqualVT(that)
 }
-func (this *CreateCampaignFrom_ReportIds) EqualVT(thatIface isCreateCampaignFrom_Initializer) bool {
-	that, ok := thatIface.(*CreateCampaignFrom_ReportIds)
+func (this *CreateCampaignFrom_Reports) EqualVT(thatIface isCreateCampaignFrom_Initializer) bool {
+	that, ok := thatIface.(*CreateCampaignFrom_Reports)
 	if !ok {
 		return false
 	}
@@ -579,7 +594,7 @@ func (this *CreateCampaignFrom_ReportIds) EqualVT(thatIface isCreateCampaignFrom
 	if this == nil && that != nil || this != nil && that == nil {
 		return false
 	}
-	if p, q := this.ReportIds, that.ReportIds; p != q {
+	if p, q := this.Reports, that.Reports; p != q {
 		if p == nil {
 			p = &v11.ResourceIdentifiers{}
 		}
@@ -599,8 +614,8 @@ func (this *CreateCampaignFrom_ReportIds) EqualVT(thatIface isCreateCampaignFrom
 	return true
 }
 
-func (this *CreateCampaignFrom_RunIds) EqualVT(thatIface isCreateCampaignFrom_Initializer) bool {
-	that, ok := thatIface.(*CreateCampaignFrom_RunIds)
+func (this *CreateCampaignFrom_Runs) EqualVT(thatIface isCreateCampaignFrom_Initializer) bool {
+	that, ok := thatIface.(*CreateCampaignFrom_Runs)
 	if !ok {
 		return false
 	}
@@ -610,7 +625,7 @@ func (this *CreateCampaignFrom_RunIds) EqualVT(thatIface isCreateCampaignFrom_In
 	if this == nil && that != nil || this != nil && that == nil {
 		return false
 	}
-	if p, q := this.RunIds, that.RunIds; p != q {
+	if p, q := this.Runs, that.Runs; p != q {
 		if p == nil {
 			p = &v11.ResourceIdentifiers{}
 		}
@@ -630,8 +645,8 @@ func (this *CreateCampaignFrom_RunIds) EqualVT(thatIface isCreateCampaignFrom_In
 	return true
 }
 
-func (this *CreateCampaignFrom_CampaignId) EqualVT(thatIface isCreateCampaignFrom_Initializer) bool {
-	that, ok := thatIface.(*CreateCampaignFrom_CampaignId)
+func (this *CreateCampaignFrom_OtherCampaign) EqualVT(thatIface isCreateCampaignFrom_Initializer) bool {
+	that, ok := thatIface.(*CreateCampaignFrom_OtherCampaign)
 	if !ok {
 		return false
 	}
@@ -641,7 +656,7 @@ func (this *CreateCampaignFrom_CampaignId) EqualVT(thatIface isCreateCampaignFro
 	if this == nil && that != nil || this != nil && that == nil {
 		return false
 	}
-	if p, q := this.CampaignId, that.CampaignId; p != q {
+	if p, q := this.OtherCampaign, that.OtherCampaign; p != q {
 		if p == nil {
 			p = &v11.ResourceIdentifier{}
 		}
@@ -1029,10 +1044,10 @@ func (m *Campaign) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.CreatedFromCampaignId) > 0 {
-		i -= len(m.CreatedFromCampaignId)
-		copy(dAtA[i:], m.CreatedFromCampaignId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CreatedFromCampaignId)))
+	if m.CreatedFromCampaignId != nil {
+		i -= len(*m.CreatedFromCampaignId)
+		copy(dAtA[i:], *m.CreatedFromCampaignId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CreatedFromCampaignId)))
 		i--
 		dAtA[i] = 0x6a
 	}
@@ -1116,10 +1131,10 @@ func (m *Campaign) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x32
 	}
-	if len(m.Description) > 0 {
-		i -= len(m.Description)
-		copy(dAtA[i:], m.Description)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Description)))
+	if m.Description != nil {
+		i -= len(*m.Description)
+		copy(dAtA[i:], *m.Description)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Description)))
 		i--
 		dAtA[i] = 0x2a
 	}
@@ -1130,10 +1145,10 @@ func (m *Campaign) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x22
 	}
-	if len(m.ClientKey) > 0 {
-		i -= len(m.ClientKey)
-		copy(dAtA[i:], m.ClientKey)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKey)))
+	if m.ClientKey != nil {
+		i -= len(*m.ClientKey)
+		copy(dAtA[i:], *m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ClientKey)))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -1363,10 +1378,10 @@ func (m *CreateCampaignRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i--
 		dAtA[i] = 0x32
 	}
-	if len(m.ClientKey) > 0 {
-		i -= len(m.ClientKey)
-		copy(dAtA[i:], m.ClientKey)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKey)))
+	if m.ClientKey != nil {
+		i -= len(*m.ClientKey)
+		copy(dAtA[i:], *m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ClientKey)))
 		i--
 		dAtA[i] = 0x2a
 	}
@@ -1399,10 +1414,10 @@ func (m *CreateCampaignRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.Description) > 0 {
-		i -= len(m.Description)
-		copy(dAtA[i:], m.Description)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Description)))
+	if m.Description != nil {
+		i -= len(*m.Description)
+		copy(dAtA[i:], *m.Description)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Description)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -1458,15 +1473,15 @@ func (m *CreateCampaignFrom) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *CreateCampaignFrom_ReportIds) MarshalToVT(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_Reports) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *CreateCampaignFrom_ReportIds) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_Reports) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	if m.ReportIds != nil {
-		if vtmsg, ok := interface{}(m.ReportIds).(interface {
+	if m.Reports != nil {
+		if vtmsg, ok := interface{}(m.Reports).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -1476,7 +1491,7 @@ func (m *CreateCampaignFrom_ReportIds) MarshalToSizedBufferVT(dAtA []byte) (int,
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.ReportIds)
+			encoded, err := proto.Marshal(m.Reports)
 			if err != nil {
 				return 0, err
 			}
@@ -1489,15 +1504,15 @@ func (m *CreateCampaignFrom_ReportIds) MarshalToSizedBufferVT(dAtA []byte) (int,
 	}
 	return len(dAtA) - i, nil
 }
-func (m *CreateCampaignFrom_RunIds) MarshalToVT(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_Runs) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *CreateCampaignFrom_RunIds) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_Runs) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	if m.RunIds != nil {
-		if vtmsg, ok := interface{}(m.RunIds).(interface {
+	if m.Runs != nil {
+		if vtmsg, ok := interface{}(m.Runs).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -1507,7 +1522,7 @@ func (m *CreateCampaignFrom_RunIds) MarshalToSizedBufferVT(dAtA []byte) (int, er
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.RunIds)
+			encoded, err := proto.Marshal(m.Runs)
 			if err != nil {
 				return 0, err
 			}
@@ -1520,15 +1535,15 @@ func (m *CreateCampaignFrom_RunIds) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	}
 	return len(dAtA) - i, nil
 }
-func (m *CreateCampaignFrom_CampaignId) MarshalToVT(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_OtherCampaign) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *CreateCampaignFrom_CampaignId) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_OtherCampaign) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	if m.CampaignId != nil {
-		if vtmsg, ok := interface{}(m.CampaignId).(interface {
+	if m.OtherCampaign != nil {
+		if vtmsg, ok := interface{}(m.OtherCampaign).(interface {
 			MarshalToSizedBufferVT([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
@@ -1538,7 +1553,7 @@ func (m *CreateCampaignFrom_CampaignId) MarshalToSizedBufferVT(dAtA []byte) (int
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.CampaignId)
+			encoded, err := proto.Marshal(m.OtherCampaign)
 			if err != nil {
 				return 0, err
 			}
@@ -1848,10 +1863,10 @@ func (m *Campaign) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.CreatedFromCampaignId) > 0 {
-		i -= len(m.CreatedFromCampaignId)
-		copy(dAtA[i:], m.CreatedFromCampaignId)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CreatedFromCampaignId)))
+	if m.CreatedFromCampaignId != nil {
+		i -= len(*m.CreatedFromCampaignId)
+		copy(dAtA[i:], *m.CreatedFromCampaignId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.CreatedFromCampaignId)))
 		i--
 		dAtA[i] = 0x6a
 	}
@@ -1935,10 +1950,10 @@ func (m *Campaign) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x32
 	}
-	if len(m.Description) > 0 {
-		i -= len(m.Description)
-		copy(dAtA[i:], m.Description)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Description)))
+	if m.Description != nil {
+		i -= len(*m.Description)
+		copy(dAtA[i:], *m.Description)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Description)))
 		i--
 		dAtA[i] = 0x2a
 	}
@@ -1949,10 +1964,10 @@ func (m *Campaign) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x22
 	}
-	if len(m.ClientKey) > 0 {
-		i -= len(m.ClientKey)
-		copy(dAtA[i:], m.ClientKey)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKey)))
+	if m.ClientKey != nil {
+		i -= len(*m.ClientKey)
+		copy(dAtA[i:], *m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ClientKey)))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -2182,10 +2197,10 @@ func (m *CreateCampaignRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x32
 	}
-	if len(m.ClientKey) > 0 {
-		i -= len(m.ClientKey)
-		copy(dAtA[i:], m.ClientKey)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKey)))
+	if m.ClientKey != nil {
+		i -= len(*m.ClientKey)
+		copy(dAtA[i:], *m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.ClientKey)))
 		i--
 		dAtA[i] = 0x2a
 	}
@@ -2218,10 +2233,10 @@ func (m *CreateCampaignRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.Description) > 0 {
-		i -= len(m.Description)
-		copy(dAtA[i:], m.Description)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Description)))
+	if m.Description != nil {
+		i -= len(*m.Description)
+		copy(dAtA[i:], *m.Description)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Description)))
 		i--
 		dAtA[i] = 0x12
 	}
@@ -2265,21 +2280,21 @@ func (m *CreateCampaignFrom) MarshalToSizedBufferVTStrict(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if msg, ok := m.Initializer.(*CreateCampaignFrom_CampaignId); ok {
+	if msg, ok := m.Initializer.(*CreateCampaignFrom_OtherCampaign); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
 		i -= size
 	}
-	if msg, ok := m.Initializer.(*CreateCampaignFrom_RunIds); ok {
+	if msg, ok := m.Initializer.(*CreateCampaignFrom_Runs); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
 		i -= size
 	}
-	if msg, ok := m.Initializer.(*CreateCampaignFrom_ReportIds); ok {
+	if msg, ok := m.Initializer.(*CreateCampaignFrom_Reports); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
 			return 0, err
@@ -2289,15 +2304,15 @@ func (m *CreateCampaignFrom) MarshalToSizedBufferVTStrict(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
-func (m *CreateCampaignFrom_ReportIds) MarshalToVTStrict(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_Reports) MarshalToVTStrict(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
 }
 
-func (m *CreateCampaignFrom_ReportIds) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_Reports) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	if m.ReportIds != nil {
-		if vtmsg, ok := interface{}(m.ReportIds).(interface {
+	if m.Reports != nil {
+		if vtmsg, ok := interface{}(m.Reports).(interface {
 			MarshalToSizedBufferVTStrict([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -2307,7 +2322,7 @@ func (m *CreateCampaignFrom_ReportIds) MarshalToSizedBufferVTStrict(dAtA []byte)
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.ReportIds)
+			encoded, err := proto.Marshal(m.Reports)
 			if err != nil {
 				return 0, err
 			}
@@ -2320,15 +2335,15 @@ func (m *CreateCampaignFrom_ReportIds) MarshalToSizedBufferVTStrict(dAtA []byte)
 	}
 	return len(dAtA) - i, nil
 }
-func (m *CreateCampaignFrom_RunIds) MarshalToVTStrict(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_Runs) MarshalToVTStrict(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
 }
 
-func (m *CreateCampaignFrom_RunIds) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_Runs) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	if m.RunIds != nil {
-		if vtmsg, ok := interface{}(m.RunIds).(interface {
+	if m.Runs != nil {
+		if vtmsg, ok := interface{}(m.Runs).(interface {
 			MarshalToSizedBufferVTStrict([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -2338,7 +2353,7 @@ func (m *CreateCampaignFrom_RunIds) MarshalToSizedBufferVTStrict(dAtA []byte) (i
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.RunIds)
+			encoded, err := proto.Marshal(m.Runs)
 			if err != nil {
 				return 0, err
 			}
@@ -2351,15 +2366,15 @@ func (m *CreateCampaignFrom_RunIds) MarshalToSizedBufferVTStrict(dAtA []byte) (i
 	}
 	return len(dAtA) - i, nil
 }
-func (m *CreateCampaignFrom_CampaignId) MarshalToVTStrict(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_OtherCampaign) MarshalToVTStrict(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
 }
 
-func (m *CreateCampaignFrom_CampaignId) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+func (m *CreateCampaignFrom_OtherCampaign) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	if m.CampaignId != nil {
-		if vtmsg, ok := interface{}(m.CampaignId).(interface {
+	if m.OtherCampaign != nil {
+		if vtmsg, ok := interface{}(m.OtherCampaign).(interface {
 			MarshalToSizedBufferVTStrict([]byte) (int, error)
 		}); ok {
 			size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -2369,7 +2384,7 @@ func (m *CreateCampaignFrom_CampaignId) MarshalToSizedBufferVTStrict(dAtA []byte
 			i -= size
 			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		} else {
-			encoded, err := proto.Marshal(m.CampaignId)
+			encoded, err := proto.Marshal(m.OtherCampaign)
 			if err != nil {
 				return 0, err
 			}
@@ -2663,16 +2678,16 @@ func (m *Campaign) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.ClientKey)
-	if l > 0 {
+	if m.ClientKey != nil {
+		l = len(*m.ClientKey)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.Description)
-	if l > 0 {
+	if m.Description != nil {
+		l = len(*m.Description)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.CreatedByUserId)
@@ -2713,8 +2728,8 @@ func (m *Campaign) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
-	l = len(m.CreatedFromCampaignId)
-	if l > 0 {
+	if m.CreatedFromCampaignId != nil {
+		l = len(*m.CreatedFromCampaignId)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -2800,8 +2815,8 @@ func (m *CreateCampaignRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.Description)
-	if l > 0 {
+	if m.Description != nil {
+		l = len(*m.Description)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.Tags != nil {
@@ -2818,8 +2833,8 @@ func (m *CreateCampaignRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.ClientKey)
-	if l > 0 {
+	if m.ClientKey != nil {
+		l = len(*m.ClientKey)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.CreateFrom != nil {
@@ -2843,55 +2858,55 @@ func (m *CreateCampaignFrom) SizeVT() (n int) {
 	return n
 }
 
-func (m *CreateCampaignFrom_ReportIds) SizeVT() (n int) {
+func (m *CreateCampaignFrom_Reports) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.ReportIds != nil {
-		if size, ok := interface{}(m.ReportIds).(interface {
+	if m.Reports != nil {
+		if size, ok := interface{}(m.Reports).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.ReportIds)
+			l = proto.Size(m.Reports)
 		}
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	return n
 }
-func (m *CreateCampaignFrom_RunIds) SizeVT() (n int) {
+func (m *CreateCampaignFrom_Runs) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.RunIds != nil {
-		if size, ok := interface{}(m.RunIds).(interface {
+	if m.Runs != nil {
+		if size, ok := interface{}(m.Runs).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.RunIds)
+			l = proto.Size(m.Runs)
 		}
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	return n
 }
-func (m *CreateCampaignFrom_CampaignId) SizeVT() (n int) {
+func (m *CreateCampaignFrom_OtherCampaign) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.CampaignId != nil {
-		if size, ok := interface{}(m.CampaignId).(interface {
+	if m.OtherCampaign != nil {
+		if size, ok := interface{}(m.OtherCampaign).(interface {
 			SizeVT() int
 		}); ok {
 			l = size.SizeVT()
 		} else {
-			l = proto.Size(m.CampaignId)
+			l = proto.Size(m.OtherCampaign)
 		}
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -3118,7 +3133,8 @@ func (m *Campaign) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ClientKey = string(dAtA[iNdEx:postIndex])
+			s := string(dAtA[iNdEx:postIndex])
+			m.ClientKey = &s
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -3182,7 +3198,8 @@ func (m *Campaign) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Description = string(dAtA[iNdEx:postIndex])
+			s := string(dAtA[iNdEx:postIndex])
+			m.Description = &s
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -3462,7 +3479,8 @@ func (m *Campaign) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.CreatedFromCampaignId = string(dAtA[iNdEx:postIndex])
+			s := string(dAtA[iNdEx:postIndex])
+			m.CreatedFromCampaignId = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -4021,7 +4039,8 @@ func (m *CreateCampaignRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Description = string(dAtA[iNdEx:postIndex])
+			s := string(dAtA[iNdEx:postIndex])
+			m.Description = &s
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -4129,7 +4148,8 @@ func (m *CreateCampaignRequest) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ClientKey = string(dAtA[iNdEx:postIndex])
+			s := string(dAtA[iNdEx:postIndex])
+			m.ClientKey = &s
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -4220,7 +4240,7 @@ func (m *CreateCampaignFrom) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReportIds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Reports", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -4247,15 +4267,15 @@ func (m *CreateCampaignFrom) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if oneof, ok := m.Initializer.(*CreateCampaignFrom_ReportIds); ok {
-				if unmarshal, ok := interface{}(oneof.ReportIds).(interface {
+			if oneof, ok := m.Initializer.(*CreateCampaignFrom_Reports); ok {
+				if unmarshal, ok := interface{}(oneof.Reports).(interface {
 					UnmarshalVT([]byte) error
 				}); ok {
 					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 						return err
 					}
 				} else {
-					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.ReportIds); err != nil {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Reports); err != nil {
 						return err
 					}
 				}
@@ -4272,12 +4292,12 @@ func (m *CreateCampaignFrom) UnmarshalVT(dAtA []byte) error {
 						return err
 					}
 				}
-				m.Initializer = &CreateCampaignFrom_ReportIds{ReportIds: v}
+				m.Initializer = &CreateCampaignFrom_Reports{Reports: v}
 			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RunIds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Runs", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -4304,15 +4324,15 @@ func (m *CreateCampaignFrom) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if oneof, ok := m.Initializer.(*CreateCampaignFrom_RunIds); ok {
-				if unmarshal, ok := interface{}(oneof.RunIds).(interface {
+			if oneof, ok := m.Initializer.(*CreateCampaignFrom_Runs); ok {
+				if unmarshal, ok := interface{}(oneof.Runs).(interface {
 					UnmarshalVT([]byte) error
 				}); ok {
 					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 						return err
 					}
 				} else {
-					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.RunIds); err != nil {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Runs); err != nil {
 						return err
 					}
 				}
@@ -4329,12 +4349,12 @@ func (m *CreateCampaignFrom) UnmarshalVT(dAtA []byte) error {
 						return err
 					}
 				}
-				m.Initializer = &CreateCampaignFrom_RunIds{RunIds: v}
+				m.Initializer = &CreateCampaignFrom_Runs{Runs: v}
 			}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CampaignId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherCampaign", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -4361,15 +4381,15 @@ func (m *CreateCampaignFrom) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if oneof, ok := m.Initializer.(*CreateCampaignFrom_CampaignId); ok {
-				if unmarshal, ok := interface{}(oneof.CampaignId).(interface {
+			if oneof, ok := m.Initializer.(*CreateCampaignFrom_OtherCampaign); ok {
+				if unmarshal, ok := interface{}(oneof.OtherCampaign).(interface {
 					UnmarshalVT([]byte) error
 				}); ok {
 					if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 						return err
 					}
 				} else {
-					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.CampaignId); err != nil {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.OtherCampaign); err != nil {
 						return err
 					}
 				}
@@ -4386,7 +4406,7 @@ func (m *CreateCampaignFrom) UnmarshalVT(dAtA []byte) error {
 						return err
 					}
 				}
-				m.Initializer = &CreateCampaignFrom_CampaignId{CampaignId: v}
+				m.Initializer = &CreateCampaignFrom_OtherCampaign{OtherCampaign: v}
 			}
 			iNdEx = postIndex
 		default:
@@ -5178,7 +5198,8 @@ func (m *Campaign) UnmarshalVTUnsafe(dAtA []byte) error {
 			if intStringLen > 0 {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
-			m.ClientKey = stringValue
+			s := stringValue
+			m.ClientKey = &s
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -5250,7 +5271,8 @@ func (m *Campaign) UnmarshalVTUnsafe(dAtA []byte) error {
 			if intStringLen > 0 {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
-			m.Description = stringValue
+			s := stringValue
+			m.Description = &s
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -5542,7 +5564,8 @@ func (m *Campaign) UnmarshalVTUnsafe(dAtA []byte) error {
 			if intStringLen > 0 {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
-			m.CreatedFromCampaignId = stringValue
+			s := stringValue
+			m.CreatedFromCampaignId = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -6129,7 +6152,8 @@ func (m *CreateCampaignRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			if intStringLen > 0 {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
-			m.Description = stringValue
+			s := stringValue
+			m.Description = &s
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -6245,7 +6269,8 @@ func (m *CreateCampaignRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			if intStringLen > 0 {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
-			m.ClientKey = stringValue
+			s := stringValue
+			m.ClientKey = &s
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -6336,7 +6361,7 @@ func (m *CreateCampaignFrom) UnmarshalVTUnsafe(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ReportIds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Reports", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -6363,15 +6388,15 @@ func (m *CreateCampaignFrom) UnmarshalVTUnsafe(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if oneof, ok := m.Initializer.(*CreateCampaignFrom_ReportIds); ok {
-				if unmarshal, ok := interface{}(oneof.ReportIds).(interface {
+			if oneof, ok := m.Initializer.(*CreateCampaignFrom_Reports); ok {
+				if unmarshal, ok := interface{}(oneof.Reports).(interface {
 					UnmarshalVTUnsafe([]byte) error
 				}); ok {
 					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
 						return err
 					}
 				} else {
-					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.ReportIds); err != nil {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Reports); err != nil {
 						return err
 					}
 				}
@@ -6388,12 +6413,12 @@ func (m *CreateCampaignFrom) UnmarshalVTUnsafe(dAtA []byte) error {
 						return err
 					}
 				}
-				m.Initializer = &CreateCampaignFrom_ReportIds{ReportIds: v}
+				m.Initializer = &CreateCampaignFrom_Reports{Reports: v}
 			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RunIds", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Runs", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -6420,15 +6445,15 @@ func (m *CreateCampaignFrom) UnmarshalVTUnsafe(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if oneof, ok := m.Initializer.(*CreateCampaignFrom_RunIds); ok {
-				if unmarshal, ok := interface{}(oneof.RunIds).(interface {
+			if oneof, ok := m.Initializer.(*CreateCampaignFrom_Runs); ok {
+				if unmarshal, ok := interface{}(oneof.Runs).(interface {
 					UnmarshalVTUnsafe([]byte) error
 				}); ok {
 					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
 						return err
 					}
 				} else {
-					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.RunIds); err != nil {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.Runs); err != nil {
 						return err
 					}
 				}
@@ -6445,12 +6470,12 @@ func (m *CreateCampaignFrom) UnmarshalVTUnsafe(dAtA []byte) error {
 						return err
 					}
 				}
-				m.Initializer = &CreateCampaignFrom_RunIds{RunIds: v}
+				m.Initializer = &CreateCampaignFrom_Runs{Runs: v}
 			}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CampaignId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field OtherCampaign", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -6477,15 +6502,15 @@ func (m *CreateCampaignFrom) UnmarshalVTUnsafe(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if oneof, ok := m.Initializer.(*CreateCampaignFrom_CampaignId); ok {
-				if unmarshal, ok := interface{}(oneof.CampaignId).(interface {
+			if oneof, ok := m.Initializer.(*CreateCampaignFrom_OtherCampaign); ok {
+				if unmarshal, ok := interface{}(oneof.OtherCampaign).(interface {
 					UnmarshalVTUnsafe([]byte) error
 				}); ok {
 					if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
 						return err
 					}
 				} else {
-					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.CampaignId); err != nil {
+					if err := proto.Unmarshal(dAtA[iNdEx:postIndex], oneof.OtherCampaign); err != nil {
 						return err
 					}
 				}
@@ -6502,7 +6527,7 @@ func (m *CreateCampaignFrom) UnmarshalVTUnsafe(dAtA []byte) error {
 						return err
 					}
 				}
-				m.Initializer = &CreateCampaignFrom_CampaignId{CampaignId: v}
+				m.Initializer = &CreateCampaignFrom_OtherCampaign{OtherCampaign: v}
 			}
 			iNdEx = postIndex
 		default:

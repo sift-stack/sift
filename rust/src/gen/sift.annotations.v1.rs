@@ -40,6 +40,10 @@ pub struct Annotation {
     pub created_by_rule_condition_version_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="19")]
     pub report_rule_version_id: ::core::option::Option<::prost::alloc::string::String>,
+    /// An annotation is pending if it is part of an ongoing violation of a rule condition.
+    /// The `end_time` of a pending annotation might be set, but is not yet finalized.
+    #[prost(bool, tag="20")]
+    pub pending: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -187,15 +191,15 @@ pub struct ListAnnotationsRequest {
     /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
     /// Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
     /// `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`,
-    /// `annotation_type`, `tag_name`, and `assignee`.
+    /// `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, and `assignee`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/annotations#annotation). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/annotations#annotation). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
     /// This field is only required if your user belongs to multiple organizations.
     #[prost(string, tag="4")]
     pub organization_id: ::prost::alloc::string::String,
-    /// How to order the retrieved annotations. Formatted as a comma-separated string i.e. "<field_name>\[ desc\],...".
+    /// How to order the retrieved annotations. Formatted as a comma-separated string i.e. "FIELD_NAME\[ desc\],...".
     /// Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `end_time`.
     /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
     /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)

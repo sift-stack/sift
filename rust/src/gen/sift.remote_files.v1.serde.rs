@@ -1,4 +1,115 @@
 // @generated
+impl serde::Serialize for AudioMetadata {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.duration_seconds != 0. {
+            len += 1;
+        }
+        if self.timestamp.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.remote_files.v1.AudioMetadata", len)?;
+        if self.duration_seconds != 0. {
+            struct_ser.serialize_field("durationSeconds", &self.duration_seconds)?;
+        }
+        if let Some(v) = self.timestamp.as_ref() {
+            struct_ser.serialize_field("timestamp", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for AudioMetadata {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "duration_seconds",
+            "durationSeconds",
+            "timestamp",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            DurationSeconds,
+            Timestamp,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "durationSeconds" | "duration_seconds" => Ok(GeneratedField::DurationSeconds),
+                            "timestamp" => Ok(GeneratedField::Timestamp),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = AudioMetadata;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.remote_files.v1.AudioMetadata")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<AudioMetadata, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut duration_seconds__ = None;
+                let mut timestamp__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::DurationSeconds => {
+                            if duration_seconds__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("durationSeconds"));
+                            }
+                            duration_seconds__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Timestamp => {
+                            if timestamp__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timestamp"));
+                            }
+                            timestamp__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(AudioMetadata {
+                    duration_seconds: duration_seconds__.unwrap_or_default(),
+                    timestamp: timestamp__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.remote_files.v1.AudioMetadata", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for BatchDeleteRemoteFilesRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -239,6 +350,9 @@ impl serde::Serialize for CreateRemoteFileRequest {
                 create_remote_file_request::Metadata::ImageMetadata(v) => {
                     struct_ser.serialize_field("imageMetadata", v)?;
                 }
+                create_remote_file_request::Metadata::AudioMetadata(v) => {
+                    struct_ser.serialize_field("audioMetadata", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -272,6 +386,8 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
             "videoMetadata",
             "image_metadata",
             "imageMetadata",
+            "audio_metadata",
+            "audioMetadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -287,6 +403,7 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
             CustomUuid,
             VideoMetadata,
             ImageMetadata,
+            AudioMetadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -319,6 +436,7 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
                             "customUuid" | "custom_uuid" => Ok(GeneratedField::CustomUuid),
                             "videoMetadata" | "video_metadata" => Ok(GeneratedField::VideoMetadata),
                             "imageMetadata" | "image_metadata" => Ok(GeneratedField::ImageMetadata),
+                            "audioMetadata" | "audio_metadata" => Ok(GeneratedField::AudioMetadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -418,6 +536,13 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
                                 return Err(serde::de::Error::duplicate_field("imageMetadata"));
                             }
                             metadata__ = map_.next_value::<::std::option::Option<_>>()?.map(create_remote_file_request::Metadata::ImageMetadata)
+;
+                        }
+                        GeneratedField::AudioMetadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("audioMetadata"));
+                            }
+                            metadata__ = map_.next_value::<::std::option::Option<_>>()?.map(create_remote_file_request::Metadata::AudioMetadata)
 ;
                         }
                     }
@@ -1618,6 +1743,9 @@ impl serde::Serialize for RemoteFile {
                 remote_file::Metadata::ImageMetadata(v) => {
                     struct_ser.serialize_field("imageMetadata", v)?;
                 }
+                remote_file::Metadata::AudioMetadata(v) => {
+                    struct_ser.serialize_field("audioMetadata", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -1661,6 +1789,8 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
             "videoMetadata",
             "image_metadata",
             "imageMetadata",
+            "audio_metadata",
+            "audioMetadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1681,6 +1811,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
             ModifiedDate,
             VideoMetadata,
             ImageMetadata,
+            AudioMetadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1718,6 +1849,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "videoMetadata" | "video_metadata" => Ok(GeneratedField::VideoMetadata),
                             "imageMetadata" | "image_metadata" => Ok(GeneratedField::ImageMetadata),
+                            "audioMetadata" | "audio_metadata" => Ok(GeneratedField::AudioMetadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1852,6 +1984,13 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                                 return Err(serde::de::Error::duplicate_field("imageMetadata"));
                             }
                             metadata__ = map_.next_value::<::std::option::Option<_>>()?.map(remote_file::Metadata::ImageMetadata)
+;
+                        }
+                        GeneratedField::AudioMetadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("audioMetadata"));
+                            }
+                            metadata__ = map_.next_value::<::std::option::Option<_>>()?.map(remote_file::Metadata::AudioMetadata)
 ;
                         }
                     }

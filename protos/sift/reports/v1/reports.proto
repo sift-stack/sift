@@ -94,6 +94,7 @@ message ReportRuleSummary {
   google.protobuf.Timestamp created_date = 11 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp modified_date = 12 [(google.api.field_behavior) = REQUIRED];
   string asset_id = 13 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp deleted_date = 14 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ReportTag {

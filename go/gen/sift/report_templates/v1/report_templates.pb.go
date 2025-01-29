@@ -675,13 +675,13 @@ type ListReportTemplatesRequest struct {
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
 	// Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, and `name`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
-	// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/report_templates#report_template). Optional.
+	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/report_templates#report_template). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
 	// This field is only required if your user belongs to multiple organizations.
 	OrganizationId string `protobuf:"bytes,4,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
 	// If `true` then archived report templates will be included in the query. Defaults to `false`.
 	IncludeArchived bool `protobuf:"varint,5,opt,name=include_archived,json=includeArchived,proto3" json:"include_archived,omitempty"`
-	// How to order the retrieved report templates. Formatted as a comma-separated string i.e. "<field_name>[ desc],...".
+	// How to order the retrieved report templates. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
 	// Available fields to order_by are `created_date` and `modified_date`.
 	// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
 	// For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)

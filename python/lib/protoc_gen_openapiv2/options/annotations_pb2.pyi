@@ -14,6 +14,7 @@ DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 OPENAPIV2_SWAGGER_FIELD_NUMBER: builtins.int
 OPENAPIV2_OPERATION_FIELD_NUMBER: builtins.int
 OPENAPIV2_SCHEMA_FIELD_NUMBER: builtins.int
+OPENAPIV2_ENUM_FIELD_NUMBER: builtins.int
 OPENAPIV2_TAG_FIELD_NUMBER: builtins.int
 OPENAPIV2_FIELD_FIELD_NUMBER: builtins.int
 openapiv2_swagger: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.FileOptions, protoc_gen_openapiv2.options.openapiv2_pb2.Swagger]
@@ -29,6 +30,12 @@ All IDs are the same, as assigned. It is okay that they are the same, as they ex
 different descriptor messages.
 """
 openapiv2_schema: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.MessageOptions, protoc_gen_openapiv2.options.openapiv2_pb2.Schema]
+"""ID assigned by protobuf-global-extension-registry@google.com for gRPC-Gateway project.
+
+All IDs are the same, as assigned. It is okay that they are the same, as they extend
+different descriptor messages.
+"""
+openapiv2_enum: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.EnumOptions, protoc_gen_openapiv2.options.openapiv2_pb2.EnumSchema]
 """ID assigned by protobuf-global-extension-registry@google.com for gRPC-Gateway project.
 
 All IDs are the same, as assigned. It is okay that they are the same, as they extend

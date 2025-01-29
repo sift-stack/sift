@@ -66,10 +66,10 @@ pub struct ListRunsRequest {
     /// Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
     /// `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, `client_key`, and `asset_name`.
     /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/api/grpc/protocol_buffers/runs#run). Optional.
+    /// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/runs#run). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
-    /// How to order the retrieved runs. Formatted as a comma-separated string i.e. "<field_name>\[ desc\],...".
+    /// How to order the retrieved runs. Formatted as a comma-separated string i.e. "FIELD_NAME\[ desc\],...".
     /// Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `stop_time`.
     /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
     /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)
@@ -133,10 +133,11 @@ pub struct UpdateRunRequest {
     #[prost(message, optional, tag="1")]
     pub run: ::core::option::Option<Run>,
     /// The list of fields to be updated. The fields available to be updated are `name`, `description`,
-    /// `start_time`, `stop_time`, `is_pinned`,  and `tags`.
+    /// `start_time`, `stop_time`, `is_pinned`, `client_key`  and `tags`.
     /// Important Note: When updating the `start_time`, please be aware that if a subsequent data ingestion
     /// commences for this run, the `start_time` will be automatically overwritten and set to the timestamp
-    /// corresponding to the beginning of the latest run.
+    /// corresponding to the beginning of the latest run. Additionally, `client_key` can only be set once either in run creation or in update.
+    /// Any subsequent attempt to update `client_key` will result in an error.
     #[prost(message, optional, tag="2")]
     pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
 }

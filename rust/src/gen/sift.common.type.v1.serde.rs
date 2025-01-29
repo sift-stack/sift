@@ -429,6 +429,144 @@ impl<'de> serde::Deserialize<'de> for ClientKeys {
         deserializer.deserialize_struct("sift.common.r#type.v1.ClientKeys", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for FindResourceBy {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.organization_id.is_empty() {
+            len += 1;
+        }
+        if self.identifier.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.FindResourceBy", len)?;
+        if !self.organization_id.is_empty() {
+            struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if let Some(v) = self.identifier.as_ref() {
+            match v {
+                find_resource_by::Identifier::Id(v) => {
+                    struct_ser.serialize_field("id", v)?;
+                }
+                find_resource_by::Identifier::ClientKey(v) => {
+                    struct_ser.serialize_field("clientKey", v)?;
+                }
+                find_resource_by::Identifier::Name(v) => {
+                    struct_ser.serialize_field("name", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FindResourceBy {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "organization_id",
+            "organizationId",
+            "id",
+            "client_key",
+            "clientKey",
+            "name",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            OrganizationId,
+            Id,
+            ClientKey,
+            Name,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "id" => Ok(GeneratedField::Id),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            "name" => Ok(GeneratedField::Name),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FindResourceBy;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.common.r#type.v1.FindResourceBy")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FindResourceBy, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut organization_id__ = None;
+                let mut identifier__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::OrganizationId => {
+                            if organization_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("organizationId"));
+                            }
+                            organization_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Id => {
+                            if identifier__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("id"));
+                            }
+                            identifier__ = map_.next_value::<::std::option::Option<_>>()?.map(find_resource_by::Identifier::Id);
+                        }
+                        GeneratedField::ClientKey => {
+                            if identifier__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            identifier__ = map_.next_value::<::std::option::Option<_>>()?.map(find_resource_by::Identifier::ClientKey);
+                        }
+                        GeneratedField::Name => {
+                            if identifier__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            identifier__ = map_.next_value::<::std::option::Option<_>>()?.map(find_resource_by::Identifier::Name);
+                        }
+                    }
+                }
+                Ok(FindResourceBy {
+                    organization_id: organization_id__.unwrap_or_default(),
+                    identifier: identifier__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.common.r#type.v1.FindResourceBy", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for Ids {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1153,6 +1291,150 @@ impl<'de> serde::Deserialize<'de> for ResourceIdentifiers {
             }
         }
         deserializer.deserialize_struct("sift.common.r#type.v1.ResourceIdentifiers", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ResourceRef {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.id.is_empty() {
+            len += 1;
+        }
+        if self.client_key.is_some() {
+            len += 1;
+        }
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if self.find_by.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.ResourceRef", len)?;
+        if !self.id.is_empty() {
+            struct_ser.serialize_field("id", &self.id)?;
+        }
+        if let Some(v) = self.client_key.as_ref() {
+            struct_ser.serialize_field("clientKey", v)?;
+        }
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if let Some(v) = self.find_by.as_ref() {
+            struct_ser.serialize_field("findBy", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ResourceRef {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "id",
+            "client_key",
+            "clientKey",
+            "name",
+            "find_by",
+            "findBy",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Id,
+            ClientKey,
+            Name,
+            FindBy,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "id" => Ok(GeneratedField::Id),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            "name" => Ok(GeneratedField::Name),
+                            "findBy" | "find_by" => Ok(GeneratedField::FindBy),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ResourceRef;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.common.r#type.v1.ResourceRef")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ResourceRef, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut id__ = None;
+                let mut client_key__ = None;
+                let mut name__ = None;
+                let mut find_by__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Id => {
+                            if id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("id"));
+                            }
+                            id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = map_.next_value()?;
+                        }
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FindBy => {
+                            if find_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("findBy"));
+                            }
+                            find_by__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(ResourceRef {
+                    id: id__.unwrap_or_default(),
+                    client_key: client_key__,
+                    name: name__.unwrap_or_default(),
+                    find_by: find_by__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.common.r#type.v1.ResourceRef", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for User {

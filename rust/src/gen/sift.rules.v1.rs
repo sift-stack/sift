@@ -34,6 +34,8 @@ pub struct Rule {
     pub asset_configuration: ::core::option::Option<RuleAssetConfiguration>,
     #[prost(message, optional, tag="16")]
     pub contextual_channels: ::core::option::Option<ContextualChannels>,
+    #[prost(message, optional, tag="17")]
+    pub deleted_date: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -95,6 +97,19 @@ pub struct ContextualChannels {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AssetExpressionValidationResult {
+    #[prost(string, tag="1")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub asset_name: ::prost::alloc::string::String,
+    /// asset_tag_id is the tag_id that caused this asset to be included in the rule
+    #[prost(string, tag="3")]
+    pub asset_tag_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="4")]
+    pub error: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SearchRulesRequest {
     /// Max number of rules to return (returns all if omitted).
     #[prost(uint32, optional, tag="1")]
@@ -116,9 +131,14 @@ pub struct SearchRulesRequest {
     /// If provided, only returns rules with the given ids
     #[prost(string, repeated, tag="8")]
     pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    /// If provided, only returns rules with the given asset ids
+    /// If provided, only returns rules that apply to the given asset ids
     #[prost(string, repeated, tag="9")]
     pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag="10")]
+    pub include_deleted: bool,
+    /// If provided, returns rules with assets that have the given tags
+    #[prost(message, optional, tag="11")]
+    pub asset_tags: ::core::option::Option<super::super::common::r#type::v1::NamedResources>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -193,6 +213,7 @@ pub struct UpdateRuleRequest {
     pub organization_id: ::prost::alloc::string::String,
     #[prost(string, tag="8")]
     pub version_notes: ::prost::alloc::string::String,
+    /// client_key is a client provided identifier for the rule. It is immutable after being set
     #[prost(string, optional, tag="9")]
     pub client_key: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="10")]
@@ -228,20 +249,51 @@ pub struct UpdateRuleResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ValidationResult {
+    #[prost(string, tag="1")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub client_key: ::prost::alloc::string::String,
+    /// If the expression is invalid for an asset, one or more AssetExpressionValidationResult will be returned. This may block
+    /// saving if the override_expression_validation flag is not set.
+    #[prost(message, repeated, tag="3")]
+    pub asset_expression_validation_results: ::prost::alloc::vec::Vec<AssetExpressionValidationResult>,
+    /// If the rule is invalid and unable to be saved, this will contain the error message. Expression errors will be returned in
+    /// the asset_expression_validation_results.
+    #[prost(string, optional, tag="4")]
+    pub error: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchUpdateRulesRequest {
     /// rules are limited 1000 rules at a time
     #[prost(message, repeated, tag="1")]
     pub rules: ::prost::alloc::vec::Vec<UpdateRuleRequest>,
+    /// If validate_only is true, the request will only validate the request and not save the rules.
+    #[prost(bool, tag="2")]
+    pub validate_only: bool,
+    /// If override_expression_validation is true, the request will save the rules even if the expressions are invalid. This
+    /// can be useful for multi-asset rules where an invalid expression for one asset should not prevent the rule from being saved.
+    #[prost(bool, tag="3")]
+    pub override_expression_validation: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchUpdateRulesResponse {
     #[prost(bool, tag="1")]
     pub success: bool,
+    /// The total number of rules created in the request. If validate_only is true, this will indicate how many rules would have been created.
     #[prost(int32, tag="2")]
     pub rules_created_count: i32,
+    /// The total number of rules updated in the request. If validate_only is true, this will indicate how many rules would have been updated.
     #[prost(int32, tag="3")]
     pub rules_updated_count: i32,
+    /// This will be true if the request only validated the request and did not save the rules.
+    #[prost(bool, tag="4")]
+    pub validate_only: bool,
+    /// One ValidationResult per rule in the request will be returned
+    #[prost(message, repeated, tag="5")]
+    pub validation_results: ::prost::alloc::vec::Vec<ValidationResult>,
 }
 /// DeleteRuleRequest is used to delete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -255,6 +307,45 @@ pub struct DeleteRuleRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteRuleResponse {
+}
+/// BatchDeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchDeleteRulesRequest {
+    #[prost(string, repeated, tag="1")]
+    pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="2")]
+    pub client_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchDeleteRulesResponse {
+}
+/// UndeleteRuleRequest is used to undelete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UndeleteRuleRequest {
+    #[prost(string, tag="1")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub client_key: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UndeleteRuleResponse {
+}
+/// BatchUndeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchUndeleteRulesRequest {
+    #[prost(string, repeated, tag="1")]
+    pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="2")]
+    pub client_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchUndeleteRulesResponse {
 }
 /// Deprecated - use ViewJsonRulesRequest.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -394,6 +485,8 @@ pub struct RuleVersion {
     pub version_notes: ::prost::alloc::string::String,
     #[prost(string, tag="7")]
     pub generated_change_message: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="8")]
+    pub deleted_date: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
