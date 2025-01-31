@@ -61,7 +61,7 @@ class DataImport(BaseModel):
 
 class DataImportService(RestService):
     """
-    Service used to retrive information about a particular data import.
+    Service used to retrieve information about a particular data import.
     """
 
     STATUS_PATH = "/api/v1/data-imports"

@@ -38,6 +38,10 @@ def compute_uri(restconf: SiftRestConfig) -> str:
 
 
 class RestService(ABC):
+    """
+    Abstract service that implements a REST session.
+    """
+
     def __init__(self, rest_conf: SiftRestConfig):
         self._rest_conf = rest_conf
         self._base_uri = compute_uri(rest_conf)

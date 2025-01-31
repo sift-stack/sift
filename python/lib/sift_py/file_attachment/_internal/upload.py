@@ -12,6 +12,10 @@ from sift_py.rest import RestService, SiftRestConfig
 
 
 class UploadService(RestService):
+    """
+    Service used to upload attachments.
+    """
+
     UPLOAD_PATH = "/api/v0/remote-files/upload"
     UPLOAD_BULK_PATH = "/api/v0/remote-files/upload:bulk"
 
