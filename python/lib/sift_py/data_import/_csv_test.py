@@ -326,7 +326,6 @@ def test_simple_upload_metadata_csv(mocker: MockFixture):
     mock_requests_post.assert_any_call(
         url="https://some_uri.com/api/v1/data-imports:upload",
         headers={
-            "Authorization": "Bearer 123123123",
             "Content-Encoding": "application/octet-stream",
         },
         data=json.dumps({"csv_config": expected_csv_config.to_dict()}),
@@ -388,7 +387,6 @@ def test_simple_upload_uint64_csv(mocker: MockFixture):
     mock_requests_post.assert_any_call(
         url="https://some_uri.com/api/v1/data-imports:upload",
         headers={
-            "Authorization": "Bearer 123123123",
             "Content-Encoding": "application/octet-stream",
         },
         data=json.dumps({"csv_config": expected_csv_config.to_dict()}),

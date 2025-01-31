@@ -69,7 +69,7 @@ class DataImportService(RestService):
 
     # TODO: rename restconf to rest_conf for consistency between services
     def __init__(self, restconf: SiftRestConfig, data_import_id: str):
-        super().__init__(rest_conf=rest_conf)
+        super().__init__(rest_conf=restconf)
         self._data_import_id = data_import_id
         self._status_uri = urljoin(self._base_uri, self.STATUS_PATH)
 

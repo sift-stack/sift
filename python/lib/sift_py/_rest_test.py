@@ -6,6 +6,18 @@ from urllib3.response import HTTPResponse
 from sift_py.rest import RestService, SiftRestConfig
 
 
+class MockResponse:
+    status_code: int
+    text: str
+
+    def __init__(self, status_code: int, text: str):
+        self.status_code = status_code
+        self.text = text
+
+    def json(self) -> dict:
+        return json.loads(self.text)
+
+
 class TestRetryService(RestService):
     def get_dummy(self):
         return self._session.get(f"{self._base_uri}/dummy")
@@ -47,4 +59,23 @@ def test_http_adapter_retries(mocker):
     response = service.get_dummy()
 
     assert call_count == n_tries
+
     assert response.status_code == 200
+
+
+def test_rest_service_authorization_headers(mocker):
+    mock_session = mocker.patch("sift_py.rest.requests.Session", autospec=True)
+    mock_session_instance = mock_session.return_value
+
+    mock_get = mock_session_instance.get
+    mock_get.return_value = MockResponse(status_code=200, text='{"key": "value"}')
+
+    rest_config: SiftRestConfig = {
+        "uri": "dummy.com",
+        "apikey": "dummy",
+    }
+    service = TestRetryService(rest_config)
+
+    assert "Authorization" in service._session.headers
+    assert service._session.headers["Authorization"] == "Bearer dummy"
+
