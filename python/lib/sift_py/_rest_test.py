@@ -1,4 +1,5 @@
 import io
+import json
 
 from urllib3.exceptions import ProtocolError
 from urllib3.response import HTTPResponse
@@ -78,4 +79,3 @@ def test_rest_service_authorization_headers(mocker):
 
     assert "Authorization" in service._session.headers
     assert service._session.headers["Authorization"] == "Bearer dummy"
-
