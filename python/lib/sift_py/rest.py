@@ -1,8 +1,14 @@
+from abc import ABC
 from typing import TypedDict
 
+import requests
+from requests.adapters import HTTPAdapter
 from typing_extensions import NotRequired
+from urllib3.util import Retry
 
 from sift_py.grpc.transport import _clean_uri
+
+_DEFAULT_REST_RETRY = Retry(total=3, status_forcelist=[500, 502, 503, 504], backoff_factor=1)
 
 
 class SiftRestConfig(TypedDict):
@@ -10,11 +16,13 @@ class SiftRestConfig(TypedDict):
     Config class used to to interact with services that use Sift's REST API.`.
     - `uri`: The URI of Sift's REST API. The scheme portion of the URI i.e. `https://` should be ommitted.
     - `apikey`: User-generated API key generated via the Sift application.
+    - `retry`: Urllib3 Retry configuration. If not provided, a default of 3 retries is used.
     - `use_ssl`: INTERNAL USE. Meant to be used for local development.
     """
 
     uri: str
     apikey: str
+    retry: NotRequired[Retry]
     use_ssl: NotRequired[bool]
 
 
@@ -27,3 +35,16 @@ def compute_uri(restconf: SiftRestConfig) -> str:
         return f"https://{clean_uri}"
 
     return f"http://{clean_uri}"
+
+
+class RestService(ABC):
+    def __init__(self, rest_conf: SiftRestConfig):
+        self._rest_conf = rest_conf
+        self._base_uri = compute_uri(rest_conf)
+        self._apikey = rest_conf["apikey"]
+
+        self._session = requests.Session()
+        self._session.headers = {"Authorization": f"Bearer {self._apikey}"}
+        adapter = HTTPAdapter(max_retries=rest_conf.get("retry", _DEFAULT_REST_RETRY))
+        self._session.mount("https://", adapter)
+        self._session.mount("http://", adapter)
