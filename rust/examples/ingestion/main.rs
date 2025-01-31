@@ -1,26 +1,19 @@
 use chrono::Utc;
 use pbjson_types::Timestamp;
 use sift_rs::{
-    gen::sift::{
-        common::r#type::v1::ChannelDataType,
-        ingest::v1::{
-            ingest_service_client::IngestServiceClient,
-            ingest_with_config_data_channel_value::Type, IngestWithConfigDataChannelValue,
-            IngestWithConfigDataStreamRequest,
-        },
-        ingestion_configs::v1::{
-            ingestion_config_service_client::IngestionConfigServiceClient, ChannelConfig,
-            CreateIngestionConfigRequest, FlowConfig, IngestionConfig, ListIngestionConfigsRequest,
-        },
-        runs::v2::{run_service_client::RunServiceClient, CreateRunRequest, Run},
-    },
+    common::r#type::v1::ChannelDataType,
     grpc::{use_sift_channel, SiftChannel, SiftChannelConfig},
+    ingest::v1::ingest_service_client::IngestServiceClient,
+    ingestion_configs::v1::{
+        ingestion_config_service_client::IngestionConfigServiceClient, ChannelConfig,
+        CreateIngestionConfigRequest, FlowConfig, IngestionConfig, ListIngestionConfigsRequest,
+    },
+    runs::v2::{run_service_client::RunServiceClient, CreateRunRequest, Run},
 };
 use std::{env, error::Error};
 
 /// Simulates a data source
 mod data;
-use data::data_source;
 
 /// Name of the asset that we want to ingest data for.
 pub const ASSET_NAME: &str = "LV-426";
@@ -39,6 +32,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Create your ingestion config which defines the schema of your telemetry.
     let ingestion_config =
         get_or_create_ingestion_config(grpc_channel.clone(), ASSET_NAME, CLIENT_KEY).await?;
+
     println!(
         "initialized ingestion config {}",
         ingestion_config.client_key
@@ -48,29 +42,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let run = create_run(grpc_channel.clone(), ASSET_NAME).await?;
     println!("initialized run {}", &run.name);
 
-    let mut ingestion_service = IngestServiceClient::new(grpc_channel);
-    let data_stream = data_source();
+    let (data_source_handle, data_source_rx) = data::init_data_source(ingestion_config, run);
 
-    // Stream data to Sift from a data source.
-    while let Ok((timestamp, velocity)) = data_stream.recv() {
-        let req = IngestWithConfigDataStreamRequest {
-            run_id: run.run_id.clone(),
-            ingestion_config_id: String::from(&ingestion_config.ingestion_config_id),
-            flow: String::from("velocity_reading"),
-            timestamp: Some(Timestamp::from(timestamp)),
-            channel_values: vec![IngestWithConfigDataChannelValue {
-                r#type: Some(Type::Double(velocity)),
-            }],
-            // Set this flag to `true` only for debugging purposes to get real-time data validation from
-            // the Sift API. Do not use in production as it will hurt performance.
-            end_stream_on_validation_error: false,
-            ..Default::default()
-        };
-        ingestion_service
-            .ingest_with_config_data_stream(tokio_stream::once(req))
-            .await?;
-        println!("ingested a velocity_reading flow");
-    }
+    IngestServiceClient::new(grpc_channel)
+        .ingest_with_config_data_stream(data_source_rx)
+        .await?;
+
+    data_source_handle.await?;
 
     println!("done.");
     Ok(())
