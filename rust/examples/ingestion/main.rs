@@ -14,7 +14,6 @@ use std::{env, error::Error};
 
 /// Simulates a data source
 mod data;
-use data::DataSource;
 
 /// Name of the asset that we want to ingest data for.
 pub const ASSET_NAME: &str = "LV-426";
@@ -43,12 +42,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let run = create_run(grpc_channel.clone(), ASSET_NAME).await?;
     println!("initialized run {}", &run.name);
 
-    // Initialize the data source which is an impl Stream
-    let data_source = DataSource::new(ingestion_config, run);
+    let (data_source_handle, data_source_rx) = data::init_data_source(ingestion_config, run);
 
     IngestServiceClient::new(grpc_channel)
-        .ingest_with_config_data_stream(data_source)
+        .ingest_with_config_data_stream(data_source_rx)
         .await?;
+
+    data_source_handle.await?;
 
     println!("done.");
     Ok(())
