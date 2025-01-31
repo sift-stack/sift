@@ -5,16 +5,15 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
-import requests
 
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
-from sift_py.rest import SiftRestConfig, compute_uri
+from sift_py.rest import RestService, SiftRestConfig
 
 
-class CsvUploadService:
+class CsvUploadService(RestService):
     UPLOAD_PATH = "/api/v1/data-imports:upload"
     URL_PATH = "/api/v1/data-imports:url"
 
@@ -24,11 +23,9 @@ class CsvUploadService:
     _apikey: str
 
     def __init__(self, rest_conf: SiftRestConfig):
-        self._rest_conf = rest_conf
-        base_uri = compute_uri(rest_conf)
-        self._apikey = rest_conf["apikey"]
-        self._upload_uri = urljoin(base_uri, self.UPLOAD_PATH)
-        self._url_uri = urljoin(base_uri, self.URL_PATH)
+        super().__init__(rest_conf=rest_conf)
+        self._upload_uri = urljoin(self._base_uri, self.UPLOAD_PATH)
+        self._url_uri = urljoin(self._base_uri, self.URL_PATH)
 
     def upload(
         self,
@@ -40,10 +37,9 @@ class CsvUploadService:
         """
         content_encoding = self._validate_file_type(path)
 
-        response = requests.post(
+        response = self._session.post(
             url=self._upload_uri,
             headers={
-                "Authorization": f"Bearer {self._apikey}",
                 "Content-Encoding": "application/octet-stream",
             },
             data=json.dumps({"csv_config": csv_config.to_dict()}),
@@ -67,11 +63,10 @@ class CsvUploadService:
 
         with open(path, "rb") as f:
             headers = {
-                "Authorization": f"Bearer {self._apikey}",
                 "Content-Encoding": content_encoding,
             }
 
-            response = requests.post(
+            response = self._session.post(
                 url=upload_url,
                 headers=headers,
                 data=f,
@@ -98,11 +93,8 @@ class CsvUploadService:
                 f"Invalid URL scheme: '{parsed_url.scheme}'. Only S3 and HTTP(S) URLs are supported."
             )
 
-        headers = {"Authorization": f"Bearer {self._apikey}"}
-
-        response = requests.post(
+        response = self._session.post(
             url=self._url_uri,
-            headers=headers,
             data=json.dumps(
                 (
                     {

@@ -103,7 +103,7 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
     mock_path_is_file = mocker.patch("sift_py.data_import.tdms.Path.is_file")
     mock_path_is_file.return_value = True
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse()
 
     def mock_tdms_file_constructor(path):
@@ -183,7 +183,7 @@ def test_tdms_upload_ignore_errors(mocker: MockFixture):
 
     mocker.patch("sift_py.data_import.tdms.TdmsWriter")
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse()
 
     # Start with all invalid channels
@@ -226,7 +226,7 @@ def test_tdms_upload_unknown_data_type(mocker: MockFixture, mock_tdms_file: Mock
 
     mocker.patch("sift_py.data_import.tdms.TdmsWriter")
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse()
 
     mock_tdms_file.groups()[0].channels()[0].data_type = types.ComplexDoubleFloat

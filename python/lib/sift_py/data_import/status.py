@@ -4,13 +4,12 @@ from enum import Enum
 from typing import Optional, Union
 from urllib.parse import urljoin
 
-import requests
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
-from sift_py.rest import SiftRestConfig, compute_uri
+from sift_py.rest import RestService, SiftRestConfig
 
 
 class DataImportStatusType(Enum):
@@ -60,7 +59,7 @@ class DataImport(BaseModel):
         )
 
 
-class DataImportService:
+class DataImportService(RestService):
     """
     Service used to retrive information about a particular data import.
     """
@@ -68,22 +67,20 @@ class DataImportService:
     STATUS_PATH = "/api/v1/data-imports"
     _data_import_id: str
 
+    # TODO: rename restconf to rest_conf for consistency between services
     def __init__(self, restconf: SiftRestConfig, data_import_id: str):
-        base_uri = compute_uri(restconf)
+        super().__init__(rest_conf=rest_conf)
         self._data_import_id = data_import_id
-        self._status_uri = urljoin(base_uri, self.STATUS_PATH)
-        self._apikey = restconf["apikey"]
+        self._status_uri = urljoin(self._base_uri, self.STATUS_PATH)
 
     def get_data_import(self) -> DataImport:
         """
         Returns information about the data import.
         """
-        response = requests.get(
+        response = self._session.get(
             url=f"{self._status_uri}/{self._data_import_id}",
-            headers={"Authorization": f"Bearer {self._apikey}"},
         )
         response.raise_for_status()
-
         data = response.json().get("dataImport")
         data_import = DataImport(**data)
         return data_import
