@@ -3,16 +3,19 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 from urllib.parse import urljoin
 
-import requests
 from requests_toolbelt import MultipartEncoder
 
 from sift_py._internal.convert.json import to_json
 from sift_py.file_attachment.entity import Entity
 from sift_py.file_attachment.metadata import Metadata
-from sift_py.rest import SiftRestConfig, compute_uri
+from sift_py.rest import SiftRestConfig, _RestService
 
 
-class UploadService:
+class UploadService(_RestService):
+    """
+    Service used to upload attachments.
+    """
+
     UPLOAD_PATH = "/api/v0/remote-files/upload"
     UPLOAD_BULK_PATH = "/api/v0/remote-files/upload:bulk"
 
@@ -20,11 +23,10 @@ class UploadService:
     _upload_bulk_uri: str
     _apikey: str
 
-    def __init__(self, restconf: SiftRestConfig):
-        base_uri = compute_uri(restconf)
-        self._upload_uri = urljoin(base_uri, self.UPLOAD_PATH)
-        self._upload_bulk_uri = urljoin(base_uri, self.UPLOAD_BULK_PATH)
-        self._apikey = restconf["apikey"]
+    def __init__(self, rest_conf: SiftRestConfig):
+        super().__init__(rest_conf=rest_conf)
+        self._upload_uri = urljoin(self._base_uri, self.UPLOAD_PATH)
+        self._upload_bulk_uri = urljoin(self._base_uri, self.UPLOAD_BULK_PATH)
 
     def upload_attachment(
         self,
@@ -77,11 +79,10 @@ class UploadService:
 
             # https://github.com/requests/toolbelt/issues/312
             # Issue above is reason for the type ignoring
-            response = requests.post(
+            response = self._session.post(
                 url=self._upload_uri,
                 data=form_data,  # type: ignore
                 headers={
-                    "Authorization": f"Bearer {self._apikey}",
                     "Content-Type": form_data.content_type,
                 },
             )

@@ -124,7 +124,7 @@ def test_file_attachments_service_upload_returns_remote_file(mocker: MockFixture
     )
     mock_multipart_encoder.return_value = MockMultipartEncoder()
 
-    mock_requests_post = mocker.patch("sift_py.file_attachment._internal.upload.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse(
         status_code=200, text=json.dumps({"remoteFile": {"remoteFileId": "abc"}})
     )

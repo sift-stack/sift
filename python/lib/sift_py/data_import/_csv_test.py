@@ -79,7 +79,7 @@ def test_csv_upload_service_invalid_config_response(mocker: MockFixture):
     mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
     mock_path_is_file.return_value = True
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session").post
     mock_requests_post.return_value = MockResponse(status_code=400, text="Invalid request")
     with pytest.raises(Exception, match="Config file upload request failed"):
         svc = CsvUploadService(rest_config)
@@ -99,7 +99,7 @@ def test_csv_upload_service_invalid_data_response(mocker: MockFixture):
         mocker.mock_open(),
     )
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse(status_code=200, text="asdgasdg")
 
     with pytest.raises(Exception, match="Invalid response"):
@@ -110,7 +110,7 @@ def test_csv_upload_service_invalid_data_response(mocker: MockFixture):
             csv_config=csv_config,
         )
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse(status_code=200, text="{}")
 
     with pytest.raises(Exception, match="Response missing required keys"):
@@ -142,7 +142,7 @@ def test_csv_upload_service_success(mocker: MockFixture):
     mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
     mock_path_is_file.return_value = True
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.side_effect = [
         MockResponse(
             status_code=200,
@@ -179,7 +179,7 @@ def test_csv_upload_service_upload_validate_url(mocker: MockFixture):
 
 
 def test_csv_upload_service_upload_from_url_invalid_config(mocker: MockFixture):
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session").post
     mock_requests_post.return_value = MockResponse(status_code=400, text="Invalid request")
     with pytest.raises(Exception, match="URL upload request failed"):
         svc = CsvUploadService(rest_config)
@@ -191,7 +191,7 @@ def test_csv_upload_service_upload_from_url_invalid_config(mocker: MockFixture):
 
 
 def test_csv_upload_service_upload_from_url_success(mocker: MockFixture):
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse(
         status_code=200,
         text=json.dumps({"uploadUrl": "some_url.com", "dataImportId": "123-123-123"}),
@@ -245,7 +245,7 @@ def test_simple_upload_invalid_csv(mocker: MockFixture):
             "channel_string": ["a", "b", "c"],
         }
     )
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.side_effect = [
         MockResponse(
             status_code=200,
@@ -283,7 +283,7 @@ def test_simple_upload_metadata_csv(mocker: MockFixture):
 
     mocker.patch("sift_py.data_import.csv.pd.read_csv", mock_read_csv)
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.side_effect = [
         MockResponse(
             status_code=200,
@@ -326,7 +326,6 @@ def test_simple_upload_metadata_csv(mocker: MockFixture):
     mock_requests_post.assert_any_call(
         url="https://some_uri.com/api/v1/data-imports:upload",
         headers={
-            "Authorization": "Bearer 123123123",
             "Content-Encoding": "application/octet-stream",
         },
         data=json.dumps({"csv_config": expected_csv_config.to_dict()}),
@@ -345,7 +344,7 @@ def test_simple_upload_uint64_csv(mocker: MockFixture):
         }
     )
 
-    mock_requests_post = mocker.patch("sift_py.data_import.csv.requests.post")
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.side_effect = [
         MockResponse(
             status_code=200,
@@ -388,7 +387,6 @@ def test_simple_upload_uint64_csv(mocker: MockFixture):
     mock_requests_post.assert_any_call(
         url="https://some_uri.com/api/v1/data-imports:upload",
         headers={
-            "Authorization": "Bearer 123123123",
             "Content-Encoding": "application/octet-stream",
         },
         data=json.dumps({"csv_config": expected_csv_config.to_dict()}),

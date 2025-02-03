@@ -45,30 +45,32 @@ class MockResponse:
 
 
 def test_get_status(mocker: MockFixture, data_import_data: dict):
-    mock_requests_post = mocker.patch("sift_py.data_import.status.requests.get")
+    mock_session = mocker.patch("sift_py.rest.requests.Session", autospec=True)
+    mock_requests_get = mock_session.return_value.get
+
     data_import_data["dataImport"]["status"] = "DATA_IMPORT_STATUS_SUCCEEDED"
-    mock_requests_post.return_value = MockResponse(
+    mock_requests_get.return_value = MockResponse(
         status_code=200, text=json.dumps(data_import_data)
     )
     service = DataImportService(rest_config, "123-123-123")
     assert service.get_data_import().status == DataImportStatusType.SUCCEEDED
 
     data_import_data["dataImport"]["status"] = "DATA_IMPORT_STATUS_PENDING"
-    mock_requests_post.return_value = MockResponse(
+    mock_requests_get.return_value = MockResponse(
         status_code=200, text=json.dumps(data_import_data)
     )
     service = DataImportService(rest_config, "123-123-123")
     assert service.get_data_import().status == DataImportStatusType.PENDING
 
     data_import_data["dataImport"]["status"] = "DATA_IMPORT_STATUS_IN_PROGRESS"
-    mock_requests_post.return_value = MockResponse(
+    mock_requests_get.return_value = MockResponse(
         status_code=200, text=json.dumps(data_import_data)
     )
     service = DataImportService(rest_config, "123-123-123")
     assert service.get_data_import().status == DataImportStatusType.IN_PROGRESS
 
     data_import_data["dataImport"]["status"] = "DATA_IMPORT_STATUS_FAILED"
-    mock_requests_post.return_value = MockResponse(
+    mock_requests_get.return_value = MockResponse(
         status_code=200, text=json.dumps(data_import_data)
     )
     service = DataImportService(rest_config, "123-123-123")
@@ -76,7 +78,7 @@ def test_get_status(mocker: MockFixture, data_import_data: dict):
 
     data_import_data["dataImport"]["status"] = "INVALID_STATUS"
     with pytest.raises(Exception, match="Invalid data import status"):
-        mock_requests_post.return_value = MockResponse(
+        mock_requests_get.return_value = MockResponse(
             status_code=200, text=json.dumps(data_import_data)
         )
         service = DataImportService(rest_config, "123-123-123")
@@ -85,7 +87,8 @@ def test_get_status(mocker: MockFixture, data_import_data: dict):
 
 def test_wait_success(mocker: MockFixture, data_import_data: dict):
     mock_time_sleep = mocker.patch("sift_py.data_import.status.time.sleep")
-    mock_requests_get = mocker.patch("sift_py.data_import.status.requests.get")
+    mock_session = mocker.patch("sift_py.rest.requests.Session", autospec=True)
+    mock_requests_get = mock_session.return_value.get
 
     succeeded = deepcopy(data_import_data)
     succeeded["dataImport"]["status"] = "DATA_IMPORT_STATUS_SUCCEEDED"
@@ -118,7 +121,8 @@ def test_wait_success(mocker: MockFixture, data_import_data: dict):
 
 
 def test_wait_failure(mocker: MockFixture, data_import_data: dict):
-    mock_requests_get = mocker.patch("sift_py.data_import.status.requests.get")
+    mock_session = mocker.patch("sift_py.rest.requests.Session", autospec=True)
+    mock_requests_get = mock_session.return_value.get
 
     failed = deepcopy(data_import_data)
     failed["dataImport"]["status"] = "DATA_IMPORT_STATUS_FAILED"
@@ -150,7 +154,8 @@ def test_wait_failure(mocker: MockFixture, data_import_data: dict):
 
 def test_wait_max_polling_interval(mocker: MockFixture, data_import_data: dict):
     mock_time_sleep = mocker.patch("sift_py.data_import.status.time.sleep")
-    mock_requests_get = mocker.patch("sift_py.data_import.status.requests.get")
+    mock_session = mocker.patch("sift_py.rest.requests.Session", autospec=True)
+    mock_requests_get = mock_session.return_value.get
 
     succeeded = deepcopy(data_import_data)
     succeeded["dataImport"]["status"] = "DATA_IMPORT_STATUS_SUCCEEDED"
