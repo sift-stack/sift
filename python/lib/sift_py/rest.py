@@ -37,7 +37,7 @@ def compute_uri(restconf: SiftRestConfig) -> str:
     return f"http://{clean_uri}"
 
 
-class RestService(ABC):
+class _RestService(ABC):
     """
     Abstract service that implements a REST session.
     """

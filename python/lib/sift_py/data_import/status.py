@@ -9,7 +9,7 @@ from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
-from sift_py.rest import RestService, SiftRestConfig
+from sift_py.rest import _RestService, SiftRestConfig
 
 
 class DataImportStatusType(Enum):
@@ -59,7 +59,7 @@ class DataImport(BaseModel):
         )
 
 
-class DataImportService(RestService):
+class DataImportService(_RestService):
     """
     Service used to retrieve information about a particular data import.
     """

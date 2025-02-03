@@ -8,10 +8,10 @@ from requests_toolbelt import MultipartEncoder
 from sift_py._internal.convert.json import to_json
 from sift_py.file_attachment.entity import Entity
 from sift_py.file_attachment.metadata import Metadata
-from sift_py.rest import RestService, SiftRestConfig
+from sift_py.rest import _RestService, SiftRestConfig
 
 
-class UploadService(RestService):
+class UploadService(_RestService):
     """
     Service used to upload attachments.
     """

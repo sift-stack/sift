@@ -4,7 +4,7 @@ import json
 from urllib3.exceptions import ProtocolError
 from urllib3.response import HTTPResponse
 
-from sift_py.rest import RestService, SiftRestConfig
+from sift_py.rest import _RestService, SiftRestConfig
 
 
 class MockResponse:
@@ -19,7 +19,7 @@ class MockResponse:
         return json.loads(self.text)
 
 
-class TestRetryService(RestService):
+class TestRetryService(_RestService):
     def get_dummy(self):
         return self._session.get(f"{self._base_uri}/dummy")
 

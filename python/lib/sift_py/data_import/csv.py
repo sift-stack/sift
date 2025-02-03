@@ -10,10 +10,10 @@ from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
-from sift_py.rest import RestService, SiftRestConfig
+from sift_py.rest import _RestService, SiftRestConfig
 
 
-class CsvUploadService(RestService):
+class CsvUploadService(_RestService):
     UPLOAD_PATH = "/api/v1/data-imports:upload"
     URL_PATH = "/api/v1/data-imports:url"
 
