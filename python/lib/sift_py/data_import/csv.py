@@ -10,7 +10,7 @@ from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
-from sift_py.rest import _RestService, SiftRestConfig
+from sift_py.rest import SiftRestConfig, _RestService
 
 
 class CsvUploadService(_RestService):

@@ -9,7 +9,7 @@ from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
-from sift_py.rest import _RestService, SiftRestConfig
+from sift_py.rest import SiftRestConfig, _RestService
 
 
 class DataImportStatusType(Enum):

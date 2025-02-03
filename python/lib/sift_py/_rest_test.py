@@ -4,7 +4,7 @@ import json
 from urllib3.exceptions import ProtocolError
 from urllib3.response import HTTPResponse
 
-from sift_py.rest import _RestService, SiftRestConfig
+from sift_py.rest import SiftRestConfig, _RestService
 
 
 class MockResponse:
