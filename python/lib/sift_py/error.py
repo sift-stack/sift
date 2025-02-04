@@ -1,3 +1,6 @@
+import warnings
+
+
 class SiftError(Exception):
     """
     These exceptions are raised when something totally unexpected occurs and is
@@ -10,9 +13,17 @@ class SiftError(Exception):
     def __init__(self, msg: str):
         super().__init__(f"{msg}\nPlease notify Sift.")
 
+
 class SiftAPIDeprecationWarning(FutureWarning):
     """
     Warning used for deprecated API features that may be removed in future updates.
     """
+
     ...
 
+
+def _component_deprecation_warning():
+    warnings.warn(
+        "`component` field of Channel has been deprecated and may be removed in a future update. See docs for more details.",
+        SiftAPIDeprecationWarning,
+    )

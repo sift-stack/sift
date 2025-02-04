@@ -13,6 +13,7 @@ from sift.common.type.v1.channel_enum_type_pb2 import (
     ChannelEnumType as ChannelEnumTypePb,
 )
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
+
 # TODO: use v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from typing_extensions import NotRequired, Self
@@ -30,6 +31,7 @@ class ChannelValue(TypedDict):
     channel_name: str
     component: NotRequired[str]
     value: IngestWithConfigDataChannelValue
+
 
 # TODO: deprecate component
 class ChannelConfig(AsProtobuf):
@@ -138,6 +140,7 @@ class ChannelConfig(AsProtobuf):
             ],
             enum_types=[ChannelEnumType.from_pb(etype) for etype in message.enum_types],
         )
+
     # TODO: deprecate component
     def fqn(self) -> str:
         """
@@ -328,10 +331,12 @@ class ChannelDataType(Enum):
         else:
             raise Exception("Unreachable.")
 
+
 # TODO: deprecate component
 class _AbstractChannel(TypedDict):
     channel_name: str
     component: NotRequired[str]
+
 
 # TODO: deprecate component
 def channel_fqn(

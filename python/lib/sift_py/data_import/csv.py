@@ -12,6 +12,7 @@ from sift_py.data_import.time_format import TimeFormatType
 from sift_py.ingestion.channel import ChannelDataType
 from sift_py.rest import SiftRestConfig, _RestService
 
+
 # TODO: update to v2
 class CsvUploadService(_RestService):
     UPLOAD_PATH = "/api/v1/data-imports:upload"

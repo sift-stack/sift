@@ -96,6 +96,7 @@ class TimeColumn(ConfigBaseModel):
 
         return self
 
+
 # TODO: deprecate component
 class DataColumn(ConfigBaseModel):
     """

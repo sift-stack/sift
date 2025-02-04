@@ -7,6 +7,7 @@ from typing import Callable, List
 import pytest
 from pytest_mock import MockFixture
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
+
 # TODO: use v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
@@ -238,6 +239,7 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
         on_error_spy.assert_called_once()
         assert len(buffered_ingestion._buffer) == 0
         assert mock_ingest.call_count == 7
+
 
 # TODO: deprecate component
 def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):

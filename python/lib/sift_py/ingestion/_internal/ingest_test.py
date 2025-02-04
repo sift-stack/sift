@@ -4,10 +4,12 @@ from datetime import datetime, timezone
 
 import pytest
 from pytest_mock import MockFixture
+
 # TODO: use v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
+
 # TODO: update to v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigPb,
@@ -163,6 +165,7 @@ def test_ingestion_service_get_or_create_ingestion_config_create_if_not_exist(mo
     )
 
     assert ingestion_config.ingestion_config_id == mock_ingestion_config.ingestion_config_id
+
 
 # TODO: deprecate component
 def test_ingestion_service_try_create_ingestion_request_validations(mocker: MockFixture):

@@ -245,6 +245,7 @@ class DataQueryResultSet:
         cols.update(self.value_column(value_column_name))
         return cols
 
+
 # TODO: deprecate component
 class ChannelQuery:
     """
@@ -267,6 +268,7 @@ class ChannelQuery:
 
     def fqn(self) -> str:
         return channel_fqn(self.channel_name, self.component)
+
 
 # TODO: deprecate component
 class ExpressionChannelReference(TypedDict):

@@ -266,6 +266,7 @@ def test_telemetry_config_validations_flows_with_same_name():
             ],
         )
 
+
 # TODO: deprecate component
 TEST_YAML_CONFIG_STR = """
 asset_name: LunarVehicle426

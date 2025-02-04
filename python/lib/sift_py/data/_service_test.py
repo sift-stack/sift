@@ -27,6 +27,7 @@ from sift_py._internal.time import to_timestamp_pb
 from sift_py.data.query import ChannelQuery, DataQuery
 from sift_py.data.service import DataService
 
+
 # TODO: deprecate component
 @pytest.mark.asyncio
 async def test_data_service_execute_regular_channels(mocker: MockFixture):
@@ -135,6 +136,7 @@ async def test_data_service_execute_regular_channels(mocker: MockFixture):
         assert len(all_columns_custom) == 2
         assert len(all_columns_custom["ts"]) == 2
         assert len(all_columns_custom["valve.pressure"]) == 2
+
 
 # TODO: deprecate component
 @contextmanager
