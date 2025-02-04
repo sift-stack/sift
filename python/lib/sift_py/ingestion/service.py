@@ -7,6 +7,7 @@ from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataChannelValue,
     IngestWithConfigDataStreamRequest,
 )
+# TODO: use v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
 
 from sift_py.grpc.transport import SiftChannel
@@ -100,6 +101,7 @@ class IngestionService(_IngestionServiceImpl):
           - Making sure that the there are no unexpected channels provided for the given flow
           - Making sure the channel value is the expected type
           - Making sure that the timestamp is in UTC
+          # TODO: deprecate component
           - Making sure channels that belong to a component have the 'component' field for the channel value
 
         If any of the above validations fail then a `IngestionValidationError` will be raised.

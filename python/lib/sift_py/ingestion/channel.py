@@ -13,6 +13,7 @@ from sift.common.type.v1.channel_enum_type_pb2 import (
     ChannelEnumType as ChannelEnumTypePb,
 )
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
+# TODO: use v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from typing_extensions import NotRequired, Self
 
@@ -20,6 +21,7 @@ from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.convert.protobuf import AsProtobuf
 
 
+# TODO: deprecate component
 class ChannelValue(TypedDict):
     """
     Represents a fully qualified data point for a channel
@@ -29,7 +31,7 @@ class ChannelValue(TypedDict):
     component: NotRequired[str]
     value: IngestWithConfigDataChannelValue
 
-
+# TODO: deprecate component
 class ChannelConfig(AsProtobuf):
     """
     A description for a channel
@@ -108,6 +110,7 @@ class ChannelConfig(AsProtobuf):
 
         raise ValueError(f"Failed to cast value of type {type(value)} to {self.data_type}")
 
+    # TODO: deprecate component
     def as_pb(self, klass: Type[ChannelConfigPb]) -> ChannelConfigPb:
         return klass(
             name=self.name,
@@ -121,6 +124,7 @@ class ChannelConfig(AsProtobuf):
             ],
         )
 
+    # TODO: deprecate component
     @classmethod
     def from_pb(cls, message: ChannelConfigPb) -> Self:
         return cls(
@@ -134,7 +138,7 @@ class ChannelConfig(AsProtobuf):
             ],
             enum_types=[ChannelEnumType.from_pb(etype) for etype in message.enum_types],
         )
-
+    # TODO: deprecate component
     def fqn(self) -> str:
         """
         The fully-qualified channel name of a channel called 'voltage' is simply `voltage`. The
@@ -324,12 +328,12 @@ class ChannelDataType(Enum):
         else:
             raise Exception("Unreachable.")
 
-
+# TODO: deprecate component
 class _AbstractChannel(TypedDict):
     channel_name: str
     component: NotRequired[str]
 
-
+# TODO: deprecate component
 def channel_fqn(
     channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, ChannelPb, _AbstractChannel],
 ) -> str:
@@ -347,6 +351,7 @@ def channel_fqn(
     elif isinstance(channel, ChannelPb):
         return _channel_fqn(channel.name, channel.component)
     else:
+        # TODO: deprecate component
         component = channel.get("component", "")
         channel_name = channel["channel_name"]
         if len(component) == 0:

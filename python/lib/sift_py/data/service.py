@@ -88,6 +88,7 @@ class DataService:
             elif isinstance(c, CalculatedChannelQuery):
                 for ref in c.expression_channel_references:
                     channel_name = ref["channel_name"]
+                    # TODO: deprecate component
                     component = ref.get("component")
                     channel_queries.append(
                         ChannelQuery(channel_name=channel_name, component=component)
@@ -130,6 +131,7 @@ class DataService:
                 for expr_ref in channel_query.expression_channel_references:
                     validate_channel_reference(expr_ref["reference"])
 
+                    # TODO: deprecate component
                     fqn = channel_fqn(expr_ref["channel_name"], expr_ref.get("component"))
 
                     targets = channels.get(fqn)
@@ -258,6 +260,7 @@ class DataService:
 
                 for metadata, cvalues in parsed_channel_data:
                     channel = metadata.channel
+                    # TODO: deprecate component
                     fqn = channel_fqn(channel.name, channel.component)
 
                     if not fqn:
@@ -320,6 +323,7 @@ class DataService:
             channels = defaultdict(list)
 
             for c in sift_channels:
+                # TODO: deprecate component
                 channels[channel_fqn(c.name, c.component)].append(c)
 
             self._cached_channels[asset.name] = channels
@@ -328,6 +332,7 @@ class DataService:
         cached_channels = self._cached_channels[asset.name]
         channels_to_retrieve: List[ChannelQuery] = []
         for query in channel_queries:
+            # TODO: deprecate component
             fqn = channel_fqn(query.channel_name, query.component)
             if cached_channels.get(fqn) is None:
                 channels_to_retrieve.append(query)
@@ -340,6 +345,7 @@ class DataService:
 
         channels = defaultdict(list)
 
+        # TODO: deprecate component
         for c in sift_channels:
             channels[channel_fqn(c.name, c.component)].append(c)
 

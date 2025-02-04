@@ -27,7 +27,7 @@ from sift_py._internal.time import to_timestamp_pb
 from sift_py.data.query import ChannelQuery, DataQuery
 from sift_py.data.service import DataService
 
-
+# TODO: deprecate component
 @pytest.mark.asyncio
 async def test_data_service_execute_regular_channels(mocker: MockFixture):
     with patch_grpc_calls_channels(mocker) as mocks:
@@ -136,7 +136,7 @@ async def test_data_service_execute_regular_channels(mocker: MockFixture):
         assert len(all_columns_custom["ts"]) == 2
         assert len(all_columns_custom["valve.pressure"]) == 2
 
-
+# TODO: deprecate component
 @contextmanager
 def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockType]]:
     mock__get_asset_by_name = mocker.patch.object(DataService, "_get_asset_by_name")
@@ -174,7 +174,7 @@ def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockTyp
 
     time_a = "2024-07-04T18:09:08.555-07:00"
     time_b = "2024-07-04T18:09:09.555-07:00"
-
+    # TODO: deprecate component
     velocity_values = DoubleValues(
         metadata=Metadata(
             data_type=CHANNEL_DATA_TYPE_DOUBLE,

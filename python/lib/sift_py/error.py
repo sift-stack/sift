@@ -9,3 +9,10 @@ class SiftError(Exception):
 
     def __init__(self, msg: str):
         super().__init__(f"{msg}\nPlease notify Sift.")
+
+class SiftAPIDeprecationWarning(FutureWarning):
+    """
+    Warning used for deprecated API features that may be removed in future updates.
+    """
+    ...
+

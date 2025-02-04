@@ -53,7 +53,7 @@ import_service: DataImportService  = csv_upload_service.simple_upload(asset_name
 # Blocks until the import is completed.
 import_service.wait_until_complete()
 ```
-
+# TODO: deprecate component
 If you want to upload TDMS groups as sift Components set `group_into_components` to True:
 ```python
 csv_upload_service.simple_upload(asset_name, "sample_data.tdms", group_into_components=True)

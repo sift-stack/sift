@@ -50,6 +50,7 @@ class TdmsUploadService:
     def __init__(self, rest_conf: SiftRestConfig):
         self._csv_upload_service = CsvUploadService(rest_conf)
 
+    # TODO: deprecate component
     def upload(
         self,
         path: Union[str, Path],
@@ -145,6 +146,7 @@ class TdmsUploadService:
 
         return [channel for group in filtered_tdms_file.groups() for channel in group.channels()]
 
+    # TODO: deprecate component
     def _create_csv_config(
         self,
         channels: List[TdmsChannel],

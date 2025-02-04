@@ -96,7 +96,7 @@ class TimeColumn(ConfigBaseModel):
 
         return self
 
-
+# TODO: deprecate component
 class DataColumn(ConfigBaseModel):
     """
     Defines a data column entry in the CSV config.

@@ -27,6 +27,7 @@ def test_rule_config_json():
     assert voltage_rule_config.expression == voltage_rule_expression
 
     overheating_rule_expression = '$1 == "Accelerating" && $2 > $3'
+    # TODO: deprecate component
     overheating_rule_config = RuleConfig(
         name="overheating",
         description="checks if vehicle overheats while accelerating",

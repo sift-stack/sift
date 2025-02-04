@@ -39,9 +39,9 @@ def _validate_channel(val: Any):
 
     if unit is not None and not isinstance(unit, str):
         raise YamlConfigError._invalid_property(unit, "- unit", "str", ["channels"])
-
+    # TODO: deprecate component
     component = channel.get("component")
-
+    # TODO: deprecate component
     if component is not None and not isinstance(component, str):
         raise YamlConfigError._invalid_property(component, "- component", "str", ["channels"])
 

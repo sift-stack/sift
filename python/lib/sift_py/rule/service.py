@@ -87,16 +87,19 @@ class RuleService:
                 for ref, channel_config in channel_ref.items():
                     if isinstance(channel_config, dict):
                         name = channel_config.get("name", "")
+                        # TODO: deprecate component
                         component = channel_config.get("component", "")
                     elif isinstance(channel_config, str):
                         channel_reference = channel_reference_from_fqn(channel_config)
                         name = channel_reference.name
+                        # TODO: deprecate component
                         component = channel_reference.component
                     else:
                         raise ValueError(
                             f"Channel reference '{channel_config}' must be a string or a ChannelConfigYamlSpec"
                         )
 
+                    # TODO: deprecate component
                     rule_channel_references.append(
                         {
                             "channel_reference": ref,
@@ -328,13 +331,16 @@ class RuleService:
 
         if assets and channel_references:
             identifiers = [ident.name for ident in channel_references.values()]
+            # TODO: deprecate component
             components = [ident.component for ident in channel_references.values()]
 
             # Create CEL search filters
             name_in = cel_in("name", identifiers)
+            # TODO: deprecate component
             component_in = cel_in("component", components)
 
             # Validate channels are present within each asset
+            # TODO: deprecate component
             for asset in assets:
                 found_channels = get_channels(
                     channel_service=self._channel_service_stub,

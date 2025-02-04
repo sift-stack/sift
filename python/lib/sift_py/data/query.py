@@ -245,7 +245,7 @@ class DataQueryResultSet:
         cols.update(self.value_column(value_column_name))
         return cols
 
-
+# TODO: deprecate component
 class ChannelQuery:
     """
     Represents a single channel to include in the `sift_py.data.query.DataQuery`.
@@ -268,7 +268,7 @@ class ChannelQuery:
     def fqn(self) -> str:
         return channel_fqn(self.channel_name, self.component)
 
-
+# TODO: deprecate component
 class ExpressionChannelReference(TypedDict):
     reference: str
     channel_name: str

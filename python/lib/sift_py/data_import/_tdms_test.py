@@ -142,6 +142,7 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
         },
         "data_columns": {},
     }
+    # TODO: deprecate component
     for i in range(5):
         for j in range(5):
             expected_config["data_columns"][str(2 + (i * 5) + j)] = {
@@ -156,6 +157,7 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
     assert config == expected_config
 
     # Test with grouping
+    # TODO: deprecate component
     svc.upload("some_tdms.tdms", "asset_name", group_into_components=True)
     config = get_csv_config(mock_requests_post, 2)
     for i in range(5):
@@ -164,6 +166,7 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
     assert config == expected_config
 
     # Test with run information
+    # TODO: deprecate component
     svc.upload(
         "some_tdms.tdms",
         "asset_name",

@@ -1,5 +1,6 @@
 from typing import List, Optional, cast
 
+# TODO: update to v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     CreateIngestionConfigFlowsRequest,
     CreateIngestionConfigFlowsResponse,
@@ -11,9 +12,11 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
 )
+# TODO: use v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
+# TODO: use v2
 from sift.ingestion_configs.v1.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )

@@ -167,7 +167,7 @@ class TelemetryConfig:
                             key=enum_type["key"],
                         )
                     )
-
+                # TODO: deprecate component
                 channels.append(
                     ChannelConfig(
                         name=channel["name"],
@@ -210,6 +210,7 @@ class TelemetryConfig:
             for channel_reference in rule.get("channel_references", []):
                 for ref, val in channel_reference.items():
                     name = val["name"]
+                    # TODO: deprecate component
                     component = val.get("component")
 
                     channel_references.append(

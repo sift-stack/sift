@@ -73,6 +73,7 @@ def test__validate_bit_field_element():
         )
 
 
+# TODO: deprecate component
 def test__validate_channel():
     channel._validate_channel(
         {
