@@ -4,6 +4,8 @@ from sift.common.type.v1.channel_data_type_pb2 import (
     CHANNEL_DATA_TYPE_BIT_FIELD,
     CHANNEL_DATA_TYPE_DOUBLE,
 )
+
+# TODO: update to v2
 from sift.data.v1.data_pb2 import (
     BitFieldElementValues,
     BitFieldValue,

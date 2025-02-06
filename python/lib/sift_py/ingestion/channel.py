@@ -5,6 +5,8 @@ from typing import List, Optional, Type, TypedDict, Union
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
+
+# TODO: Update to v3
 from sift.channels.v2.channels_pb2 import Channel as ChannelPb
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,

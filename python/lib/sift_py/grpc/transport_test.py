@@ -8,6 +8,8 @@ from typing import Any, Callable, Iterator, cast
 import grpc
 import pytest
 from pytest_mock import MockFixture, MockType
+
+# TODO: Update to v2
 from sift.data.v1.data_pb2 import GetDataRequest, GetDataResponse
 from sift.data.v1.data_pb2_grpc import (
     DataServiceServicer,

@@ -18,6 +18,7 @@ from typing_extensions import NotRequired, TypeAlias
 from sift_py._internal.channel import channel_fqn
 from sift_py._internal.time import to_timestamp_nanos
 from sift_py.data._channel import ChannelTimeSeries
+from sift_py.error import _component_deprecation_warning
 from sift_py.ingestion.channel import ChannelDataType
 
 
@@ -246,35 +247,35 @@ class DataQueryResultSet:
         return cols
 
 
-# TODO: deprecate component
 class ChannelQuery:
     """
     Represents a single channel to include in the `sift_py.data.query.DataQuery`.
     """
 
     channel_name: str
-    component: Optional[str]
+    component: Optional[str]  # Deprecated
     run_name: Optional[str]
 
     def __init__(
         self,
         channel_name: str,
-        component: Optional[str] = None,
+        component: Optional[str] = None,  # Deprecated
         run_name: Optional[str] = None,
     ):
         self.channel_name = channel_name
-        self.component = component
+        if component is not None:
+            _component_deprecation_warning()
+            self.channel_name = channel_fqn(name=self.channel_name, component=component)
         self.run_name = run_name
 
     def fqn(self) -> str:
-        return channel_fqn(self.channel_name, self.component)
+        return channel_fqn(self.channel_name)
 
 
-# TODO: deprecate component
 class ExpressionChannelReference(TypedDict):
     reference: str
     channel_name: str
-    component: NotRequired[str]
+    component: NotRequired[str]  # Deprecated
     data_type: NotRequired[ChannelDataType]
 
 

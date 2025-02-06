@@ -6,12 +6,16 @@ import pytest
 from google.protobuf.any_pb2 import Any
 from pytest_mock import MockFixture, MockType
 from sift.assets.v1.assets_pb2 import Asset
+
+# TODO: Update to v3
 from sift.channels.v2.channels_pb2 import Channel
 from sift.common.type.v1.channel_bit_field_element_pb2 import ChannelBitFieldElement
 from sift.common.type.v1.channel_data_type_pb2 import (
     CHANNEL_DATA_TYPE_BIT_FIELD,
     CHANNEL_DATA_TYPE_DOUBLE,
 )
+
+# TODO: Update to v2
 from sift.data.v1.data_pb2 import (
     BitFieldElementValues,
     BitFieldValue,

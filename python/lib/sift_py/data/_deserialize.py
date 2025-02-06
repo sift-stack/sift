@@ -3,6 +3,8 @@ from enum import Enum
 from typing import List, Tuple, cast
 
 from google.protobuf.any_pb2 import Any
+
+# TODO: update to v2
 from sift.data.v1.data_pb2 import (
     BitFieldValues,
     BoolValues,
@@ -23,6 +25,7 @@ from sift_py.error import SiftError
 from sift_py.ingestion.channel import ChannelDataType
 
 
+# TODO: Update to v2
 class ChannelValues(Enum):
     DOUBLE_VALUES = "sift.data.v1.DoubleValues"
     FLOAT_VALUES = "sift.data.v1.FloatValues"
