@@ -5,9 +5,7 @@ from typing import List, Optional, Type, TypedDict, Union
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
-
-# TODO: Update to v3
-from sift.channels.v2.channels_pb2 import Channel as ChannelPb
+from sift.channels.v3.channels_pb2 import Channel as ChannelPb
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
 )
@@ -15,9 +13,7 @@ from sift.common.type.v1.channel_enum_type_pb2 import (
     ChannelEnumType as ChannelEnumTypePb,
 )
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
-
-# TODO: use v2
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from typing_extensions import NotRequired, Self
 
 from sift_py._internal.channel import channel_fqn as _channel_fqn
@@ -68,6 +64,7 @@ class ChannelConfig(AsProtobuf):
         if component:
             _component_deprecation_warning()
             self.name = _channel_fqn(name=self.name, component=component)
+            self.component = None
 
         self.bit_field_elements = bit_field_elements
         self.enum_types = enum_types
@@ -337,10 +334,17 @@ class ChannelDataType(Enum):
 
 class _AbstractChannel(TypedDict):
     channel_name: str
+    component: Optional[str]  # Deprecated
 
 
 def channel_fqn(
-    channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, ChannelPb, _AbstractChannel],
+    channel: Union[
+        ChannelConfig,
+        ChannelConfigPb,
+        ChannelValue,
+        ChannelPb,
+        _AbstractChannel,
+    ],
 ) -> str:
     """
     Computes the fully qualified channel name.
@@ -356,13 +360,9 @@ def channel_fqn(
             _component_deprecation_warning()
         return _channel_fqn(channel.name, channel.component)
     elif isinstance(channel, ChannelConfigPb):
-        if channel.component:
-            _component_deprecation_warning()
-        return _channel_fqn(channel.name, channel.component)
+        return channel.name
     elif isinstance(channel, ChannelPb):
-        if channel.component:
-            _component_deprecation_warning()
-        return _channel_fqn(channel.name, channel.component)
+        return channel.name
     else:
         component = channel.get("component")
         if component:

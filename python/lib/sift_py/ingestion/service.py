@@ -7,9 +7,7 @@ from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataChannelValue,
     IngestWithConfigDataStreamRequest,
 )
-
-# TODO: use v2
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig
 
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.ingest import _IngestionServiceImpl

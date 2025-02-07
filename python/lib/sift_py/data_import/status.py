@@ -59,7 +59,6 @@ class DataImport(BaseModel):
         )
 
 
-# TODO: update to v2
 class DataImportService(_RestService):
     """
     Service used to retrieve information about a particular data import.

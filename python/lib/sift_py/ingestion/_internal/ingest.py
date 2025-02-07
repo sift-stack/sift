@@ -11,10 +11,8 @@ from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataStreamRequest,
 )
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
-
-# TODO: update these to use v2
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig
 
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.error import IngestionValidationError

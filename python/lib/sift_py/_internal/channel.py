@@ -1,10 +1,9 @@
 import warnings
 from typing import List, Optional, cast
 
-# TODO: Update to v3
-from sift.channels.v2.channels_pb2 import Channel as ChannelPb
-from sift.channels.v2.channels_pb2 import ListChannelsRequest, ListChannelsResponse
-from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
+from sift.channels.v3.channels_pb2 import Channel as ChannelPb
+from sift.channels.v3.channels_pb2 import ListChannelsRequest, ListChannelsResponse
+from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 
 
 def channel_fqn(name: str, component: Optional[str] = None) -> str:

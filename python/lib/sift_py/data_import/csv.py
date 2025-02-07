@@ -13,7 +13,6 @@ from sift_py.ingestion.channel import ChannelDataType
 from sift_py.rest import SiftRestConfig, _RestService
 
 
-# TODO: update to v2
 class CsvUploadService(_RestService):
     UPLOAD_PATH = "/api/v1/data-imports:upload"
     URL_PATH = "/api/v1/data-imports:url"

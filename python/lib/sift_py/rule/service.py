@@ -7,9 +7,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
-
-# TODO: Update to v3
-from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
+from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
     AnnotationActionConfiguration,
@@ -29,6 +27,7 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift.users.v2.users_pb2_grpc import UserServiceStub
 
 from sift_py._internal.cel import cel_in
+from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.channel import get_channels
 from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
@@ -93,9 +92,10 @@ class RuleService:
                         component = channel_config.get("component")
                     elif isinstance(channel_config, str):
                         channel_reference = channel_reference_from_fqn(channel_config)
-                        name = channel_reference.name
-                        # NOTE: Component deprecated, but warning is thrown in the channel_fqn below
-                        component = channel_reference.component
+                        name = _channel_fqn(
+                            name=channel_reference.name, component=channel_reference.component
+                        )
+                        component = None
                     else:
                         raise ValueError(
                             f"Channel reference '{channel_config}' must be a string or a ChannelConfigYamlSpec"
@@ -326,10 +326,14 @@ class RuleService:
         channel_references = {}
         for channel_reference in config.channel_references:
             ref = channel_reference["channel_reference"]
-            channel_references[ref] = channel_reference["channel_identifier"]
+            ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
+            channel_references[ref] = ident
 
         if assets and channel_references:
-            names = channel_references.values()
+            names = [
+                _channel_fqn(name=ident.name, component=ident.component)
+                for ident in channel_references.values()
+            ]
 
             # Create CEL search filters
             name_in = cel_in("name", names)

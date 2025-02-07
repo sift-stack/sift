@@ -4,14 +4,10 @@ from datetime import datetime, timezone
 
 import pytest
 from pytest_mock import MockFixture
-
-# TODO: use v2
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
-
-# TODO: update to v2
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigPb,
 )
 

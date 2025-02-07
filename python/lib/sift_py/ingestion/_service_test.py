@@ -7,10 +7,8 @@ from typing import Callable, List
 import pytest
 from pytest_mock import MockFixture
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
-
-# TODO: use v2
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 
 import sift_py.ingestion._internal.ingest
 from sift_py._internal.test_util.channel import MockChannel

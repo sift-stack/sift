@@ -10,16 +10,12 @@ from sift.calculated_channels.v1.calculated_channels_pb2 import (
     ExpressionRequest,
 )
 from sift.calculated_channels.v1.calculated_channels_pb2_grpc import CalculatedChannelsServiceStub
-
-# TODO: update to v3
-from sift.channels.v2.channels_pb2 import Channel, ListChannelsRequest, ListChannelsResponse
-from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
-
-# TODO: update to v2
-from sift.data.v1.data_pb2 import CalculatedChannelQuery as CalculatedChannelQueryPb
-from sift.data.v1.data_pb2 import ChannelQuery as ChannelQueryPb
-from sift.data.v1.data_pb2 import GetDataRequest, GetDataResponse, Query
-from sift.data.v1.data_pb2_grpc import DataServiceStub
+from sift.channels.v3.channels_pb2 import Channel, ListChannelsRequest, ListChannelsResponse
+from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
+from sift.data.v2.data_pb2 import CalculatedChannelQuery as CalculatedChannelQueryPb
+from sift.data.v2.data_pb2 import ChannelQuery as ChannelQueryPb
+from sift.data.v2.data_pb2 import GetDataRequest, GetDataResponse, Query
+from sift.data.v2.data_pb2_grpc import DataServiceStub
 from sift.runs.v2.runs_pb2 import ListRunsRequest, ListRunsResponse, Run
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 from typing_extensions import TypeAlias
