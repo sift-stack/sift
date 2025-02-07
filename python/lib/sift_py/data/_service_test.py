@@ -30,9 +30,9 @@ from sift_py._internal.test_util.channel import MockAsyncChannel
 from sift_py._internal.time import to_timestamp_pb
 from sift_py.data.query import ChannelQuery, DataQuery
 from sift_py.data.service import DataService
+from sift_py.error import SiftAPIDeprecationWarning
 
 
-# TODO: deprecate component
 @pytest.mark.asyncio
 async def test_data_service_execute_regular_channels(mocker: MockFixture):
     with patch_grpc_calls_channels(mocker) as mocks:
@@ -42,17 +42,20 @@ async def test_data_service_execute_regular_channels(mocker: MockFixture):
         start_time = datetime.now(timezone.utc)
         end_time = start_time + timedelta(minutes=2)
 
+        with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+            chan_with_component = ChannelQuery(
+                channel_name="velocity",
+                component="mainmotor",
+                run_name="[NostromoLV426].1720141748.047512",
+            )
+
         query = DataQuery(
             asset_name="NostromoLV428",
             start_time=start_time,
             end_time=end_time,
             sample_ms=0,
             channels=[
-                ChannelQuery(
-                    channel_name="velocity",
-                    component="mainmotor",
-                    run_name="[NostromoLV426].1720141748.047512",
-                ),
+                chan_with_component,
                 ChannelQuery(
                     channel_name="gpio",
                     run_name="[NostromoLV426].1720141748.047512",
@@ -142,7 +145,6 @@ async def test_data_service_execute_regular_channels(mocker: MockFixture):
         assert len(all_columns_custom["valve.pressure"]) == 2
 
 
-# TODO: deprecate component
 @contextmanager
 def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockType]]:
     mock__get_asset_by_name = mocker.patch.object(DataService, "_get_asset_by_name")
@@ -154,8 +156,7 @@ def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockTyp
     mock__get_channels_by_asset_id.return_value = [
         Channel(
             channel_id="e8662647-12f7-465f-85dc-cb02513944e0",
-            name="velocity",
-            component="mainmotor",
+            name="mainmotor.velocity",
             data_type=CHANNEL_DATA_TYPE_DOUBLE,
         ),
         Channel(
@@ -180,11 +181,10 @@ def patch_grpc_calls_channels(mocker: MockFixture) -> Iterator[Dict[str, MockTyp
 
     time_a = "2024-07-04T18:09:08.555-07:00"
     time_b = "2024-07-04T18:09:09.555-07:00"
-    # TODO: deprecate component
     velocity_values = DoubleValues(
         metadata=Metadata(
             data_type=CHANNEL_DATA_TYPE_DOUBLE,
-            channel=Metadata.Channel(name="velocity", component="mainmotor"),
+            channel=Metadata.Channel(name="mainmotor.velocity"),
         ),
         values=[
             DoubleValue(
