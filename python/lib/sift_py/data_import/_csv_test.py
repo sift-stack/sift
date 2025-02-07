@@ -322,7 +322,7 @@ def test_simple_upload_metadata_csv(mocker: MockFixture):
         }
     )
     mock_requests_post.assert_any_call(
-        url="https://some_uri.com/api/v2/data-imports:upload",
+        url="https://some_uri.com/api/v1/data-imports:upload",
         headers={
             "Content-Encoding": "application/octet-stream",
         },
@@ -372,7 +372,6 @@ def test_simple_upload_uint64_csv(mocker: MockFixture):
                 "2": {
                     "name": "channel_uint64",
                     "data_type": "CHANNEL_DATA_TYPE_UINT_64",
-                    "component": "",
                     "units": "",
                     "description": "",
                     "enum_types": [],
@@ -382,7 +381,7 @@ def test_simple_upload_uint64_csv(mocker: MockFixture):
         }
     )
     mock_requests_post.assert_any_call(
-        url="https://some_uri.com/api/v2/data-imports:upload",
+        url="https://some_uri.com/api/v1/data-imports:upload",
         headers={
             "Content-Encoding": "application/octet-stream",
         },
