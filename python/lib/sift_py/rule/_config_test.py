@@ -1,8 +1,8 @@
 import pytest
 
+from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
 
-from ..error import SiftAPIDeprecationWarning
 from .config import (
     RuleActionCreateDataReviewAnnotation,
     RuleActionCreatePhaseAnnotation,
