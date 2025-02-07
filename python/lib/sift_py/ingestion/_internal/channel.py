@@ -1,7 +1,7 @@
 from sift.rules.v1.rules_pb2 import ChannelReference
 
 
-# TODO: deprecate component
+# TODO: deprecate component - Seems like there is not an updated proto for this?
 def channel_reference_from_fqn(fqn: str) -> ChannelReference:
     parts = fqn.split(".")
 

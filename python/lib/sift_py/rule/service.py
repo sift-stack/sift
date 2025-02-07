@@ -89,19 +89,18 @@ class RuleService:
                 for ref, channel_config in channel_ref.items():
                     if isinstance(channel_config, dict):
                         name = channel_config.get("name", "")
-                        # TODO: deprecate component
-                        component = channel_config.get("component", "")
+                        # NOTE: Component deprecated, but warning is thrown in the channel_fqn below
+                        component = channel_config.get("component")
                     elif isinstance(channel_config, str):
                         channel_reference = channel_reference_from_fqn(channel_config)
                         name = channel_reference.name
-                        # TODO: deprecate component
+                        # NOTE: Component deprecated, but warning is thrown in the channel_fqn below
                         component = channel_reference.component
                     else:
                         raise ValueError(
                             f"Channel reference '{channel_config}' must be a string or a ChannelConfigYamlSpec"
                         )
 
-                    # TODO: deprecate component
                     rule_channel_references.append(
                         {
                             "channel_reference": ref,
@@ -280,8 +279,7 @@ class RuleService:
                 "See `sift_py.rule.config.RuleAction` for available actions."
             )
 
-        # TODO:
-        # - once we have TagService_ListTags we can do asset-agnostic rules via tags
+        # TODO: once we have TagService_ListTags we can do asset-agnostic rules via tags
         assets = self._get_assets(names=config.asset_names) if config.asset_names else None
 
         actions = []
@@ -328,29 +326,23 @@ class RuleService:
         channel_references = {}
         for channel_reference in config.channel_references:
             ref = channel_reference["channel_reference"]
-            ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
-            channel_references[ref] = ident
+            channel_references[ref] = channel_reference["channel_identifier"]
 
         if assets and channel_references:
-            identifiers = [ident.name for ident in channel_references.values()]
-            # TODO: deprecate component
-            components = [ident.component for ident in channel_references.values()]
+            names = channel_references.values()
 
             # Create CEL search filters
-            name_in = cel_in("name", identifiers)
-            # TODO: deprecate component
-            component_in = cel_in("component", components)
+            name_in = cel_in("name", names)
 
             # Validate channels are present within each asset
-            # TODO: deprecate component
             for asset in assets:
                 found_channels = get_channels(
                     channel_service=self._channel_service_stub,
-                    filter=f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}",
+                    filter=f"asset_id == '{asset.asset_id}' && {name_in}",
                 )
                 found_channels_names = [channel.name for channel in found_channels]
 
-                missing_channels = set(identifiers) ^ set(found_channels_names)
+                missing_channels = set(names) ^ set(found_channels_names)
                 if missing_channels:
                     raise RuntimeError(
                         f"Asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}"
