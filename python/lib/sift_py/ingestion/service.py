@@ -102,8 +102,6 @@ class IngestionService(_IngestionServiceImpl):
           - Making sure that the there are no unexpected channels provided for the given flow
           - Making sure the channel value is the expected type
           - Making sure that the timestamp is in UTC
-          # TODO: deprecate component
-          - Making sure channels that belong to a component have the 'component' field for the channel value
 
         If any of the above validations fail then a `IngestionValidationError` will be raised.
 

@@ -15,6 +15,7 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as I
 import sift_py.ingestion._internal.ingest
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
+from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingestion_config import (
     create_flow_configs,
@@ -241,7 +242,6 @@ def test_ingestion_service_buffered_ingestion(mocker: MockFixture):
         assert mock_ingest.call_count == 7
 
 
-# TODO: deprecate component
 def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
     """
     Tests modifying existing channel configs in telemetry config. If a channel config
@@ -256,11 +256,12 @@ def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
         asset_id="my-asset-id",
     )
 
-    channel_a = ChannelConfig(
-        name="channel_a",
-        component="A",
-        data_type=ChannelDataType.DOUBLE,
-    )
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+        channel_a = ChannelConfig(
+            name="channel_a",
+            component="A",
+            data_type=ChannelDataType.DOUBLE,
+        )
 
     flow_a = FlowConfig(
         name="flow_a",
@@ -346,12 +347,13 @@ def test_ingestion_service_register_new_flow(mocker: MockFixture):
         client_key="my-ingestion-config",
         asset_id="my-asset-id",
     )
-    # TODO: deprecate component
-    channel_a = ChannelConfig(
-        name="channel_a",
-        component="A",
-        data_type=ChannelDataType.DOUBLE,
-    )
+
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+        channel_a = ChannelConfig(
+            name="channel_a",
+            component="A",
+            data_type=ChannelDataType.DOUBLE,
+        )
 
     flow_a = FlowConfig(
         name="flow_a",

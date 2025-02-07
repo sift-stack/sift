@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, cast
 from typing_extensions import Self
 
 from sift_py._internal.channel import channel_fqn
+from sift_py.error import _component_deprecation_warning
 from sift_py.ingestion.channel import (
     ChannelBitFieldElement,
     ChannelConfig,
@@ -167,7 +168,7 @@ class TelemetryConfig:
                             key=enum_type["key"],
                         )
                     )
-                # TODO: deprecate component
+                # NOTE: Component is deprecated, but warning raised in ChannelConfig init
                 channels.append(
                     ChannelConfig(
                         name=channel["name"],
@@ -210,8 +211,11 @@ class TelemetryConfig:
             for channel_reference in rule.get("channel_references", []):
                 for ref, val in channel_reference.items():
                     name = val["name"]
-                    # TODO: deprecate component
+
+                    # NOTE: Component deprecated, kept for backwards compatibility
                     component = val.get("component")
+                    if component:
+                        _component_deprecation_warning()
 
                     channel_references.append(
                         {
