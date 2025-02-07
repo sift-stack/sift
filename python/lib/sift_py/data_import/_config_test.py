@@ -51,6 +51,8 @@ def test_data_column_validation(csv_config_data: dict):
     }
     CsvConfig(csv_config_data)
 
+    # TODO: Warn on component
+
 
 def test_enums(csv_config_data: dict):
     csv_config_data["data_columns"] = {

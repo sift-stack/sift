@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -16,6 +17,7 @@ except ImportError as e:
         "Please include this dependency in your project by specifying `sift-stack-py[tdms]`."
     ) from e
 
+from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py.data_import._config import DataColumn, TimeColumn
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.csv import CsvUploadService
@@ -50,12 +52,12 @@ class TdmsUploadService:
     def __init__(self, rest_conf: SiftRestConfig):
         self._csv_upload_service = CsvUploadService(rest_conf)
 
-    # TODO: deprecate component
     def upload(
         self,
         path: Union[str, Path],
         asset_name: str,
-        group_into_components: bool = False,
+        prefix_channel_with_group: bool = False,
+        group_into_components: bool = False,  # Deprecated
         ignore_errors: bool = False,
         run_name: Optional[str] = None,
         run_id: Optional[str] = None,
@@ -63,14 +65,22 @@ class TdmsUploadService:
         """
         Uploads the TDMS file pointed to by `path` to the specified asset.
 
-        Set `group_into_components` to True if you want to upload the TDMS groups as
-        a Sift Component.
+        Set `prefix_channel_with_group` to True if you want to prefix the channel name with TDMS group.
+        This can later be used to group into folders in the Sift UI.
 
         If `ignore_errors` is True will skip channels without timing information.
 
         Override `run_name` to specify the name of the run to create for this data. Default is None.
         Override `run_id` to specify the id of the run to add this data to. Default is None.
         """
+        if group_into_components:
+            warnings.warn(
+                "`group_into_components` has been renamed to `prefix_channel_with_group` to reflect the"
+                " deprecation of Sift Channel components. The old naming may be removed in a future release.",
+                FutureWarning,
+            )
+            prefix_channel_with_group = group_into_components
+
         posix_path = Path(path) if isinstance(path, str) else path
 
         if not posix_path.is_file():
@@ -82,7 +92,11 @@ class TdmsUploadService:
                 raise Exception(f"No valid channels remaining in {path}")
 
             csv_config = self._create_csv_config(
-                valid_channels, asset_name, group_into_components, run_name, run_id
+                channels=valid_channels,
+                asset_name=asset_name,
+                prefix_channel_with_group=prefix_channel_with_group,
+                run_name=run_name,
+                run_id=run_id,
             )
             return self._csv_upload_service.upload(temp_file.name, csv_config)
 
@@ -146,12 +160,11 @@ class TdmsUploadService:
 
         return [channel for group in filtered_tdms_file.groups() for channel in group.channels()]
 
-    # TODO: deprecate component
     def _create_csv_config(
         self,
         channels: List[TdmsChannel],
         asset_name: str,
-        group_into_components: bool,
+        prefix_channel_with_group: bool,
         run_name: Optional[str] = None,
         run_id: Optional[str] = None,
     ) -> CsvConfig:
@@ -169,13 +182,13 @@ class TdmsUploadService:
                 raise Exception(f"{channel.name} data type not supported: {channel.data_type}")
 
             channel_config = DataColumn(
-                name=channel.name,
+                name=_channel_fqn(name=channel.name, component=channel.group_name)
+                if prefix_channel_with_group and channel.group_name
+                else channel.name,
                 data_type=data_type,
                 description=channel.properties.get("description", ""),
                 units=channel.properties.get("unit_string") or "",
             )
-            if group_into_components and channel.group_name:
-                channel_config.component = channel.group_name
 
             data_config[first_data_column + i] = channel_config
 

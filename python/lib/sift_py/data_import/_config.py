@@ -97,7 +97,7 @@ class TimeColumn(ConfigBaseModel):
         return self
 
 
-# TODO: deprecate component
+# TODO: deprecate component: come back to this to see if we can raise a deprecation message here and move it to the name
 class DataColumn(ConfigBaseModel):
     """
     Defines a data column entry in the CSV config.
@@ -105,7 +105,7 @@ class DataColumn(ConfigBaseModel):
 
     name: str
     data_type: Union[str, ChannelDataType, Type]
-    component: str = ""
+    component: str = ""  # Deprecated
     units: str = ""
     description: str = ""
     # Only valid if data_type is "CHANNEL_DATA_TYPE_ENUM".
