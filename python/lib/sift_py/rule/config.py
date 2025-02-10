@@ -192,7 +192,7 @@ class RuleActionAnnotationKind(Enum):
     def from_annotation_type(cls, annotation_type: AnnotationType) -> "RuleActionAnnotationKind":
         if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
             return cls.PHASE
-        return cls.PHASE
+        return cls.REVIEW
 
     @classmethod
     def from_str(cls, val: str) -> "RuleActionAnnotationKind":
