@@ -48,29 +48,7 @@ class RuleConfig(AsJson):
         tag_names: Optional[List[str]] = None,
         sub_expressions: Dict[str, Any] = {},
     ):
-        self.channel_references = []
-
-        for channel_reference in channel_references:
-            config = channel_reference.get("channel_config")
-
-            if config is not None:
-                config = cast(ChannelConfig, config)
-
-                self.channel_references.append(
-                    {
-                        "channel_reference": channel_reference["channel_reference"],
-                        "channel_identifier": config.fqn(),
-                    }
-                )
-            else:
-                channel_ref = cast(ExpressionChannelReference, channel_reference)
-
-                self.channel_references.append(
-                    {
-                        "channel_reference": channel_ref["channel_reference"],
-                        "channel_identifier": channel_ref["channel_identifier"],
-                    }
-                )
+        self.channel_references = _channel_references_from_dicts(channel_references)
 
         self.name = name
         self.asset_names = asset_names or []
@@ -212,7 +190,7 @@ class RuleActionKindStrRep(Enum):
 class ExpressionChannelReference(TypedDict):
     """
     `channel_reference`: The channel reference (e.g. '$1') used in the expression.
-    `channel_identifier`: The fully qualified channel name. See `sift_py.ingestion.channel.channel_fqn`.
+    `channel_identifier`: The channel name.
     """
 
     channel_reference: str
@@ -227,3 +205,33 @@ class ExpressionChannelReferenceChannelConfig(TypedDict):
 
     channel_reference: str
     channel_config: ChannelConfig
+
+
+def _channel_references_from_dicts(
+    channel_references: List[
+        Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
+    ],
+) -> List[ExpressionChannelReference]:
+    out = []
+    for channel_reference in channel_references:
+        config = channel_reference.get("channel_config")
+
+        if config is not None:
+            config = cast(ChannelConfig, config)
+
+            out.append(
+                {
+                    "channel_reference": channel_reference["channel_reference"],
+                    "channel_identifier": config.fqn(),
+                }
+            )
+        else:
+            channel_ref = cast(ExpressionChannelReference, channel_reference)
+
+            out.append(
+                {
+                    "channel_reference": channel_ref["channel_reference"],
+                    "channel_identifier": channel_ref["channel_identifier"],
+                }
+            )
+    return out
