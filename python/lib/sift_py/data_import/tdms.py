@@ -76,7 +76,8 @@ class TdmsUploadService:
         if group_into_components:
             warnings.warn(
                 "`group_into_components` has been renamed to `prefix_channel_with_group` to reflect the"
-                " deprecation of Sift Channel components. The old naming may be removed in a future release.",
+                " deprecation of Sift Channel components. `component` will be removed in 1.0.0. "
+                "See docs for more details: https://docs.siftstack.com/docs/glossary#component",
                 FutureWarning,
             )
             prefix_channel_with_group = group_into_components

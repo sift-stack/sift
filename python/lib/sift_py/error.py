@@ -24,6 +24,7 @@ class SiftAPIDeprecationWarning(FutureWarning):
 
 def _component_deprecation_warning():
     warnings.warn(
-        "`component` field of Channel has been deprecated and may be removed in a future update. See docs for more details.",
+        "`component` field of Channel has been deprecated and will be removed in 1.0.0. "
+        "See docs for more details: https://docs.siftstack.com/docs/glossary#component",
         SiftAPIDeprecationWarning,
     )
