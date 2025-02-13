@@ -41,13 +41,22 @@ class CalculatedChannelService:
 
     def get_calculated_channel(
         self, calculated_channel_id: str = None, client_key: str = None
-    ) -> CalculatedChannel:
+    ) -> CalculatedChannelConfig:
         """
         Get a `CalculatedChannel`.  See `Sift docs`_
         for more information on available arguments.
 
         .. _Sift docs: https://docs.siftstack.com/docs/api/grpc/protocol-buffers/calculated_channels
         """
+        return self._calculated_channel_to_config(
+            self._get_calculated_channel(
+                calculated_channel_id=calculated_channel_id, client_key=client_key
+            )
+        )
+
+    def _get_calculated_channel(
+        self, calculated_channel_id: str = None, client_key: str = None
+    ) -> CalculatedChannel:
         if not calculated_channel_id and not client_key:
             raise ValueError("Must provide either `id` or `client_key`")
 
@@ -72,7 +81,7 @@ class CalculatedChannelService:
         page_token: str = None,
         filter: str = None,
         order_by: str = None,
-    ) -> Tuple[List[CalculatedChannel], str]:
+    ) -> Tuple[List[CalculatedChannelConfig], str]:
         """
         List available Calculated Channels. See `Sift docs`_
         for more information on available arguments.
@@ -97,7 +106,10 @@ class CalculatedChannelService:
             self._calculated_channel_service_stub.ListCalculatedChannels(req),
         )
         return (
-            [cast(CalculatedChannel, chan) for chan in resp.calculated_channels],
+            [
+                self._calculated_channel_to_config(cast(CalculatedChannel, chan))
+                for chan in resp.calculated_channels
+            ],
             resp.next_page_token,
         )
 
@@ -109,7 +121,7 @@ class CalculatedChannelService:
         page_token: str = None,
         filter: str = None,
         order_by: str = None,
-    ) -> Tuple[List[CalculatedChannel], str]:
+    ) -> Tuple[List[CalculatedChannelConfig], str]:
         """
         List versions of Calculated Channel. See `Sift docs`_
         for more information on available arguments.
@@ -139,13 +151,16 @@ class CalculatedChannelService:
         req = ListCalculatedChannelVersionsRequest(**request_kwargs)
         resp = self._calculated_channel_service_stub.ListCalculatedChannelVersions(req)
         return (
-            [cast(CalculatedChannel, chan) for chan in resp.calculated_channel_versions],
+            [
+                self._calculated_channel_to_config(cast(CalculatedChannel, chan))
+                for chan in resp.calculated_channel_versions
+            ],
             resp.next_page_token,
         )
 
     def create_calculated_channel(
         self, config: CalculatedChannelConfig
-    ) -> Tuple[CalculatedChannel, CalculatedChannelValidationResult]:
+    ) -> Tuple[CalculatedChannelConfig, CalculatedChannelValidationResult]:
         """
         Create a `CalculatedChannel` from a `CalculatedChannelConfig`. See
         `sift_py.calculated_channels.config.CalculatedChannelConfig` for more information on available
@@ -155,7 +170,9 @@ class CalculatedChannelService:
             all_assets=config.all_assets,
             selection=CalculatedChannelAssetConfiguration.AssetSelection(
                 asset_ids=config.asset_ids, tag_ids=config.tag_ids
-            ),
+            )
+            if not config.all_assets
+            else None,
         )
         query_configuration = CalculatedChannelQueryConfiguration(
             sel=CalculatedChannelQueryConfiguration.Sel(
@@ -180,16 +197,16 @@ class CalculatedChannelService:
             CreateCalculatedChannelResponse,
             self._calculated_channel_service_stub.CreateCalculatedChannel(req),
         )
-        return cast(CalculatedChannel, resp.calculated_channel), cast(
-            CalculatedChannelValidationResult, resp.inapplicable_assets
-        )
+        return self._calculated_channel_to_config(
+            cast(CalculatedChannel, resp.calculated_channel)
+        ), cast(CalculatedChannelValidationResult, resp.inapplicable_assets)
 
     def revise_calculated_channel(
         self,
-        calculated_channel: CalculatedChannel,
+        calculated_channel_config: CalculatedChannelConfig,
         updates: CalculatedChannelUpdate,
         revision_notes: str = "",
-    ) -> Tuple[CalculatedChannel, CalculatedChannelValidationResult]:
+    ) -> Tuple[CalculatedChannelConfig, CalculatedChannelValidationResult]:
         """
         Revise a `CalculatedChannel` from a `CalculatedChannelUpdate`.  See
         `sift_py.calculated_channels.config.CalculatedChannelUpdate` for more information on available
@@ -198,6 +215,11 @@ class CalculatedChannelService:
         `revision_notes` may be provided to document the reason for revision.
 
         """
+        calculated_channel = self._get_calculated_channel(
+            calculated_channel_id=calculated_channel_config.calculated_channel_id,
+            client_key=calculated_channel_config.client_key,
+        )
+
         update_map = {}
         if "name" in updates:
             update_map["name"] = updates["name"]
@@ -226,12 +248,12 @@ class CalculatedChannelService:
                 )
             )
         if "asset_ids" in updates or "tag_ids" in updates or "all_assets" in updates:
-            asset_names = (
+            asset_ids = (
                 updates.get("asset_ids")
                 if "asset_ids" in updates
                 else calculated_channel.calculated_channel_configuration.asset_configuration.selection.asset_ids
             )
-            tags = (
+            tag_ids = (
                 updates.get("tag_ids")
                 if "tag_ids" in updates
                 else calculated_channel.calculated_channel_configuration.asset_configuration.selection.tag_ids
@@ -243,8 +265,10 @@ class CalculatedChannelService:
             )
             update_map["asset_configuration"] = CalculatedChannelAssetConfiguration(
                 all_assets=all_assets,
-                selection=CalculatedChannelAssetConfiguration.AssetSelection(
-                    asset_ids=asset_names, tag_ids=tags
+                selection=None
+                if all_assets
+                else CalculatedChannelAssetConfiguration.AssetSelection(
+                    asset_ids=asset_ids, tag_ids=tag_ids
                 ),
             )
 
@@ -276,6 +300,39 @@ class CalculatedChannelService:
             calculated_channel=channel_updater, update_mask=update_mask, user_notes=revision_notes
         )
         resp = self._calculated_channel_service_stub.UpdateCalculatedChannel(req)
-        return cast(CalculatedChannel, resp.calculated_channel), cast(
-            CalculatedChannelValidationResult, resp.inapplicable_assets
+        return self._calculated_channel_to_config(
+            cast(CalculatedChannel, resp.calculated_channel)
+        ), cast(CalculatedChannelValidationResult, resp.inapplicable_assets)
+
+    @staticmethod
+    def _calculated_channel_to_config(
+        calculated_channel: CalculatedChannel,
+    ) -> CalculatedChannelConfig:
+        return CalculatedChannelConfig(
+            calculated_channel_id=calculated_channel.calculated_channel_id,
+            name=calculated_channel.name,
+            description=calculated_channel.description,
+            expression=calculated_channel.calculated_channel_configuration.query_configuration.sel.expression,
+            channel_references=[
+                {
+                    "channel_reference": ref.channel_reference,
+                    "channel_identifier": ref.channel_identifier,
+                }
+                for ref in calculated_channel.calculated_channel_configuration.query_configuration.sel.expression_channel_references
+            ],
+            units=calculated_channel.units,
+            client_key=calculated_channel.client_key,
+            asset_ids=[
+                asset_id
+                for asset_id in calculated_channel.calculated_channel_configuration.asset_configuration.selection.asset_ids
+            ]
+            if not calculated_channel.calculated_channel_configuration.asset_configuration.all_assets
+            else None,
+            tag_ids=[
+                tag_id
+                for tag_id in calculated_channel.calculated_channel_configuration.asset_configuration.selection.tag_ids
+            ]
+            if not calculated_channel.calculated_channel_configuration.asset_configuration.all_assets
+            else None,
+            all_assets=calculated_channel.calculated_channel_configuration.asset_configuration.all_assets,
         )

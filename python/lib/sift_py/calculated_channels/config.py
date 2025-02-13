@@ -30,15 +30,16 @@ class CalculatedChannelConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str
-    description: str
+    description: str = ""
     expression: str
     channel_references: List[
         Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
     ]
     units: str = None
+    calculated_channel_id: Optional[str] = None
     client_key: str = None
-    asset_ids: List[str] = None
-    tag_ids: List[str] = None
+    asset_ids: Union[List[str], None] = None
+    tag_ids: Union[List[str], None] = None
     all_assets: bool = False
 
     @field_validator("channel_references", mode="before")
@@ -69,6 +70,7 @@ class CalculatedChannelConfig(BaseModel):
             raise ValueError(
                 "`all_assets` cannot be `True` if `asset_ids` or `tag_ids` are specified."
             )
+        return self
 
 
 class CalculatedChannelUpdate(TypedDict):
