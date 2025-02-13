@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import List, NotRequired, Optional, TypedDict, Union
+from typing import List, Optional, TypedDict, Union
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from typing_extensions import NotRequired
 
 from sift_py.rule.config import (
     ExpressionChannelReference,
