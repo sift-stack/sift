@@ -212,7 +212,7 @@ def _channel_references_from_dicts(
         Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
     ],
 ) -> List[ExpressionChannelReference]:
-    out = []
+    out: List[ExpressionChannelReference] = []
     for channel_reference in channel_references:
         config = channel_reference.get("channel_config")
 

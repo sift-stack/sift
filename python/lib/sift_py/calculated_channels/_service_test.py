@@ -194,7 +194,7 @@ def test_revise_calculated_channel(calculated_channel_service):
 
     with mock.patch.object(
         calculated_channel_service, "_get_calculated_channel", return_value=mock_channel
-    ) as mock_get, mock.patch.object(
+    ) as _, mock.patch.object(
         calculated_channel_service._calculated_channel_service_stub,
         "UpdateCalculatedChannel",
         return_value=UpdateCalculatedChannelResponse(
@@ -220,7 +220,7 @@ def test_revise_calculated_channel(calculated_channel_service):
                 calculated_channel=CalculatedChannel(
                     **{
                         **chan_dict,
-                        **dict(name=updates["name"], description=updates["description"]),
+                        **dict(name=updates.get("name"), description=updates.get("description")),
                     }
                 ),
                 update_mask=FieldMask(paths=["name", "description"]),

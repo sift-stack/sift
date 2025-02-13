@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from google.protobuf.field_mask_pb2 import FieldMask
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -40,7 +40,7 @@ class CalculatedChannelService:
         self._calculated_channel_service_stub = CalculatedChannelServiceStub(channel)
 
     def get_calculated_channel(
-        self, calculated_channel_id: str = None, client_key: str = None
+        self, calculated_channel_id: Optional[str] = None, client_key: Optional[str] = None
     ) -> CalculatedChannelConfig:
         """
         Get a `CalculatedChannel`.  See `Sift docs`_
@@ -55,7 +55,7 @@ class CalculatedChannelService:
         )
 
     def _get_calculated_channel(
-        self, calculated_channel_id: str = None, client_key: str = None
+        self, calculated_channel_id: Optional[str] = None, client_key: Optional[str] = None
     ) -> CalculatedChannel:
         if not calculated_channel_id and not client_key:
             raise ValueError("Must provide either `id` or `client_key`")
@@ -66,7 +66,7 @@ class CalculatedChannelService:
             )
         else:
             req = GetCalculatedChannelRequest(
-                client_key=client_key,
+                client_key=client_key,  # type: ignore
             )
 
         res = cast(
@@ -77,10 +77,10 @@ class CalculatedChannelService:
 
     def list_calculated_channels(
         self,
-        page_size: int = None,
-        page_token: str = None,
-        filter: str = None,
-        order_by: str = None,
+        page_size: Optional[int] = None,
+        page_token: Optional[str] = None,
+        filter: Optional[str] = None,
+        order_by: Optional[str] = None,
     ) -> Tuple[List[CalculatedChannelConfig], str]:
         """
         List available Calculated Channels. See `Sift docs`_
@@ -90,7 +90,7 @@ class CalculatedChannelService:
 
         .. _Sift docs: https://docs.siftstack.com/docs/api/grpc/protocol-buffers/calculated_channels
         """
-        request_kwargs = {}
+        request_kwargs: Dict[str, Any] = {}
         if page_size is not None:
             request_kwargs["page_size"] = page_size
         if page_token is not None:
@@ -115,12 +115,12 @@ class CalculatedChannelService:
 
     def list_calculated_channel_versions(
         self,
-        calculated_channel_id: str = None,
-        client_key: str = None,
-        page_size: int = None,
-        page_token: str = None,
-        filter: str = None,
-        order_by: str = None,
+        calculated_channel_id: Optional[str] = None,
+        client_key: Optional[str] = None,
+        page_size: Optional[int] = None,
+        page_token: Optional[str] = None,
+        filter: Optional[str] = None,
+        order_by: Optional[str] = None,
     ) -> Tuple[List[CalculatedChannelConfig], str]:
         """
         List versions of Calculated Channel. See `Sift docs`_
@@ -133,7 +133,7 @@ class CalculatedChannelService:
         if not calculated_channel_id and not client_key:
             raise ValueError("Must provide either `id` or `client_key`")
 
-        request_kwargs = {}
+        request_kwargs: Dict[str, Any] = {}
         if calculated_channel_id is not None:
             request_kwargs["calculated_channel_id"] = calculated_channel_id
         else:
@@ -220,7 +220,7 @@ class CalculatedChannelService:
             client_key=calculated_channel_config.client_key,
         )
 
-        update_map = {}
+        update_map: Dict[str, Any] = {}
         if "name" in updates:
             update_map["name"] = updates["name"]
         if "description" in updates:
@@ -264,7 +264,7 @@ class CalculatedChannelService:
                 else calculated_channel.calculated_channel_configuration.asset_configuration.all_assets
             )
             update_map["asset_configuration"] = CalculatedChannelAssetConfiguration(
-                all_assets=all_assets,
+                all_assets=all_assets,  # type: ignore
                 selection=None
                 if all_assets
                 else CalculatedChannelAssetConfiguration.AssetSelection(

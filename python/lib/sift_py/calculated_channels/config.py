@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, TypedDict, Union
+from typing import List, NotRequired, Optional, TypedDict, Union
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -35,11 +35,11 @@ class CalculatedChannelConfig(BaseModel):
     channel_references: List[
         Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
     ]
-    units: str = None
+    units: Optional[str] = None
     calculated_channel_id: Optional[str] = None
-    client_key: str = None
-    asset_ids: Union[List[str], None] = None
-    tag_ids: Union[List[str], None] = None
+    client_key: Optional[str] = None
+    asset_ids: Optional[List[str]] = None
+    tag_ids: Optional[List[str]] = None
     all_assets: bool = False
 
     @field_validator("channel_references", mode="before")
@@ -61,7 +61,7 @@ class CalculatedChannelConfig(BaseModel):
         return _channel_references_from_dicts(raw)
 
     @model_validator(mode="after")
-    def validate(self):
+    def validate_assets(self):
         if not self.asset_ids and not self.tag_ids and not self.all_assets:
             raise ValueError(
                 "At least one of `asset_ids`, `tag_ids` must be specified or `all_assets` must be set to `True`."
@@ -90,14 +90,14 @@ class CalculatedChannelUpdate(TypedDict):
     - `archived`: Boolean flag indicating if the calculated channel is archived.
     """
 
-    name: Optional[str]
-    description: Optional[str]
-    units: Optional[str]
-    expression: Optional[str]
-    channel_references: Optional[
+    name: NotRequired[str]
+    description: NotRequired[str]
+    units: NotRequired[str]
+    expression: NotRequired[str]
+    channel_references: NotRequired[
         List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]]
     ]
-    asset_ids: Optional[List[str]]
-    tag_ids: Optional[List[str]]
-    all_assets: Optional[bool]
-    archived: Optional[bool]
+    asset_ids: NotRequired[List[str]]
+    tag_ids: NotRequired[List[str]]
+    all_assets: NotRequired[bool]
+    archived: NotRequired[bool]
