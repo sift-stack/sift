@@ -1,5 +1,6 @@
 import pytest
 
+from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion.config.yaml.error import YamlConfigError
 from sift_py.yaml import channel
 
@@ -101,6 +102,8 @@ def test__validate_channel():
         )
 
     with pytest.raises(YamlConfigError, match="Expected 'unit' to be <str> but it is <list>"):
+        # won't warn since exception is raised first
+        # with pytest.warns(SiftAPIDeprecationWarning, match="component"):
         channel._validate_channel(
             {
                 "name": "force",
@@ -112,58 +115,62 @@ def test__validate_channel():
         )
 
     with pytest.raises(YamlConfigError, match="Expected 'component' to be <str> but it is <dict>"):
-        channel._validate_channel(
-            {
-                "name": "force",
-                "description": "use the force",
-                "data_type": "double",
-                "component": {},
-                "unit": "N",
-            }
-        )
+        with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+            channel._validate_channel(
+                {
+                    "name": "force",
+                    "description": "use the force",
+                    "data_type": "double",
+                    "component": {},
+                    "unit": "N",
+                }
+            )
 
     with pytest.raises(YamlConfigError, match="should not have 'bit_field_elements' set"):
+        with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+            channel._validate_channel(
+                {
+                    "name": "force",
+                    "description": "use the force",
+                    "data_type": "double",
+                    "component": "motor",
+                    "unit": "N",
+                    "bit_field_elements": [{"name": "heat", "index": 0, "bit_count": 3}],
+                }
+            )
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
         channel._validate_channel(
             {
                 "name": "force",
                 "description": "use the force",
-                "data_type": "double",
+                "data_type": "bit_field",
                 "component": "motor",
                 "unit": "N",
                 "bit_field_elements": [{"name": "heat", "index": 0, "bit_count": 3}],
             }
         )
 
-    channel._validate_channel(
-        {
-            "name": "force",
-            "description": "use the force",
-            "data_type": "bit_field",
-            "component": "motor",
-            "unit": "N",
-            "bit_field_elements": [{"name": "heat", "index": 0, "bit_count": 3}],
-        }
-    )
-
     with pytest.raises(YamlConfigError, match="should not have 'enum_types' set"):
+        with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+            channel._validate_channel(
+                {
+                    "name": "force",
+                    "description": "use the force",
+                    "data_type": "double",
+                    "component": "motor",
+                    "unit": "N",
+                    "enum_types": [{"name": "heat", "key": 0}],
+                }
+            )
+
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
         channel._validate_channel(
             {
                 "name": "force",
                 "description": "use the force",
-                "data_type": "double",
+                "data_type": "enum",
                 "component": "motor",
                 "unit": "N",
                 "enum_types": [{"name": "heat", "key": 0}],
             }
         )
-
-    channel._validate_channel(
-        {
-            "name": "force",
-            "description": "use the force",
-            "data_type": "enum",
-            "component": "motor",
-            "unit": "N",
-            "enum_types": [{"name": "heat", "key": 0}],
-        }
-    )

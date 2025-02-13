@@ -1,6 +1,6 @@
 from typing import List, Optional, cast
 
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     CreateIngestionConfigFlowsRequest,
     CreateIngestionConfigFlowsResponse,
     CreateIngestionConfigRequest,
@@ -11,10 +11,10 @@ from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
     ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
 )
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
-from sift.ingestion_configs.v1.ingestion_configs_pb2_grpc import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )
 

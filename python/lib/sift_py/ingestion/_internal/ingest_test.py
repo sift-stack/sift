@@ -4,16 +4,17 @@ from datetime import datetime, timezone
 
 import pytest
 from pytest_mock import MockFixture
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigPb,
 )
 
 import sift_py.ingestion._internal.ingest
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
+from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingest import (
     _IngestionServiceImpl,
@@ -168,11 +169,12 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
     Tests all the different validations that happen when trying to create an ingestion request.
     """
 
-    voltage_channel = ChannelConfig(
-        name="voltage",
-        component="motor",
-        data_type=ChannelDataType.DOUBLE,
-    )
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+        voltage_channel = ChannelConfig(
+            name="voltage",
+            component="motor",
+            data_type=ChannelDataType.DOUBLE,
+        )
     pressure_channel = ChannelConfig(
         name="pressure",
         data_type=ChannelDataType.INT_64,

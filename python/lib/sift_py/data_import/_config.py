@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
+from sift_py._internal.channel import channel_fqn
 from sift_py.data_import.time_format import TimeFormatType
+from sift_py.error import _component_deprecation_warning
 from sift_py.ingestion.channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType
 
 
@@ -104,7 +106,6 @@ class DataColumn(ConfigBaseModel):
 
     name: str
     data_type: Union[str, ChannelDataType, Type]
-    component: str = ""
     units: str = ""
     description: str = ""
     # Only valid if data_type is "CHANNEL_DATA_TYPE_ENUM".
@@ -135,6 +136,19 @@ class DataColumn(ConfigBaseModel):
                 return value.as_human_str(api_format=True)
 
         raise PydanticCustomError("invalid_config_error", f"Invalid data_type: {raw}.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def concatenate_component_and_name(cls, data: Any) -> Any:
+        """
+        Concatenates Component and Name. If Component is not an empty string, raises a deprecation warning.
+        """
+        if isinstance(data, dict):
+            if "component" in data.keys() and "name" in data.keys():
+                _component_deprecation_warning()
+                data["name"] = channel_fqn(name=data["name"], component=data["component"])
+                data.pop("component")
+        return data
 
     @model_validator(mode="after")
     def validate_enums(self) -> Self:

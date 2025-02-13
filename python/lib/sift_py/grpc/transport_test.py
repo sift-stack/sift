@@ -8,8 +8,8 @@ from typing import Any, Callable, Iterator, cast
 import grpc
 import pytest
 from pytest_mock import MockFixture, MockType
-from sift.data.v1.data_pb2 import GetDataRequest, GetDataResponse
-from sift.data.v1.data_pb2_grpc import (
+from sift.data.v2.data_pb2 import GetDataRequest, GetDataResponse
+from sift.data.v2.data_pb2_grpc import (
     DataServiceServicer,
     DataServiceStub,
     add_DataServiceServicer_to_server,

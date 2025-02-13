@@ -7,12 +7,13 @@ from typing import Callable, List
 import pytest
 from pytest_mock import MockFixture
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import FlowConfig as FlowConfigPb
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig as IngestionConfigPb
 
 import sift_py.ingestion._internal.ingest
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
+from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingestion_config import (
     create_flow_configs,
@@ -253,11 +254,12 @@ def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
         asset_id="my-asset-id",
     )
 
-    channel_a = ChannelConfig(
-        name="channel_a",
-        component="A",
-        data_type=ChannelDataType.DOUBLE,
-    )
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+        channel_a = ChannelConfig(
+            name="channel_a",
+            component="A",
+            data_type=ChannelDataType.DOUBLE,
+        )
 
     flow_a = FlowConfig(
         name="flow_a",
@@ -344,11 +346,12 @@ def test_ingestion_service_register_new_flow(mocker: MockFixture):
         asset_id="my-asset-id",
     )
 
-    channel_a = ChannelConfig(
-        name="channel_a",
-        component="A",
-        data_type=ChannelDataType.DOUBLE,
-    )
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+        channel_a = ChannelConfig(
+            name="channel_a",
+            component="A",
+            data_type=ChannelDataType.DOUBLE,
+        )
 
     flow_a = FlowConfig(
         name="flow_a",

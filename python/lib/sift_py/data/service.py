@@ -10,12 +10,12 @@ from sift.calculated_channels.v1.calculated_channels_pb2 import (
     ExpressionRequest,
 )
 from sift.calculated_channels.v1.calculated_channels_pb2_grpc import CalculatedChannelsServiceStub
-from sift.channels.v2.channels_pb2 import Channel, ListChannelsRequest, ListChannelsResponse
-from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
-from sift.data.v1.data_pb2 import CalculatedChannelQuery as CalculatedChannelQueryPb
-from sift.data.v1.data_pb2 import ChannelQuery as ChannelQueryPb
-from sift.data.v1.data_pb2 import GetDataRequest, GetDataResponse, Query
-from sift.data.v1.data_pb2_grpc import DataServiceStub
+from sift.channels.v3.channels_pb2 import Channel, ListChannelsRequest, ListChannelsResponse
+from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
+from sift.data.v2.data_pb2 import CalculatedChannelQuery as CalculatedChannelQueryPb
+from sift.data.v2.data_pb2 import ChannelQuery as ChannelQueryPb
+from sift.data.v2.data_pb2 import GetDataRequest, GetDataResponse, Query
+from sift.data.v2.data_pb2_grpc import DataServiceStub
 from sift.runs.v2.runs_pb2 import ListRunsRequest, ListRunsResponse, Run
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 from typing_extensions import TypeAlias
@@ -28,7 +28,7 @@ from sift_py.data._deserialize import try_deserialize_channel_data
 from sift_py.data._validate import validate_channel_reference
 from sift_py.data.error import DataError
 from sift_py.data.query import CalculatedChannelQuery, ChannelQuery, DataQuery, DataQueryResult
-from sift_py.error import SiftError
+from sift_py.error import SiftError, _component_deprecation_warning
 from sift_py.grpc.transport import SiftAsyncChannel
 from sift_py.ingestion.channel import ChannelDataType
 
@@ -88,10 +88,14 @@ class DataService:
             elif isinstance(c, CalculatedChannelQuery):
                 for ref in c.expression_channel_references:
                     channel_name = ref["channel_name"]
+
+                    # Deprecated component field
                     component = ref.get("component")
-                    channel_queries.append(
-                        ChannelQuery(channel_name=channel_name, component=component)
-                    )
+                    if component is not None:
+                        _component_deprecation_warning()
+                        channel_name = channel_fqn(name=channel_name, component=component)
+
+                    channel_queries.append(ChannelQuery(channel_name=channel_name))
 
         channels = await self._load_channels(asset, channel_queries)
         runs = await self._load_runs(query.channels)
@@ -130,13 +134,17 @@ class DataService:
                 for expr_ref in channel_query.expression_channel_references:
                     validate_channel_reference(expr_ref["reference"])
 
-                    fqn = channel_fqn(expr_ref["channel_name"], expr_ref.get("component"))
+                    channel_name = expr_ref["channel_name"]
+                    component = expr_ref.get("component")
+                    if component is not None:
+                        _component_deprecation_warning()
+                        channel_name = channel_fqn(name=channel_name, component=component)
 
-                    targets = channels.get(fqn)
+                    targets = channels.get(channel_name)
 
                     if not targets:
                         raise SiftError(
-                            f"An unexpected error occurred. Expected channel '{fqn}' to have been loaded."
+                            f"An unexpected error occurred. Expected channel '{channel_name}' to have been loaded."
                         )
 
                     channel_id = targets[0].channel_id
@@ -146,7 +154,7 @@ class DataService:
 
                         if target_data_type is None:
                             raise ValueError(
-                                f"Found multiple channels with the fully qualified name '{fqn}'. A 'data_type' must be provided in `ExpressionChannelReference`."
+                                f"Found multiple channels with the fully qualified name '{channel_name}'. A 'data_type' must be provided in `ExpressionChannelReference`."
                             )
 
                         for target in targets:
@@ -258,15 +266,13 @@ class DataService:
 
                 for metadata, cvalues in parsed_channel_data:
                     channel = metadata.channel
-                    fqn = channel_fqn(channel.name, channel.component)
 
-                    if not fqn:
-                        fqn = channel.channel_id
+                    channel_name = channel.name or channel.channel_id
 
-                    time_series = merged_values_by_channel.get(fqn)
+                    time_series = merged_values_by_channel.get(channel_name)
 
                     if time_series is None:
-                        merged_values_by_channel[fqn] = [
+                        merged_values_by_channel[channel_name] = [
                             ChannelTimeSeries(
                                 data_type=cvalues.data_type,
                                 time_column=cvalues.time_column,
@@ -320,7 +326,7 @@ class DataService:
             channels = defaultdict(list)
 
             for c in sift_channels:
-                channels[channel_fqn(c.name, c.component)].append(c)
+                channels[c.name].append(c)
 
             self._cached_channels[asset.name] = channels
             return self._cached_channels[asset.name]
@@ -328,8 +334,7 @@ class DataService:
         cached_channels = self._cached_channels[asset.name]
         channels_to_retrieve: List[ChannelQuery] = []
         for query in channel_queries:
-            fqn = channel_fqn(query.channel_name, query.component)
-            if cached_channels.get(fqn) is None:
+            if cached_channels.get(query.channel_name) is None:
                 channels_to_retrieve.append(query)
 
         sift_channels = []
@@ -341,7 +346,7 @@ class DataService:
         channels = defaultdict(list)
 
         for c in sift_channels:
-            channels[channel_fqn(c.name, c.component)].append(c)
+            channels[c.name].append(c)
 
         if len(channels) > 0:
             self._cached_channels[asset.name].update(channels)

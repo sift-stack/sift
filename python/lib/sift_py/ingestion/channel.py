@@ -5,7 +5,7 @@ from typing import List, Optional, Type, TypedDict, Union
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
-from sift.channels.v2.channels_pb2 import Channel as ChannelPb
+from sift.channels.v3.channels_pb2 import Channel as ChannelPb
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
 )
@@ -13,11 +13,12 @@ from sift.common.type.v1.channel_enum_type_pb2 import (
     ChannelEnumType as ChannelEnumTypePb,
 )
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from typing_extensions import NotRequired, Self
 
 from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.convert.protobuf import AsProtobuf
+from sift_py.error import _component_deprecation_warning
 
 
 class ChannelValue(TypedDict):
@@ -26,7 +27,7 @@ class ChannelValue(TypedDict):
     """
 
     channel_name: str
-    component: NotRequired[str]
+    component: NotRequired[str]  # Deprecated
     value: IngestWithConfigDataChannelValue
 
 
@@ -39,7 +40,7 @@ class ChannelConfig(AsProtobuf):
     data_type: ChannelDataType
     description: Optional[str]
     unit: Optional[str]
-    component: Optional[str]
+    component: Optional[str]  # Deprecated
     bit_field_elements: List[ChannelBitFieldElement]
     enum_types: List[ChannelEnumType]
     identifier: str
@@ -50,7 +51,7 @@ class ChannelConfig(AsProtobuf):
         data_type: ChannelDataType,
         description: Optional[str] = None,
         unit: Optional[str] = None,
-        component: Optional[str] = None,
+        component: Optional[str] = None,  # Deprecated
         bit_field_elements: List[ChannelBitFieldElement] = [],
         enum_types: List[ChannelEnumType] = [],
     ):
@@ -58,7 +59,13 @@ class ChannelConfig(AsProtobuf):
         self.data_type = data_type
         self.description = description
         self.unit = unit
-        self.component = component
+
+        self.component = None  # Field kept for backwards compatibility
+        if component:
+            _component_deprecation_warning()
+            self.name = _channel_fqn(name=self.name, component=component)
+            self.component = None
+
         self.bit_field_elements = bit_field_elements
         self.enum_types = enum_types
         self.identifier = self.fqn()
@@ -111,7 +118,6 @@ class ChannelConfig(AsProtobuf):
     def as_pb(self, klass: Type[ChannelConfigPb]) -> ChannelConfigPb:
         return klass(
             name=self.name,
-            component=self.component or "",
             unit=self.unit or "",
             description=self.description or "",
             data_type=self.data_type.value,
@@ -128,7 +134,6 @@ class ChannelConfig(AsProtobuf):
             data_type=ChannelDataType.from_pb(message.data_type),
             description=message.description,
             unit=message.unit,
-            component=message.component,
             bit_field_elements=[
                 ChannelBitFieldElement.from_pb(el) for el in message.bit_field_elements
             ],
@@ -137,6 +142,8 @@ class ChannelConfig(AsProtobuf):
 
     def fqn(self) -> str:
         """
+        NOTE: Component field of Channel has been deprecated. Function kept for backwards compatibility.
+
         The fully-qualified channel name of a channel called 'voltage' is simply `voltage`. The
         fully qualified name of a channel called 'temperature' of component 'motor' is a `motor.temperature'.
         """
@@ -327,32 +334,41 @@ class ChannelDataType(Enum):
 
 class _AbstractChannel(TypedDict):
     channel_name: str
-    component: NotRequired[str]
+    component: Optional[str]  # Deprecated
 
 
 def channel_fqn(
-    channel: Union[ChannelConfig, ChannelConfigPb, ChannelValue, ChannelPb, _AbstractChannel],
+    channel: Union[
+        ChannelConfig,
+        ChannelConfigPb,
+        ChannelValue,
+        ChannelPb,
+        _AbstractChannel,
+    ],
 ) -> str:
     """
     Computes the fully qualified channel name.
+
+    NOTE: Component field of Channel is deprecated and should not be used. Function is left for code compatibility.
 
     The fully-qualified channel name of a channel called 'voltage' is simply `voltage'. The
     fully qualified name of a channel called 'temperature' of component 'motor' is a `motor.temperature'.
     """
 
     if isinstance(channel, ChannelConfig):
+        if channel.component:
+            _component_deprecation_warning()
         return _channel_fqn(channel.name, channel.component)
     elif isinstance(channel, ChannelConfigPb):
-        return _channel_fqn(channel.name, channel.component)
+        return channel.name
     elif isinstance(channel, ChannelPb):
-        return _channel_fqn(channel.name, channel.component)
+        return channel.name
     else:
-        component = channel.get("component", "")
+        component = channel.get("component")
+        if component:
+            _component_deprecation_warning()
         channel_name = channel["channel_name"]
-        if len(component) == 0:
-            return channel_name
-        else:
-            return f"{component}.{channel_name}"
+        return _channel_fqn(name=channel_name, component=component)
 
 
 def string_value(val: str) -> IngestWithConfigDataChannelValue:

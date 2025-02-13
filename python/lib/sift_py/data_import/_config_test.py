@@ -2,6 +2,7 @@ import pytest
 
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.time_format import TimeFormatType
+from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion.channel import ChannelDataType
 
 
@@ -50,6 +51,14 @@ def test_data_column_validation(csv_config_data: dict):
         4: {"name": "channel_str", "data_type": ChannelDataType.STRING},
     }
     CsvConfig(csv_config_data)
+
+    # Test component deprecation warning
+    csv_config_data["data_columns"] = {
+        1: {"name": "channel", "component": "component", "data_type": ChannelDataType.BOOL}
+    }
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+        cfg = CsvConfig(csv_config_data)
+        assert cfg._csv_config.data_columns[1].name == "component.channel"
 
 
 def test_enums(csv_config_data: dict):

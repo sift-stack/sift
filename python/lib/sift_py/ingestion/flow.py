@@ -4,10 +4,10 @@ from datetime import datetime
 from typing import Dict, List, Type, TypedDict
 
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigPb,
 )
-from sift.ingestion_configs.v1.ingestion_configs_pb2 import (
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
 from typing_extensions import Self

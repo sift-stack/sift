@@ -1,3 +1,6 @@
+import pytest
+
+from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
 
 from .config import (
@@ -27,6 +30,19 @@ def test_rule_config_json():
     assert voltage_rule_config.expression == voltage_rule_expression
 
     overheating_rule_expression = '$1 == "Accelerating" && $2 > $3'
+
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+        channel_with_component1 = ChannelConfig(
+            name="vehicle_state",
+            component="motor",
+            data_type=ChannelDataType.INT_32,
+        )
+        channel_with_component2 = ChannelConfig(
+            name="temperature",
+            component="motor",
+            data_type=ChannelDataType.INT_32,
+        )
+
     overheating_rule_config = RuleConfig(
         name="overheating",
         description="checks if vehicle overheats while accelerating",
@@ -38,19 +54,11 @@ def test_rule_config_json():
         channel_references=[
             {
                 "channel_reference": "$1",
-                "channel_config": ChannelConfig(
-                    name="vehicle_state",
-                    component="motor",
-                    data_type=ChannelDataType.INT_32,
-                ),
+                "channel_config": channel_with_component1,
             },
             {
                 "channel_reference": "$2",
-                "channel_config": ChannelConfig(
-                    name="temperature",
-                    component="motor",
-                    data_type=ChannelDataType.INT_32,
-                ),
+                "channel_config": channel_with_component2,
             },
         ],
         sub_expressions={

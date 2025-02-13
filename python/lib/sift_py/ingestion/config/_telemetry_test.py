@@ -8,6 +8,7 @@ from pytest_mock import MockerFixture, MockFixture
 import sift_py.ingestion.config.telemetry
 import sift_py.ingestion.config.yaml.load
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
+from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
 from sift_py.ingestion.config.telemetry import TelemetryConfig, TelemetryConfigValidationError
 from sift_py.ingestion.config.yaml.load import (
@@ -42,7 +43,10 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
     dummy_yaml_path = Path()
     dummy_named_expr_mod_path = Path()
 
-    telemetry_config = TelemetryConfig.try_from_yaml(dummy_yaml_path, [dummy_named_expr_mod_path])
+    with pytest.warns(SiftAPIDeprecationWarning, match="component"):
+        telemetry_config = TelemetryConfig.try_from_yaml(
+            dummy_yaml_path, [dummy_named_expr_mod_path]
+        )
 
     assert telemetry_config.asset_name == "LunarVehicle426"
     assert telemetry_config.ingestion_client_key == "lunar_vehicle_426"
@@ -64,10 +68,10 @@ def test_telemetry_config_load_from_yaml(mocker: MockFixture):
     assert log_channel.data_type == ChannelDataType.STRING
 
     velocity_channel, voltage_channel, vehicle_state_channel, gpio_channel = readings_flow.channels
-    assert velocity_channel.name == "velocity"
+    assert velocity_channel.name == "mainmotor.velocity"
     assert velocity_channel.data_type == ChannelDataType.DOUBLE
     assert velocity_channel.unit == "Miles Per Hour"
-    assert velocity_channel.component == "mainmotor"
+    assert velocity_channel.component is None  # Deprecated, should only be None
     assert velocity_channel.description == "speed"
 
     assert voltage_channel.name == "voltage"
@@ -267,6 +271,7 @@ def test_telemetry_config_validations_flows_with_same_name():
         )
 
 
+# NOTE: Component is deprecated, but kept in yaml test to validate backwards compatibility
 TEST_YAML_CONFIG_STR = """
 asset_name: LunarVehicle426
 ingestion_client_key: lunar_vehicle_426

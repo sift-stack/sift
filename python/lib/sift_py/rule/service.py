@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
-from sift.channels.v2.channels_pb2_grpc import ChannelServiceStub
+from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
     AnnotationActionConfiguration,
@@ -27,6 +27,7 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift.users.v2.users_pb2_grpc import UserServiceStub
 
 from sift_py._internal.cel import cel_in
+from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.channel import get_channels
 from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
@@ -87,11 +88,14 @@ class RuleService:
                 for ref, channel_config in channel_ref.items():
                     if isinstance(channel_config, dict):
                         name = channel_config.get("name", "")
-                        component = channel_config.get("component", "")
+                        # NOTE: Component deprecated, but warning is thrown in the channel_fqn below
+                        component = channel_config.get("component")
                     elif isinstance(channel_config, str):
                         channel_reference = channel_reference_from_fqn(channel_config)
-                        name = channel_reference.name
-                        component = channel_reference.component
+                        name = _channel_fqn(
+                            name=channel_reference.name, component=channel_reference.component
+                        )
+                        component = None
                     else:
                         raise ValueError(
                             f"Channel reference '{channel_config}' must be a string or a ChannelConfigYamlSpec"
@@ -275,8 +279,7 @@ class RuleService:
                 "See `sift_py.rule.config.RuleAction` for available actions."
             )
 
-        # TODO:
-        # - once we have TagService_ListTags we can do asset-agnostic rules via tags
+        # TODO: once we have TagService_ListTags we can do asset-agnostic rules via tags
         assets = self._get_assets(names=config.asset_names) if config.asset_names else None
 
         actions = []
@@ -327,22 +330,23 @@ class RuleService:
             channel_references[ref] = ident
 
         if assets and channel_references:
-            identifiers = [ident.name for ident in channel_references.values()]
-            components = [ident.component for ident in channel_references.values()]
+            names = [
+                _channel_fqn(name=ident.name, component=ident.component)
+                for ident in channel_references.values()
+            ]
 
             # Create CEL search filters
-            name_in = cel_in("name", identifiers)
-            component_in = cel_in("component", components)
+            name_in = cel_in("name", names)
 
             # Validate channels are present within each asset
             for asset in assets:
                 found_channels = get_channels(
                     channel_service=self._channel_service_stub,
-                    filter=f"asset_id == '{asset.asset_id}' && {name_in} && {component_in}",
+                    filter=f"asset_id == '{asset.asset_id}' && {name_in}",
                 )
                 found_channels_names = [channel.name for channel in found_channels]
 
-                missing_channels = set(identifiers) ^ set(found_channels_names)
+                missing_channels = set(names) ^ set(found_channels_names)
                 if missing_channels:
                     raise RuntimeError(
                         f"Asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}"

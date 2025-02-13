@@ -147,7 +147,6 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
             expected_config["data_columns"][str(2 + (i * 5) + j)] = {
                 "name": f"Test channel_{j}",
                 "data_type": "CHANNEL_DATA_TYPE_INT_32",
-                "component": "",
                 "units": "",
                 "description": "",
                 "enum_types": [],
@@ -156,21 +155,25 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
     assert config == expected_config
 
     # Test with grouping
-    svc.upload("some_tdms.tdms", "asset_name", group_into_components=True)
+    svc.upload("some_tdms.tdms", "asset_name", prefix_channel_with_group=True)
     config = get_csv_config(mock_requests_post, 2)
     for i in range(5):
         for j in range(5):
-            expected_config["data_columns"][str(2 + (i * 5) + j)]["component"] = f"Group {i}"
+            name_with_group = (
+                f"Group {i}.{expected_config['data_columns'][str(2 + (i * 5) + j)]['name']}"
+            )
+            expected_config["data_columns"][str(2 + (i * 5) + j)]["name"] = name_with_group
     assert config == expected_config
 
-    # Test with run information
-    svc.upload(
-        "some_tdms.tdms",
-        "asset_name",
-        group_into_components=True,
-        run_name="Run Name",
-        run_id="Run ID",
-    )
+    # Test with run information and group_into_components deprecation
+    with pytest.warns(FutureWarning, match="component"):
+        svc.upload(
+            "some_tdms.tdms",
+            "asset_name",
+            group_into_components=True,
+            run_name="Run Name",
+            run_id="Run ID",
+        )
     expected_config["run_name"] = "Run Name"
     expected_config["run_id"] = "Run ID"
     config = get_csv_config(mock_requests_post, 4)

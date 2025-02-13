@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Literal, Union, cast
 
 from typing_extensions import NotRequired, TypedDict
 
+from sift_py.error import _component_deprecation_warning
 from sift_py.ingestion.channel import ChannelDataTypeStrRep
 from sift_py.ingestion.config.yaml.error import YamlConfigError
 from sift_py.yaml.utils import _type_fqn
@@ -39,11 +40,11 @@ def _validate_channel(val: Any):
 
     if unit is not None and not isinstance(unit, str):
         raise YamlConfigError._invalid_property(unit, "- unit", "str", ["channels"])
-
     component = channel.get("component")
-
-    if component is not None and not isinstance(component, str):
-        raise YamlConfigError._invalid_property(component, "- component", "str", ["channels"])
+    if component is not None:
+        _component_deprecation_warning()
+        if not isinstance(component, str):
+            raise YamlConfigError._invalid_property(component, "- component", "str", ["channels"])
 
     data_type = channel.get("data_type")
     valid_data_type_values = [v.value for v in ChannelDataTypeStrRep]

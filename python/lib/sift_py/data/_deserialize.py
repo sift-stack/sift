@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Tuple, cast
 
 from google.protobuf.any_pb2 import Any
-from sift.data.v1.data_pb2 import (
+from sift.data.v2.data_pb2 import (
     BitFieldValues,
     BoolValues,
     DoubleValues,
@@ -24,16 +24,16 @@ from sift_py.ingestion.channel import ChannelDataType
 
 
 class ChannelValues(Enum):
-    DOUBLE_VALUES = "sift.data.v1.DoubleValues"
-    FLOAT_VALUES = "sift.data.v1.FloatValues"
-    STRING_VALUES = "sift.data.v1.StringValues"
-    ENUM_VALUES = "sift.data.v1.EnumValues"
-    BIT_FIELD_VALUES = "sift.data.v1.BitFieldValues"
-    BOOL_VALUES = "sift.data.v1.BoolValues"
-    INT32_VALUES = "sift.data.v1.Int32Values"
-    INT64_VALUES = "sift.data.v1.Int64Values"
-    UINT32_VALUES = "sift.data.v1.Uint32Values"
-    UINT64_VALUES = "sift.data.v1.Uint64Values"
+    DOUBLE_VALUES = "sift.data.v2.DoubleValues"
+    FLOAT_VALUES = "sift.data.v2.FloatValues"
+    STRING_VALUES = "sift.data.v2.StringValues"
+    ENUM_VALUES = "sift.data.v2.EnumValues"
+    BIT_FIELD_VALUES = "sift.data.v2.BitFieldValues"
+    BOOL_VALUES = "sift.data.v2.BoolValues"
+    INT32_VALUES = "sift.data.v2.Int32Values"
+    INT64_VALUES = "sift.data.v2.Int64Values"
+    UINT32_VALUES = "sift.data.v2.Uint32Values"
+    UINT64_VALUES = "sift.data.v2.Uint64Values"
 
 
 def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, ChannelTimeSeries]]:
