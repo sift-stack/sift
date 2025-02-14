@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import ActionKind
+from typing_extensions import TypedDict
 
 from sift_py._internal.convert.json import AsJson
 from sift_py.ingestion.channel import ChannelConfig
