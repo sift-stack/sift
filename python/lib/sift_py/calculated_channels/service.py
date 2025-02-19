@@ -177,7 +177,7 @@ class CalculatedChannelService:
                 asset_ids=[asset.asset_id for asset in self._get_assets(names=config.asset_names)]
                 if config.asset_names
                 else None,
-                tag_ids=config.tags,
+                tag_ids=config.tag_names,
             )
             if not config.all_assets
             else None,
@@ -255,7 +255,7 @@ class CalculatedChannelService:
                     expression_channel_references=channel_references,
                 )
             )
-        if "asset_names" in updates or "tags" in updates or "all_assets" in updates:
+        if "asset_names" in updates or "tag_names" in updates or "all_assets" in updates:
             asset_ids = (
                 [asset.asset_id for asset in self._get_assets(names=updates.get("asset_names"))]
                 if "asset_names" in updates
@@ -263,14 +263,14 @@ class CalculatedChannelService:
             )
 
             tag_ids = (
-                updates.get("tags")
-                if "tags" in updates
+                updates.get("tag_names")
+                if "tag_names" in updates
                 else calculated_channel.calculated_channel_configuration.asset_configuration.selection.tag_ids
             )
             # TODO: add full support for tags
-            if "tags" in updates and updates.get("tags") is not None:
+            if "tag_names" in updates and updates.get("tag_names") is not None:
                 raise NotImplementedError(
-                    "Modifying `tags` (other than removing them by setting to None) is not currently supported."
+                    "Modifying `tag_names` (other than removing them by setting to None) is not currently supported."
                 )
 
             all_assets = (
@@ -343,7 +343,7 @@ class CalculatedChannelService:
             ]
             if not calculated_channel.calculated_channel_configuration.asset_configuration.all_assets
             else None,
-            tags=[
+            tag_names=[
                 tag_id
                 for tag_id in calculated_channel.calculated_channel_configuration.asset_configuration.selection.tag_ids
             ]

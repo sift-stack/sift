@@ -40,14 +40,14 @@ class CalculatedChannelConfig(BaseModel):
     calculated_channel_id: Optional[str] = None
     client_key: Optional[str] = None
     asset_names: Optional[List[str]] = None
-    tags: Optional[List[str]] = None
+    tag_names: Optional[List[str]] = None
     all_assets: bool = False
 
-    @field_validator("tags", mode="before")
+    @field_validator("tag_names", mode="before")
     @classmethod
     def check_for_unsupported_tags(cls, v):
         if v:
-            raise ValueError("`tags` is not yet supported.")
+            raise ValueError("`tag_names` is not yet supported.")
         return v
 
     @field_validator("channel_references", mode="before")
@@ -70,13 +70,13 @@ class CalculatedChannelConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_assets(self):
-        if not self.asset_names and not self.tags and not self.all_assets:
+        if not self.asset_names and not self.tag_names and not self.all_assets:
             raise ValueError(
-                "At least one of `asset_names`, `tags` must be specified or `all_assets` must be set to `True`."
+                "At least one of `asset_names`, `tag_names` must be specified or `all_assets` must be set to `True`."
             )
-        if self.all_assets and (self.asset_names or self.tags):
+        if self.all_assets and (self.asset_names or self.tag_names):
             raise ValueError(
-                "`all_assets` cannot be `True` if `asset_names` or `tags` are specified."
+                "`all_assets` cannot be `True` if `asset_names` or `tag_names` are specified."
             )
         return self
 
@@ -106,6 +106,6 @@ class CalculatedChannelUpdate(TypedDict):
         List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]]
     ]
     asset_names: NotRequired[List[str]]
-    tags: NotRequired[List[str]]
+    tag_names: NotRequired[List[str]]
     all_assets: NotRequired[bool]
     archived: NotRequired[bool]
