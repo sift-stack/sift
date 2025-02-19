@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple, cast
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from google.protobuf.field_mask_pb2 import FieldMask
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -30,6 +31,7 @@ from sift_py.grpc.transport import SiftChannel
 from sift_py.rule.config import (
     _channel_references_from_dicts,
 )
+from sift_py.yaml.calculated_channels import load_calculated_channels
 
 
 class CalculatedChannelService:
@@ -318,6 +320,54 @@ class CalculatedChannelService:
         return self._calculated_channel_to_config(
             cast(CalculatedChannel, resp.calculated_channel)
         ), cast(CalculatedChannelValidationResult, resp.inapplicable_assets)
+
+    def create_or_update_calculated_channel_from_yaml(
+        self, paths: Union[Path, List[Path]]
+    ) -> List[Tuple[CalculatedChannelConfig, CalculatedChannelValidationResult]]:
+        """
+        Creates or updates calculated channel from provided yaml files.
+        """
+        calculated_channel_configs = load_calculated_channels(
+            paths if isinstance(paths, list) else [paths]
+        )
+        created_or_updated_configs: List[
+            Tuple[CalculatedChannelConfig, CalculatedChannelValidationResult]
+        ] = []
+        for config in calculated_channel_configs:
+            if config.client_key is not None:
+                try:
+                    found_channel = self.get_calculated_channel(client_key=config.client_key)
+                    config.calculated_channel_id = found_channel.calculated_channel_id
+                except Exception:
+                    pass
+
+            if config.calculated_channel_id is not None:
+                updates: CalculatedChannelUpdate = {}
+                if config.name is not None:
+                    updates["name"] = config.name
+                if config.description is not None:
+                    updates["description"] = config.description
+                if config.units is not None:
+                    updates["units"] = cast(config.units, str)  # type: ignore[name-defined]
+                if config.expression is not None:
+                    updates["expression"] = config.expression
+                if config.channel_references is not None:
+                    updates["channel_references"] = config.channel_references
+                if config.asset_names is not None:
+                    updates["asset_names"] = cast(config.asset_names, List[str])  # type: ignore[name-defined]
+                if config.tag_names is not None:
+                    updates["tag_names"] = cast(config.tag_names, List[str])  # type: ignore[name-defined]
+                if config.all_assets is not None:
+                    updates["all_assets"] = config.all_assets
+
+                created_or_updated_configs.append(
+                    self.update_calculated_channel(
+                        calculated_channel_config=config, updates=updates
+                    )
+                )
+            else:
+                created_or_updated_configs.append(self.create_calculated_channel(config=config))
+        return created_or_updated_configs
 
     @staticmethod
     def _calculated_channel_to_config(
