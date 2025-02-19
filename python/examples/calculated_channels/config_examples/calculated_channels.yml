@@ -1,0 +1,16 @@
+calculated_channels:
+  - name: acceleration
+    description: Calculates the acceleration of the motor
+    expression: deriv($1)
+    client_key: motor_accel
+    channel_references:
+      - $1: mainmotor.velocity
+    asset_names:
+      - NostromoLV426
+
+  - name: jerk
+    expression: deriv(deriv($1))
+    channel_references:
+      - $1: mainmotor.velocity
+    all_assets: true
+
