@@ -352,7 +352,14 @@ class CalculatedChannelService:
             all_assets=calculated_channel.calculated_channel_configuration.asset_configuration.all_assets,
         )
 
-    def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
+    def _get_assets(
+        self, names: Optional[List[str]] = None, ids: Optional[List[str]] = None
+    ) -> List[Asset]:
+        if names is None:
+            names = []
+        if ids is None:
+            ids = []
+
         def get_assets_with_filter(cel_filter: str):
             assets: List[Asset] = []
             next_page_token = ""
