@@ -201,11 +201,11 @@ class CalculatedChannelService:
             cast(CalculatedChannel, resp.calculated_channel)
         ), cast(CalculatedChannelValidationResult, resp.inapplicable_assets)
 
-    def revise_calculated_channel(
+    def update_calculated_channel(
         self,
         calculated_channel_config: CalculatedChannelConfig,
         updates: CalculatedChannelUpdate,
-        revision_notes: str = "",
+        update_notes: str = "",
     ) -> Tuple[CalculatedChannelConfig, CalculatedChannelValidationResult]:
         """
         Revise a `CalculatedChannel` from a `CalculatedChannelUpdate`.  See
@@ -297,7 +297,7 @@ class CalculatedChannelService:
         update_mask = FieldMask(paths=list(update_map.keys()))
 
         req = UpdateCalculatedChannelRequest(
-            calculated_channel=channel_updater, update_mask=update_mask, user_notes=revision_notes
+            calculated_channel=channel_updater, update_mask=update_mask, user_notes=update_notes
         )
         resp = self._calculated_channel_service_stub.UpdateCalculatedChannel(req)
         return self._calculated_channel_to_config(

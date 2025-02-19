@@ -202,7 +202,7 @@ def test_revise_calculated_channel(calculated_channel_service):
             inapplicable_assets=None,
         ),
     ) as mock_update:
-        channel, validation = calculated_channel_service.revise_calculated_channel(
+        channel, validation = calculated_channel_service.update_calculated_channel(
             CalculatedChannelConfig(
                 calculated_channel_id="test-id",
                 name="test-channel",
@@ -212,7 +212,7 @@ def test_revise_calculated_channel(calculated_channel_service):
                 all_assets=True,
             ),
             updates,
-            revision_notes="test revision",
+            update_notes="test revision",
         )
 
         mock_update.assert_called_once_with(

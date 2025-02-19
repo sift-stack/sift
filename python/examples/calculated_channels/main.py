@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from sift_py.calculated_channels.config import CalculatedChannelConfig
+from sift_py.calculated_channels.config import CalculatedChannelConfig, CalculatedChannelUpdate
 from sift_py.calculated_channels.service import CalculatedChannelService
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 
@@ -27,6 +27,13 @@ def calculated_channel_demo():
         )
         chan, validation = service.create_calculated_channel(
             config,
+        )
+        print(chan, validation)
+
+        # Now update the channel
+        updates = CalculatedChannelUpdate(expression="$1 * 100")
+        chan, validation = service.update_calculated_channel(
+            calculated_channel_config=chan, updates=updates
         )
         print(chan, validation)
 
