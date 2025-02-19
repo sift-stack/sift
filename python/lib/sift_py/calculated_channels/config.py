@@ -23,8 +23,8 @@ class CalculatedChannelConfig(BaseModel):
       be an `ExpressionChannelReference` or `ExpressionChannelReferenceChannelConfig`.
     - `units`: Units of the calculated channel.
     - `client_key`: A user defined string that uniquely identifies the calculated channel. Name is unique, but may be changed.
-    - `asset_ids`: A list of asset names to make the calculation available for.
-    - `tag_ids`: A list of tag_ids on assets to make the calculation available for.
+    - `asset_names`: A list of asset names to make the calculation available for.
+    - `tags`: A list of tags on assets to make the calculation available for. NOTE: Not yet supported.
     - `all_assets`: A flag that, when set to `True`, associates the calculated channel with all assets.
     """
 
@@ -39,9 +39,16 @@ class CalculatedChannelConfig(BaseModel):
     units: Optional[str] = None
     calculated_channel_id: Optional[str] = None
     client_key: Optional[str] = None
-    asset_ids: Optional[List[str]] = None
-    tag_ids: Optional[List[str]] = None
+    asset_names: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
     all_assets: bool = False
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def check_for_unsupported_tags(cls, v):
+        if v:
+            raise ValueError("`tags` is not yet supported.")
+        return v
 
     @field_validator("channel_references", mode="before")
     @classmethod
@@ -63,13 +70,13 @@ class CalculatedChannelConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_assets(self):
-        if not self.asset_ids and not self.tag_ids and not self.all_assets:
+        if not self.asset_names and not self.tags and not self.all_assets:
             raise ValueError(
-                "At least one of `asset_ids`, `tag_ids` must be specified or `all_assets` must be set to `True`."
+                "At least one of `asset_names`, `tags` must be specified or `all_assets` must be set to `True`."
             )
-        if self.all_assets and (self.asset_ids or self.tag_ids):
+        if self.all_assets and (self.asset_names or self.tags):
             raise ValueError(
-                "`all_assets` cannot be `True` if `asset_ids` or `tag_ids` are specified."
+                "`all_assets` cannot be `True` if `asset_names` or `tags` are specified."
             )
         return self
 
@@ -85,8 +92,8 @@ class CalculatedChannelUpdate(TypedDict):
     - `expression`: Updated expression used to calculate channel values.
     - `channel_references`: A list of channel references which can either be `ExpressionChannelReference`
        or `ExpressionChannelReferenceChannelConfig` used in the expression.
-    - `asset_ids`: List of asset ids associated with the calculation.
-    - `tag_ids`: List of tag ids for associating the calculated channel to assets.
+    - `asset_names`: List of assets associated with the calculation.
+    - `tags`: List of tags for associating the calculated channel to assets.
     - `all_assets`: Boolean flag indicating if the calculated channel applies to all assets.
     - `archived`: Boolean flag indicating if the calculated channel is archived.
     """
@@ -98,7 +105,7 @@ class CalculatedChannelUpdate(TypedDict):
     channel_references: NotRequired[
         List[Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]]
     ]
-    asset_ids: NotRequired[List[str]]
-    tag_ids: NotRequired[List[str]]
+    asset_names: NotRequired[List[str]]
+    tags: NotRequired[List[str]]
     all_assets: NotRequired[bool]
     archived: NotRequired[bool]

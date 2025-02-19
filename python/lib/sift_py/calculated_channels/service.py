@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 from google.protobuf.field_mask_pb2 import FieldMask
 from google.protobuf.timestamp_pb2 import Timestamp
+from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
+from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannel,
     CalculatedChannelAbstractChannelReference,
@@ -22,6 +24,7 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
 )
 from sift.calculated_channels.v2.calculated_channels_pb2_grpc import CalculatedChannelServiceStub
 
+from sift_py._internal.cel import cel_in
 from sift_py.calculated_channels.config import CalculatedChannelConfig, CalculatedChannelUpdate
 from sift_py.grpc.transport import SiftChannel
 from sift_py.rule.config import (
@@ -35,9 +38,11 @@ class CalculatedChannelService:
     """
 
     _calculated_channel_service_stub: CalculatedChannelServiceStub
+    _asset_service_stub: AssetServiceStub
 
     def __init__(self, channel: SiftChannel):
         self._calculated_channel_service_stub = CalculatedChannelServiceStub(channel)
+        self._asset_service_stub = AssetServiceStub(channel)
 
     def get_calculated_channel(
         self, calculated_channel_id: Optional[str] = None, client_key: Optional[str] = None
@@ -169,7 +174,10 @@ class CalculatedChannelService:
         asset_configuration = CalculatedChannelAssetConfiguration(
             all_assets=config.all_assets,
             selection=CalculatedChannelAssetConfiguration.AssetSelection(
-                asset_ids=config.asset_ids, tag_ids=config.tag_ids
+                asset_ids=[asset.asset_id for asset in self._get_assets(names=config.asset_names)]
+                if config.asset_names
+                else None,
+                tag_ids=config.tags,
             )
             if not config.all_assets
             else None,
@@ -247,17 +255,24 @@ class CalculatedChannelService:
                     expression_channel_references=channel_references,
                 )
             )
-        if "asset_ids" in updates or "tag_ids" in updates or "all_assets" in updates:
+        if "asset_names" in updates or "tags" in updates or "all_assets" in updates:
             asset_ids = (
-                updates.get("asset_ids")
-                if "asset_ids" in updates
+                [asset.asset_id for asset in self._get_assets(names=updates.get("asset_names"))]
+                if "asset_names" in updates
                 else calculated_channel.calculated_channel_configuration.asset_configuration.selection.asset_ids
             )
+
             tag_ids = (
-                updates.get("tag_ids")
-                if "tag_ids" in updates
+                updates.get("tags")
+                if "tags" in updates
                 else calculated_channel.calculated_channel_configuration.asset_configuration.selection.tag_ids
             )
+            # TODO: add full support for tags
+            if "tags" in updates and updates.get("tags") is not None:
+                raise NotImplementedError(
+                    "Modifying `tags` (other than removing them by setting to None) is not currently supported."
+                )
+
             all_assets = (
                 updates.get("all_assets")
                 if "all_assets" in updates
@@ -322,13 +337,13 @@ class CalculatedChannelService:
             ],
             units=calculated_channel.units,
             client_key=calculated_channel.client_key,
-            asset_ids=[
+            asset_names=[
                 asset_id
                 for asset_id in calculated_channel.calculated_channel_configuration.asset_configuration.selection.asset_ids
             ]
             if not calculated_channel.calculated_channel_configuration.asset_configuration.all_assets
             else None,
-            tag_ids=[
+            tags=[
                 tag_id
                 for tag_id in calculated_channel.calculated_channel_configuration.asset_configuration.selection.tag_ids
             ]
@@ -336,3 +351,31 @@ class CalculatedChannelService:
             else None,
             all_assets=calculated_channel.calculated_channel_configuration.asset_configuration.all_assets,
         )
+
+    def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
+        def get_assets_with_filter(cel_filter: str):
+            assets: List[Asset] = []
+            next_page_token = ""
+            while True:
+                req = ListAssetsRequest(
+                    filter=cel_filter,
+                    page_size=1_000,
+                    page_token=next_page_token,
+                )
+                res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
+                assets.extend(res.assets)
+
+                if not res.next_page_token:
+                    break
+                next_page_token = res.next_page_token
+
+            return assets
+
+        if names:
+            names_cel = cel_in("name", names)
+            return get_assets_with_filter(names_cel)
+        elif ids:
+            ids_cel = cel_in("asset_id", ids)
+            return get_assets_with_filter(ids_cel)
+        else:
+            return []

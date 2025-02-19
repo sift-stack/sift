@@ -23,7 +23,7 @@ def calculated_channel_demo():
             channel_references=[
                 dict(channel_reference="$1", channel_identifier="mainmotor.velocity")
             ],
-            asset_ids=["c8c724b9-6993-4423-9cc4-4c4ecdbc5751"],
+            asset_names=["NostromoLV426"],
         )
         chan, validation = service.create_calculated_channel(
             config,
