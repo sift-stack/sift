@@ -88,9 +88,9 @@ class Ch10UploadService(CsvUploadService):
         """
         ch10_file.initialize_csv_data_columns()
 
-        assert getattr(ch10_file, "csv_config_data_columns"), (
-            "`csv_config_data_columns` was not set correctly on the first iteration"
-        )
+        assert getattr(
+            ch10_file, "csv_config_data_columns"
+        ), "`csv_config_data_columns` was not set correctly on the first iteration"
 
         config_info: Dict[str, Any] = {
             "asset_name": asset_name,

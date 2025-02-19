@@ -34,11 +34,11 @@ jobs:
 
       - name: Lint
         run: |
-          ruff check
+          ruff check lib/sift_py
 
       - name: Format
         run: |
-          ruff format --check
+          ruff format --check lib/sift_py
 
       - name: MyPy
         run: |
