@@ -1,4 +1,11 @@
 // @generated
+pub mod buf {
+    // @@protoc_insertion_point(attribute:buf.validate)
+    pub mod validate {
+        include!("buf.validate.rs");
+        // @@protoc_insertion_point(buf.validate)
+    }
+}
 pub mod google {
     // @@protoc_insertion_point(attribute:google.api)
     pub mod api {
@@ -190,6 +197,11 @@ pub mod sift {
         pub mod v1 {
             include!("sift.tags.v1.rs");
             // @@protoc_insertion_point(sift.tags.v1)
+        }
+        // @@protoc_insertion_point(attribute:sift.tags.v2)
+        pub mod v2 {
+            include!("sift.tags.v2.rs");
+            // @@protoc_insertion_point(sift.tags.v2)
         }
     }
     pub mod users {

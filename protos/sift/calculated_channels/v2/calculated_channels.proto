@@ -11,8 +11,6 @@ import "sift/calculated_channels/v1/calculated_channels.proto";
 import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/resource_identifier.proto";
 
-
-
 service CalculatedChannelService {
   // Retrieve the latest version of a calculated channel
   rpc GetCalculatedChannel(GetCalculatedChannelRequest) returns (GetCalculatedChannelResponse) {

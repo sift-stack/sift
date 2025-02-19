@@ -4,8 +4,6 @@ package sift.common.type.v1;
 
 import "google/api/field_behavior.proto";
 
-
-
 message ChannelBitFieldElement {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
   // The index of this element's first bit in the logical bit field array.

@@ -4,8 +4,6 @@ package sift.common.type.v1;
 
 import "google/api/field_behavior.proto";
 
-
-
 message ResourceIdentifier {
   oneof identifier {
     string id = 1;

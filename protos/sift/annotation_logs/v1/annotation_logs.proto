@@ -7,8 +7,6 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-
-
 service AnnotationLogService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to programmatically interact with [annotation logs](/glossary#annotation)."
