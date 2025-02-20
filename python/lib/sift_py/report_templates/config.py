@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -26,13 +25,12 @@ class ReportTemplateConfig(BaseModel, AsJson):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str
-    template_client_key: str
-    template_id: Optional[str] = None  # read only
-    organization_id: str = ""
+    template_client_key: Optional[str] = None
+    template_id: Optional[str] = None
     tags: Optional[List[str]] = None
     description: Optional[str] = None
     rule_client_keys: List[str] = []
-    archived_date: Optional[datetime] = None
+    archived_date: Optional[bool] = False
 
     def as_json(self) -> Any:
         return self.model_dump_json()
@@ -54,8 +52,7 @@ class ReportTemplateUpdate(TypedDict):
 
     name: NotRequired[str]
     template_client_key: NotRequired[str]
-    organization_id: NotRequired[str]
     tags: NotRequired[List[str]]
     description: NotRequired[str]
     rule_client_keys: NotRequired[List[str]]
-    archived_date: NotRequired[datetime]
+    archived_date: NotRequired[bool]

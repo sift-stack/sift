@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
@@ -43,12 +44,11 @@ class ReportTemplateService:
         See `sift_py.report_templates.config.ReportTemplateConfig` for more information on available
         fields to configure.
         """
-        if not config.template_client_key and not config.template_id:
-            raise Exception(
-                f"Report template {config.name} requires either a template_client_key or report_template_id"
-            )
-
         if updates:
+            if not config.template_client_key and not config.template_id:
+                raise Exception(
+                    f"Report template {config.name} requires either a template_client_key or report_template_id to update."
+                )
             self._update_report_template(config, updates)
         else:
             self._create_report_template(config)
@@ -79,9 +79,7 @@ class ReportTemplateService:
                 tags=[tag.tag_name for tag in report_template.tags],
                 description=report_template.description,
                 rule_client_keys=[rule.client_key for rule in report_template.rules],
-                archived_date=report_template.archived_date.ToDatetime()
-                if report_template.archived_date
-                else None,
+                archived_date=True if report_template.archived_date else False,
             )
             if report_template
             else None
@@ -155,7 +153,7 @@ class ReportTemplateService:
             ]
         if "archived_date" in updates:
             update_map["archived_date"] = (
-                to_timestamp_pb(updates["archived_date"]) if updates["archived_date"] else None
+                to_timestamp_pb(datetime.now()) if updates["archived_date"] else None
             )
 
         updated_report_template = ReportTemplate(

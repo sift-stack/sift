@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -44,7 +43,7 @@ if __name__ == "__main__":
             client_key="nostromo-report-template-1"
         )
         if report_template_to_update:
-            updates = ReportTemplateUpdate(archived_date=datetime.now())
+            updates = ReportTemplateUpdate(archived_date=True)
             report_template_service.create_or_update_report_template(
                 report_template_to_update, updates=updates
             )
