@@ -74,7 +74,6 @@ def get_ingestion_config_flow_names(
     Gets all names of flow configs of an ingestion config.
     """
     flows = get_ingestion_config_flows(channel, ingestion_config_id)
-    breakpoint()
     return [flow.name for flow in flows]
 
 
