@@ -4,6 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
+from sift_py.report_templates.config import ReportTemplateUpdate
 from sift_py.report_templates.service import ReportTemplateService
 from sift_py.rule.service import RuleService
 
@@ -43,5 +44,7 @@ if __name__ == "__main__":
             client_key="nostromo-report-template-1"
         )
         if report_template_to_update:
-            report_template_to_update.archived_date = datetime.now()
-            report_template_service.create_or_update_report_template(report_template_to_update)
+            updates = ReportTemplateUpdate(archived_date=datetime.now())
+            report_template_service.create_or_update_report_template(
+                report_template_to_update, updates=updates
+            )
