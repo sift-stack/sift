@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from report_template_config import load_rules, nostromos_report_template
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
+from sift_py.report_templates.config import ReportTemplateUpdate
 from sift_py.report_templates.service import ReportTemplateService
 from sift_py.rule.service import RuleService
 
@@ -39,10 +40,10 @@ if __name__ == "__main__":
             client_key=report_template.template_client_key
         )
         if report_template_to_update:  # Make some other changes
-            report_template_to_update.rule_client_keys = [
-                rule.rule_client_key for rule in rules if rule.rule_client_key
-            ]
-            report_template_to_update.description = (
-                "A report template for the Nostromo without overheating rule"
+            updates = ReportTemplateUpdate(
+                rule_client_keys=[rule.rule_client_key for rule in rules if rule.rule_client_key],
+                description="A report template for the Nostromo without overheating rule",
             )
-            report_template_service.create_or_update_report_template(report_template_to_update)
+            report_template_service.create_or_update_report_template(
+                report_template_to_update, updates=updates
+            )
