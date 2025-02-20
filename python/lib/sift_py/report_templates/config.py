@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -20,6 +21,7 @@ class ReportTemplateConfig(BaseModel, AsJson):
     - `rule_client_keys`: List of rule client keys associated with the report template.
     - `archived_date`: Date when the report template was archived. Setting this field
         will archive the report template, and unsetting it will unarchive the report template.
+    - `archived`: True if the report template is archived, False otherwise.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -30,7 +32,8 @@ class ReportTemplateConfig(BaseModel, AsJson):
     tags: Optional[List[str]] = None
     description: Optional[str] = None
     rule_client_keys: List[str] = []
-    archived_date: Optional[bool] = False
+    archived_date: Optional[datetime] = None
+    archived: bool = False
 
     def as_json(self) -> Any:
         return self.model_dump_json()
@@ -47,7 +50,7 @@ class ReportTemplateUpdate(TypedDict):
     - `tags`: Updated tags to associate with the report template.
     - `description`: Updated description of the report template.
     - `rule_client_keys`: Updated list of rule client keys associated with the report template.
-    - `archived_date`: Updated date when the report template was archived.
+    - `archived`: True if the report template is archived, False otherwise.
     """
 
     name: NotRequired[str]
@@ -55,4 +58,4 @@ class ReportTemplateUpdate(TypedDict):
     tags: NotRequired[List[str]]
     description: NotRequired[str]
     rule_client_keys: NotRequired[List[str]]
-    archived_date: NotRequired[bool]
+    archived: NotRequired[bool]
