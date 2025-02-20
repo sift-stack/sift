@@ -36,7 +36,6 @@ if __name__ == "__main__":
         ingestion_service = IngestionService(
             channel,
             telemetry_config,
-            overwrite_rules=True,  # Overwrite any rules created in the Sift UI that isn't in the config
             end_stream_on_error=True,  # End stream if errors occur API-side.
         )
 

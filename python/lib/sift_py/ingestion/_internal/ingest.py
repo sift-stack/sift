@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 from typing import Dict, List, Optional
-from warnings import warn
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sift.ingest.v1.ingest_pb2 import (
@@ -54,15 +53,9 @@ class _IngestionServiceImpl:
         channel: SiftChannel,
         config: TelemetryConfig,
         run_id: Optional[str] = None,
-        overwrite_rules: bool = False,
         end_stream_on_error: bool = False,
     ):
         ingestion_config = self.__class__._get_or_create_ingestion_config(channel, config)
-
-        if overwrite_rules:
-            warn(
-                "The 'overwrite_rules' argument is deprecated and will be removed in release 0.4.0."
-            )
 
         self.rule_service = RuleService(channel)
         if config.rules:
