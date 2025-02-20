@@ -27,6 +27,7 @@ class ReportTemplateConfig(BaseModel, AsJson):
 
     name: str
     template_client_key: str
+    template_id: Optional[str] = None  # read only
     organization_id: str = ""
     tags: Optional[List[str]] = None
     description: Optional[str] = None

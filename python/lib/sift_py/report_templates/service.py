@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 from google.protobuf.field_mask_pb2 import FieldMask
 from sift.report_templates.v1.report_templates_pb2 import (
@@ -18,7 +18,7 @@ from sift.report_templates.v1.report_templates_pb2_grpc import ReportTemplateSer
 
 from sift_py._internal.time import to_timestamp_pb
 from sift_py.grpc.transport import SiftChannel
-from sift_py.report_templates.config import ReportTemplateConfig
+from sift_py.report_templates.config import ReportTemplateConfig, ReportTemplateUpdate
 from sift_py.yaml.report_templates import load_report_templates
 
 
@@ -33,7 +33,9 @@ class ReportTemplateService:
     def __init__(self, channel: SiftChannel):
         self._report_template_service_stub = ReportTemplateServiceStub(channel)
 
-    def create_or_update_report_template(self, config: ReportTemplateConfig):
+    def create_or_update_report_template(
+        self, config: ReportTemplateConfig, updates: Optional[ReportTemplateUpdate] = None
+    ):
         """
         Create or update a report template via a ReportTemplateConfig. The config must contain a
         template_client_key, otherwise an exception will be raised. If a report template with the
@@ -41,12 +43,13 @@ class ReportTemplateService:
         See `sift_py.report_templates.config.ReportTemplateConfig` for more information on available
         fields to configure.
         """
-        if not config.template_client_key:
-            raise Exception(f"Report template {config.name} requires a template_client_key")
+        if not config.template_client_key and not config.template_id:
+            raise Exception(
+                f"Report template {config.name} requires either a template_client_key or report_template_id"
+            )
 
-        report_template = self._get_report_template_by_client_key(config.template_client_key)
-        if report_template:
-            self._update_report_template(config, report_template)
+        if updates:
+            self._update_report_template(config, updates)
         else:
             self._create_report_template(config)
 
@@ -70,6 +73,7 @@ class ReportTemplateService:
         return (
             ReportTemplateConfig(
                 name=report_template.name,
+                template_id=report_template.report_template_id,
                 template_client_key=report_template.client_key,
                 organization_id=report_template.organization_id,
                 tags=[tag.tag_name for tag in report_template.tags],
@@ -132,38 +136,42 @@ class ReportTemplateService:
         )
         self._report_template_service_stub.CreateReportTemplate(req)
 
-    def _update_report_template(
-        self, config: ReportTemplateConfig, report_template: ReportTemplate
-    ):
+    def _update_report_template(self, config: ReportTemplateConfig, updates: ReportTemplateUpdate):
         """
-        Uses the report template id, organization id, and client key from the existing report
-        template. Updates the name, description, tags, rules, and archived date from the config,
-        if they are provided. Always passes all fields to the field mask for updating.
+        Updates a report template using the provided updates. Only the fields specified in the updates
+        will be modified.
         """
-        tags = []
-        if config.tags:
-            tags = [ReportTemplateTag(tag_name=tag) for tag in config.tags]
-
-        archived_date = None
-        if config.archived_date:
-            archived_date = to_timestamp_pb(config.archived_date)
-
-        rules = [
-            ReportTemplateRule(client_key=client_key) for client_key in config.rule_client_keys
-        ]
+        update_map: Dict[str, Any] = {}
+        if "name" in updates:
+            update_map["name"] = updates["name"]
+        if "description" in updates:
+            update_map["description"] = updates["description"]
+        if "tags" in updates:
+            update_map["tags"] = [ReportTemplateTag(tag_name=tag) for tag in updates["tags"]]
+        if "rule_client_keys" in updates:
+            update_map["rules"] = [
+                ReportTemplateRule(client_key=client_key)
+                for client_key in updates["rule_client_keys"]
+            ]
+        if "archived_date" in updates:
+            update_map["archived_date"] = (
+                to_timestamp_pb(updates["archived_date"]) if updates["archived_date"] else None
+            )
 
         updated_report_template = ReportTemplate(
-            report_template_id=report_template.report_template_id,
-            organization_id=report_template.organization_id,
-            client_key=report_template.client_key,
-            name=config.name,
-            description=config.description,
-            tags=tags,
-            rules=rules,
-            archived_date=archived_date,
+            report_template_id=config.template_id or "",
+            organization_id=config.organization_id,
+            client_key=config.template_client_key,
+            name=update_map.get("name", config.name),
+            description=update_map.get("description", config.description),
+            tags=update_map.get("tags", config.tags),
+            rules=update_map.get(
+                "rules", [ReportTemplateRule(client_key=key) for key in config.rule_client_keys]
+            ),
+            archived_date=update_map.get("archived_date", config.archived_date),
         )
 
-        field_mask = FieldMask(paths=["name", "description", "tags", "rules", "archived_date"])
+        field_mask = FieldMask(paths=list(update_map.keys()))
         self._report_template_service_stub.UpdateReportTemplate(
             UpdateReportTemplateRequest(
                 report_template=updated_report_template, update_mask=field_mask
