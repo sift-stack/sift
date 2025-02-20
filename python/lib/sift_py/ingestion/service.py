@@ -27,11 +27,6 @@ class IngestionService(_IngestionServiceImpl):
     - `flow_configs_by_name`: A mapping of flow config name to the actual flow config.
     - `run_id`: The ID of the optional run to associated ingested data with.
     - `organization_id`: ID of the organization of the user.
-    - `overwrite_rules`:
-        If there are rules in Sift that aren't found in the local telemetry config, then initializing
-        an `IngestionService` will raise an exception advising the user to update their telemetry config
-        with the missing rule before proceeding. Setting this field to `True` replace all rules currently
-        in Sift with the rules in the telemetry config.
     - `end_stream_on_error`:
         By default any errors that may occur during ingestion API-side are produced asynchronously and ingestion
         won't be interrupted. The errors produced are surfaced on the user errors page. Setting this field to `True`
@@ -52,10 +47,11 @@ class IngestionService(_IngestionServiceImpl):
         channel: SiftChannel,
         config: TelemetryConfig,
         run_id: Optional[str] = None,
-        overwrite_rules: bool = False,
         end_stream_on_error: bool = False,
     ):
-        super().__init__(channel, config, run_id, overwrite_rules, end_stream_on_error)
+        super().__init__(
+            channel=channel, config=config, run_id=run_id, end_stream_on_error=end_stream_on_error
+        )
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
