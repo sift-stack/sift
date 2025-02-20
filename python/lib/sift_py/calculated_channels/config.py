@@ -37,7 +37,7 @@ class CalculatedChannelConfig(BaseModel):
         Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
     ]
     units: Optional[str] = None
-    calculated_channel_id: Optional[str] = None  # read only
+    calculated_channel_id: Optional[str] = None
     client_key: Optional[str] = None
     asset_names: Optional[List[str]] = None
     tag_names: Optional[List[str]] = None
