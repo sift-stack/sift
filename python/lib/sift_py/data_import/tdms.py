@@ -110,13 +110,18 @@ class TdmsUploadService:
         timing information.
         """
 
-        def contains_timing(channel: TdmsChannel) -> bool:
-            """Returns true if the TDMS Channel contains timing information."""
+        def verify_timing(channel: TdmsChannel) -> bool:
+            """Returns true if the TDMS Channel contains valid timing information.
+
+            If wf_start_time is missing, set it to 0.
+            """
+            if "wf_start_offset" not in channel.properties:
+                channel.properties["wf_start_time"] = 0
+
             return all(
                 [
                     "wf_increment" in channel.properties,
                     "wf_start_time" in channel.properties,
-                    "wf_start_offset" in channel.properties,
                 ]
             )
 
@@ -130,7 +135,7 @@ class TdmsUploadService:
         valid_channels: List[ChannelObject] = []
         for group in original_groups:
             for channel in group.channels():
-                if contains_timing(channel):
+                if verify_timing(channel):
                     new_channel = ChannelObject(
                         group=normalize_name(channel.group_name),
                         channel=normalize_name(channel.name),

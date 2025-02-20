@@ -239,3 +239,42 @@ def test_tdms_upload_unknown_data_type(mocker: MockFixture, mock_tdms_file: Mock
 
     with pytest.raises(Exception, match="data type not supported"):
         svc.upload("some_tdms.tdms", "asset_name")
+
+
+def test_tdms_upload_missing_timing(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
+    mock_path_is_file = mocker.patch("sift_py.data_import.tdms.Path.is_file")
+    mock_path_is_file.return_value = True
+
+    mocker.patch("sift_py.data_import.tdms.TdmsWriter")
+
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
+    mock_requests_post.return_value = MockResponse()
+
+    mock_tdms_file.groups()[0].channels()[0].properties = {}
+    mocker.patch("sift_py.data_import.tdms.TdmsFile").return_value = mock_tdms_file
+
+    svc = TdmsUploadService(rest_config)
+
+    with pytest.raises(Exception, match="does not contain timing information"):
+        svc.upload("some_tdms.tdms", "asset_name")
+
+
+def test_tdms_upload_missing_wf_start_offset(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
+    mock_path_is_file = mocker.patch("sift_py.data_import.tdms.Path.is_file")
+    mock_path_is_file.return_value = True
+
+    mocker.patch("sift_py.data_import.tdms.TdmsWriter")
+
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
+    mock_requests_post.return_value = MockResponse()
+
+    mock_tdms_file.groups()[0].channels()[0].properties = properties = {
+        "wf_start_time": 0,
+        "wf_increment": 0.1,
+    }
+    mocker.patch("sift_py.data_import.tdms.TdmsFile").return_value = mock_tdms_file
+
+    svc = TdmsUploadService(rest_config)
+
+    with pytest.raises(Exception, match="does not contain timing information"):
+        svc.upload("some_tdms.tdms", "asset_name")
