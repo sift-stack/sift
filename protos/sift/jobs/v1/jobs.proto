@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package sift.jobs.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Jobs service"}
+};
+
+service JobService {
+  // List jobs.
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
+    option (google.api.http) = {get: "/api/v1/jobs"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListJobs"
+      description: "List jobs."
+    };
+  }
+
+  // Requests cancellation of an active job. If the job hasn't started yet, it will be cancelled immediately.
+  // Jobs that are already finished, failed, or cancelled are not affected.
+  // Cancelled jobs have implementation-based behavior, but in every case it's valid to cancel a job at any time.
+  rpc CancelJob(CancelJobRequest) returns (CancelJobResponse) {
+    option (google.api.http) = {post: "/api/v1/jobs/{job_id}:cancel"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CancelJob",
+      description: "Requests cancellation of a job."
+    };
+  }
+}
+
+message Job {
+  string job_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 2 [(google.api.field_behavior) = IMMUTABLE];
+  string created_by_user_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string modified_by_user_id = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp started_date = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp completed_date = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  JobType job_type = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  JobStatus job_status = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+enum JobType {
+  JOB_TYPE_UNSPECIFIED = 0 [deprecated = true];
+  JOB_TYPE_RULE_EVALUATION = 1;
+  JOB_TYPE_DATA_IMPORT = 2;
+}
+
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0 [deprecated = true];
+  JOB_STATUS_CREATED = 1;
+  JOB_STATUS_RUNNING = 2;
+  JOB_STATUS_FINISHED = 3;
+  JOB_STATUS_FAILED = 4;
+  JOB_STATUS_CANCELLED = 5;
+  JOB_STATUS_CANCEL_REQUESTED = 6;
+}
+
+message ListJobsRequest {
+  // The maximum number of jobs to return. The service may return fewer than this value.
+  // If unspecified, at most 50 jobs will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListJobs` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListJobs` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are:
+  // `job_id`, `created_by_user_id`, `modified_by_user_id`, `created_date`, `modified_date`, `started_date`, `completed_date`
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to this definition. Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved jobs. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`, `modified_date`, `started_date`, `completed_date`, `job_status`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListJobsResponse {
+  repeated Job jobs = 1;
+  string next_page_token = 2;
+}
+
+message CancelJobRequest {
+  string job_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+message CancelJobResponse {}

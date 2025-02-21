@@ -9,6 +9,7 @@ import "google/protobuf/timestamp.proto";
 
 service IngestService {
   rpc IngestWithConfigDataStream(stream IngestWithConfigDataStreamRequest) returns (IngestWithConfigDataStreamResponse);
+  rpc IngestArbitraryProtobufDataStream (stream IngestArbitraryProtobufDataStreamRequest) returns (IngestArbitraryProtobufDataStreamResponse);
 }
 
 message IngestWithConfigDataStreamRequest {
@@ -45,3 +46,22 @@ message IngestWithConfigDataChannelValue {
     google.protobuf.Empty empty = 11;
   }
 }
+
+message IngestArbitraryProtobufDataStreamRequest {
+  string message_type_identifier = 1;
+  optional string message_type_display_name = 2;
+  string asset_name = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  bytes value = 5;
+  string run_id = 6;
+  string namespace = 7;
+  string organization_id = 8;
+
+  // By default, if this request fails to parse for any reason, the request is 
+  // stored in an error queue and the stream continues to accept data. This 
+  // ensures all data is saved, but only valid data is fully ingested. If this 
+  // is set to `true`, any validation errors end the stream and return the error to the client.
+  bool end_stream_on_validation_error = 9;
+}
+
+message IngestArbitraryProtobufDataStreamResponse {}

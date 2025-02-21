@@ -187,7 +187,7 @@ message CreateCalculatedChannelResponse {
   repeated CalculatedChannelValidationResult inapplicable_assets = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
-// The request for a call to `CalculatedChannelService_ListCalculatedChannels` to retrieve lateset vesrions of calculated channels.
+// The request for a call to `CalculatedChannelService_ListCalculatedChannels` to retrieve latest versions of calculated channels.
 message ListCalculatedChannelsRequest {
   // The maximum number of calculated channels to return. The service may return fewer than this value.
   // If unspecified, at most 50 calculated channels will be returned. The maximum value is 1000; values above
@@ -217,7 +217,7 @@ message ListCalculatedChannelsRequest {
   string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
-// The response of a call to `CalculatedChannelService_ListCalculatedChannelsResponse`.
+// The response of a call to `CalculatedChannelService_ListCalculatedChannels`.
 message ListCalculatedChannelsResponse {
   repeated CalculatedChannel calculated_channels = 1 [(google.api.field_behavior) = REQUIRED];
   string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
@@ -280,7 +280,7 @@ message ListCalculatedChannelVersionsRequest {
   string order_by = 7 [(google.api.field_behavior) = OPTIONAL];
 }
 
-// The response of a call to `CalculatedChannelService_ListCalculatedChannelVersionsResponse`.
+// The response of a call to `CalculatedChannelService_ListCalculatedChannelVersions`.
 message ListCalculatedChannelVersionsResponse {
   repeated CalculatedChannel calculated_channel_versions = 1 [(google.api.field_behavior) = REQUIRED];
   string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
@@ -296,7 +296,7 @@ message ListCalculatedChannelVersionsResponse {
 message ResolveCalculatedChannelRequest {
   oneof calculated_channel {
     // The calculated channel to resolve.
-    sift.common.type.v1.ResourceIdentifier calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
+    sift.common.type.v1.ResourceIdentifier identifier = 1 [(google.api.field_behavior) = OPTIONAL];
     // A configuration for the calculated channel to resolve.
     CalculatedChannelConfiguration calculated_channel_configuration = 2 [(google.api.field_behavior) = OPTIONAL];
   }
@@ -327,7 +327,7 @@ message ResolveCalculatedChannelResponse {
   }
 
   // If provided in the request, the calculated channel resolved.
-  optional sift.common.type.v1.ResourceIdentifier calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  optional string calculated_channel_id = 1 [(google.api.field_behavior) = OPTIONAL];
   // All resolved calculated channels.
   repeated ResolvedCalculatedChannel resolved = 2 [(google.api.field_behavior) = REQUIRED];
   // All assets with any issues in resolution.

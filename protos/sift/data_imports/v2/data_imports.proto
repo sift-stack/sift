@@ -1,0 +1,227 @@
+syntax = "proto3";
+
+package sift.data_imports.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/channel_config.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Data import service"}
+};
+
+service DataImportService {
+  rpc CreateDataImportFromUrl(CreateDataImportFromUrlRequest) returns (CreateDataImportFromUrlResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/data-imports:url"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateDataImportFromUrl"
+      description: "Creates a data import from a url."
+      operation_id: "DataImportService_CreateDataImportFromUrlV2"
+    };
+  }
+  rpc CreateDataImportFromUpload(CreateDataImportFromUploadRequest) returns (CreateDataImportFromUploadResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/data-imports:upload"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateDataImportFromUpload"
+      description: "Creates a data import from a file upload."
+      operation_id: "DataImportService_CreateDataImportFromUploadV2"
+    };
+  }
+
+  rpc DetectConfig(DetectConfigRequest) returns (DetectConfigResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/data-imports:detect-config"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DetectConfig"
+      description: "Detects the config for a data import."
+      operation_id: "DataImportService_DetectConfigV2"
+    };
+  }
+
+  rpc ListDataImports(ListDataImportsRequest) returns (ListDataImportsResponse) {
+    option (google.api.http) = {get: "/api/v2/data-imports"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListDataImports"
+      description: "Lists all data imports."
+      operation_id: "DataImportService_ListDataImportsV2"
+    };
+  }
+
+  rpc RetryDataImport(RetryDataImportRequest) returns (RetryDataImportResponse) {
+    option (google.api.http) = {post: "/api/v2/data-imports/{data_import_id}:retry"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "RetryDataImport"
+      description: "Retries a data import."
+      operation_id: "DataImportService_RetryDataImportV2"
+    };
+  }
+
+  rpc GetDataImport(GetDataImportRequest) returns (GetDataImportResponse) {
+    option (google.api.http) = {get: "/api/v2/data-imports/{data_import_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetDataImport"
+      description: "Gets a data import."
+      operation_id: "DataImportService_GetDataImportV2"
+    };
+  }
+}
+
+message CreateDataImportFromUrlRequest {
+  // The url to import. HTTP and S3 urls are supported.
+  // If you need to import non-public S3 objects, please contact Sift to set that up.
+  string url = 1 [(google.api.field_behavior) = REQUIRED];
+  CsvConfig csv_config = 2 [(google.api.field_behavior) = OPTIONAL];
+  Ch10Config ch10_config = 3 [(google.api.field_behavior) = OPTIONAL];
+  TDMSConfig tdms_config = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message CreateDataImportFromUrlResponse {
+  string data_import_id = 1;
+}
+
+message GetDataImportRequest {
+  string data_import_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetDataImportResponse {
+  DataImport data_import = 1;
+}
+
+message CreateDataImportFromUploadRequest {
+  CsvConfig csv_config = 1 [(google.api.field_behavior) = OPTIONAL];
+  Ch10Config ch10_config = 3 [(google.api.field_behavior) = OPTIONAL];
+  TDMSConfig tdms_config = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message CreateDataImportFromUploadResponse {
+  string upload_url = 1;
+  string data_import_id = 2;
+}
+
+enum TimeFormat {
+  TIME_FORMAT_UNSPECIFIED = 0;
+  TIME_FORMAT_RELATIVE_NANOSECONDS = 1;
+  TIME_FORMAT_RELATIVE_MICROSECONDS = 2;
+  TIME_FORMAT_RELATIVE_MILLISECONDS = 3;
+  TIME_FORMAT_RELATIVE_SECONDS = 4;
+  TIME_FORMAT_RELATIVE_MINUTES = 5;
+  TIME_FORMAT_RELATIVE_HOURS = 6;
+  TIME_FORMAT_ABSOLUTE_RFC3339 = 10;
+  TIME_FORMAT_ABSOLUTE_DATETIME = 11;
+  TIME_FORMAT_ABSOLUTE_UNIX_SECONDS = 12;
+  TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS = 13;
+  TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS = 14;
+  TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS = 15;
+}
+
+message CsvConfig {
+  string asset_name = 1;
+  string run_name = 2;
+  // The id of the run to add this data to. If set, `run_name` is ignored.
+  string run_id = 3;
+  // The first row to start reading as data. Can be used to skip header rows.
+  // The first row in the file is 1.
+  uint32 first_data_row = 4;
+  optional CsvTimeColumn time_column = 5;
+  // A map from column number (1-indexed) to the channel configuration for that column.
+  map<uint32, sift.common.type.v1.ChannelConfig> data_columns = 6;
+}
+
+message CsvTimeColumn {
+  // The column number (1-indexed) of the time column.
+  uint32 column_number = 1;
+  TimeFormat format = 2;
+  optional google.protobuf.Timestamp relative_start_time = 3;
+}
+
+message DetectConfigRequest {
+  bytes data = 1;
+}
+
+message DetectConfigResponse {
+  CsvConfig csv_config = 1;
+}
+
+message Ch10Config {
+  string asset_name = 1;
+  string run_name = 2;
+  bool scale_values = 3;
+}
+
+message TDMSConfig {
+  string asset_name = 1;
+  string run_name = 2;
+
+  // Override the wf_start_time metadata field for all channels.
+  // Useful if your waveform channels have wf_increment but no wf_start_time (Veristand is guilty of this).
+  google.protobuf.Timestamp start_time_override = 3;
+}
+
+enum DataImportStatus {
+  DATA_IMPORT_STATUS_UNSPECIFIED = 0 [deprecated = true];
+  DATA_IMPORT_STATUS_PENDING = 1;
+  DATA_IMPORT_STATUS_IN_PROGRESS = 2;
+  DATA_IMPORT_STATUS_SUCCEEDED = 3;
+  DATA_IMPORT_STATUS_FAILED = 4;
+}
+
+message DataImport {
+  string data_import_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string source_url = 3;
+  DataImportStatus status = 4 [(google.api.field_behavior) = REQUIRED];
+  string error_message = 5;
+  google.protobuf.Timestamp created_date = 7 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 8 [(google.api.field_behavior) = REQUIRED];
+  CsvConfig csv_config = 6 [(google.api.field_behavior) = OPTIONAL];
+  Ch10Config ch10_config = 9 [(google.api.field_behavior) = OPTIONAL];
+  TDMSConfig tdms_config = 10 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListDataImportsRequest {
+  // The maximum number of data imports to return. The service may return fewer than this value.
+  // If unspecified, at most 50 data imports will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListDataImports` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListDataImports` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `data_import_id`, `source_url`, `status`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved data imports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListDataImportsResponse {
+  repeated DataImport data_imports = 1;
+  string next_page_token = 2;
+}
+
+message RetryDataImportRequest {
+  // data_import_id is the id of the data import to retry.
+  // You can only retry an import that is a "url" based import (created with CreateDataImportFromUrl) and is in a failed state.
+  string data_import_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message RetryDataImportResponse {}

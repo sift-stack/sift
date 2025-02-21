@@ -122,6 +122,11 @@ class RuleServiceStub:
     ]
     """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
 
+    ListRules: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.ListRulesRequest,
+        sift.rules.v1.rules_pb2.ListRulesResponse,
+    ]
+
     ListRuleVersions: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.ListRuleVersionsRequest,
         sift.rules.v1.rules_pb2.ListRuleVersionsResponse,
@@ -236,6 +241,11 @@ class RuleServiceAsyncStub:
         sift.rules.v1.rules_pb2.UpdateJsonRulesResponse,
     ]
     """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
+
+    ListRules: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.ListRulesRequest,
+        sift.rules.v1.rules_pb2.ListRulesResponse,
+    ]
 
     ListRuleVersions: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.ListRuleVersionsRequest,
@@ -383,6 +393,13 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.UpdateJsonRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.UpdateJsonRulesResponse]]:
         """Deprecated - use BatchUpdateRules instead. Batch update rules given the `rules_json` which is a JSON list of rules."""
+
+    @abc.abstractmethod
+    def ListRules(
+        self,
+        request: sift.rules.v1.rules_pb2.ListRulesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.ListRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.ListRulesResponse]]: ...
 
     @abc.abstractmethod
     def ListRuleVersions(

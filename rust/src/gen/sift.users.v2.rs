@@ -51,6 +51,12 @@ pub struct ListActiveUsersRequest {
     /// Optional. If provided, this will scope down the user search to just those in the organization ID provided.
     #[prost(string, tag="4")]
     pub organization_id: ::prost::alloc::string::String,
+    /// How to order the retrieved users. Formatted as a comma-separated string i.e. "FIELD_NAME\[ desc\],...".
+    /// Available fields to order_by are:
+    /// - created_date
+    /// - modified_date
+    #[prost(string, tag="5")]
+    pub order_by: ::prost::alloc::string::String,
 }
 /// The response of a call to `UserService_ListActiveUsersResponse`.
 #[allow(clippy::derive_partial_eq_without_eq)]

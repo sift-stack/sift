@@ -1,0 +1,128 @@
+/**
+ * These are message and field options that can be used when ingesting protobuf messages. These can be applied to protobuf fields
+ * and messages before compiling and uploading the descriptor set.
+ */
+syntax = "proto3";
+
+package sift.protobuf_descriptors.v2;
+
+import "google/protobuf/descriptor.proto";
+
+
+
+// Enum for different types of tag sources
+enum TagSourceType {
+  DESCENDANT_SOURCES = 0; // Tags can be sourced from descendant fields
+  SIBLING_SOURCES = 1; // Tags can be sourced from sibling fields
+  DESCENDANT_AND_SIBLING_SOURCES = 2; // Tags can be sourced from both descendant and sibling fields
+}
+
+// Enum for different types of tag targets
+enum TagTargetType {
+  ANCESTOR_TARGETS = 0; // Tags can be applied to ancestor fields
+  SIBLING_TARGETS = 1; // Tags can be applied to sibling fields
+  ANCESTOR_AND_SIBLING_TARGETS = 2; // Tags can be applied to both ancestor and sibling fields
+}
+
+// Message representing a tag target
+message TagTarget {
+  // Setting this value indicates the allowed sources for tag values.
+  // If set to SIBLING_SOURCES, tag_sources from descendant proto fields will not be applied.
+  // If set to DESCENDANT_SOURCES, sibling tag_sources will not be applied.
+  optional TagSourceType allowed_tag_source = 1;
+}
+
+// Message representing a tag source
+message TagSource {
+  // Setting either of these values indicates that the field is a tag source
+  // and the value can be applied to allowed tag_targets.
+  // Tag sources apply only to the nearest ancestor (if any) and do not propagate
+  // to ancestors that are lists or maps or beyond.
+  // They can apply to both ancestor and sibling fields.
+
+  // Indicates which tag_target relationships are allowed to have this tag.
+  // If set to ANCESTOR_TARGETS, sibling tag_targets will not have this value.
+  // If set to SIBLING_TARGETS, it will not apply to tag_targets that are ancestors.
+  optional TagTargetType allowed_tag_target = 1;
+
+  // The name of the tag. It defaults to the field name but can be overridden here.
+  optional string tag_name = 2;
+}
+
+// Enum for the source and destination of a map key override
+enum MapKeyOverrideType {
+  MAP_KEY_OVERRIDE_UNSPECIFIED = 0; // Default value, will be ignored
+  MAP_KEY_OVERRIDE_TARGET = 1; // Map key will be replaced on fields with this type specified
+  MAP_KEY_OVERRIDE_SOURCE = 2; // Map key will be sourced from fields with this type specified
+  MAP_KEY_OVERRIDE_REMOVE_KEY = 3; // Map key will be removed from fields with this type specified
+  MAP_KEY_OVERRIDE_ENUM = 4; // Map key will be replaced with the enum name specified by the display_override_enum value on the field
+}
+
+// Enum for the source and destination of an array index override
+enum ArrayIndexOverrideType {
+  ARRAY_INDEX_OVERRIDE_UNSPECIFIED = 0; // Default value, will be ignored
+  ARRAY_INDEX_OVERRIDE_TARGET = 1; // Array Index will be replaced on fields with this type specified
+  ARRAY_INDEX_OVERRIDE_SOURCE = 2; // Array Index  will be sourced from fields with this type specified
+  ARRAY_INDEX_OVERRIDE_REMOVE_INDEX = 3; // Array Index will be removed from fields with this type specified
+  ARRAY_INDEX_OVERRIDE_ENUM = 4; // Array Index will be replaced with the enum name specified by the display_override_enum value on the field
+}
+
+// Enum for how to decode bytes fields
+enum BytesDecodingType {
+  BYTES_DECODING_TYPE_UNSPECIFIED = 0; // Default value, will be ignored
+  BYTES_DECODING_TYPE_UTF8 = 1; // Decode bytes as UTF-8
+}
+
+extend google.protobuf.FieldOptions {
+  // Adding the units FieldOption to a field sets the units displayed on the channel when charted
+  optional string units = 50001;
+  // Adding the description FieldOption to a field sets the description for the channel in the chart
+  optional string description = 50002;
+
+  // Adding the tag_target FieldOption indicates that this field can have tag values appended
+  // to the field name. The tag values will come from descendant or sibling fields in the proto path
+  // that have the tag_source FieldOption applied.
+  optional TagTarget tag_target = 50003;
+
+  // Adding the tag_source FieldOption allows the value of the annotated field to be added to
+  // applicable fields that are annotated with tag_target. These fields can be either ancestor fields
+  // or sibling fields, depending on their respective fields' allowed_tag_source and allowed_tag_target values.
+  optional TagSource tag_source = 50004;
+
+  // Adding the map_key_override_type FieldOption to a map type field with the `MAP_KEY_OVERRIDE_TARGET`
+  // type indicates that this field can have the map key replaced in the display name by a descendant field.
+  // Adding this to a primitive type field with the `MAP_KEY_OVERRIDE_SOURCE` indicates that this field
+  // is the replacement value for an ancestor map's key display. Note that sources within arrays will not apply to
+  // ancestor maps that contain those arrays. This tag will be ignored if the field is not a map or if there
+  // are no map_key_override_sources that apply. If multiple apply then the first override will be applied and an
+  // error will be logged.
+  optional MapKeyOverrideType map_key_override_type = 50005;
+
+  // Adding the bytes_decoding_type FieldOption to a bytes field indicates how the bytes should be decoded
+  // If not set, the bytes fields will be ignored and an error will be logged.
+  optional BytesDecodingType bytes_decoding_type = 50006;
+
+  // Adding the ignore_field FieldOption with a value of true will cause the field to be ignored when ingesting the proto
+  optional bool ignore_field = 50007;
+
+  // Adding the display_override_enum FieldOption to a field with that has map_key_override_type set to MAP_KEY_OVERRIDE_ENUM
+  // will look up the enum value in the enum referenced by this field and use that to look up the enum value by number and replace it
+  // with the enum value name.
+  optional string display_override_enum = 50008;
+
+  // Adding the array_index_override_type FieldOption to a repeated type field with the `ARRAY_INDEX_OVERRIDE_TARGET`
+  // type indicates that this field can have the array index replaced in the display name by a descendant field.
+  // Adding this to a primitive type field with the `ARRAY_INDEX_OVERRIDE_SOURCE` type indicates that this field
+  // is the replacement value for an ancestor array's index display. Note that sources within nested arrays will not apply to
+  // ancestor arrays that contain those arrays. This tag will be ignored if the field is not an array or if there
+  // are no `ARRAY_INDEX_OVERRIDE_SOURCE` fields that apply. If multiple apply then the first override will be applied and an
+  // error will be logged.
+  optional ArrayIndexOverrideType array_index_override_type = 50009;
+}
+
+extend google.protobuf.MessageOptions {
+  // The message_is_tag_target option indicates that the message will allow its fields to have tags
+  // added to them. This option only accepts descendant sources.
+  // It can be helpful to annotate top-level messages with tags from deeper in the proto path.
+  optional bool message_is_tag_target = 50001;
+}

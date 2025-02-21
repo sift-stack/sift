@@ -103,6 +103,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.data.v2)
         }
     }
+    pub mod data_imports {
+        // @@protoc_insertion_point(attribute:sift.data_imports.v2)
+        pub mod v2 {
+            include!("sift.data_imports.v2.rs");
+            // @@protoc_insertion_point(sift.data_imports.v2)
+        }
+    }
     pub mod ingest {
         // @@protoc_insertion_point(attribute:sift.ingest.v1)
         pub mod v1 {
@@ -122,6 +129,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.ingestion_configs.v2)
         }
     }
+    pub mod jobs {
+        // @@protoc_insertion_point(attribute:sift.jobs.v1)
+        pub mod v1 {
+            include!("sift.jobs.v1.rs");
+            // @@protoc_insertion_point(sift.jobs.v1)
+        }
+    }
     pub mod notifications {
         // @@protoc_insertion_point(attribute:sift.notifications.v1)
         pub mod v1 {
@@ -134,6 +148,13 @@ pub mod sift {
         pub mod v1 {
             include!("sift.ping.v1.rs");
             // @@protoc_insertion_point(sift.ping.v1)
+        }
+    }
+    pub mod protobuf_descriptors {
+        // @@protoc_insertion_point(attribute:sift.protobuf_descriptors.v2)
+        pub mod v2 {
+            include!("sift.protobuf_descriptors.v2.rs");
+            // @@protoc_insertion_point(sift.protobuf_descriptors.v2)
         }
     }
     pub mod remote_files {
@@ -190,6 +211,11 @@ pub mod sift {
         pub mod v1 {
             include!("sift.tags.v1.rs");
             // @@protoc_insertion_point(sift.tags.v1)
+        }
+        // @@protoc_insertion_point(attribute:sift.tags.v2)
+        pub mod v2 {
+            include!("sift.tags.v2.rs");
+            // @@protoc_insertion_point(sift.tags.v2)
         }
     }
     pub mod users {

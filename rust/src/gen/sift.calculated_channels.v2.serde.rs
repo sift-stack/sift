@@ -2458,8 +2458,8 @@ impl serde::Serialize for ResolveCalculatedChannelRequest {
         }
         if let Some(v) = self.calculated_channel.as_ref() {
             match v {
-                resolve_calculated_channel_request::CalculatedChannel::CalculatedChannelId(v) => {
-                    struct_ser.serialize_field("calculatedChannelId", v)?;
+                resolve_calculated_channel_request::CalculatedChannel::Identifier(v) => {
+                    struct_ser.serialize_field("identifier", v)?;
                 }
                 resolve_calculated_channel_request::CalculatedChannel::CalculatedChannelConfiguration(v) => {
                     struct_ser.serialize_field("calculatedChannelConfiguration", v)?;
@@ -2480,8 +2480,7 @@ impl<'de> serde::Deserialize<'de> for ResolveCalculatedChannelRequest {
             "organizationId",
             "assets",
             "run",
-            "calculated_channel_id",
-            "calculatedChannelId",
+            "identifier",
             "calculated_channel_configuration",
             "calculatedChannelConfiguration",
         ];
@@ -2491,7 +2490,7 @@ impl<'de> serde::Deserialize<'de> for ResolveCalculatedChannelRequest {
             OrganizationId,
             Assets,
             Run,
-            CalculatedChannelId,
+            Identifier,
             CalculatedChannelConfiguration,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2517,7 +2516,7 @@ impl<'de> serde::Deserialize<'de> for ResolveCalculatedChannelRequest {
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "assets" => Ok(GeneratedField::Assets),
                             "run" => Ok(GeneratedField::Run),
-                            "calculatedChannelId" | "calculated_channel_id" => Ok(GeneratedField::CalculatedChannelId),
+                            "identifier" => Ok(GeneratedField::Identifier),
                             "calculatedChannelConfiguration" | "calculated_channel_configuration" => Ok(GeneratedField::CalculatedChannelConfiguration),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
@@ -2562,11 +2561,11 @@ impl<'de> serde::Deserialize<'de> for ResolveCalculatedChannelRequest {
                             }
                             run__ = map_.next_value()?;
                         }
-                        GeneratedField::CalculatedChannelId => {
+                        GeneratedField::Identifier => {
                             if calculated_channel__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("calculatedChannelId"));
+                                return Err(serde::de::Error::duplicate_field("identifier"));
                             }
-                            calculated_channel__ = map_.next_value::<::std::option::Option<_>>()?.map(resolve_calculated_channel_request::CalculatedChannel::CalculatedChannelId)
+                            calculated_channel__ = map_.next_value::<::std::option::Option<_>>()?.map(resolve_calculated_channel_request::CalculatedChannel::Identifier)
 ;
                         }
                         GeneratedField::CalculatedChannelConfiguration => {

@@ -63,6 +63,36 @@ pub mod ingest_with_config_data_channel_value {
         Empty(::pbjson_types::Empty),
     }
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct IngestArbitraryProtobufDataStreamRequest {
+    #[prost(string, tag="1")]
+    pub message_type_identifier: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="2")]
+    pub message_type_display_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag="3")]
+    pub asset_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bytes="vec", tag="5")]
+    pub value: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag="6")]
+    pub run_id: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub namespace: ::prost::alloc::string::String,
+    #[prost(string, tag="8")]
+    pub organization_id: ::prost::alloc::string::String,
+    /// By default, if this request fails to parse for any reason, the request is 
+    /// stored in an error queue and the stream continues to accept data. This 
+    /// ensures all data is saved, but only valid data is fully ingested. If this 
+    /// is set to `true`, any validation errors end the stream and return the error to the client.
+    #[prost(bool, tag="9")]
+    pub end_stream_on_validation_error: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct IngestArbitraryProtobufDataStreamResponse {
+}
 include!("sift.ingest.v1.tonic.rs");
 include!("sift.ingest.v1.serde.rs");
 // @@protoc_insertion_point(module)

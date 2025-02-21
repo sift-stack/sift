@@ -1630,6 +1630,7 @@ impl serde::Serialize for ReportRuleStatus {
             Self::Finished => "REPORT_RULE_STATUS_FINISHED",
             Self::Failed => "REPORT_RULE_STATUS_FAILED",
             Self::Canceled => "REPORT_RULE_STATUS_CANCELED",
+            Self::Error => "REPORT_RULE_STATUS_ERROR",
         };
         serializer.serialize_str(variant)
     }
@@ -1647,6 +1648,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatus {
             "REPORT_RULE_STATUS_FINISHED",
             "REPORT_RULE_STATUS_FAILED",
             "REPORT_RULE_STATUS_CANCELED",
+            "REPORT_RULE_STATUS_ERROR",
         ];
 
         struct GeneratedVisitor;
@@ -1693,6 +1695,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatus {
                     "REPORT_RULE_STATUS_FINISHED" => Ok(ReportRuleStatus::Finished),
                     "REPORT_RULE_STATUS_FAILED" => Ok(ReportRuleStatus::Failed),
                     "REPORT_RULE_STATUS_CANCELED" => Ok(ReportRuleStatus::Canceled),
+                    "REPORT_RULE_STATUS_ERROR" => Ok(ReportRuleStatus::Error),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -1726,6 +1729,12 @@ impl serde::Serialize for ReportRuleStatusDetails {
                 report_rule_status_details::Details::Failed(v) => {
                     struct_ser.serialize_field("failed", v)?;
                 }
+                report_rule_status_details::Details::Canceled(v) => {
+                    struct_ser.serialize_field("canceled", v)?;
+                }
+                report_rule_status_details::Details::Error(v) => {
+                    struct_ser.serialize_field("error", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -1742,6 +1751,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetails {
             "live",
             "finished",
             "failed",
+            "canceled",
+            "error",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1750,6 +1761,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetails {
             Live,
             Finished,
             Failed,
+            Canceled,
+            Error,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1775,6 +1788,8 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetails {
                             "live" => Ok(GeneratedField::Live),
                             "finished" => Ok(GeneratedField::Finished),
                             "failed" => Ok(GeneratedField::Failed),
+                            "canceled" => Ok(GeneratedField::Canceled),
+                            "error" => Ok(GeneratedField::Error),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1825,6 +1840,20 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetails {
                             details__ = map_.next_value::<::std::option::Option<_>>()?.map(report_rule_status_details::Details::Failed)
 ;
                         }
+                        GeneratedField::Canceled => {
+                            if details__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("canceled"));
+                            }
+                            details__ = map_.next_value::<::std::option::Option<_>>()?.map(report_rule_status_details::Details::Canceled)
+;
+                        }
+                        GeneratedField::Error => {
+                            if details__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("error"));
+                            }
+                            details__ = map_.next_value::<::std::option::Option<_>>()?.map(report_rule_status_details::Details::Error)
+;
+                        }
                     }
                 }
                 Ok(ReportRuleStatusDetails {
@@ -1833,6 +1862,77 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetails {
             }
         }
         deserializer.deserialize_struct("sift.reports.v1.ReportRuleStatusDetails", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ReportRuleStatusDetailsCanceled {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let len = 0;
+        let struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleStatusDetailsCanceled", len)?;
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsCanceled {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                            Err(serde::de::Error::unknown_field(value, FIELDS))
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ReportRuleStatusDetailsCanceled;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ReportRuleStatusDetailsCanceled")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ReportRuleStatusDetailsCanceled, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                while map_.next_key::<GeneratedField>()?.is_some() {
+                    let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                }
+                Ok(ReportRuleStatusDetailsCanceled {
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ReportRuleStatusDetailsCanceled", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ReportRuleStatusDetailsCreated {
@@ -1906,7 +2006,7 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsCreated {
         deserializer.deserialize_struct("sift.reports.v1.ReportRuleStatusDetailsCreated", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for ReportRuleStatusDetailsFailed {
+impl serde::Serialize for ReportRuleStatusDetailsError {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -1917,14 +2017,32 @@ impl serde::Serialize for ReportRuleStatusDetailsFailed {
         if !self.error_message.is_empty() {
             len += 1;
         }
-        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleStatusDetailsFailed", len)?;
+        if self.exit_code.is_some() {
+            len += 1;
+        }
+        if self.stdout.is_some() {
+            len += 1;
+        }
+        if self.stderr.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleStatusDetailsError", len)?;
         if !self.error_message.is_empty() {
             struct_ser.serialize_field("errorMessage", &self.error_message)?;
+        }
+        if let Some(v) = self.exit_code.as_ref() {
+            struct_ser.serialize_field("exitCode", v)?;
+        }
+        if let Some(v) = self.stdout.as_ref() {
+            struct_ser.serialize_field("stdout", v)?;
+        }
+        if let Some(v) = self.stderr.as_ref() {
+            struct_ser.serialize_field("stderr", v)?;
         }
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFailed {
+impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsError {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -1933,11 +2051,18 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFailed {
         const FIELDS: &[&str] = &[
             "error_message",
             "errorMessage",
+            "exit_code",
+            "exitCode",
+            "stdout",
+            "stderr",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             ErrorMessage,
+            ExitCode,
+            Stdout,
+            Stderr,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1960,6 +2085,9 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFailed {
                     {
                         match value {
                             "errorMessage" | "error_message" => Ok(GeneratedField::ErrorMessage),
+                            "exitCode" | "exit_code" => Ok(GeneratedField::ExitCode),
+                            "stdout" => Ok(GeneratedField::Stdout),
+                            "stderr" => Ok(GeneratedField::Stderr),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1969,17 +2097,20 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFailed {
         }
         struct GeneratedVisitor;
         impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ReportRuleStatusDetailsFailed;
+            type Value = ReportRuleStatusDetailsError;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct sift.reports.v1.ReportRuleStatusDetailsFailed")
+                formatter.write_str("struct sift.reports.v1.ReportRuleStatusDetailsError")
             }
 
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ReportRuleStatusDetailsFailed, V::Error>
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ReportRuleStatusDetailsError, V::Error>
                 where
                     V: serde::de::MapAccess<'de>,
             {
                 let mut error_message__ = None;
+                let mut exit_code__ = None;
+                let mut stdout__ = None;
+                let mut stderr__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ErrorMessage => {
@@ -1988,39 +2119,96 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFailed {
                             }
                             error_message__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ExitCode => {
+                            if exit_code__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("exitCode"));
+                            }
+                            exit_code__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                        GeneratedField::Stdout => {
+                            if stdout__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stdout"));
+                            }
+                            stdout__ = map_.next_value()?;
+                        }
+                        GeneratedField::Stderr => {
+                            if stderr__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stderr"));
+                            }
+                            stderr__ = map_.next_value()?;
+                        }
                     }
                 }
-                Ok(ReportRuleStatusDetailsFailed {
+                Ok(ReportRuleStatusDetailsError {
                     error_message: error_message__.unwrap_or_default(),
+                    exit_code: exit_code__,
+                    stdout: stdout__,
+                    stderr: stderr__,
                 })
             }
         }
-        deserializer.deserialize_struct("sift.reports.v1.ReportRuleStatusDetailsFailed", FIELDS, GeneratedVisitor)
+        deserializer.deserialize_struct("sift.reports.v1.ReportRuleStatusDetailsError", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for ReportRuleStatusDetailsFinished {
+impl serde::Serialize for ReportRuleStatusDetailsFailed {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         use serde::ser::SerializeStruct;
-        let len = 0;
-        let struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleStatusDetailsFinished", len)?;
+        let mut len = 0;
+        if !self.error_message.is_empty() {
+            len += 1;
+        }
+        if self.exit_code.is_some() {
+            len += 1;
+        }
+        if self.stdout.is_some() {
+            len += 1;
+        }
+        if self.stderr.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleStatusDetailsFailed", len)?;
+        if !self.error_message.is_empty() {
+            struct_ser.serialize_field("errorMessage", &self.error_message)?;
+        }
+        if let Some(v) = self.exit_code.as_ref() {
+            struct_ser.serialize_field("exitCode", v)?;
+        }
+        if let Some(v) = self.stdout.as_ref() {
+            struct_ser.serialize_field("stdout", v)?;
+        }
+        if let Some(v) = self.stderr.as_ref() {
+            struct_ser.serialize_field("stderr", v)?;
+        }
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFinished {
+impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFailed {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
+            "error_message",
+            "errorMessage",
+            "exit_code",
+            "exitCode",
+            "stdout",
+            "stderr",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
+            ErrorMessage,
+            ExitCode,
+            Stdout,
+            Stderr,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2041,7 +2229,139 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFinished {
                     where
                         E: serde::de::Error,
                     {
-                            Err(serde::de::Error::unknown_field(value, FIELDS))
+                        match value {
+                            "errorMessage" | "error_message" => Ok(GeneratedField::ErrorMessage),
+                            "exitCode" | "exit_code" => Ok(GeneratedField::ExitCode),
+                            "stdout" => Ok(GeneratedField::Stdout),
+                            "stderr" => Ok(GeneratedField::Stderr),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ReportRuleStatusDetailsFailed;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.ReportRuleStatusDetailsFailed")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ReportRuleStatusDetailsFailed, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut error_message__ = None;
+                let mut exit_code__ = None;
+                let mut stdout__ = None;
+                let mut stderr__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ErrorMessage => {
+                            if error_message__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("errorMessage"));
+                            }
+                            error_message__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ExitCode => {
+                            if exit_code__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("exitCode"));
+                            }
+                            exit_code__ = 
+                                map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
+                            ;
+                        }
+                        GeneratedField::Stdout => {
+                            if stdout__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stdout"));
+                            }
+                            stdout__ = map_.next_value()?;
+                        }
+                        GeneratedField::Stderr => {
+                            if stderr__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stderr"));
+                            }
+                            stderr__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(ReportRuleStatusDetailsFailed {
+                    error_message: error_message__.unwrap_or_default(),
+                    exit_code: exit_code__,
+                    stdout: stdout__,
+                    stderr: stderr__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.ReportRuleStatusDetailsFailed", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ReportRuleStatusDetailsFinished {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.stdout.is_some() {
+            len += 1;
+        }
+        if self.stderr.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.ReportRuleStatusDetailsFinished", len)?;
+        if let Some(v) = self.stdout.as_ref() {
+            struct_ser.serialize_field("stdout", v)?;
+        }
+        if let Some(v) = self.stderr.as_ref() {
+            struct_ser.serialize_field("stderr", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFinished {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "stdout",
+            "stderr",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Stdout,
+            Stderr,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "stdout" => Ok(GeneratedField::Stdout),
+                            "stderr" => Ok(GeneratedField::Stderr),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
                     }
                 }
                 deserializer.deserialize_identifier(GeneratedVisitor)
@@ -2059,10 +2379,27 @@ impl<'de> serde::Deserialize<'de> for ReportRuleStatusDetailsFinished {
                 where
                     V: serde::de::MapAccess<'de>,
             {
-                while map_.next_key::<GeneratedField>()?.is_some() {
-                    let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                let mut stdout__ = None;
+                let mut stderr__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Stdout => {
+                            if stdout__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stdout"));
+                            }
+                            stdout__ = map_.next_value()?;
+                        }
+                        GeneratedField::Stderr => {
+                            if stderr__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stderr"));
+                            }
+                            stderr__ = map_.next_value()?;
+                        }
+                    }
                 }
                 Ok(ReportRuleStatusDetailsFinished {
+                    stdout: stdout__,
+                    stderr: stderr__,
                 })
             }
         }

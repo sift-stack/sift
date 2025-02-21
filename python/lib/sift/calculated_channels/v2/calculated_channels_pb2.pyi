@@ -339,7 +339,7 @@ global___CreateCalculatedChannelResponse = CreateCalculatedChannelResponse
 
 @typing.final
 class ListCalculatedChannelsRequest(google.protobuf.message.Message):
-    """The request for a call to `CalculatedChannelService_ListCalculatedChannels` to retrieve lateset vesrions of calculated channels."""
+    """The request for a call to `CalculatedChannelService_ListCalculatedChannels` to retrieve latest versions of calculated channels."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -389,7 +389,7 @@ global___ListCalculatedChannelsRequest = ListCalculatedChannelsRequest
 
 @typing.final
 class ListCalculatedChannelsResponse(google.protobuf.message.Message):
-    """The response of a call to `CalculatedChannelService_ListCalculatedChannelsResponse`."""
+    """The response of a call to `CalculatedChannelService_ListCalculatedChannels`."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -530,7 +530,7 @@ global___ListCalculatedChannelVersionsRequest = ListCalculatedChannelVersionsReq
 
 @typing.final
 class ListCalculatedChannelVersionsResponse(google.protobuf.message.Message):
-    """The response of a call to `CalculatedChannelService_ListCalculatedChannelVersionsResponse`."""
+    """The response of a call to `CalculatedChannelService_ListCalculatedChannelVersions`."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -562,7 +562,7 @@ class ResolveCalculatedChannelRequest(google.protobuf.message.Message):
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    CALCULATED_CHANNEL_ID_FIELD_NUMBER: builtins.int
+    IDENTIFIER_FIELD_NUMBER: builtins.int
     CALCULATED_CHANNEL_CONFIGURATION_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     ASSETS_FIELD_NUMBER: builtins.int
@@ -570,7 +570,7 @@ class ResolveCalculatedChannelRequest(google.protobuf.message.Message):
     organization_id: builtins.str
     """This field is only required if your user belongs to multiple organizations."""
     @property
-    def calculated_channel_id(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier:
+    def identifier(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier:
         """The calculated channel to resolve."""
 
     @property
@@ -588,18 +588,18 @@ class ResolveCalculatedChannelRequest(google.protobuf.message.Message):
     def __init__(
         self,
         *,
-        calculated_channel_id: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
+        identifier: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
         calculated_channel_configuration: global___CalculatedChannelConfiguration | None = ...,
         organization_id: builtins.str = ...,
         assets: sift.common.type.v1.resource_identifier_pb2.NamedResources | None = ...,
         run: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_run", b"_run", "assets", b"assets", "calculated_channel", b"calculated_channel", "calculated_channel_configuration", b"calculated_channel_configuration", "calculated_channel_id", b"calculated_channel_id", "run", b"run"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_run", b"_run", "assets", b"assets", "calculated_channel", b"calculated_channel", "calculated_channel_configuration", b"calculated_channel_configuration", "calculated_channel_id", b"calculated_channel_id", "organization_id", b"organization_id", "run", b"run"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_run", b"_run", "assets", b"assets", "calculated_channel", b"calculated_channel", "calculated_channel_configuration", b"calculated_channel_configuration", "identifier", b"identifier", "run", b"run"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_run", b"_run", "assets", b"assets", "calculated_channel", b"calculated_channel", "calculated_channel_configuration", b"calculated_channel_configuration", "identifier", b"identifier", "organization_id", b"organization_id", "run", b"run"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_run", b"_run"]) -> typing.Literal["run"] | None: ...
     @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["calculated_channel", b"calculated_channel"]) -> typing.Literal["calculated_channel_id", "calculated_channel_configuration"] | None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["calculated_channel", b"calculated_channel"]) -> typing.Literal["identifier", "calculated_channel_configuration"] | None: ...
 
 global___ResolveCalculatedChannelRequest = ResolveCalculatedChannelRequest
 
@@ -657,10 +657,8 @@ class ResolveCalculatedChannelResponse(google.protobuf.message.Message):
     CALCULATED_CHANNEL_ID_FIELD_NUMBER: builtins.int
     RESOLVED_FIELD_NUMBER: builtins.int
     UNRESOLVED_FIELD_NUMBER: builtins.int
-    @property
-    def calculated_channel_id(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier:
-        """If provided in the request, the calculated channel resolved."""
-
+    calculated_channel_id: builtins.str
+    """If provided in the request, the calculated channel resolved."""
     @property
     def resolved(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ResolveCalculatedChannelResponse.ResolvedCalculatedChannel]:
         """All resolved calculated channels."""
@@ -672,7 +670,7 @@ class ResolveCalculatedChannelResponse(google.protobuf.message.Message):
     def __init__(
         self,
         *,
-        calculated_channel_id: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
+        calculated_channel_id: builtins.str | None = ...,
         resolved: collections.abc.Iterable[global___ResolveCalculatedChannelResponse.ResolvedCalculatedChannel] | None = ...,
         unresolved: collections.abc.Iterable[global___ResolveCalculatedChannelResponse.UnresolvedCalculatedChannel] | None = ...,
     ) -> None: ...
