@@ -8,6 +8,9 @@ lint:
   ignore_only:
     ENUM_VALUE_PREFIX:
       - sift/rules/v1/rules.proto
+      - sift/protobuf_descriptors/v2/channel_parsing_options.proto
+    ENUM_ZERO_VALUE_SUFFIX:
+      - sift/protobuf_descriptors/v2/channel_parsing_options.proto
 deps:
   - buf.build/googleapis/googleapis
   - buf.build/grpc-ecosystem/grpc-gateway
