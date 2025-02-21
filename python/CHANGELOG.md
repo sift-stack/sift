@@ -3,6 +3,27 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.4.0] - February 21, 2025
+
+### What's New
+#### Calculated Channels Service
+A new `CalculatedChannelService`, in `sift_py.calculated_channels.service`, provides functionality for creating, updating,
+searching, and listing Calculated Channels. It also provides a YAML interface for defining Calculated Channels using a
+YAML file. Examples can be found in `examples/calculated_channels`.
+
+### Deprecation Notices
+#### Channel `Component` field is being deprecated and will be removed in version 1.0.0. Please see https://docs.siftstack.com/docs/glossary#component
+for more information.
+
+### Full Changelog
+- [Added automatic retry for REST API calls](https://github.com/sift-stack/sift/pull/170)
+- [Deprecated `component` field for Channels](https://github.com/sift-stack/sift/pull/171)
+- [Fix for `from_annotation_type` in `RuleConfig`](https://github.com/sift-stack/sift/pull/172)
+- [Added support for Calculated Channels](https://github.com/sift-stack/sift/pull/174)
+- [Remove previously deprecated `overwrite_rules` argument from ingestion service](https://github.com/sift-stack/sift/pull/176)
+- [Fix `ReportTemplate` updating](https://github.com/sift-stack/sift/pull/177)
+- [Remove breakpoint from internal function](https://github.com/sift-stack/sift/pull/178)
+
 ## [v0.3.3] - January 24, 2025
 - [Don't upload TDMS channel properties to Sift channel description](https://github.com/sift-stack/sift/pull/165)
 
