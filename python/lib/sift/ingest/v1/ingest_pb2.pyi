@@ -116,3 +116,60 @@ class IngestWithConfigDataChannelValue(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["type", b"type"]) -> typing.Literal["string", "double", "float", "bool", "int32", "uint32", "int64", "uint64", "bit_field", "enum", "empty"] | None: ...
 
 global___IngestWithConfigDataChannelValue = IngestWithConfigDataChannelValue
+
+@typing.final
+class IngestArbitraryProtobufDataStreamRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MESSAGE_TYPE_IDENTIFIER_FIELD_NUMBER: builtins.int
+    MESSAGE_TYPE_DISPLAY_NAME_FIELD_NUMBER: builtins.int
+    ASSET_NAME_FIELD_NUMBER: builtins.int
+    TIMESTAMP_FIELD_NUMBER: builtins.int
+    VALUE_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
+    NAMESPACE_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    END_STREAM_ON_VALIDATION_ERROR_FIELD_NUMBER: builtins.int
+    message_type_identifier: builtins.str
+    message_type_display_name: builtins.str
+    asset_name: builtins.str
+    value: builtins.bytes
+    run_id: builtins.str
+    namespace: builtins.str
+    organization_id: builtins.str
+    end_stream_on_validation_error: builtins.bool
+    """By default, if this request fails to parse for any reason, the request is 
+    stored in an error queue and the stream continues to accept data. This 
+    ensures all data is saved, but only valid data is fully ingested. If this 
+    is set to `true`, any validation errors end the stream and return the error to the client.
+    """
+    @property
+    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        message_type_identifier: builtins.str = ...,
+        message_type_display_name: builtins.str | None = ...,
+        asset_name: builtins.str = ...,
+        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        value: builtins.bytes = ...,
+        run_id: builtins.str = ...,
+        namespace: builtins.str = ...,
+        organization_id: builtins.str = ...,
+        end_stream_on_validation_error: builtins.bool = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_message_type_display_name", b"_message_type_display_name", "message_type_display_name", b"message_type_display_name", "timestamp", b"timestamp"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_message_type_display_name", b"_message_type_display_name", "asset_name", b"asset_name", "end_stream_on_validation_error", b"end_stream_on_validation_error", "message_type_display_name", b"message_type_display_name", "message_type_identifier", b"message_type_identifier", "namespace", b"namespace", "organization_id", b"organization_id", "run_id", b"run_id", "timestamp", b"timestamp", "value", b"value"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_message_type_display_name", b"_message_type_display_name"]) -> typing.Literal["message_type_display_name"] | None: ...
+
+global___IngestArbitraryProtobufDataStreamRequest = IngestArbitraryProtobufDataStreamRequest
+
+@typing.final
+class IngestArbitraryProtobufDataStreamResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___IngestArbitraryProtobufDataStreamResponse = IngestArbitraryProtobufDataStreamResponse

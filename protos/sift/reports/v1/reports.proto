@@ -108,6 +108,7 @@ enum ReportRuleStatus {
   REPORT_RULE_STATUS_FINISHED = 3;
   REPORT_RULE_STATUS_FAILED = 4;
   REPORT_RULE_STATUS_CANCELED = 5;
+  REPORT_RULE_STATUS_ERROR = 6;
 }
 
 message ReportRuleStatusDetails {
@@ -116,14 +117,29 @@ message ReportRuleStatusDetails {
     ReportRuleStatusDetailsLive live = 2;
     ReportRuleStatusDetailsFinished finished = 3;
     ReportRuleStatusDetailsFailed failed = 4;
+    ReportRuleStatusDetailsCanceled canceled = 5;
+    ReportRuleStatusDetailsError error = 6;
   }
 }
 
 message ReportRuleStatusDetailsCreated {}
 message ReportRuleStatusDetailsLive {}
-message ReportRuleStatusDetailsFinished {}
+message ReportRuleStatusDetailsFinished {
+  optional string stdout = 1;
+  optional string stderr = 2;
+}
 message ReportRuleStatusDetailsFailed {
   string error_message = 1 [(google.api.field_behavior) = REQUIRED];
+  optional int32 exit_code = 2;
+  optional string stdout = 3;
+  optional string stderr = 4;
+}
+message ReportRuleStatusDetailsCanceled {}
+message ReportRuleStatusDetailsError {
+  string error_message = 1 [(google.api.field_behavior) = REQUIRED];
+  optional int32 exit_code = 2;
+  optional string stdout = 3;
+  optional string stderr = 4;
 }
 
 // The request of a call to `ReportService_CreateReport` to create a report. A report can be created either via a report template

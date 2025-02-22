@@ -159,7 +159,7 @@ pub struct CreateCalculatedChannelResponse {
     #[prost(message, repeated, tag="2")]
     pub inapplicable_assets: ::prost::alloc::vec::Vec<CalculatedChannelValidationResult>,
 }
-/// The request for a call to `CalculatedChannelService_ListCalculatedChannels` to retrieve lateset vesrions of calculated channels.
+/// The request for a call to `CalculatedChannelService_ListCalculatedChannels` to retrieve latest versions of calculated channels.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListCalculatedChannelsRequest {
@@ -191,7 +191,7 @@ pub struct ListCalculatedChannelsRequest {
     #[prost(string, tag="5")]
     pub order_by: ::prost::alloc::string::String,
 }
-/// The response of a call to `CalculatedChannelService_ListCalculatedChannelsResponse`.
+/// The response of a call to `CalculatedChannelService_ListCalculatedChannels`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListCalculatedChannelsResponse {
@@ -265,7 +265,7 @@ pub struct ListCalculatedChannelVersionsRequest {
     #[prost(string, tag="7")]
     pub order_by: ::prost::alloc::string::String,
 }
-/// The response of a call to `CalculatedChannelService_ListCalculatedChannelVersionsResponse`.
+/// The response of a call to `CalculatedChannelService_ListCalculatedChannelVersions`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListCalculatedChannelVersionsResponse {
@@ -303,7 +303,7 @@ pub mod resolve_calculated_channel_request {
     pub enum CalculatedChannel {
         /// The calculated channel to resolve.
         #[prost(message, tag="1")]
-        CalculatedChannelId(super::super::super::common::r#type::v1::ResourceIdentifier),
+        Identifier(super::super::super::common::r#type::v1::ResourceIdentifier),
         /// A configuration for the calculated channel to resolve.
         #[prost(message, tag="2")]
         CalculatedChannelConfiguration(super::CalculatedChannelConfiguration),
@@ -314,8 +314,8 @@ pub mod resolve_calculated_channel_request {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveCalculatedChannelResponse {
     /// If provided in the request, the calculated channel resolved.
-    #[prost(message, optional, tag="1")]
-    pub calculated_channel_id: ::core::option::Option<super::super::common::r#type::v1::ResourceIdentifier>,
+    #[prost(string, optional, tag="1")]
+    pub calculated_channel_id: ::core::option::Option<::prost::alloc::string::String>,
     /// All resolved calculated channels.
     #[prost(message, repeated, tag="2")]
     pub resolved: ::prost::alloc::vec::Vec<resolve_calculated_channel_response::ResolvedCalculatedChannel>,

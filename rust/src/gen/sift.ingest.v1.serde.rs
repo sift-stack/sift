@@ -1,4 +1,311 @@
 // @generated
+impl serde::Serialize for IngestArbitraryProtobufDataStreamRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.message_type_identifier.is_empty() {
+            len += 1;
+        }
+        if self.message_type_display_name.is_some() {
+            len += 1;
+        }
+        if !self.asset_name.is_empty() {
+            len += 1;
+        }
+        if self.timestamp.is_some() {
+            len += 1;
+        }
+        if !self.value.is_empty() {
+            len += 1;
+        }
+        if !self.run_id.is_empty() {
+            len += 1;
+        }
+        if !self.namespace.is_empty() {
+            len += 1;
+        }
+        if !self.organization_id.is_empty() {
+            len += 1;
+        }
+        if self.end_stream_on_validation_error {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.ingest.v1.IngestArbitraryProtobufDataStreamRequest", len)?;
+        if !self.message_type_identifier.is_empty() {
+            struct_ser.serialize_field("messageTypeIdentifier", &self.message_type_identifier)?;
+        }
+        if let Some(v) = self.message_type_display_name.as_ref() {
+            struct_ser.serialize_field("messageTypeDisplayName", v)?;
+        }
+        if !self.asset_name.is_empty() {
+            struct_ser.serialize_field("assetName", &self.asset_name)?;
+        }
+        if let Some(v) = self.timestamp.as_ref() {
+            struct_ser.serialize_field("timestamp", v)?;
+        }
+        if !self.value.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            struct_ser.serialize_field("value", pbjson::private::base64::encode(&self.value).as_str())?;
+        }
+        if !self.run_id.is_empty() {
+            struct_ser.serialize_field("runId", &self.run_id)?;
+        }
+        if !self.namespace.is_empty() {
+            struct_ser.serialize_field("namespace", &self.namespace)?;
+        }
+        if !self.organization_id.is_empty() {
+            struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if self.end_stream_on_validation_error {
+            struct_ser.serialize_field("endStreamOnValidationError", &self.end_stream_on_validation_error)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for IngestArbitraryProtobufDataStreamRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "message_type_identifier",
+            "messageTypeIdentifier",
+            "message_type_display_name",
+            "messageTypeDisplayName",
+            "asset_name",
+            "assetName",
+            "timestamp",
+            "value",
+            "run_id",
+            "runId",
+            "namespace",
+            "organization_id",
+            "organizationId",
+            "end_stream_on_validation_error",
+            "endStreamOnValidationError",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            MessageTypeIdentifier,
+            MessageTypeDisplayName,
+            AssetName,
+            Timestamp,
+            Value,
+            RunId,
+            Namespace,
+            OrganizationId,
+            EndStreamOnValidationError,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "messageTypeIdentifier" | "message_type_identifier" => Ok(GeneratedField::MessageTypeIdentifier),
+                            "messageTypeDisplayName" | "message_type_display_name" => Ok(GeneratedField::MessageTypeDisplayName),
+                            "assetName" | "asset_name" => Ok(GeneratedField::AssetName),
+                            "timestamp" => Ok(GeneratedField::Timestamp),
+                            "value" => Ok(GeneratedField::Value),
+                            "runId" | "run_id" => Ok(GeneratedField::RunId),
+                            "namespace" => Ok(GeneratedField::Namespace),
+                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "endStreamOnValidationError" | "end_stream_on_validation_error" => Ok(GeneratedField::EndStreamOnValidationError),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = IngestArbitraryProtobufDataStreamRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.ingest.v1.IngestArbitraryProtobufDataStreamRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<IngestArbitraryProtobufDataStreamRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut message_type_identifier__ = None;
+                let mut message_type_display_name__ = None;
+                let mut asset_name__ = None;
+                let mut timestamp__ = None;
+                let mut value__ = None;
+                let mut run_id__ = None;
+                let mut namespace__ = None;
+                let mut organization_id__ = None;
+                let mut end_stream_on_validation_error__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::MessageTypeIdentifier => {
+                            if message_type_identifier__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("messageTypeIdentifier"));
+                            }
+                            message_type_identifier__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::MessageTypeDisplayName => {
+                            if message_type_display_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("messageTypeDisplayName"));
+                            }
+                            message_type_display_name__ = map_.next_value()?;
+                        }
+                        GeneratedField::AssetName => {
+                            if asset_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetName"));
+                            }
+                            asset_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Timestamp => {
+                            if timestamp__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("timestamp"));
+                            }
+                            timestamp__ = map_.next_value()?;
+                        }
+                        GeneratedField::Value => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("value"));
+                            }
+                            value__ = 
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::RunId => {
+                            if run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runId"));
+                            }
+                            run_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Namespace => {
+                            if namespace__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("namespace"));
+                            }
+                            namespace__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrganizationId => {
+                            if organization_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("organizationId"));
+                            }
+                            organization_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::EndStreamOnValidationError => {
+                            if end_stream_on_validation_error__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("endStreamOnValidationError"));
+                            }
+                            end_stream_on_validation_error__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(IngestArbitraryProtobufDataStreamRequest {
+                    message_type_identifier: message_type_identifier__.unwrap_or_default(),
+                    message_type_display_name: message_type_display_name__,
+                    asset_name: asset_name__.unwrap_or_default(),
+                    timestamp: timestamp__,
+                    value: value__.unwrap_or_default(),
+                    run_id: run_id__.unwrap_or_default(),
+                    namespace: namespace__.unwrap_or_default(),
+                    organization_id: organization_id__.unwrap_or_default(),
+                    end_stream_on_validation_error: end_stream_on_validation_error__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.ingest.v1.IngestArbitraryProtobufDataStreamRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for IngestArbitraryProtobufDataStreamResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let len = 0;
+        let struct_ser = serializer.serialize_struct("sift.ingest.v1.IngestArbitraryProtobufDataStreamResponse", len)?;
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for IngestArbitraryProtobufDataStreamResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                            Err(serde::de::Error::unknown_field(value, FIELDS))
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = IngestArbitraryProtobufDataStreamResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.ingest.v1.IngestArbitraryProtobufDataStreamResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<IngestArbitraryProtobufDataStreamResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                while map_.next_key::<GeneratedField>()?.is_some() {
+                    let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                }
+                Ok(IngestArbitraryProtobufDataStreamResponse {
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.ingest.v1.IngestArbitraryProtobufDataStreamResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for IngestWithConfigDataChannelValue {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>

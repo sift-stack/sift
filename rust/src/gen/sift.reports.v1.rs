@@ -70,7 +70,7 @@ pub struct ReportTag {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReportRuleStatusDetails {
-    #[prost(oneof="report_rule_status_details::Details", tags="1, 2, 3, 4")]
+    #[prost(oneof="report_rule_status_details::Details", tags="1, 2, 3, 4, 5, 6")]
     pub details: ::core::option::Option<report_rule_status_details::Details>,
 }
 /// Nested message and enum types in `ReportRuleStatusDetails`.
@@ -86,6 +86,10 @@ pub mod report_rule_status_details {
         Finished(super::ReportRuleStatusDetailsFinished),
         #[prost(message, tag="4")]
         Failed(super::ReportRuleStatusDetailsFailed),
+        #[prost(message, tag="5")]
+        Canceled(super::ReportRuleStatusDetailsCanceled),
+        #[prost(message, tag="6")]
+        Error(super::ReportRuleStatusDetailsError),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -99,12 +103,38 @@ pub struct ReportRuleStatusDetailsLive {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReportRuleStatusDetailsFinished {
+    #[prost(string, optional, tag="1")]
+    pub stdout: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="2")]
+    pub stderr: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReportRuleStatusDetailsFailed {
     #[prost(string, tag="1")]
     pub error_message: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag="2")]
+    pub exit_code: ::core::option::Option<i32>,
+    #[prost(string, optional, tag="3")]
+    pub stdout: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="4")]
+    pub stderr: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReportRuleStatusDetailsCanceled {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReportRuleStatusDetailsError {
+    #[prost(string, tag="1")]
+    pub error_message: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag="2")]
+    pub exit_code: ::core::option::Option<i32>,
+    #[prost(string, optional, tag="3")]
+    pub stdout: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="4")]
+    pub stderr: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// The request of a call to `ReportService_CreateReport` to create a report. A report can be created either via a report template
 /// or an arbitrary report can be constructed depending on the variant of the `request` field.
@@ -272,6 +302,7 @@ pub enum ReportRuleStatus {
     Finished = 3,
     Failed = 4,
     Canceled = 5,
+    Error = 6,
 }
 impl ReportRuleStatus {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -286,6 +317,7 @@ impl ReportRuleStatus {
             ReportRuleStatus::Finished => "REPORT_RULE_STATUS_FINISHED",
             ReportRuleStatus::Failed => "REPORT_RULE_STATUS_FAILED",
             ReportRuleStatus::Canceled => "REPORT_RULE_STATUS_CANCELED",
+            ReportRuleStatus::Error => "REPORT_RULE_STATUS_ERROR",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -297,6 +329,7 @@ impl ReportRuleStatus {
             "REPORT_RULE_STATUS_FINISHED" => Some(Self::Finished),
             "REPORT_RULE_STATUS_FAILED" => Some(Self::Failed),
             "REPORT_RULE_STATUS_CANCELED" => Some(Self::Canceled),
+            "REPORT_RULE_STATUS_ERROR" => Some(Self::Error),
             _ => None,
         }
     }

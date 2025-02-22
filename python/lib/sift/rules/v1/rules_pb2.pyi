@@ -1071,6 +1071,68 @@ class UpdateJsonRulesResponse(google.protobuf.message.Message):
 global___UpdateJsonRulesResponse = UpdateJsonRulesResponse
 
 @typing.final
+class ListRulesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
+    page_size: builtins.int
+    """The maximum number of Rules to return.
+    The service may return fewer than this value.
+    If unspecified, at most 50 Rules will be returned.
+    The maximum value is 1000; values above 1000 will be coerced to 1000.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListRules` call.
+    Provide this to retrieve the subsequent page.
+    When paginating, all other parameters provided to `ListRules` must match
+    the call that provided the page token.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are `rule_id`, `client_key`, `name`, and `description`.
+    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+    Optional.
+    """
+    order_by: builtins.str
+    """How to order the retrieved Rules. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+    Available fields to order_by are `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    """
+    def __init__(
+        self,
+        *,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        order_by: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+
+global___ListRulesRequest = ListRulesRequest
+
+@typing.final
+class ListRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULES_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def rules(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Rule]: ...
+    def __init__(
+        self,
+        *,
+        rules: collections.abc.Iterable[global___Rule] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "rules", b"rules"]) -> None: ...
+
+global___ListRulesResponse = ListRulesResponse
+
+@typing.final
 class ListRuleVersionsRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -1265,6 +1327,7 @@ class SingleChannelComparisonExpression(google.protobuf.message.Message):
     STRING_FIELD_NUMBER: builtins.int
     LAST_VALUE_FIELD_NUMBER: builtins.int
     channel_component: builtins.str
+    """Deprecated - use channel_name instead. If provided, channel_component will be joined with the name as `channel_component.channel_name`"""
     channel_name: builtins.str
     comparator: global___ConditionComparator.ValueType
     double: builtins.float
@@ -1342,6 +1405,7 @@ class ChannelReference(google.protobuf.message.Message):
     COMPONENT_FIELD_NUMBER: builtins.int
     name: builtins.str
     component: builtins.str
+    """Deprecated - use name instead. If provided, name will be joined with the component as `component.name`"""
     def __init__(
         self,
         *,

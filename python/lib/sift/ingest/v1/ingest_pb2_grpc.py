@@ -19,12 +19,23 @@ class IngestServiceStub(object):
                 request_serializer=sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestWithConfigDataStreamRequest.SerializeToString,
                 response_deserializer=sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestWithConfigDataStreamResponse.FromString,
                 )
+        self.IngestArbitraryProtobufDataStream = channel.stream_unary(
+                '/sift.ingest.v1.IngestService/IngestArbitraryProtobufDataStream',
+                request_serializer=sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestArbitraryProtobufDataStreamRequest.SerializeToString,
+                response_deserializer=sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestArbitraryProtobufDataStreamResponse.FromString,
+                )
 
 
 class IngestServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def IngestWithConfigDataStream(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def IngestArbitraryProtobufDataStream(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -37,6 +48,11 @@ def add_IngestServiceServicer_to_server(servicer, server):
                     servicer.IngestWithConfigDataStream,
                     request_deserializer=sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestWithConfigDataStreamRequest.FromString,
                     response_serializer=sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestWithConfigDataStreamResponse.SerializeToString,
+            ),
+            'IngestArbitraryProtobufDataStream': grpc.stream_unary_rpc_method_handler(
+                    servicer.IngestArbitraryProtobufDataStream,
+                    request_deserializer=sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestArbitraryProtobufDataStreamRequest.FromString,
+                    response_serializer=sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestArbitraryProtobufDataStreamResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -62,5 +78,22 @@ class IngestService(object):
         return grpc.experimental.stream_unary(request_iterator, target, '/sift.ingest.v1.IngestService/IngestWithConfigDataStream',
             sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestWithConfigDataStreamRequest.SerializeToString,
             sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestWithConfigDataStreamResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def IngestArbitraryProtobufDataStream(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(request_iterator, target, '/sift.ingest.v1.IngestService/IngestArbitraryProtobufDataStream',
+            sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestArbitraryProtobufDataStreamRequest.SerializeToString,
+            sift_dot_ingest_dot_v1_dot_ingest__pb2.IngestArbitraryProtobufDataStreamResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

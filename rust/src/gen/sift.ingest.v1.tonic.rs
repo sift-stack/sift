@@ -116,6 +116,38 @@ pub mod ingest_service_client {
                 );
             self.inner.client_streaming(req, path, codec).await
         }
+        pub async fn ingest_arbitrary_protobuf_data_stream(
+            &mut self,
+            request: impl tonic::IntoStreamingRequest<
+                Message = super::IngestArbitraryProtobufDataStreamRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::IngestArbitraryProtobufDataStreamResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.ingest.v1.IngestService/IngestArbitraryProtobufDataStream",
+            );
+            let mut req = request.into_streaming_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.ingest.v1.IngestService",
+                        "IngestArbitraryProtobufDataStream",
+                    ),
+                );
+            self.inner.client_streaming(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -132,6 +164,15 @@ pub mod ingest_service_server {
             >,
         ) -> std::result::Result<
             tonic::Response<super::IngestWithConfigDataStreamResponse>,
+            tonic::Status,
+        >;
+        async fn ingest_arbitrary_protobuf_data_stream(
+            &self,
+            request: tonic::Request<
+                tonic::Streaming<super::IngestArbitraryProtobufDataStreamRequest>,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::IngestArbitraryProtobufDataStreamResponse>,
             tonic::Status,
         >;
     }
@@ -252,6 +293,63 @@ pub mod ingest_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = IngestWithConfigDataStreamSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.client_streaming(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.ingest.v1.IngestService/IngestArbitraryProtobufDataStream" => {
+                    #[allow(non_camel_case_types)]
+                    struct IngestArbitraryProtobufDataStreamSvc<T: IngestService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: IngestService,
+                    > tonic::server::ClientStreamingService<
+                        super::IngestArbitraryProtobufDataStreamRequest,
+                    > for IngestArbitraryProtobufDataStreamSvc<T> {
+                        type Response = super::IngestArbitraryProtobufDataStreamResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                tonic::Streaming<
+                                    super::IngestArbitraryProtobufDataStreamRequest,
+                                >,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as IngestService>::ingest_arbitrary_protobuf_data_stream(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = IngestArbitraryProtobufDataStreamSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

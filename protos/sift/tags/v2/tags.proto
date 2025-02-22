@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package sift.tags.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Tag Service"}
+};
+
+service TagService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to programmatically interact with [tags](/glossary#tag)."};
+
+  // Create a tag.
+  rpc CreateTag(CreateTagRequest) returns (CreateTagResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/tags"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateTag"
+      description: "Create a tag."
+      operation_id: "TagService_CreateTagV2"
+    };
+  }
+
+  // Retrieves tags using an optional filter.
+  rpc ListTags(ListTagsRequest) returns (ListTagsResponse) {
+    option (google.api.http) = {get: "/api/v2/tags"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListTags"
+      description: "Retrieves tags using an optional filter."
+      operation_id: "TagService_ListTagsV2"
+    };
+  }
+}
+
+message Tag {
+  string tag_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string name = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string created_by_user_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  google.protobuf.Timestamp created_date = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// The request for a call to TagService.CreateTag.
+message CreateTagRequest {
+  // The name for the new tag.
+  // If the tag already exists, an error is returned.
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The result of a call to TagService.CreateTag.
+message CreateTagResponse {
+  Tag tag = 1;
+}
+
+message ListTagsRequest {
+  // The maximum number of tags to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 tags will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListTags` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListTags` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string
+  // Available fields to filter by are 'name' and 'tag_id'.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/protocol-buffers/documentation#tag). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved campaigns. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date` and `name`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,name"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListTagsResponse {
+  repeated Tag tags = 1;
+
+  // A token, which can be sent as `page_token` to retrieve the next page.
+  // If this field is empty, there are no subsequent pages.
+  string next_page_token = 2;
+}

@@ -447,6 +447,41 @@ pub struct UpdateJsonRulesResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRulesRequest {
+    /// The maximum number of Rules to return.
+    /// The service may return fewer than this value.
+    /// If unspecified, at most 50 Rules will be returned.
+    /// The maximum value is 1000; values above 1000 will be coerced to 1000.
+    #[prost(uint32, tag="1")]
+    pub page_size: u32,
+    /// A page token, received from a previous `ListRules` call.
+    /// Provide this to retrieve the subsequent page.
+    /// When paginating, all other parameters provided to `ListRules` must match
+    /// the call that provided the page token.
+    #[prost(string, tag="2")]
+    pub page_token: ::prost::alloc::string::String,
+    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
+    /// Available fields to filter by are `rule_id`, `client_key`, `name`, and `description`.
+    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
+    /// Optional.
+    #[prost(string, tag="3")]
+    pub filter: ::prost::alloc::string::String,
+    /// How to order the retrieved Rules. Formatted as a comma-separated string i.e. "FIELD_NAME\[ desc\],...".
+    /// Available fields to order_by are `created_date` and `modified_date`.
+    /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    #[prost(string, tag="4")]
+    pub order_by: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListRulesResponse {
+    #[prost(message, repeated, tag="1")]
+    pub rules: ::prost::alloc::vec::Vec<Rule>,
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRuleVersionsRequest {
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
@@ -541,6 +576,7 @@ pub mod rule_condition_expression {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SingleChannelComparisonExpression {
+    /// Deprecated - use channel_name instead. If provided, channel_component will be joined with the name as `channel_component.channel_name`
     #[prost(string, tag="1")]
     pub channel_component: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
@@ -582,6 +618,7 @@ pub struct CalculatedChannelConfig {
 pub struct ChannelReference {
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
+    /// Deprecated - use name instead. If provided, name will be joined with the component as `component.name`
     #[prost(string, tag="2")]
     pub component: ::prost::alloc::string::String,
 }

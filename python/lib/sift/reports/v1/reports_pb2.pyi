@@ -32,6 +32,7 @@ class _ReportRuleStatusEnumTypeWrapper(google.protobuf.internal.enum_type_wrappe
     REPORT_RULE_STATUS_FINISHED: _ReportRuleStatus.ValueType  # 3
     REPORT_RULE_STATUS_FAILED: _ReportRuleStatus.ValueType  # 4
     REPORT_RULE_STATUS_CANCELED: _ReportRuleStatus.ValueType  # 5
+    REPORT_RULE_STATUS_ERROR: _ReportRuleStatus.ValueType  # 6
 
 class ReportRuleStatus(_ReportRuleStatus, metaclass=_ReportRuleStatusEnumTypeWrapper): ...
 
@@ -41,6 +42,7 @@ REPORT_RULE_STATUS_LIVE: ReportRuleStatus.ValueType  # 2
 REPORT_RULE_STATUS_FINISHED: ReportRuleStatus.ValueType  # 3
 REPORT_RULE_STATUS_FAILED: ReportRuleStatus.ValueType  # 4
 REPORT_RULE_STATUS_CANCELED: ReportRuleStatus.ValueType  # 5
+REPORT_RULE_STATUS_ERROR: ReportRuleStatus.ValueType  # 6
 global___ReportRuleStatus = ReportRuleStatus
 
 @typing.final
@@ -185,6 +187,8 @@ class ReportRuleStatusDetails(google.protobuf.message.Message):
     LIVE_FIELD_NUMBER: builtins.int
     FINISHED_FIELD_NUMBER: builtins.int
     FAILED_FIELD_NUMBER: builtins.int
+    CANCELED_FIELD_NUMBER: builtins.int
+    ERROR_FIELD_NUMBER: builtins.int
     @property
     def created(self) -> global___ReportRuleStatusDetailsCreated: ...
     @property
@@ -193,6 +197,10 @@ class ReportRuleStatusDetails(google.protobuf.message.Message):
     def finished(self) -> global___ReportRuleStatusDetailsFinished: ...
     @property
     def failed(self) -> global___ReportRuleStatusDetailsFailed: ...
+    @property
+    def canceled(self) -> global___ReportRuleStatusDetailsCanceled: ...
+    @property
+    def error(self) -> global___ReportRuleStatusDetailsError: ...
     def __init__(
         self,
         *,
@@ -200,10 +208,12 @@ class ReportRuleStatusDetails(google.protobuf.message.Message):
         live: global___ReportRuleStatusDetailsLive | None = ...,
         finished: global___ReportRuleStatusDetailsFinished | None = ...,
         failed: global___ReportRuleStatusDetailsFailed | None = ...,
+        canceled: global___ReportRuleStatusDetailsCanceled | None = ...,
+        error: global___ReportRuleStatusDetailsError | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["created", b"created", "details", b"details", "failed", b"failed", "finished", b"finished", "live", b"live"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["created", b"created", "details", b"details", "failed", b"failed", "finished", b"finished", "live", b"live"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["details", b"details"]) -> typing.Literal["created", "live", "finished", "failed"] | None: ...
+    def HasField(self, field_name: typing.Literal["canceled", b"canceled", "created", b"created", "details", b"details", "error", b"error", "failed", b"failed", "finished", b"finished", "live", b"live"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["canceled", b"canceled", "created", b"created", "details", b"details", "error", b"error", "failed", b"failed", "finished", b"finished", "live", b"live"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["details", b"details"]) -> typing.Literal["created", "live", "finished", "failed", "canceled", "error"] | None: ...
 
 global___ReportRuleStatusDetails = ReportRuleStatusDetails
 
@@ -231,9 +241,22 @@ global___ReportRuleStatusDetailsLive = ReportRuleStatusDetailsLive
 class ReportRuleStatusDetailsFinished(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
+    STDOUT_FIELD_NUMBER: builtins.int
+    STDERR_FIELD_NUMBER: builtins.int
+    stdout: builtins.str
+    stderr: builtins.str
     def __init__(
         self,
+        *,
+        stdout: builtins.str | None = ...,
+        stderr: builtins.str | None = ...,
     ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_stderr", b"_stderr", "_stdout", b"_stdout", "stderr", b"stderr", "stdout", b"stdout"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_stderr", b"_stderr", "_stdout", b"_stdout", "stderr", b"stderr", "stdout", b"stdout"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_stderr", b"_stderr"]) -> typing.Literal["stderr"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_stdout", b"_stdout"]) -> typing.Literal["stdout"] | None: ...
 
 global___ReportRuleStatusDetailsFinished = ReportRuleStatusDetailsFinished
 
@@ -242,15 +265,72 @@ class ReportRuleStatusDetailsFailed(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ERROR_MESSAGE_FIELD_NUMBER: builtins.int
+    EXIT_CODE_FIELD_NUMBER: builtins.int
+    STDOUT_FIELD_NUMBER: builtins.int
+    STDERR_FIELD_NUMBER: builtins.int
     error_message: builtins.str
+    exit_code: builtins.int
+    stdout: builtins.str
+    stderr: builtins.str
     def __init__(
         self,
         *,
         error_message: builtins.str = ...,
+        exit_code: builtins.int | None = ...,
+        stdout: builtins.str | None = ...,
+        stderr: builtins.str | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["error_message", b"error_message"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_exit_code", b"_exit_code", "_stderr", b"_stderr", "_stdout", b"_stdout", "exit_code", b"exit_code", "stderr", b"stderr", "stdout", b"stdout"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_exit_code", b"_exit_code", "_stderr", b"_stderr", "_stdout", b"_stdout", "error_message", b"error_message", "exit_code", b"exit_code", "stderr", b"stderr", "stdout", b"stdout"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_exit_code", b"_exit_code"]) -> typing.Literal["exit_code"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_stderr", b"_stderr"]) -> typing.Literal["stderr"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_stdout", b"_stdout"]) -> typing.Literal["stdout"] | None: ...
 
 global___ReportRuleStatusDetailsFailed = ReportRuleStatusDetailsFailed
+
+@typing.final
+class ReportRuleStatusDetailsCanceled(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___ReportRuleStatusDetailsCanceled = ReportRuleStatusDetailsCanceled
+
+@typing.final
+class ReportRuleStatusDetailsError(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ERROR_MESSAGE_FIELD_NUMBER: builtins.int
+    EXIT_CODE_FIELD_NUMBER: builtins.int
+    STDOUT_FIELD_NUMBER: builtins.int
+    STDERR_FIELD_NUMBER: builtins.int
+    error_message: builtins.str
+    exit_code: builtins.int
+    stdout: builtins.str
+    stderr: builtins.str
+    def __init__(
+        self,
+        *,
+        error_message: builtins.str = ...,
+        exit_code: builtins.int | None = ...,
+        stdout: builtins.str | None = ...,
+        stderr: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_exit_code", b"_exit_code", "_stderr", b"_stderr", "_stdout", b"_stdout", "exit_code", b"exit_code", "stderr", b"stderr", "stdout", b"stdout"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_exit_code", b"_exit_code", "_stderr", b"_stderr", "_stdout", b"_stdout", "error_message", b"error_message", "exit_code", b"exit_code", "stderr", b"stderr", "stdout", b"stdout"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_exit_code", b"_exit_code"]) -> typing.Literal["exit_code"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_stderr", b"_stderr"]) -> typing.Literal["stderr"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_stdout", b"_stdout"]) -> typing.Literal["stdout"] | None: ...
+
+global___ReportRuleStatusDetailsError = ReportRuleStatusDetailsError
 
 @typing.final
 class CreateReportRequest(google.protobuf.message.Message):

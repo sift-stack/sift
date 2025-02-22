@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package sift.common.type.v1;
+
+import "sift/common/type/v1/channel_bit_field_element.proto";
+import "sift/common/type/v1/channel_data_type.proto";
+import "sift/common/type/v1/channel_enum_type.proto";
+
+
+
+message ChannelConfig {
+  string name = 1;
+  string units = 2;
+  string description = 3;
+  ChannelDataType data_type = 4;
+  repeated ChannelEnumType enum_types = 5;
+  repeated ChannelBitFieldElement bit_field_elements = 6;
+}

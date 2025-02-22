@@ -129,6 +129,187 @@ impl<'de> serde::Deserialize<'de> for ChannelBitFieldElement {
         deserializer.deserialize_struct("sift.common.r#type.v1.ChannelBitFieldElement", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ChannelConfig {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if !self.units.is_empty() {
+            len += 1;
+        }
+        if !self.description.is_empty() {
+            len += 1;
+        }
+        if self.data_type != 0 {
+            len += 1;
+        }
+        if !self.enum_types.is_empty() {
+            len += 1;
+        }
+        if !self.bit_field_elements.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.ChannelConfig", len)?;
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if !self.units.is_empty() {
+            struct_ser.serialize_field("units", &self.units)?;
+        }
+        if !self.description.is_empty() {
+            struct_ser.serialize_field("description", &self.description)?;
+        }
+        if self.data_type != 0 {
+            let v = ChannelDataType::try_from(self.data_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.data_type)))?;
+            struct_ser.serialize_field("dataType", &v)?;
+        }
+        if !self.enum_types.is_empty() {
+            struct_ser.serialize_field("enumTypes", &self.enum_types)?;
+        }
+        if !self.bit_field_elements.is_empty() {
+            struct_ser.serialize_field("bitFieldElements", &self.bit_field_elements)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ChannelConfig {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "name",
+            "units",
+            "description",
+            "data_type",
+            "dataType",
+            "enum_types",
+            "enumTypes",
+            "bit_field_elements",
+            "bitFieldElements",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Name,
+            Units,
+            Description,
+            DataType,
+            EnumTypes,
+            BitFieldElements,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "name" => Ok(GeneratedField::Name),
+                            "units" => Ok(GeneratedField::Units),
+                            "description" => Ok(GeneratedField::Description),
+                            "dataType" | "data_type" => Ok(GeneratedField::DataType),
+                            "enumTypes" | "enum_types" => Ok(GeneratedField::EnumTypes),
+                            "bitFieldElements" | "bit_field_elements" => Ok(GeneratedField::BitFieldElements),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ChannelConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.common.r#type.v1.ChannelConfig")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ChannelConfig, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut name__ = None;
+                let mut units__ = None;
+                let mut description__ = None;
+                let mut data_type__ = None;
+                let mut enum_types__ = None;
+                let mut bit_field_elements__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Units => {
+                            if units__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("units"));
+                            }
+                            units__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Description => {
+                            if description__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("description"));
+                            }
+                            description__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DataType => {
+                            if data_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dataType"));
+                            }
+                            data_type__ = Some(map_.next_value::<ChannelDataType>()? as i32);
+                        }
+                        GeneratedField::EnumTypes => {
+                            if enum_types__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("enumTypes"));
+                            }
+                            enum_types__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::BitFieldElements => {
+                            if bit_field_elements__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("bitFieldElements"));
+                            }
+                            bit_field_elements__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ChannelConfig {
+                    name: name__.unwrap_or_default(),
+                    units: units__.unwrap_or_default(),
+                    description: description__.unwrap_or_default(),
+                    data_type: data_type__.unwrap_or_default(),
+                    enum_types: enum_types__.unwrap_or_default(),
+                    bit_field_elements: bit_field_elements__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.common.r#type.v1.ChannelConfig", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for ChannelDataType {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>

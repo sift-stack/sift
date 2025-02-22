@@ -159,6 +159,22 @@ pub struct ChannelEnumType {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChannelConfig {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub units: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(enumeration="ChannelDataType", tag="4")]
+    pub data_type: i32,
+    #[prost(message, repeated, tag="5")]
+    pub enum_types: ::prost::alloc::vec::Vec<ChannelEnumType>,
+    #[prost(message, repeated, tag="6")]
+    pub bit_field_elements: ::prost::alloc::vec::Vec<ChannelBitFieldElement>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Organization {
     #[prost(string, tag="1")]
     pub organization_id: ::prost::alloc::string::String,

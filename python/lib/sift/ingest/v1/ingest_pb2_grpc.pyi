@@ -24,10 +24,20 @@ class IngestServiceStub:
         sift.ingest.v1.ingest_pb2.IngestWithConfigDataStreamResponse,
     ]
 
+    IngestArbitraryProtobufDataStream: grpc.StreamUnaryMultiCallable[
+        sift.ingest.v1.ingest_pb2.IngestArbitraryProtobufDataStreamRequest,
+        sift.ingest.v1.ingest_pb2.IngestArbitraryProtobufDataStreamResponse,
+    ]
+
 class IngestServiceAsyncStub:
     IngestWithConfigDataStream: grpc.aio.StreamUnaryMultiCallable[
         sift.ingest.v1.ingest_pb2.IngestWithConfigDataStreamRequest,
         sift.ingest.v1.ingest_pb2.IngestWithConfigDataStreamResponse,
+    ]
+
+    IngestArbitraryProtobufDataStream: grpc.aio.StreamUnaryMultiCallable[
+        sift.ingest.v1.ingest_pb2.IngestArbitraryProtobufDataStreamRequest,
+        sift.ingest.v1.ingest_pb2.IngestArbitraryProtobufDataStreamResponse,
     ]
 
 class IngestServiceServicer(metaclass=abc.ABCMeta):
@@ -37,5 +47,12 @@ class IngestServiceServicer(metaclass=abc.ABCMeta):
         request_iterator: _MaybeAsyncIterator[sift.ingest.v1.ingest_pb2.IngestWithConfigDataStreamRequest],
         context: _ServicerContext,
     ) -> typing.Union[sift.ingest.v1.ingest_pb2.IngestWithConfigDataStreamResponse, collections.abc.Awaitable[sift.ingest.v1.ingest_pb2.IngestWithConfigDataStreamResponse]]: ...
+
+    @abc.abstractmethod
+    def IngestArbitraryProtobufDataStream(
+        self,
+        request_iterator: _MaybeAsyncIterator[sift.ingest.v1.ingest_pb2.IngestArbitraryProtobufDataStreamRequest],
+        context: _ServicerContext,
+    ) -> typing.Union[sift.ingest.v1.ingest_pb2.IngestArbitraryProtobufDataStreamResponse, collections.abc.Awaitable[sift.ingest.v1.ingest_pb2.IngestArbitraryProtobufDataStreamResponse]]: ...
 
 def add_IngestServiceServicer_to_server(servicer: IngestServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

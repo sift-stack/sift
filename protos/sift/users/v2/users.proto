@@ -86,6 +86,12 @@ message ListActiveUsersRequest {
 
   // Optional. If provided, this will scope down the user search to just those in the organization ID provided.
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved users. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are:
+  // - created_date
+  // - modified_date
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `UserService_ListActiveUsersResponse`.

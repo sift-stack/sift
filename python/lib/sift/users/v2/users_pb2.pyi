@@ -89,6 +89,7 @@ class ListActiveUsersRequest(google.protobuf.message.Message):
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of users to return. The service may return fewer than this value.
     If unspecified, at most 50 users will be returned. The maximum value is 1000; values above
@@ -108,6 +109,12 @@ class ListActiveUsersRequest(google.protobuf.message.Message):
     """
     organization_id: builtins.str
     """Optional. If provided, this will scope down the user search to just those in the organization ID provided."""
+    order_by: builtins.str
+    """How to order the retrieved users. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+    Available fields to order_by are:
+    - created_date
+    - modified_date
+    """
     def __init__(
         self,
         *,
@@ -115,8 +122,9 @@ class ListActiveUsersRequest(google.protobuf.message.Message):
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
         organization_id: builtins.str = ...,
+        order_by: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "organization_id", b"organization_id", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
 
 global___ListActiveUsersRequest = ListActiveUsersRequest
 
