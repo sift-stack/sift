@@ -112,7 +112,7 @@ class RosbagsUploadService:
                 if connection.msgtype in handlers:
                     continue
                 for field in msg_def.fields:
-                    key = f"{msg_def.name}:{field}"
+                    key = f"{connection.topic}:{msg_def.name}:{field}"
                     if key in ros_channels:
                         raise Exception(f"Duplicate key: {key}")
                     ros_channels[key] = RosChannel.get_underlying_fields(
@@ -146,7 +146,7 @@ class RosbagsUploadService:
                     handlers[connection.msgtype](connection.topic, timestamp, msg)
                 else:
                     for field in msg_def.fields:
-                        key = f"{msg_def.name}:{field}"
+                        key = f"{connection.topic}:{msg_def.name}:{field}"
                         if key not in ros_channels:
                             if ignore_errors:
                                 continue
