@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.4.1] - February 27, 2025
+- [Allow using openssl certs with REST](https://github.com/sift-stack/sift/pull/181)
+
 ## [v0.4.0] - February 21, 2025
 
 ### What's New
