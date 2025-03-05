@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.4.2] - March 4, 2025
+- [Fix bool conversion to protobuf bool](https://github.com/sift-stack/sift/pull/184)
+
 ## [v0.4.1] - February 27, 2025
 - [Allow using openssl certs with REST](https://github.com/sift-stack/sift/pull/181)
 
