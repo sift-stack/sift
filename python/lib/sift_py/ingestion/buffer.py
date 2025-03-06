@@ -104,7 +104,7 @@ class BufferedIngestionService(Generic[T]):
                     self._buffer.append(req)
 
                 if len(self._buffer) >= self._buffer_size:
-                    self._flush(self._buffer)
+                    self._flush()
 
                 lhs_cursor = rhs_cursor
                 rhs_cursor = min(
@@ -139,7 +139,7 @@ class BufferedIngestionService(Generic[T]):
                     self._buffer.append(req)
 
                 if len(self._buffer) >= self._buffer_size:
-                    self._flush(self._buffer)
+                    self._flush()
 
                 lhs_cursor = rhs_cursor
                 rhs_cursor = min(
@@ -154,18 +154,15 @@ class BufferedIngestionService(Generic[T]):
 
         if self._flush_timer and self._lock:
             with self._lock:
-                # Save off the buffer so we don't need to hold onto the lock
-                buffer = self._buffer
-                self._buffer = []
-            self._flush(buffer)
+                self._flush()
             self._restart_flush_timer()
         else:
-            self._flush(self._buffer)
+            self._flush()
 
-    def _flush(self, buffer: List[IngestWithConfigDataStreamRequest]):
-        if len(buffer) > 0:
-            self._ingestion_service.ingest(*buffer)
-            buffer.clear()
+    def _flush(self):
+        if len(self._buffer) > 0:
+            self._ingestion_service.ingest(*self._buffer)
+            self._buffer.clear()
 
     def _start_flush_timer(self):
         if self._flush_interval_sec:
