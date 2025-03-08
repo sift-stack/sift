@@ -1,4 +1,4 @@
-use crate::error::{Error, Result, SiftError};
+use sift_error::prelude::*;
 use std::time::Duration;
 use tonic::{
     service::interceptor::InterceptedService,
@@ -7,13 +7,18 @@ use tonic::{
 use tower::ServiceBuilder;
 
 mod config;
-pub use config::SiftChannelConfig;
+pub use config::{Credentials, SiftChannelConfig};
 
 mod interceptor;
 use interceptor::AuthInterceptor;
 
 /// A pre-configured gRPC channel to conveniently establish a connection to Sift's gRPC API.
 pub type SiftChannel = InterceptedService<Channel, AuthInterceptor>;
+
+pub fn connect_grpc(credentials: Credentials) -> Result<SiftChannel> {
+    let config = SiftChannelConfig::try_from(credentials)?;
+    use_sift_channel(config)
+}
 
 /// Uses `channel_config` to initialize a lazy channel that will only establish a connection
 /// after first-use. This can only be used within a [`Tokio 1.x runtime`]. The returned [`SiftChannel`] is
@@ -37,7 +42,7 @@ pub fn use_sift_channel(channel_config: SiftChannelConfig) -> Result<SiftChannel
                 .user_agent(user_agent)
                 .expect("failed to construct user agent") // this shouldn't fail
         })
-        .map_err(Error::new_user_error)
+        .map_err(|e| Error::new(ErrorKind::GrpcConnectError, e))
         .context("something went while trying to establish a connection to Sift")
         .help("double check that the URL and the API token are both valid")?
         .connect_lazy();

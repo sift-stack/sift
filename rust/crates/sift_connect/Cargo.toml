@@ -1,0 +1,11 @@
+[package]
+name = "sift_connect"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dirs = "6.0.0"
+sift_error = { version = "0.1.0", path = "../sift_error" }
+toml = "0.8.20"
+tonic = { version = "^0.11", features = ["tls", "tls-roots", "tls-webpki-roots"] }
+tower = "^0.4"
