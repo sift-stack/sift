@@ -12,37 +12,35 @@ use sift_rs::{
 };
 use std::{
     pin::Pin,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
     task::{Context, Poll},
     time::Duration,
 };
 use tokio::{
-    sync::{
-        mpsc::{error::SendError, unbounded_channel, UnboundedReceiver, UnboundedSender},
-        oneshot::{self, Receiver, Sender},
-    },
+    sync::mpsc::{error::SendError, unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinHandle,
 };
 
 /// Dependencies specifically for ingestion-config based streaming.
 pub struct IngestionConfigMode {
-    streaming_task: JoinHandle<Result<()>>,
     ingestion_config: IngestionConfig,
     flows: Vec<FlowConfig>,
     run: Option<Run>,
     checkpoint_interval: Duration,
     data_tx: UnboundedSender<Message>,
+    streaming_task: JoinHandle<Result<()>>,
 }
 
 impl SiftStreamMode for IngestionConfigMode {}
 
-pub struct Message {
-    flow: String,
+pub struct Flow {
+    name: String,
     timestamp: TimeValue,
     values: Vec<ChannelDataPoint>,
+}
+
+pub enum Message {
+    Flow(Flow),
+    CheckpointSignal,
 }
 
 /// Dependencies used in the Tokio task that actually sends the data to Sift.
@@ -51,8 +49,6 @@ struct DataStream {
     ingestion_config_id: String,
     run_id: Option<String>,
     data_rx: UnboundedReceiver<Message>,
-    _termination_listener: JoinHandle<Result<()>>,
-    terminated: Arc<AtomicBool>,
 }
 
 impl SiftStream<IngestionConfigMode> {
@@ -64,21 +60,14 @@ impl SiftStream<IngestionConfigMode> {
         checkpoint_interval: Duration,
     ) -> Self {
         let (data_tx, data_rx) = unbounded_channel::<Message>();
-        let (terminate_tx, terminate_rx) = oneshot::channel::<()>();
 
-        let data_stream = DataStream::new(
-            &ingestion_config,
-            &flows,
-            data_rx,
-            run.as_ref(),
-            terminate_rx,
-        );
+        let data_stream = DataStream::new(&ingestion_config, &flows, data_rx, run.as_ref());
 
         let streaming_task = Self::init_streaming_task(
             grpc_channel.clone(),
             data_stream,
             checkpoint_interval,
-            terminate_tx,
+            data_tx.clone(),
         );
 
         Self {
@@ -101,22 +90,20 @@ impl SiftStream<IngestionConfigMode> {
             // Start a new stream; previous one concluded due to successful checkpointing
             Err(SendError(msg)) => {
                 let (data_tx, data_rx) = unbounded_channel::<Message>();
-                let (terminate_tx, terminate_rx) = oneshot::channel::<()>();
 
                 let data_stream = DataStream::new(
                     &self.mode.ingestion_config,
                     &self.mode.flows,
                     data_rx,
                     self.mode.run.as_ref(),
-                    terminate_rx,
                 );
-                self.mode.data_tx = data_tx;
+                self.mode.data_tx = data_tx.clone();
 
                 self.mode.streaming_task = Self::init_streaming_task(
                     self.grpc_channel.clone(),
                     data_stream,
                     self.mode.checkpoint_interval,
-                    terminate_tx,
+                    data_tx,
                 );
 
                 // resend message... woah recursion!
@@ -129,7 +116,7 @@ impl SiftStream<IngestionConfigMode> {
         grpc_channel: SiftChannel,
         data_stream: DataStream,
         checkpoint_interval: Duration,
-        terminate_tx: Sender<()>,
+        data_tx: UnboundedSender<Message>,
     ) -> JoinHandle<Result<()>> {
         tokio::task::spawn(async move {
             let mut client = IngestServiceClient::new(grpc_channel);
@@ -137,8 +124,8 @@ impl SiftStream<IngestionConfigMode> {
 
             tokio::select! {
                 _ = checkpoint_timer.tick() => {
-                    terminate_tx.send(())
-                        .map_err(|_| Error::new_msg(ErrorKind::StreamError, "failed to start checkpoint"))
+                    data_tx.send(Message::CheckpointSignal)
+                        .map_err(|_| Error::new_msg(ErrorKind::StreamError, "attempt to begin checkpoint failed unexpectedly"))
                         .help("please contact Sift")?;
                     Ok(())
                 }
@@ -159,28 +146,12 @@ impl DataStream {
         flows: &[FlowConfig],
         data_rx: UnboundedReceiver<Message>,
         run: Option<&Run>,
-        termination_rx: Receiver<()>,
     ) -> Self {
-        let terminated = Arc::new(AtomicBool::new(false));
-
-        let termination_switch = terminated.clone();
-        let termination_listener = tokio::task::spawn(async move {
-            let _ = termination_rx
-                .await
-                .map_err(|e| Error::new(ErrorKind::StreamError, e))
-                .context("stream failed to shutdown unexpectedly")
-                .help("please context Sift");
-            termination_switch.swap(true, Ordering::Relaxed);
-            Ok(())
-        });
-
         Self {
             run_id: run.map(|r| r.run_id.clone()),
             data_rx,
             ingestion_config_id: ingestion_config.ingestion_config_id.clone(),
             flows: flows.to_vec(),
-            terminated,
-            _termination_listener: termination_listener,
         }
     }
 }
@@ -189,69 +160,80 @@ impl Stream for DataStream {
     type Item = IngestWithConfigDataStreamRequest;
 
     fn poll_next(mut self: Pin<&mut Self>, _ctx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        // This will terminate this stream
-        if self.terminated.load(Ordering::Relaxed) {
-            return Poll::Ready(None);
-        }
-
-        let Some(Message {
-            flow,
-            timestamp,
-            values,
-        }) = self.data_rx.blocking_recv()
-        else {
+        let Some(message) = self.data_rx.blocking_recv() else {
             #[cfg(feature = "tracing")]
-            tracing::error!("termination terminated in an unexpected manner. Please contact Sift.");
+            tracing::error!("stream terminating unexpectedly. Please notify Sift");
 
-            // This shouldn't really happen
+            // If this happens then someone has introduced a logical bug where either the `data_rx` channel is
+            // manually getting closed or all senders are getting dropped prematurely. We have
+            // safeguards to prevent senders getting dropped i.e. by having `IngestionConfigMode`
+            // own both a sender as well as the task that owns DataStream; so really, the only way
+            // this can happen is if someone manually closes the `data_rx` channel, however there is
+            // absolutely no good reason to do that so we'll scream loudly during development if we
+            // see it.
+            #[cfg(debug_assertions)]
+            {
+                eprintln!("[DEBUG_ASSERTIONS]: polling failed unexpectedly. This is critical and needs to be addressed before release.");
+                std::process::exit(1);
+            }
+            #[allow(unreachable_code)]
             return Poll::Ready(None);
         };
 
-        let mut maybe_channel_values = None;
+        match message {
+            Message::CheckpointSignal => Poll::Ready(None),
+            Message::Flow(Flow {
+                name,
+                timestamp,
+                values,
+            }) => {
+                let mut maybe_channel_values = None;
 
-        for flow in self.flows.iter().filter(|f| f.name == flow) {
-            let mut ordered_values = Vec::with_capacity(values.len());
+                for flow in self.flows.iter().filter(|f| f.name == name) {
+                    let mut ordered_values = Vec::with_capacity(values.len());
 
-            for conf in &flow.channels {
-                let Some(val) = values
-                    .iter()
-                    .find(|v| v.name == conf.name && v.pb_data_type() == conf.data_type)
-                else {
-                    continue;
+                    for conf in &flow.channels {
+                        let Some(val) = values
+                            .iter()
+                            .find(|v| v.name == conf.name && v.pb_data_type() == conf.data_type)
+                        else {
+                            continue;
+                        };
+                        ordered_values.push(val);
+                    }
+
+                    if ordered_values.len() == flow.channels.len() {
+                        maybe_channel_values = Some(ordered_values);
+                        break;
+                    }
+                }
+
+                let Some(channel_values) = maybe_channel_values.map(|vals| {
+                    vals.into_iter()
+                        .map(|v| IngestWithConfigDataChannelValue {
+                            r#type: Some(v.pb_value()),
+                        })
+                        .collect::<Vec<IngestWithConfigDataChannelValue>>()
+                }) else {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!(
+                        values = format!("{values:?}"),
+                        "encountered channel values for which there is no configured flow"
+                    );
+                    return Poll::Ready(None);
                 };
-                ordered_values.push(val);
-            }
 
-            if ordered_values.len() == flow.channels.len() {
-                maybe_channel_values = Some(ordered_values);
-                break;
+                let request = IngestWithConfigDataStreamRequest {
+                    flow: name,
+                    ingestion_config_id: self.ingestion_config_id.clone(),
+                    timestamp: Some(timestamp.0),
+                    run_id: self.run_id.clone().unwrap_or_default(),
+                    channel_values,
+                    ..Default::default()
+                };
+
+                Poll::Ready(Some(request))
             }
         }
-
-        let Some(channel_values) = maybe_channel_values.map(|vals| {
-            vals.into_iter()
-                .map(|v| IngestWithConfigDataChannelValue {
-                    r#type: Some(v.pb_value()),
-                })
-                .collect::<Vec<IngestWithConfigDataChannelValue>>()
-        }) else {
-            #[cfg(feature = "tracing")]
-            tracing::error!(
-                values = format!("{values:?}"),
-                "encountered channel values for which there is no configured flow"
-            );
-            return Poll::Ready(None);
-        };
-
-        let request = IngestWithConfigDataStreamRequest {
-            flow,
-            ingestion_config_id: self.ingestion_config_id.clone(),
-            timestamp: Some(timestamp.0),
-            run_id: self.run_id.clone().unwrap_or_default(),
-            channel_values,
-            ..Default::default()
-        };
-
-        Poll::Ready(Some(request))
     }
 }

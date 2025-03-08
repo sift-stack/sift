@@ -196,6 +196,13 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         ))
     }
 
+    /// Sets the minimum duration a stream will transmit data before requesting an
+    /// acknowledgment from Sift that all data sent up to that point has been received.
+    ///
+    /// Checkpointing terminates the current stream and starts a new one. However, a
+    /// checkpoint is not guaranteed to occur precisely at this interval, especially if
+    /// the stream remains open but idle. Checkpointing only occurs when data is actively
+    /// being sent on the stream.
     pub fn checkpoint_interval(
         mut self,
         duration: Duration,
