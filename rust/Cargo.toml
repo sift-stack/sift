@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
-members = [ "crates/sift_error",
+members = [
+  "crates/sift_error",
   "crates/sift_rs",
   "crates/sift_stream",
   "crates/sift_error",

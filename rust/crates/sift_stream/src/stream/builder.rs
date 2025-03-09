@@ -4,7 +4,10 @@ use sift_error::prelude::*;
 use sift_rs::{
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     runs::v2::Run,
-    wrappers::{ingestion_configs::IngestionConfigServiceWrapper, runs::RunServiceWrapper},
+    wrappers::{
+        ingestion_configs::{new_ingestion_config_service, IngestionConfigServiceWrapper},
+        runs::{new_run_service, RunServiceWrapper},
+    },
 };
 use std::{collections::HashSet, marker::PhantomData, time::Duration};
 
@@ -64,12 +67,12 @@ impl<C: SiftStreamMode> SiftStreamBuilder<C> {
         #[cfg(feature = "tracing")]
         let _info_span = tracing::info_span!("run_from_selector");
 
-        let mut run_service = RunServiceWrapper::new(grpc_channel);
+        let mut run_service = new_run_service(grpc_channel);
 
         match selector {
-            RunSelector::Id(run_id) => run_service.try_get_run_by_id(run_id).await,
+            RunSelector::Id(run_id) => run_service.try_get_run_by_id(&run_id).await,
             RunSelector::ClientKey(client_key) => {
-                run_service.try_get_run_by_client_key(client_key).await
+                run_service.try_get_run_by_client_key(&client_key).await
             }
             RunSelector::Form {
                 name,
@@ -80,9 +83,9 @@ impl<C: SiftStreamMode> SiftStreamBuilder<C> {
                 Err(e) if e.kind() == ErrorKind::NotFoundError => {
                     let run = run_service
                         .try_create_run(
-                            name,
-                            client_key,
-                            description.unwrap_or_default(),
+                            &name,
+                            &client_key,
+                            &description.unwrap_or_default(),
                             tags.unwrap_or_default().as_slice(),
                         )
                         .await?;
@@ -218,7 +221,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         #[cfg(feature = "tracing")]
         let _info_span = tracing::info_span!("ingestion_config_from_selector");
 
-        let mut ingestion_config_service = IngestionConfigServiceWrapper::new(grpc_channel);
+        let mut ingestion_config_service = new_ingestion_config_service(grpc_channel);
 
         match selector {
             IngestionConfigSelector::Id(ingestion_config_id) => {
@@ -252,7 +255,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                 {
                     Err(err) if err.kind() == ErrorKind::NotFoundError => {
                         let ingestion_config = ingestion_config_service
-                            .try_create_ingestion_config(asset_name, client_key, &flows)
+                            .try_create_ingestion_config(&asset_name, &client_key, &flows)
                             .await?;
                         let flows = ingestion_config_service
                             .try_filter_flows(&ingestion_config.ingestion_config_id, "")

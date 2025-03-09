@@ -5,27 +5,69 @@ use crate::ingestion_configs::v2::{
     GetIngestionConfigRequest, IngestionConfig, ListIngestionConfigFlowsRequest,
     ListIngestionConfigFlowsResponse, ListIngestionConfigsRequest,
 };
+use async_trait::async_trait;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use std::ops::{Deref, DerefMut};
 
-/// A convience wrapper around [IngestionConfigServiceClient].
-pub struct IngestionConfigServiceWrapper(IngestionConfigServiceClient<SiftChannel>);
+/// Return an implementation of [IngestionConfigServiceWrapper] which also exposes methods from the
+/// raw [IngestionConfigServiceClient].
+pub fn new_ingestion_config_service(
+    grpc_channel: SiftChannel,
+) -> impl IngestionConfigServiceWrapper {
+    IngestionConfigServiceImpl(IngestionConfigServiceClient::new(grpc_channel))
+}
 
-impl IngestionConfigServiceWrapper {
-    pub fn new(grpc_channel: SiftChannel) -> Self {
-        Self(IngestionConfigServiceClient::new(grpc_channel))
-    }
-
+/// Convenience methods on top of [IngestionConfigServiceClient].
+#[async_trait]
+pub trait IngestionConfigServiceWrapper:
+    Deref<Target = IngestionConfigServiceClient<SiftChannel>> + DerefMut
+{
     /// Create an ingestion config.
-    pub async fn try_create_ingestion_config<S: AsRef<str>>(
+    async fn try_create_ingestion_config(
         &mut self,
-        asset_name: S,
-        client_key: S,
+        asset_name: &str,
+        client_key: &str,
+        flows: &[FlowConfig],
+    ) -> Result<IngestionConfig>;
+
+    /// Retrieve ingestion config by ID.
+    async fn try_get_ingestion_config_by_id(&mut self, id: &str) -> Result<IngestionConfig>;
+
+    /// Retrieve ingestion config by client key.
+    async fn try_get_ingestion_config_by_client_key(
+        &mut self,
+        client_key: &str,
+    ) -> Result<IngestionConfig>;
+
+    /// Create [FlowConfig]s for a given ingestion config. If this function does not return an
+    /// error, then it is safe to assume that all [FlowConfig]s in `configs` was created.
+    async fn try_create_flows(
+        &mut self,
+        ingestion_config_id: &str,
+        configs: &[FlowConfig],
+    ) -> Result<()>;
+
+    /// Retrieve all flows that satisfy the provided filter.
+    async fn try_filter_flows(
+        &mut self,
+        ingestion_config_id: &str,
+        filter: &str,
+    ) -> Result<Vec<FlowConfig>>;
+}
+
+/// A convience wrapper around [IngestionConfigServiceClient].
+struct IngestionConfigServiceImpl(IngestionConfigServiceClient<SiftChannel>);
+
+#[async_trait]
+impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
+    /// Create an ingestion config.
+    async fn try_create_ingestion_config(
+        &mut self,
+        asset_name: &str,
+        client_key: &str,
         flows: &[FlowConfig],
     ) -> Result<IngestionConfig> {
-        let asset_name = asset_name.as_ref().to_string();
-        let client_key = client_key.as_ref().to_string();
         let flows = flows.to_vec();
 
         if asset_name.is_empty() {
@@ -43,8 +85,8 @@ impl IngestionConfigServiceWrapper {
         }
 
         self.create_ingestion_config(CreateIngestionConfigRequest {
-            asset_name,
-            client_key,
+            asset_name: asset_name.to_string(),
+            client_key: client_key.to_string(),
             flows,
             ..Default::default()
         })
@@ -59,72 +101,32 @@ impl IngestionConfigServiceWrapper {
     }
 
     /// Retrieve ingestion config by ID.
-    pub async fn try_get_ingestion_config_by_id<S: AsRef<str>>(
-        &mut self,
-        id: S,
-    ) -> Result<IngestionConfig> {
-        let id = id.as_ref().to_string();
-
+    async fn try_get_ingestion_config_by_id(&mut self, id: &str) -> Result<IngestionConfig> {
         if id.is_empty() {
             return Err(Error::new_arg_error("ingestion config ID cannot be blank"));
         }
-        self.try_get_ingestion_config(ResourceIdentifier::Id(id))
+        self.try_get_ingestion_config(ResourceIdentifier::Id(id.to_string()))
             .await
     }
 
     /// Retrieve ingestion config by client key.
-    pub async fn try_get_ingestion_config_by_client_key<S: AsRef<str>>(
+    async fn try_get_ingestion_config_by_client_key(
         &mut self,
-        client_key: S,
+        client_key: &str,
     ) -> Result<IngestionConfig> {
-        let client_key = client_key.as_ref().to_string();
-
         if client_key.is_empty() {
             return Err(Error::new_msg(
                 ErrorKind::ArgumentValidationError,
                 "ingestion config client key cannot be blank",
             ));
         }
-        self.try_get_ingestion_config(ResourceIdentifier::ClientKey(client_key))
+        self.try_get_ingestion_config(ResourceIdentifier::ClientKey(client_key.to_string()))
             .await
-    }
-
-    /// Retrieves an ingestion config by ID or client-key.
-    async fn try_get_ingestion_config(
-        &mut self,
-        identifier: ResourceIdentifier,
-    ) -> Result<IngestionConfig> {
-        match identifier {
-            ResourceIdentifier::Id(ingestion_config_id) => {
-                self.get_ingestion_config(GetIngestionConfigRequest { ingestion_config_id })
-                    .await
-                    .map(|res| res.into_inner().ingestion_config)
-                    .map_err(|e| Error::new(ErrorKind::RetrieveIngestionConfigError, e))
-                    .context("failed to try_get ingestion config")
-                    .help("make sure that the provided ingestion config ID is valid")?
-                    .ok_or_else(|| Error::new_empty_response("unexpected empty response from IngestionConfigService/GetIngestionConfigRequest"))
-            }
-
-            ResourceIdentifier::ClientKey(client_key) => {
-                let filter = format!("client_key = '{client_key}'");
-                let conf = self
-                    .list_ingestion_configs(ListIngestionConfigsRequest { filter, page_size: 1, ..Default::default() })
-                    .await
-                    .map(|res| res.into_inner().ingestion_configs)
-                    .map_err(|e| Error::new(ErrorKind::RetrieveIngestionConfigError, e))
-                    .context("failed to try_get ingestion config")
-                    .help("ensure that the provided client key is valid")?;
-
-                conf.first()
-                    .cloned()
-                    .ok_or_else(|| Error::new_msg(ErrorKind::NotFoundError, "no ingestion config found with provided client key"))
-            }
-        }
     }
 
     /// Create [FlowConfig]s for a given ingestion config. If this function does not return an
     /// error, then it is safe to assume that all [FlowConfig]s in `configs` was created.
-    pub async fn try_create_flows(
+    async fn try_create_flows(
         &mut self,
         ingestion_config_id: &str,
         configs: &[FlowConfig],
@@ -140,7 +142,7 @@ impl IngestionConfigServiceWrapper {
     }
 
     /// Retrieve all flows that satisfy the provided filter.
-    pub async fn try_filter_flows(
+    async fn try_filter_flows(
         &mut self,
         ingestion_config_id: &str,
         filter: &str,
@@ -184,7 +186,42 @@ impl IngestionConfigServiceWrapper {
     }
 }
 
-impl Deref for IngestionConfigServiceWrapper {
+impl IngestionConfigServiceImpl {
+    /// Retrieves an ingestion config by ID or client-key.
+    async fn try_get_ingestion_config(
+        &mut self,
+        identifier: ResourceIdentifier,
+    ) -> Result<IngestionConfig> {
+        match identifier {
+            ResourceIdentifier::Id(ingestion_config_id) => {
+                self.get_ingestion_config(GetIngestionConfigRequest { ingestion_config_id })
+                    .await
+                    .map(|res| res.into_inner().ingestion_config)
+                    .map_err(|e| Error::new(ErrorKind::RetrieveIngestionConfigError, e))
+                    .context("failed to try_get ingestion config")
+                    .help("make sure that the provided ingestion config ID is valid")?
+                    .ok_or_else(|| Error::new_empty_response("unexpected empty response from IngestionConfigService/GetIngestionConfigRequest"))
+            }
+
+            ResourceIdentifier::ClientKey(client_key) => {
+                let filter = format!("client_key = '{client_key}'");
+                let conf = self
+                    .list_ingestion_configs(ListIngestionConfigsRequest { filter, page_size: 1, ..Default::default() })
+                    .await
+                    .map(|res| res.into_inner().ingestion_configs)
+                    .map_err(|e| Error::new(ErrorKind::RetrieveIngestionConfigError, e))
+                    .context("failed to try_get ingestion config")
+                    .help("ensure that the provided client key is valid")?;
+
+                conf.first()
+                    .cloned()
+                    .ok_or_else(|| Error::new_msg(ErrorKind::NotFoundError, "no ingestion config found with provided client key"))
+            }
+        }
+    }
+}
+
+impl Deref for IngestionConfigServiceImpl {
     type Target = IngestionConfigServiceClient<SiftChannel>;
 
     fn deref(&self) -> &Self::Target {
@@ -192,7 +229,7 @@ impl Deref for IngestionConfigServiceWrapper {
     }
 }
 
-impl DerefMut for IngestionConfigServiceWrapper {
+impl DerefMut for IngestionConfigServiceImpl {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

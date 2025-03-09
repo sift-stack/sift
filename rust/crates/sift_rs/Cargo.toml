@@ -16,14 +16,14 @@ license = "MIT"
 
 [dependencies]
 async-trait = "^0.1"
-pbjson = "^0.6"
-pbjson-types = "^0.6"
-prost = "^0.12"
-prost-types = "^0.12"
+pbjson = "^0.7"
+pbjson-types = "^0.7"
+prost = "^0.13"
+prost-types = "^0.13"
 serde = { version = "^1.0" }
 sift_connect = { version = "0.1.0", path = "../sift_connect" }
 sift_error = { version = "0.1.0", path = "../sift_error" }
-tonic = { version = "^0.11", features = ["tls", "tls-roots", "tls-webpki-roots"] }
+tonic = { version = "0.12", features = ["tls", "tls-roots", "tls-webpki-roots"] }
 
 [dev-dependencies]
 chrono = "0.4.38"
