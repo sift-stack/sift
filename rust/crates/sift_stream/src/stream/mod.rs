@@ -6,6 +6,7 @@ pub mod channel;
 
 /// Implementations for streaming modes.
 pub mod mode;
+pub use mode::ingestion_config::IngestionConfigMode;
 
 pub mod time;
 

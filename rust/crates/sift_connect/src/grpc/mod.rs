@@ -9,8 +9,8 @@ use tower::ServiceBuilder;
 mod config;
 pub use config::{Credentials, SiftChannelConfig};
 
-mod interceptor;
-use interceptor::AuthInterceptor;
+pub mod interceptor;
+pub use interceptor::AuthInterceptor;
 
 /// A pre-configured gRPC channel to conveniently establish a connection to Sift's gRPC API.
 pub type SiftChannel = InterceptedService<Channel, AuthInterceptor>;

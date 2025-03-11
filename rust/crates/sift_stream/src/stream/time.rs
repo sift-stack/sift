@@ -54,6 +54,12 @@ impl TimeValue {
     }
 }
 
+impl From<DateTime<Utc>> for TimeValue {
+    fn from(value: DateTime<Utc>) -> Self {
+        Self(Timestamp::from(value))
+    }
+}
+
 impl Deref for TimeValue {
     type Target = Timestamp;
 

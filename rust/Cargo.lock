@@ -1183,13 +1183,18 @@ dependencies = [
 name = "sift_stream"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
  "futures-core",
+ "hyper-util",
  "pbjson-types",
  "sift_connect",
  "sift_error",
  "sift_rs",
  "tokio",
+ "tokio-stream",
+ "tonic",
+ "tower 0.5.2",
  "tracing",
 ]
 
