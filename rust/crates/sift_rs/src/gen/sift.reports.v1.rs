@@ -137,8 +137,6 @@ pub struct ReportRuleStatusDetailsError {
     #[prost(string, optional, tag="4")]
     pub stderr: ::core::option::Option<::prost::alloc::string::String>,
 }
-/// The request of a call to `ReportService_CreateReport` to create a report. A report can be created either via a report template
-/// or an arbitrary report can be constructed depending on the variant of the `request` field.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateReportRequest {
@@ -146,7 +144,6 @@ pub struct CreateReportRequest {
     pub organization_id: ::prost::alloc::string::String,
     #[prost(string, tag="4")]
     pub run_id: ::prost::alloc::string::String,
-    /// Override the name of the report. If not provided, the name will be generated based on the report template or run.
     #[prost(string, optional, tag="5")]
     pub name: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(oneof="create_report_request::Request", tags="1, 2")]
@@ -163,22 +160,18 @@ pub mod create_report_request {
         ReportFromRulesRequest(super::CreateReportFromRulesRequest),
     }
 }
-/// The response of a call to `ReportService_CreateReport` to create a report.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateReportResponse {
     #[prost(message, optional, tag="1")]
     pub report: ::core::option::Option<Report>,
 }
-/// Used to create a report from a report template.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateReportFromReportTemplateRequest {
     #[prost(string, tag="1")]
     pub report_template_id: ::prost::alloc::string::String,
 }
-/// Used to construct an arbitrary report for an arbitrary set of rules. Rules can be specified either by rule ID
-/// or client key based on the variant used in the `rule_identifiers` field.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateReportFromRulesRequest {
@@ -214,53 +207,32 @@ pub struct CreateReportRequestClientKeys {
     #[prost(string, repeated, tag="1")]
     pub rule_client_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-/// The request for a call to `ReportService_GetReport` to retrieve a report template.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetReportRequest {
     #[prost(string, tag="1")]
     pub report_id: ::prost::alloc::string::String,
 }
-/// The request of a call to `ReportService_GetReport` to retrieve a report template.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetReportResponse {
     #[prost(message, optional, tag="1")]
     pub report: ::core::option::Option<Report>,
 }
-/// The request for a call to `ReportService_ListReports` to retrieve report.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListReportsRequest {
-    /// The maximum number of reports to return. The service may return fewer than this value.
-    /// If unspecified, at most 50 reports will be returned. The maximum value is 1000; values above
-    /// 1000 will be coerced to 1000. Optional.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
-    /// A page token, received from a previous `ListReports` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `ListReports` must match
-    /// the call that provided the page token. Optional.
     #[prost(string, tag="2")]
     pub page_token: ::prost::alloc::string::String,
-    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
-    /// Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, and `run_id`.
-    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
-    /// This field is only required if your user belongs to multiple organizations.
     #[prost(string, tag="4")]
     pub organization_id: ::prost::alloc::string::String,
-    /// How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME\[ desc\],...".
-    /// Available fields to order_by are `created_date` and `modified_date`.
-    /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
-    /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)
-    /// Example: "created_date desc,modified_date"
     #[prost(string, tag="5")]
     pub order_by: ::prost::alloc::string::String,
 }
-/// The response of a call to `ReportService_ListReportsResponse`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListReportsResponse {
@@ -289,7 +261,6 @@ pub struct CancelReportRequest {
     #[prost(string, tag="1")]
     pub report_id: ::prost::alloc::string::String,
 }
-/// no response fields
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct CancelReportResponse {

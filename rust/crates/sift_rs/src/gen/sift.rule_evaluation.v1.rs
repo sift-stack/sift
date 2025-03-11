@@ -5,10 +5,8 @@
 pub struct EvaluateRulesRequest {
     #[prost(message, optional, tag="6")]
     pub annotation_options: ::core::option::Option<EvaluateRulesAnnotationOptions>,
-    /// Only required if your user belongs to multiple organizations
     #[prost(string, tag="7")]
     pub organization_id: ::prost::alloc::string::String,
-    /// If this request creates a report, this field will be used as the report name.
     #[prost(string, optional, tag="8")]
     pub report_name: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(oneof="evaluate_rules_request::Time", tags="1, 2")]
@@ -76,17 +74,14 @@ pub struct EvaluateRulesAnnotationOptions {
 pub struct EvaluateRulesResponse {
     #[prost(int32, tag="1")]
     pub created_annotation_count: i32,
-    /// A report will be generated if rules were evaluated against a run.
     #[prost(string, optional, tag="2")]
     pub report_id: ::core::option::Option<::prost::alloc::string::String>,
-    /// This will be set if the job has an extended run time and is being processed asynchronously.
     #[prost(string, optional, tag="3")]
     pub job_id: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EvaluateRulesPreviewRequest {
-    /// Only required if your user belongs to multiple organizations
     #[prost(string, tag="7")]
     pub organization_id: ::prost::alloc::string::String,
     #[prost(oneof="evaluate_rules_preview_request::Time", tags="1")]

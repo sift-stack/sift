@@ -28,7 +28,6 @@ pub struct Rule {
     pub conditions: ::prost::alloc::vec::Vec<RuleCondition>,
     #[prost(message, optional, tag="13")]
     pub rule_version: ::core::option::Option<RuleVersion>,
-    /// client_key is a client provided identifier for the rule. It is immutable after rule creation.
     #[prost(string, tag="14")]
     pub client_key: ::prost::alloc::string::String,
     #[prost(message, optional, tag="15")]
@@ -103,7 +102,6 @@ pub struct AssetExpressionValidationResult {
     pub asset_id: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub asset_name: ::prost::alloc::string::String,
-    /// asset_tag_id is the tag_id that caused this asset to be included in the rule
     #[prost(string, tag="3")]
     pub asset_tag_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="4")]
@@ -112,13 +110,10 @@ pub struct AssetExpressionValidationResult {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SearchRulesRequest {
-    /// Max number of rules to return (returns all if omitted).
     #[prost(uint32, optional, tag="1")]
     pub limit: ::core::option::Option<u32>,
-    /// Only applies if limit provided.
     #[prost(uint32, tag="2")]
     pub offset: u32,
-    /// Order to sort results by (defaults to ascending).
     #[prost(enumeration="SearchOrder", optional, tag="3")]
     pub order: ::core::option::Option<i32>,
     #[prost(string, tag="4")]
@@ -129,15 +124,12 @@ pub struct SearchRulesRequest {
     pub regexp: bool,
     #[prost(string, optional, tag="7")]
     pub order_by: ::core::option::Option<::prost::alloc::string::String>,
-    /// If provided, only returns rules with the given ids
     #[prost(string, repeated, tag="8")]
     pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    /// If provided, only returns rules that apply to the given asset ids
     #[prost(string, repeated, tag="9")]
     pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(bool, tag="10")]
     pub include_deleted: bool,
-    /// If provided, returns rules with assets that have the given tags
     #[prost(message, optional, tag="11")]
     pub asset_tags: ::core::option::Option<super::super::common::r#type::v1::NamedResources>,
 }
@@ -146,11 +138,9 @@ pub struct SearchRulesRequest {
 pub struct SearchRulesResponse {
     #[prost(uint32, tag="1")]
     pub count: u32,
-    /// Conditions are not included in the search response. The latest version of the rule is returned.
     #[prost(message, repeated, tag="2")]
     pub rules: ::prost::alloc::vec::Vec<Rule>,
 }
-/// GetRuleRequest is used to retrieve a rule by rule_id or client_key. If both are provided, only rule_id will be used.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetRuleRequest {
@@ -165,7 +155,6 @@ pub struct GetRuleResponse {
     #[prost(message, optional, tag="1")]
     pub rule: ::core::option::Option<Rule>,
 }
-/// BatchGetRulesRequest is used to retrieve rules by rule_ids or client_keys. If both are provided, both will be used to retrieve rules.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchGetRulesRequest {
@@ -192,7 +181,6 @@ pub struct CreateRuleResponse {
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
 }
-/// UpdateRuleRequest is used to create or update a rule. If the rule_id or client_key is provided, the rule will be updated. If not, a new rule will be created.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateRuleRequest {
@@ -202,7 +190,6 @@ pub struct UpdateRuleRequest {
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
     pub description: ::prost::alloc::string::String,
-    /// Deprecated - use asset_configuration instead.
     #[deprecated]
     #[prost(string, tag="4")]
     pub asset_id: ::prost::alloc::string::String,
@@ -214,7 +201,6 @@ pub struct UpdateRuleRequest {
     pub organization_id: ::prost::alloc::string::String,
     #[prost(string, tag="8")]
     pub version_notes: ::prost::alloc::string::String,
-    /// client_key is a client provided identifier for the rule. It is immutable after being set
     #[prost(string, optional, tag="9")]
     pub client_key: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="10")]
@@ -255,26 +241,18 @@ pub struct ValidationResult {
     pub rule_id: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub client_key: ::prost::alloc::string::String,
-    /// If the expression is invalid for an asset, one or more AssetExpressionValidationResult will be returned. This may block
-    /// saving if the override_expression_validation flag is not set.
     #[prost(message, repeated, tag="3")]
     pub asset_expression_validation_results: ::prost::alloc::vec::Vec<AssetExpressionValidationResult>,
-    /// If the rule is invalid and unable to be saved, this will contain the error message. Expression errors will be returned in
-    /// the asset_expression_validation_results.
     #[prost(string, optional, tag="4")]
     pub error: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchUpdateRulesRequest {
-    /// rules are limited 1000 rules at a time
     #[prost(message, repeated, tag="1")]
     pub rules: ::prost::alloc::vec::Vec<UpdateRuleRequest>,
-    /// If validate_only is true, the request will only validate the request and not save the rules.
     #[prost(bool, tag="2")]
     pub validate_only: bool,
-    /// If override_expression_validation is true, the request will save the rules even if the expressions are invalid. This
-    /// can be useful for multi-asset rules where an invalid expression for one asset should not prevent the rule from being saved.
     #[prost(bool, tag="3")]
     pub override_expression_validation: bool,
 }
@@ -283,20 +261,15 @@ pub struct BatchUpdateRulesRequest {
 pub struct BatchUpdateRulesResponse {
     #[prost(bool, tag="1")]
     pub success: bool,
-    /// The total number of rules created in the request. If validate_only is true, this will indicate how many rules would have been created.
     #[prost(int32, tag="2")]
     pub rules_created_count: i32,
-    /// The total number of rules updated in the request. If validate_only is true, this will indicate how many rules would have been updated.
     #[prost(int32, tag="3")]
     pub rules_updated_count: i32,
-    /// This will be true if the request only validated the request and did not save the rules.
     #[prost(bool, tag="4")]
     pub validate_only: bool,
-    /// One ValidationResult per rule in the request will be returned
     #[prost(message, repeated, tag="5")]
     pub validation_results: ::prost::alloc::vec::Vec<ValidationResult>,
 }
-/// DeleteRuleRequest is used to delete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteRuleRequest {
@@ -309,7 +282,6 @@ pub struct DeleteRuleRequest {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct DeleteRuleResponse {
 }
-/// BatchDeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchDeleteRulesRequest {
@@ -322,7 +294,6 @@ pub struct BatchDeleteRulesRequest {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct BatchDeleteRulesResponse {
 }
-/// UndeleteRuleRequest is used to undelete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UndeleteRuleRequest {
@@ -335,7 +306,6 @@ pub struct UndeleteRuleRequest {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct UndeleteRuleResponse {
 }
-/// BatchUndeleteRulesRequest is used to delete a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchUndeleteRulesRequest {
@@ -348,21 +318,18 @@ pub struct BatchUndeleteRulesRequest {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct BatchUndeleteRulesResponse {
 }
-/// Deprecated - use ViewJsonRulesRequest.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ViewHumanFriendlyRulesRequest {
     #[prost(string, tag="1")]
     pub asset_id: ::prost::alloc::string::String,
 }
-/// Deprecated - use ViewJsonRulesResponse.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ViewHumanFriendlyRulesResponse {
     #[prost(string, tag="1")]
     pub rules_json: ::prost::alloc::string::String,
 }
-/// Deprecated - use UpdateJsonRulesRequest.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateHumanFriendlyRulesRequest {
@@ -373,7 +340,6 @@ pub struct UpdateHumanFriendlyRulesRequest {
     #[prost(string, tag="3")]
     pub organization_id: ::prost::alloc::string::String,
 }
-/// Deprecated - use UpdateJsonRulesResponse.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateHumanFriendlyRulesResponse {
@@ -449,27 +415,12 @@ pub struct UpdateJsonRulesResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRulesRequest {
-    /// The maximum number of Rules to return.
-    /// The service may return fewer than this value.
-    /// If unspecified, at most 50 Rules will be returned.
-    /// The maximum value is 1000; values above 1000 will be coerced to 1000.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
-    /// A page token, received from a previous `ListRules` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `ListRules` must match
-    /// the call that provided the page token.
     #[prost(string, tag="2")]
     pub page_token: ::prost::alloc::string::String,
-    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
-    /// Available fields to filter by are `rule_id`, `client_key`, `name`, and `description`.
-    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
-    /// How to order the retrieved Rules. Formatted as a comma-separated string i.e. "FIELD_NAME\[ desc\],...".
-    /// Available fields to order_by are `created_date` and `modified_date`.
-    /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
     #[prost(string, tag="4")]
     pub order_by: ::prost::alloc::string::String,
 }
@@ -486,21 +437,10 @@ pub struct ListRulesResponse {
 pub struct ListRuleVersionsRequest {
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
-    /// The maximum number of Rule Versions to return.
-    /// The service may return fewer than this value.
-    /// If unspecified, at most 50 Rule Versions will be returned.
-    /// The maximum value is 1000; values above 1000 will be coerced to 1000.
     #[prost(uint32, tag="2")]
     pub page_size: u32,
-    /// A page token, received from a previous `ListRuleVersions` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `ListRuleVersions` must match
-    /// the call that provided the page token.
     #[prost(string, tag="3")]
     pub page_token: ::prost::alloc::string::String,
-    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
-    /// Available fields to filter by are `rule_version_id`, `user_notes`,  and `change_message`.
-    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>). Optional.
     #[prost(string, tag="4")]
     pub filter: ::prost::alloc::string::String,
 }
@@ -573,24 +513,20 @@ pub mod rule_condition_expression {
         CalculatedChannel(super::CalculatedChannelConfig),
     }
 }
-/// Deprecated - use CalculatedChannelConfig.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SingleChannelComparisonExpression {
-    /// Deprecated - use channel_name instead. If provided, channel_component will be joined with the name as `channel_component.channel_name`
     #[prost(string, tag="1")]
     pub channel_component: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub channel_name: ::prost::alloc::string::String,
     #[prost(enumeration="ConditionComparator", tag="3")]
     pub comparator: i32,
-    /// Threshold can be either a double or a string. Boolean values are encoded as 1 or 0. Enum values are stored as the string representation.
     #[prost(oneof="single_channel_comparison_expression::Threshold", tags="4, 5, 6")]
     pub threshold: ::core::option::Option<single_channel_comparison_expression::Threshold>,
 }
 /// Nested message and enum types in `SingleChannelComparisonExpression`.
 pub mod single_channel_comparison_expression {
-    /// Threshold can be either a double or a string. Boolean values are encoded as 1 or 0. Enum values are stored as the string representation.
     #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Threshold {
@@ -619,7 +555,6 @@ pub struct CalculatedChannelConfig {
 pub struct ChannelReference {
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
-    /// Deprecated - use name instead. If provided, name will be joined with the component as `component.name`
     #[prost(string, tag="2")]
     pub component: ::prost::alloc::string::String,
 }
@@ -656,7 +591,6 @@ pub struct AnnotationActionConfiguration {
     #[prost(string, optional, tag="3")]
     pub assigned_to_user_id: ::core::option::Option<::prost::alloc::string::String>,
 }
-/// Deprecated - use RuleEvaluationService instead.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EvaluateRulesRequest {
@@ -694,16 +628,13 @@ pub struct TimeRangeQuery {
     #[prost(message, optional, tag="2")]
     pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
 }
-/// Deprecated - use RuleEvaluationService instead.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EvaluateRulesResponse {
     #[prost(int32, tag="1")]
     pub created_annotation_count: i32,
-    /// If dry_run is true, this will be populated with the annotations that would be created
     #[prost(message, repeated, tag="2")]
     pub dry_run_annotations: ::prost::alloc::vec::Vec<DryRunAnnotation>,
-    /// job_id and report_id will be set if the job has an extended run time and is being processed asynchronously.
     #[prost(string, optional, tag="3")]
     pub job_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="4")]

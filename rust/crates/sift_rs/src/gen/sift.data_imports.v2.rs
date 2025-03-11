@@ -3,8 +3,6 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateDataImportFromUrlRequest {
-    /// The url to import. HTTP and S3 urls are supported.
-    /// If you need to import non-public S3 objects, please contact Sift to set that up.
     #[prost(string, tag="1")]
     pub url: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -57,23 +55,18 @@ pub struct CsvConfig {
     pub asset_name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub run_name: ::prost::alloc::string::String,
-    /// The id of the run to add this data to. If set, `run_name` is ignored.
     #[prost(string, tag="3")]
     pub run_id: ::prost::alloc::string::String,
-    /// The first row to start reading as data. Can be used to skip header rows.
-    /// The first row in the file is 1.
     #[prost(uint32, tag="4")]
     pub first_data_row: u32,
     #[prost(message, optional, tag="5")]
     pub time_column: ::core::option::Option<CsvTimeColumn>,
-    /// A map from column number (1-indexed) to the channel configuration for that column.
     #[prost(map="uint32, message", tag="6")]
     pub data_columns: ::std::collections::HashMap<u32, super::super::common::r#type::v1::ChannelConfig>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct CsvTimeColumn {
-    /// The column number (1-indexed) of the time column.
     #[prost(uint32, tag="1")]
     pub column_number: u32,
     #[prost(enumeration="TimeFormat", tag="2")]
@@ -110,8 +103,6 @@ pub struct TdmsConfig {
     pub asset_name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub run_name: ::prost::alloc::string::String,
-    /// Override the wf_start_time metadata field for all channels.
-    /// Useful if your waveform channels have wf_increment but no wf_start_time (Veristand is guilty of this).
     #[prost(message, optional, tag="3")]
     pub start_time_override: ::core::option::Option<::pbjson_types::Timestamp>,
 }
@@ -140,27 +131,12 @@ pub struct DataImport {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListDataImportsRequest {
-    /// The maximum number of data imports to return. The service may return fewer than this value.
-    /// If unspecified, at most 50 data imports will be returned. The maximum value is 1000; values above
-    /// 1000 will be coerced to 1000. Optional.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
-    /// A page token, received from a previous `ListDataImports` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `ListDataImports` must match
-    /// the call that provided the page token. Optional.
     #[prost(string, tag="2")]
     pub page_token: ::prost::alloc::string::String,
-    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
-    /// Available fields to filter by are `data_import_id`, `source_url`, `status`.
-    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
-    /// How to order the retrieved data imports. Formatted as a comma-separated string i.e. "FIELD_NAME\[ desc\],...".
-    /// Available fields to order_by are `created_date` and `modified_date`.
-    /// If left empty, items are ordered by `created_date` in ascending order (oldest-first).
-    /// For more information about the format of this field, read [this](<https://google.aip.dev/132#ordering>)
-    /// Example: "created_date desc,modified_date"
     #[prost(string, tag="4")]
     pub order_by: ::prost::alloc::string::String,
 }
@@ -175,8 +151,6 @@ pub struct ListDataImportsResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RetryDataImportRequest {
-    /// data_import_id is the id of the data import to retry.
-    /// You can only retry an import that is a "url" based import (created with CreateDataImportFromUrl) and is in a failed state.
     #[prost(string, tag="1")]
     pub data_import_id: ::prost::alloc::string::String,
 }

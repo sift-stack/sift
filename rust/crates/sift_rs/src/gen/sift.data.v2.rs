@@ -5,30 +5,14 @@
 pub struct GetDataRequest {
     #[prost(message, repeated, tag="1")]
     pub queries: ::prost::alloc::vec::Vec<Query>,
-    /// Required. The starting timestamp of the data to retrieve. This is an inclusive bound.
     #[prost(message, optional, tag="2")]
     pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
-    /// Required. The end timestamp of the data to retrieve. This is an exclusive bound.
     #[prost(message, optional, tag="3")]
     pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
-    /// The rate to sample the returned data at. The data is sampled using [LTTB](<https://github.com/sveinn-steinarsson/flot-downsample>)
-    /// which will return one point approximately every sample_ms milliseconds that retains the shape of the raw data.
-    /// Sampling is only supported for numeric data types, if sample_ms is provided for non-numeric data, it will be
-    /// ignored and the full-fidelity data will be returned.
     #[prost(uint32, tag="4")]
     pub sample_ms: u32,
-    /// The maximum number of channel values to return.
-    /// The service may return fewer than this value.
-    /// If unspecified, at most 10,000 values will be returned.
-    /// The maximum value is 100,000; values above 100,000 will be coerced to 100,000.
-    /// For variable data types (i.e. string channels), at most page_size elements
-    /// will be read, or 1MB, whichever occurs first.
     #[prost(uint32, tag="5")]
     pub page_size: u32,
-    /// A page token, received from a previous `GetData` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `GetData` must match
-    /// the call that provided the page token.
     #[prost(string, tag="6")]
     pub page_token: ::prost::alloc::string::String,
 }
@@ -52,13 +36,8 @@ pub mod query {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ChannelQuery {
-    /// channel_id is the uuid of the channel.
     #[prost(string, tag="1")]
     pub channel_id: ::prost::alloc::string::String,
-    /// Optional.
-    /// If set, only data associated with the specified run is returned.
-    /// If set to the empty string, only non-run data is returned.
-    /// If unset, all run / non-run data is returned.
     #[prost(string, optional, tag="2")]
     pub run_id: ::core::option::Option<::prost::alloc::string::String>,
 }
@@ -69,13 +48,8 @@ pub struct CalculatedChannelQuery {
     pub channel_key: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
     pub expression: ::core::option::Option<super::super::calculated_channels::v1::ExpressionRequest>,
-    /// Optional.
-    /// If set, only data for the specified run is returned
-    /// If set to the empty string, only non-run data is returned.
-    /// If unset, all run / non-run data is returned.
     #[prost(string, optional, tag="3")]
     pub run_id: ::core::option::Option<::prost::alloc::string::String>,
-    /// Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS.
     #[prost(enumeration="super::super::calculated_channels::v1::ExpressionMode", optional, tag="4")]
     pub mode: ::core::option::Option<i32>,
 }
@@ -84,22 +58,6 @@ pub struct CalculatedChannelQuery {
 pub struct GetDataResponse {
     #[prost(string, tag="1")]
     pub next_page_token: ::prost::alloc::string::String,
-    /// data contains the result of the supplied queries.
-    /// Be aware that each query can generate multiple data responses.
-    /// For example, if run_id is omitted from a ChannelQuery, the query returns
-    /// data for all runs containing that channel. Channel data for each run is
-    /// returned in a separate data object.
-    /// Possible message types:
-    ///    sift.data.v2.DoubleValues
-    ///    sift.data.v2.FloatValues
-    ///    sift.data.v2.StringValues
-    ///    sift.data.v2.EnumValues
-    ///    sift.data.v2.BitFieldValues
-    ///    sift.data.v2.BoolValues
-    ///    sift.data.v2.Int32Values
-    ///    sift.data.v2.Int64Values
-    ///    sift.data.v2.Uint32Values
-    ///    sift.data.v2.Uint64Values
     #[prost(message, repeated, tag="2")]
     pub data: ::prost::alloc::vec::Vec<::pbjson_types::Any>,
 }
@@ -130,8 +88,6 @@ pub mod metadata {
     #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Run {
-        /// The run_id that was sent with the data during ingestion (if any).
-        /// Note that this may be different from the run_id that was requested in the query.
         #[prost(string, tag="1")]
         pub run_id: ::prost::alloc::string::String,
         #[prost(string, tag="2")]
@@ -140,8 +96,6 @@ pub mod metadata {
     #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Channel {
-        /// For channel queries, this will contain the requested backing channel id.
-        /// For calculated channel queries, this will contain the requested channel key.
         #[prost(string, tag="1")]
         pub channel_id: ::prost::alloc::string::String,
         #[prost(string, tag="2")]

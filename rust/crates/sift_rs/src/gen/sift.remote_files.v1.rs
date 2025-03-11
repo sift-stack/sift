@@ -75,46 +75,30 @@ pub struct AudioMetadata {
     #[prost(message, optional, tag="2")]
     pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
 }
-/// The request for a call to `RemoteFileService_GetRemoteFile` to retrieve a remote file;
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetRemoteFileRequest {
     #[prost(string, tag="1")]
     pub remote_file_id: ::prost::alloc::string::String,
 }
-/// The response of a call to `RemoteFileService_GetRemoteFile`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetRemoteFileResponse {
     #[prost(message, optional, tag="1")]
     pub remote_file: ::core::option::Option<RemoteFile>,
 }
-/// The request for a call to `RemoteFileService_ListRemoteFiles` to retrieve remote files.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRemoteFilesRequest {
-    /// The maximum number of remote files to return. The service may return fewer than this value.
-    /// If unspecified, at most 50 remote files will be returned. The maximum value is 1000; values above
-    /// 1000 will be coerced to 1000. Optional.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
-    /// A page token, received from a previous `ListRemoteFiles` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `ListRemoteFiles` must match
-    /// the call that provided the page token. Optional.
     #[prost(string, tag="2")]
     pub page_token: ::prost::alloc::string::String,
-    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
-    /// Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, and `file_name`.
-    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/remote_files#remotefile). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
-    /// This field is only required if your user belongs to multiple organizations.
     #[prost(string, tag="4")]
     pub organization_id: ::prost::alloc::string::String,
 }
-/// The response of a call to `RemoteFileService_ListRemoteFilesResponse`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRemoteFilesResponse {
@@ -123,7 +107,6 @@ pub struct ListRemoteFilesResponse {
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
-/// The request for a call to `RemoteFileService_CreateRemoteFile` to create a remote file.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRemoteFileRequest {
@@ -141,10 +124,8 @@ pub struct CreateRemoteFileRequest {
     pub file_size: u64,
     #[prost(string, optional, tag="7")]
     pub description: ::core::option::Option<::prost::alloc::string::String>,
-    /// This field is only required if your user belongs to multiple organizations.
     #[prost(string, tag="8")]
     pub organization_id: ::prost::alloc::string::String,
-    /// A custom UUID used to generate the object key. Recommended to be left unset.
     #[prost(string, optional, tag="11")]
     pub custom_uuid: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(oneof="create_remote_file_request::Metadata", tags="9, 10, 12")]
@@ -163,64 +144,52 @@ pub mod create_remote_file_request {
         AudioMetadata(super::AudioMetadata),
     }
 }
-/// The response for a call to `RemoteFileService_CreateRemoteFile`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRemoteFileResponse {
     #[prost(message, optional, tag="1")]
     pub remote_file: ::core::option::Option<RemoteFile>,
 }
-/// The request for a call to `RemoteFileService_DeleteRemoteFile` to delete a remote file.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteRemoteFileRequest {
     #[prost(string, tag="1")]
     pub remote_file_id: ::prost::alloc::string::String,
 }
-/// The response of a call to `RemoteFileService_DeleteRemoteFile`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct DeleteRemoteFileResponse {
 }
-/// The request for a call to `RemoteFileService_BatchDeleteRemoteFiles` to delete remote files.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchDeleteRemoteFilesRequest {
-    /// Up to 1000 remote file IDs can be provided per request.
     #[prost(string, repeated, tag="1")]
     pub remote_file_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-/// The response of a call to `RemoteFileService_BatchDeleteRemoteFiles`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct BatchDeleteRemoteFilesResponse {
 }
-/// The request for a call to `RemoteFileService_UpdateRemoteFile` to update a remote file.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateRemoteFileRequest {
-    /// The remote file to update.
     #[prost(message, optional, tag="1")]
     pub remote_file: ::core::option::Option<RemoteFile>,
-    /// The list of fields to be updated. The fields available to be updated are `description` and `metadata`.
     #[prost(message, optional, tag="2")]
     pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
 }
-/// The response of a call to `RemoteFileService_UpdateRemoteFile`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateRemoteFileResponse {
     #[prost(message, optional, tag="1")]
     pub remote_file: ::core::option::Option<RemoteFile>,
 }
-/// The request for a call to `RemoteFileService_GetRemoteFileDownloadUrl`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetRemoteFileDownloadUrlRequest {
     #[prost(string, tag="1")]
     pub remote_file_id: ::prost::alloc::string::String,
 }
-/// The response of a call to `RemoteFileService_GetRemoteFileDownloadUrl`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetRemoteFileDownloadUrlResponse {

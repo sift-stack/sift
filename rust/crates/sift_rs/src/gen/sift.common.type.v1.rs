@@ -144,7 +144,6 @@ pub struct Names {
 pub struct ChannelBitFieldElement {
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
-    /// The index of this element's first bit in the logical bit field array.
     #[prost(int32, tag="2")]
     pub index: i32,
     #[prost(uint32, tag="3")]
@@ -182,31 +181,21 @@ pub struct Organization {
     #[prost(string, tag="2")]
     pub organization_name: ::prost::alloc::string::String,
 }
-/// ResourceRef is meant to be embedded as a field in other resources. It's used by one resource to point to another resource.
-/// In a request, use the `find_by` field to select a resource to point to.
-/// In a response, the fields marked `google.api.field_behavior = OUTPUT_ONLY` will be populated by the backend.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResourceRef {
-    /// The global unique id of the resource, e.g. the asset_id, run_id, or report_id.
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
-    /// If a resource has a client_key associated with it, it will be included.
     #[prost(string, optional, tag="2")]
     pub client_key: ::core::option::Option<::prost::alloc::string::String>,
-    /// The name of the resource.
     #[prost(string, tag="3")]
     pub name: ::prost::alloc::string::String,
-    /// Use this field to 'construct' a ResourceRef.
-    /// You can give just the name, id, or client_key and the backend will find the resource you're referring to.
     #[prost(message, optional, tag="4")]
     pub find_by: ::core::option::Option<FindResourceBy>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FindResourceBy {
-    /// When finding by `client_key` or `name`, the `organization_id` should also be specified.
-    /// Only required if the user belongs to more than one organization.
     #[prost(string, tag="4")]
     pub organization_id: ::prost::alloc::string::String,
     #[prost(oneof="find_resource_by::Identifier", tags="1, 2, 3")]
@@ -217,13 +206,10 @@ pub mod find_resource_by {
     #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Identifier {
-        /// Find by the resource's global id, e.g. asset_id, run_id, report_id.
         #[prost(string, tag="1")]
         Id(::prost::alloc::string::String),
-        /// Find by the resource's client_key, if available.
         #[prost(string, tag="2")]
         ClientKey(::prost::alloc::string::String),
-        /// Find by the resource's name. If multiple resources are found with the same name, an error will be returned.
         #[prost(string, tag="3")]
         Name(::prost::alloc::string::String),
     }

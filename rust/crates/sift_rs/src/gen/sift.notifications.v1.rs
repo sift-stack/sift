@@ -28,31 +28,16 @@ pub struct Notification {
     #[prost(string, tag="12")]
     pub entity_id: ::prost::alloc::string::String,
 }
-/// The request for a call to `NotificationService_ListNotifications` to retrieve notifications.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListNotificationsRequest {
-    /// The maximum number of notifications to return.
-    /// The service may return fewer than this value.
-    /// If unspecified, at most 50 notifications will be returned.
-    /// The maximum value is 1000; values above 1000 will be coerced to 1000.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
-    /// A page token, received from a previous `ListNotifications` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `ListNotifications` must match
-    /// the call that provided the page token.
     #[prost(string, tag="2")]
     pub page_token: ::prost::alloc::string::String,
-    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string.
-    /// Available fields to filter by are `notification_id`, `created_by_user_id`, `recipient_user_id`,
-    /// `created_date`, `notification_type`, and `is_read`.
-    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/notifications#notification). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
 }
-/// The response of a call to `NotificationService_ListNotifications`.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListNotificationsResponse {
@@ -61,8 +46,6 @@ pub struct ListNotificationsResponse {
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
-/// The request for a call to `NotificationService_BatchUpdateNotifications` to update notifications.
-/// A maximum of 1000 notifications can be modified in a batch.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchUpdateNotificationsRequest {
@@ -72,19 +55,14 @@ pub struct BatchUpdateNotificationsRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateNotificationRequest {
-    /// The notification to update. The notification's `notification_id` field is used to identify the notification to update
-    /// and must be provided.
     #[prost(message, optional, tag="1")]
     pub notification: ::core::option::Option<Notification>,
-    /// The list of fields to be updated. Currently, the only field that can be updated is `is_read`.
     #[prost(message, optional, tag="2")]
     pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
 }
-/// The response of a call to `NotificationService_BatchUpdateNotifications` containing the updated notifications.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchUpdateNotificationsResponse {
-    /// The updated notifications.
     #[prost(message, repeated, tag="1")]
     pub notifications: ::prost::alloc::vec::Vec<Notification>,
 }

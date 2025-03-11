@@ -11,8 +11,6 @@ pub struct ExpressionChannelReference {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExpressionRequest {
-    /// A map from the channel reference in the expression string (e.g. $1) to the channel id (uuid).
-    /// This is deprecated and should be passed in expression_channel_references instead.
     #[prost(map="string, string", tag="1")]
     pub channel_references: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
     #[prost(string, tag="2")]
@@ -23,7 +21,6 @@ pub struct ExpressionRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListExpressionIdentifiersRequest {
-    /// Defaults to 1000. Max of 10,000.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
     #[prost(string, tag="2")]

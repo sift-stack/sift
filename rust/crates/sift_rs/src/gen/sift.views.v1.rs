@@ -106,7 +106,6 @@ pub struct CreateViewResponse {
 pub struct UpdateViewRequest {
     #[prost(message, optional, tag="1")]
     pub view: ::core::option::Option<View>,
-    /// The list of fields to update.
     #[prost(message, optional, tag="2")]
     pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
 }
@@ -119,22 +118,10 @@ pub struct UpdateViewResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListViewsRequest {
-    /// The maximum number of views to return.
-    /// The service may return fewer than this value.
-    /// If unspecified, at most 50 views will be returned.
-    /// The maximum value is 1000; values above 1000 will be coerced to 1000.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
-    /// A page token, received from a previous `ListViews` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `ListViews` must match
-    /// the call that provided the page token.
     #[prost(string, tag="2")]
     pub page_token: ::prost::alloc::string::String,
-    /// A [Common Expression Language (CEL)](<https://github.com/google/cel-spec>) filter string
-    /// Available fields to filter by are 'name', 'createdDate', and 'modifiedDate'.
-    /// For further information about how to use CELs, please refer to [this guide](<https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions>).
-    /// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/views#view). Optional.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
 }
@@ -143,24 +130,14 @@ pub struct ListViewsRequest {
 pub struct ListViewsResponse {
     #[prost(message, repeated, tag="1")]
     pub views: ::prost::alloc::vec::Vec<View>,
-    /// A token, which can be sent as `page_token` to retrieve the next page.
-    /// If this field is omitted, there are no subsequent pages.
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListApplicableViewsRequest {
-    /// The maximum number of views to return.
-    /// The service may return fewer than this value.
-    /// If unspecified, at most 50 views will be returned.
-    /// The maximum value is 1000; values above 1000 will be coerced to 1000.
     #[prost(uint32, tag="1")]
     pub page_size: u32,
-    /// A page token, received from a previous `ListApplicableViews` call.
-    /// Provide this to retrieve the subsequent page.
-    /// When paginating, all other parameters provided to `ListApplicableViews` must match
-    /// the call that provided the page token.
     #[prost(string, tag="2")]
     pub page_token: ::prost::alloc::string::String,
     #[prost(string, repeated, tag="3")]
@@ -173,8 +150,6 @@ pub struct ListApplicableViewsRequest {
 pub struct ListApplicableViewsResponse {
     #[prost(message, repeated, tag="1")]
     pub views: ::prost::alloc::vec::Vec<View>,
-    /// A token, which can be sent as `page_token` to retrieve the next page.
-    /// If this field is omitted, there are no subsequent pages.
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
 }

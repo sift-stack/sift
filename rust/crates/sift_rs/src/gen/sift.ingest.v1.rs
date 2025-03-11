@@ -11,14 +11,8 @@ pub struct IngestWithConfigDataStreamRequest {
     pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, repeated, tag="4")]
     pub channel_values: ::prost::alloc::vec::Vec<IngestWithConfigDataChannelValue>,
-    /// The run_id MUST be included if this data is part of a run.
     #[prost(string, tag="5")]
     pub run_id: ::prost::alloc::string::String,
-    /// By default, if this request contains any channel values that do not match
-    /// the supplied ingestion config, the request is stored in an error queue and
-    /// the stream continues to accept data. This ensures all data is saved, but
-    /// only valid data is fully ingested. If this is set to `true`, any validation
-    /// errors end the stream and return the error to the client.
     #[prost(bool, tag="6")]
     pub end_stream_on_validation_error: bool,
     #[prost(string, tag="7")]
@@ -59,7 +53,6 @@ pub mod ingest_with_config_data_channel_value {
         BitField(::prost::alloc::vec::Vec<u8>),
         #[prost(uint32, tag="10")]
         Enum(u32),
-        /// If there's not a new data point for a channel at the given timestamp, pass empty to skip it
         #[prost(message, tag="11")]
         Empty(::pbjson_types::Empty),
     }
@@ -83,10 +76,6 @@ pub struct IngestArbitraryProtobufDataStreamRequest {
     pub namespace: ::prost::alloc::string::String,
     #[prost(string, tag="8")]
     pub organization_id: ::prost::alloc::string::String,
-    /// By default, if this request fails to parse for any reason, the request is 
-    /// stored in an error queue and the stream continues to accept data. This 
-    /// ensures all data is saved, but only valid data is fully ingested. If this 
-    /// is set to `true`, any validation errors end the stream and return the error to the client.
     #[prost(bool, tag="9")]
     pub end_stream_on_validation_error: bool,
 }
