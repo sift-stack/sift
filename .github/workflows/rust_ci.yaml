@@ -39,4 +39,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --check --manifest-path rust/Cargo.toml
+          args: --check --all --manifest-path rust/Cargo.toml
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: test --manifest-path rust/Cargo.toml

@@ -24,3 +24,5 @@ python/docs/sift_py
 *.egg-info/
 
 .vscode/*
+
+rust/crates/**/target/
