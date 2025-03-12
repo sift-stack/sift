@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+// The "sift.units" package name already declared by the channel_parsing_options.proto
+// so this package uses the singular form to avoid a conflict.
+package sift.unit.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Unit service"}
+};
+
+service UnitService {
+  rpc ListUnits(ListUnitsRequest) returns (ListUnitsResponse) {
+    option (google.api.http) = {get: "/api/v2/units"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListUnits"
+      description: "Used to list units."
+      operation_id: "UnitService_ListUnitsV2"
+    };
+  }
+}
+
+message Unit {
+  string unit_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string abbreviated_name = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListUnitsRequest {
+  // The maximum number of units to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 units will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListUnits` call.
+  // Provide this to retrieve the subsequent page.
+  //
+  // When paginating, all other parameters provided to `ListUnits` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A Common Expression Language (CEL, https://github.com/google/cel-spec) filter string.
+  // Available tag variables are:
+  // - abbreviated_name
+  // - name
+  // - created_date
+  // - unit_id
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved campaigns. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `name`, `created_date`, and `abbreviated_name`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,abbreviated_name"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListUnitsResponse {
+  repeated Unit units = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A token, which can be sent as `page_token` to retrieve the next page.
+  // If this field is empty, there are no subsequent pages.
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}

@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package sift.dlq_errors.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "DLQ Errors Service"}
+};
+
+service DlqErrorsService {
+  rpc ListDlqErrors(ListDlqErrorsRequest) returns (ListDlqErrorsResponse) {
+    option (google.api.http) = {get: "/api/v2/dlq-errors"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "List Ingestion Dead Letter Queue Errors"
+      description: "Retrieve Ingestion errors."
+      operation_id: "DlqErrorsService_ListDlqErrorsV2"
+    };
+  }
+}
+
+message ListDlqErrorsRequest {
+  // The maximum number of errors values to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 values will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListDlqErrors` call.
+  // Provide this to retrieve the subsequent page.
+  //
+  // When paginating, all other parameters provided to `ListDlqErrors` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A Common Expression Language (CEL, https://github.com/google/cel-spec) filter string.
+  // Available tag variables are:
+  // - min_timestamp
+  // - max_timestamp
+  // - asset_id
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved campaigns. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `min_timestamp`, `max_timestamp`, and `asset_id`.
+  // If left empty, items are ordered by `min_timestamp` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "asset_id desc,min_timestamp"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ErrorSummary {
+  uint64 count = 1 [(google.api.field_behavior) = REQUIRED];
+  optional string asset_name = 2 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp min_timestamp = 3 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp max_timestamp = 4 [(google.api.field_behavior) = REQUIRED];
+  string dlq_parquet_file_id = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListDlqErrorsResponse {
+  repeated ErrorSummary error_summaries = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}

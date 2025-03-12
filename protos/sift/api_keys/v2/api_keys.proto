@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package sift.api_keys.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "API Key Service"}
+};
+
+service ApiKeyService {
+  rpc ListApiKeys(ListApiKeysRequest) returns (ListApiKeysResponse) {
+    option (google.api.http) = {get: "/api/v2/api-keys"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListApiKeys"
+      description: "Retrieves API keys using an optional filter."
+      operation_id: "ApiKeyService_ListApiKeysV2"
+    };
+  }
+
+  rpc CreateApiKey(CreateApiKeyRequest) returns (CreateApiKeyResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/api-keys"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateApiKey"
+      description: "Creates an API key."
+      operation_id: "ApiKeyService_CreateApiKeyV2"
+    };
+  }
+
+  rpc DeleteApiKey(DeleteApiKeyRequest) returns (DeleteApiKeyResponse) {
+    option (google.api.http) = {delete: "/api/v2/api-keys/{api_key_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteApiKey"
+      description: "Deletes an API key."
+      operation_id: "ApiKeyService_DeleteApiKeyV2"
+    };
+  }
+}
+
+message ApiKey {
+  string api_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 3 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 4 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 5 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateApiKeyResponse {
+  CreatedApiKey api_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// CreatedApiKey includes the key, which will only be returned on creation, so having a separate type makes the "never return the key a second time" semantics clear
+message CreatedApiKey {
+  string api_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string key = 3 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 4 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 5 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 6 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to ApiKeyService.ListApiKeys.
+message ListApiKeysRequest {
+  // The maximum number of api keys to return.
+  // The service may return fewer than this value.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListApiKeys` call.
+  // Provide this to retrieve the subsequent page.
+  //
+  // When paginating, all other parameters provided to `ListApiKeys` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `api_key_id`, `user_id`, `created_by_user_id`, and `name`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `name` and `created_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "name desc,created_date"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The result of a call to ApiKeyService.ListApiKeys.
+message ListApiKeysResponse {
+  repeated ApiKey api_keys = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for a call to ApiKeyService.CreateApiKey.
+message CreateApiKeyRequest {
+  // The name for the new ApiKey. Required.
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to ApiKeyService.DeleteApiKey.
+message DeleteApiKeyRequest {
+  string api_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DeleteApiKeyResponse {}

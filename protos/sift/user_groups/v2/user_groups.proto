@@ -1,0 +1,205 @@
+syntax = "proto3";
+
+package sift.user_groups.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/roles/v2/roles.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "User Group Service"}
+};
+
+service UserGroupService {
+  rpc ListUserGroups(ListUserGroupsRequest) returns (ListUserGroupsResponse) {
+    option (google.api.http) = {get: "/api/v2/user-groups"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListUserGroups"
+      description: "Retrieves user groups using an optional filter."
+      operation_id: "UserGroupService_ListUserGroupsV2"
+    };
+  }
+  rpc GetUserGroup(GetUserGroupRequest) returns (GetUserGroupResponse) {
+    option (google.api.http) = {get: "/api/v2/user-groups/{user_group_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUserGroup"
+      description: "Retrieves a user group."
+      operation_id: "UserGroupService_GetUserGroupV2"
+    };
+  }
+  rpc CreateUserGroup(CreateUserGroupRequest) returns (CreateUserGroupResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/user-groups"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateUserGroup"
+      description: "Creates a user group."
+      operation_id: "UserGroupService_CreateUserGroupV2"
+    };
+  }
+  rpc UpdateUserGroup(UpdateUserGroupRequest) returns (UpdateUserGroupResponse) {
+    option (google.api.http) = {
+      patch: "/api/v2/user-groups/{user_group.user_group_id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateUserGroup"
+      description: "Updates a user group."
+      operation_id: "UserGroupService_UpdateUserGroupV2"
+    };
+  }
+  rpc DeleteUserGroup(DeleteUserGroupRequest) returns (DeleteUserGroupResponse) {
+    option (google.api.http) = {delete: "/api/v2/user-groups/{user_group_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteUserGroup"
+      description: "Deletes a user group."
+      operation_id: "UserGroupService_DeleteUserGroupV2"
+    };
+  }
+  rpc AddUserToUserGroup(AddUserToUserGroupRequest) returns (AddUserToUserGroupResponse) {
+    option (google.api.http) = {post: "/api/v2/user-groups:add-user"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "AddUserToUserGroup"
+      description: "Adds a user to a user group."
+      operation_id: "UserGroupService_AddUserToUserGroupV2"
+    };
+  }
+  rpc RemoveUserFromUserGroup(RemoveUserFromUserGroupRequest) returns (RemoveUserFromUserGroupResponse) {
+    option (google.api.http) = {post: "/api/v2/user-groups:remove-user"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "RemoveUserFromUserGroup"
+      description: "Removes a user from a user group."
+      operation_id: "UserGroupService_RemoveUserFromUserGroupV2"
+    };
+  }
+  rpc UpdateUserUserGroups(UpdateUserUserGroupsRequest) returns (UpdateUserUserGroupsResponse) {
+    option (google.api.http) = {post: "/api/v2/user-groups:update-user"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateUserUserGroups"
+      description: "Updates a user's user groups."
+      operation_id: "UserGroupService_UpdateUserUserGroupsV2"
+    };
+  }
+  rpc GetUserGroupsForAssets(GetUserGroupsForAssetsRequest) returns (GetUserGroupsForAssetsResponse) {
+    option (google.api.http) = {get: "/api/v2/user-groups:get-for-assets"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUserGroupsForAssets"
+      description: "Retrieves user groups for a list of assets."
+      operation_id: "UserGroupService_GetUserGroupsForAssetsV2"
+    };
+  }
+}
+
+message UserGroup {
+  string user_group_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  string role_id = 3 [(google.api.field_behavior) = OPTIONAL];
+  bool is_default = 4 [(google.api.field_behavior) = REQUIRED];
+  message Resource {
+    repeated string asset_ids = 1 [(google.api.field_behavior) = OPTIONAL];
+    bool all_assets = 2 [(google.api.field_behavior) = REQUIRED];
+  }
+  Resource resources = 6 [(google.api.field_behavior) = OPTIONAL];
+  repeated string user_ids = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListUserGroupsRequest {
+  // The maximum number of user groups to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListUserGroups` call.
+  // Provide this to retrieve the subsequent page.
+  //
+  // When paginating, all other parameters provided to `ListUserGroups` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A Common Expression Language (CEL, https://github.com/google/cel-spec) filter string.
+  // Available tag variables are:
+  // - name
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved user groups. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are:
+  // - created_date
+  // - modified_date
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListUserGroupsResponse {
+  repeated UserGroup user_groups = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A token, which can be sent as `page_token` to retrieve the next page.
+  // If this field is empty, there are no subsequent pages.
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message GetUserGroupRequest {
+  string user_group_id = 1;
+}
+
+message GetUserGroupResponse {
+  UserGroup user_group = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateUserUserGroupsRequest {
+  string user_id = 1;
+  repeated string user_group_ids = 2;
+}
+
+message UpdateUserUserGroupsResponse {}
+
+message CreateUserGroupRequest {
+  UserGroup user_group = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateUserGroupResponse {
+  UserGroup user_group = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateUserGroupRequest {
+  UserGroup user_group = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to update.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateUserGroupResponse {
+  UserGroup user_group = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DeleteUserGroupRequest {
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DeleteUserGroupResponse {}
+
+message AddUserToUserGroupRequest {
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message AddUserToUserGroupResponse {}
+
+message RemoveUserFromUserGroupRequest {
+  string user_group_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message RemoveUserFromUserGroupResponse {}
+
+message GetUserGroupsForAssetsRequest {
+  repeated string asset_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetUserGroupsForAssetsResponse {
+  repeated UserGroup user_groups = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.roles.v2.Role roles = 2 [(google.api.field_behavior) = REQUIRED];
+}
