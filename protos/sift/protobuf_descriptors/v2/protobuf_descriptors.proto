@@ -6,7 +6,7 @@ import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-option go_package = "azimuth/gen/protos/go/sift/protobuf_descriptors/v2;protobufdescriptorsv2pb";
+
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Protobuf Descriptor Service"}
 };
