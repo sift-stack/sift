@@ -28,10 +28,17 @@ if __name__ == "__main__":
 
     ros2_upload_service = RosbagsUploadService(rest_config)
     import_service = ros2_upload_service.upload(
-        "data/talker",
-        ["data/builtin_interfaces", "data/rcl_interfaces", "data/std_msgs"],
+        "data/sample_data",
+        ["data/std_msgs"],
         Stores.ROS2_HUMBLE,
         asset_name,
+        run_name="Sample Rosbag Upload",
     )
-    print(import_service.wait_until_complete())
+
+    # Wait until the data import is completed.
+    data_import = import_service.wait_until_complete()
+
+    # Print the data import details and final status.
+    print(data_import.model_dump_json(indent=1))
+
     print("Upload example complete!")

@@ -11,6 +11,7 @@ This class extracts messages from a ROS bag, flattens their fields, and prepares
 """
 
 import csv
+import struct
 from glob import glob
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set, TextIO, Union
@@ -75,14 +76,20 @@ class RosbagsUploadService:
             raise Exception(f"Provided path, '{path}', does not point to a directory.")
 
         with NamedTemporaryFile(mode="wt", suffix=".csv.gz") as temp_file:
-            valid_channels = self._convert_to_csv(
-                path, temp_file, msg_dirs, store, ignore_errors, handlers
-            )
-            if not valid_channels:
-                raise Exception(f"No valid channels remaining in {path}")
+            try:
+                valid_channels = self._convert_to_csv(
+                    path, temp_file, msg_dirs, store, ignore_errors, handlers
+                )
+                if not valid_channels:
+                    raise Exception(f"No valid channels remaining in {path}")
+            except struct.error as e:
+                raise Exception(
+                    f"Failed to parse the rosbag. Ensure you're using the correct type store. Original error: {e}"
+                )
 
             csv_config = self._create_csv_config(valid_channels, asset_name, run_name, run_id)
             print("Uploading file...")
+
             return self._csv_upload_service.upload(temp_file.name, csv_config)
 
     def _convert_to_csv(
@@ -189,6 +196,10 @@ class RosbagsUploadService:
                             row[c.channel_name] = c.extract_value(msg)
 
                 w.writerow(row)
+
+        # Close the file to make sure all contents are written.
+        # Required if using gzip compression to ensure all data is flushed: https://bugs.python.org/issue1110242
+        dst_file.close()
 
         return [c for ros_channels in ros_channels.values() for c in ros_channels]
 

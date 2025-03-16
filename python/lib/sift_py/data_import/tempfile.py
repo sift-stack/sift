@@ -22,11 +22,16 @@ class NamedTemporaryFile:
         else:
             self.file = open(self.name, mode, newline="")
 
+    def close(self):
+        return self.file.close()
+
     def __enter__(self):
         return self.file
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.file.close()
+        if not self.file.closed:
+            self.file.close()
+
         try:
             os.remove(self.name)
             os.rmdir(self.temp_dir)
