@@ -1,3 +1,4 @@
+import gzip
 import os
 import tempfile
 from pathlib import Path
@@ -16,7 +17,10 @@ class NamedTemporaryFile:
     def __init__(self, mode, suffix=""):
         self.temp_dir = tempfile.mkdtemp()
         self.name = Path(self.temp_dir) / f"tempfile{suffix}"
-        self.file = open(self.name, mode, newline="")
+        if suffix.endswith(".gz"):
+            self.file = gzip.open(self.name, mode, newline="")
+        else:
+            self.file = open(self.name, mode, newline="")
 
     def __enter__(self):
         return self.file

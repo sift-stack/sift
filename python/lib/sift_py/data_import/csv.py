@@ -63,16 +63,15 @@ class CsvUploadService(_RestService):
         except KeyError as e:
             raise Exception(f"Response missing required keys: {e}")
 
-        with open(path) as f:
+        with _TqdmFile(path) as f:
             headers = {
                 "Content-Encoding": content_encoding,
             }
 
-            file_size = os.path.getsize(path)
             response = self._session.post(
                 url=upload_url,
                 headers=headers,
-                data=tqdm(f, total=file_size, unit="bytes"),
+                data=f,
             )
 
             if response.status_code != 200:
@@ -252,3 +251,25 @@ class CsvUploadService(_RestService):
         file_name = path.name
         mime, encoding = mimetypes.guess_type(path)
         return file_name, mime, encoding
+
+
+class _TqdmFile:
+    """Displays the status with tqdm while reading the file."""
+
+    def __init__(self, path: Union[str, Path]):
+        self.path = path
+        self.file_size = os.path.getsize(self.path)
+        self._file = open(self.path, mode="rb")
+        self._pbar = tqdm(total=self.file_size, unit="bytes")
+
+    def read(self, *args, **kwargs):
+        chunk = self._file.read(*args, **kwargs)
+        self._pbar.update(len(chunk))
+        return chunk
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self._pbar.close()
+        return

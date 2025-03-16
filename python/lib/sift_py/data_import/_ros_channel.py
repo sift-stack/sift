@@ -40,6 +40,16 @@ class RosChannel:
         index: Optional[int] = None,
         parent_fields: Optional[Tuple[str]] = None,
     ):
+        """Constructor.
+
+        Args:
+            field_name: The name of this field (e.g, 'x', 'speed').
+            channel_name: The fully qualifies name (e.g, 'abc.geometry.position.x').
+            node_type: The ROS node type.
+            data_type: The data type for this field.
+            index: The index of this field if this is an array.
+            parent_fields: Tuple of parent fields for nested fields.
+        """
         self.node_type = node_type
         self.data_type = data_type
         self.channel_name = channel_name

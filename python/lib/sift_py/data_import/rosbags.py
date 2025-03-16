@@ -1,11 +1,19 @@
 """
 Service to upload ROS2 bag files.
+
+
+ROS organizes data exchange through topics, messages, and fields:
+    * topics: Named messages that facilitate communication between ROS nodes.
+    * messages: Data structures published and subscribed to on topics. Each message type defines a specific schema.
+    * fields: Individual data elements within a message, such as integers, floats, strings, or nested structures.
+
+This class extracts messages from a ROS bag, flattens their fields, and prepares them for uploading to Sift.
 """
 
 import csv
 from glob import glob
 from pathlib import Path
-from typing import BinaryIO, Callable, Dict, List, Optional, Set, Union, Tuple
+from typing import Callable, Dict, List, Optional, Set, TextIO, Union
 
 from rosbags.interfaces.typing import Typesdict
 from rosbags.rosbag2.reader import Reader
@@ -27,6 +35,7 @@ class RosbagsUploadService:
     """
     Service to upload ROS2 bag files.
     """
+
     _csv_upload_service: CsvUploadService
 
     def __init__(self, rest_conf: SiftRestConfig):
@@ -48,8 +57,12 @@ class RosbagsUploadService:
 
         Arguments:
             path: Path to the ROS2 bag file.
-            msg_dirs: List of directories containing custom message definitions. Each entry should be a path
-                the root directory of the msg definitions (e.g, '/path/to/std_msgs').
+            msg_dirs: List of directories containing message definitions.
+                Each entry should be a path the root directory of the msg definitions (e.g, `/path/to/std_msgs`).
+                Inspect your topics and verify that the 'type' matches the directory structure of your
+                message definitions. For example if the type is `custom_msgs/msg/MyCustomMessage` your
+                directory structure should match that and you should include `/path/to/custom_msgs`
+                in the `msg_dirs` list passed into this function.
             store: The Store type to use for the message definitions.
             asset_name: Name of the asset to upload the data to.
             ignore_errors: If True, will skip messages without definitions.
@@ -61,8 +74,10 @@ class RosbagsUploadService:
         if not posix_path.is_dir():
             raise Exception(f"Provided path, '{path}', does not point to a directory.")
 
-        with NamedTemporaryFile(mode="w", suffix=".csv") as temp_file:
-            valid_channels = self._convert_to_csv(path, temp_file, msg_dirs, store, ignore_errors, handlers)
+        with NamedTemporaryFile(mode="wt", suffix=".csv.gz") as temp_file:
+            valid_channels = self._convert_to_csv(
+                path, temp_file, msg_dirs, store, ignore_errors, handlers
+            )
             if not valid_channels:
                 raise Exception(f"No valid channels remaining in {path}")
 
@@ -73,21 +88,32 @@ class RosbagsUploadService:
     def _convert_to_csv(
         self,
         src_path: Union[str, Path],
-        dst_file: BinaryIO,
+        dst_file: TextIO,
         msg_dirs: List[Union[str, Path]],
         store: Stores,
         ignore_errors: bool,
-        handlers: Optional[Dict[str, Callable]] = None ,
+        handlers: Optional[Dict[str, Callable]] = None,
     ) -> List[RosChannel]:
         """Converts the ROS2 bag file to a temporary CSV on disk that we will upload.
 
-        Returns the valid channels after parsing the ROS2 bag file.
+
+        Args:
+            src_path: The path of the rosbag.
+            dst_file: The path to save the CSV.
+            msg_dirs: The list of directories containing rosbag message definitions.
+            store: The rosbag type store to use.
+            ignore_errors: Whether to ignore errors (e.g, unknown message definitions).
+            handlers: Dictionary of messages to callbacks for custom processing or sequence data (e.g, images or videos)
+
+        Returns:
+            The list valid channels after parsing the ROS2 bag file.
         """
         handlers = handlers or {}
         typestore = get_typestore(store)
-        msg_types = self._register_types(typestore, msg_dirs)
+        registered_msg_types = self._register_types(typestore, msg_dirs)
 
-        ros_channels = {}
+        # Map each (topic, message, field) combination to a list of RosChannels
+        ros_channels: Dict[str, List[RosChannel]] = {}
 
         def sanitize(name):
             result = "_".join(name.split("/"))
@@ -95,10 +121,13 @@ class RosbagsUploadService:
                 result = result[1:]
             return result
 
+        def get_key(connection, msg_def, field):
+            return f"{connection.topic}:{msg_def.name}:{field}"
+
         with Reader(src_path) as reader:
             # Collect all channel information from the connections.
             for connection in reader.connections:
-                if connection.msgtype not in msg_types:
+                if connection.msgtype not in registered_msg_types:
                     if ignore_errors:
                         print(f"WARNING: Skipping {connection.msgtype}. msg file not found.")
                         continue
@@ -107,12 +136,15 @@ class RosbagsUploadService:
                             f"Message type {connection.msgtype} not found in custom types."
                         )
 
-                # Special types (typically sequences) are handled differently
+                # Special types (typically sequences) are handled separately
+                # by the handler's, skip them if no handler's are registered.
                 msg_def = typestore.get_msgdef(connection.msgtype)
                 if connection.msgtype in handlers:
                     continue
+
+                # Flatten and collect all underlying fields in this message as RosChannels
                 for field in msg_def.fields:
-                    key = f"{connection.topic}:{msg_def.name}:{field}"
+                    key = get_key(connection, msg_def, field)
                     if key in ros_channels:
                         raise Exception(f"Duplicate key: {key}")
                     ros_channels[key] = RosChannel.get_underlying_fields(
@@ -129,7 +161,7 @@ class RosbagsUploadService:
             pbar = tqdm(total=reader.message_count, unit="messages")
             for connection, timestamp, raw_data in reader.messages():
                 pbar.update(1)
-                if connection.msgtype not in msg_types:
+                if connection.msgtype not in registered_msg_types:
                     if ignore_errors:
                         continue
                     else:
@@ -146,7 +178,7 @@ class RosbagsUploadService:
                     handlers[connection.msgtype](connection.topic, timestamp, msg)
                 else:
                     for field in msg_def.fields:
-                        key = f"{connection.topic}:{msg_def.name}:{field}"
+                        key = get_key(connection, msg_def, field)
                         if key not in ros_channels:
                             if ignore_errors:
                                 continue
@@ -161,7 +193,15 @@ class RosbagsUploadService:
         return [c for ros_channels in ros_channels.values() for c in ros_channels]
 
     def _register_types(self, typestore: Typestore, msg_dirs: List[Union[str, Path]]) -> Set[str]:
-        """Register custom message types with the typestore."""
+        """Register custom message types with the typestore.
+
+        Args:
+            typestore: The type store to register messages against.
+            msg_dirs: The list of directories containing message definitions.
+
+        Returns:
+            Set of all registered message definitions.
+        """
         msg_types: Typesdict = {}
         for dir_pathname in msg_dirs:
             dir_path = Path(dir_pathname)
