@@ -150,8 +150,9 @@ class RosChannel:
                     )
                 )
             return channels
+        # Sequences contain an arbitrary array of bytes, users should use handlers
+        # to process them.
         elif node_type == Nodetype.SEQUENCE:
-            print(f"Skipping unsupported sequence field: {channel_name}")
             return []
         else:
             raise Exception(f"Unsupported node type: {node_type.name}")

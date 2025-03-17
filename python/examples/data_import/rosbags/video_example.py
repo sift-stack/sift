@@ -1,5 +1,6 @@
 """
-This example will not run as-is. It is meant to be a reference for how to extract video from a rosbag2
+This example will not run as-is. It is meant to be a reference for how to extract video from a rosbag2.
+Uses ffmpeg library.
 """
 
 import os
@@ -51,13 +52,16 @@ if __name__ == "__main__":
         video_end_ns = timestamp
         video_processor.stdin.write(msg.data)
 
+    # TODO: This should be the topic name for the sensor_msgs/msg/CompressedImage type
+    video_topic = "path/to/topic"
+
     ros2_upload_service = RosbagsUploadService(rest_config)
     import_service = ros2_upload_service.upload(
         "data/with/video",
         ["common_interfaces/sensor_msgs"],
         Stores.ROS2_HUMBLE,
         asset_name,
-        handlers={"sensor_msgs/msg/CompressedImage": write_video_frame_handler},
+        handlers={video_topic: write_video_frame_handler},
     )
     video_processor.stdin.close()
     video_processor.wait()

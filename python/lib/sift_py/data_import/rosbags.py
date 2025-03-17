@@ -69,6 +69,11 @@ class RosbagsUploadService:
             ignore_errors: If True, will skip messages without definitions.
             run_name: Name of the run to create for this data.
             run_id: ID of the run to add this data to.
+            handlers: Dictionary of messages to callbacks for custom processing or sequence data
+                (e.g, images or videos). Keys should be the ROS topic, value is a callable with
+                the following signature:
+                    def callback(topic: str, timestamp: int, msg: object)
+                        ...
         """
         posix_path = Path(path) if isinstance(path, str) else path
 
@@ -110,8 +115,11 @@ class RosbagsUploadService:
             msg_dirs: The list of directories containing rosbag message definitions.
             store: The rosbag type store to use.
             ignore_errors: Whether to ignore errors (e.g, unknown message definitions).
-            handlers: Dictionary of messages to callbacks for custom processing or sequence data (e.g, images or videos)
-
+            handlers: Dictionary of messages to callbacks for custom processing or sequence data
+                (e.g, images or videos). Keys should be the ROS topic, value is a callable with
+                the following signature:
+                    def callback(topic: str, timestamp: int, msg: object)
+                        ...
         Returns:
             The list valid channels after parsing the ROS2 bag file.
         """
@@ -143,13 +151,8 @@ class RosbagsUploadService:
                             f"Message type {connection.msgtype} not found in custom types."
                         )
 
-                # Special types (typically sequences) are handled separately
-                # by the handler's, skip them if no handler's are registered.
-                msg_def = typestore.get_msgdef(connection.msgtype)
-                if connection.msgtype in handlers:
-                    continue
-
                 # Flatten and collect all underlying fields in this message as RosChannels
+                msg_def = typestore.get_msgdef(connection.msgtype)
                 for field in msg_def.fields:
                     key = get_key(connection, msg_def, field)
                     if key in ros_channels:
@@ -181,19 +184,19 @@ class RosbagsUploadService:
                 msg_def = typestore.get_msgdef(connection.msgtype)
                 row["time"] = timestamp
 
-                if connection.msgtype in handlers:
-                    handlers[connection.msgtype](connection.topic, timestamp, msg)
-                else:
-                    for field in msg_def.fields:
-                        key = get_key(connection, msg_def, field)
-                        if key not in ros_channels:
-                            if ignore_errors:
-                                continue
-                            else:
-                                raise Exception(f"Message field {key} not found in custom types.")
-                        channels = ros_channels[key]
-                        for c in channels:
-                            row[c.channel_name] = c.extract_value(msg)
+                if connection.topic in handlers:
+                    handlers[connection.topic](connection.topic, timestamp, msg)
+
+                for field in msg_def.fields:
+                    key = get_key(connection, msg_def, field)
+                    if key not in ros_channels:
+                        if ignore_errors:
+                            continue
+                        else:
+                            raise Exception(f"Message field {key} not found in custom types.")
+                    channels = ros_channels[key]
+                    for c in channels:
+                        row[c.channel_name] = c.extract_value(msg)
 
                 w.writerow(row)
 
