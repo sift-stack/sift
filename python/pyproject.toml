@@ -26,6 +26,9 @@ dependencies = [
   "pydantic_core~=2.3",
   "requests~=2.25",
   "requests-toolbelt~=1.0",
+  "tqdm",
+  "types-tqdm",
+  "rosbags",
 
   # May move these to optional dependencies in the future.
   "pandas-stubs~=2.0",
@@ -33,8 +36,6 @@ dependencies = [
   "types-protobuf>=4.0",
   "typing-extensions~=4.6",
   "types-requests~=2.25",
-  "tqdm",
-  "types-tqdm",
 ]
 
 [project.urls]

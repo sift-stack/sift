@@ -176,7 +176,7 @@ class RosbagsUploadService:
                             f"Message type {connection.msgtype} not found in custom types."
                         )
 
-                row = {}
+                row: Dict[str, Union[int, float, bool, str]] = {}
                 msg = typestore.deserialize_cdr(raw_data, connection.msgtype)
                 msg_def = typestore.get_msgdef(connection.msgtype)
                 row["time"] = timestamp
