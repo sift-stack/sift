@@ -1,91 +1,32 @@
-use async_trait::async_trait;
 use chrono::Local;
-use hyper_util::rt::TokioIo;
-use sift_connect::{grpc::interceptor::AuthInterceptor, SiftChannel};
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
-    ingest::v1::{
-        ingest_service_server::{IngestService, IngestServiceServer},
-        IngestArbitraryProtobufDataStreamRequest, IngestArbitraryProtobufDataStreamResponse,
-        IngestWithConfigDataStreamRequest, IngestWithConfigDataStreamResponse,
-    },
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
 use sift_stream::{ChannelValue, IngestionConfigMode, Message, SiftStream, TimeValue};
 use std::{
-    io::Error as IoError,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc,
     },
     time::Duration,
 };
-use tokio::{
-    sync::oneshot::{self, error::TryRecvError},
-    task::JoinHandle,
-};
-use tonic::{
-    transport::{Endpoint, Server, Uri},
-    Request, Response, Status, Streaming,
-};
-use tower::{service_fn, ServiceBuilder};
+use tokio::sync::oneshot::{self, error::TryRecvError};
 
-async fn start_test_server(
-    num_message_received: Arc<AtomicU32>,
-    num_checkpoints: Arc<AtomicU32>,
-) -> (SiftChannel, JoinHandle<()>) {
-    let (client, server) = tokio::io::duplex(1024);
+mod common;
+use common::prelude::*;
 
-    let ingest_service = IngestServiceNull {
-        num_checkpoints,
-        num_message_received,
-    };
-
-    let server = tokio::spawn(async move {
-        Server::builder()
-            .add_service(IngestServiceServer::new(ingest_service))
-            .serve_with_incoming(tokio_stream::once(Ok::<_, IoError>(server)))
-            .await
-            .unwrap();
-    });
-
-    let mut client = Some(client);
-    let channel = Endpoint::try_from("http://[::]:50051")
-        .unwrap()
-        .connect_with_connector(service_fn(move |_: Uri| {
-            let client = client.take();
-
-            async move {
-                if let Some(client) = client {
-                    Ok(TokioIo::new(client))
-                } else {
-                    Err(std::io::Error::other("Client already taken"))
-                }
-            }
-        }))
-        .await
-        .unwrap();
-
-    let sift_channel: SiftChannel = ServiceBuilder::new()
-        .layer(tonic::service::interceptor(AuthInterceptor {
-            apikey: "apikey".to_string(),
-        }))
-        .service(channel);
-
-    (sift_channel, server)
-}
-
-struct IngestServiceNull {
+struct IngestServiceMock {
     num_message_received: Arc<AtomicU32>,
     num_checkpoints: Arc<AtomicU32>,
 }
 
 #[async_trait]
-impl IngestService for IngestServiceNull {
+impl IngestService for IngestServiceMock {
     async fn ingest_with_config_data_stream(
         &self,
         request: Request<Streaming<IngestWithConfigDataStreamRequest>>,
-    ) -> Result<Response<IngestWithConfigDataStreamResponse>, tonic::Status> {
+    ) -> Result<Response<IngestWithConfigDataStreamResponse>, Status> {
         let mut data_stream = request.into_inner();
 
         loop {
@@ -108,17 +49,21 @@ impl IngestService for IngestServiceNull {
         &self,
         _request: Request<Streaming<IngestArbitraryProtobufDataStreamRequest>>,
     ) -> Result<Response<IngestArbitraryProtobufDataStreamResponse>, Status> {
-        unimplemented!()
+        unimplemented!("not relevant to this test")
     }
 }
 
 #[tokio::test]
 async fn test_sending_data() {
-    let num_checkpoints = Arc::new(AtomicU32::new(0));
-    let messages_received = Arc::new(AtomicU32::new(0));
+    let num_checkpoints = Arc::new(AtomicU32::default());
+    let messages_received = Arc::new(AtomicU32::default());
 
-    let (client, server) =
-        start_test_server(messages_received.clone(), num_checkpoints.clone()).await;
+    let ingest_service = IngestServiceMock {
+        num_checkpoints: num_checkpoints.clone(),
+        num_message_received: messages_received.clone(),
+    };
+
+    let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
     let ingestion_config = IngestionConfig {
         ingestion_config_id: "ingestion-config-id".to_string(),
@@ -147,6 +92,8 @@ async fn test_sending_data() {
         flows,
         None,
         Duration::from_secs(30),
+        Duration::from_secs(30),
+        None,
     );
 
     let num_messages = 100;
@@ -155,7 +102,7 @@ async fn test_sending_data() {
         let send_result = sift_stream.send(Message::new(
             "wheel",
             TimeValue::from(Local::now().to_utc()),
-            &vec![
+            &[
                 ChannelValue::new("angular_velocity", 1.0_f64),
                 ChannelValue::new("log", "foobar"),
             ],
@@ -165,7 +112,10 @@ async fn test_sending_data() {
 
     assert!(sift_stream.finish().await.is_ok());
 
-    let _terminate_server = server.await;
+    assert!(
+        server.await.is_ok(),
+        "test server shutdown failed unexpectedly"
+    );
 
     assert_eq!(
         1,
@@ -185,7 +135,12 @@ async fn test_checkpointing() {
     let num_checkpoints = Arc::new(AtomicU32::new(0));
     let messages_received = Arc::new(AtomicU32::new(0));
 
-    let (client, _) = start_test_server(messages_received.clone(), num_checkpoints.clone()).await;
+    let ingest_service = IngestServiceMock {
+        num_checkpoints: num_checkpoints.clone(),
+        num_message_received: messages_received.clone(),
+    };
+
+    let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
     let ingestion_config = IngestionConfig {
         ingestion_config_id: "ingestion-config-id".to_string(),
@@ -207,6 +162,8 @@ async fn test_checkpointing() {
         flows,
         None,
         Duration::from_secs(1),
+        Duration::from_secs(30),
+        None,
     );
 
     let (terminate_streaming_tx, mut terminate_streaming_rx) = oneshot::channel::<()>();
@@ -220,12 +177,12 @@ async fn test_checkpointing() {
             let send_result = sift_stream.send(Message::new(
                 "flow",
                 timestamp,
-                &vec![ChannelValue::new("generator", 1.0_f64)],
+                &[ChannelValue::new("generator", 1.0_f64)],
             ));
             assert!(send_result.is_ok(), "streaming failed unexpectedly");
             messages_sent += 1;
 
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            common::task_yield().await;
         }
 
         assert!(sift_stream.finish().await.is_ok());
@@ -253,5 +210,10 @@ async fn test_checkpointing() {
         messages_sent,
         messages_received.load(Ordering::Relaxed),
         "messages sent and received don't match",
+    );
+
+    assert!(
+        server.await.is_ok(),
+        "test server shutdown failed unexpectedly"
     );
 }

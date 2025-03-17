@@ -94,6 +94,7 @@ pub enum ErrorKind {
     NumberConversionError,
     TimeConversionError,
     StreamError,
+    StreamErrorRetriable,
 
     /// This really shouldn't happen
     EmptyResponseError,
@@ -157,6 +158,7 @@ impl fmt::Display for ErrorKind {
             Self::CreateFlowError => write!(f, "CreateFlowError"),
             Self::TimeConversionError => write!(f, "TimeConversionError"),
             Self::StreamError => write!(f, "StreamError"),
+            Self::StreamErrorRetriable => write!(f, "StreamErrorRetriable"),
         }
     }
 }

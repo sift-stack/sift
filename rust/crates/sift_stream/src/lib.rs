@@ -4,7 +4,7 @@ pub use stream::{
     channel::{ChannelValue, Value},
     mode::ingestion_config::{IngestionConfigMode, Message},
     time::TimeValue,
-    SiftStream,
+    RetryPolicy, SiftStream,
 };
 
 pub use sift_connect::*;

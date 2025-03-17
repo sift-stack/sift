@@ -1,10 +1,17 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, Utc};
 use pbjson_types::Timestamp;
 use sift_error::prelude::*;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TimeValue(pub(crate) Timestamp);
+
+/// Initializes with the current time.
+impl Default for TimeValue {
+    fn default() -> Self {
+        Self::from(Local::now().to_utc())
+    }
+}
 
 impl TimeValue {
     pub fn try_from_timestamp(secs: i64, nsecs: u32) -> Result<Self> {

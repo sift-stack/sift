@@ -27,13 +27,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path rust/Cargo.toml
+          args: --manifest-path rust/Cargo.toml --features tracing
 
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --manifest-path rust/Cargo.toml
+          args: --manifest-path rust/Cargo.toml --features tracing
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
@@ -45,4 +45,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: test --manifest-path rust/Cargo.toml
+          args: test --manifest-path rust/Cargo.toml --features tracing

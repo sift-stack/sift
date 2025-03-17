@@ -8,6 +8,10 @@ pub mod channel;
 pub mod mode;
 pub use mode::ingestion_config::IngestionConfigMode;
 
+/// Retry policy
+pub mod retry;
+pub use retry::RetryPolicy;
+
 pub mod time;
 
 pub struct SiftStream<M: SiftStreamMode> {
