@@ -2,7 +2,7 @@ import json
 import mimetypes
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
@@ -261,6 +261,9 @@ class CsvUploadService(_RestService):
 
 class _ProgressFile:
     """Displays the status with tqdm while reading the file."""
+    # alive_bar only supports context managers, so we have to make the
+    # context manager calls manually.
+    _bar_context: Callable
 
     def __init__(self, path: Union[str, Path], disable=False):
         self.path = path
@@ -270,12 +273,7 @@ class _ProgressFile:
             raise Exception(f"{path} is 0 bytes")
 
         self._file = open(self.path, mode="rb")
-
         self._bar = alive_bar(self.file_size, unit="bytes", disable=disable)
-
-        # alive_bar only supports context managers, so we have to make the
-        # context manager calls manually.
-        self._bar_context = None
 
     def read(self, *args, **kwargs):
         chunk = self._file.read(*args, **kwargs)
