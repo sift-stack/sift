@@ -274,7 +274,7 @@ class _ProgressFile:
             raise Exception(f"{path} is 0 bytes")
 
         self._file = open(self.path, mode="rb")
-        self._bar = alive_bar(self.file_size, unit="bytes", disable=disable)
+        self._bar = alive_bar(self.file_size, unit=" bytes", disable=disable, scale="SI")
 
     def read(self, *args, **kwargs):
         chunk = self._file.read(*args, **kwargs)
