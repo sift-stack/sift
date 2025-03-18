@@ -30,6 +30,13 @@ def test_empty_data_columns(csv_config_data: dict):
         CsvConfig(csv_config_data)
 
 
+def test_run_name_and_run_id(csv_config_data: dict):
+    csv_config_data["run_name"] = "Run Title"
+    csv_config_data["run_id"] = "1c5546b4-ee53-460b-9205-4dc3980c200f"
+    with pytest.raises(Exception, match="Only specify run_name or run_id, not both"):
+        CsvConfig(csv_config_data)
+
+
 def test_data_column_validation(csv_config_data: dict):
     csv_config_data["data_columns"] = {
         1: {

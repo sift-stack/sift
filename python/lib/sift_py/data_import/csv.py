@@ -261,6 +261,7 @@ class CsvUploadService(_RestService):
 
 class _ProgressFile:
     """Displays the status with tqdm while reading the file."""
+
     # alive_bar only supports context managers, so we have to make the
     # context manager calls manually.
     _bar_context: Callable

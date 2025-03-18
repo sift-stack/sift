@@ -86,6 +86,9 @@ class RosbagsUploadService:
         """
         posix_path = Path(path) if isinstance(path, str) else path
 
+        if not posix_path.exists():
+            raise Exception(f"Provided path, '{path}', does not exists")
+
         if not posix_path.is_dir():
             raise Exception(f"Provided path, '{path}', does not point to a directory.")
 

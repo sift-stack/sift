@@ -172,10 +172,10 @@ def test_tdms_upload_success(mocker: MockFixture, mock_tdms_file: MockTdmsFile):
             "asset_name",
             group_into_components=True,
             run_name="Run Name",
-            run_id="Run ID",
+            run_id="",
         )
     expected_config["run_name"] = "Run Name"
-    expected_config["run_id"] = "Run ID"
+    expected_config["run_id"] = ""
     config = get_csv_config(mock_requests_post, 4)
     assert config == expected_config
 
