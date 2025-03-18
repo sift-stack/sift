@@ -26,9 +26,7 @@ dependencies = [
   "pydantic_core~=2.3",
   "requests~=2.25",
   "requests-toolbelt~=1.0",
-  "tqdm",
-  "types-tqdm",
-  "rosbags",
+  "alive-progress~=3.0",
 
   # May move these to optional dependencies in the future.
   "pandas-stubs~=2.0",
@@ -58,7 +56,7 @@ development = [
 build = ["pdoc==14.5.0", "build==1.2.1"]
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
-rosbags = ["rosbags"]
+rosbags = ["rosbags~=0.0"]
 
 [build-system]
 requires = ["setuptools"]

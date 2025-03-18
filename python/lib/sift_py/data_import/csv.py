@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
-from tqdm import tqdm
+from alive_progress import alive_bar
 
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
@@ -33,9 +33,15 @@ class CsvUploadService(_RestService):
         self,
         path: Union[str, Path],
         csv_config: CsvConfig,
+        show_progress: bool = True,
     ) -> DataImportService:
         """
         Uploads the CSV file pointed to by `path` using a custom CSV config.
+
+        Args:
+            path: The path to the CSV file.
+            csv_config: The CSV config.
+            show_progress: Whether to show the status bar or not.
         """
         content_encoding = self._validate_file_type(path)
 
@@ -63,7 +69,7 @@ class CsvUploadService(_RestService):
         except KeyError as e:
             raise Exception(f"Response missing required keys: {e}")
 
-        with _TqdmFile(path) as f:
+        with _ProgressFile(path, disable=not show_progress) as f:
             headers = {
                 "Content-Encoding": content_encoding,
             }
@@ -253,23 +259,33 @@ class CsvUploadService(_RestService):
         return file_name, mime, encoding
 
 
-class _TqdmFile:
+class _ProgressFile:
     """Displays the status with tqdm while reading the file."""
 
-    def __init__(self, path: Union[str, Path]):
+    def __init__(self, path: Union[str, Path], disable=False):
         self.path = path
+
         self.file_size = os.path.getsize(self.path)
+        if self.file_size == 0:
+            raise Exception(f"{path} is 0 bytes")
+
         self._file = open(self.path, mode="rb")
-        self._pbar = tqdm(total=self.file_size, unit="bytes")
+
+        self._bar = alive_bar(self.file_size, unit="bytes", disable=disable)
+
+        # alive_bar only supports context managers, so we have to make the
+        # context manager calls manually.
+        self._bar_context = None
 
     def read(self, *args, **kwargs):
         chunk = self._file.read(*args, **kwargs)
-        self._pbar.update(len(chunk))
+        self._bar_context(len(chunk))
         return chunk
 
     def __enter__(self):
+        self._bar_context = self._bar.__enter__()
         return self
 
     def __exit__(self, *args, **kwargs):
-        self._pbar.close()
+        self._bar.__exit__(None, None, None)
         return

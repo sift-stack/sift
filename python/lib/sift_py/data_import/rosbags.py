@@ -16,11 +16,11 @@ from glob import glob
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set, TextIO, Union
 
+from alive_progress import alive_it
 from rosbags.interfaces.typing import Typesdict
 from rosbags.rosbag2.reader import Reader
 from rosbags.typesys import Stores, get_types_from_msg, get_typestore
 from rosbags.typesys.store import Typestore
-from tqdm import tqdm
 
 from sift_py.data_import._config import DataColumn, TimeColumn
 from sift_py.data_import._ros_channel import RosChannel
@@ -52,6 +52,7 @@ class RosbagsUploadService:
         run_name: Optional[str] = None,
         run_id: Optional[str] = None,
         handlers: Optional[Dict[str, Callable]] = None,
+        show_progress: bool = True,
     ) -> DataImportService:
         """
         Uploads the ROS2 bag file pointed to by `path` to the specified asset.
@@ -74,6 +75,7 @@ class RosbagsUploadService:
                 the following signature:
                     def callback(topic: str, timestamp: int, msg: object)
                         ...
+            show_progress: Whether to show the status bar or not.
         """
         posix_path = Path(path) if isinstance(path, str) else path
 
@@ -83,7 +85,13 @@ class RosbagsUploadService:
         with NamedTemporaryFile(mode="wt", suffix=".csv.gz") as temp_file:
             try:
                 valid_channels = self._convert_to_csv(
-                    path, temp_file, msg_dirs, store, ignore_errors, handlers
+                    path,
+                    temp_file,
+                    msg_dirs,
+                    store,
+                    ignore_errors,
+                    handlers,
+                    show_progress,
                 )
                 if not valid_channels:
                     raise Exception(f"No valid channels remaining in {path}")
@@ -93,9 +101,9 @@ class RosbagsUploadService:
                 )
 
             csv_config = self._create_csv_config(valid_channels, asset_name, run_name, run_id)
-            print("Uploading file...")
 
-            return self._csv_upload_service.upload(temp_file.name, csv_config)
+            print("Uploading file")
+            return self._csv_upload_service.upload(temp_file.name, csv_config, show_progress)
 
     def _convert_to_csv(
         self,
@@ -105,6 +113,7 @@ class RosbagsUploadService:
         store: Stores,
         ignore_errors: bool,
         handlers: Optional[Dict[str, Callable]] = None,
+        show_progress: bool = True,
     ) -> List[RosChannel]:
         """Converts the ROS2 bag file to a temporary CSV on disk that we will upload.
 
@@ -120,6 +129,7 @@ class RosbagsUploadService:
                 the following signature:
                     def callback(topic: str, timestamp: int, msg: object)
                         ...
+            show_progress: Whether to show the status bar or not.
         Returns:
             The list valid channels after parsing the ROS2 bag file.
         """
@@ -168,9 +178,12 @@ class RosbagsUploadService:
             w.writeheader()
 
             print("Processing rosbag messages")
-            pbar = tqdm(total=reader.message_count, unit="messages")
-            for connection, timestamp, raw_data in reader.messages():
-                pbar.update(1)
+            for connection, timestamp, raw_data in alive_it(
+                reader.messages(),
+                total=reader.message_count,
+                unit=" messages",
+                disable=not show_progress,
+            ):
                 if connection.msgtype not in registered_msg_types:
                     if ignore_errors:
                         continue
