@@ -1,6 +1,8 @@
 """
-This example will not run as-is. It is meant to be a reference for how to extract video from a rosbag2.
-Uses ffmpeg library.
+This example will not run as-is. It is meant to be a reference for how to extract video frames from a rosbag.
+
+This example uses the ffmpeg library to create a fixed framerate output video. Refer to ffmpeg documentation
+if variable framerate is needed for your analysis.
 """
 
 import os
