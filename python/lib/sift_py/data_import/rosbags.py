@@ -16,11 +16,18 @@ from glob import glob
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set, TextIO, Union
 
-from alive_progress import alive_it
-from rosbags.interfaces.typing import Typesdict
-from rosbags.rosbag2.reader import Reader
-from rosbags.typesys import Stores, get_types_from_msg, get_typestore
-from rosbags.typesys.store import Typestore
+from alive_progress import alive_it  # type: ignore
+
+try:
+    from rosbags.interfaces.typing import Typesdict
+    from rosbags.rosbag2.reader import Reader
+    from rosbags.typesys import Stores, get_types_from_msg, get_typestore
+    from rosbags.typesys.store import Typestore
+except ImportError as e:
+    raise RuntimeError(
+        "The rosbags package is required to use the rosbag upload service. "
+        "Please include this dependency in your project by specifying `sift-stack-py[rosbags]`."
+    ) from e
 
 from sift_py.data_import._config import DataColumn, TimeColumn
 from sift_py.data_import._ros_channel import RosChannel

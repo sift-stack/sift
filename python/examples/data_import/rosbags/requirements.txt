@@ -1,3 +1,2 @@
 python-dotenv
-sift-stack-py
-rosbags
+sift-stack-py[rosbags]

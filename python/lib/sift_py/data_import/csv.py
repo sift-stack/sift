@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
-from alive_progress import alive_bar
+from alive_progress import alive_bar  # type: ignore
 
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
