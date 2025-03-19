@@ -1,3 +1,4 @@
+import gzip
 import os
 import tempfile
 from pathlib import Path
@@ -16,13 +17,21 @@ class NamedTemporaryFile:
     def __init__(self, mode, suffix=""):
         self.temp_dir = tempfile.mkdtemp()
         self.name = Path(self.temp_dir) / f"tempfile{suffix}"
-        self.file = open(self.name, mode)
+        if suffix.endswith(".gz"):
+            self.file = gzip.open(self.name, mode, newline="")
+        else:
+            self.file = open(self.name, mode, newline="")
+
+    def close(self):
+        return self.file.close()
 
     def __enter__(self):
         return self.file
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.file.close()
+        if not self.file.closed:
+            self.file.close()
+
         try:
             os.remove(self.name)
             os.rmdir(self.temp_dir)

@@ -1,13 +1,13 @@
 import os
 
 from dotenv import load_dotenv
-from sift_py.data_import.csv import CsvUploadService
-from sift_py.data_import.status import DataImportService
+from rosbags.typesys import Stores
+from sift_py.data_import.rosbags import RosbagsUploadService
 from sift_py.rest import SiftRestConfig
 
 if __name__ == "__main__":
     """
-    Example of uploading a CSV file into Sift using default CSV config.
+    Example of uploading a rosbag2 into Sift.
     """
 
     load_dotenv()
@@ -26,17 +26,19 @@ if __name__ == "__main__":
         "apikey": apikey,
     }
 
-    csv_upload_service = CsvUploadService(rest_config)
-
-    # Can optionally specify units_row=N or description_row=N if these rows exist.
-    # Must also specify first_data_row=N in this case.
-    import_service: DataImportService = csv_upload_service.simple_upload(
+    ros2_upload_service = RosbagsUploadService(rest_config)
+    import_service = ros2_upload_service.upload(
+        "data/sample_data",
+        ["data/std_msgs"],
+        Stores.ROS2_HUMBLE,
         asset_name,
-        "sample_data.csv",
+        run_name="Sample Rosbag Upload",
     )
-    data_import = import_service.get_data_import()
+
+    # Wait until the data import is completed.
+    data_import = import_service.wait_until_complete()
+
+    # Print the data import details and final status.
     print(data_import.model_dump_json(indent=1))
 
-    print("Waiting for upload to complete...")
-    import_service.wait_until_complete()
     print("Upload example complete!")
