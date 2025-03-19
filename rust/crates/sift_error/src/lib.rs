@@ -94,6 +94,8 @@ pub enum ErrorKind {
     NumberConversionError,
     TimeConversionError,
     StreamError,
+    BackupsError,
+    ProtobufError,
 
     /// This really shouldn't happen
     EmptyResponseError,
@@ -157,6 +159,8 @@ impl fmt::Display for ErrorKind {
             Self::CreateFlowError => write!(f, "CreateFlowError"),
             Self::TimeConversionError => write!(f, "TimeConversionError"),
             Self::StreamError => write!(f, "StreamError"),
+            Self::BackupsError => write!(f, "BackupsError"),
+            Self::ProtobufError => write!(f, "ProtobufError"),
         }
     }
 }

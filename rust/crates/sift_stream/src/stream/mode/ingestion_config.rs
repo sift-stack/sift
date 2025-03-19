@@ -43,13 +43,13 @@ pub struct IngestionConfigMode {
     retry_policy: Option<RetryPolicy>,
 
     /// Channel to transmit data to the streaming task.
-    data_tx: BoundedSender<Flow>,
+    data_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
     /// Transmit signal to streaming task to initiate final checkpoint and terminate streaming.
     termination_signal_tx: Sender<()>,
 
     /// If there's an error from Sift in the middle of the stream, then [DataStream] will send any
     /// remaining data in its receiver buffer to this channel.
-    recovery_rx: BoundedReceiver<Flow>,
+    recovery_rx: BoundedReceiver<IngestWithConfigDataStreamRequest>,
 }
 
 impl SiftStreamMode for IngestionConfigMode {}
@@ -66,8 +66,8 @@ struct DataStream {
     flows: Vec<FlowConfig>,
     ingestion_config_id: String,
     run_id: Option<String>,
-    data_rx: BoundedReceiver<Flow>,
-    recovery_tx: BoundedSender<Flow>,
+    data_rx: BoundedReceiver<IngestWithConfigDataStreamRequest>,
+    recovery_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
     checkpoint_signal_rx: Receiver<()>,
     messages_processed: usize,
     bytes_processed: usize,
@@ -97,10 +97,12 @@ impl SiftStream<IngestionConfigMode> {
         checkpoint_interval: Duration,
         retry_policy: Option<RetryPolicy>,
     ) -> Self {
-        let (data_tx, data_rx) = bounded_channel::<Flow>(DATA_BUFFER_LEN);
+        let (data_tx, data_rx) =
+            bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
         let (termination_signal_tx, termination_signal_rx) = oneshot::channel::<()>();
         let (checkpoint_signal_tx, checkpoint_signal_rx) = oneshot::channel::<()>();
-        let (recovery_tx, recovery_rx) = bounded_channel::<Flow>(DATA_BUFFER_LEN);
+        let (recovery_tx, recovery_rx) =
+            bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
         let data_stream = DataStream::new(
             &ingestion_config,
@@ -139,13 +141,27 @@ impl SiftStream<IngestionConfigMode> {
     }
 
     pub async fn send(&mut self, message: Flow) -> Result<()> {
-        match self.mode.data_tx.send(message).await {
+        let Some(req) = message_to_ingest_req(
+            &message.flow_name,
+            &self.mode.ingestion_config.ingestion_config_id,
+            self.mode.run.clone().map(|r| r.run_id).unwrap_or_default(),
+            message.timestamp.clone(),
+            message.values.clone(),
+            &self.mode.flows,
+        ) else {
+            return Err(Error::new_msg(
+                ErrorKind::StreamError,
+                "failed to turn provided flow into a valid ingestion request",
+            ));
+        };
+
+        match self.mode.data_tx.send(req.clone()).await {
             Ok(_) => Ok(()),
 
-            Err(SendError(msg)) => match self.mode.streaming_task.take() {
+            Err(SendError(_)) => match self.mode.streaming_task.take() {
                 None => {
                     self.recover_data_and_reinit_stream().await?;
-                    Box::pin(self.send(msg)).await
+                    Box::pin(self.send(message)).await
                 }
 
                 Some(streaming_task) => match streaming_task.await {
@@ -156,19 +172,19 @@ impl SiftStream<IngestionConfigMode> {
                         );
 
                         self.recover_data_and_reinit_stream().await?;
-                        Box::pin(self.send(msg)).await
+                        Box::pin(self.send(message)).await
                     }
                     Ok(Err(err)) => {
                         #[cfg(feature = "tracing")]
                         tracing::warn!("received an error from Sift while streaming");
 
-                        self.retry(msg, err).await
+                        self.retry(req, err).await
                     }
                     Err(err) => {
                         #[cfg(feature = "tracing")]
                         tracing::warn!("something went wrong while waiting for response from Sift");
 
-                        self.retry(msg, Error::new(ErrorKind::StreamError, err))
+                        self.retry(req, Error::new(ErrorKind::StreamError, err))
                             .await
                     }
                 },
@@ -176,34 +192,14 @@ impl SiftStream<IngestionConfigMode> {
         }
     }
 
-    async fn retry(&mut self, msg: Flow, err: Error) -> Result<()> {
+    async fn retry(
+        &mut self,
+        ingest_req: IngestWithConfigDataStreamRequest,
+        err: Error,
+    ) -> Result<()> {
         let Some(retry_policy) = self.mode.retry_policy.as_ref() else {
             return Err(Error::new(ErrorKind::StreamError, err))
                 .context("no retry policy detected");
-        };
-
-        let IngestionConfigMode {
-            ingestion_config:
-                IngestionConfig {
-                    ingestion_config_id,
-                    ..
-                },
-            run,
-            flows,
-            ..
-        } = &self.mode;
-
-        let Some(ingest_req) = message_to_ingest_req(
-            &msg.flow_name,
-            ingestion_config_id,
-            run.as_ref().map(|r| r.run_id.clone()).unwrap_or_default(),
-            msg.timestamp,
-            msg.values,
-            flows,
-        ) else {
-            return Err(Error::new_msg(ErrorKind::StreamError, "retry failed"))
-                .context("tried to resend a malformed message")
-                .help("please conteact Sift");
         };
 
         let mut client = IngestServiceClient::new(self.grpc_channel.clone());
@@ -270,7 +266,8 @@ impl SiftStream<IngestionConfigMode> {
     }
 
     async fn recover_data_and_reinit_stream(&mut self) -> Result<()> {
-        let (data_tx, data_rx) = bounded_channel::<Flow>(DATA_BUFFER_LEN);
+        let (data_tx, data_rx) =
+            bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
         // Recover messages from previously dropped [DataStream] and buffer into new
         // receiver for new [DataStream].
@@ -285,7 +282,8 @@ impl SiftStream<IngestionConfigMode> {
 
         let (termination_signal_tx, termination_signal_rx) = oneshot::channel::<()>();
         let (checkpoint_signal_tx, checkpoint_signal_rx) = oneshot::channel::<()>();
-        let (recovery_tx, recovery_rx) = bounded_channel::<Flow>(DATA_BUFFER_LEN);
+        let (recovery_tx, recovery_rx) =
+            bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
         self.mode.recovery_rx = recovery_rx;
         self.mode.termination_signal_tx = termination_signal_tx;
@@ -393,9 +391,9 @@ impl DataStream {
     fn new(
         ingestion_config: &IngestionConfig,
         flows: &[FlowConfig],
-        data_rx: BoundedReceiver<Flow>,
+        data_rx: BoundedReceiver<IngestWithConfigDataStreamRequest>,
         run: Option<&Run>,
-        recovery_tx: BoundedSender<Flow>,
+        recovery_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
         checkpoint_signal_rx: Receiver<()>,
     ) -> Self {
         Self {
@@ -421,21 +419,7 @@ impl Stream for DataStream {
         }
 
         match self.data_rx.poll_recv(ctx) {
-            Poll::Ready(Some(Flow {
-                flow_name,
-                timestamp,
-                values,
-            })) => {
-                let Some(req) = message_to_ingest_req(
-                    &flow_name,
-                    &self.ingestion_config_id,
-                    self.run_id.clone().unwrap_or_default(),
-                    timestamp,
-                    values,
-                    &self.flows,
-                ) else {
-                    return Poll::Ready(None);
-                };
+            Poll::Ready(Some(req)) => {
                 self.messages_processed += 1;
                 self.bytes_processed += req.encode_length_delimited_to_vec().len();
 

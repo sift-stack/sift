@@ -23,6 +23,7 @@ tracing = ["dep:tracing", "dep:bytesize"]
 [dev-dependencies]
 async-trait = "^0.1"
 hyper-util = "0.1.10"
+tempdir = "0.3.7"
 tokio-stream = "0.1.17"
 tonic = "^0.12"
 tower = { version = "0.5.2", features = ["util"] }
