@@ -308,6 +308,7 @@ class RuleService:
                     configuration=RuleActionConfiguration(
                         annotation=AnnotationActionConfiguration(
                             assigned_to_user_id=user_id,
+                            annotation_type=AnnotationType.ANNOTATION_TYPE_DATA_REVIEW,
                             # tag_ids=config.action.tags,  # TODO: Requires TagService
                         )
                     ),
@@ -318,6 +319,7 @@ class RuleService:
                     action_type=ANNOTATION,
                     configuration=RuleActionConfiguration(
                         annotation=AnnotationActionConfiguration(
+                            annotation_type=AnnotationType.ANNOTATION_TYPE_PHASE,
                             # tag_ids=config.action.tags,  # TODO: Requires TagService
                         )
                     ),
