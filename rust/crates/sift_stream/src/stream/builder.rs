@@ -12,14 +12,12 @@ use sift_rs::{
 use std::{collections::HashSet, marker::PhantomData, time::Duration};
 
 const DEFAULT_CHECKPOINT_INTERVAL_SEC: u64 = 60;
-const DEFAULT_CHECKPOINT_TIMEOUT_SEC: u64 = 60;
 
 pub struct SiftStreamBuilder<C: SiftStreamMode> {
     credentials: Credentials,
     run_selector: Option<RunSelector>,
     retry_policy: Option<RetryPolicy>,
     checkpoint_interval: Option<Duration>,
-    checkpoint_timeout: Option<Duration>,
     ingestion_config_selector: Option<IngestionConfigSelector>,
     kind: PhantomData<C>,
 }
@@ -58,7 +56,6 @@ impl<C: SiftStreamMode> SiftStreamBuilder<C> {
             run_selector: None,
             kind: PhantomData,
             checkpoint_interval: None,
-            checkpoint_timeout: None,
             retry_policy: None,
         }
     }
@@ -174,7 +171,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         let SiftStreamBuilder {
             credentials,
             checkpoint_interval,
-            checkpoint_timeout,
             ingestion_config_selector,
             run_selector,
             retry_policy,
@@ -202,16 +198,12 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         let checkpoint_interval = checkpoint_interval
             .unwrap_or_else(|| Duration::from_secs(DEFAULT_CHECKPOINT_INTERVAL_SEC));
 
-        let checkpoint_timeout = checkpoint_timeout
-            .unwrap_or_else(|| Duration::from_secs(DEFAULT_CHECKPOINT_TIMEOUT_SEC));
-
         Ok(SiftStream::<IngestionConfigMode>::new(
             channel,
             ingestion_config,
             flows,
             run,
             checkpoint_interval,
-            checkpoint_timeout,
             retry_policy,
         ))
     }
@@ -231,13 +223,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         self
     }
 
-    pub fn checkpoint_timeout(
-        mut self,
-        duration: Duration,
-    ) -> SiftStreamBuilder<IngestionConfigMode> {
-        self.checkpoint_timeout = Some(duration);
-        self
-    }
     async fn ingestion_config_from_selector(
         grpc_channel: SiftChannel,
         selector: IngestionConfigSelector,

@@ -1,10 +1,9 @@
 use chrono::Local;
-use sift_error::ErrorKind;
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
-use sift_stream::{ChannelValue, IngestionConfigMode, Message, RetryPolicy, SiftStream, TimeValue};
+use sift_stream::{ChannelValue, Flow, IngestionConfigMode, RetryPolicy, SiftStream, TimeValue};
 use std::{
     sync::{
         atomic::{AtomicBool, AtomicU32, Ordering},
@@ -17,6 +16,7 @@ mod common;
 use common::prelude::*;
 
 struct IngestServiceMock {
+    num_stream_opened: Arc<AtomicU32>,
     num_messages_received: Arc<AtomicU32>,
     return_error: Arc<AtomicBool>,
 }
@@ -27,14 +27,17 @@ impl IngestService for IngestServiceMock {
         &self,
         request: Request<Streaming<IngestWithConfigDataStreamRequest>>,
     ) -> Result<Response<IngestWithConfigDataStreamResponse>, Status> {
+        self.num_stream_opened.fetch_add(1, Ordering::Relaxed);
+
+        if self.return_error.load(Ordering::Relaxed) {
+            return Err(Status::resource_exhausted("resource exhausted"));
+        }
         let mut data_stream = request.into_inner();
 
         while let Ok(Some(_)) = data_stream.message().await {
             self.num_messages_received.fetch_add(1, Ordering::Relaxed);
-            if self.return_error.load(Ordering::Relaxed) {
-                return Err(Status::resource_exhausted("resource exhausted"));
-            }
         }
+
         Ok(Response::new(IngestWithConfigDataStreamResponse {}))
     }
     async fn ingest_arbitrary_protobuf_data_stream(
@@ -46,12 +49,14 @@ impl IngestService for IngestServiceMock {
 }
 
 #[tokio::test]
-pub async fn test_retries_succeed() {
+async fn test_retries_succeed() {
+    tracing_subscriber::fmt::init();
+
     let return_error = Arc::new(AtomicBool::new(true));
 
     let num_messages = 1_000;
     let mut messages = (0..num_messages).map(|i| {
-        Message::new(
+        Flow::new(
             "flow",
             TimeValue::from(Local::now().to_utc()),
             &[ChannelValue::new("generator", i as f64)],
@@ -59,8 +64,10 @@ pub async fn test_retries_succeed() {
     });
 
     let num_messages_received = Arc::new(AtomicU32::default());
+    let num_streams_opened = Arc::new(AtomicU32::default());
 
     let ingest_service = IngestServiceMock {
+        num_stream_opened: num_streams_opened.clone(),
         num_messages_received: num_messages_received.clone(),
         return_error: return_error.clone(),
     };
@@ -87,67 +94,41 @@ pub async fn test_retries_succeed() {
         flows,
         None,
         Duration::from_secs(60),
-        Duration::from_secs(60),
         Some(RetryPolicy::default()),
     );
 
-    let mut error = None;
+    tokio::spawn(async move {
+        // let streams fail a few times
+        while num_streams_opened.load(Ordering::Relaxed) < 3 {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        return_error.swap(false, Ordering::Relaxed);
+    });
+
+    let _ = sift_stream.send(messages.next().unwrap()).await.unwrap();
+
+    tokio::time::sleep(Duration::from_millis(10_000)).await;
+
     loop {
         if let Some(msg) = messages.next() {
-            if let Err(err) = sift_stream.send(msg) {
-                error = Some(err);
-                break;
-            }
-            common::task_yield().await;
+            let send_result = sift_stream.send(msg).await;
+            assert!(
+                send_result.is_ok(),
+                "we should have successfully recovered and not gotten an error"
+            );
             continue;
         }
         break;
     }
-    assert!(error.is_some(), "expected to encounter a server error");
 
-    let error = error.unwrap();
-    assert!(
-        format!("{error}").contains("resource exhausted"),
-        "expected a resource exhausted error"
-    );
-    assert_eq!(
-        error.kind(),
-        ErrorKind::StreamErrorRetriable,
-        "expected error to indicate that stream can be retried"
-    );
+    let _ = sift_stream.finish().await.unwrap();
 
-    let send_result = sift_stream.send(Message::new(
-        "flow",
-        TimeValue::default(),
-        &[ChannelValue::new("generator", 1.0_f64)],
-    ));
-    assert!(
-        send_result.is_err(),
-        "should not be able to send when stream is broken"
-    );
-    assert!(format!("{}", send_result.unwrap_err()).contains("possible to retry"));
-
-    assert!(return_error.swap(false, Ordering::Relaxed));
-    assert!(
-        sift_stream.retry().await.is_ok(),
-        "retry should have succeeded"
-    );
-
-    for message in messages {
-        assert!(
-            sift_stream.send(message).is_ok(),
-            "we should be able to call send"
-        );
-    }
-    assert!(
-        sift_stream.finish().await.is_ok(),
-        "expected stream to terminate without error"
-    );
+    tokio::time::sleep(Duration::from_millis(1_000)).await;
 
     assert_eq!(
-        num_messages as u32,
+        num_messages,
         num_messages_received.load(Ordering::Relaxed),
-        "number of messages received by the mock server and number of messaged sent should match",
+        "expected no messages to be dropped",
     );
 
     assert!(
@@ -157,12 +138,12 @@ pub async fn test_retries_succeed() {
 }
 
 #[tokio::test]
-pub async fn test_retries_fail() {
+pub async fn test_retries_exhausted() {
     let return_error = Arc::new(AtomicBool::new(true));
 
     let num_messages = 1_000;
     let mut messages = (0..num_messages).map(|i| {
-        Message::new(
+        Flow::new(
             "flow",
             TimeValue::from(Local::now().to_utc()),
             &[ChannelValue::new("generator", i as f64)],
@@ -170,10 +151,12 @@ pub async fn test_retries_fail() {
     });
 
     let num_messages_received = Arc::new(AtomicU32::default());
+    let num_streams_opened = Arc::new(AtomicU32::default());
 
     let ingest_service = IngestServiceMock {
-        num_messages_received,
-        return_error,
+        num_stream_opened: num_streams_opened.clone(),
+        num_messages_received: num_messages_received.clone(),
+        return_error: return_error.clone(),
     };
 
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
@@ -192,48 +175,41 @@ pub async fn test_retries_fail() {
         }],
     }];
 
+    let retry_attempts = 3;
+
     let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
         client,
         ingestion_config,
         flows,
         None,
         Duration::from_secs(60),
-        Duration::from_secs(60),
-        Some(RetryPolicy::default()),
+        Some(RetryPolicy {
+            max_attempts: retry_attempts,
+            initial_backoff: Duration::from_millis(1),
+            backoff_multiplier: 2,
+            max_backoff: Duration::from_millis(100),
+        }),
     );
 
     let mut error = None;
     loop {
         if let Some(msg) = messages.next() {
-            if let Err(err) = sift_stream.send(msg) {
+            if let Err(err) = sift_stream.send(msg).await {
                 error = Some(err);
                 break;
             }
-            common::task_yield().await;
             continue;
         }
         break;
     }
     assert!(error.is_some(), "expected to encounter a server error");
-
-    let error = error.unwrap();
-    assert!(
-        format!("{error}").contains("resource exhausted"),
-        "expected a resource exhausted error"
-    );
     assert_eq!(
-        error.kind(),
-        ErrorKind::StreamErrorRetriable,
-        "expected error to indicate that stream can be retried"
+        u32::from(retry_attempts + 1),
+        num_streams_opened.load(Ordering::Relaxed),
+        "expected number of streams opened to equal retry_attempts + 1"
     );
 
-    let retry_result = sift_stream.retry().await;
-    assert!(
-        retry_result.is_err(),
-        "expected all retries to be exhausted"
-    );
-    let error = retry_result.unwrap_err();
-    assert!(format!("{error}").contains("exhausted all retry attempts"));
+    assert!(sift_stream.finish().await.is_ok());
 
     assert!(
         server.await.is_ok(),

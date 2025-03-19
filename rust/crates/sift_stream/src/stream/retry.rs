@@ -14,7 +14,7 @@ impl Default for RetryPolicy {
             max_attempts: 5,
             initial_backoff: Duration::from_millis(50),
             max_backoff: Duration::from_secs(5),
-            backoff_multiplier: 4,
+            backoff_multiplier: 5,
         }
     }
 }

@@ -3,7 +3,7 @@ use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
-use sift_stream::{ChannelValue, IngestionConfigMode, Message, SiftStream, TimeValue};
+use sift_stream::{ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue};
 use std::{
     sync::{
         atomic::{AtomicU32, Ordering},
@@ -92,21 +92,22 @@ async fn test_sending_data() {
         flows,
         None,
         Duration::from_secs(30),
-        Duration::from_secs(30),
         None,
     );
 
     let num_messages = 100;
 
     for _ in 0..num_messages {
-        let send_result = sift_stream.send(Message::new(
-            "wheel",
-            TimeValue::from(Local::now().to_utc()),
-            &[
-                ChannelValue::new("angular_velocity", 1.0_f64),
-                ChannelValue::new("log", "foobar"),
-            ],
-        ));
+        let send_result = sift_stream
+            .send(Flow::new(
+                "wheel",
+                TimeValue::from(Local::now().to_utc()),
+                &[
+                    ChannelValue::new("angular_velocity", 1.0_f64),
+                    ChannelValue::new("log", "foobar"),
+                ],
+            ))
+            .await;
         assert!(send_result.is_ok(), "streaming failed unexpectedly");
     }
 
@@ -156,13 +157,13 @@ async fn test_checkpointing() {
         }],
     }];
 
+    let checkpoint_interval = Duration::from_secs(1);
     let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
         client,
         ingestion_config,
         flows,
         None,
-        Duration::from_secs(1),
-        Duration::from_secs(30),
+        checkpoint_interval,
         None,
     );
 
@@ -174,15 +175,15 @@ async fn test_checkpointing() {
         while let Err(TryRecvError::Empty) = terminate_streaming_rx.try_recv() {
             let timestamp = TimeValue::from(Local::now().to_utc());
 
-            let send_result = sift_stream.send(Message::new(
-                "flow",
-                timestamp,
-                &[ChannelValue::new("generator", 1.0_f64)],
-            ));
+            let send_result = sift_stream
+                .send(Flow::new(
+                    "flow",
+                    timestamp,
+                    &[ChannelValue::new("generator", 1.0_f64)],
+                ))
+                .await;
             assert!(send_result.is_ok(), "streaming failed unexpectedly");
             messages_sent += 1;
-
-            common::task_yield().await;
         }
 
         assert!(sift_stream.finish().await.is_ok());
@@ -190,7 +191,9 @@ async fn test_checkpointing() {
         messages_sent
     });
 
-    tokio::time::sleep(Duration::from_millis(3_500)).await;
+    // Pad an additional second
+    tokio::time::sleep(checkpoint_interval * 4).await;
+
     assert!(
         terminate_streaming_tx.send(()).is_ok(),
         "failed to terminate streaming"

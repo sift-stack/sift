@@ -47,9 +47,3 @@ pub async fn start_test_ingest_server<I: IngestService>(
 
     (sift_channel, server)
 }
-
-/// All tests are run on a single-threaded run-time so we'll need to yield
-/// if we want to give our mock server time to do some processing after sending it some data.
-pub async fn task_yield() {
-    tokio::task::yield_now().await;
-}

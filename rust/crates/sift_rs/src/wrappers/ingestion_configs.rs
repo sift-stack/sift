@@ -204,13 +204,13 @@ impl IngestionConfigServiceImpl {
             }
 
             ResourceIdentifier::ClientKey(client_key) => {
-                let filter = format!("client_key = '{client_key}'");
+                let filter = format!("client_key == '{client_key}'");
                 let conf = self
                     .list_ingestion_configs(ListIngestionConfigsRequest { filter, page_size: 1, ..Default::default() })
                     .await
                     .map(|res| res.into_inner().ingestion_configs)
                     .map_err(|e| Error::new(ErrorKind::RetrieveIngestionConfigError, e))
-                    .context("failed to try_get ingestion config")
+                    .context("failed try_get_ingestion_config")
                     .help("ensure that the provided client key is valid")?;
 
                 conf.first()
