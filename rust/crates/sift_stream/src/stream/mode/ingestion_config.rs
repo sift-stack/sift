@@ -243,10 +243,7 @@ impl SiftStream<IngestionConfigMode> {
                 }
             }
         }
-
-        Err(Error::new(ErrorKind::StreamError, err))
-            .context("exhausted all retry attempts")
-            .help("please contact Sift")
+        Err(err)
     }
 
     async fn restart_stream(&mut self, reingest_from_last_checkpoint: bool) -> Result<()> {
