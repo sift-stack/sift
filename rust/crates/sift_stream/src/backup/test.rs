@@ -49,7 +49,7 @@ async fn test_backups_manager_retrieve_data_with_graceful_termination() {
     }
 
     backups_manager
-        .checkpoint()
+        .truncate_backup()
         .await
         .expect("checkpoint should have succeeded");
 

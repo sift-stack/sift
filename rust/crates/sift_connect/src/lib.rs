@@ -1,2 +1,2 @@
 pub mod grpc;
-pub use grpc::{connect_grpc, Credentials, SiftChannel, SiftChannelConfig};
+pub use grpc::{Credentials, SiftChannel, SiftChannelBuilder, SiftChannelConfig};

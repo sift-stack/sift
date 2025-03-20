@@ -23,7 +23,7 @@ prost-types = "^0.13"
 serde = { version = "^1.0" }
 sift_connect = { version = "0.1.0", path = "../sift_connect" }
 sift_error = { version = "0.1.0", path = "../sift_error" }
-tonic = { version = "0.12", features = ["tls", "tls-roots", "tls-webpki-roots"] }
+tonic = { version = "^0.12" }
 
 [dev-dependencies]
 chrono = "0.4.38"

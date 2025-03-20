@@ -8,6 +8,7 @@ pub const SIFT_CONFIG_NAME: &str = "sift.toml";
 /// your operating system. If `None` is provided, then the top-level table is used.
 ///
 /// ['these locations']: https://docs.rs/dirs/6.0.0/dirs/fn.config_local_dir.html
+#[derive(Debug)]
 pub enum Credentials {
     Profile(Option<String>),
     Config { uri: String, apikey: String },

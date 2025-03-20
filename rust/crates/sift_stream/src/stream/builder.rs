@@ -1,6 +1,6 @@
 use super::{mode::ingestion_config::IngestionConfigMode, RetryPolicy, SiftStream, SiftStreamMode};
 use crate::backup::BackupsManager;
-use sift_connect::{Credentials, SiftChannel};
+use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
 use sift_rs::{
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
@@ -12,14 +12,13 @@ use sift_rs::{
 };
 use std::{collections::HashSet, marker::PhantomData, path::PathBuf, time::Duration};
 
-const DEFAULT_CHECKPOINT_INTERVAL_SEC: u64 = 60;
-
 pub struct SiftStreamBuilder<C: SiftStreamMode> {
     credentials: Credentials,
     run_selector: Option<RunSelector>,
     recovery_strategy: Option<RecoveryStrategy>,
-    checkpoint_interval: Option<Duration>,
+    checkpoint_interval: Duration,
     ingestion_config_selector: Option<IngestionConfigSelector>,
+    enable_tls: bool,
     kind: PhantomData<C>,
 }
 
@@ -72,10 +71,11 @@ impl<C: SiftStreamMode> SiftStreamBuilder<C> {
     ) -> SiftStreamBuilder<IngestionConfigMode> {
         SiftStreamBuilder {
             credentials,
+            enable_tls: true,
             ingestion_config_selector: Some(selector),
             run_selector: None,
             kind: PhantomData,
-            checkpoint_interval: None,
+            checkpoint_interval: Duration::from_secs(60),
             recovery_strategy: None,
         }
     }
@@ -87,6 +87,11 @@ impl<C: SiftStreamMode> SiftStreamBuilder<C> {
 
     pub fn attach_run(mut self, run_selector: RunSelector) -> SiftStreamBuilder<C> {
         self.run_selector = Some(run_selector);
+        self
+    }
+
+    pub fn disable_tls(mut self) -> SiftStreamBuilder<C> {
+        self.enable_tls = false;
         self
     }
 
@@ -194,6 +199,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             ingestion_config_selector,
             run_selector,
             recovery_strategy,
+            enable_tls,
             ..
         } = self;
 
@@ -203,7 +209,12 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             ));
         };
 
-        let channel = sift_connect::connect_grpc(credentials)?;
+        let mut sift_channel_builder = SiftChannelBuilder::new(credentials);
+
+        if enable_tls {
+            sift_channel_builder = sift_channel_builder.use_tls(true);
+        }
+        let channel = sift_channel_builder.build()?;
 
         let (ingestion_config, flows) =
             Self::ingestion_config_from_selector(channel.clone(), ingestion_config_selector)
@@ -214,9 +225,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         } else {
             None
         };
-
-        let checkpoint_interval = checkpoint_interval
-            .unwrap_or_else(|| Duration::from_secs(DEFAULT_CHECKPOINT_INTERVAL_SEC));
 
         let mut backups_manager = None;
         let mut policy = None;
@@ -265,7 +273,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         mut self,
         duration: Duration,
     ) -> SiftStreamBuilder<IngestionConfigMode> {
-        self.checkpoint_interval = Some(duration);
+        self.checkpoint_interval = duration;
         self
     }
 
