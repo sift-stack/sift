@@ -95,7 +95,8 @@ pub enum ErrorKind {
     TimeConversionError,
     StreamError,
     BackupsError,
-    ProtobufError,
+    IncompatibleIngestionConfigChange,
+    UnknownFlow,
 
     /// This really shouldn't happen
     EmptyResponseError,
@@ -159,8 +160,11 @@ impl fmt::Display for ErrorKind {
             Self::CreateFlowError => write!(f, "CreateFlowError"),
             Self::TimeConversionError => write!(f, "TimeConversionError"),
             Self::StreamError => write!(f, "StreamError"),
+            Self::UnknownFlow => write!(f, "UnknownFlow"),
             Self::BackupsError => write!(f, "BackupsError"),
-            Self::ProtobufError => write!(f, "ProtobufError"),
+            Self::IncompatibleIngestionConfigChange => {
+                write!(f, "IncompatibleIngestionConfigChange")
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 pub mod stream;
 pub use stream::{
-    builder::{IngestionConfigSelector, RecoveryStrategy, RunSelector, SiftStreamBuilder},
+    builder::{IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder},
     channel::{ChannelValue, Value},
     mode::ingestion_config::{Flow, IngestionConfigMode},
     time::TimeValue,

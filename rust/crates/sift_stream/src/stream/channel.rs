@@ -33,6 +33,10 @@ impl ChannelValue {
         }
     }
 
+    pub fn empty_pb() -> Type {
+        Type::Empty(pbjson_types::Empty {})
+    }
+
     pub(crate) fn pb_data_type(&self) -> i32 {
         match self.value {
             Value::Bool(_) => i32::from(ChannelDataType::Bool),

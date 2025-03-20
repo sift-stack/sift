@@ -15,6 +15,7 @@ use sift_rs::{
     runs::v2::Run,
 };
 use std::{
+    collections::HashMap,
     ops::Drop,
     pin::Pin,
     sync::Arc,
@@ -38,7 +39,7 @@ const DATA_BUFFER_LEN: usize = 10_000;
 /// Dependencies specifically for ingestion-config based streaming.
 pub struct IngestionConfigMode {
     ingestion_config: IngestionConfig,
-    flows: Vec<FlowConfig>,
+    flows_by_name: HashMap<String, Vec<FlowConfig>>,
     run: Option<Run>,
     checkpoint_interval: Duration,
     streaming_task: Option<JoinHandle<Result<IngestWithConfigDataStreamResponse>>>,
@@ -89,6 +90,15 @@ impl SiftStream<IngestionConfigMode> {
         retry_policy: Option<RetryPolicy>,
         backups_manager: Option<BackupsManager<IngestWithConfigDataStreamRequest>>,
     ) -> Self {
+        let mut flows_by_name = HashMap::<String, Vec<FlowConfig>>::new();
+
+        for flow in flows {
+            flows_by_name
+                .entry(flow.name.clone())
+                .and_modify(|group| group.push(flow.clone()))
+                .or_insert_with(|| vec![flow]);
+        }
+
         let (data_tx, data_rx) =
             bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
         let (checkpoint_signal_tx, checkpoint_signal_rx) = oneshot::channel::<()>();
@@ -114,7 +124,7 @@ impl SiftStream<IngestionConfigMode> {
             grpc_channel,
             mode: IngestionConfigMode {
                 ingestion_config,
-                flows,
+                flows_by_name,
                 run,
                 streaming_task: Some(streaming_task),
                 checkpoint_interval,
@@ -126,13 +136,17 @@ impl SiftStream<IngestionConfigMode> {
     }
 
     pub async fn send(&mut self, message: Flow) -> Result<()> {
+        let Some(flows) = self.mode.flows_by_name.get(&message.flow_name) else {
+            return Err(Error::new_msg(ErrorKind::UnknownFlow, "unknown flow name"))
+                .with_context(|| format!("unknown flow provided: {message:?}"))
+                .help("try adding this flow to your ingestion config");
+        };
+
         let Some(req) = Self::message_to_ingest_req(
-            &message.flow_name,
+            &message,
             &self.mode.ingestion_config.ingestion_config_id,
-            self.mode.run.clone().map(|r| r.run_id).unwrap_or_default(),
-            message.timestamp.clone(),
-            message.values.clone(),
-            &self.mode.flows,
+            self.mode.run.as_ref().map(|r| r.run_id.clone()),
+            flows,
         ) else {
             return Err(Error::new_msg(
                 ErrorKind::StreamError,
@@ -280,13 +294,13 @@ impl SiftStream<IngestionConfigMode> {
                     tracing::warn!("not all backups were successfully processed due to unexpected stream termination - retrying");
                 }
 
-                if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
-                    let _ = backup_manager.truncate_backup().await;
-                }
                 return Box::pin(self.restart_stream(false)).await;
             }
             begin_checkpoint_notifier.notify_one();
         } else {
+            if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
+                let _ = backup_manager.truncate_backup().await;
+            }
             begin_checkpoint_notifier.notify_one();
         }
 
@@ -441,30 +455,35 @@ impl SiftStream<IngestionConfigMode> {
         })
     }
 
-    fn message_to_ingest_req(
-        flow_name: &str,
+    /// Flows passed into this function should have names match `flow_name`.
+    pub(crate) fn message_to_ingest_req(
+        message: &Flow,
         ingestion_config_id: &str,
-        run_id: String,
-        time_value: TimeValue,
-        values: Vec<ChannelValue>,
+        run_id: Option<String>,
         flows: &[FlowConfig],
     ) -> Option<IngestWithConfigDataStreamRequest> {
         let mut maybe_channel_values = None;
 
-        for flow in flows.iter().filter(|f| f.name == flow_name) {
-            let mut ordered_values = Vec::with_capacity(values.len());
+        for flow in flows {
+            let mut ordered_values = flow
+                .channels
+                .iter()
+                .map(|_| None)
+                .collect::<Vec<Option<ChannelValue>>>();
+            let mut num_channels_accounted_for = 0;
 
-            for conf in &flow.channels {
-                let Some(val) = values
-                    .iter()
-                    .find(|v| v.name == conf.name && v.pb_data_type() == conf.data_type)
-                else {
-                    continue;
-                };
-                ordered_values.push(val);
+            'outer: for v in &message.values {
+                for (i, conf) in flow.channels.iter().enumerate() {
+                    if v.name == conf.name && v.pb_data_type() == conf.data_type {
+                        num_channels_accounted_for += 1;
+                        ordered_values[i] = Some(v.clone());
+                        continue 'outer;
+                    }
+                }
             }
 
-            if ordered_values.len() == flow.channels.len() {
+            // All channel values accounted for in this flow
+            if num_channels_accounted_for == message.values.len() {
                 maybe_channel_values = Some(ordered_values);
                 break;
             }
@@ -473,23 +492,23 @@ impl SiftStream<IngestionConfigMode> {
         let Some(channel_values) = maybe_channel_values.map(|vals| {
             vals.into_iter()
                 .map(|v| IngestWithConfigDataChannelValue {
-                    r#type: Some(v.pb_value()),
+                    r#type: Some(v.map_or_else(ChannelValue::empty_pb, |val| val.pb_value())),
                 })
                 .collect::<Vec<IngestWithConfigDataChannelValue>>()
         }) else {
             #[cfg(feature = "tracing")]
-            tracing::error!(
-                values = format!("{values:?}"),
-                "encountered channel values for which there is no configured flow"
+            tracing::warn!(
+                values = format!("{message:?}"),
+                "encountered a message whose channel values do not match any configured flows"
             );
             return None;
         };
 
         let request = IngestWithConfigDataStreamRequest {
-            flow: flow_name.to_string(),
+            flow: message.flow_name.to_string(),
             ingestion_config_id: ingestion_config_id.to_string(),
-            timestamp: Some(time_value.0),
-            run_id: run_id.to_string(),
+            timestamp: Some(message.timestamp.0),
+            run_id: run_id.unwrap_or_default(),
             channel_values,
             ..Default::default()
         };

@@ -194,7 +194,7 @@ where
                         #[cfg(feature = "tracing")]
                         tracing::debug!(
                             backup_location = format!("{}", backup_file.display()),
-                            "backup restored - truncating current backup file"
+                            "truncating current backup file"
                         );
 
                         // flush the old writer first otherwise its `Drop` will get called and
