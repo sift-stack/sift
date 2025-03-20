@@ -1,6 +1,5 @@
 use prost::Message;
-use sift_error::prelude::*;
-use std::{io::BufRead, mem};
+use std::{io::BufRead, marker::PhantomData, mem};
 
 #[cfg(test)]
 mod test;
@@ -15,30 +14,50 @@ pub fn encode_message_length_prefixed<M: Message>(message: &M) -> Vec<u8> {
     wire_format
 }
 
-/// Deserialize protobuf messages from a reader.
-pub fn decode_messages_length_prefixed<R, M>(mut reader: R) -> Result<Vec<M>>
+pub struct ProtobufDecoder<R, M> {
+    reader: R,
+    item: PhantomData<M>,
+}
+
+impl<R, M> ProtobufDecoder<R, M>
 where
     R: BufRead,
     M: Message + Default,
 {
-    let mut messages = Vec::new();
-    loop {
-        let mut length_buf = [0; mem::size_of::<u32>()];
-        if reader.read_exact(&mut length_buf).is_err() {
-            break; // EOF
+    pub fn new(reader: R) -> Self {
+        Self {
+            reader,
+            item: PhantomData,
         }
-
-        let length = u32::from_le_bytes(length_buf) as usize;
-        let mut buffer = vec![0; length];
-        if reader.read_exact(&mut buffer).is_err() {
-            continue;
-        }
-
-        let Ok(message) = <M as Message>::decode(&buffer[..]) else {
-            continue;
-        };
-
-        messages.push(message);
     }
-    Ok(messages)
+}
+
+impl<R, M> Iterator for ProtobufDecoder<R, M>
+where
+    R: BufRead,
+    M: Message + Default,
+{
+    type Item = M;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let mut length_buf = [0; mem::size_of::<u32>()];
+
+            if self.reader.read_exact(&mut length_buf).is_err() {
+                return None;
+            }
+
+            let length = u32::from_le_bytes(length_buf) as usize;
+            let mut buffer = vec![0; length];
+
+            if self.reader.read_exact(&mut buffer).is_err() {
+                continue;
+            }
+            let Ok(message) = <M as Message>::decode(&buffer[..]) else {
+                continue;
+            };
+
+            return Some(message);
+        }
+    }
 }

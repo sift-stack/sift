@@ -1,4 +1,4 @@
-use crate::pbutil::{decode_messages_length_prefixed, encode_message_length_prefixed};
+use crate::pbutil::{encode_message_length_prefixed, ProtobufDecoder};
 use chrono::Utc;
 use parking_lot::Mutex;
 use prost::Message as PbMessage;
@@ -24,16 +24,16 @@ mod test;
 pub struct BackupsManager<T> {
     pub(crate) backup_task: JoinHandle<Result<()>>,
     pub(crate) backup_file: PathBuf,
+    pub(crate) writer: Arc<Mutex<BufWriter<File>>>,
     data_tx: UnboundedSender<Message<T>>,
     finished_backup_reset_rx: Receiver<()>,
-    pub(crate) writer: Arc<Mutex<BufWriter<File>>>,
 }
 
 enum Message<T> {
     /// Data to be backed up.
     Data(T),
     /// Notifies the backup manager that a checkpoint has been reached.
-    CheckpointReached,
+    TruncateBackup,
     /// Graceful termination; cleans up the backup file.
     Complete,
 }
@@ -113,9 +113,9 @@ where
     /// Notifies the back up manager that a checkpoint was reached in the caller. This will cause
     /// the backup task to truncate the backup file so that new incoming data is relevant only for
     /// the next checkpoint.
-    pub(crate) async fn checkpoint(&mut self) -> Result<()> {
+    pub(crate) async fn truncate_backup(&mut self) -> Result<()> {
         self.data_tx
-            .send(Message::CheckpointReached)
+            .send(Message::TruncateBackup)
             .map_err(|_| Error::new_msg(ErrorKind::BackupsError, "failed to initiate checkpoint"))
             .help("please contact Sift")?;
 
@@ -143,7 +143,7 @@ where
             .help("please contact Sift")?
     }
 
-    pub(crate) async fn get_backup_data(&self) -> Result<Vec<T>> {
+    pub(crate) async fn get_backup_data(&self) -> Result<impl Iterator<Item = T>> {
         let mut writer_guard = self.writer.lock();
 
         writer_guard
@@ -152,18 +152,12 @@ where
             .context("failed to flush backups buffer")
             .help("please contact Sift")?;
 
-        self.load_backup_data()
-    }
-
-    fn load_backup_data(&self) -> Result<Vec<T>> {
-        let backup = File::open(&self.backup_file)
+        File::open(&self.backup_file)
             .map(BufReader::new)
+            .map(ProtobufDecoder::new)
             .map_err(|e| Error::new(ErrorKind::IoError, e))
             .context("something went wrong while trying to read backup file")
-            .help("please contact Sift")?;
-
-        decode_messages_length_prefixed::<_, T>(backup)
-            .context("failed to decode backups as part of get_backup_data")
+            .help("please contact Sift")
     }
 
     fn init_backup_task(
@@ -196,11 +190,11 @@ where
                         }
                         break;
                     }
-                    Message::CheckpointReached => {
+                    Message::TruncateBackup => {
                         #[cfg(feature = "tracing")]
                         tracing::debug!(
                             backup_location = format!("{}", backup_file.display()),
-                            "checkpoint reached - truncating current backup file"
+                            "backup restored - truncating current backup file"
                         );
 
                         // flush the old writer first otherwise its `Drop` will get called and

@@ -17,6 +17,7 @@ use sift_rs::{
 use std::{
     ops::Drop,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
     time::{Duration, Instant},
 };
@@ -27,6 +28,7 @@ use tokio::{
             Sender as BoundedSender,
         },
         oneshot::{self, Receiver, Sender},
+        Notify,
     },
     task::JoinHandle,
 };
@@ -40,12 +42,8 @@ pub struct IngestionConfigMode {
     run: Option<Run>,
     checkpoint_interval: Duration,
     streaming_task: Option<JoinHandle<Result<IngestWithConfigDataStreamResponse>>>,
-
     retry_policy: Option<RetryPolicy>,
-
-    /// Channel to transmit data to the streaming task.
     data_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
-
     backups_manager: Option<BackupsManager<IngestWithConfigDataStreamRequest>>,
 }
 
@@ -94,6 +92,7 @@ impl SiftStream<IngestionConfigMode> {
         let (data_tx, data_rx) =
             bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
         let (checkpoint_signal_tx, checkpoint_signal_rx) = oneshot::channel::<()>();
+        let begin_checkpoint_notifier = Arc::new(Notify::new());
 
         let data_stream = DataStream::new(data_rx, checkpoint_signal_rx);
 
@@ -102,7 +101,11 @@ impl SiftStream<IngestionConfigMode> {
             data_stream,
             checkpoint_interval,
             checkpoint_signal_tx,
+            begin_checkpoint_notifier.clone(),
         );
+
+        // Begin checkpoint immediately upon starting
+        begin_checkpoint_notifier.notify_one();
 
         #[cfg(feature = "tracing")]
         tracing::info!("Sift streaming successfully initialized");
@@ -163,7 +166,7 @@ impl SiftStream<IngestionConfigMode> {
                     }
                     Ok(Err(err)) => {
                         #[cfg(feature = "tracing")]
-                        tracing::warn!("received an error from Sift while streaming");
+                        tracing::warn!("encountered an error while streaming to Sift");
 
                         self.retry(req, err).await
                     }
@@ -251,8 +254,10 @@ impl SiftStream<IngestionConfigMode> {
             bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
         let (checkpoint_signal_tx, checkpoint_signal_rx) = oneshot::channel::<()>();
+        let begin_checkpoint_notifier = Arc::new(Notify::new());
 
         let data_stream = DataStream::new(data_rx, checkpoint_signal_rx);
+
         self.mode.data_tx = data_tx.clone();
 
         let streaming_task = Self::init_streaming_task(
@@ -260,53 +265,93 @@ impl SiftStream<IngestionConfigMode> {
             data_stream,
             self.mode.checkpoint_interval,
             checkpoint_signal_tx,
+            begin_checkpoint_notifier.clone(),
         );
         self.mode.streaming_task = Some(streaming_task);
 
-        if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
-            if reingest_from_last_checkpoint {
+        if reingest_from_last_checkpoint {
+            // If we entered this branch this some really unxpected things happened. We're going to
+            // give up on trying to rescue the backups here and just resume streaming until the
+            // next checkpoint.
+            if let Err(err) = self.process_backups(data_tx).await {
                 #[cfg(feature = "tracing")]
-                tracing::info!("checking backups");
-
-                let backup_data = backup_manager
-                    .get_backup_data()
-                    .await
-                    .context("failed to get backup data")?;
-
-                if backup_data.is_empty() {
-                    #[cfg(feature = "tracing")]
-                    tracing::info!("backups empty - resuming");
-                } else {
-                    #[cfg(feature = "tracing")]
-                    tracing::info!(
-                        recovered_data_points = backup_data.len(),
-                        "backups detected - reingesting data from last checkpoint"
+                {
+                    tracing::debug!(
+                        error = format!("{err:?}"),
+                        "not all backups were successfully processed"
                     );
+                    tracing::warn!("not all backups were successfully processed due to unexpected stream termination - retrying");
+                }
 
-                    for data in backup_data {
-                        data_tx
-                            .send(data)
-                            .await
-                            .map_err(|_| {
-                                Error::new_msg(
-                                    ErrorKind::StreamError,
-                                    "something went wrong while re-ingesting backups",
-                                )
-                            })
-                            .help("please contact Sift")?;
-                    }
+                if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
+                    let _ = backup_manager.truncate_backup().await;
+                }
+                return Box::pin(self.restart_stream(false)).await;
+            }
+            begin_checkpoint_notifier.notify_one();
+        } else {
+            begin_checkpoint_notifier.notify_one();
+        }
 
+        #[cfg(feature = "tracing")]
+        tracing::info!("successfully initialized a new stream to Sift");
+
+        Ok(())
+    }
+
+    async fn process_backups(
+        &mut self,
+        data_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
+    ) -> Result<()> {
+        if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
+            #[cfg(feature = "tracing")]
+            tracing::info!("processing backups");
+
+            let backup_data = backup_manager
+                .get_backup_data()
+                .await
+                .context("failed to get backup data")?;
+
+            let mut data_points = 0;
+
+            let mut start = Instant::now();
+
+            for data in backup_data {
+                data_tx
+                    .send(data)
+                    .await
+                    .map_err(|_| {
+                        Error::new_msg(ErrorKind::StreamError, "receiver prematurely closed")
+                    })
+                    .context("something went wrong while reingesting backups")
+                    .help("please contact Sift")?;
+
+                data_points += 1;
+
+                if start.elapsed() >= Duration::from_secs(10) {
                     #[cfg(feature = "tracing")]
-                    tracing::info!("successfully reingested data since last checkpoint");
+                    tracing::info!(points_processed = data_points, "processing backups");
+
+                    start = Instant::now();
                 }
             }
 
+            if data_points == 0 {
+                #[cfg(feature = "tracing")]
+                tracing::info!("no backups to reingest");
+            } else {
+                #[cfg(feature = "tracing")]
+                tracing::info!(
+                    data_points_recovered = data_points,
+                    "successfully reingested data since last checkpoint"
+                );
+            }
+
             backup_manager
-                .checkpoint()
+                .truncate_backup()
                 .await
                 .context("failed to notify backup manager of checkpoint")?;
         }
-
         Ok(())
     }
 
@@ -351,6 +396,7 @@ impl SiftStream<IngestionConfigMode> {
         mut data_stream: DataStream,
         checkpoint_interval: Duration,
         checkpoint_signal_tx: Sender<()>,
+        begin_checkpoint_notifier: Arc<Notify>,
     ) -> JoinHandle<Result<IngestWithConfigDataStreamResponse>> {
         tokio::spawn(async move {
             let mut client = IngestServiceClient::new(grpc_channel);
@@ -362,6 +408,11 @@ impl SiftStream<IngestionConfigMode> {
                     timer.tick().await;
                     timer
                 };
+                begin_checkpoint_notifier.notified().await;
+
+                #[cfg(feature = "tracing")]
+                tracing::debug!("received notification to start checkpoint timer");
+
                 checkpoint_timer.tick().await;
 
                 #[cfg(feature = "tracing")]
@@ -371,16 +422,21 @@ impl SiftStream<IngestionConfigMode> {
             });
 
             data_stream.started_at = Instant::now();
-            let response = client
+            let raw_response = client
                 .ingest_with_config_data_stream(data_stream)
                 .await
-                .map(|res| res.into_inner())
+                .map(|res| res.into_inner());
+
+            #[cfg(feature = "tracing")]
+            tracing::debug!(
+                res = format!("{raw_response:?}"),
+                "received response from Sift"
+            );
+
+            let response = raw_response
                 .map_err(|e| Error::new(ErrorKind::StreamError, e))
                 .context("failed to receive checkpoint acknowledgement")
                 .help("please contact Sift");
-
-            #[cfg(feature = "tracing")]
-            tracing::debug!("received response from Sift");
 
             checkpoint_task.abort_handle().abort();
             let _ = checkpoint_task.await;

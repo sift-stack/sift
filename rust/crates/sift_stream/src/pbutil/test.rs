@@ -1,4 +1,4 @@
-use super::{decode_messages_length_prefixed, encode_message_length_prefixed};
+use super::{encode_message_length_prefixed, ProtobufDecoder};
 use sift_rs::runs::v2::Run;
 use std::io::{BufReader, BufWriter, Write};
 
@@ -34,8 +34,7 @@ fn test_write_format_encode_decode() {
     let encoded = encoded_messages.clone();
     let reader = BufReader::new(encoded.as_slice());
 
-    let decoded_messages =
-        decode_messages_length_prefixed::<_, Run>(reader).expect("failed to decode messages");
+    let decoded_messages = ProtobufDecoder::new(reader);
 
     for (lhs, rhs) in runs.into_iter().zip(decoded_messages) {
         assert_eq!(
