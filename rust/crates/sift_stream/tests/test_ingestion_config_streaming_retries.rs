@@ -3,7 +3,10 @@ use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
-use sift_stream::{ChannelValue, Flow, IngestionConfigMode, RetryPolicy, SiftStream, TimeValue};
+use sift_stream::{
+    backup::BackupsManager, ChannelValue, Flow, IngestionConfigMode, RetryPolicy, SiftStream,
+    TimeValue,
+};
 use std::{
     sync::{
         atomic::{AtomicBool, AtomicU32, Ordering},
@@ -11,6 +14,7 @@ use std::{
     },
     time::Duration,
 };
+use tempdir::TempDir;
 
 mod common;
 use common::prelude::*;
@@ -52,6 +56,8 @@ impl IngestService for IngestServiceMock {
 async fn test_retries_succeed() {
     tracing_subscriber::fmt::init();
 
+    let backups_dir = TempDir::new("test_retries_succeed").expect("failed to create tempdir");
+
     let return_error = Arc::new(AtomicBool::new(true));
 
     let num_messages = 1_000;
@@ -88,6 +94,13 @@ async fn test_retries_succeed() {
         }],
     }];
 
+    let backups_manager = BackupsManager::new(
+        Some(backups_dir.path().to_path_buf()),
+        "ignestion-config-id",
+        "my-asset",
+    )
+    .expect("failed to create backups manager");
+
     let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
         client,
         ingestion_config,
@@ -95,6 +108,7 @@ async fn test_retries_succeed() {
         None,
         Duration::from_secs(60),
         Some(RetryPolicy::default()),
+        Some(backups_manager),
     );
 
     tokio::spawn(async move {
@@ -106,8 +120,6 @@ async fn test_retries_succeed() {
     });
 
     let _ = sift_stream.send(messages.next().unwrap()).await.unwrap();
-
-    tokio::time::sleep(Duration::from_millis(10_000)).await;
 
     loop {
         if let Some(msg) = messages.next() {
@@ -122,8 +134,6 @@ async fn test_retries_succeed() {
     }
 
     let _ = sift_stream.finish().await.unwrap();
-
-    tokio::time::sleep(Duration::from_millis(1_000)).await;
 
     assert_eq!(
         num_messages,
@@ -189,6 +199,7 @@ pub async fn test_retries_exhausted() {
             backoff_multiplier: 2,
             max_backoff: Duration::from_millis(100),
         }),
+        None,
     );
 
     let mut error = None;

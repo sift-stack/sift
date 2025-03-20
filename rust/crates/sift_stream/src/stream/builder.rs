@@ -1,4 +1,5 @@
 use super::{mode::ingestion_config::IngestionConfigMode, RetryPolicy, SiftStream, SiftStreamMode};
+use crate::backup::BackupsManager;
 use sift_connect::{Credentials, SiftChannel};
 use sift_error::prelude::*;
 use sift_rs::{
@@ -9,7 +10,12 @@ use sift_rs::{
         runs::{new_run_service, RunServiceWrapper},
     },
 };
-use std::{collections::HashSet, marker::PhantomData, time::Duration};
+use std::{
+    collections::HashSet,
+    marker::PhantomData,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 const DEFAULT_CHECKPOINT_INTERVAL_SEC: u64 = 60;
 
@@ -19,6 +25,7 @@ pub struct SiftStreamBuilder<C: SiftStreamMode> {
     retry_policy: Option<RetryPolicy>,
     checkpoint_interval: Option<Duration>,
     ingestion_config_selector: Option<IngestionConfigSelector>,
+    backups_dir: Option<PathBuf>,
     kind: PhantomData<C>,
 }
 
@@ -57,6 +64,7 @@ impl<C: SiftStreamMode> SiftStreamBuilder<C> {
             kind: PhantomData,
             checkpoint_interval: None,
             retry_policy: None,
+            backups_dir: None,
         }
     }
 
@@ -67,6 +75,12 @@ impl<C: SiftStreamMode> SiftStreamBuilder<C> {
 
     pub fn attach_run(mut self, run_selector: RunSelector) -> SiftStreamBuilder<C> {
         self.run_selector = Some(run_selector);
+        self
+    }
+
+    /// TODO: mention how this does nothing if retries aren't enabled
+    pub fn enable_backups<P: AsRef<Path>>(mut self, backups_dir: P) -> SiftStreamBuilder<C> {
+        self.backups_dir = Some(backups_dir.as_ref().to_path_buf());
         self
     }
 
@@ -174,6 +188,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             ingestion_config_selector,
             run_selector,
             retry_policy,
+            backups_dir,
             ..
         } = self;
 
@@ -198,6 +213,20 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         let checkpoint_interval = checkpoint_interval
             .unwrap_or_else(|| Duration::from_secs(DEFAULT_CHECKPOINT_INTERVAL_SEC));
 
+        let mut backups_manager = None;
+        if retry_policy.is_some() {
+            if let Some(dir) = backups_dir {
+                let manager = BackupsManager::new(
+                    Some(dir),
+                    &ingestion_config.asset_id,
+                    &ingestion_config.ingestion_config_id,
+                )
+                .context("failed to build backups manager")?;
+
+                backups_manager = Some(manager);
+            }
+        }
+
         Ok(SiftStream::<IngestionConfigMode>::new(
             channel,
             ingestion_config,
@@ -205,6 +234,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             run,
             checkpoint_interval,
             retry_policy,
+            backups_manager,
         ))
     }
 

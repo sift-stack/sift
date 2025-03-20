@@ -23,10 +23,10 @@ mod test;
 
 #[derive(Debug)]
 pub struct BackupsManager<T> {
-    pub backup_task: JoinHandle<Result<()>>,
-    pub backup_file: PathBuf,
-    pub is_reading: Arc<AtomicBool>,
-    pub reading_cvar: Arc<(Mutex<bool>, Condvar)>,
+    pub(crate) backup_task: JoinHandle<Result<()>>,
+    pub(crate) backup_file: PathBuf,
+    pub(crate) is_reading: Arc<AtomicBool>,
+    pub(crate) reading_cvar: Arc<(Mutex<bool>, Condvar)>,
     data_tx: UnboundedSender<Message<T>>,
     finished_backup_reset_rx: Receiver<()>,
 }
@@ -38,8 +38,6 @@ enum Message<T> {
     CheckpointReached,
     /// Graceful termination; cleans up the backup file.
     Complete,
-    /// Terminates but preserves the backup because message sender encounters error.
-    Terminate,
 }
 
 impl<T> BackupsManager<T>
@@ -94,7 +92,7 @@ where
     }
 
     /// Send data point to be backed up.
-    pub fn send(&self, msg: T) -> Result<()> {
+    pub(crate) fn send(&self, msg: T) -> Result<()> {
         self.data_tx
             .send(Message::Data(msg))
             .map_err(|_| {
@@ -107,7 +105,7 @@ where
     /// Notifies the back up manager that a checkpoint was reached in the caller. This will cause
     /// the backup task to truncate the backup file so that new incoming data is relevant only for
     /// the next checkpoint.
-    pub async fn checkpoint(&mut self) -> Result<()> {
+    pub(crate) async fn checkpoint(&mut self) -> Result<()> {
         self.data_tx
             .send(Message::CheckpointReached)
             .map_err(|_| Error::new_msg(ErrorKind::BackupsError, "failed to initiate checkpoint"))
@@ -118,27 +116,8 @@ where
         Ok(())
     }
 
-    /// Use to terminate the backups manager but keep the backup file.
-    pub async fn terminate(self) -> Result<()> {
-        self.data_tx
-            .send(Message::Terminate)
-            .map_err(|_| {
-                Error::new_msg(
-                    ErrorKind::BackupsError,
-                    "failed to initiate backups manager termination",
-                )
-            })
-            .help("please contact Sift")?;
-
-        self.backup_task
-            .await
-            .map_err(|e| Error::new(ErrorKind::BackupsError, e))
-            .context("failed to join backup task")
-            .help("please contact Sift")?
-    }
-
     /// Use for graceful termination. This will clean up the backup file.
-    pub async fn finish(self) -> Result<()> {
+    pub(crate) async fn finish(self) -> Result<()> {
         self.data_tx
             .send(Message::Complete)
             .map_err(|_| {
@@ -156,7 +135,7 @@ where
             .help("please contact Sift")?
     }
 
-    async fn get_backup_data(&self) -> Result<Vec<T>> {
+    pub(crate) async fn get_backup_data(&self) -> Result<Vec<T>> {
         self.is_reading.store(true, Ordering::SeqCst);
 
         let (mu, cvar) = &*self.reading_cvar;
@@ -197,7 +176,6 @@ where
         let backup_file = backup_file.to_path_buf();
 
         let mut writer = fs::File::create(&backup_file)
-            .map(BufWriter::new)
             .map_err(|e| Error::new(ErrorKind::BackupsError, e))
             .context("failed generate backup file")
             .help("please contact Sift")?;
@@ -272,15 +250,6 @@ where
                         }
                         break;
                     }
-                    Message::Terminate => {
-                        #[cfg(feature = "tracing")]
-                        tracing::debug!(
-                            backup_location = format!("{}", backup_file.display()),
-                            "terminating backups manager"
-                        );
-
-                        break;
-                    }
                     Message::CheckpointReached => {
                         #[cfg(feature = "tracing")]
                         tracing::debug!(
@@ -290,7 +259,7 @@ where
 
                         // flush the old writer first otherwise its `Drop` will get called and
                         // write to the newly truncated file.
-                        let _ = writer.flush();
+                        //let _ = writer.flush();
 
                         match fs::File::create(&backup_file).map(BufWriter::new) {
                             Ok(_) => {

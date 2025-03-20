@@ -12,6 +12,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::oneshot::{self, error::TryRecvError};
+use tokio_stream::StreamExt;
 
 mod common;
 use common::prelude::*;
@@ -30,7 +31,7 @@ impl IngestService for IngestServiceMock {
         let mut data_stream = request.into_inner();
 
         loop {
-            match data_stream.message().await {
+            match data_stream.try_next().await {
                 Ok(Some(_msg)) => {
                     self.num_message_received.fetch_add(1, Ordering::Relaxed);
                 }
@@ -93,6 +94,7 @@ async fn test_sending_data() {
         None,
         Duration::from_secs(30),
         None,
+        None,
     );
 
     let num_messages = 100;
@@ -113,11 +115,6 @@ async fn test_sending_data() {
 
     assert!(sift_stream.finish().await.is_ok());
 
-    assert!(
-        server.await.is_ok(),
-        "test server shutdown failed unexpectedly"
-    );
-
     assert_eq!(
         1,
         num_checkpoints.load(Ordering::Relaxed),
@@ -128,6 +125,11 @@ async fn test_sending_data() {
         num_messages,
         messages_received.load(Ordering::Relaxed),
         "messages sent and received don't match",
+    );
+
+    assert!(
+        server.await.is_ok(),
+        "test server shutdown failed unexpectedly"
     );
 }
 
@@ -164,6 +166,7 @@ async fn test_checkpointing() {
         flows,
         None,
         checkpoint_interval,
+        None,
         None,
     );
 

@@ -11,7 +11,7 @@ pub use sift_connect::*;
 pub use sift_error::*;
 pub use sift_rs::*;
 
-pub(crate) mod backup;
+pub mod backup;
 
 /// # Internal Notes
 ///

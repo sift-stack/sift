@@ -1,6 +1,7 @@
 use super::super::{
     channel::ChannelValue, time::TimeValue, RetryPolicy, SiftStream, SiftStreamMode,
 };
+use crate::backup::BackupsManager;
 use futures_core::Stream;
 use prost::Message;
 use sift_connect::SiftChannel;
@@ -44,12 +45,8 @@ pub struct IngestionConfigMode {
 
     /// Channel to transmit data to the streaming task.
     data_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
-    /// Transmit signal to streaming task to initiate final checkpoint and terminate streaming.
-    termination_signal_tx: Sender<()>,
 
-    /// If there's an error from Sift in the middle of the stream, then [DataStream] will send any
-    /// remaining data in its receiver buffer to this channel.
-    recovery_rx: BoundedReceiver<IngestWithConfigDataStreamRequest>,
+    backups_manager: Option<BackupsManager<IngestWithConfigDataStreamRequest>>,
 }
 
 impl SiftStreamMode for IngestionConfigMode {}
@@ -63,11 +60,7 @@ pub struct Flow {
 
 /// Dependencies used in the Tokio task that actually sends the data to Sift.
 struct DataStream {
-    flows: Vec<FlowConfig>,
-    ingestion_config_id: String,
-    run_id: Option<String>,
     data_rx: BoundedReceiver<IngestWithConfigDataStreamRequest>,
-    recovery_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
     checkpoint_signal_rx: Receiver<()>,
     messages_processed: usize,
     bytes_processed: usize,
@@ -96,29 +89,19 @@ impl SiftStream<IngestionConfigMode> {
         run: Option<Run>,
         checkpoint_interval: Duration,
         retry_policy: Option<RetryPolicy>,
+        backups_manager: Option<BackupsManager<IngestWithConfigDataStreamRequest>>,
     ) -> Self {
         let (data_tx, data_rx) =
             bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
-        let (termination_signal_tx, termination_signal_rx) = oneshot::channel::<()>();
         let (checkpoint_signal_tx, checkpoint_signal_rx) = oneshot::channel::<()>();
-        let (recovery_tx, recovery_rx) =
-            bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
-        let data_stream = DataStream::new(
-            &ingestion_config,
-            &flows,
-            data_rx,
-            run.as_ref(),
-            recovery_tx,
-            checkpoint_signal_rx,
-        );
+        let data_stream = DataStream::new(data_rx, checkpoint_signal_rx);
 
         let streaming_task = Self::init_streaming_task(
             grpc_channel.clone(),
             data_stream,
             checkpoint_interval,
             checkpoint_signal_tx,
-            termination_signal_rx,
         );
 
         #[cfg(feature = "tracing")]
@@ -133,15 +116,14 @@ impl SiftStream<IngestionConfigMode> {
                 streaming_task: Some(streaming_task),
                 checkpoint_interval,
                 data_tx,
-                termination_signal_tx,
-                recovery_rx,
                 retry_policy,
+                backups_manager,
             },
         }
     }
 
     pub async fn send(&mut self, message: Flow) -> Result<()> {
-        let Some(req) = message_to_ingest_req(
+        let Some(req) = Self::message_to_ingest_req(
             &message.flow_name,
             &self.mode.ingestion_config.ingestion_config_id,
             self.mode.run.clone().map(|r| r.run_id).unwrap_or_default(),
@@ -156,11 +138,17 @@ impl SiftStream<IngestionConfigMode> {
         };
 
         match self.mode.data_tx.send(req.clone()).await {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                if let Some(backups_manager) = self.mode.backups_manager.as_mut() {
+                    backups_manager.send(req)?;
+                }
+                Ok(())
+            }
 
             Err(SendError(_)) => match self.mode.streaming_task.take() {
                 None => {
-                    self.recover_data_and_reinit_stream().await?;
+                    self.restart_stream_and_reingest_from_last_checkpoint()
+                        .await?;
                     Box::pin(self.send(message)).await
                 }
 
@@ -171,7 +159,8 @@ impl SiftStream<IngestionConfigMode> {
                             "checkpoint acknowledgement received from Sift - resuming stream"
                         );
 
-                        self.recover_data_and_reinit_stream().await?;
+                        self.restart_stream_and_reingest_from_last_checkpoint()
+                            .await?;
                         Box::pin(self.send(message)).await
                     }
                     Ok(Err(err)) => {
@@ -228,16 +217,11 @@ impl SiftStream<IngestionConfigMode> {
                     #[cfg(feature = "tracing")]
                     tracing::info!(
                         retry_counter = i,
-                        "successful retry - re-establishing connection"
+                        "successful retry - re-establishing connection to Sift"
                     );
 
-                    self.recover_data_and_reinit_stream().await?;
-
-                    #[cfg(feature = "tracing")]
-                    tracing::info!(
-                        retry_counter = i,
-                        "successfully re-established connection to Sift"
-                    );
+                    self.restart_stream_and_reingest_from_last_checkpoint()
+                        .await?;
 
                     return Ok(());
                 }
@@ -265,37 +249,13 @@ impl SiftStream<IngestionConfigMode> {
             .help("please contact Sift")
     }
 
-    async fn recover_data_and_reinit_stream(&mut self) -> Result<()> {
+    async fn restart_stream_and_reingest_from_last_checkpoint(&mut self) -> Result<()> {
         let (data_tx, data_rx) =
             bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
-        // Recover messages from previously dropped [DataStream] and buffer into new
-        // receiver for new [DataStream].
-        while let Ok(message) = self.mode.recovery_rx.try_recv() {
-            data_tx
-                .send(message)
-                .await
-                .map_err(|err| Error::new(ErrorKind::StreamError, err))
-                .context("something went wrong while trying to recover data from buffer")
-                .help("please contact Sift")?;
-        }
-
-        let (termination_signal_tx, termination_signal_rx) = oneshot::channel::<()>();
         let (checkpoint_signal_tx, checkpoint_signal_rx) = oneshot::channel::<()>();
-        let (recovery_tx, recovery_rx) =
-            bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
-        self.mode.recovery_rx = recovery_rx;
-        self.mode.termination_signal_tx = termination_signal_tx;
-
-        let data_stream = DataStream::new(
-            &self.mode.ingestion_config,
-            &self.mode.flows,
-            data_rx,
-            self.mode.run.as_ref(),
-            recovery_tx,
-            checkpoint_signal_rx,
-        );
+        let data_stream = DataStream::new(data_rx, checkpoint_signal_rx);
         self.mode.data_tx = data_tx.clone();
 
         let streaming_task = Self::init_streaming_task(
@@ -303,22 +263,62 @@ impl SiftStream<IngestionConfigMode> {
             data_stream,
             self.mode.checkpoint_interval,
             checkpoint_signal_tx,
-            termination_signal_rx,
         );
         self.mode.streaming_task = Some(streaming_task);
+
+        if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
+            let backup_data = backup_manager
+                .get_backup_data()
+                .await
+                .context("failed to get backup data")?;
+
+            if backup_data.is_empty() {
+                return Ok(());
+            }
+
+            #[cfg(feature = "tracing")]
+            tracing::info!("backups detected - reingesting data from last checkpoint");
+
+            for data in backup_data {
+                data_tx
+                    .send(data)
+                    .await
+                    .map_err(|_| {
+                        Error::new_msg(
+                            ErrorKind::StreamError,
+                            "something went wrong while re-ingesting backups",
+                        )
+                    })
+                    .help("please contact Sift")?;
+            }
+
+            backup_manager
+                .checkpoint()
+                .await
+                .context("failed to notify backup manager of checkpoint")?;
+
+            #[cfg(feature = "tracing")]
+            tracing::info!("successfully reingested data since last checkpoint");
+        }
 
         Ok(())
     }
 
     /// This will conclude the stream and return when Sift has sent its final response.
     pub async fn finish(mut self) -> Result<()> {
+        if let Some(backup_manager) = self.mode.backups_manager {
+            #[cfg(feature = "tracing")]
+            tracing::info!("shutting down backups manager");
+
+            let _ = backup_manager.finish().await;
+        }
+
         #[cfg(feature = "tracing")]
         tracing::info!("initiating final checkpoint");
 
         if let Some(streaming_task) = self.mode.streaming_task.take() {
-            // It's safe to ignore this if it fails.. that simply means that the data streaming task
-            // has already concluded and has the response from Sift ready.
-            let _ = self.mode.termination_signal_tx.send(());
+            // Terminate client stream
+            drop(self.mode.data_tx);
 
             streaming_task
                 .await
@@ -345,7 +345,6 @@ impl SiftStream<IngestionConfigMode> {
         mut data_stream: DataStream,
         checkpoint_interval: Duration,
         checkpoint_signal_tx: Sender<()>,
-        termination_signal_rx: Receiver<()>,
     ) -> JoinHandle<Result<IngestWithConfigDataStreamResponse>> {
         tokio::spawn(async move {
             let mut client = IngestServiceClient::new(grpc_channel);
@@ -357,18 +356,12 @@ impl SiftStream<IngestionConfigMode> {
                     timer.tick().await;
                     timer
                 };
-                // TODO: Log warning if message fails to send
-                tokio::select! {
-                    _ = checkpoint_timer.tick() => {
-                        #[cfg(feature = "tracing")]
-                        tracing::info!("initiating checkpoint");
+                checkpoint_timer.tick().await;
 
-                        let _ = checkpoint_signal_tx.send(());
-                    }
-                    _ = termination_signal_rx => {
-                        let _ = checkpoint_signal_tx.send(());
-                    }
-                }
+                #[cfg(feature = "tracing")]
+                tracing::info!("initiating checkpoint");
+
+                let _ = checkpoint_signal_tx.send(());
             });
 
             data_stream.started_at = Instant::now();
@@ -380,28 +373,79 @@ impl SiftStream<IngestionConfigMode> {
                 .context("failed to receive checkpoint acknowledgement")
                 .help("please contact Sift");
 
+            #[cfg(feature = "tracing")]
+            tracing::debug!("received response from Sift");
+
             checkpoint_task.abort_handle().abort();
             let _ = checkpoint_task.await;
             response
         })
     }
+
+    fn message_to_ingest_req(
+        flow_name: &str,
+        ingestion_config_id: &str,
+        run_id: String,
+        time_value: TimeValue,
+        values: Vec<ChannelValue>,
+        flows: &[FlowConfig],
+    ) -> Option<IngestWithConfigDataStreamRequest> {
+        let mut maybe_channel_values = None;
+
+        for flow in flows.iter().filter(|f| f.name == flow_name) {
+            let mut ordered_values = Vec::with_capacity(values.len());
+
+            for conf in &flow.channels {
+                let Some(val) = values
+                    .iter()
+                    .find(|v| v.name == conf.name && v.pb_data_type() == conf.data_type)
+                else {
+                    continue;
+                };
+                ordered_values.push(val);
+            }
+
+            if ordered_values.len() == flow.channels.len() {
+                maybe_channel_values = Some(ordered_values);
+                break;
+            }
+        }
+
+        let Some(channel_values) = maybe_channel_values.map(|vals| {
+            vals.into_iter()
+                .map(|v| IngestWithConfigDataChannelValue {
+                    r#type: Some(v.pb_value()),
+                })
+                .collect::<Vec<IngestWithConfigDataChannelValue>>()
+        }) else {
+            #[cfg(feature = "tracing")]
+            tracing::error!(
+                values = format!("{values:?}"),
+                "encountered channel values for which there is no configured flow"
+            );
+            return None;
+        };
+
+        let request = IngestWithConfigDataStreamRequest {
+            flow: flow_name.to_string(),
+            ingestion_config_id: ingestion_config_id.to_string(),
+            timestamp: Some(time_value.0),
+            run_id: run_id.to_string(),
+            channel_values,
+            ..Default::default()
+        };
+
+        Some(request)
+    }
 }
 
 impl DataStream {
     fn new(
-        ingestion_config: &IngestionConfig,
-        flows: &[FlowConfig],
         data_rx: BoundedReceiver<IngestWithConfigDataStreamRequest>,
-        run: Option<&Run>,
-        recovery_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
         checkpoint_signal_rx: Receiver<()>,
     ) -> Self {
         Self {
-            run_id: run.map(|r| r.run_id.clone()),
             data_rx,
-            ingestion_config_id: ingestion_config.ingestion_config_id.clone(),
-            flows: flows.to_vec(),
-            recovery_tx,
             checkpoint_signal_rx,
             messages_processed: 0,
             bytes_processed: 0,
@@ -415,6 +459,9 @@ impl Stream for DataStream {
 
     fn poll_next(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if self.checkpoint_signal_rx.try_recv().is_ok() {
+            #[cfg(feature = "tracing")]
+            tracing::debug!("termination signal received");
+
             return Poll::Ready(None);
         }
 
@@ -422,30 +469,10 @@ impl Stream for DataStream {
             Poll::Ready(Some(req)) => {
                 self.messages_processed += 1;
                 self.bytes_processed += req.encode_length_delimited_to_vec().len();
-
-                // just because we successfully poll here, doesn't mean that this will make it to Sift...
-                // if something goes wrong along the way or if Sift errors before writing the data
-                // out then this is no longer in the channel and gets dropped.
-
                 Poll::Ready(Some(req))
             }
             Poll::Ready(None) => {
-                #[cfg(feature = "tracing")]
-                tracing::error!("stream terminating unexpectedly. Please notify Sift");
-
-                // If this happens then someone has introduced a critical bug where either the `data_rx` channel is
-                // manually getting closed or all senders are getting dropped prematurely. We have
-                // safeguards to prevent senders getting dropped i.e. by having `IngestionConfigMode`
-                // own both a sender as well as the task that owns DataStream; so really, the only way
-                // this can happen is if someone manually closes the `data_rx` channel, however there is
-                // absolutely no good reason to do that so we'll scream loudly during development if we
-                // see it.
-                #[cfg(debug_assertions)]
-                {
-                    eprintln!("[DEBUG_ASSERTIONS]: polling failed unexpectedly. This is critical and needs to be addressed before release.");
-                    std::process::exit(1);
-                }
-                #[allow(unreachable_code)]
+                // All senders dropped.. conclude stream
                 Poll::Ready(None)
             }
             Poll::Pending => Poll::Pending,
@@ -453,66 +480,6 @@ impl Stream for DataStream {
     }
 }
 
-fn message_to_ingest_req(
-    flow_name: &str,
-    ingestion_config_id: &str,
-    run_id: String,
-    time_value: TimeValue,
-    values: Vec<ChannelValue>,
-    flows: &[FlowConfig],
-) -> Option<IngestWithConfigDataStreamRequest> {
-    let mut maybe_channel_values = None;
-
-    for flow in flows.iter().filter(|f| f.name == flow_name) {
-        let mut ordered_values = Vec::with_capacity(values.len());
-
-        for conf in &flow.channels {
-            let Some(val) = values
-                .iter()
-                .find(|v| v.name == conf.name && v.pb_data_type() == conf.data_type)
-            else {
-                continue;
-            };
-            ordered_values.push(val);
-        }
-
-        if ordered_values.len() == flow.channels.len() {
-            maybe_channel_values = Some(ordered_values);
-            break;
-        }
-    }
-
-    let Some(channel_values) = maybe_channel_values.map(|vals| {
-        vals.into_iter()
-            .map(|v| IngestWithConfigDataChannelValue {
-                r#type: Some(v.pb_value()),
-            })
-            .collect::<Vec<IngestWithConfigDataChannelValue>>()
-    }) else {
-        #[cfg(feature = "tracing")]
-        tracing::error!(
-            values = format!("{values:?}"),
-            "encountered channel values for which there is no configured flow"
-        );
-        return None;
-    };
-
-    let request = IngestWithConfigDataStreamRequest {
-        flow: flow_name.to_string(),
-        ingestion_config_id: ingestion_config_id.to_string(),
-        timestamp: Some(time_value.0),
-        run_id: run_id.to_string(),
-        channel_values,
-        ..Default::default()
-    };
-
-    Some(request)
-}
-
-/// Any data that is still buffered should be sent back to [SiftStream] by the time this is
-/// dropped.
-///
-/// TODO: Add some tracing here
 impl Drop for DataStream {
     fn drop(&mut self) {
         #[cfg(feature = "tracing")]
@@ -534,21 +501,6 @@ impl Drop for DataStream {
                 bytes_processed = format!("{bytes_processed_pretty}"),
                 byte_rate = format!("{byte_rate_pretty}/s"),
             );
-        }
-
-        let mut error = None;
-
-        while let Ok(message) = self.data_rx.try_recv() {
-            if let Err(err) = self.recovery_tx.try_send(message) {
-                if error.is_none() {
-                    error = Some(err);
-                }
-            }
-        }
-
-        if let Some(err) = error {
-            #[cfg(feature = "tracing")]
-            tracing::warn!(error = format!("{err}"), "encountered an error while trying to recover previously buffered data - please contact Sift");
         }
     }
 }
