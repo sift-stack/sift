@@ -147,8 +147,7 @@ impl SiftStream<IngestionConfigMode> {
 
             Err(SendError(_)) => match self.mode.streaming_task.take() {
                 None => {
-                    self.restart_stream_and_reingest_from_last_checkpoint()
-                        .await?;
+                    self.restart_stream(false).await?;
                     Box::pin(self.send(message)).await
                 }
 
@@ -159,8 +158,7 @@ impl SiftStream<IngestionConfigMode> {
                             "checkpoint acknowledgement received from Sift - resuming stream"
                         );
 
-                        self.restart_stream_and_reingest_from_last_checkpoint()
-                            .await?;
+                        self.restart_stream(false).await?;
                         Box::pin(self.send(message)).await
                     }
                     Ok(Err(err)) => {
@@ -220,8 +218,7 @@ impl SiftStream<IngestionConfigMode> {
                         "successful retry - re-establishing connection to Sift"
                     );
 
-                    self.restart_stream_and_reingest_from_last_checkpoint()
-                        .await?;
+                    self.restart_stream(true).await?;
 
                     return Ok(());
                 }
@@ -249,7 +246,7 @@ impl SiftStream<IngestionConfigMode> {
             .help("please contact Sift")
     }
 
-    async fn restart_stream_and_reingest_from_last_checkpoint(&mut self) -> Result<()> {
+    async fn restart_stream(&mut self, reingest_from_last_checkpoint: bool) -> Result<()> {
         let (data_tx, data_rx) =
             bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
@@ -267,38 +264,47 @@ impl SiftStream<IngestionConfigMode> {
         self.mode.streaming_task = Some(streaming_task);
 
         if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
-            let backup_data = backup_manager
-                .get_backup_data()
-                .await
-                .context("failed to get backup data")?;
+            if reingest_from_last_checkpoint {
+                #[cfg(feature = "tracing")]
+                tracing::info!("checking backups");
 
-            if backup_data.is_empty() {
-                return Ok(());
-            }
-
-            #[cfg(feature = "tracing")]
-            tracing::info!("backups detected - reingesting data from last checkpoint");
-
-            for data in backup_data {
-                data_tx
-                    .send(data)
+                let backup_data = backup_manager
+                    .get_backup_data()
                     .await
-                    .map_err(|_| {
-                        Error::new_msg(
-                            ErrorKind::StreamError,
-                            "something went wrong while re-ingesting backups",
-                        )
-                    })
-                    .help("please contact Sift")?;
+                    .context("failed to get backup data")?;
+
+                if backup_data.is_empty() {
+                    #[cfg(feature = "tracing")]
+                    tracing::info!("backups empty - resuming");
+                } else {
+                    #[cfg(feature = "tracing")]
+                    tracing::info!(
+                        recovered_data_points = backup_data.len(),
+                        "backups detected - reingesting data from last checkpoint"
+                    );
+
+                    for data in backup_data {
+                        data_tx
+                            .send(data)
+                            .await
+                            .map_err(|_| {
+                                Error::new_msg(
+                                    ErrorKind::StreamError,
+                                    "something went wrong while re-ingesting backups",
+                                )
+                            })
+                            .help("please contact Sift")?;
+                    }
+
+                    #[cfg(feature = "tracing")]
+                    tracing::info!("successfully reingested data since last checkpoint");
+                }
             }
 
             backup_manager
                 .checkpoint()
                 .await
                 .context("failed to notify backup manager of checkpoint")?;
-
-            #[cfg(feature = "tracing")]
-            tracing::info!("successfully reingested data since last checkpoint");
         }
 
         Ok(())

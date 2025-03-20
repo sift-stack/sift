@@ -10,23 +10,27 @@ use sift_rs::{
         runs::{new_run_service, RunServiceWrapper},
     },
 };
-use std::{
-    collections::HashSet,
-    marker::PhantomData,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::{collections::HashSet, marker::PhantomData, path::PathBuf, time::Duration};
 
 const DEFAULT_CHECKPOINT_INTERVAL_SEC: u64 = 60;
 
 pub struct SiftStreamBuilder<C: SiftStreamMode> {
     credentials: Credentials,
     run_selector: Option<RunSelector>,
-    retry_policy: Option<RetryPolicy>,
+    recovery_strategy: Option<RecoveryStrategy>,
     checkpoint_interval: Option<Duration>,
     ingestion_config_selector: Option<IngestionConfigSelector>,
-    backups_dir: Option<PathBuf>,
     kind: PhantomData<C>,
+}
+
+/// Mention how backups_dir `None` uses the system tmp dir.
+#[derive(Debug)]
+pub enum RecoveryStrategy {
+    RetryWithBackups {
+        retry_policy: RetryPolicy,
+        backups_dir: Option<PathBuf>,
+    },
+    RetryOnly(RetryPolicy),
 }
 
 #[derive(Debug)]
@@ -52,6 +56,15 @@ pub enum RunSelector {
     },
 }
 
+impl Default for RecoveryStrategy {
+    fn default() -> Self {
+        RecoveryStrategy::RetryWithBackups {
+            retry_policy: RetryPolicy::default(),
+            backups_dir: None,
+        }
+    }
+}
+
 impl<C: SiftStreamMode> SiftStreamBuilder<C> {
     pub fn new_with_ingestion_config(
         selector: IngestionConfigSelector,
@@ -63,24 +76,17 @@ impl<C: SiftStreamMode> SiftStreamBuilder<C> {
             run_selector: None,
             kind: PhantomData,
             checkpoint_interval: None,
-            retry_policy: None,
-            backups_dir: None,
+            recovery_strategy: None,
         }
     }
 
-    pub fn retry_policy(mut self, policy: RetryPolicy) -> SiftStreamBuilder<C> {
-        self.retry_policy = Some(policy);
+    pub fn recovery_strategy(mut self, strategy: RecoveryStrategy) -> SiftStreamBuilder<C> {
+        self.recovery_strategy = Some(strategy);
         self
     }
 
     pub fn attach_run(mut self, run_selector: RunSelector) -> SiftStreamBuilder<C> {
         self.run_selector = Some(run_selector);
-        self
-    }
-
-    /// TODO: mention how this does nothing if retries aren't enabled
-    pub fn enable_backups<P: AsRef<Path>>(mut self, backups_dir: P) -> SiftStreamBuilder<C> {
-        self.backups_dir = Some(backups_dir.as_ref().to_path_buf());
         self
     }
 
@@ -187,8 +193,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             checkpoint_interval,
             ingestion_config_selector,
             run_selector,
-            retry_policy,
-            backups_dir,
+            recovery_strategy,
             ..
         } = self;
 
@@ -214,16 +219,27 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             .unwrap_or_else(|| Duration::from_secs(DEFAULT_CHECKPOINT_INTERVAL_SEC));
 
         let mut backups_manager = None;
-        if retry_policy.is_some() {
-            if let Some(dir) = backups_dir {
-                let manager = BackupsManager::new(
-                    Some(dir),
-                    &ingestion_config.asset_id,
-                    &ingestion_config.ingestion_config_id,
-                )
-                .context("failed to build backups manager")?;
+        let mut policy = None;
 
-                backups_manager = Some(manager);
+        if let Some(strategy) = recovery_strategy {
+            match strategy {
+                RecoveryStrategy::RetryWithBackups {
+                    retry_policy,
+                    backups_dir,
+                } => {
+                    policy = Some(retry_policy);
+                    let manager = BackupsManager::new(
+                        backups_dir,
+                        &ingestion_config.asset_id,
+                        &ingestion_config.ingestion_config_id,
+                    )
+                    .context("failed to build backups manager")?;
+
+                    backups_manager = Some(manager);
+                }
+                RecoveryStrategy::RetryOnly(retry_policy) => {
+                    policy = Some(retry_policy);
+                }
             }
         }
 
@@ -233,7 +249,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             flows,
             run,
             checkpoint_interval,
-            retry_policy,
+            policy,
             backups_manager,
         ))
     }

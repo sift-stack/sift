@@ -1268,6 +1268,7 @@ dependencies = [
  "chrono",
  "futures-core",
  "hyper-util",
+ "parking_lot",
  "pbjson-types",
  "prost",
  "sift_connect",

@@ -30,11 +30,13 @@ where
 
         let length = u32::from_le_bytes(length_buf) as usize;
         let mut buffer = vec![0; length];
-        reader.read_exact(&mut buffer)?;
+        if reader.read_exact(&mut buffer).is_err() {
+            continue;
+        }
 
-        let message = <M as Message>::decode(&buffer[..])
-            .map_err(|e| Error::new(ErrorKind::ProtobufError, e))
-            .context("failed to decode decode protobuf message")?;
+        let Ok(message) = <M as Message>::decode(&buffer[..]) else {
+            continue;
+        };
 
         messages.push(message);
     }

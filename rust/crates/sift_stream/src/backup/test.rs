@@ -1,6 +1,6 @@
 use super::BackupsManager;
 use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
-use std::{fs, sync::atomic::Ordering};
+use std::fs;
 use tempdir::TempDir;
 
 #[tokio::test]
@@ -26,10 +26,6 @@ async fn test_backups_manager_retrieve_data_with_graceful_termination() {
     assert!(
         fs::exists(&backups_manager.backup_file).expect("perhaps a permission denied error"),
         "backup file should exist",
-    );
-    assert!(
-        !backups_manager.is_reading.load(Ordering::Relaxed),
-        "this should be initialized to false"
     );
 
     let mut expected = Vec::new();

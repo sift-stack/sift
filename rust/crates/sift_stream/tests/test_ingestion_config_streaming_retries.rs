@@ -54,8 +54,6 @@ impl IngestService for IngestServiceMock {
 
 #[tokio::test]
 async fn test_retries_succeed() {
-    tracing_subscriber::fmt::init();
-
     let backups_dir = TempDir::new("test_retries_succeed").expect("failed to create tempdir");
 
     let return_error = Arc::new(AtomicBool::new(true));

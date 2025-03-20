@@ -1,15 +1,14 @@
 use crate::pbutil::{decode_messages_length_prefixed, encode_message_length_prefixed};
 use chrono::Utc;
+use parking_lot::Mutex;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
 use std::{
-    env, fs,
+    env,
+    fs::{self, File},
     io::{BufReader, BufWriter, ErrorKind as IoErrorKind, Write},
     path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Condvar, Mutex,
-    },
+    sync::Arc,
 };
 use tokio::{
     sync::mpsc::{
@@ -25,10 +24,9 @@ mod test;
 pub struct BackupsManager<T> {
     pub(crate) backup_task: JoinHandle<Result<()>>,
     pub(crate) backup_file: PathBuf,
-    pub(crate) is_reading: Arc<AtomicBool>,
-    pub(crate) reading_cvar: Arc<(Mutex<bool>, Condvar)>,
     data_tx: UnboundedSender<Message<T>>,
     finished_backup_reset_rx: Receiver<()>,
+    pub(crate) writer: Arc<Mutex<BufWriter<File>>>,
 }
 
 enum Message<T> {
@@ -67,17 +65,28 @@ where
             _ => ()
         }
 
-        let is_reading = Arc::new(AtomicBool::default());
-        let reading_cvar = Arc::new((Mutex::new(false), Condvar::new()));
         let backup_file =
             backups_dir.join(format!("{backup_prefix}-{}", Utc::now().timestamp_millis()));
+
+        let writer = File::create(&backup_file)
+            .map(BufWriter::new)
+            .map(Mutex::new)
+            .map(Arc::new)
+            .map_err(|e| Error::new(ErrorKind::BackupsError, e))
+            .context("failed generate backup file")
+            .help("please contact Sift")?;
+
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            backup_file = format!("{}", backup_file.display()),
+            "backup file initialized"
+        );
 
         let backup_task = Self::init_backup_task(
             data_rx,
             &backup_file,
-            is_reading.clone(),
-            reading_cvar.clone(),
             finished_backup_reset_tx,
+            writer.clone(),
         )
         .context("failed to start backup task")?;
 
@@ -85,9 +94,8 @@ where
             backup_task,
             backup_file,
             data_tx,
-            is_reading,
-            reading_cvar,
             finished_backup_reset_rx,
+            writer,
         })
     }
 
@@ -136,27 +144,19 @@ where
     }
 
     pub(crate) async fn get_backup_data(&self) -> Result<Vec<T>> {
-        self.is_reading.store(true, Ordering::SeqCst);
+        let mut writer_guard = self.writer.lock();
 
-        let (mu, cvar) = &*self.reading_cvar;
-        let mut done_reading = mu
-            .lock()
-            .map_err(|_| Error::new_msg(ErrorKind::BackupsError, "encountered a poisoned mutex"))
-            .context("failed to acquire lock while yielding to allow reading for backups")
-            .help("no longer processing backups - please contact Sift")?;
+        writer_guard
+            .flush()
+            .map_err(|e| Error::new(ErrorKind::IoError, e))
+            .context("failed to flush backups buffer")
+            .help("please contact Sift")?;
 
-        let load_result = self.load_backup_data();
-
-        // These need occur regardless of `load_result` to resume the backup task.
-        self.is_reading.store(false, Ordering::SeqCst);
-        *done_reading = true;
-        cvar.notify_all();
-
-        load_result
+        self.load_backup_data()
     }
 
     fn load_backup_data(&self) -> Result<Vec<T>> {
-        let backup = fs::File::open(&self.backup_file)
+        let backup = File::open(&self.backup_file)
             .map(BufReader::new)
             .map_err(|e| Error::new(ErrorKind::IoError, e))
             .context("something went wrong while trying to read backup file")
@@ -169,68 +169,14 @@ where
     fn init_backup_task(
         mut data_rx: UnboundedReceiver<Message<T>>,
         backup_file: &Path,
-        is_reading: Arc<AtomicBool>,
-        reading_cvar: Arc<(Mutex<bool>, Condvar)>,
         finished_backup_reset_tx: Sender<()>,
+        writer: Arc<Mutex<BufWriter<File>>>,
     ) -> Result<JoinHandle<Result<()>>> {
         let backup_file = backup_file.to_path_buf();
 
-        let mut writer = fs::File::create(&backup_file)
-            .map_err(|e| Error::new(ErrorKind::BackupsError, e))
-            .context("failed generate backup file")
-            .help("please contact Sift")?;
-
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            backup_file = format!("{}", backup_file.display()),
-            "backup file initialized"
-        );
-
         let join_handle = tokio::task::spawn_blocking(move || -> Result<()> {
             while let Some(message) = data_rx.blocking_recv() {
-                if is_reading.load(Ordering::SeqCst) {
-                    #[cfg(feature = "tracing")]
-                    tracing::info!("backup data requested");
-
-                    let (mu, cvar) = &*reading_cvar;
-
-                    match mu.lock() {
-                        Ok(mut done_reading) => {
-                            while !*done_reading {
-                                #[cfg(feature = "tracing")]
-                                tracing::debug!("sleeping backup task while backups is being read");
-
-                                done_reading = match cvar.wait(done_reading) {
-                                    Ok(done) => {
-                                        #[cfg(feature = "tracing")]
-                                        tracing::debug!(
-                                            "backups reading done - resuming backup task"
-                                        );
-
-                                        done
-                                    }
-                                    Err(_) => {
-                                        #[cfg(feature = "tracing")]
-                                        tracing::error!("backups manager no longer processing backups due to poisoned mutex - please notify Sift");
-
-                                        return Err(Error::new_msg(ErrorKind::BackupsError, "encountered a poisoned mutex"))
-                                            .context("failed to wait while yielding to allow reading for backups")
-                                            .help("no longer processing backups - please contact Sift");
-                                    }
-                                }
-                            }
-                            *done_reading = false;
-                        }
-                        Err(_) => {
-                            #[cfg(feature = "tracing")]
-                            tracing::error!("backups manager no longer processing backups due to poisoned mutex - please notify Sift");
-
-                            return Err(Error::new_msg(ErrorKind::BackupsError, "encountered a poisoned mutex"))
-                                .context("failed to acquire lock while yielding to allow reading for backups")
-                                .help("no longer processing backups - please contact Sift");
-                        }
-                    }
-                }
+                let mut writer_guard = writer.lock();
 
                 let data = match message {
                     Message::Data(val) => val,
@@ -259,9 +205,9 @@ where
 
                         // flush the old writer first otherwise its `Drop` will get called and
                         // write to the newly truncated file.
-                        //let _ = writer.flush();
+                        let _ = writer_guard.flush();
 
-                        match fs::File::create(&backup_file).map(BufWriter::new) {
+                        match File::create(&backup_file).map(BufWriter::new) {
                             Ok(_) => {
                                 if finished_backup_reset_tx.try_send(()).is_err() {
                                     #[cfg(feature = "tracing")]
@@ -286,7 +232,7 @@ where
 
                 let wire_format = encode_message_length_prefixed(&data);
 
-                if let Err(err) = writer.write_all(&wire_format) {
+                if let Err(err) = writer_guard.write_all(&wire_format) {
                     #[cfg(feature = "tracing")]
                     tracing::warn!(error = format!("{err}"), "failed to backup a single message which may result data-loss during retries");
                 }
