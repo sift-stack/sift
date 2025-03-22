@@ -4,8 +4,8 @@ use sift_rs::{
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
 use sift_stream::{
-    backup::BackupsManager, ChannelValue, Flow, IngestionConfigMode, RetryPolicy, SiftStream,
-    TimeValue,
+    stream::mode::ingestion_config::IngestionConfigModeBackupsManager, ChannelValue, Flow,
+    IngestionConfigMode, RetryPolicy, SiftStream, TimeValue,
 };
 use std::{
     sync::{
@@ -14,7 +14,6 @@ use std::{
     },
     time::Duration,
 };
-use tempdir::TempDir;
 
 mod common;
 use common::prelude::*;
@@ -54,8 +53,6 @@ impl IngestService for IngestServiceMock {
 
 #[tokio::test]
 async fn test_retries_succeed() {
-    let backups_dir = TempDir::new("test_retries_succeed").expect("failed to create tempdir");
-
     let return_error = Arc::new(AtomicBool::new(true));
 
     let num_messages = 1_000;
@@ -92,13 +89,6 @@ async fn test_retries_succeed() {
         }],
     }];
 
-    let backups_manager = BackupsManager::new(
-        Some(backups_dir.path().to_path_buf()),
-        "ignestion-config-id",
-        "my-asset",
-    )
-    .expect("failed to create backups manager");
-
     let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
         client,
         ingestion_config,
@@ -106,7 +96,7 @@ async fn test_retries_succeed() {
         None,
         Duration::from_secs(60),
         Some(RetryPolicy::default()),
-        Some(backups_manager),
+        Some(IngestionConfigModeBackupsManager::default()),
     );
 
     tokio::spawn(async move {

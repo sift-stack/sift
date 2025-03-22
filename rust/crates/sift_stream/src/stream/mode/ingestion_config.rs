@@ -1,7 +1,7 @@
 use super::super::{
     channel::ChannelValue, time::TimeValue, RetryPolicy, SiftStream, SiftStreamMode,
 };
-use crate::backup::BackupsManager;
+use crate::backup::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager};
 use futures_core::Stream;
 use prost::Message;
 use sift_connect::SiftChannel;
@@ -45,7 +45,12 @@ pub struct IngestionConfigMode {
     streaming_task: Option<JoinHandle<Result<IngestWithConfigDataStreamResponse>>>,
     retry_policy: Option<RetryPolicy>,
     data_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
-    backups_manager: Option<BackupsManager<IngestWithConfigDataStreamRequest>>,
+    backups_manager: Option<IngestionConfigModeBackupsManager>,
+}
+
+pub enum IngestionConfigModeBackupsManager {
+    Disk(DiskBackupsManager<IngestWithConfigDataStreamRequest>),
+    InMemory(InMemoryBackupsManager<IngestWithConfigDataStreamRequest>),
 }
 
 impl SiftStreamMode for IngestionConfigMode {}
@@ -64,6 +69,12 @@ struct DataStream {
     messages_processed: usize,
     bytes_processed: usize,
     started_at: Instant,
+}
+
+impl Default for IngestionConfigModeBackupsManager {
+    fn default() -> Self {
+        Self::InMemory(InMemoryBackupsManager::new(None))
+    }
 }
 
 impl Flow {
@@ -88,7 +99,7 @@ impl SiftStream<IngestionConfigMode> {
         run: Option<Run>,
         checkpoint_interval: Duration,
         retry_policy: Option<RetryPolicy>,
-        backups_manager: Option<BackupsManager<IngestWithConfigDataStreamRequest>>,
+        backups_manager: Option<IngestionConfigModeBackupsManager>,
     ) -> Self {
         let mut flows_by_name = HashMap::<String, Vec<FlowConfig>>::new();
 
@@ -156,9 +167,7 @@ impl SiftStream<IngestionConfigMode> {
 
         match self.mode.data_tx.send(req.clone()).await {
             Ok(_) => {
-                if let Some(backups_manager) = self.mode.backups_manager.as_mut() {
-                    backups_manager.send(req)?;
-                }
+                self.backup_data(req).await?;
                 Ok(())
             }
 
@@ -193,6 +202,43 @@ impl SiftStream<IngestionConfigMode> {
                     }
                 },
             },
+        }
+    }
+
+    async fn backup_data(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
+        if let Some(backups_manager) = self.mode.backups_manager.as_mut() {
+            match backups_manager {
+                IngestionConfigModeBackupsManager::Disk(manager) => {
+                    return manager.send(req).await;
+                }
+                IngestionConfigModeBackupsManager::InMemory(manager) => {
+                    return manager.send(req).await;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn truncate_backup(&mut self) -> Result<()> {
+        if let Some(backups_manager) = self.mode.backups_manager.as_mut() {
+            match backups_manager {
+                IngestionConfigModeBackupsManager::Disk(manager) => {
+                    return manager.truncate_backup().await;
+                }
+                IngestionConfigModeBackupsManager::InMemory(manager) => {
+                    return manager.truncate_backup().await;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn shutdown_backups_manager(
+        backups_manager: IngestionConfigModeBackupsManager,
+    ) -> Result<()> {
+        match backups_manager {
+            IngestionConfigModeBackupsManager::Disk(manager) => manager.finish().await,
+            IngestionConfigModeBackupsManager::InMemory(manager) => manager.finish().await,
         }
     }
 
@@ -298,9 +344,7 @@ impl SiftStream<IngestionConfigMode> {
             }
             begin_checkpoint_notifier.notify_one();
         } else {
-            if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
-                let _ = backup_manager.truncate_backup().await;
-            }
+            self.truncate_backup().await?;
             begin_checkpoint_notifier.notify_one();
         }
 
@@ -314,54 +358,59 @@ impl SiftStream<IngestionConfigMode> {
         &mut self,
         data_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
     ) -> Result<()> {
-        if let Some(backup_manager) = self.mode.backups_manager.as_mut() {
-            #[cfg(feature = "tracing")]
-            tracing::info!("processing backups");
+        let Some(backup_manager) = self.mode.backups_manager.as_mut() else {
+            return Ok(());
+        };
 
-            let backup_data = backup_manager
-                .get_backup_data()
-                .await
-                .context("failed to get backup data")?;
+        #[cfg(feature = "tracing")]
+        tracing::info!("processing backups");
 
-            let mut data_points = 0;
+        let mut data_points = 0;
+        let mut start = Instant::now();
 
-            let mut start = Instant::now();
+        macro_rules! process_backups {
+            ($m:ident) => {
+                for data in $m.get_backup_data().await? {
+                    data_tx
+                        .send(data)
+                        .await
+                        .map_err(|_| {
+                            Error::new_msg(ErrorKind::StreamError, "receiver prematurely closed")
+                        })
+                        .context("something went wrong while reingesting backups")
+                        .help("please contact Sift")?;
 
-            for data in backup_data {
-                data_tx
-                    .send(data)
-                    .await
-                    .map_err(|_| {
-                        Error::new_msg(ErrorKind::StreamError, "receiver prematurely closed")
-                    })
-                    .context("something went wrong while reingesting backups")
-                    .help("please contact Sift")?;
+                    data_points += 1;
 
-                data_points += 1;
+                    if start.elapsed() >= Duration::from_secs(10) {
+                        #[cfg(feature = "tracing")]
+                        tracing::info!(points_processed = data_points, "processing backups");
 
-                if start.elapsed() >= Duration::from_secs(10) {
-                    #[cfg(feature = "tracing")]
-                    tracing::info!(points_processed = data_points, "processing backups");
-
-                    start = Instant::now();
+                        start = Instant::now();
+                    }
                 }
-            }
+                $m.truncate_backup().await?;
+            };
+        }
 
-            if data_points == 0 {
-                #[cfg(feature = "tracing")]
-                tracing::info!("no backups to reingest");
-            } else {
-                #[cfg(feature = "tracing")]
-                tracing::info!(
-                    data_points_recovered = data_points,
-                    "successfully reingested data since last checkpoint"
-                );
+        match backup_manager {
+            IngestionConfigModeBackupsManager::Disk(manager) => {
+                process_backups!(manager);
             }
+            IngestionConfigModeBackupsManager::InMemory(manager) => {
+                process_backups!(manager);
+            }
+        }
 
-            backup_manager
-                .truncate_backup()
-                .await
-                .context("failed to notify backup manager of checkpoint")?;
+        if data_points == 0 {
+            #[cfg(feature = "tracing")]
+            tracing::info!("no backups to reingest");
+        } else {
+            #[cfg(feature = "tracing")]
+            tracing::info!(
+                data_points_recovered = data_points,
+                "successfully reingested data since last checkpoint"
+            );
         }
         Ok(())
     }
@@ -372,7 +421,7 @@ impl SiftStream<IngestionConfigMode> {
             #[cfg(feature = "tracing")]
             tracing::info!("shutting down backups manager");
 
-            let _ = backup_manager.finish().await;
+            let _ = Self::shutdown_backups_manager(backup_manager).await;
         }
 
         #[cfg(feature = "tracing")]

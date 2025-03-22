@@ -1,4 +1,4 @@
-use super::BackupsManager;
+use super::{BackupsManager, DiskBackupsManager};
 use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
 use std::fs;
 use tempdir::TempDir;
@@ -16,10 +16,11 @@ async fn test_backups_manager_retrieve_data_with_graceful_termination() {
         ..Default::default()
     });
 
-    let mut backups_manager = BackupsManager::<IngestWithConfigDataStreamRequest>::new(
+    let mut backups_manager = DiskBackupsManager::<IngestWithConfigDataStreamRequest>::new(
         Some(tmp_dir_path.to_path_buf()),
         backups_dir,
         backup_prefix,
+        None,
     )
     .expect("failed top start backups manager");
 
@@ -35,6 +36,7 @@ async fn test_backups_manager_retrieve_data_with_graceful_termination() {
 
         backups_manager
             .send(data)
+            .await
             .expect("failed to send data to backup task");
     }
 

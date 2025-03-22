@@ -1,8 +1,9 @@
 use super::{
-    flow::validate_flows, mode::ingestion_config::IngestionConfigMode, RetryPolicy, SiftStream,
+    flow::validate_flows, mode::ingestion_config::IngestionConfigMode,
+    mode::ingestion_config::IngestionConfigModeBackupsManager, RetryPolicy, SiftStream,
     SiftStreamMode,
 };
-use crate::backup::BackupsManager;
+use crate::backup::{DiskBackupsManager, InMemoryBackupsManager};
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
 use sift_rs::{
@@ -28,11 +29,16 @@ pub struct SiftStreamBuilder<C> {
 /// Mention how backups_dir `None` uses the system tmp dir.
 #[derive(Debug)]
 pub enum RecoveryStrategy {
-    RetryWithBackups {
+    RetryOnly(RetryPolicy),
+    RetryWithInMemoryBackups {
+        retry_policy: RetryPolicy,
+        max_buffer_size: Option<usize>,
+    },
+    RetryWithDiskBackups {
         retry_policy: RetryPolicy,
         backups_dir: Option<PathBuf>,
+        max_backups_file_size: Option<usize>,
     },
-    RetryOnly(RetryPolicy),
 }
 
 #[derive(Debug)]
@@ -52,9 +58,10 @@ pub struct RunForm {
 
 impl Default for RecoveryStrategy {
     fn default() -> Self {
-        RecoveryStrategy::RetryWithBackups {
+        RecoveryStrategy::RetryWithDiskBackups {
             retry_policy: RetryPolicy::default(),
             backups_dir: None,
+            max_backups_file_size: None,
         }
     }
 }
@@ -219,22 +226,36 @@ impl SiftStreamBuilder<IngestionConfigMode> {
 
         if let Some(strategy) = recovery_strategy {
             match strategy {
-                RecoveryStrategy::RetryWithBackups {
+                RecoveryStrategy::RetryOnly(retry_policy) => {
+                    policy = Some(retry_policy);
+                }
+                RecoveryStrategy::RetryWithInMemoryBackups {
                     retry_policy,
-                    backups_dir,
+                    max_buffer_size,
                 } => {
                     policy = Some(retry_policy);
-                    let manager = BackupsManager::new(
-                        backups_dir,
-                        &ingestion_config.asset_id,
-                        &ingestion_config.ingestion_config_id,
-                    )
-                    .context("failed to build backups manager")?;
+                    let manager = IngestionConfigModeBackupsManager::InMemory(
+                        InMemoryBackupsManager::new(max_buffer_size),
+                    );
 
                     backups_manager = Some(manager);
                 }
-                RecoveryStrategy::RetryOnly(retry_policy) => {
+                RecoveryStrategy::RetryWithDiskBackups {
+                    retry_policy,
+                    backups_dir,
+                    max_backups_file_size,
+                } => {
                     policy = Some(retry_policy);
+                    let manager = DiskBackupsManager::new(
+                        backups_dir,
+                        &ingestion_config.asset_id,
+                        &ingestion_config.ingestion_config_id,
+                        max_backups_file_size,
+                    )
+                    .map(IngestionConfigModeBackupsManager::Disk)
+                    .context("failed to build backups manager")?;
+
+                    backups_manager = Some(manager);
                 }
             }
         }

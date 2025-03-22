@@ -1,4 +1,8 @@
 pub mod stream;
+pub use sift_rs::{
+    common::r#type::v1::ChannelDataType,
+    ingestion_configs::v2::{ChannelConfig, FlowConfig},
+};
 pub use stream::{
     builder::{IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder},
     channel::{ChannelValue, Value},
