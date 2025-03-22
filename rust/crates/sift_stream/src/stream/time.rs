@@ -14,6 +14,10 @@ impl Default for TimeValue {
 }
 
 impl TimeValue {
+    pub fn now() -> Self {
+        Self::default()
+    }
+
     pub fn try_from_timestamp(secs: i64, nsecs: u32) -> Result<Self> {
         DateTime::<Utc>::from_timestamp(secs, nsecs)
             .map(|t| TimeValue(Timestamp::from(t)))

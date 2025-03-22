@@ -1,10 +1,14 @@
-use super::{BackupsManager, DiskBackupsManager};
-use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
+use super::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager};
+use crate::TimeValue;
+use sift_rs::ingest::v1::{
+    ingest_with_config_data_channel_value::Type, IngestWithConfigDataChannelValue,
+    IngestWithConfigDataStreamRequest,
+};
 use std::fs;
 use tempdir::TempDir;
 
 #[tokio::test]
-async fn test_backups_manager_retrieve_data_with_graceful_termination() {
+async fn test_disk_backups_manager_retrieve_data_with_graceful_termination() {
     let backups_dir = "my-backups-v1";
     let backup_prefix = "my-run";
 
@@ -13,6 +17,11 @@ async fn test_backups_manager_retrieve_data_with_graceful_termination() {
 
     let test_data = (0..100).map(|i| IngestWithConfigDataStreamRequest {
         ingestion_config_id: format!("{i}"),
+        flow: String::from("some_flow"),
+        timestamp: Some(*TimeValue::now()),
+        channel_values: vec![IngestWithConfigDataChannelValue {
+            r#type: Some(Type::Int32(i)),
+        }],
         ..Default::default()
     });
 
@@ -72,4 +81,72 @@ async fn test_backups_manager_retrieve_data_with_graceful_termination() {
         !fs::exists(backup_file_path).unwrap(),
         "backup file should have been cleaned up",
     );
+}
+
+#[tokio::test]
+async fn test_in_memory_backups_manager_retrieve_data() {
+    let test_data = (0..100).map(|i| IngestWithConfigDataStreamRequest {
+        ingestion_config_id: format!("{i}"),
+        flow: String::from("some_flow"),
+        timestamp: Some(*TimeValue::now()),
+        channel_values: vec![IngestWithConfigDataChannelValue {
+            r#type: Some(Type::Int32(i)),
+        }],
+        ..Default::default()
+    });
+
+    let mut test_data_iter = test_data.into_iter();
+
+    let max_buffer_size = 10;
+    let mut backups_manager =
+        InMemoryBackupsManager::<IngestWithConfigDataStreamRequest>::new(Some(max_buffer_size));
+
+    let mut expected = Vec::with_capacity(10);
+    for _ in 0..10 {
+        let data = test_data_iter.next().unwrap();
+        backups_manager
+            .send(data.clone())
+            .await
+            .expect("failed to send data to backup manager");
+        expected.push(data);
+    }
+
+    let backups = backups_manager.get_backup_data().await.unwrap();
+    for (lhs, rhs) in expected.clone().into_iter().zip(backups) {
+        assert_eq!(lhs, rhs, "backups don't match actual data sent");
+    }
+
+    let data_point = test_data_iter.next().unwrap();
+    let mut expected_after_pushing_past_capacity = Vec::with_capacity(10);
+    expected_after_pushing_past_capacity.extend_from_slice(&expected[1..]);
+    expected_after_pushing_past_capacity.push(data_point.clone());
+
+    backups_manager.send(data_point).await.unwrap();
+
+    // `get_backup_data` could outcompete the backup task lock
+    tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+
+    let backups = backups_manager.get_backup_data().await.unwrap();
+    for (lhs, rhs) in expected_after_pushing_past_capacity
+        .clone()
+        .into_iter()
+        .zip(backups)
+    {
+        assert_eq!(
+            lhs, rhs,
+            "incorrect handling of pushing past buffer capacity"
+        );
+    }
+
+    backups_manager.truncate_backup().await.unwrap();
+
+    // `truncate_backup` could outcompete the backup task lock
+    tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+
+    assert!(
+        backups_manager.get_backup_data().await.unwrap().count() == 0,
+        "backups buffer should be empty after truncating",
+    );
+
+    assert!(backups_manager.finish().await.is_ok());
 }
