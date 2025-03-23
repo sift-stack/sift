@@ -12,7 +12,6 @@ pub use stream::{
 };
 
 pub use sift_connect::*;
-pub use sift_error::*;
 pub use sift_rs::*;
 
 pub mod backup;

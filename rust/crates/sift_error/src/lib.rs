@@ -3,22 +3,30 @@ use std::{error::Error as StdError, fmt, result::Result as StdResult};
 #[cfg(test)]
 mod test;
 
+/// Other Sift crates should just import this prelude to get everything necessary to construct
+/// [Error] types.
 pub mod prelude {
     pub use super::{Error, ErrorKind, Result, SiftError};
 }
 
+/// A `Result` that returns [Error] as the error-type.
 pub type Result<T> = StdResult<T, Error>;
 pub type BoxedError = Box<dyn std::error::Error + Send + Sync>;
 
+/// Trait that defines the behavior of errors that Sift manages.
 pub trait SiftError<T, C>
 where
     C: fmt::Display + Send + Sync + 'static,
 {
+    /// Adds context that is printed with the error.
+    fn context(self, ctx: C) -> Result<T>;
+
+    /// Like `context` but takes in a closure.
     fn with_context<F>(self, op: F) -> Result<T>
     where
         F: Fn() -> C;
 
-    fn context(self, ctx: C) -> Result<T>;
+    /// User-help text.
     fn help(self, txt: C) -> Result<T>;
 }
 
@@ -34,6 +42,7 @@ pub struct Error {
 impl StdError for Error {}
 
 impl Error {
+    /// Initializes an [Error].
     pub fn new<E>(kind: ErrorKind, err: E) -> Self
     where
         E: StdError + Send + Sync + 'static,
@@ -47,6 +56,7 @@ impl Error {
         }
     }
 
+    /// Initializes an [Error] with a generic message.
     pub fn new_msg<S: AsRef<str>>(kind: ErrorKind, msg: S) -> Self {
         Self {
             inner: None,
@@ -56,51 +66,77 @@ impl Error {
         }
     }
 
+    /// Initializes a general catch-all type of [Error]. Contributors should be careful not to use
+    /// this unless strictly necessary.
     pub fn new_general<S: AsRef<str>>(msg: S) -> Self {
         Self::new_msg(ErrorKind::GeneralError, msg)
     }
 
+    /// Used for user-errors that have to do with bad arguments.
     pub fn new_arg_error<S: AsRef<str>>(msg: S) -> Self {
         Self::new_msg(ErrorKind::ArgumentValidationError, msg)
     }
 
+    /// Tonic response types usually return optional types that we need to handle; if responses are
+    /// empty then this is the appropriate way to initialize an [Error] for that situation, though
+    /// this has never been observed.
     pub fn new_empty_response<S: AsRef<str>>(msg: S) -> Self {
         Self {
             inner: None,
             kind: ErrorKind::EmptyResponseError,
             context: Some(vec![msg.as_ref().to_string()]),
-            help: Some("please context Sift".to_string()),
+            help: Some("please contact Sift".to_string()),
         }
     }
 
+    /// Get the underlying error kind.
     pub fn kind(&self) -> ErrorKind {
         self.kind
     }
 }
 
+/// Various categories of errors that can occur throughout Sift crates.
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ErrorKind {
+    /// Indicates user-error having to do with bad arguments.
     ArgumentValidationError,
+    /// Indicates that the program is unable to grab credentials from a user's `sift.toml` file.
     ConfigError,
+    /// Inidicates that the program was unable to connect to Sift.
     GrpcConnectError,
+    /// Indicates that the program was unable to retrieve the run being requested.
     RetrieveRunError,
+    /// Indicates a failure to update a run.
     UpdateRunError,
+    /// Indicates that the program was unable to retrieve the ingestion config being requested.
     RetrieveIngestionConfigError,
+    /// Indicates a failure to create a run.
     CreateRunError,
+    /// Indicates a failure to create an ingestion config.
     CreateIngestionConfigError,
+    /// Indicates a failure to create a flow.
     CreateFlowError,
+    /// Indicates a failure to find the requested resource, likely because it doesn't exist.
     NotFoundError,
+    /// General I/O errors.
     IoError,
+    /// Indicates that there was a conversion between numeric times.
     NumberConversionError,
+    /// Indicates a failure to generated a particular time-type from arguments.
     TimeConversionError,
+    /// General errors that can occur while streaming telemetry i.e. data ingestion.
     StreamError,
+    /// General errors that can occur while processing backups during streaming.
     BackupsError,
+    /// Indicates that the user is making a change that is not backwards compatible with an
+    /// existing ingestion config.
     IncompatibleIngestionConfigChange,
+    /// Indicates that a user provided a flow-name that doesn't match any configured flow in the
+    /// parent ingestion config.
     UnknownFlow,
-
     /// This really shouldn't happen
     EmptyResponseError,
-
+    /// General errors that are rarely returned.
     GeneralError,
 }
 

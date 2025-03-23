@@ -15,6 +15,7 @@ pub fn new_run_service(grpc_channel: SiftChannel) -> impl RunServiceWrapper {
     RunServiceWrapperImpl(RunServiceClient::new(grpc_channel))
 }
 
+/// Convenience methods over [RunServiceClient].
 #[async_trait]
 pub trait RunServiceWrapper: Deref<Target = RunServiceClient<SiftChannel>> + DerefMut {
     /// Creates a run.

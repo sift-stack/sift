@@ -1,13 +1,13 @@
 use sift_error::prelude::*;
 use toml::{Table, Value};
 
+/// The expected name of the config file.
 pub const SIFT_CONFIG_NAME: &str = "sift.toml";
 
 /// Specifies source of credentials. If `Profile` is used, then the provided string will be used to
-/// query the corresponding table from [`SIFT_CONFIG_NAME`] located at [`these locations`] depending on
-/// your operating system. If `None` is provided, then the top-level table is used.
-///
-/// ['these locations']: https://docs.rs/dirs/6.0.0/dirs/fn.config_local_dir.html
+/// query the corresponding table from [`SIFT_CONFIG_NAME`] located at
+/// [these locations](https://docs.rs/dirs/6.0.0/dirs/fn.config_local_dir.html)
+/// depending on your operating system. If `None` is provided, then the top-level table is used.
 #[derive(Debug)]
 pub enum Credentials {
     Profile(Option<String>),
@@ -15,7 +15,7 @@ pub enum Credentials {
 }
 
 #[derive(Default)]
-pub struct SiftChannelConfig {
+pub(crate) struct SiftChannelConfig {
     pub uri: String,
     pub apikey: String,
 }

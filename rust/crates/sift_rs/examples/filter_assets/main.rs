@@ -1,0 +1,31 @@
+use sift_rs::{
+    assets::v1::{asset_service_client::AssetServiceClient, ListAssetsRequest},
+    Credentials, SiftChannelBuilder,
+};
+use std::env;
+
+#[tokio::main]
+async fn main() {
+    let credentials = Credentials::Config {
+        apikey: env::var("SIFT_API_KEY").unwrap(),
+        uri: env::var("SIFT_URI").unwrap(),
+    };
+
+    let conn = SiftChannelBuilder::new(credentials).build().unwrap();
+    let mut asset_service = AssetServiceClient::new(conn);
+
+    let response = asset_service
+        .list_assets(ListAssetsRequest {
+            filter: String::from("name.matches('falcon$')"),
+            ..Default::default()
+        })
+        .await
+        .unwrap()
+        .into_inner();
+
+    println!("found {} assets", response.assets.len());
+
+    for asset in response.assets {
+        println!("{}", asset.name);
+    }
+}
