@@ -19,7 +19,7 @@ pub fn validate_flows(user_specified: &[FlowConfig], sift_flows: &[FlowConfig]) 
         if num_matches_by_name > 0 && num_exact_matches == 0 {
             return Err(Error::new_msg(ErrorKind::IncompatibleIngestionConfigChange, "incompatible change to ingestion config"))
                 .with_context(|| format!("flow(s) with name '{}' exist but their channel configs do not match what the user specified", user_flow.name))
-                .help("try creating a new ingestion config by providing a new 'client_key' to `sift_stream::IngestionConfigForm`");
+                .help("Did you modify an existing flow? Try updating the the flow's name or the 'client_key' of `sift_stream::IngestionConfigForm`");
         } else if num_exact_matches == 0 {
             return Err(Error::new_msg(ErrorKind::IncompatibleIngestionConfigChange, "incompatible change to ingestion config"))
                 .with_context(|| format!("flow(s) with name '{}' not found in Sift", user_flow.name))

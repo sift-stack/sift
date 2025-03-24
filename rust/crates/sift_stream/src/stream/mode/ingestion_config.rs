@@ -34,9 +34,12 @@ use tokio::{
     task::JoinHandle,
 };
 
+/// The size of the channel buffer that connects [SiftStream::send] with the task that actually
+/// streams data to Sift.
 const DATA_BUFFER_LEN: usize = 10_000;
 
-/// Dependencies specifically for ingestion-config based streaming.
+/// Dependencies specifically for ingestion-config based streaming. Users shouldn't have to
+/// interact with this directly.
 pub struct IngestionConfigMode {
     ingestion_config: IngestionConfig,
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
@@ -48,6 +51,7 @@ pub struct IngestionConfigMode {
     backups_manager: Option<IngestionConfigModeBackupsManager>,
 }
 
+/// The flavor of backups manager. Users shouldn't have to interact with this directly.
 pub enum IngestionConfigModeBackupsManager {
     Disk(DiskBackupsManager<IngestWithConfigDataStreamRequest>),
     InMemory(InMemoryBackupsManager<IngestWithConfigDataStreamRequest>),
@@ -55,6 +59,9 @@ pub enum IngestionConfigModeBackupsManager {
 
 impl SiftStreamMode for IngestionConfigMode {}
 
+/// A single message that users can send to Sift via [SiftStream::send]. It is expected that this
+/// flow has a corresponding flow configuration specified in the ingestion config. See the
+/// [top-level documentation](crate#ingestion-configs) for more details.
 #[derive(Debug, Clone)]
 pub struct Flow {
     flow_name: String,
@@ -72,12 +79,15 @@ struct DataStream {
 }
 
 impl Default for IngestionConfigModeBackupsManager {
+    /// The default backups manager flavor if backups are enabled.
     fn default() -> Self {
         Self::InMemory(InMemoryBackupsManager::new(None))
     }
 }
 
 impl Flow {
+    /// Initializes a new flow that can be immediately sent to Sift by passing this to
+    /// [SiftStream::send].
     pub fn new<S: AsRef<str>>(flow_name: S, timestamp: TimeValue, values: &[ChannelValue]) -> Self {
         Self {
             timestamp,
@@ -146,6 +156,16 @@ impl SiftStream<IngestionConfigMode> {
         }
     }
 
+    /// The entry-point to send actual telemetry to Sift in the form of [Flow]s. This method will
+    /// return an error of kind [ErrorKind::UnknownFlow] if the `message` provided has a flow-name
+    /// that doesn't match any of the flow-configs specified in the ingestion config.
+    ///
+    /// Additionally, if retries are enabled, then this method will use the configured retry policy
+    /// to attempt to resend data and reconnect until the max-attempts are exhausted, afterwhich a
+    /// general [ErrorKind::StreamError] is returned.
+    ///
+    /// Lastly, if backups are enabled, then any `message` passed to this method will be backed up
+    /// and reingested in the case of an error once a retry is successful.
     pub async fn send(&mut self, message: Flow) -> Result<()> {
         let Some(flows) = self.mode.flows_by_name.get(&message.flow_name) else {
             return Err(Error::new_msg(ErrorKind::UnknownFlow, "unknown flow name"))
@@ -415,7 +435,9 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
-    /// This will conclude the stream and return when Sift has sent its final response.
+    /// This will conclude the stream and return when Sift has sent its final response. It is
+    /// important that this method be called in order to obtain the final checkpoint
+    /// acknowledgement from Sift, otherwise some tail-end data may fail to send.
     pub async fn finish(mut self) -> Result<()> {
         if let Some(backup_manager) = self.mode.backups_manager {
             #[cfg(feature = "tracing")]
@@ -587,7 +609,7 @@ impl Stream for DataStream {
     fn poll_next(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if self.checkpoint_signal_rx.try_recv().is_ok() {
             #[cfg(feature = "tracing")]
-            tracing::debug!("termination signal received");
+            tracing::debug!("stream checkpoint signal received");
 
             return Poll::Ready(None);
         }

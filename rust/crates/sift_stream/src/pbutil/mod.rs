@@ -4,7 +4,8 @@ use std::{io::BufRead, marker::PhantomData, mem};
 #[cfg(test)]
 mod test;
 
-/// Serialize protobuf message to length-prefixed write format.
+/// Serialize a protobuf message to its length-prefixed write format. The length is a `u32` encoded
+/// as little-endian bytes.
 pub fn encode_message_length_prefixed<M: Message>(message: &M) -> Vec<u8> {
     let encoded = message.encode_to_vec();
     let length = (encoded.len() as u32).to_le_bytes(); // 4 bytes to store the length
@@ -14,6 +15,9 @@ pub fn encode_message_length_prefixed<M: Message>(message: &M) -> Vec<u8> {
     wire_format
 }
 
+/// Constructed from a [BufRead] that is expected to contain protobuf message(s) written as
+/// length-prefixed wire format. Iterating over [ProtobufDecoder] will decode and yield each
+/// message.
 pub struct ProtobufDecoder<R, M> {
     reader: R,
     item: PhantomData<M>,

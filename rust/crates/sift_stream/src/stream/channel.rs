@@ -2,15 +2,18 @@ use sift_rs::{
     common::r#type::v1::ChannelDataType, ingest::v1::ingest_with_config_data_channel_value::Type,
 };
 
+/// Represents the value emitted by a named channel.
 #[derive(Debug, PartialEq, Clone)]
 pub struct ChannelValue {
     pub name: String,
     pub value: Value,
 }
 
+/// Represents a specific enumeration of an enum channel.
 #[derive(Debug, PartialEq)]
 pub struct ChannelEnum(pub u32);
 
+/// Represents a typed-value emitted by a channel.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Bool(bool),
@@ -26,6 +29,13 @@ pub enum Value {
 }
 
 impl ChannelValue {
+    /// Creates a [ChannelValue] for a channel of name `name`.
+    ///
+    /// Example:
+    /// ```rust
+    /// ChannelValue::new("arm-joint", 3_i32);
+    /// ChannelValue::new("navigation", 3.14_f32);
+    /// ```
     pub fn new<T: Into<Value>>(name: &str, val: T) -> Self {
         Self {
             name: name.to_string(),
@@ -33,7 +43,7 @@ impl ChannelValue {
         }
     }
 
-    pub fn empty_pb() -> Type {
+    pub(crate) fn empty_pb() -> Type {
         Type::Empty(pbjson_types::Empty {})
     }
 

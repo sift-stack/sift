@@ -8,6 +8,7 @@ use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
 use sift_rs::{
     ingestion_configs::v2::{FlowConfig, IngestionConfig as IngestionConfigPb},
+    ping::v1::{ping_service_client::PingServiceClient, PingRequest},
     runs::v2::Run,
     wrappers::{
         ingestion_configs::{new_ingestion_config_service, IngestionConfigServiceWrapper},
@@ -16,6 +17,27 @@ use sift_rs::{
 };
 use std::{collections::HashSet, marker::PhantomData, path::PathBuf, time::Duration};
 
+/// The default checkpoint interval (1 minute) to use if left unspecified.
+pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
+
+/// Configures and builds an instance of [SiftStream]. The quickest way to get started is to simply
+/// pass your [Credentials] to [SiftStreamBuilder::new] as well as your [IngestionConfigForm] and
+/// call [SiftStreamBuilder::build] like so:
+///
+/// ```rust
+/// let mut sift_stream = SiftStreamBuilder::new(credentials)
+///     .ingestion_config(ingestion_config)
+///     .build()
+///     .await?;
+/// ```
+///
+/// To add additional behaviors or modify existing ones, see the methods available on the builder.
+///
+/// ### Panic
+///
+/// Because [tonic](https://docs.rs/tonic/latest/tonic/) is an underlying dependency, the
+/// [tokio](https://docs.rs/tokio/latest/tokio/) asynchronous runtime is required, otherwise
+/// attempts to call [SiftStreamBuilder::build] will panic.
 pub struct SiftStreamBuilder<C> {
     credentials: Credentials,
     run: Option<RunForm>,
@@ -26,14 +48,38 @@ pub struct SiftStreamBuilder<C> {
     kind: PhantomData<C>,
 }
 
-/// Mention how backups_dir `None` uses the system tmp dir.
+/// Various recovery strategies users can enable for [SiftStream] when constructing it via
+/// [SiftStreamBuilder].
 #[derive(Debug)]
 pub enum RecoveryStrategy {
+    /// - Enables retries only. Users can provide their own custom retry policy or use the default
+    ///   recommended settings via [RetryPolicy::default].
     RetryOnly(RetryPolicy),
+
+    /// - Enables retries as well as in-memory backups. Users can provide their own custom retry
+    ///   policy or use the default recommended settings via [RetryPolicy::default].
+    ///
+    /// - `max_buffer_size` specifies the capacity of the underlying buffer. If `None`, then the
+    ///   default [crate::backup::memory::DEFAULT_MAX_BUFFER_SIZE] is used.
     RetryWithInMemoryBackups {
         retry_policy: RetryPolicy,
         max_buffer_size: Option<usize>,
     },
+
+    /// - Enables retries as well as disk backups. Users can provide their own custom retry
+    ///   policy or use the default recommended settings via [RetryPolicy::default].
+    ///
+    /// - `backups_dir` is the directory where the backups will get created. If `backups_dir` is
+    ///   `None`, then the system temporary directory is used. If `backups_dir` is provided but
+    ///   doesn't exist, then there will be an attempt to create that directory.
+    ///
+    /// - `max_backups_file_size` is the maximum size that a backup file is allowed to be before it
+    ///   is truncated. After truncation, backups proceed normally for new data. If `None`, then
+    ///   [crate::backup::disk::DEFAULT_MAX_BACKUP_SIZE] is used.
+    ///
+    /// **Important Note**: The `max_backups_file_size` does not represent that actual amount of
+    /// space on disk which is affected by operating system-level compression and block allocation;
+    /// instead the byte-length is the actual measure.
     RetryWithDiskBackups {
         retry_policy: RetryPolicy,
         backups_dir: Option<PathBuf>,
@@ -41,6 +87,11 @@ pub enum RecoveryStrategy {
     },
 }
 
+/// A form to create a new ingestion config or retrieve an existing ingestion config based on the
+/// `client_key` provided. The `client_key` is an arbitrary user-sourced identifier that is
+/// expected to be unique across the user's organization; it's used to uniquely identify a
+/// particular ingestion config which defines the schema of an asset's telemetry. See the
+/// [top-level documentation](crate#ingestion-configs) for further details.
 #[derive(Debug)]
 pub struct IngestionConfigForm {
     pub asset_name: String,
@@ -48,6 +99,7 @@ pub struct IngestionConfigForm {
     pub flows: Vec<FlowConfig>,
 }
 
+/// A form to create a new run or retrieve an existing run based on the `client_key` provided.
 #[derive(Debug)]
 pub struct RunForm {
     pub name: String,
@@ -57,8 +109,23 @@ pub struct RunForm {
 }
 
 impl Default for RecoveryStrategy {
+    /// Initializes a retry-only recovery strategy using [RetryPolicy::default].
     fn default() -> Self {
-        RecoveryStrategy::RetryWithDiskBackups {
+        RecoveryStrategy::RetryOnly(RetryPolicy::default())
+    }
+}
+
+impl RecoveryStrategy {
+    /// Initializes a retry with in-memory backups recovery strategy using the default recommended
+    /// configurations.
+    pub fn default_retry_policy_in_memory_backups() -> Self {
+        Self::default()
+    }
+
+    /// Initializes a retry with disk backups recovery strategy using the default recommended
+    /// configurations.
+    pub fn default_retry_policy_disk_backups() -> Self {
+        Self::RetryWithDiskBackups {
             retry_policy: RetryPolicy::default(),
             backups_dir: None,
             max_backups_file_size: None,
@@ -70,21 +137,28 @@ impl<C> SiftStreamBuilder<C>
 where
     C: SiftStreamMode,
 {
+    /// Sets the recovery strategy to use. See [RecoveryStrategy].
     pub fn recovery_strategy(mut self, strategy: RecoveryStrategy) -> SiftStreamBuilder<C> {
         self.recovery_strategy = Some(strategy);
         self
     }
 
+    /// Sets the run to use for this period of streaming. Any data sent will be associated with
+    /// this run. If the `run` used is an existing run, then any fields that have been updated will
+    /// also be updated in Sift.
     pub fn attach_run(mut self, run: RunForm) -> SiftStreamBuilder<C> {
         self.run = Some(run);
         self
     }
 
+    /// Disables TLS. Useful for testing.
     pub fn disable_tls(mut self) -> SiftStreamBuilder<C> {
         self.enable_tls = false;
         self
     }
 
+    /// Retrieves a run or creates a run. If the run exists, this method will also update the run
+    /// if the `run_form` has changed since the last time it was used.
     async fn load_run(grpc_channel: SiftChannel, run_form: RunForm) -> Result<Run> {
         #[cfg(feature = "tracing")]
         let _info_span = tracing::info_span!("load_run");
@@ -177,7 +251,9 @@ where
     }
 }
 
+/// Builds a [SiftStream] specifically for ingestion-config based streaming.
 impl SiftStreamBuilder<IngestionConfigMode> {
+    /// Initializes a new builder for ingestion-config-based streaming.
     pub fn new(credentials: Credentials) -> SiftStreamBuilder<IngestionConfigMode> {
         SiftStreamBuilder {
             credentials,
@@ -185,11 +261,13 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             ingestion_config: None,
             run: None,
             kind: PhantomData,
-            checkpoint_interval: Duration::from_secs(60),
+            checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
         }
     }
 
+    /// Consume the builder and return a [SiftStream] configured for ingestion-config-based
+    /// streaming.
     pub async fn build(self) -> Result<SiftStream<IngestionConfigMode>> {
         let SiftStreamBuilder {
             credentials,
@@ -211,6 +289,14 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             sift_channel_builder = sift_channel_builder.use_tls(true);
         }
         let channel = sift_channel_builder.build()?;
+
+        // Since the gRPC connection is lazy, we'll connect right away and ensure the connection is
+        // valid.
+        PingServiceClient::new(channel.clone()).ping(PingRequest::default())
+            .await
+            .map_err(|e| Error::new(ErrorKind::GrpcConnectError, e))
+            .context("failed to connect to Sift")
+            .help("ensure that your API key and Sift gRPC API URL is correct and TLS is configured properly")?;
 
         let (ingestion_config, flows) =
             Self::load_ingestion_config(channel.clone(), ingestion_config).await?;
@@ -271,18 +357,15 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         ))
     }
 
+    /// Sets the ingestion config used for streaming. See the [top-level
+    /// documentation](crate#ingestion-configs) for further details on ingestion configs.
     pub fn ingestion_config(mut self, ingestion_config: IngestionConfigForm) -> Self {
         self.ingestion_config = Some(ingestion_config);
         self
     }
 
-    /// Sets the minimum duration a stream will transmit data before requesting an
-    /// acknowledgment from Sift that all data sent up to that point has been received.
-    ///
-    /// Checkpointing terminates the current stream and starts a new one. However, a
-    /// checkpoint is not guaranteed to occur precisely at this interval, especially if
-    /// the stream remains open but idle. Checkpointing only occurs when data is actively
-    /// being sent on the stream.
+    /// Sets the interval between checkpoints. See the [top-level documentation](crate#checkpoints)
+    /// for further details.
     pub fn checkpoint_interval(
         mut self,
         duration: Duration,
@@ -360,7 +443,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                 for flow in &flows {
                     let mut flow_exists = false;
 
-                    for existing_flow in existing_flows.iter().filter(|ef| ef.name == flow.name) {
+                    for existing_flow in existing_flows.iter().filter(|ef| ef == &flow) {
                         flow_exists = flow
                             .channels
                             .iter()

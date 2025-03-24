@@ -49,4 +49,4 @@ pub use gen::sift::*;
 /// Utility wrappers for select gRPC services.
 pub mod wrappers;
 
-pub use sift_connect::*;
+pub use sift_connect::{SiftChannel, SiftChannelBuilder, Credentials};

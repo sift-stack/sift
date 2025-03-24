@@ -17,8 +17,9 @@ use tokio::{
     task::JoinHandle,
 };
 
-/// Max allowed backup size in bytes
-const DEFAULT_MAX_BACKUP_SIZE: usize = 100 * 2_usize.pow(20);
+/// Default maximum backup file size - 100 MiB.
+pub const DEFAULT_MAX_BACKUP_SIZE: usize = 100 * 2_usize.pow(20);
+
 const CHANNEL_BUFFER_SIZE: usize = 10_000;
 
 #[derive(Debug)]

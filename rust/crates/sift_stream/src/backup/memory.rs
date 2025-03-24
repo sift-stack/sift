@@ -8,7 +8,8 @@ use tokio::{
     task::JoinHandle,
 };
 
-const DEFAULT_MAX_BUFFER_SIZE: usize = 10_000;
+/// Default in-memory buffer capacity.
+pub const DEFAULT_MAX_BUFFER_SIZE: usize = 10_000;
 
 pub struct InMemoryBackupsManager<T> {
     buffer: Arc<Mutex<VecDeque<T>>>,

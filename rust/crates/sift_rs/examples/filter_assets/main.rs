@@ -16,7 +16,7 @@ async fn main() {
 
     let response = asset_service
         .list_assets(ListAssetsRequest {
-            filter: String::from("name.matches('falcon$')"),
+            filter: "name.matches('falcon$')".into(),
             ..Default::default()
         })
         .await

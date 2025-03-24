@@ -18,6 +18,6 @@
 
 /// Concerned with establishing a connection to Sift's gRPC service.
 pub mod grpc;
-pub use grpc::*;
+pub use grpc::{Credentials, SiftChannelBuilder, SiftChannel};
 
-pub use sift_error::*;
+pub use sift_error::{Error, ErrorKind};
