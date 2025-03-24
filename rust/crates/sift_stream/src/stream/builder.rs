@@ -119,7 +119,10 @@ impl RecoveryStrategy {
     /// Initializes a retry with in-memory backups recovery strategy using the default recommended
     /// configurations.
     pub fn default_retry_policy_in_memory_backups() -> Self {
-        Self::default()
+        Self::RetryWithInMemoryBackups {
+            retry_policy: RetryPolicy::default(),
+            max_buffer_size: None,
+        }
     }
 
     /// Initializes a retry with disk backups recovery strategy using the default recommended
