@@ -1,14 +1,12 @@
 use super::{BackupsManager, Message};
-use crate::pbutil::{encode_message_length_prefixed, ProtobufDecoder};
 use bytesize::ByteSize;
 use chrono::Utc;
 use parking_lot::{Mutex, MutexGuard};
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
 use std::{
-    env,
     fs::{self, File},
-    io::{BufReader, BufWriter, ErrorKind as IoErrorKind, Write},
+    io::{BufReader, BufWriter, ErrorKind as IoErrorKind, Error as IoError, Write},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -16,6 +14,10 @@ use tokio::{
     sync::mpsc::{channel, Receiver, Sender},
     task::JoinHandle,
 };
+
+/// Concerned with writing/reading protobuf from disk.
+mod pbfs;
+use pbfs::{encode_message_length_prefixed, ProtobufDecoder};
 
 /// Default maximum backup file size - 100 MiB.
 pub const DEFAULT_MAX_BACKUP_SIZE: usize = 100 * 2_usize.pow(20);
@@ -39,8 +41,11 @@ impl<T> DiskBackupsManager<T>
 where
     T: PbMessage + Default + 'static,
 {
-    /// TODO: Mention that this will create directory or use existing directory.. if None for
-    /// backups root them tmp dir used.
+    /// Users shouldn't have to call interact with [DiskBackupsManager::new] directly.
+    ///
+    /// `backups_root` is the directory that stores data backups. If it doesn't exist then there
+    /// will be an attempt to create it. If `None`, then the user's [data
+    /// directory](https://docs.rs/dirs/6.0.0/dirs/fn.data_dir.html) will be used as a default.
     pub fn new(
         backups_root: Option<PathBuf>,
         new_dir_name: &str,
@@ -50,9 +55,11 @@ where
         let (data_tx, data_rx) = channel::<Message<T>>(CHANNEL_BUFFER_SIZE);
         let (finished_backup_reset_tx, finished_backup_reset_rx) = channel::<()>(1);
 
-        let backups_dir = backups_root
-            .unwrap_or_else(env::temp_dir)
-            .join(new_dir_name);
+        let Some(backups_dir) = backups_root
+            .or_else(dirs::data_dir)
+            .map(|p| p.join(new_dir_name)) else {
+                return Err(IoError::new(IoErrorKind::NotFound, "user data directory not found").into());
+            };
 
         match fs::create_dir(&backups_dir) {
             Err(err) if err.kind() != IoErrorKind::AlreadyExists => {

@@ -407,11 +407,3 @@ pub use stream::{
 pub mod backup;
 
 pub use sift_connect::grpc::{Credentials, SiftChannel};
-
-/// ## Internal Notes
-///
-/// [prost::Message] has methods to encode/decode protobuf messages with their length delimiters
-/// but we need to be able to read the wire-format for multiple protobufs from a file and thus
-/// require garauntees for how the length-delimiter is handled. The only garauntee we can get is if
-/// we handle it ourselves.
-pub(crate) mod pbutil;

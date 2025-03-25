@@ -136,6 +136,10 @@ pub enum ErrorKind {
     UnknownFlow,
     /// This really shouldn't happen
     EmptyResponseError,
+    /// When failing to decode protobuf from its wire format.
+    ProtobufDecodeError,
+    /// When backup checksums don't match
+    BackupIntegrityError,
     /// General errors that are rarely returned.
     GeneralError,
 }
@@ -198,6 +202,8 @@ impl fmt::Display for ErrorKind {
             Self::StreamError => write!(f, "StreamError"),
             Self::UnknownFlow => write!(f, "UnknownFlow"),
             Self::BackupsError => write!(f, "BackupsError"),
+            Self::BackupIntegrityError => write!(f, "BackupIntegrityError"),
+            Self::ProtobufDecodeError => write!(f, "ProtobufDecodeError"),
             Self::IncompatibleIngestionConfigChange => {
                 write!(f, "IncompatibleIngestionConfigChange")
             }
