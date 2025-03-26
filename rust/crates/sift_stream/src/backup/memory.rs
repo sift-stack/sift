@@ -75,6 +75,7 @@ where
                             if let Ok(mut lock) = buffer.lock() {
                                 *lock = Some(message_buffer);
                             }
+                            flush_notifier.notify_one();
                             break;
                         }
                     }

@@ -1,5 +1,6 @@
 use super::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager};
 use crate::TimeValue;
+use sift_error::ErrorKind;
 use sift_rs::ingest::v1::{
     ingest_with_config_data_channel_value::Type, IngestWithConfigDataChannelValue,
     IngestWithConfigDataStreamRequest,
@@ -100,26 +101,10 @@ async fn test_in_memory_backups_manager_retrieve_data() {
     }
 
     let data_point = test_data_iter.next().unwrap();
-    let mut expected_after_pushing_past_capacity = Vec::with_capacity(10);
-    expected_after_pushing_past_capacity.extend_from_slice(&expected[1..]);
-    expected_after_pushing_past_capacity.push(data_point.clone());
 
-    backups_manager.send(data_point).await.unwrap();
-
-    tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-
-    let backups = backups_manager.get_backup_data().await.unwrap();
-    for (lhs, rhs) in expected_after_pushing_past_capacity
-        .clone()
-        .into_iter()
-        .zip(backups)
-    {
-        assert_eq!(
-            lhs,
-            rhs.unwrap(),
-            "incorrect handling of pushing past buffer capacity"
-        );
-    }
-
+    assert!(backups_manager
+        .send(data_point)
+        .await
+        .is_err_and(|e| e.kind() == ErrorKind::BackupLimitReached),);
     assert!(backups_manager.finish().await.is_ok());
 }

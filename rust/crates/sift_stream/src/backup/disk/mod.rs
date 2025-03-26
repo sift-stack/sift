@@ -147,6 +147,7 @@ where
                                 #[cfg(feature = "tracing")]
                                 tracing::debug!("backup size exceeded max configured");
 
+                                flush_and_sync_notifier.notify_one();
                                 break;
                             }
                         }
