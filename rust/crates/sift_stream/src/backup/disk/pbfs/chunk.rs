@@ -80,7 +80,7 @@ where
         })
     }
 
-    /// Serialize a protobuf message to its length-prefixed write format. The length is a `u32` encoded
+    /// Serialize a protobuf message to its length-prefixed wire format. The length is a `u32` encoded
     /// as little-endian bytes.
     pub fn encode_message_length_prefixed(message: &M) -> Vec<u8> {
         let encoded = message.encode_to_vec();
@@ -154,7 +154,6 @@ where
         let computed_checksum = Self::compute_checksum(&data);
 
         if checksum_from_header != computed_checksum {
-            println!("{checksum_from_header} == {computed_checksum}");
             return Err(Error::new_msg(
                 ErrorKind::BackupIntegrityError,
                 "encountered backup chunk with mismatched checksums",
