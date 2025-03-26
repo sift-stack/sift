@@ -1,22 +1,13 @@
+use super::{chunk::PbfsChunk, BackupsDecoder};
 use crate::TimeValue;
-use super::{
-    encode_message_length_prefixed,
-    BackupsDecoder,
-    ProtobufDecoder,
-    chunk::PbfsChunk,
-};
 use sift_error::prelude::*;
-use sift_rs::{
-    ingest::v1::{
-        ingest_with_config_data_channel_value::Type,
-        IngestWithConfigDataChannelValue,
-        IngestWithConfigDataStreamRequest
-    },
-    runs::v2::Run
+use sift_rs::ingest::v1::{
+    ingest_with_config_data_channel_value::Type, IngestWithConfigDataChannelValue,
+    IngestWithConfigDataStreamRequest,
 };
 use std::{
-    io::{BufReader, BufWriter, Write, Seek},
     fs,
+    io::{Seek, Write},
 };
 use uuid::Uuid;
 
@@ -28,9 +19,9 @@ fn test_chunk_encoding_decoding() {
         messages.push(IngestWithConfigDataStreamRequest {
             ingestion_config_id: "some-ingestion-config-id".into(),
             run_id: "some-run-id".into(),
-            channel_values: vec![
-                IngestWithConfigDataChannelValue { r#type: Some(Type::Int32(i.try_into().unwrap())) },
-            ],
+            channel_values: vec![IngestWithConfigDataChannelValue {
+                r#type: Some(Type::Int32(i.try_into().unwrap())),
+            }],
             ..Default::default()
         })
     }
@@ -39,9 +30,15 @@ fn test_chunk_encoding_decoding() {
     let pbfs_chunk = PbfsChunk::new(&messages).expect("failed to encode chunk");
 
     // This will decode them back.
-    let decoded_messages = pbfs_chunk.into_iter().collect::<Vec<Result<IngestWithConfigDataStreamRequest>>>();
+    let decoded_messages = pbfs_chunk
+        .into_iter()
+        .collect::<Vec<Result<IngestWithConfigDataStreamRequest>>>();
 
-    assert_eq!(messages.len(), decoded_messages.len(), "expected amount of messages to be preserved");
+    assert_eq!(
+        messages.len(),
+        decoded_messages.len(),
+        "expected amount of messages to be preserved"
+    );
 
     // Ensure that decoding messages produces the same result.
     for (lhs, rhs) in messages.into_iter().zip(decoded_messages) {
@@ -54,7 +51,9 @@ fn test_writing_and_reading_from_disk_chunks() {
     let dir = Uuid::new_v4().to_string();
 
     let tempdir = tempdir::TempDir::new(&dir).expect("failed to create tmpdir");
-    let file_path = tempdir.path().join("test_writing_and_reading_from_disk_chunks");
+    let file_path = tempdir
+        .path()
+        .join("test_writing_and_reading_from_disk_chunks");
 
     let mut file = fs::OpenOptions::new()
         .read(true)
@@ -76,9 +75,9 @@ fn test_writing_and_reading_from_disk_chunks() {
                 ingestion_config_id: "some-ingestion-config-id".into(),
                 run_id: "some-run-id".into(),
                 timestamp: Some(TimeValue::now().0),
-                channel_values: vec![
-                    IngestWithConfigDataChannelValue { r#type: Some(Type::Int32(i.try_into().unwrap())) },
-                ],
+                channel_values: vec![IngestWithConfigDataChannelValue {
+                    r#type: Some(Type::Int32(i.try_into().unwrap())),
+                }],
                 ..Default::default()
             })
         }
@@ -91,7 +90,8 @@ fn test_writing_and_reading_from_disk_chunks() {
     for chunk in &chunks {
         let pbfs_chunk = PbfsChunk::new(&chunk).expect("failed to create pbfs chunk");
 
-        file.write_all(&pbfs_chunk).expect("failed to write to file");
+        file.write_all(&pbfs_chunk)
+            .expect("failed to write to file");
         file.flush().expect("failed to flush");
         file.sync_all().expect("failed to sync");
 
@@ -101,25 +101,30 @@ fn test_writing_and_reading_from_disk_chunks() {
 
     let expected_bytes_written = pbfs_chunks.iter().map(|c| c.len()).sum::<usize>();
     let file_md = fs::metadata(&file_path).expect("failed to get file metadata");
-    assert_eq!(expected_bytes_written, file_md.len() as usize, "expected file to have same amount of bytes as chunk in-memory");
+    assert_eq!(
+        expected_bytes_written,
+        file_md.len() as usize,
+        "expected file to have same amount of bytes as chunk in-memory"
+    );
 
     let decoder = BackupsDecoder::<IngestWithConfigDataStreamRequest, fs::File>::new(file);
 
-    let decoded_chunks = decoder.collect::<Vec<Result<PbfsChunk<IngestWithConfigDataStreamRequest>>>>();
-    assert_eq!(chunks.len(), decoded_chunks.len(), "unexpected amount of chunks");
+    let decoded_messages = decoder.collect::<Vec<Result<IngestWithConfigDataStreamRequest>>>();
 
-    for (decoded_chunk, original_chunk) in decoded_chunks.into_iter().zip(chunks) {
-        let decoded_chunk = decoded_chunk
-            .expect("encountered chunk decode error")
-            .into_iter()
-            .collect::<Vec<Result<IngestWithConfigDataStreamRequest>>>();
+    assert_eq!(
+        num_messages * num_chunks,
+        decoded_messages.len(),
+        "unexpected amount of chunks"
+    );
 
-        assert_eq!(num_messages, decoded_chunk.len(), "expected chunk to contain original amount of messages");
+    let original_messages = chunks.into_iter().flatten().collect::<Vec<_>>();
 
-        for (decoded_pb_message, original)  in decoded_chunk.into_iter().zip(original_chunk) {
-            let decoded_pb_message = decoded_pb_message.expect("encountered pb message decode error");
-            assert_eq!(original, decoded_pb_message, "expected original and decoded message to match");
-        }
+    for (decoded_pb_message, original) in decoded_messages.into_iter().zip(original_messages) {
+        let decoded_pb_message = decoded_pb_message.expect("encountered pb message decode error");
+        assert_eq!(
+            original, decoded_pb_message,
+            "expected original and decoded message to match"
+        );
     }
 }
 
@@ -150,9 +155,9 @@ fn test_data_integrity() {
                 ingestion_config_id: "some-ingestion-config-id".into(),
                 run_id: "some-run-id".into(),
                 timestamp: Some(TimeValue::now().0),
-                channel_values: vec![
-                    IngestWithConfigDataChannelValue { r#type: Some(Type::Int32(i.try_into().unwrap())) },
-                ],
+                channel_values: vec![IngestWithConfigDataChannelValue {
+                    r#type: Some(Type::Int32(i.try_into().unwrap())),
+                }],
                 ..Default::default()
             })
         }
@@ -165,7 +170,8 @@ fn test_data_integrity() {
     for chunk in &chunks {
         let pbfs_chunk = PbfsChunk::new(&chunk).expect("failed to create pbfs chunk");
 
-        file.write_all(&pbfs_chunk).expect("failed to write to file");
+        file.write_all(&pbfs_chunk)
+            .expect("failed to write to file");
         file.flush().expect("failed to flush");
         file.sync_all().expect("failed to sync");
 
@@ -173,80 +179,36 @@ fn test_data_integrity() {
     }
 
     // Corrupt the file by modifying a byte
-    file.seek_relative(-5).expect("failed to offset file cursor backwards");
+    file.seek_relative(-5)
+        .expect("failed to offset file cursor backwards");
     file.write_all(&[u8::MAX]).expect("failed to write byte");
     file.sync_all().expect("failed to sync after corruption");
     file.rewind().expect("failed to rewind after corruption");
 
     let decoder = BackupsDecoder::<IngestWithConfigDataStreamRequest, fs::File>::new(file);
 
-    let decoded_chunks = decoder.collect::<Vec<Result<PbfsChunk<IngestWithConfigDataStreamRequest>>>>();
-    assert_eq!(chunks.len(), decoded_chunks.len(), "expected just one chunk to be read from the backup");
+    let decoded_chunks = decoder.collect::<Vec<Result<IngestWithConfigDataStreamRequest>>>();
+    assert_eq!(
+        num_messages + 1,
+        decoded_chunks.len(),
+        "first chunk had valid data, but second chunk is corrupt"
+    );
 
-    let mut compare_chunks_iter = decoded_chunks.into_iter().zip(chunks);
+    let first_half_decoded = &decoded_chunks[0..num_messages];
 
-    // BEGIN - First chunk
-    let (decoded_chunk, original_chunk) = compare_chunks_iter.next().unwrap();
-
-    let decoded_chunk = decoded_chunk
-        .expect("encountered chunk decode error")
-        .into_iter()
-        .collect::<Vec<Result<IngestWithConfigDataStreamRequest>>>();
-
-    assert_eq!(num_messages, decoded_chunk.len(), "expected chunk to contain original amount of messages");
-
-    for (decoded_pb_message, original)  in decoded_chunk.into_iter().zip(original_chunk) {
-        let decoded_pb_message = decoded_pb_message.expect("encountered pb message decode error");
-        assert_eq!(original, decoded_pb_message, "expected original and decoded message to match");
+    let mut loop_entered = false;
+    for (decoded, original) in first_half_decoded.iter().zip(&chunks[0]) {
+        loop_entered = true;
+        let decoded = decoded
+            .as_ref()
+            .expect("first chunk should have valid data");
+        assert_eq!(original, decoded)
     }
-    // END - First chunk
+    assert!(loop_entered, "one of the iterators were empty");
 
-    // BEGIN - Second chunk
-    let (decoded_chunk, _) = compare_chunks_iter.next().unwrap();
-    assert!(decoded_chunk.is_err(), "second chunk is corrupt and should have returned an error");
-    let error = decoded_chunk.unwrap_err();
-    assert_eq!(error.kind(), ErrorKind::BackupIntegrityError, "expected backup integrity error due to checksum mismatch");
-    // END - Second chunk
-}
-
-#[test]
-fn test_write_format_encode_decode() {
-    let runs = vec![
-        Run {
-            name: String::from("foo"),
-            ..Default::default()
-        },
-        Run {
-            name: String::from("bar"),
-            ..Default::default()
-        },
-        Run {
-            name: String::from("baz"),
-            ..Default::default()
-        },
-    ];
-
-    let mut encoded_messages = Vec::<u8>::new();
-    {
-        let mut writer = BufWriter::new(&mut encoded_messages);
-
-        for run in &runs {
-            let wire_format = encode_message_length_prefixed(run);
-            writer
-                .write_all(&wire_format)
-                .expect("failed to write to buffer");
-        }
-    }
-
-    let encoded = encoded_messages.clone();
-    let reader = BufReader::new(encoded.as_slice());
-
-    let decoded_messages = ProtobufDecoder::new(reader);
-
-    for (lhs, rhs) in runs.into_iter().zip(decoded_messages) {
-        assert_eq!(
-            lhs, rhs,
-            "expected encoded and decoded messages to be identical"
-        );
-    }
+    let last_item = decoded_chunks.last().unwrap().as_ref();
+    assert!(
+        last_item.is_err_and(|e| e.kind() == ErrorKind::BackupIntegrityError),
+        "expected backup integrity error"
+    )
 }

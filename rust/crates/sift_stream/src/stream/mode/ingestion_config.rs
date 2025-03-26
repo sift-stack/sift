@@ -47,7 +47,7 @@ pub struct IngestionConfigMode {
     checkpoint_interval: Duration,
     streaming_task: Option<JoinHandle<Result<IngestWithConfigDataStreamResponse>>>,
     retry_policy: Option<RetryPolicy>,
-    data_tx: BoundedSender<IngestWithConfigDataStreamRequest>,
+    data_tx: Option<BoundedSender<IngestWithConfigDataStreamRequest>>,
     backups_manager: Option<IngestionConfigModeBackupsManager>,
 }
 
@@ -149,7 +149,7 @@ impl SiftStream<IngestionConfigMode> {
                 run,
                 streaming_task: Some(streaming_task),
                 checkpoint_interval,
-                data_tx,
+                data_tx: Some(data_tx),
                 retry_policy,
                 backups_manager,
             },
@@ -185,15 +185,41 @@ impl SiftStream<IngestionConfigMode> {
             ));
         };
 
-        match self.mode.data_tx.send(req.clone()).await {
-            Ok(_) => {
-                self.backup_data(req).await?;
-                Ok(())
+        if self
+            .backup_data(&req)
+            .await
+            .is_err_and(|e| e.kind() == ErrorKind::BackupLimitReached)
+        {
+            #[cfg(feature = "tracing")]
+            tracing::info!("backup size limit reached - forcing checkpoint");
+
+            if let Some(data_tx) = self.mode.data_tx.take() {
+                drop(data_tx);
             }
+
+            if let Some(streaming_task) = self.mode.streaming_task.take() {
+                let _checkpoint_acknowledgement = streaming_task
+                    .await
+                    .map_err(|e| Error::new(ErrorKind::StreamError, e))
+                    .context("failed to force a checkpoint due to backup limit")
+                    .help("please contact Sift")??;
+            }
+            self.restart_stream_and_backups_manager(false).await?;
+            self.backup_data(&req).await?;
+        }
+
+        let Some(data_tx) = self.mode.data_tx.as_mut() else {
+            return Err(Error::new_msg(ErrorKind::StreamError, "unexpected error"))
+                .context("didn't expect data_tx to be missing")
+                .help("please contact Sift");
+        };
+
+        match data_tx.send(req.clone()).await {
+            Ok(_) => Ok(()),
 
             Err(SendError(_)) => match self.mode.streaming_task.take() {
                 None => {
-                    self.restart_stream(false).await?;
+                    self.restart_stream_and_backups_manager(false).await?;
                     Box::pin(self.send(message)).await
                 }
 
@@ -204,7 +230,7 @@ impl SiftStream<IngestionConfigMode> {
                             "checkpoint acknowledgement received from Sift - resuming stream"
                         );
 
-                        self.restart_stream(false).await?;
+                        self.restart_stream_and_backups_manager(false).await?;
                         Box::pin(self.send(message)).await
                     }
                     Ok(Err(err)) => {
@@ -225,28 +251,14 @@ impl SiftStream<IngestionConfigMode> {
         }
     }
 
-    async fn backup_data(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
+    async fn backup_data(&mut self, req: &IngestWithConfigDataStreamRequest) -> Result<()> {
         if let Some(backups_manager) = self.mode.backups_manager.as_mut() {
             match backups_manager {
                 IngestionConfigModeBackupsManager::Disk(manager) => {
-                    return manager.send(req).await;
+                    return manager.send(req.clone()).await;
                 }
                 IngestionConfigModeBackupsManager::InMemory(manager) => {
-                    return manager.send(req).await;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    async fn truncate_backup(&mut self) -> Result<()> {
-        if let Some(backups_manager) = self.mode.backups_manager.as_mut() {
-            match backups_manager {
-                IngestionConfigModeBackupsManager::Disk(manager) => {
-                    return manager.truncate_backup().await;
-                }
-                IngestionConfigModeBackupsManager::InMemory(manager) => {
-                    return manager.truncate_backup().await;
+                    return manager.send(req.clone()).await;
                 }
             }
         }
@@ -301,7 +313,7 @@ impl SiftStream<IngestionConfigMode> {
                         "successful retry - re-establishing connection to Sift"
                     );
 
-                    self.restart_stream(true).await?;
+                    self.restart_stream_and_backups_manager(true).await?;
 
                     return Ok(());
                 }
@@ -326,7 +338,10 @@ impl SiftStream<IngestionConfigMode> {
         Err(err)
     }
 
-    async fn restart_stream(&mut self, reingest_from_last_checkpoint: bool) -> Result<()> {
+    async fn restart_stream_and_backups_manager(
+        &mut self,
+        reingest_from_last_checkpoint: bool,
+    ) -> Result<()> {
         let (data_tx, data_rx) =
             bounded_channel::<IngestWithConfigDataStreamRequest>(DATA_BUFFER_LEN);
 
@@ -335,7 +350,7 @@ impl SiftStream<IngestionConfigMode> {
 
         let data_stream = DataStream::new(data_rx, checkpoint_signal_rx);
 
-        self.mode.data_tx = data_tx.clone();
+        self.mode.data_tx = Some(data_tx.clone());
 
         let streaming_task = Self::init_streaming_task(
             self.grpc_channel.clone(),
@@ -360,16 +375,54 @@ impl SiftStream<IngestionConfigMode> {
                     tracing::warn!("not all backups were successfully processed due to unexpected stream termination - retrying");
                 }
 
-                return Box::pin(self.restart_stream(false)).await;
+                return Box::pin(self.restart_stream_and_backups_manager(false)).await;
             }
             begin_checkpoint_notifier.notify_one();
         } else {
-            self.truncate_backup().await?;
             begin_checkpoint_notifier.notify_one();
         }
 
+        self.restart_backup_manager().await?;
+
         #[cfg(feature = "tracing")]
         tracing::info!("successfully initialized a new stream to Sift");
+
+        Ok(())
+    }
+
+    async fn restart_backup_manager(&mut self) -> Result<()> {
+        let Some(backups_manager) = self.mode.backups_manager.take() else {
+            return Ok(());
+        };
+
+        #[cfg(feature = "tracing")]
+        tracing::info!("restarting backups manager");
+
+        match backups_manager {
+            IngestionConfigModeBackupsManager::Disk(manager) => {
+                let disk_backups_manager = DiskBackupsManager::new(
+                    Some(manager.backups_root.clone()),
+                    &manager.new_dir_name,
+                    &manager.backup_prefix,
+                    Some(manager.max_backup_size),
+                )
+                .map(IngestionConfigModeBackupsManager::Disk)
+                .context("failed to restart disk backups manager")?;
+
+                self.mode.backups_manager = Some(disk_backups_manager);
+                let _ = manager.finish().await;
+            }
+            IngestionConfigModeBackupsManager::InMemory(manager) => {
+                let new_manager = IngestionConfigModeBackupsManager::InMemory(
+                    InMemoryBackupsManager::new(Some(manager.max_buffer_size)),
+                );
+                self.mode.backups_manager = Some(new_manager);
+                let _ = manager.finish().await;
+            }
+        }
+
+        #[cfg(feature = "tracing")]
+        tracing::info!("successfully restarted backups manager");
 
         Ok(())
     }
@@ -388,9 +441,30 @@ impl SiftStream<IngestionConfigMode> {
         let mut data_points = 0;
         let mut start = Instant::now();
 
-        macro_rules! process_backups {
-            ($m:ident) => {
-                for data in $m.get_backup_data().await? {
+        match backup_manager {
+            IngestionConfigModeBackupsManager::Disk(manager) => {
+                for data in manager.get_backup_data().await? {
+                    let data = match data {
+                        Ok(d) => d,
+                        Err(err) => {
+                            if err.kind() == ErrorKind::BackupIntegrityError {
+                                #[cfg(feature = "tracing")]
+                                tracing::warn!(
+                                    messages_recovered = data_points,
+                                    error = format!("{err:?}"),
+                                    "encountered mismatched checksums - backup may be corrupted and not all messages were recoverable"
+                                )
+                            } else {
+                                tracing::warn!(
+                                    messages_recovered = data_points,
+                                    error = format!("{err:?}"),
+                                    "something went wrong while processing backups"
+                                )
+                            }
+                            break;
+                        }
+                    };
+
                     data_tx
                         .send(data)
                         .await
@@ -404,21 +478,37 @@ impl SiftStream<IngestionConfigMode> {
 
                     if start.elapsed() >= Duration::from_secs(10) {
                         #[cfg(feature = "tracing")]
-                        tracing::info!(points_processed = data_points, "processing backups");
+                        tracing::info!(messages_recovered = data_points, "processing backups");
 
                         start = Instant::now();
                     }
                 }
-                $m.truncate_backup().await?;
-            };
-        }
-
-        match backup_manager {
-            IngestionConfigModeBackupsManager::Disk(manager) => {
-                process_backups!(manager);
             }
             IngestionConfigModeBackupsManager::InMemory(manager) => {
-                process_backups!(manager);
+                for data in manager.get_backup_data().await? {
+                    // The in-memory backup manager should return all `Result::Ok`;
+                    let Ok(data) = data else {
+                        continue;
+                    };
+
+                    data_tx
+                        .send(data)
+                        .await
+                        .map_err(|_| {
+                            Error::new_msg(ErrorKind::StreamError, "receiver prematurely closed")
+                        })
+                        .context("something went wrong while reingesting backups")
+                        .help("please contact Sift")?;
+
+                    data_points += 1;
+
+                    if start.elapsed() >= Duration::from_secs(10) {
+                        #[cfg(feature = "tracing")]
+                        tracing::info!(messages_recovered = data_points, "processing backups");
+
+                        start = Instant::now();
+                    }
+                }
             }
         }
 
@@ -498,7 +588,7 @@ impl SiftStream<IngestionConfigMode> {
                 checkpoint_timer.tick().await;
 
                 #[cfg(feature = "tracing")]
-                tracing::info!("initiating checkpoint");
+                tracing::info!("checkpoint timer elapsed - initiating checkpoint");
 
                 let _ = checkpoint_signal_tx.send(());
             });

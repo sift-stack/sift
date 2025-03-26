@@ -1,9 +1,6 @@
 use prost::Message;
 use sift_error::prelude::*;
-use std::{
-    marker::PhantomData,
-    ops::Deref,
-};
+use std::{marker::PhantomData, ops::Deref};
 
 /// Length of the checksum byte-header length.
 pub const CHECKSUM_HEADER_LEN: usize = std::mem::size_of::<u32>();
@@ -20,7 +17,7 @@ pub const MESSAGE_LENGTH_PREFIX_LEN: usize = std::mem::size_of::<u32>();
 ///
 /// ```text
 /// ┌───────────┬───────────┬───────────────────────────────┐
-/// │   x (4B)  │   y (8B)  │   z (4B)  | pb_message (z B)  │ * n 
+/// │   x (4B)  │   y (8B)  │   z (4B)  | pb_message (z B)  │ * n
 /// └───────────┴───────────┴───────────────────────────────┘
 /// ```
 ///
@@ -67,7 +64,7 @@ where
             .help("this is a bug - please contact Sift")?;
 
         let mut data = Vec::with_capacity(
-            CHECKSUM_HEADER_LEN + messages_len.len() + serialized_messages_length_delimited.len()
+            CHECKSUM_HEADER_LEN + messages_len.len() + serialized_messages_length_delimited.len(),
         );
         data.extend_from_slice(&[0; CHECKSUM_HEADER_LEN]);
         data.extend_from_slice(&messages_len);
@@ -77,7 +74,10 @@ where
 
         data[0..CHECKSUM_HEADER_LEN].copy_from_slice(&checksum);
 
-        Ok(Self { data, message_type: PhantomData })
+        Ok(Self {
+            data,
+            message_type: PhantomData,
+        })
     }
 
     /// Serialize a protobuf message to its length-prefixed write format. The length is a `u32` encoded
@@ -105,10 +105,11 @@ where
 
     /// Returns the byte length of all length-prefixed protobuf messages from the byte headers of
     /// the chunk.
+    #[allow(dead_code)]
     pub fn messages_len_from_header(bytes: &[u8]) -> u64 {
         let mut num_messages_le = [0_u8; MESSAGES_LEN_HEADER_LEN];
         num_messages_le.copy_from_slice(
-            &bytes[CHECKSUM_HEADER_LEN..CHECKSUM_HEADER_LEN+MESSAGES_LEN_HEADER_LEN]
+            &bytes[CHECKSUM_HEADER_LEN..CHECKSUM_HEADER_LEN + MESSAGES_LEN_HEADER_LEN],
         );
         u64::from_le_bytes(num_messages_le)
     }
@@ -141,7 +142,7 @@ where
     }
 }
 
-/// Ensures that the checksum found in the byte-vector matches the computed checksum. 
+/// Ensures that the checksum found in the byte-vector matches the computed checksum.
 impl<M> TryFrom<Vec<u8>> for PbfsChunk<M>
 where
     M: Message + Default + 'static,
@@ -154,12 +155,16 @@ where
 
         if checksum_from_header != computed_checksum {
             println!("{checksum_from_header} == {computed_checksum}");
-            return Err(
-                Error::new_msg(ErrorKind::BackupIntegrityError, "encountered backup chunk with mismatched checksums")
-            );
+            return Err(Error::new_msg(
+                ErrorKind::BackupIntegrityError,
+                "encountered backup chunk with mismatched checksums",
+            ));
         }
 
-        Ok(Self { data, message_type: PhantomData })
+        Ok(Self {
+            data,
+            message_type: PhantomData,
+        })
     }
 }
 
@@ -169,7 +174,7 @@ impl<M> Iterator for PbfsMessageIter<M>
 where
     M: Message + Default + 'static,
 {
-    type Item = Result<M>; 
+    type Item = Result<M>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.offset >= self.data.len() || self.encountered_error {
@@ -178,7 +183,7 @@ where
 
         let mut offset = self.offset;
         let mut message_len_le = [0_u8; MESSAGE_LENGTH_PREFIX_LEN];
-        message_len_le.copy_from_slice(&self.data[offset..offset+MESSAGE_LENGTH_PREFIX_LEN]);
+        message_len_le.copy_from_slice(&self.data[offset..offset + MESSAGE_LENGTH_PREFIX_LEN]);
 
         offset += MESSAGE_LENGTH_PREFIX_LEN;
 
@@ -192,13 +197,11 @@ where
             Ok(len) => len,
             Err(err) => {
                 self.encountered_error = true;
-                return Some(Err(err))
-            },
+                return Some(Err(err));
+            }
         };
 
-        let message_result = <M as Message>::decode(
-            &self.data[offset..offset+message_len]
-        )
+        let message_result = <M as Message>::decode(&self.data[offset..offset + message_len])
             .map_err(|e| Error::new(ErrorKind::ProtobufDecodeError, e))
             .context("failed to decode protobuf message")
             .help("please notify Sift");
@@ -209,18 +212,18 @@ where
             Ok(message) => {
                 self.offset = offset;
                 Some(Ok(message))
-            },
+            }
             Err(err) => {
                 self.encountered_error = true;
                 Some(Err(err))
-            },
+            }
         }
     }
 }
 
 impl<M> Deref for PbfsChunk<M>
 where
-    M: Message + Default + 'static
+    M: Message + Default + 'static,
 {
     type Target = [u8];
 
