@@ -313,14 +313,14 @@
 //!
 //! ### Data Integrity
 //!
-//! **Imporant Note**: This section only pertains to the disk-based-backup strategy.
+//! **Important Note**: This section only pertains to the disk-based-backup strategy.
 //!
 //! The backup file is periodically written to and synced. Each chunk of data written to the backup includes a checksum
 //! computed from the chunk itself. When chunks are read back into memory, their checksums are recomputed and compared against
 //! the stored values. If a mismatch is detected, the affected chunk and all subsequent chunks are considered corrupt and will be ignored.
 //! See the [tracing](#tracing) section for details on enabling logs that notify users when this occurs.
 //!
-//! ### Garauntees
+//! ### Guarantees
 //!
 //! The current backup strategy implementations will protect against data-loss but they do
 //! potentially come at a performance cost depending on several variables. The default

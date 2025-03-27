@@ -11,7 +11,7 @@ pub(crate) use chunk::{PbfsChunk, PbfsMessageIter, CHECKSUM_HEADER_LEN, MESSAGES
 #[cfg(test)]
 mod test;
 
-/// Takes a `reader` to the back file containing the backed up protobuf messages and offers
+/// Takes a `reader` to the backup file containing the backed up protobuf messages and offers
 /// functionality to iterate over all protobuf messages in the file. Each chunk of protobuf
 /// messages will be validated by having its checksum computed and compared against the checksum
 /// that stored in its byte-header.
