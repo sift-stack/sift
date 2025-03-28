@@ -1,5 +1,6 @@
 use super::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager};
 use crate::TimeValue;
+use sift_error::ErrorKind;
 use sift_rs::ingest::v1::{
     ingest_with_config_data_channel_value::Type, IngestWithConfigDataChannelValue,
     IngestWithConfigDataStreamRequest,
@@ -9,10 +10,10 @@ use tempdir::TempDir;
 
 #[tokio::test]
 async fn test_disk_backups_manager_retrieve_data_with_graceful_termination() {
-    let backups_dir = "my-backups-v1";
-    let backup_prefix = "my-run";
+    let backups_dir = uuid::Uuid::new_v4().to_string();
+    let backup_prefix = "test_disk_backups_manager_retrieve_data_with_graceful_termination";
 
-    let tmp_dir = TempDir::new(backups_dir).expect("failed to creat tempdir");
+    let tmp_dir = TempDir::new(&backups_dir).expect("failed to creat tempdir");
     let tmp_dir_path = tmp_dir.path();
 
     let test_data = (0..100).map(|i| IngestWithConfigDataStreamRequest {
@@ -27,7 +28,7 @@ async fn test_disk_backups_manager_retrieve_data_with_graceful_termination() {
 
     let mut backups_manager = DiskBackupsManager::<IngestWithConfigDataStreamRequest>::new(
         Some(tmp_dir_path.to_path_buf()),
-        backups_dir,
+        &backups_dir,
         backup_prefix,
         None,
     )
@@ -56,27 +57,10 @@ async fn test_disk_backups_manager_retrieve_data_with_graceful_termination() {
 
     // Make sure backup data and data sent match
     for (lhs, rhs) in expected.into_iter().zip(backup_data) {
-        assert_eq!(lhs, rhs, "data sent and backup data don't match");
+        assert_eq!(lhs, rhs.unwrap(), "data sent and backup data don't match");
     }
-
-    backups_manager
-        .truncate_backup()
-        .await
-        .expect("checkpoint should have succeeded");
-
-    let md = fs::metadata(&backups_manager.backup_file).expect("failed to read backup metadata");
-    assert_eq!(
-        0,
-        md.len(),
-        "backup file should have been truncated after checkpoint signal"
-    );
-
     let backup_file_path = backups_manager.backup_file.clone();
-    backups_manager
-        .finish()
-        .await
-        .expect("failed to gracefully terminate backups manager");
-
+    drop(backups_manager);
     assert!(
         !fs::exists(backup_file_path).unwrap(),
         "backup file should have been cleaned up",
@@ -113,40 +97,14 @@ async fn test_in_memory_backups_manager_retrieve_data() {
 
     let backups = backups_manager.get_backup_data().await.unwrap();
     for (lhs, rhs) in expected.clone().into_iter().zip(backups) {
-        assert_eq!(lhs, rhs, "backups don't match actual data sent");
+        assert_eq!(lhs, rhs.unwrap(), "backups don't match actual data sent");
     }
 
     let data_point = test_data_iter.next().unwrap();
-    let mut expected_after_pushing_past_capacity = Vec::with_capacity(10);
-    expected_after_pushing_past_capacity.extend_from_slice(&expected[1..]);
-    expected_after_pushing_past_capacity.push(data_point.clone());
 
-    backups_manager.send(data_point).await.unwrap();
-
-    // `get_backup_data` could outcompete the backup task lock
-    tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-
-    let backups = backups_manager.get_backup_data().await.unwrap();
-    for (lhs, rhs) in expected_after_pushing_past_capacity
-        .clone()
-        .into_iter()
-        .zip(backups)
-    {
-        assert_eq!(
-            lhs, rhs,
-            "incorrect handling of pushing past buffer capacity"
-        );
-    }
-
-    backups_manager.truncate_backup().await.unwrap();
-
-    // `truncate_backup` could outcompete the backup task lock
-    tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-
-    assert!(
-        backups_manager.get_backup_data().await.unwrap().count() == 0,
-        "backups buffer should be empty after truncating",
-    );
-
+    assert!(backups_manager
+        .send(data_point)
+        .await
+        .is_err_and(|e| e.kind() == ErrorKind::BackupLimitReached),);
     assert!(backups_manager.finish().await.is_ok());
 }

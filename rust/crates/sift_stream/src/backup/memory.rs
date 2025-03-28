@@ -1,23 +1,29 @@
 use super::{BackupsManager, Message};
-use parking_lot::Mutex;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::{Arc, Mutex};
 use tokio::{
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Notify,
+    },
     task::JoinHandle,
 };
 
 /// Default in-memory buffer capacity.
-pub const DEFAULT_MAX_BUFFER_SIZE: usize = 10_000;
+pub const DEFAULT_MAX_BUFFER_SIZE: usize = 100_000;
 
+/// The buffer size used for the channel that sends and receives data to the backup task
+const CHANNEL_BUFFER_SIZE: usize = 10_000;
+
+/// In-memory backup strategy implementation.
 pub struct InMemoryBackupsManager<T> {
-    buffer: Arc<Mutex<VecDeque<T>>>,
-    backup_task: JoinHandle<Result<()>>,
+    buffer: Arc<Mutex<Option<Vec<T>>>>,
+    backup_task: Option<JoinHandle<Result<()>>>,
     data_tx: Sender<Message<T>>,
+    flush_notification: Arc<Notify>,
 
-    #[allow(dead_code)]
-    max_buffer_size: usize,
+    pub(crate) max_buffer_size: usize,
 }
 
 impl<T> InMemoryBackupsManager<T>
@@ -25,45 +31,65 @@ where
     T: PbMessage + Default + 'static,
 {
     pub fn new(max_buffer_size: Option<usize>) -> Self {
-        let (data_tx, data_rx) = channel::<Message<T>>(DEFAULT_MAX_BUFFER_SIZE);
+        let (data_tx, data_rx) = channel::<Message<T>>(CHANNEL_BUFFER_SIZE);
         let max_buffer_size = max_buffer_size.unwrap_or(DEFAULT_MAX_BUFFER_SIZE);
-        let buffer = Arc::new(Mutex::new(VecDeque::with_capacity(max_buffer_size)));
-        let backup_task = Self::init_backup_task(data_rx, buffer.clone(), max_buffer_size);
+        let buffer = Arc::new(Mutex::new(None));
+        let flush_notification = Arc::new(Notify::new());
+        let backup_task = Self::init_backup_task(
+            data_rx,
+            buffer.clone(),
+            max_buffer_size,
+            flush_notification.clone(),
+        );
+
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            max_buffer_size = max_buffer_size,
+            "in-memory backup buffer initialized"
+        );
 
         Self {
             max_buffer_size,
-            backup_task,
+            backup_task: Some(backup_task),
             buffer,
             data_tx,
+            flush_notification,
         }
     }
 
     fn init_backup_task(
         mut data_rx: Receiver<Message<T>>,
-        buffer: Arc<Mutex<VecDeque<T>>>,
+        buffer: Arc<Mutex<Option<Vec<T>>>>,
         max_buffer_size: usize,
+        flush_notifier: Arc<Notify>,
     ) -> JoinHandle<Result<()>> {
         tokio::task::spawn_blocking(move || {
-            while let Some(message) = data_rx.blocking_recv() {
-                let mut buffer_guard = buffer.lock();
+            let mut message_buffer = Vec::with_capacity(max_buffer_size);
 
+            while let Some(message) = data_rx.blocking_recv() {
                 match message {
                     Message::Data(val) => {
-                        if buffer_guard.len() == max_buffer_size {
-                            buffer_guard.pop_front();
+                        message_buffer.push(val);
+
+                        if message_buffer.len() >= max_buffer_size {
+                            if let Ok(mut lock) = buffer.lock() {
+                                *lock = Some(message_buffer);
+                            }
+                            flush_notifier.notify_one();
+                            break;
                         }
-                        buffer_guard.push_back(val);
+                    }
+                    Message::Flush => {
+                        if let Ok(mut lock) = buffer.lock() {
+                            *lock = Some(message_buffer);
+                        }
+                        flush_notifier.notify_one();
+                        break;
                     }
                     Message::Complete => {
                         #[cfg(feature = "tracing")]
                         tracing::debug!("shutting down backups manager.");
                         break;
-                    }
-                    Message::TruncateBackup => {
-                        #[cfg(feature = "tracing")]
-                        tracing::debug!("truncating backup buffer");
-
-                        buffer_guard.clear();
                     }
                 }
             }
@@ -77,51 +103,58 @@ where
     T: PbMessage + Clone + Default + 'static,
 {
     /// Send data point to be backed up.
-    async fn send(&self, msg: T) -> Result<()> {
-        self.data_tx
-            .send(Message::Data(msg))
-            .await
-            .map_err(|_| {
-                Error::new_msg(ErrorKind::BackupsError, "failed to process data to backup")
-            })
-            .context("back up task may have died")
-            .help("please contact Sift")
-    }
+    async fn send(&mut self, msg: T) -> Result<()> {
+        match self.data_tx.send(Message::Data(msg)).await {
+            Ok(_) => Ok(()),
 
-    /// Clear the backup buffer. Use when a checkpoint has been reached and the current buffer
-    /// snapshot is no longer needed.
-    async fn truncate_backup(&mut self) -> Result<()> {
-        self.data_tx
-            .send(Message::TruncateBackup)
-            .await
-            .map_err(|_| Error::new_msg(ErrorKind::BackupsError, "failed to initiate checkpoint"))
-            .help("please contact Sift")?;
-
-        Ok(())
+            // Backup task has shutdown due to max buffer size being reached.
+            Err(_) => {
+                let Some(backup_task) = self.backup_task.take() else {
+                    return Ok(());
+                };
+                match backup_task.await {
+                    Ok(res) => match res {
+                        Ok(_) => Err(Error::new_msg(
+                            ErrorKind::BackupLimitReached,
+                            "backup limit reached",
+                        )),
+                        Err(err) => Err(Error::new(ErrorKind::BackupsError, err))
+                            .context("backup task encountered an error")
+                            .help("please notify Sift"),
+                    },
+                    Err(err) => Err(Error::new(ErrorKind::BackupsError, err))
+                        .context("error waiting for backup task to finish")
+                        .help("please notify Sift"),
+                }
+            }
+        }
     }
 
     /// Use to terminate the backup manager
-    async fn finish(self) -> Result<()> {
-        self.data_tx
-            .send(Message::Complete)
-            .await
-            .map_err(|_| {
-                Error::new_msg(
-                    ErrorKind::BackupsError,
-                    "failed to initiate backups manager shutdown",
-                )
-            })
-            .help("please contact Sift")?;
+    async fn finish(mut self) -> Result<()> {
+        let _ = self.data_tx.send(Message::Complete).await;
 
-        self.backup_task
-            .await
-            .map_err(|e| Error::new(ErrorKind::BackupsError, e))
-            .context("failed to join backup task")
-            .help("please contact Sift")?
+        if let Some(backup_task) = self.backup_task.take() {
+            backup_task
+                .await
+                .map_err(|e| Error::new(ErrorKind::BackupsError, e))
+                .context("failed to join in-memory backup task")
+                .help("please contact Sift")??;
+        }
+        Ok(())
     }
 
-    async fn get_backup_data(&self) -> Result<impl Iterator<Item = T>> {
-        let buffer_guard = self.buffer.lock();
-        Ok(buffer_guard.clone().into_iter())
+    async fn get_backup_data(&mut self) -> Result<impl Iterator<Item = Result<T>>> {
+        let _ = self.data_tx.send(Message::Flush).await;
+        self.flush_notification.notified().await;
+
+        let messages = self
+            .buffer
+            .lock()
+            .ok()
+            .and_then(|mut l| l.take())
+            .unwrap_or_default();
+
+        Ok(messages.into_iter().map(|r| Ok(r)))
     }
 }

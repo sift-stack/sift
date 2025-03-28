@@ -134,8 +134,14 @@ pub enum ErrorKind {
     /// Indicates that a user provided a flow-name that doesn't match any configured flow in the
     /// parent ingestion config.
     UnknownFlow,
-    /// This really shouldn't happen
+    /// This really shouldn't happen.
     EmptyResponseError,
+    /// When failing to decode protobuf from its wire format.
+    ProtobufDecodeError,
+    /// When backup checksums don't match.
+    BackupIntegrityError,
+    /// When backup file/buffer limit has been reached.
+    BackupLimitReached,
     /// General errors that are rarely returned.
     GeneralError,
 }
@@ -198,6 +204,9 @@ impl fmt::Display for ErrorKind {
             Self::StreamError => write!(f, "StreamError"),
             Self::UnknownFlow => write!(f, "UnknownFlow"),
             Self::BackupsError => write!(f, "BackupsError"),
+            Self::BackupIntegrityError => write!(f, "BackupIntegrityError"),
+            Self::BackupLimitReached => write!(f, "BackupLimitReached"),
+            Self::ProtobufDecodeError => write!(f, "ProtobufDecodeError"),
             Self::IncompatibleIngestionConfigChange => {
                 write!(f, "IncompatibleIngestionConfigChange")
             }

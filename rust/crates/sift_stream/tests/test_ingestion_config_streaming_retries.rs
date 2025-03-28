@@ -124,7 +124,8 @@ async fn test_retries_succeed() {
     let _ = sift_stream.finish().await.unwrap();
 
     assert_eq!(
-        num_messages,
+        num_messages + 1, // We add 1 because 1 redundant request will be sent when trying to
+        // re-establish a connection.
         num_messages_received.load(Ordering::Relaxed),
         "expected no messages to be dropped",
     );

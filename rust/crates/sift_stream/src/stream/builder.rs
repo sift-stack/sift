@@ -70,12 +70,12 @@ pub enum RecoveryStrategy {
     ///   policy or use the default recommended settings via [RetryPolicy::default].
     ///
     /// - `backups_dir` is the directory where the backups will get created. If `backups_dir` is
-    ///   `None`, then the system temporary directory is used. If `backups_dir` is provided but
+    ///   `None`, then the user's [data
+    ///   directory](https://docs.rs/dirs/latest/dirs/fn.data_dir.html) is used. If `backups_dir` is provided but
     ///   doesn't exist, then there will be an attempt to create that directory.
     ///
-    /// - `max_backups_file_size` is the maximum size that a backup file is allowed to be before it
-    ///   is truncated. After truncation, backups proceed normally for new data. If `None`, then
-    ///   [crate::backup::disk::DEFAULT_MAX_BACKUP_SIZE] is used.
+    /// - `max_backups_file_size` is the maximum size that a backup file is allowed to be before a
+    ///   checkpoint is forced. Once a checkpoint is forced, a new backup file will be created.
     ///
     /// **Important Note**: The `max_backups_file_size` does not represent that actual amount of
     /// space on disk which is affected by operating system-level compression and block allocation;

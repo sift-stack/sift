@@ -259,7 +259,8 @@
 //! While [checkpointing](#checkpoints) gives clients assurance that all data has been received up
 //! to a certain point, checkpointing alone doesn't protect against data loss between checkpoints.
 //!
-//! To mitigate data-loss `sift_stream` offers two optional backups mechanisms:
+//! To protect against data-loss `sift_stream` offers two optional backups mechanisms depending on
+//! user-constraints:
 //! - In-memory-based backups
 //! - Disk-based backups
 //!
@@ -289,40 +290,44 @@
 //!
 //! ### In-memory backups
 //!
-//! The in-memory backup strategy use a limited-capacity FIFO buffer that prioritizes new data. Every call to
+//! The in-memory backup uses an in-memory buffer to create backups for all telemetry sent to Sift. Every call to
 //! [SiftStream::send] will result in the data being passed in to get backed up. If an error
 //! were to occur before a checkpoint is reached, then all the data within that buffer will be
-//! flushed and reingested into Sift. This strategy should be sufficient for the vast majority of
-//! users and should generally be preferred.
+//! flushed and reingested into Sift. If the buffer were to reach the maximum specified capacity,
+//! then a checkpoint will be forced and the buffer will be reinitialized.
 //!
 //! ### Disk backups
 //!
 //! The disk-based backup strategy writes messages passed to [SiftStream::send] to a backup file on disk
 //! in a buffered manner until the configured file size limit is reached. Once that file size limit
-//! is reached then the file will be truncated before newer data is written to the backup file. If
+//! is reached then a checkpoint will be forced and the backup file will be reinitialized. If
 //! an error were to occur before a checkpoint is reached, then all the data within the backup file
 //! will be read into memory in a buffered manner, decoded, and reingested into Sift.
-//!
-//! **Important Note**: Reingesting the backup file will block [SiftStream::send]. Depending on how
-//! large the backup file gets, this process could take awhile.
 //!
 //! If using the default feature flags (see the [tracing section](#tracing)), users will be
 //! able to see the location of the backup file when using `RUST_LOG=sift_stream=info` as well as
 //! the progress of reingestion.
 //!
 //! The backup file itself gets cleaned up when [SiftStream] is allowed to gracefully terminate,
-//! otherwise it will stay on disk.
+//! otherwise it may stack on disk.
 //!
-//! **Important Note**: It is generally recommended to prefer in-memory backups unless users have
-//! very strict memory constraints.
+//! ### Data Integrity
 //!
-//! ### Garauntees
+//! **Important Note**: This section only pertains to the disk-based-backup strategy.
 //!
-//! The current backup strategy implementations will mitigate data-loss but they do not provide
-//! absolute garauntees that all data can be recovered. If the default settings for either strategy
-//! do not provide users optimal data-recovery, then users are encouraged to configure their own
-//! backups strategies taking their message and byte-rate into account which they can easily find
-//! using the `sift_stream` [tracing](#tracing) feature.
+//! The backup file is periodically written to and synced. Each chunk of data written to the backup includes a checksum
+//! computed from the chunk itself. When chunks are read back into memory, their checksums are recomputed and compared against
+//! the stored values. If a mismatch is detected, the affected chunk and all subsequent chunks are considered corrupt and will be ignored.
+//! See the [tracing](#tracing) section for details on enabling logs that notify users when this occurs.
+//!
+//! ### Guarantees
+//!
+//! The current backup strategy implementations will protect against data-loss but they do
+//! potentially come at a performance cost depending on several variables. The default
+//! configurations should satisfy most use-cases, however, users are encouraged to provide their
+//! own custom configurations based on their baseline message and byte-rates if they notice
+//! backups causing performance issues. Please refer to the [tracing](#tracing) section for
+//! information on how to get performance metrics.
 //!
 //! ## Tracing
 //!
@@ -407,11 +412,3 @@ pub use stream::{
 pub mod backup;
 
 pub use sift_connect::grpc::{Credentials, SiftChannel};
-
-/// ## Internal Notes
-///
-/// [prost::Message] has methods to encode/decode protobuf messages with their length delimiters
-/// but we need to be able to read the wire-format for multiple protobufs from a file and thus
-/// require garauntees for how the length-delimiter is handled. The only garauntee we can get is if
-/// we handle it ourselves.
-pub(crate) mod pbutil;
