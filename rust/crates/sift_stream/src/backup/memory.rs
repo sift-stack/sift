@@ -155,6 +155,6 @@ where
             .and_then(|mut l| l.take())
             .unwrap_or_default();
 
-        Ok(messages.into_iter().map(|r| Ok(r)))
+        Ok(messages.into_iter().map(Ok))
     }
 }

@@ -10,7 +10,7 @@ sift_rs = { version = "0.1.0", path = "../sift_rs" }
 tracing = { version = "0.1.41", optional = true }
 bytesize = { version = "2", optional = true }
 pbjson-types = "^0.7"
-tokio = { version = "1.43.0", features = ["rt", "sync", "time"] }
+tokio = { version = "1.43.0", features = ["rt", "sync", "time", "macros"] }
 chrono = { version = "0.4.40", default-features = false, features = ["clock"] }
 futures-core = "0.3.31"
 tokio-stream = "0.1.17"

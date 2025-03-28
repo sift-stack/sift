@@ -126,6 +126,8 @@ pub enum ErrorKind {
     TimeConversionError,
     /// General errors that can occur while streaming telemetry i.e. data ingestion.
     StreamError,
+    /// Indicates that all retries were exhausted in the configure retry policy.
+    RetriesExhausted,
     /// General errors that can occur while processing backups during streaming.
     BackupsError,
     /// Indicates that the user is making a change that is not backwards compatible with an
@@ -187,6 +189,7 @@ impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::GrpcConnectError => write!(f, "GrpcConnectError"),
+            Self::RetriesExhausted => write!(f, "RetriesExhausted"),
             Self::RetrieveRunError => write!(f, "RetrieveRunError"),
             Self::RetrieveIngestionConfigError => write!(f, "RetrieveIngestionConfigError"),
             Self::EmptyResponseError => write!(f, "EmptyResponseError"),
