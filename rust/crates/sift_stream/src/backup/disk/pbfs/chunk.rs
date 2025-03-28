@@ -6,7 +6,7 @@ use std::{marker::PhantomData, ops::Deref};
 pub const CHECKSUM_HEADER_LEN: usize = std::mem::size_of::<u32>();
 
 /// Length of the header that indicates the total byte-length of all protobuf messages.
-pub const MESSAGES_LEN_HEADER_LEN: usize = std::mem::size_of::<u64>();
+pub const BATCH_SIZE_LEN: usize = std::mem::size_of::<u64>();
 
 /// Length of the length prefix of the individual protobuf message.
 pub const MESSAGE_LENGTH_PREFIX_LEN: usize = std::mem::size_of::<u32>();
@@ -26,7 +26,7 @@ pub const MESSAGE_LENGTH_PREFIX_LEN: usize = std::mem::size_of::<u32>();
 /// - **z**: Length of a single protobuf message (4 bytes, little-endian)
 /// - **n**: number of protobuf messages
 ///
-/// Each protobuf message is prefixed by its length (`z`), and there are `y` such messages.
+/// Each protobuf message is prefixed by its length (`z`).
 #[derive(Debug)]
 pub struct PbfsChunk<M>
 where
@@ -60,7 +60,7 @@ where
         let messages_len = u64::try_from(serialized_messages_length_delimited.len())
             .map(|num| num.to_le_bytes())
             .map_err(|e| Error::new(ErrorKind::NumberConversionError, e))
-            .context("number of messages exceeds u32 max")
+            .context("size of messages exceeds u64 max")
             .help("this is a bug - please contact Sift")?;
 
         let mut data = Vec::with_capacity(
@@ -107,11 +107,10 @@ where
     /// the chunk.
     #[allow(dead_code)]
     pub fn messages_len_from_header(bytes: &[u8]) -> u64 {
-        let mut num_messages_le = [0_u8; MESSAGES_LEN_HEADER_LEN];
-        num_messages_le.copy_from_slice(
-            &bytes[CHECKSUM_HEADER_LEN..CHECKSUM_HEADER_LEN + MESSAGES_LEN_HEADER_LEN],
-        );
-        u64::from_le_bytes(num_messages_le)
+        let mut messages_len_le = [0_u8; BATCH_SIZE_LEN];
+        messages_len_le
+            .copy_from_slice(&bytes[CHECKSUM_HEADER_LEN..CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN]);
+        u64::from_le_bytes(messages_len_le)
     }
 }
 
@@ -135,7 +134,7 @@ where
         Self {
             data,
             // We'll skip over the headers since we only want the messages
-            offset: CHECKSUM_HEADER_LEN + MESSAGES_LEN_HEADER_LEN,
+            offset: CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN,
             message_type: PhantomData,
             encountered_error: false,
         }

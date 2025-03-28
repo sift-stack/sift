@@ -20,7 +20,7 @@ use tokio::{
 /// Concerned with writing/reading protobuf from disk.
 mod pbfs;
 use pbfs::{
-    chunk::{PbfsChunk, CHECKSUM_HEADER_LEN, MESSAGES_LEN_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN},
+    chunk::{PbfsChunk, BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN},
     BackupsDecoder,
 };
 
@@ -140,7 +140,7 @@ where
                             let chunk = PbfsChunk::new(&message_buffer)?;
                             backup.write_all(&chunk)?;
                             backup.sync_all()?;
-                            bytes_processed += CHECKSUM_HEADER_LEN + MESSAGES_LEN_HEADER_LEN;
+                            bytes_processed += CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN;
                             message_buffer.clear();
 
                             if bytes_processed >= max_backup_size {

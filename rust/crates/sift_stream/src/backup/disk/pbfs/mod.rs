@@ -6,7 +6,7 @@ use std::{
 };
 
 pub(crate) mod chunk;
-pub(crate) use chunk::{PbfsChunk, PbfsMessageIter, CHECKSUM_HEADER_LEN, MESSAGES_LEN_HEADER_LEN};
+pub(crate) use chunk::{PbfsChunk, PbfsMessageIter, BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN};
 
 #[cfg(test)]
 mod test;
@@ -43,7 +43,7 @@ where
     /// This can return a [ErrorKind::BackupIntegrityError] if the checksum in the chunk's header
     /// doesn't match the computed checksum.
     fn decode_chunk(&mut self) -> Result<Option<PbfsChunk<M>>> {
-        let mut headers = [0_u8; CHECKSUM_HEADER_LEN + MESSAGES_LEN_HEADER_LEN];
+        let mut headers = [0_u8; CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN];
 
         match self.reader.read_exact(&mut headers) {
             Ok(_) => (),
@@ -57,7 +57,7 @@ where
         }
 
         let messages_len_le: [u8; 8] = headers
-            [CHECKSUM_HEADER_LEN..CHECKSUM_HEADER_LEN + MESSAGES_LEN_HEADER_LEN]
+            [CHECKSUM_HEADER_LEN..CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN]
             .try_into()
             .map_err(|e| Error::new(ErrorKind::ProtobufDecodeError, e))
             .context("failed to create buffer of length of all messages")
@@ -75,9 +75,9 @@ where
         chunk[offset..CHECKSUM_HEADER_LEN].copy_from_slice(&headers[offset..CHECKSUM_HEADER_LEN]);
         offset += CHECKSUM_HEADER_LEN;
 
-        chunk[offset..offset + MESSAGES_LEN_HEADER_LEN]
-            .copy_from_slice(&headers[offset..offset + MESSAGES_LEN_HEADER_LEN]);
-        offset += MESSAGES_LEN_HEADER_LEN;
+        chunk[offset..offset + BATCH_SIZE_LEN]
+            .copy_from_slice(&headers[offset..offset + BATCH_SIZE_LEN]);
+        offset += BATCH_SIZE_LEN;
 
         self.reader
             .read_exact(&mut chunk[offset..offset + messages_len])
