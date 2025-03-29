@@ -7,19 +7,19 @@
 //!
 //! Start by installing `sift_rs`
 //!
-//! ```
+//! ```text
 //! cargo add sift_rs
 //! ```
 //!
 //! Then install `tokio`:
 //!
-//! ```
+//! ```text
 //! cargo add tokio --features full
 //! ```
 //!
 //! Then we can establish a connection to Sift and use one of the protobuf service clients like so:
 //!
-//! ```rust
+//! ```no_run
 //! use sift_rs::{
 //!     Credentials, SiftChannelBuilder,
 //!     ping::v1::{PingRequest, ping_service_client::PingServiceClient},

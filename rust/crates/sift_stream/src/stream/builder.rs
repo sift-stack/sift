@@ -24,7 +24,7 @@ pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
 /// pass your [Credentials] to [SiftStreamBuilder::new] as well as your [IngestionConfigForm] and
 /// call [SiftStreamBuilder::build] like so:
 ///
-/// ```rust
+/// ```ignore
 /// let mut sift_stream = SiftStreamBuilder::new(credentials)
 ///     .ingestion_config(ingestion_config)
 ///     .build()

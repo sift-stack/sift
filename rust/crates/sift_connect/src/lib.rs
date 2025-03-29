@@ -2,7 +2,7 @@
 //! Sift. Most users won't need to install this crate as it's re-exported in other crates. The
 //! following is an example of how to create a gRPC connection to Sift using sane defaults.
 //!
-//! ```rust
+//! ```no_run
 //! use sift_connect::{Credentials, SiftChannelBuilder};
 //! use std::env;
 //!

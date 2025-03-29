@@ -32,7 +32,7 @@ impl ChannelValue {
     /// Creates a [ChannelValue] for a channel of name `name`.
     ///
     /// Example:
-    /// ```rust
+    /// ```ignore
     /// ChannelValue::new("arm-joint", 3_i32);
     /// ChannelValue::new("navigation", 3.14_f32);
     /// ```

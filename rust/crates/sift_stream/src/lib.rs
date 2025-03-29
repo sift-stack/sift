@@ -18,7 +18,7 @@
 //!
 //! ## Quick-start
 //!
-//! ```rust
+//! ```ignore
 //! // Define the schema of your telemetry
 //! let ingestion_config = IngestionConfigForm {
 //!     asset_name: "MarsRover0".into(),
@@ -71,7 +71,7 @@
 //!
 //! The following is an example of a valid ingestion config for the `MarsRover0` asset:
 //!
-//! ```rust
+//! ```ignore
 //! let ingestion_config = IngestionConfigForm {
 //!     asset_name: "MarsRover0".into(),
 //!     client_key: "mars-rover0-ingestion-config-v1".into(),
@@ -111,7 +111,7 @@
 //!
 //! Here is an example of how streaming data into Sift might look using this ingestion config:
 //!
-//! ```rust
+//! ```ignore
 //! let mut sift_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config)
 //!     .build()
@@ -209,7 +209,7 @@
 //! Retries are not enabled by default, but users would enable is as part of [SiftStream]
 //! initialization:
 //!
-//! ```rust
+//! ```ignore
 //! let mut sift_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config)
 //!     .recovery_strategy(RecoveryStrategy::default())
@@ -229,7 +229,7 @@
 //! interval being [stream::builder::DEFAULT_CHECKPOINT_INTERVAL]. Users can, however, specify
 //! their own custom checkpoint interval:
 //!
-//! ```rust
+//! ```ignore
 //! let mut sift_stream = SiftStreamBuilder::new(credentials)
 //!     .ingestion_config(ingestion_config)
 //!     .checkpoint_interval(Duration::from_secs(30))
@@ -267,7 +267,7 @@
 //! Both of these backup mechanisms are disabled by default as they introduce some overhead, but
 //! they can be enabled like so:
 //!
-//! ```rust
+//! ```ignore
 //! // In-memory backups
 //! let mut sift_stream = SiftStreamBuilder::new(config)
 //!     .ingestion_config(ingestion_config)
@@ -337,7 +337,7 @@
 //! of traces users would see with `tracing` enabled and with `RUST_LOG` set to the following
 //! `RUST_LOG=sift_stream=info`
 //!
-//! ```
+//! ```text
 //! 2025-03-23T01:33:45.193457Z  INFO an existing ingestion config was found with the provided client-key ingestion_config_id="181bd784-827f-4f3f-a045-ef6b4df6505f"
 //! 2025-03-23T01:33:45.335279Z  INFO created new run run_id="2acff183-9cb4-44f4-a811-1c76d64ce77f" run_name="millenium-falcon-ep4-1742693624989"
 //! 2025-03-23T01:33:45.335801Z  INFO Sift streaming successfully initialized
@@ -351,19 +351,19 @@
 //!
 //! Install `sift_stream`:
 //!
-//! ```
+//! ```text
 //! cargo add sift_stream
 //! ```
 //!
 //! Then install `tracing_subscriber` with the `fmt` and `env-filter` feature flags:
 //!
-//! ```
+//! ```text
 //! cargo add tracing_subscriber --features fmt,env-filter
 //! ```
 //!
 //! Then configure a tracing subscriber before you start streaming like so:
 //!
-//! ```rust
+//! ```ignore
 //! tracing_subscriber::fmt()
 //!     .with_target(false)
 //!     .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
@@ -381,7 +381,7 @@
 //! If you do not wish to enable the `tracing` feature, then simply install `sift_stream` without
 //! the flag like so:
 //!
-//! ```
+//! ```text
 //! cargo add sift_stream --no-default-features
 //! ```
 //!
