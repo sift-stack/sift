@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.5.0] - March 31, 2025
+### What's New
+#### Rosbag2 Uploads
+A new `RosbagsUploadService` has been added to `sift_py.data_import.rosbags`, which provides the functionality for uploading
+rosbags, including video frames from a rosbag. See `examples/data_import/rosbags` for examples on how to use the new service.
+
+### Full Changelog
+- [Rosbag uploads](https://github.com/sift-stack/sift/pull/191)
+- [Threaded and generator ingestion examples](https://github.com/sift-stack/sift/pull/187)
+- [RuleService adds annotation type](https://github.com/sift-stack/sift/pull/192)
+
 ## [v0.4.2] - March 4, 2025
 - [Fix bool conversion to protobuf bool](https://github.com/sift-stack/sift/pull/184)
 
