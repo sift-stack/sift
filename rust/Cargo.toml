@@ -7,3 +7,13 @@ members = [
   "crates/sift_error",
   "crates/sift_connect",
 ]
+
+[workspace.package]
+authors = ["Sift Software Engineers <engineering@siftstack.com>"]
+edition = "2024"
+categories = ["aerospace", "science::robotics"]
+homepage = "https://github.com/sift-stack/sift/tree/main/rust"
+repository = "https://github.com/sift-stack/sift/tree/main/rust"
+keywords = ["sift", "siftstack", "sift-stack", "sift_rs", "telemetry"]
+readme = "README.md"
+license = "MIT"

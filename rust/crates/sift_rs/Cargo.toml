@@ -1,18 +1,15 @@
 [package]
 name = "sift_rs"
 version = "0.1.0"
-edition = "2021"
-authors = ["Sift Software Engineers <engineering@siftstack.com>"]
-description = """
-Rust client library for the Sift API
-"""
-categories = ["aerospace", "science::robotics"]
-homepage = "https://github.com/sift-stack/sift/tree/main/rust"
-repository = "https://github.com/sift-stack/sift/tree/main/rust"
-keywords = ["sift", "siftstack", "sift-stack", "sift_rs", "telemetry"]
-exclude = ["examples/*"]
+description = "General Rust client library for the Sift API"
+edition = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+categories = { workspace = true }
 readme = "README.md"
-license = "MIT"
 
 [dependencies]
 async-trait = "^0.1"

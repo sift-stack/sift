@@ -43,8 +43,8 @@
 
 #[allow(clippy::all)]
 /// Protobuf generated code to interface with Sift's gRPC API.
-pub mod gen;
-pub use gen::sift::*;
+pub mod r#gen;
+pub use r#gen::sift::*;
 
 /// Utility wrappers for select gRPC services.
 pub mod wrappers;

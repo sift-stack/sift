@@ -1,7 +1,15 @@
 [package]
 name = "sift_connect"
 version = "0.1.0"
-edition = "2021"
+description = "A convenient and opinionated way to connect to the Sift API"
+edition = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+categories = { workspace = true }
+readme = "README.md"
 
 [dependencies]
 dirs = "6.0.0"
