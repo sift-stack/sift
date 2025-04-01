@@ -13,7 +13,7 @@ jobs:
     name: Publish to crates.io for sift_rs
     needs: rust-ci
     environment:
-      name: crates.io (dry run)
+      name: crates.io
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -30,7 +30,7 @@ jobs:
     name: Publish to crates.io for sift_error
     needs: rust-ci
     environment:
-      name: crates.io (dry run)
+      name: crates.io
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -47,7 +47,7 @@ jobs:
     name: Publish to crates.io for sift_connect
     needs: rust-ci
     environment:
-      name: crates.io (dry run)
+      name: crates.io
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -64,7 +64,7 @@ jobs:
     name: Publish to crates.io for sift_stream
     needs: rust-ci
     environment:
-      name: crates.io (dry run)
+      name: crates.io
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
