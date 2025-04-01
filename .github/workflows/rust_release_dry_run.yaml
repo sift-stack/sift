@@ -9,7 +9,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/rust_ci.yaml
 
-  publish-to-crate-io-dry-run-sift_rs:
+  publish-to-crates-io-dry-run-sift_rs:
     runs-on: ubuntu-latest
     name: Do a dry run publish to crates.io for sift_rs
     needs: rust-ci
@@ -27,7 +27,7 @@ jobs:
           path: './rust/crates/sift_rs'
           dry-run: true
 
-  publish-to-crate-io-dry-run-sift_error:
+  publish-to-crates-io-dry-run-sift_error:
     runs-on: ubuntu-latest
     name: Do a dry run publish to crates.io for sift_error
     needs: rust-ci
@@ -45,7 +45,7 @@ jobs:
           path: './rust/crates/sift_error'
           dry-run: true
 
-  publish-to-crate-io-dry-run-sift_connect:
+  publish-to-crates-io-dry-run-sift_connect:
     runs-on: ubuntu-latest
     name: Do a dry run publish to crates.io for sift_connect
     needs: rust-ci
@@ -63,7 +63,7 @@ jobs:
           path: './rust/crates/sift_connect'
           dry-run: true
 
-  publish-to-crate-io-dry-run-sift_stream:
+  publish-to-crates-io-dry-run-sift_stream:
     runs-on: ubuntu-latest
     name: Do a dry run publish to crates.io for sift_stream
     needs: rust-ci
