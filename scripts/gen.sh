@@ -92,7 +92,11 @@ gen_protos() {
 
   for lang in ${langs[@]}; do
     printf "Compiling protocol buffers for $lang... "
-    buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang"
+    if [[ "$lang" == "rust" ]]; then
+      buf generate "$OUTPUT_PROTOS" --template "$lang/crates/sift_rs/buf.gen.yaml" --output "$lang/crates/sift_rs"
+    else
+      buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang"
+    fi
     echo "ok"
 
     if [[ "$lang" == "python" ]]; then
