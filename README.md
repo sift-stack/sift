@@ -6,6 +6,7 @@
 [![Build status](https://github.com/sift-stack/sift/actions/workflows/protos_ci.yaml/badge.svg)](https://github.com/sift-stack/sift/actions)
 [![pypi](https://img.shields.io/pypi/v/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
 [![Crates.io](https://img.shields.io/crates/v/sift_rs.svg)](https://crates.io/crates/sift_rs)
+[![Crates.io](https://img.shields.io/crates/v/sift_stream.svg)](https://crates.io/crates/sift_stream)
 [![PkgGoDev](https://pkg.go.dev/badge/mod/github.com/sif-stack/sift/go)](https://pkg.go.dev/github.com/sift-stack/sift/go) 
 
 This repository contains client libraries and protocol buffers to interact with Sift's API in various languages. Each client library contains pre-compiled protocol buffers, but should you wish
@@ -39,7 +40,7 @@ $ pip install sift-stack-py
 #### Rust
 
 ```
-$ cargo add sift_rs
+$ cargo add sift_rs sift_stream
 ```
 
 #### Go
