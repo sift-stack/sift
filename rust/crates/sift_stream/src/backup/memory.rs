@@ -4,8 +4,8 @@ use sift_error::prelude::*;
 use std::sync::{Arc, Mutex};
 use tokio::{
     sync::{
-        mpsc::{channel, Receiver, Sender},
         Notify,
+        mpsc::{Receiver, Sender, channel},
     },
     task::JoinHandle,
 };

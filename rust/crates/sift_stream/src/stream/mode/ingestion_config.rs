@@ -1,5 +1,5 @@
 use super::super::{
-    channel::ChannelValue, time::TimeValue, RetryPolicy, SiftStream, SiftStreamMode,
+    RetryPolicy, SiftStream, SiftStreamMode, channel::ChannelValue, time::TimeValue,
 };
 use crate::backup::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager};
 use futures_core::Stream;
@@ -8,8 +8,8 @@ use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::{
     ingest::v1::{
-        ingest_service_client::IngestServiceClient, IngestWithConfigDataChannelValue,
-        IngestWithConfigDataStreamRequest, IngestWithConfigDataStreamResponse,
+        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
+        IngestWithConfigDataStreamResponse, ingest_service_client::IngestServiceClient,
     },
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     runs::v2::Run,
@@ -19,20 +19,20 @@ use std::{
     ops::Drop,
     pin::Pin,
     sync::{
-        mpsc::{Receiver as StdReceiver, Sender as StdSender},
         Arc,
+        mpsc::{Receiver as StdReceiver, Sender as StdSender},
     },
     task::{Context, Poll},
     time::{Duration, Instant},
 };
 use tokio::{
     sync::{
+        Notify,
         mpsc::{
-            channel as bounded_channel, error::SendError, Receiver as BoundedReceiver,
-            Sender as BoundedSender,
+            Receiver as BoundedReceiver, Sender as BoundedSender, channel as bounded_channel,
+            error::SendError,
         },
         oneshot::{self, Receiver, Sender},
-        Notify,
     },
     task::JoinHandle,
 };
@@ -412,7 +412,9 @@ impl SiftStream<IngestionConfigMode> {
                         error = format!("{err:?}"),
                         "not all backups were successfully processed"
                     );
-                    tracing::warn!("not all backups were successfully processed due to unexpected stream termination - retrying");
+                    tracing::warn!(
+                        "not all backups were successfully processed due to unexpected stream termination - retrying"
+                    );
                 }
 
                 return Box::pin(self.restart_stream_and_backups_manager(false)).await;

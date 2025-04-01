@@ -1,10 +1,10 @@
 use hyper_util::rt::TokioIo;
-use sift_connect::{grpc::interceptor::AuthInterceptor, SiftChannel};
+use sift_connect::{SiftChannel, grpc::interceptor::AuthInterceptor};
 use sift_rs::ingest::v1::ingest_service_server::{IngestService, IngestServiceServer};
 use std::io::Error as IoError;
 use tokio::task::JoinHandle;
 use tonic::transport::{Endpoint, Server, Uri};
-use tower::{service_fn, ServiceBuilder};
+use tower::{ServiceBuilder, service_fn};
 
 /// re-exports everything needed to implement an [IngestService].
 pub mod prelude;

@@ -1,9 +1,9 @@
-use super::{chunk::PbfsChunk, BackupsDecoder};
+use super::{BackupsDecoder, chunk::PbfsChunk};
 use crate::TimeValue;
 use sift_error::prelude::*;
 use sift_rs::ingest::v1::{
-    ingest_with_config_data_channel_value::Type, IngestWithConfigDataChannelValue,
-    IngestWithConfigDataStreamRequest,
+    IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
+    ingest_with_config_data_channel_value::Type,
 };
 use std::{
     fs,

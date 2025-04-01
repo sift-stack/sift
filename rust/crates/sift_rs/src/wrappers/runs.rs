@@ -1,7 +1,7 @@
 use super::ResourceIdentifier;
 use crate::runs::v2::{
-    run_service_client::RunServiceClient, CreateRunRequest, GetRunRequest, ListRunsRequest, Run,
-    UpdateRunRequest,
+    CreateRunRequest, GetRunRequest, ListRunsRequest, Run, UpdateRunRequest,
+    run_service_client::RunServiceClient,
 };
 use async_trait::async_trait;
 use pbjson_types::FieldMask;

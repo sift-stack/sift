@@ -3,8 +3,8 @@ use std::time::Duration;
 use tonic::{
     service::interceptor::InterceptedService,
     transport::{
-        channel::{Channel, Endpoint},
         ClientTlsConfig,
+        channel::{Channel, Endpoint},
     },
 };
 use tower::ServiceBuilder;

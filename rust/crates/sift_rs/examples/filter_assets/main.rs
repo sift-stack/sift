@@ -1,6 +1,6 @@
 use sift_rs::{
-    assets::v1::{asset_service_client::AssetServiceClient, ListAssetsRequest},
     Credentials, SiftChannelBuilder,
+    assets::v1::{ListAssetsRequest, asset_service_client::AssetServiceClient},
 };
 use std::env;
 

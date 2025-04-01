@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use tonic::{metadata::MetadataValue, service::Interceptor, Request, Status};
+use tonic::{Request, Status, metadata::MetadataValue, service::Interceptor};
 
 #[derive(Clone)]
 pub struct AuthInterceptor {

@@ -6,7 +6,7 @@ use std::{
 };
 
 pub(crate) mod chunk;
-pub(crate) use chunk::{PbfsChunk, PbfsMessageIter, BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN};
+pub(crate) use chunk::{BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, PbfsChunk, PbfsMessageIter};
 
 #[cfg(test)]
 mod test;
@@ -52,7 +52,7 @@ where
             }
             Err(err) => {
                 return Err(Error::from(err))
-                    .context("something unexpected occurred while decoding backup headers")
+                    .context("something unexpected occurred while decoding backup headers");
             }
         }
 

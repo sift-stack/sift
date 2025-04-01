@@ -26,7 +26,7 @@
 //! ```text
 //! uri = "http://example-sift-api.com"
 //! apikey = "example-sift-api-key"
-//! 
+//!
 //! [mission]
 //! uri = "http://example-sift-api.com"
 //! apikey = "my-other-sift-api-key"

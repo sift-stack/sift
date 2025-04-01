@@ -4,13 +4,13 @@ use sift_rs::{
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
 use sift_stream::{
-    stream::mode::ingestion_config::IngestionConfigModeBackupsManager, ChannelValue, Flow,
-    IngestionConfigMode, RetryPolicy, SiftStream, TimeValue,
+    ChannelValue, Flow, IngestionConfigMode, RetryPolicy, SiftStream, TimeValue,
+    stream::mode::ingestion_config::IngestionConfigModeBackupsManager,
 };
 use std::{
     sync::{
-        atomic::{AtomicBool, AtomicU32, Ordering},
         Arc,
+        atomic::{AtomicBool, AtomicU32, Ordering},
     },
     time::Duration,
 };

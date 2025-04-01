@@ -2,8 +2,8 @@ use super::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager};
 use crate::TimeValue;
 use sift_error::ErrorKind;
 use sift_rs::ingest::v1::{
-    ingest_with_config_data_channel_value::Type, IngestWithConfigDataChannelValue,
-    IngestWithConfigDataStreamRequest,
+    IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
+    ingest_with_config_data_channel_value::Type,
 };
 use std::fs;
 use tempdir::TempDir;
@@ -102,9 +102,11 @@ async fn test_in_memory_backups_manager_retrieve_data() {
 
     let data_point = test_data_iter.next().unwrap();
 
-    assert!(backups_manager
-        .send(data_point)
-        .await
-        .is_err_and(|e| e.kind() == ErrorKind::BackupLimitReached),);
+    assert!(
+        backups_manager
+            .send(data_point)
+            .await
+            .is_err_and(|e| e.kind() == ErrorKind::BackupLimitReached),
+    );
     assert!(backups_manager.finish().await.is_ok());
 }

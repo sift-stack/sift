@@ -11,8 +11,8 @@ use std::{
 };
 use tokio::{
     sync::{
-        mpsc::{channel, Receiver, Sender},
         Notify,
+        mpsc::{Receiver, Sender, channel},
     },
     task::JoinHandle,
 };
@@ -20,8 +20,8 @@ use tokio::{
 /// Concerned with writing/reading protobuf from disk.
 mod pbfs;
 use pbfs::{
-    chunk::{PbfsChunk, BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN},
     BackupsDecoder,
+    chunk::{BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN, PbfsChunk},
 };
 
 /// Default maximum backup file size - 100 MiB.

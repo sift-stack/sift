@@ -1,6 +1,6 @@
 use sift_rs::{
-    ping::v1::{ping_service_client::PingServiceClient, PingRequest},
     Credentials, SiftChannelBuilder,
+    ping::v1::{PingRequest, ping_service_client::PingServiceClient},
 };
 use std::env;
 

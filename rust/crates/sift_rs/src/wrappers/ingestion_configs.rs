@@ -1,9 +1,9 @@
 use super::ResourceIdentifier;
 use crate::ingestion_configs::v2::{
-    ingestion_config_service_client::IngestionConfigServiceClient,
     CreateIngestionConfigFlowsRequest, CreateIngestionConfigRequest, FlowConfig,
     GetIngestionConfigRequest, IngestionConfig, ListIngestionConfigFlowsRequest,
     ListIngestionConfigFlowsResponse, ListIngestionConfigsRequest,
+    ingestion_config_service_client::IngestionConfigServiceClient,
 };
 use async_trait::async_trait;
 use sift_connect::SiftChannel;

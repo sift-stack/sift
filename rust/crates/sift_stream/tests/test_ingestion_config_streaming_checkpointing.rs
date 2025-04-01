@@ -6,8 +6,8 @@ use sift_rs::{
 use sift_stream::{ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue};
 use std::{
     sync::{
-        atomic::{AtomicU32, Ordering},
         Arc,
+        atomic::{AtomicU32, Ordering},
     },
     time::Duration,
 };

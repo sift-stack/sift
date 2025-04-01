@@ -401,11 +401,11 @@ pub use sift_rs::{
     ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
 pub use stream::{
+    RetryPolicy, SiftStream,
     builder::{IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder},
     channel::{ChannelValue, Value},
     mode::ingestion_config::{Flow, IngestionConfigMode},
     time::TimeValue,
-    RetryPolicy, SiftStream,
 };
 
 /// Concerned with backing up data as its streamed to Sift and backups accessible.

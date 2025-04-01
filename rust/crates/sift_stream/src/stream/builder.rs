@@ -1,18 +1,18 @@
 use super::{
-    flow::validate_flows, mode::ingestion_config::IngestionConfigMode,
-    mode::ingestion_config::IngestionConfigModeBackupsManager, RetryPolicy, SiftStream,
-    SiftStreamMode,
+    RetryPolicy, SiftStream, SiftStreamMode, flow::validate_flows,
+    mode::ingestion_config::IngestionConfigMode,
+    mode::ingestion_config::IngestionConfigModeBackupsManager,
 };
 use crate::backup::{DiskBackupsManager, InMemoryBackupsManager};
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
 use sift_rs::{
     ingestion_configs::v2::{FlowConfig, IngestionConfig as IngestionConfigPb},
-    ping::v1::{ping_service_client::PingServiceClient, PingRequest},
+    ping::v1::{PingRequest, ping_service_client::PingServiceClient},
     runs::v2::Run,
     wrappers::{
-        ingestion_configs::{new_ingestion_config_service, IngestionConfigServiceWrapper},
-        runs::{new_run_service, RunServiceWrapper},
+        ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
+        runs::{RunServiceWrapper, new_run_service},
     },
 };
 use std::{collections::HashSet, marker::PhantomData, path::PathBuf, time::Duration};

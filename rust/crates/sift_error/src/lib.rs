@@ -266,13 +266,19 @@ impl fmt::Display for Error {
 
         match help {
             Some(help_txt) if most_recent_cause.is_empty() => {
-                writeln!(f, "[{kind}]\n\n[cause]:{NEW_LINE_DELIMITER}{chain}\n\n[help]:{NEW_LINE_DELIMITER}- {help_txt}")
+                writeln!(
+                    f,
+                    "[{kind}]\n\n[cause]:{NEW_LINE_DELIMITER}{chain}\n\n[help]:{NEW_LINE_DELIMITER}- {help_txt}"
+                )
             }
             None if most_recent_cause.is_empty() => {
                 writeln!(f, "[{kind}]\n\n[cause]:{NEW_LINE_DELIMITER}{chain}")
             }
             Some(help_txt) => {
-                writeln!(f, "[{kind}]: {most_recent_cause}\n\n[cause]:{NEW_LINE_DELIMITER}{chain}\n\n[help]:{NEW_LINE_DELIMITER}- {help_txt}")
+                writeln!(
+                    f,
+                    "[{kind}]: {most_recent_cause}\n\n[cause]:{NEW_LINE_DELIMITER}{chain}\n\n[help]:{NEW_LINE_DELIMITER}- {help_txt}"
+                )
             }
             None => {
                 writeln!(
