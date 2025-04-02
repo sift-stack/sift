@@ -14,5 +14,5 @@ Here are some features highlights:
 - Optional tracing/logging to monitor the health of your stream and view various ingestion
   performance metrics.
 
-See the [examples](./examples/) directory for demonstrations on how to stream data to Sift using
+See the [examples](https://github.com/sift-stack/sift/tree/main/rust/crates/sift_stream/examples/) directory for demonstrations on how to stream data to Sift using
 `sift_stream`.
