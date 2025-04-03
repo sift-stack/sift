@@ -110,7 +110,7 @@ class DataService:
 
                 if not targets:
                     raise SiftError(
-                        f"An unexpected error occurred. Expected channel '{fqn}' to have been loaded."
+                        f"An unexpected error occurred. Expected channel '{fqn}' to have been loaded. Are you sure the asset '{asset.name}' has the channel '{fqn}'?"
                     )
                 cqueries = [ChannelQueryPb(channel_id=channel.channel_id) for channel in targets]
 
