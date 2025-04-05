@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_PingService" Id="{a13159b6-966f-46c1-9f92-0c4e093cdf17}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_PingService
+VAR_INPUT
+	hSiftClient : T_SiftClient;
+	bExecute : BOOL;
+END_VAR
+
+VAR_OUTPUT
+	bBusy : BOOL;
+	bError : BOOL;
+	nErrId : UDINT;
+	bSuccess : BOOL;
+	stSiftError : ST_SiftError;
+END_VAR
+
+VAR
+	eState : (IDLE, SEND_MESSAGE, WAIT_FOR_RESPONSE, SUCCESS, FAILURE) := IDLE;
+	fbSendSiftMessage : _FB_SendSiftMessage;
+	stPingReq : _ST_SiftMessage;
+	fbJson : FB_JsonDomParser;
+	sResponse : STRING(255);
+	jsonDoc : SJsonValue;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE eState OF
+	IDLE:
+		IF bExecute THEN
+			eState := SEND_MESSAGE;
+		END_IF
+		
+	SEND_MESSAGE:
+		bBusy := TRUE;
+		bError := FALSE;
+		
+		_F_CreatePingMessage(stMsg:=stPingReq);
+		fbSendSiftMessage(hSiftClient:=hSiftClient, stMsg:=stPingReq, bExecute:=TRUE);
+		eState := WAIT_FOR_RESPONSE;
+
+	WAIT_FOR_RESPONSE:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbSendSiftMessage(bExecute:=FALSE);
+		
+		IF fbSendSiftMessage.bBusy THEN
+			RETURN;
+		ELSIF fbSendSiftMessage.bError THEN
+			nErrId := GVL_SIFT.SIFT_PROXY_NO_RESPONSE;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+
+		MEMCPY(ADR(sResponse), ADR(fbSendSiftMessage.stResponse.aData), fbSendSiftMessage.stResponse.nLength);
+		jsonDoc := fbJson.ParseDocument(sResponse);
+		
+		IF _F_IsSuccessfulResponse(jsonDoc) THEN
+			eState := SUCCESS;
+		ELSE
+			IF NOT _F_SetSiftError(jsonDoc, stSiftError) THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+			END_IF
+			nErrId := stSiftError.nErrId;
+			eState := FAILURE;
+		END_IF
+		
+	SUCCESS:
+		bBusy := FALSE;
+		bError := FALSE;
+		bSuccess := TRUE;
+		eState := IDLE;
+		
+	FAILURE:
+		bBusy := FALSE;
+		bError := TRUE;
+		eState := IDLE;
+END_CASE
+
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

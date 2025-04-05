@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="_U_SiftChannelValue" Id="{3d19d197-dffe-41dd-9eda-28c3213a4ec1}">
+    <Declaration><![CDATA[TYPE _U_SiftChannelValue :
+UNION
+	nInt32 : DINT;
+	nUint32 : UDINT;
+	nInt64 : LINT;
+	nUint64 : ULINT;
+	bBool : BOOL;
+	fDouble : LREAL;
+	fFloat : REAL;
+	nEnum : UDINT;
+	sString : STRING(255);
+END_UNION
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

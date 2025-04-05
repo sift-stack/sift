@@ -1,0 +1,1 @@
+start "" "C:\Sift\Beckoff\sift_proxy.exe" %* udp sift_proxy --little_endian --verbose

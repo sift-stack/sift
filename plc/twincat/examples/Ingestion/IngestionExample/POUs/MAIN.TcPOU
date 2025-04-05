@@ -1,0 +1,206 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="MAIN" Id="{7ccbb6f8-c213-4a05-8b24-7eb24159ab86}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	/// Ingestion example
+	/// See https://docs.siftstack.com/docs/api/authentication 
+	/// For obtaining gRPC and API key information.
+	/// Make sure install_sift_proxy.bat script has been run.
+	sGrpcUri : STRING(255) := '';
+	sApiKey : STRING(255) := '';
+	
+	// The Ingestion Config. See https://docs.siftstack.com/docs/glossary#ingestion-config
+	stIngestionConfig : ST_IngestionConfig;
+
+	// Flows and Channels created here should all be pointers and initialized with CreateFlowConfig and CreateChannelConfig
+	pFlow1 : POINTER TO ST_FlowConfig;
+	pIntChannel1 : POINTER TO ST_ChannelConfig;
+	pEnumChannel2 : POINTER TO ST_ChannelConfig;
+	aChannel2Enums : ARRAY[1..GVL_Sift.MAX_NUM_ENUMS_PER_CHANNEL] OF ST_EnumType := [
+		(nKey:=0, sName:='enum1'),
+		(nKey:=1, sName:='enum2'),
+		(nKey:=2, sName:='enum3'),
+		(nKey:=3, sName:='enum4')
+	];
+	
+	pFlow2 : POINTER TO ST_FlowConfig;
+	pStringChannel3 : POINTER TO ST_ChannelConfig;
+	pDoubleChannel4 : POINTER TO ST_ChannelConfig;
+	
+	// Example values that would come from sensors or other parts of the PLC application.
+	nData1 : DINT := 0;
+	nData2 : UDINT := 0;
+	sData3 : STRING(255) := 'This is a string value';
+	fData4 : LREAL := 1.2345;
+
+	fbSiftClient : FB_SiftClient; // Sift Client used for all services.
+	fbIngestionConfig : FB_IngestionConfigService := (stIngestionConfig := stIngestionConfig); 	// Ingestion Config service used to register the ingestion config.
+	fbRun : FB_RunService; // Run service used to create new Runs.
+	fbIngest : FB_IngestService; // Ingest service used to stream data.
+
+	eSiftState : (INIT_SIFT_CLIENT, INIT_SIFT_CLIENT_WAIT, SUBMIT_CONFIG, SUBMIT_CONFIG_WAIT, SUBMIT_RUN, SUBMIT_RUN_WAIT, INGEST_DATA, ERROR) := INIT_SIFT_CLIENT;
+	bConfigError : BOOL;
+	bWriteOk : BOOL;
+	nErrId : UDINT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE eSiftState OF
+	// Initialize the Sift Client.
+	INIT_SIFT_CLIENT:
+		fbSiftClient(sGrpcUri := sGrpcUri, sApiKey := sApiKey, bExecute := TRUE);
+		eSiftState := INIT_SIFT_CLIENT_WAIT;
+
+	INIT_SIFT_CLIENT_WAIT:
+		fbSiftClient(bExecute := FALSE);
+		IF fbSiftClient.bBusy THEN
+			RETURN;
+		ELSIF fbSiftClient.bError THEN
+			nErrId := fbSiftClient.nErrId;
+			eSiftState := ERROR;
+			RETURN;
+		END_IF
+		eSiftState := SUBMIT_CONFIG;
+	
+	// Create and submit the ingestion config.
+	SUBMIT_CONFIG:
+		stIngestionConfig.sAssetName := 'Test-PLC-Example';
+		
+		pFlow1 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_1');
+		IF pFlow1 = 0 THEN
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
+			RETURN;
+		END_IF
+		pIntChannel1 := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+															  sName:='plc.int_channel1', 
+															  eDataType:=E_ChannelDataType.Int32, 
+															  sDescription:='An integer channel', 
+															  sUnit:='count');
+		IF pIntChannel1 = 0 THEN
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
+			RETURN;
+		END_IF
+		
+		pEnumChannel2 := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+																sName:='plc.enum_channel2', 
+																eDataType:=E_ChannelDataType.Enum, 
+																sDescription:='An enum channel', 
+																sUnit:='state');
+		IF pEnumChannel2 = 0 THEN
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
+			RETURN;
+		END_IF
+																
+		IF NOT fbIngestionConfig.InitEnumTypes(pChannelConfig := pEnumChannel2, aEnumTypes:=aChannel2Enums) THEN 
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
+			RETURN;
+		END_IF
+										   
+		pFlow2 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_2');
+		IF pFlow2 = 0 THEN
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
+			RETURN;
+		END_IF
+		
+		pStringChannel3 := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													 			 sName:='plc.string_channel3', 
+																 eDataType:=E_ChannelDataType.String_, 
+																 sDescription:='An integer channel', 
+																 sUnit:='text');
+		IF pStringChannel3 = 0 THEN
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
+			RETURN;
+		END_IF
+		
+		pDoubleChannel4 := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2,  
+												    			 sName:='plc.double_channel4', 
+																 eDataType:=E_ChannelDataType.Double, 
+																 sDescription:='A double channel', 
+																 sUnit:='V');
+		IF pDoubleChannel4 = 0 THEN
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
+			RETURN;
+		END_IF
+
+		IF NOT fbIngestionConfig.Validate() THEN
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.BUFFER_CAPACITY_REACHED;
+			RETURN;
+		END_IF
+		
+		fbIngestionConfig(bExecute:=TRUE, hSiftClient:=fbSiftClient.hSiftClient);
+		eSiftState := SUBMIT_CONFIG_WAIT;
+
+	SUBMIT_CONFIG_WAIT:
+		fbIngestionConfig(bExecute:=FALSE);
+		IF fbIngestionConfig.bBusy THEN
+			RETURN;
+		ELSIF fbIngestionConfig.bError THEN
+			nErrId := fbIngestionConfig.nErrId;
+			eSiftState := ERROR;
+			RETURN;
+		END_IF
+		eSiftState := SUBMIT_RUN;
+
+	// Create a new run
+	SUBMIT_RUN:
+		fbRun(sTitle:='', sDescription:='', bSubmit:=TRUE);
+		eSiftState := SUBMIT_RUN_WAIT;
+
+	SUBMIT_RUN_WAIT:
+		fbRun(bSubmit:=FALSE);
+		IF fbRun.bBusy THEN
+			RETURN;
+		ELSIF fbRun.bError THEN
+			nErrId := fbRun.nErrId;
+			eSiftState := ERROR;
+			RETURN;
+		END_IF
+		eSiftState := INGEST_DATA;
+
+	// Ingest data until there's an error.		
+	INGEST_DATA:
+		fbIngest(hSiftClient := fbSiftClient.hSiftClient,
+				 sIngestionConfigId:=fbIngestionConfig.sId, 
+				 sRunId:=fbRun.sId);
+				 
+		// Verify there are no ingestion errors.
+		IF fbIngest.bError THEN
+			nErrId := fbIngest.nErrId;
+			eSiftState := ERROR;
+		END_IF
+				 
+		// Update values as needed throughout the code. 
+		nData1 := nData1 + 1;
+		IF nData1 MOD 1000 = 0 THEN
+			nData2 := (nData2 + 1) MOD 4;
+		END_IF
+		SetChannelValue(pIntChannel1, nData1);
+		SetChannelValue(pEnumChannel2, nData2);
+		SetChannelValue(pStringChannel3, sData3);
+		SetChannelValue(pDoubleChannel4, fData4);
+		
+		// Call WriteData at the desired frequency for each flow 
+		bWriteOk := fbIngest.WriteData(pFlow1, GetCurrentTime());
+		IF NOT bWriteOk THEN
+			eSiftState := ERROR;
+			RETURN;
+		END_IF
+		
+		bWriteOk := fbIngest.WriteData(pFlow2, GetCurrentTime());
+		IF NOT bWriteOk THEN
+			eSiftState := ERROR;
+			RETURN;
+		END_IF
+END_CASE
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_IngestionConfig" Id="{ae044fd7-f4ac-42d7-b26e-a7ac03d69cad}">
+    <Declaration><![CDATA[TYPE ST_IngestionConfig :
+STRUCT
+	sAssetName : STRING(255);
+	aFlowConfigs : ARRAY[0..GVL_SIFT.MAX_NUM_FLOWS - 1] OF ST_FlowConfig;
+	nNumFlowConfigs : UDINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

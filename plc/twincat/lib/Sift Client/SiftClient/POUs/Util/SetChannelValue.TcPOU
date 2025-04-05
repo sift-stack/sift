@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="SetChannelValue" Id="{b0486be0-db7d-42c4-90b3-6475f110e9fc}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION SetChannelValue : BOOL
+VAR_INPUT
+	pChannel : POINTER TO ST_ChannelConfig;
+	anyValue : ANY;
+END_VAR
+VAR
+	stChannel : REFERENCE TO ST_ChannelConfig;
+	pAnyBool : POINTER TO BOOL;
+	pAnyLReal : POINTER TO LREAL;
+	pAnyEnum : POINTER TO UDINT;
+	pAnyReal : POINTER TO REAL;
+	pAnyDInt : POINTER TO DINT;
+	pAnyLInt : POINTER TO LINT;
+	pAnyUDInt : POINTER TO DINT;
+	pAnyULInt : POINTER TO LINT;
+	pAnyString : POINTER TO STRING(255);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF pChannel = 0 THEN
+	SetChannelValue := FALSE;
+	RETURN;
+END_IF
+
+stChannel REF= pChannel^;
+
+CASE stChannel.eDataType OF
+	E_ChannelDataType.Bool_:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_BOOL THEN
+			pAnyBool := anyValue.pValue;
+			stChannel.Value.bBool := pAnyBool^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+
+	E_ChannelDataType.Double:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_LREAL THEN
+			pAnyLReal := anyValue.pValue;
+			stChannel.Value.fDouble := pAnyLReal^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+		
+	E_ChannelDataType.Enum:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_UDINT THEN
+			pAnyEnum := anyValue.pValue;
+			stChannel.Value.nEnum := pAnyEnum^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+		
+	E_ChannelDataType.Float:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_REAL THEN
+			pAnyReal := anyValue.pValue;
+			stChannel.Value.fFloat := pAnyReal^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+		
+	E_ChannelDataType.Int32:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_DINT THEN
+			pAnyDInt := anyValue.pValue;
+			stChannel.Value.nInt32 := pAnyDInt^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+		
+	E_ChannelDataType.Int64:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_LINT THEN
+			pAnyLInt := anyValue.pValue;
+			stChannel.Value.nInt64 := pAnyLInt^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+		
+	E_ChannelDataType.UInt32:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_UDINT THEN
+			pAnyUDInt := anyValue.pValue;
+			stChannel.Value.nInt32 := pAnyUDInt^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+		
+	E_ChannelDataType.UInt64:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_ULINT THEN
+			pAnyULInt := anyValue.pValue;
+			stChannel.Value.nInt64 := pAnyULInt^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+		
+	E_ChannelDataType.String_:
+		IF anyValue.TypeClass = __SYSTEM.TYPE_CLASS.TYPE_STRING THEN
+			pAnyString := anyValue.pValue;
+			stChannel.Value.sString := pAnyString^;
+			stChannel.bError := FALSE;
+		ELSE
+			stChannel.bError := TRUE;
+		END_IF
+END_CASE
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

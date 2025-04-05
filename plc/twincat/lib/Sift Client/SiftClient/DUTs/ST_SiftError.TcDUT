@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_SiftError" Id="{a683186e-ad47-4198-a1bb-0226db3e164a}">
+    <Declaration><![CDATA[TYPE ST_SiftError :
+STRUCT
+	bError : BOOL;
+	nErrId : UDINT;
+	sReason : STRING;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

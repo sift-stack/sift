@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="_F_CreateIngestionConfigMessage" Id="{e5079918-0a05-4adf-bee4-a1d66848a106}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION _F_CreateIngestionConfigMessage : _ST_SiftMessage
+
+VAR_INPUT
+	stIngestionConfig : REFERENCE TO ST_IngestionConfig;
+	stMsg : REFERENCE TO _ST_SiftMessage;
+END_VAR
+
+VAR
+	fbJson : FB_JsonSaxWriter;
+	i : UDINT;
+	j : UDINT;
+	k : UDINT;
+	tmpChannelConfig : REFERENCE TO ST_ChannelConfig;
+	tmpEnumType : REFERENCE TO ST_EnumType;
+	sData : STRING(1024);
+	nBytes : UDINT;
+END_VAR
+
+VAR_OUTPUT
+	stErr : ST_SiftError;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbJson.StartObject();
+
+fbJson.AddKey('assetName');
+fbJson.AddString(stIngestionConfig.sAssetName);
+
+fbJson.AddKey('flows');
+fbJson.StartArray();
+FOR i := 1 TO stIngestionConfig.nNumFlowConfigs  BY 1 DO
+	fbJson.StartObject();
+
+	fbJson.AddKey('name');
+	fbJson.AddString(stIngestionConfig.aFlowConfigs[i-1].sName);
+
+	fbJson.AddKey('channels');
+	fbJson.StartArray();
+	FOR j := 1 TO stIngestionConfig.aFlowConfigs[i-1].nNumChannelConfigs  BY 1 DO
+		fbJson.StartObject();
+		tmpChannelConfig REF= stIngestionConfig.aFlowConfigs[i-1].aChannelConfigs[j-1];
+
+		
+		fbJson.AddKey('name');
+		fbJson.AddString(tmpChannelConfig.sName);
+
+		fbJson.AddKey('unit');
+		fbJson.AddString(tmpChannelConfig.sUnit);
+	
+		fbJson.AddKey('description');
+		fbJson.AddString(tmpChannelConfig.sDescription);
+
+		fbJson.AddKey('dataType');
+		CASE tmpChannelConfig.eDataType OF
+			E_ChannelDataType.Bool_:
+				fbJson.AddString('CHANNEL_DATA_TYPE_BOOL');
+			
+			E_ChannelDataType.Double:
+				fbJson.AddString('CHANNEL_DATA_TYPE_DOUBLE');
+			
+			E_ChannelDataType.Enum:
+				fbJson.AddString('CHANNEL_DATA_TYPE_ENUM');
+			
+			E_ChannelDataType.Float:
+				fbJson.AddString('CHANNEL_DATA_TYPE_FLOAT');
+			
+			E_ChannelDataType.Int32:
+				fbJson.AddString('CHANNEL_DATA_TYPE_INT_32');
+			
+			E_ChannelDataType.Int64:
+				fbJson.AddString('CHANNEL_DATA_TYPE_INT_64');
+			
+			E_ChannelDataType.String_:
+				fbJson.AddString('CHANNEL_DATA_TYPE_STRING');
+			
+			E_ChannelDataType.Uint32:
+				fbJson.AddString('CHANNEL_DATA_TYPE_UINT_32');
+
+			E_ChannelDataType.Uint64:
+				fbJson.AddString('CHANNEL_DATA_TYPE_UINT_64');
+		END_CASE
+		
+		fbJson.AddKey('enumTypes');
+		fbJson.StartArray();
+		FOR k := 1 TO tmpChannelConfig.nNumEnumTypes  BY 1 DO
+			tmpEnumType REF= tmpChannelConfig.aEnumTypes[k-1];
+			fbJson.StartObject();
+			
+			fbJson.AddKey('name');
+			fbJson.AddString(tmpEnumType.sName);
+			
+			fbJson.AddKey('key');
+			fbJson.AddUdint(tmpEnumType.nKey);
+			
+			fbJson.EndObject();
+		END_FOR
+		fbJson.EndArray();
+		
+		fbJson.EndObject();
+	END_FOR
+	fbJson.EndArray();
+		
+	fbJson.EndObject();
+END_FOR
+fbJson.EndArray();
+
+fbJson.EndObject();
+
+nBytes := fbJson.CopyDocument(sData, 1024) - 1;
+IF nBytes = 1024 THEN
+	stErr.nErrId := 1; (* TODO: Use real error code *)
+	stErr.bError := TRUE;
+	RETURN;
+END_IF
+stErr := _F_CreateEndpointMessage(sEndpoint:='create_ingestion_config', pData:=ADR(sData), nLength:=SIZEOF(sData), stMsg:=stMsg);
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,196 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_IngestService" Id="{3c66359b-9e66-4237-8835-89dcf998f3e0}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IngestService
+VAR_INPUT
+	hSiftClient : REFERENCE TO T_SiftClient;
+	sIngestionConfigId : STRING(255);
+	sRunId : STRING(255);
+	aFlowConfigs : POINTER TO ST_FlowConfig;
+END_VAR
+
+VAR_OUTPUT
+	bError : BOOL;
+	nErrId : UDINT;
+END_VAR
+
+VAR
+	eState : (IDLE, SEND_MESSAGE, SEND_MESSAGE_WAIT, SUCCESS, FAILURE):= IDLE;
+	fbSendRingBuffer : FB_MemRingBuffer;
+	aSendRingBuffer : ARRAY[0..GVL_SIFT.SEND_BUFFER_SIZE] OF BYTE;
+	aTmpBuffer : ARRAY[0..GVL_SIFT.SEND_BUFFER_SIZE] OF BYTE;
+	curOffset : UDINT;
+	i : UDINT;
+	nCount : UDINT;
+	nMsgsSent : UDINT;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE eState OF
+	IDLE:
+		bError := FALSE;
+		IF fbSendRingBuffer.nCount > 0 THEN
+			nCount := fbSendRingBuffer.nCount;
+			eState := SEND_MESSAGE;
+		END_IF
+		
+	SEND_MESSAGE:
+		bError := FALSE;
+		
+		curOffset := 0;
+		FOR i := 1 TO nCount DO
+			fbSendRingBuffer.A_RemoveHead(pRead := ADR(aTmpBuffer[curOffset]),
+										  cbRead := GVL_SIFT.SEND_BUFFER_SIZE - curOffset,
+										  pBuffer := ADR(aSendRingBuffer),
+										  cbBuffer := GVL_SIFT.SEND_BUFFER_SIZE);
+			IF NOT fbSendRingBuffer.bOk THEN
+				eState := FAILURE;
+				nErrId := GVL_SIFT.INGEST_RING_BUFFER_REMOVE_ERROR;
+				RETURN;
+			END_IF
+			curOffset := curOffset + fbSendRingBuffer.cbReturn;
+		END_FOR
+		nCount := 0;
+		
+		hSiftClient.fbSendTo(
+			hSocket := hSiftClient.fbCreate.hSocket, 
+			sRemoteHost := hSiftClient.sHost,
+			nRemotePort := hSiftClient.nPort,
+			pSrc := ADR(aTmpBuffer),
+			cbLen := curOffset,
+			bExecute := TRUE,
+		);
+		
+		eState := SEND_MESSAGE_WAIT;
+
+	SEND_MESSAGE_WAIT:
+		bError := FALSE;
+		hSiftClient.fbSendTo(bExecute := FALSE);
+		
+		IF hSiftClient.fbSendTo.bBusy THEN
+			RETURN;
+		ELSIF hSiftClient.fbSendTo.bError THEN
+			nErrId := hSiftClient.fbSendTo.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF	
+		
+		nMsgsSent := nMsgsSent + 1;
+		eState := IDLE;
+		
+	FAILURE:
+		bError := TRUE;
+END_CASE
+]]></ST>
+    </Implementation>
+    <Method Name="WriteData" Id="{e66bc1ce-d5b1-4b4a-9edc-01a0ca24d04c}">
+      <Declaration><![CDATA[METHOD PUBLIC WriteData : BOOL
+VAR_INPUT
+	pFlowConfig : POINTER TO ST_FlowConfig;
+	stTimestamp : ST_Timestamp;
+END_VAR
+VAR_OUTPUT
+	bError : BOOL;
+END_VAR
+VAR
+	stFlowConfig : REFERENCE TO ST_FlowConfig;
+	tmpCC : REFERENCE TO ST_ChannelConfig;
+	i : UDINT;
+	curOffset : UDINT := GVL_SIFT.HEADER_LENGTH;
+	nStrLen : UINT;
+	aCurBuf : ARRAY[0..GVL_SIFT.DATA_MESSAGE_MAX_SIZE] OF BYTE;
+	nMsgSize : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pFlowConfig = 0 THEN
+	WriteData := FALSE;
+	RETURN;
+END_IF
+
+stFlowConfig REF= pFlowConfig^;
+	
+(* Timestamp *);
+MEMCPY(ADR(aCurBuf[curOffset]), ADR(stTimestamp.nSeconds), 8);
+curOffset := curOffset + 8;
+MEMCPY(ADR(aCurBuf[curOffset]), ADR(stTimestamp.nNanoseconds), 4);
+curOffset := curOffset + 4;
+
+(* Flow Name *)
+nStrLen := LEN(stFlowConfig.sName);
+MEMCPY(ADR(aCurBuf[curOffset]), ADR(stFlowConfig.sName), nStrLen);
+aCurBuf[curOffset+nStrLen] := 0;
+curOffset := curOffset + nStrLen + 1;
+
+(* Run ID *)
+nStrLen := LEN(sRunId);
+MEMCPY(ADR(aCurBuf[curOffset]), ADR(sRunId), nStrLen);
+aCurBuf[curOffset+nStrLen] := 0;
+curOffset := curOffset + nStrLen + 1;
+
+FOR i := 1 TO stFlowConfig.nNumChannelConfigs  BY 1 DO
+	tmpCC REF= stFlowConfig.aChannelConfigs[i-1];
+	IF tmpCC.bError THEN
+		WriteData := FALSE;
+		RETURN;
+	END_IF
+	
+	CASE tmpCC.eDataType OF
+		E_ChannelDataType.Bool_:
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.bBool), 1);
+			curOffset := curOffset + 1;
+	
+		E_ChannelDataType.Double:
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.fDouble), 8);
+			curOffset := curOffset + 8;
+			
+		E_ChannelDataType.Enum:
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nEnum), 4);
+			curOffset := curOffset + 4;
+			
+		E_ChannelDataType.Float:
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.fFloat), 4);
+			curOffset := curOffset + 4;
+			
+		E_ChannelDataType.Int32:
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nInt32), 4);
+			curOffset := curOffset + 4;
+			
+		E_ChannelDataType.Int64:
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nInt64), 8);
+			curOffset := curOffset + 8;
+			
+		E_ChannelDataType.UInt32:
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nInt32), 4);
+			curOffset := curOffset + 4;
+			
+		E_ChannelDataType.UInt64:
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nInt64), 8);
+			curOffset := curOffset + 8;
+			
+		E_ChannelDataType.String_:
+			nStrLen := LEN(tmpCC.Value.sString);
+			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.sString), nStrLen);
+			aCurBuf[curOffset+nStrLen] := 0;
+			curOffset := curOffset + nStrLen + 1;
+	END_CASE
+
+END_FOR
+
+MEMCPY(ADR(aCurBuf[0]), ADR(GVL_SIFT.SYNC_WORD), 4);
+aCurBuf[GVL_SIFT.MESSAGE_TYPE_INDEX] := 16#02;
+
+nMsgSize := curOffset - GVL_SIFT.HEADER_LENGTH;
+MEMCPY(ADR(aCurBuf[GVL_SIFT.MESSGE_LENGTH_INDEX]), ADR(nMsgSize), 4);
+
+fbSendRingBuffer.A_AddTail(pWrite := ADR(aCurBuf), 
+						   cbWrite := nMsgSize + GVL_SIFT.HEADER_LENGTH, 
+						   pBuffer := ADR(aSendRingBuffer), 
+						   cbBuffer := GVL_SIFT.SEND_BUFFER_SIZE);
+						   
+WriteData := fbSendRingBuffer.bOk;]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

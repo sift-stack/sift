@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="T_SiftClient" Id="{1c2ad872-f3c7-49a0-a706-eb6035798bbf}">
+    <Declaration><![CDATA[TYPE T_SiftClient :
+STRUCT
+	sHost : T_IPv4Addr;
+	nPort : UINT;
+	sGrpcUri : STRING(255);
+	sApiKey : STRING;
+   	fbCloseAll 		: FB_SocketCloseAll;
+	fbCreate		: FB_SocketUdpCreate;
+	fbClose			: FB_SocketClose;
+	fbReceiveFrom	: FB_SocketUdpReceiveFrom;
+	fbSendTo		: FB_SocketUdpSendTo;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

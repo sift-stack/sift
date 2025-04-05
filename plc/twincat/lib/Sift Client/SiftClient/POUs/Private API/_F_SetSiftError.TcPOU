@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="_F_SetSiftError" Id="{e1dff285-17e2-4a28-9e74-7805e4415f2f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION _F_SetSiftError : BOOL
+VAR_INPUT
+	jsonDoc : SJsonValue;
+	stSiftError : REFERENCE TO ST_SiftError; 
+END_VAR
+VAR
+	fbJson : FB_JsonDomParser;
+	jsonProp : SJsonValue;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT fbJson.HasMember(jsonDoc, 'status') THEN
+	_F_SetSiftError := FALSE;
+	RETURN;
+END_IF
+
+jsonProp := fbJson.FindMember(jsonDoc, 'status');
+stSiftError.bError := fbJson.GetBool(jsonProp);
+	
+IF NOT fbJson.HasMember(jsonDoc, 'response') THEN
+	_F_SetSiftError := FALSE;
+	RETURN;
+END_IF
+
+jsonProp := fbJson.FindMember(jsonDoc, 'response');
+IF NOT fbJson.HasMember(jsonProp, 'reason') THEN
+	_F_SetSiftError := FALSE;
+	RETURN;
+END_IF
+
+jsonProp := fbJson.FindMember(jsonProp, 'reason');
+stSiftError.sReason := fbJson.GetString(jsonProp);
+
+stSiftError.nErrId := GVL_SIFT.SIFT_PROXY_SIFT_API_ERROR;
+stSiftError.bError := TRUE;
+
+_F_SetSiftError := TRUE;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

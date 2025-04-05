@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="_F_IsSuccessfulResponse" Id="{29004567-fb11-4efd-bb26-c96ffa7dcf47}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION _F_IsSuccessfulResponse : BOOL
+VAR_INPUT
+	jsonDoc : SJsonValue;
+END_VAR
+VAR
+	fbJson : FB_JsonDomParser;
+	jsonProp : SJsonValue;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT fbJson.HasMember(jsonDoc, 'status') THEN
+	_F_IsSuccessfulResponse := FALSE;
+	RETURN;
+END_IF
+
+jsonProp := fbJson.FindMember(jsonDoc, 'status');
+_F_IsSuccessfulResponse := fbJson.GetBool(jsonProp);
+	
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

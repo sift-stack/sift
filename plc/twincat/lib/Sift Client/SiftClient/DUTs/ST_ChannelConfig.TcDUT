@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_ChannelConfig" Id="{fa8bf50b-664e-4788-a759-59b3e531d27f}">
+    <Declaration><![CDATA[TYPE ST_ChannelConfig :
+STRUCT
+	sName : STRING(255);
+	eDataType : E_ChannelDataType;
+	sDescription : STRING(255);
+	sUnit : STRING(255);
+	aEnumTypes : ARRAY[0..GVL_SIFT.MAX_NUM_ENUMS_PER_CHANNEL - 1] OF ST_EnumType;
+	nNumEnumTypes : UDINT;
+	
+	Value : _U_SiftChannelValue;
+	bError : BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

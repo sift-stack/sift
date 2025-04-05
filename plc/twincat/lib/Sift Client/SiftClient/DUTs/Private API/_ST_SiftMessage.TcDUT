@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="_ST_SiftMessage" Id="{3cb988cd-a91a-4ab6-8487-5bc9f1f1555c}">
+    <Declaration><![CDATA[TYPE _ST_SiftMessage :
+STRUCT
+	nType : BYTE;
+	nLength : UDINT;
+	aData : ARRAY[1..1024] OF BYTE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

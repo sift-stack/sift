@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_RunService" Id="{70836db8-1be0-49f5-9330-dfa699479aa2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_RunService
+VAR_INPUT
+	bSubmit : BOOL;
+	sTitle : STRING(255);
+	sDescription : STRING(255);
+END_VAR
+VAR_OUTPUT
+	sId : STRING(255);
+	bBusy : BOOL;
+	bError : BOOL;
+	nErrId : UDINT;
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_FlowConfig" Id="{d7b905d6-4a1e-4014-9e1a-01f024836dbe}">
+    <Declaration><![CDATA[TYPE ST_FlowConfig :
+STRUCT
+	sName : STRING(255);
+	aChannelConfigs : ARRAY[0..GVL_SIFT.MAX_NUM_CHANNELS_PER_FLOW - 1] OF ST_ChannelConfig;
+	nNumChannelConfigs : UDINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

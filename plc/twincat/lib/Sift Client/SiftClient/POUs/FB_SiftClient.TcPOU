@@ -1,0 +1,203 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_SiftClient" Id="{4caab956-b0cf-47ee-89e4-4108cb730320}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SiftClient
+VAR_INPUT
+	sLocalHost     : T_IPv4Addr := GVL_SIFT.SIFT_CLIENT_DEFAULT_LOCAL_IP;
+	nLocalPort     : UINT       := GVL_SIFT.SIFT_CLIENT_DEFAULT_LOCAL_PORT;
+	sSiftProxyHost : T_IPv4Addr := GVL_SIFT.SIFT_PROXY_DEFAULT_HOST;
+	nSiftProxyPort : UINT       := GVL_SIFT.SIFT_PROXY_DEFAULT_LISTEN_PORT;
+	sGrpcUri : STRING(255);
+	sApiKey : STRING(255);
+	bExecute : BOOL;
+END_VAR
+
+VAR_OUTPUT
+	hSiftClient : T_SiftClient;
+	bBusy : BOOL;
+	bError : BOOL;
+	nErrId : UDINT;
+END_VAR
+
+VAR
+	fbPing : FB_PingService;
+	fbStartSiftProxy : NT_StartProcess;
+	fbFormat : FB_FormatString;
+	nAttempts : UINT;
+	startDelay : TON;
+	
+	eState : (
+		IDLE, 
+		CLOSE_ALL, 
+		CLOSE_ALL_WAIT, 
+		CREATE, 
+		CREATE_WAIT, 
+		PING, 
+		PING_WAIT, 
+		START_SIFT_PROXY, 
+		START_SIFT_PROXY_DELAY,
+		START_SIFT_PROXY_WAIT,  
+		SUCCESS, 
+		FAILURE
+	) := IDLE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE eState OF
+	IDLE:
+		IF bExecute THEN
+			eState := CLOSE_ALL;
+		END_IF
+
+	CLOSE_ALL:
+		bBusy := TRUE;
+		bError := FALSE;
+		hSiftClient.fbCloseAll(bExecute := TRUE);
+		eState := CLOSE_ALL_WAIT;
+		
+	CLOSE_ALL_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		hSiftClient.fbCloseAll(bExecute := FALSE);
+		
+		IF hSiftClient.fbCloseAll.bBusy THEN
+			RETURN;
+		ELSIF hSiftClient.fbCloseAll.bError THEN
+			nErrId := hSiftClient.fbCloseAll.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		eState := CREATE;
+
+	CREATE:
+		bBusy := TRUE;
+		bError := FALSE;
+		hSiftClient.sHost := sSiftProxyHost;
+		hSiftClient.nPort := nSiftProxyPort;
+		hSiftClient.fbCreate(sLocalHost := sLocalHost, nLocalPort := nLocalPort, bExecute := TRUE);
+		eState := CREATE_WAIT;
+		
+	CREATE_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		hSiftClient.fbCreate(bExecute := FALSE);
+		
+		IF hSiftClient.fbCreate.bBusy THEN
+			RETURN;
+		ELSIF hSiftClient.fbCreate.bError THEN
+			nErrId := hSiftClient.fbCreate.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		eState := PING;
+		
+	PING:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbPing(hSiftClient := hSiftClient, bExecute := TRUE);
+		nAttempts := nAttempts + 1;
+		IF nAttempts = 3 THEN
+			nErrId := GVL_SIFT.SIFT_PROXY_FAILED_TO_START;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		eState := PING_WAIT;
+		
+	PING_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbPing(bExecute := FALSE);
+		
+		IF fbPing.bBusy THEN
+			RETURN;
+		ELSIF fbPing.bError THEN
+			IF fbPing.nErrId = GVL_SIFT.SIFT_PROXY_NO_RESPONSE THEN
+				eState := START_SIFT_PROXY;
+				RETURN;
+			END_IF
+			
+			nErrId := fbPing.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		
+		eState := SUCCESS;
+
+	START_SIFT_PROXY:
+		bBusy := TRUE;
+		bError := FALSE;
+		IF sGrpcUri = '' THEN
+			nErrId := GVL_SIFT.INVALID_GRPC_URI;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		IF sApiKey = '' THEN
+			nErrId := GVL_SIFT.INVALID_API_KEY;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		
+		fbFormat(
+			sFormat := GVL_SIFT.SIFT_PROXY_CMD_ARGS, 
+			arg1 := F_UINT(nSiftProxyPort), 
+			arg2 := F_STRING(sGrpcUri), 
+			arg3 := F_STRING(sApiKey),
+		);
+		IF fbFormat.bError THEN
+			nErrId := fbFormat.nErrId;
+			eState := FAILURE;
+		END_IF
+		
+		fbStartSiftProxy(
+			PATHSTR:=GVL_SIFT.SIFT_PROXY_PATH, 
+			COMNDLINE:=fbFormat.sOut,
+			START := TRUE,
+		);
+
+		eState := START_SIFT_PROXY_WAIT;
+				
+	START_SIFT_PROXY_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbStartSiftProxy(START := FALSE);
+		
+		IF fbStartSiftProxy.BUSY THEN
+			RETURN;
+		ELSIF fbStartSiftProxy.ERR THEN
+			nErrId := fbStartSiftProxy.ERRID;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+
+		startDelay(IN:=FALSE);
+		startDelay(IN:=TRUE, PT:=GVL_SIFT.SIFT_PROXY_START_DELAY);
+		
+		eState := START_SIFT_PROXY_DELAY;
+
+	START_SIFT_PROXY_DELAY:
+		bBusy := TRUE;
+		bError := FALSE;
+		
+		startDelay();
+		IF NOT startDelay.Q THEN
+			RETURN;
+		END_IF
+		
+		eState := PING;
+		
+	SUCCESS:
+		bBusy := FALSE;
+		bError := FALSE;
+		eState := IDLE;
+		
+	FAILURE:
+		bBusy := FALSE;
+		bError := TRUE;
+		eState := IDLE;
+END_CASE
+
+
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

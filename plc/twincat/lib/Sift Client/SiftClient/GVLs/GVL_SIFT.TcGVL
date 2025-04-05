@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <GVL Name="GVL_SIFT" Id="{1ff28675-becd-404c-8d1f-e2b1d326c754}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL CONSTANT
+	(* Configuration *)
+	MAX_NUM_FLOWS : UDINT  := 8; (* Maximum number of Flows per Ingestion Config *)
+	MAX_NUM_CHANNELS_PER_FLOW : UDINT  := 256; (* Maximum number of Channels per Flow *)
+	MAX_NUM_ENUMS_PER_CHANNEL : UDINT  := 256; (* Maximum number of Enums per channel *)
+	
+	MAX_JSON_SIZE : UDINT := 1024;
+	DATA_MESSAGE_MAX_SIZE : UDINT := 4096;
+	SEND_BUFFER_SIZE : UDINT := DATA_MESSAGE_MAX_SIZE * 10; (* TODO: Based on number of flows *)
+	
+	(* Defaults Sift Proxy params *)
+	SIFT_PROXY_PATH : STRING := 'C:\Sift\Beckoff\start_sift_proxy.bat';
+	SIFT_PROXY_CMD_ARGS : STRING := '--listen_port=%d --grpc_uri=%s --api_key=%s';
+	SIFT_PROXY_DEFAULT_HOST : T_IPv4Addr := '127.0.0.1';
+	SIFT_PROXY_DEFAULT_LISTEN_PORT : UINT := 10010;
+	SIFT_PROXY_START_DELAY : TIME := T#5S;
+	
+	SYNC_WORD : UDINT := 16#ABCDEF00;
+	HEADER_LENGTH : UDINT := 9;
+	MESSAGE_TYPE_INDEX : BYTE := 4;
+	MESSGE_LENGTH_INDEX : BYTE := 5;
+	
+	SIFT_CLIENT_DEFAULT_LOCAL_IP : T_IPv4Addr := '127.0.0.1';
+	SIFT_CLIENT_DEFAULT_LOCAL_PORT : UINT := 10009;
+	
+	(* Error Codes *)
+	BUFFER_CAPACITY_REACHED : UDINT := 16#5000_0000; (* Buffer is at capacity *)
+	INGEST_RING_BUFFER_REMOVE_ERROR : UDINT := 16#5000_0000; (* Error removing data from ingest ring buffer *)
+	
+	SIFT_PROXY_NO_RESPONSE : UDINT := 16#5000_1000; (* No response from Sift Proxy *)
+	SIFT_PROXY_FAILED_TO_START : UDINT := 16#5000_1001;  (* Failed to start Sift Proxy *)
+	SIFT_PROXY_INVALID_RESPONSE : UDINT := 16#5000_1002;  (* Invalid response from Sift Proxy *)
+	SIFT_PROXY_INVALID_SYNC_WORD : UDINT := 16#5000_1003;  (* Invalid sync word from Sift Proxy *)
+	SIFT_PROXY_SIFT_API_ERROR : UDINT := 16#5000_1004;  (* Invalid argument to the endpoint *)
+	
+	INVALID_GRPC_URI : UDINT := 16#5000_2000;
+	INVALID_API_KEY : UDINT := 16#5000_2001;
+	INVALID_INGESTION_CONFIG : UDINT := 16#5000_2002;
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

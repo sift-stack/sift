@@ -1,0 +1,242 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_IngestionConfigService" Id="{fa570322-3000-48fa-b355-167e4a60d192}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_IngestionConfigService
+VAR_INPUT
+	hSiftClient : REFERENCE TO T_SiftClient;
+	stIngestionConfig : REFERENCE TO ST_IngestionConfig;
+	bExecute : BOOL;
+	
+END_VAR
+VAR_OUTPUT
+	bBusy : BOOL;
+	bError : BOOL;
+	nErrId : UDINT;
+	sId : STRING(255); (* Ingestion Config ID. Note: This isn't needed by the client since Sift Proxy holds onto the ID.*)
+	stSiftError : ST_SiftError;
+END_VAR
+VAR
+	eState : (IDLE, SEND_MESSAGE, WAIT_FOR_RESPONSE, SUCCESS, FAILURE) := IDLE;
+	fbSendSiftMessage : _FB_SendSiftMessage;
+	stConfigReq : _ST_SiftMessage;
+	fbJson : FB_JsonDomParser;
+	sResponse : STRING(1024);
+	jsonDoc : SJsonValue;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE eState OF
+	IDLE:		
+		IF bExecute THEN
+			eState := SEND_MESSAGE;
+		END_IF
+		
+	SEND_MESSAGE:
+		(* Serialize and send packet *)
+		bBusy := TRUE;
+		bError := FALSE;
+		
+		_F_CreateIngestionConfigMessage(stIngestionConfig := stIngestionConfig, stMsg := stConfigReq);
+		fbSendSiftMessage(hSiftClient := hSiftClient, stMsg := stConfigReq, bExecute := TRUE);
+		eState := WAIT_FOR_RESPONSE;
+
+	WAIT_FOR_RESPONSE:
+		(* Wait for response *)
+		bBusy := TRUE;
+		bError := FALSE;
+		fbSendSiftMessage(bExecute := FALSE);
+		
+		IF fbSendSiftMessage.bBusy THEN
+			RETURN;
+		ELSIF fbSendSiftMessage.bError THEN
+			nErrId := fbSendSiftMessage.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		
+		MEMCPY(ADR(sResponse), ADR(fbSendSiftMessage.stResponse.aData), fbSendSiftMessage.stResponse.nLength);
+		jsonDoc := fbJson.ParseDocument(sResponse);
+		
+		IF _F_IsSuccessfulResponse(jsonDoc) THEN
+			IF NOT fbJson.HasMember(jsonDoc, 'response') THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+				eState := FAILURE;
+				RETURN;
+			END_IF
+			jsonDoc := fbJson.FindMember(jsonDoc, 'response');
+				
+			IF NOT fbJson.HasMember(jsonDoc, 'ingestionConfig') THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+				eState := FAILURE;
+				RETURN;
+			END_IF
+			jsonDoc := fbJson.FindMember(jsonDoc, 'ingestionConfig');
+			
+			IF NOT fbJson.HasMember(jsonDoc, 'ingestionConfigId') THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+				eState := FAILURE;
+				RETURN;
+			END_IF
+			jsonDoc := fbJson.FindMember(jsonDoc, 'ingestionConfigId');
+			sId := fbJson.GetString(jsonDoc);
+			eState := SUCCESS;
+		ELSE
+			IF NOT _F_SetSiftError(jsonDoc, stSiftError) THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+			END_IF
+			nErrId := stSiftError.nErrId;
+			eState := FAILURE;
+		END_IF
+		
+	SUCCESS:
+		bBusy := FALSE;
+		bError := FALSE;
+		eState := IDLE;
+		
+	FAILURE:
+	    (* Set error *)
+		bBusy := FALSE;
+		bError := TRUE;
+		eState := IDLE;
+END_CASE
+
+
+]]></ST>
+    </Implementation>
+    <Method Name="CreateChannelConfig" Id="{aaac4fe3-becc-423b-ad6a-32269352defd}">
+      <Declaration><![CDATA[METHOD CreateChannelConfig : POINTER TO ST_ChannelConfig
+VAR_INPUT
+	pFlowConfig : POINTER TO ST_FlowConfig;
+	sName : STRING(255);
+	eDataType : E_ChannelDataType;
+	sDescription : STRING(255);
+	sUnit : STRING(255);
+END_VAR
+VAR 
+	pChannelConfig : POINTER TO ST_ChannelConfig;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pFlowConfig = 0 THEN
+	CreateChannelConfig := 0;
+	RETURN;
+END_IF
+
+IF pFlowConfig^.nNumChannelConfigs >= GVL_SIFT.MAX_NUM_CHANNELS_PER_FLOW THEN
+	CreateChannelConfig := 0;
+	RETURN;
+END_IF
+
+pChannelConfig := ADR(pFlowConfig^.aChannelConfigs[pFlowConfig^.nNumChannelConfigs]);
+pChannelConfig^.sName := sName;
+pChannelConfig^.eDataType := eDataType;
+pChannelConfig^.sDescription := sDescription;
+pChannelConfig^.sUnit := sUnit;
+
+pFlowConfig^.nNumChannelConfigs := pFlowConfig^.nNumChannelConfigs + 1;
+CreateChannelConfig := pChannelConfig;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="CreateFlowConfig" Id="{7f6457b8-5674-4f1d-8fb5-9c46c2df6fd9}">
+      <Declaration><![CDATA[METHOD CreateFlowConfig : POINTER TO ST_FlowConfig
+VAR_INPUT
+	sName : STRING(255);
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF stIngestionConfig.nNumFlowConfigs >= GVL_SIFT.MAX_NUM_FLOWS THEN
+	CreateFlowConfig := 0;
+	RETURN;
+END_IF
+
+stIngestionConfig.aFlowConfigs[stIngestionConfig.nNumFlowConfigs].sName := sName;
+CreateFlowConfig := ADR(stIngestionConfig.aFlowConfigs[stIngestionConfig.nNumFlowConfigs]);
+
+stIngestionConfig.nNumFlowConfigs := stIngestionConfig.nNumFlowConfigs + 1;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="InitEnumTypes" Id="{056d0e5c-3b46-4ff8-8e17-3e70d7c6e689}">
+      <Declaration><![CDATA[METHOD InitEnumTypes : BOOL
+VAR_INPUT
+	pChannelConfig : POINTER TO ST_ChannelConfig;
+	aEnumTypes : REFERENCE TO ARRAY[0..GVL_SIFT.MAX_NUM_ENUMS_PER_CHANNEL - 1] OF ST_EnumType;
+END_VAR
+
+VAR 
+	i : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF pChannelConfig = 0 THEN
+	InitEnumTypes := FALSE;
+	RETURN;
+END_IF
+
+IF pChannelConfig^.eDataType <> E_ChannelDataType.Enum THEN
+	InitEnumTypes := FALSE;
+	RETURN;
+END_IF
+
+
+FOR i := 1 TO GVL_SIFT.MAX_NUM_ENUMS_PER_CHANNEL DO
+	IF aEnumTypes[i-1].sName = '' THEN
+		CONTINUE;
+	END_IF
+	
+	pChannelConfig^.aEnumTypes[i-1] := aEnumTypes[i-1];
+	pChannelConfig^.nNumEnumTypes := pChannelConfig^.nNumEnumTypes + 1;
+END_FOR
+
+InitEnumTypes := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Validate" Id="{dd10a750-1299-4bef-a29e-ac224b197105}">
+      <Declaration><![CDATA[METHOD PUBLIC Validate : BOOL
+VAR_INPUT
+END_VAR
+VAR
+	nSizeInBytes : UDINT;
+	i : UDINT;
+	j : UDINT;
+	tmpChannelConfig : REFERENCE TO ST_ChannelConfig;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO stIngestionConfig.nNumFlowConfigs DO
+	FOR j := 1 TO stIngestionConfig.aFlowConfigs[i].nNumChannelConfigs DO
+		tmpChannelConfig REF= stIngestionConfig.aFlowConfigs[i-1].aChannelConfigs[j-1];
+
+		CASE tmpChannelConfig.eDataType OF
+			E_ChannelDataType.Bool_:
+				nSizeInBytes := nSizeInBytes + 1;
+			
+			E_ChannelDataType.Double:
+				nSizeInBytes := nSizeInBytes + 8;
+			
+			E_ChannelDataType.Enum:
+				nSizeInBytes := nSizeInBytes + 4;
+			
+			E_ChannelDataType.Float:
+				nSizeInBytes := nSizeInBytes + 4;
+			
+			E_ChannelDataType.Int32:
+				nSizeInBytes := nSizeInBytes + 4;
+			
+			E_ChannelDataType.Int64:
+				nSizeInBytes := nSizeInBytes + 8;
+			
+			E_ChannelDataType.String_:
+				nSizeInBytes := nSizeInBytes + 255;
+			
+			E_ChannelDataType.Uint32:
+				nSizeInBytes := nSizeInBytes + 4;
+
+			E_ChannelDataType.Uint64:
+				nSizeInBytes := nSizeInBytes + 8;
+		END_CASE
+	END_FOR
+END_FOR
+
+(* TODO: Figure out how much margin we should have. *)
+Validate := nSizeInBytes < GVL_SIFT.DATA_MESSAGE_MAX_SIZE + GVL_SIFT.HEADER_LENGTH;]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

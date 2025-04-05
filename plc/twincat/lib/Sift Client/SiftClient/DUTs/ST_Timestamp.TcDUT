@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_Timestamp" Id="{01de8f73-6f27-4d69-8664-6f5026c4f720}">
+    <Declaration><![CDATA[TYPE ST_Timestamp :
+STRUCT
+	nSeconds : LINT;
+	nNanoseconds : DINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

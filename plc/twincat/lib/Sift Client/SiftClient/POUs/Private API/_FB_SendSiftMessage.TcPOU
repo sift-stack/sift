@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="_FB_SendSiftMessage" Id="{7623e9eb-5640-4421-9ec0-77d8fab14f49}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK _FB_SendSiftMessage
+VAR_INPUT
+	hSiftClient : REFERENCE TO T_SiftClient;
+	stMsg : REFERENCE TO _ST_SiftMessage;
+	bExecute : BOOL;
+	bWaitForReply : BOOL := TRUE;
+	tReplyTimeout : TIME := T#1S;
+END_VAR
+VAR_OUTPUT
+	bBusy : BOOL;
+	bError : BOOL;
+	stResponse : _ST_SiftMessage;
+	nErrId : UDINT;
+END_VAR
+
+VAR
+	eState : (IDLE, SEND_MESSAGE, SEND_MESSAGE_WAIT, RECEIVE_REPLY_START_TIMER, RECEIVE_REPLY, RECEIVE_REPLY_WAIT, SUCCESS, FAILURE):= IDLE;
+	aBuffer : ARRAY[0..1023] OF BYTE;
+	nRecvSyncWord : UDINT;	
+	nRecvCount : UDINT;
+	responseTimer : TON;
+	tElapsedTime : TIME;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE eState OF
+	IDLE:
+		IF bExecute THEN
+			eState := SEND_MESSAGE;
+		END_IF
+		
+	SEND_MESSAGE:
+		bBusy := TRUE;
+		bError := FALSE;
+		
+		MEMCPY(ADR(aBuffer[0]), ADR(GVL_SIFT.SYNC_WORD), 4);
+		aBuffer[GVL_SIFT.MESSAGE_TYPE_INDEX] := stMsg.nType;
+		MEMCPY(ADR(aBuffer[GVL_SIFT.MESSGE_LENGTH_INDEX]), ADR(stMsg.nLength), 4);
+		MEMCPY(ADR(aBuffer[GVL_SIFT.HEADER_LENGTH]), ADR(stMsg.aData), stMsg.nLength);
+		
+		hSiftClient.fbSendTo(
+			hSocket := hSiftClient.fbCreate.hSocket, 
+			sRemoteHost := hSiftClient.sHost,
+			nRemotePort := hSiftClient.nPort,
+			pSrc := ADR(aBuffer),
+			cbLen := stMsg.nLength + GVL_SIFT.HEADER_LENGTH,
+			bExecute := TRUE,
+		);
+		
+		eState := SEND_MESSAGE_WAIT;
+
+	SEND_MESSAGE_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		hSiftClient.fbSendTo(bExecute := FALSE);
+		
+		IF hSiftClient.fbSendTo.bBusy THEN
+			RETURN;
+		ELSIF hSiftClient.fbSendTo.bError THEN
+			nErrId := hSiftClient.fbSendTo.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		
+		IF bWaitForReply THEN
+			eState := RECEIVE_REPLY_START_TIMER;
+		ELSE
+			eState := SUCCESS;
+		END_IF
+	
+	RECEIVE_REPLY_START_TIMER:
+		bBusy := TRUE;
+		bError := FALSE;
+		responseTimer(IN:=FALSE);
+		responseTimer(IN:=TRUE, PT:=tReplyTimeout);
+		eState := RECEIVE_REPLY;
+		
+	RECEIVE_REPLY:
+		bBusy := TRUE;
+		bError := FALSE;
+
+		hSiftClient.fbReceiveFrom(
+			hSocket := hSiftClient.fbCreate.hSocket,
+			cbLen := 1024,
+			pDest := ADR(aBuffer),
+			bExecute := TRUE,
+		);
+		eState := RECEIVE_REPLY_WAIT;
+		
+	RECEIVE_REPLY_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		hSiftClient.fbReceiveFrom(bExecute := FALSE);
+		responseTimer();
+		tElapsedTime := responseTimer.ET;
+				
+		IF hSiftClient.fbReceiveFrom.bBusy THEN
+			RETURN;
+		ELSIF hSiftClient.fbReceiveFrom.bError THEN
+			IF responseTimer.Q THEN
+				nErrId := hSiftClient.fbReceiveFrom.nErrId;
+				eState := FAILURE;
+			ELSE
+				eState := RECEIVE_REPLY;
+			END_IF
+			RETURN;
+		END_IF
+		
+		IF hSiftClient.fbReceiveFrom.nRecBytes < GVL_SIFT.HEADER_LENGTH THEN
+			IF responseTimer.Q THEN
+				eState := FAILURE;
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+			ELSE	
+				eState := RECEIVE_REPLY;
+			END_IF		
+			RETURN;
+		END_IF
+		
+		MEMCPY(ADR(nRecvSyncWord), ADR(aBuffer), 4);
+		IF nRecvSyncWord <> GVL_SIFT.SYNC_WORD THEN
+			eState := FAILURE;
+			nErrId := GVL_SIFT.SIFT_PROXY_INVALID_SYNC_WORD;;
+			RETURN;
+		END_IF
+		
+		stResponse.nType := aBuffer[GVL_SIFT.MESSAGE_TYPE_INDEX];
+		MEMCPY(ADR(stResponse.nLength), ADR(aBuffer[GVL_SIFT.MESSGE_LENGTH_INDEX]), 4);
+		
+		nRecvCount := hSiftClient.fbReceiveFrom.nRecBytes - GVL_SIFT.HEADER_LENGTH;
+		IF nRecvCount = 0 THEN
+			eState := FAILURE;
+			nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;;
+			RETURN;
+		END_IF
+		
+		IF nRecvCount > (1024 - GVL_SIFT.HEADER_LENGTH) THEN
+			eState := FAILURE;
+			nErrId := GVL_SIFT.BUFFER_CAPACITY_REACHED;;
+			RETURN;
+		END_IF
+		MEMCPY(ADR(stResponse.aData), ADR(aBuffer[GVL_SIFT.HEADER_LENGTH]), nRecvCount);
+		
+		eState := SUCCESS;
+		
+	SUCCESS:
+		bBusy := FALSE;
+		bError := FALSE;
+		eState := IDLE;
+		
+	FAILURE:
+		bBusy := FALSE;
+		bError := TRUE;
+		eState := IDLE;
+END_CASE
+
+
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
