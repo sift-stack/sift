@@ -6,6 +6,7 @@ import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/organization.proto";
 
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -42,6 +43,15 @@ service ApiKeyService {
       operation_id: "ApiKeyService_DeleteApiKeyV2"
     };
   }
+
+  rpc ApiKeyOrganization(ApiKeyOrganizationRequest) returns (ApiKeyOrganizationResponse) {
+    option (google.api.http) = {get: "/api/v2/api-keys/organization"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ApiKeyOrganization"
+      description: "Retrieves the organization for an API key."
+      operation_id: "ApiKeyService_ApiKeyOrganizationV2"
+    };
+  }
 }
 
 message ApiKey {
@@ -75,7 +85,6 @@ message ListApiKeysRequest {
 
   // A page token, received from a previous `ListApiKeys` call.
   // Provide this to retrieve the subsequent page.
-  //
   // When paginating, all other parameters provided to `ListApiKeys` must match
   // the call that provided the page token.
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
@@ -113,3 +122,9 @@ message DeleteApiKeyRequest {
 }
 
 message DeleteApiKeyResponse {}
+
+message ApiKeyOrganizationRequest {}
+
+message ApiKeyOrganizationResponse {
+  sift.common.type.v1.Organization organization = 1;
+}
