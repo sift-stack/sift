@@ -6,6 +6,8 @@
 VAR_INPUT
 	stIngestionConfig : REFERENCE TO ST_IngestionConfig;
 	stMsg : REFERENCE TO _ST_SiftMessage;
+	pJsonBuffer : POINTER TO BYTE;
+	nLength : UDINT;
 END_VAR
 
 VAR
@@ -15,7 +17,7 @@ VAR
 	k : UDINT;
 	tmpChannelConfig : REFERENCE TO ST_ChannelConfig;
 	tmpEnumType : REFERENCE TO ST_EnumType;
-	sData : STRING(1024);
+	pJsonString : POINTER TO STRING;
 	nBytes : UDINT;
 END_VAR
 
@@ -24,7 +26,14 @@ VAR_OUTPUT
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fbJson.StartObject();
+      <ST><![CDATA[IF pJsonBuffer = 0 THEN
+	stErr.bError := TRUE;
+	stErr.nErrId := GVL_SIFT.NULL_JSON_POINTER;
+	stErr.sReason := 'The JSON buffer is null';
+	RETURN;
+END_IF
+
+fbJson.StartObject();
 
 fbJson.AddKey('assetName');
 fbJson.AddString(stIngestionConfig.sAssetName);
@@ -109,14 +118,23 @@ fbJson.EndArray();
 
 fbJson.EndObject();
 
-nBytes := fbJson.CopyDocument(sData, 1024) - 1;
-IF nBytes = 1024 THEN
+pJsonString := pJsonBuffer;
+nBytes := fbJson.CopyDocument(pJsonString^, nLength);
+IF nBytes = 0 THEN
 	stErr.nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
 	stErr.bError := TRUE;
+	stErr.sReason := CONCAT(
+		CONCAT('JSON msg too large: ', UDINT_TO_STRING(fbJson.GetDocumentLength())),
+		' endpoint=create_ingestion_config',
+	);
 	RETURN;
 END_IF
 
-stErr := _F_CreateEndpointMessage(sEndpoint:='create_ingestion_config', pData:=ADR(sData), nLength:=nBytes, stMsg:=stMsg);
+stErr := _F_CreateEndpointMessage(sEndpoint:='create_ingestion_config', 
+                                  pData:=pJsonString, 
+                                  nLength:=nBytes-1,
+                                  nBufferLength := nLength, 
+                                  stMsg:=stMsg);
 ]]></ST>
     </Implementation>
   </POU>

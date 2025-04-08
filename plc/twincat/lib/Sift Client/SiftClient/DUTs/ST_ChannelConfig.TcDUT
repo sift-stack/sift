@@ -11,7 +11,6 @@ STRUCT
 	nNumEnumTypes : UDINT;
 	
 	Value : _U_SiftChannelValue;
-	bError : BOOL;
 END_STRUCT
 END_TYPE
 ]]></Declaration>

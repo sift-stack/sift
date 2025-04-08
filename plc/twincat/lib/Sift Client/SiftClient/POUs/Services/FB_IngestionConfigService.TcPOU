@@ -20,7 +20,7 @@ VAR
 	fbSendSiftMessage : _FB_SendSiftMessage;
 	stConfigReq : _ST_SiftMessage;
 	fbJson : FB_JsonDomParser;
-	sResponse : STRING(1024);
+	sResponse : STRING(GVL_SIFT.SIFT_PROXY_RESP_MAX_UDP_MESSAGE_SIZE);
 	jsonDoc : SJsonValue;
 END_VAR]]></Declaration>
     <Implementation>
@@ -35,7 +35,9 @@ END_VAR]]></Declaration>
 		bError := FALSE;
 		
 		stSiftError := _F_CreateIngestionConfigMessage(stIngestionConfig := stIngestionConfig, 
-													   stMsg := stConfigReq);
+													   stMsg := stConfigReq,
+													   pJsonBuffer := hSiftClient.pJsonBuffer,
+													   nLength := hSiftClient.pJbLength);
 		IF stSiftError.bError THEN
 			nErrId := stSiftError.nErrId;
 			eState := FAILURE;

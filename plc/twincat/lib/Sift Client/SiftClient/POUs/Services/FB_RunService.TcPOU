@@ -41,7 +41,9 @@ END_VAR
 		stSiftError := _F_CreateRunMessage(stMsg:=stRunReq,
 										   sName := sName,
 										   sDescription := sDescription,
-										   aTags := aTags);
+										   aTags := aTags,
+										   pJsonBuffer := hSiftClient.pJsonBuffer,
+										   nLength := hSiftClient.pJbLength);
 		IF stSiftError.bError THEN
 			nErrId := stSiftError.nErrId;
 			eState := FAILURE;

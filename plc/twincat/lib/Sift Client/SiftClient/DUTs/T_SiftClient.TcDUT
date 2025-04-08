@@ -3,15 +3,23 @@
   <DUT Name="T_SiftClient" Id="{1c2ad872-f3c7-49a0-a706-eb6035798bbf}">
     <Declaration><![CDATA[TYPE T_SiftClient :
 STRUCT
-	sHost : T_IPv4Addr;
-	nPort : UINT;
-	sGrpcUri : STRING(255);
-	sApiKey : STRING;
+	sHost : T_IPv4Addr; // Sift Proxy address.
+	nPort : UINT; // Sift Proxy port.
+	
+	sGrpcUri : STRING(255); // Sift gRPC URI.
+	sApiKey : STRING; // Sift API key.
+	
+	pJsonBuffer : POINTER TO BYTE;
+	pJbLength : UDINT;
+	
+	// UDP function blocks.
    	fbCloseAll 		: FB_SocketCloseAll;
 	fbCreate		: FB_SocketUdpCreate;
 	fbClose			: FB_SocketClose;
 	fbReceiveFrom	: FB_SocketUdpReceiveFrom;
 	fbSendTo		: FB_SocketUdpSendTo;
+	
+	
 END_STRUCT
 END_TYPE
 ]]></Declaration>

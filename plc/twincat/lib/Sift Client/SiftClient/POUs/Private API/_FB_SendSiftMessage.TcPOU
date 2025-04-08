@@ -18,11 +18,11 @@ END_VAR
 
 VAR
 	eState : (IDLE, SEND_MESSAGE, SEND_MESSAGE_WAIT, RECEIVE_REPLY_START_TIMER, RECEIVE_REPLY, RECEIVE_REPLY_WAIT, SUCCESS, FAILURE):= IDLE;
-	aBuffer : ARRAY[0..1023] OF BYTE;
+	aBuffer : ARRAY[0..SiftClientParameters.MAX_UDP_PACKET_SIZE] OF BYTE;
 	nRecvSyncWord : UDINT;	
 	nRecvCount : UDINT;
 	responseTimer : TON;
-	tElapsedTime : TIME;
+	nBytes : UDINT;
 END_VAR
 
 ]]></Declaration>
@@ -37,10 +37,28 @@ END_VAR
 		bBusy := TRUE;
 		bError := FALSE;
 		
-		MEMCPY(ADR(aBuffer[0]), ADR(GVL_SIFT.SYNC_WORD), 4);
+		nBytes := MEMCPY(ADR(aBuffer[0]), ADR(GVL_SIFT.SYNC_WORD), 4);
+		IF nBytes = 0 THEN
+			nErrId := GVL_SIFT.MEMCPY_ERROR;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		
 		aBuffer[GVL_SIFT.MESSAGE_TYPE_INDEX] := stMsg.nType;
-		MEMCPY(ADR(aBuffer[GVL_SIFT.MESSGE_LENGTH_INDEX]), ADR(stMsg.nLength), 4);
-		MEMCPY(ADR(aBuffer[GVL_SIFT.HEADER_LENGTH]), ADR(stMsg.aData), stMsg.nLength);
+		
+		nBytes := MEMCPY(ADR(aBuffer[GVL_SIFT.MESSGE_LENGTH_INDEX]), ADR(stMsg.nLength), 4);
+		IF nBytes = 0 THEN
+			nErrId := GVL_SIFT.MEMCPY_ERROR;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		
+		nBytes := MEMCPY(ADR(aBuffer[GVL_SIFT.HEADER_LENGTH]), ADR(stMsg.aData), stMsg.nLength);
+		IF nBytes = 0 THEN
+			nErrId := GVL_SIFT.MEMCPY_ERROR;
+			eState := FAILURE;
+			RETURN;
+		END_IF
 		
 		hSiftClient.fbSendTo(
 			hSocket := hSiftClient.fbCreate.hSocket, 
@@ -85,7 +103,7 @@ END_VAR
 
 		hSiftClient.fbReceiveFrom(
 			hSocket := hSiftClient.fbCreate.hSocket,
-			cbLen := 1024,
+			cbLen := GVL_SIFT.SIFT_PROXY_RESP_MAX_UDP_MESSAGE_SIZE,
 			pDest := ADR(aBuffer),
 			bExecute := TRUE,
 		);
@@ -96,7 +114,6 @@ END_VAR
 		bError := FALSE;
 		hSiftClient.fbReceiveFrom(bExecute := FALSE);
 		responseTimer();
-		tElapsedTime := responseTimer.ET;
 				
 		IF hSiftClient.fbReceiveFrom.bBusy THEN
 			RETURN;
@@ -120,7 +137,12 @@ END_VAR
 			RETURN;
 		END_IF
 		
-		MEMCPY(ADR(nRecvSyncWord), ADR(aBuffer), 4);
+		nBytes := MEMCPY(ADR(nRecvSyncWord), ADR(aBuffer), 4);
+		IF nBytes = 0 THEN
+			nErrId := GVL_SIFT.MEMCPY_ERROR;
+			eState := FAILURE;
+			RETURN;
+		END_IF
 		IF nRecvSyncWord <> GVL_SIFT.SYNC_WORD THEN
 			eState := FAILURE;
 			nErrId := GVL_SIFT.SIFT_PROXY_INVALID_SYNC_WORD;;
@@ -128,7 +150,13 @@ END_VAR
 		END_IF
 		
 		stResponse.nType := aBuffer[GVL_SIFT.MESSAGE_TYPE_INDEX];
-		MEMCPY(ADR(stResponse.nLength), ADR(aBuffer[GVL_SIFT.MESSGE_LENGTH_INDEX]), 4);
+		
+		nBytes := MEMCPY(ADR(stResponse.nLength), ADR(aBuffer[GVL_SIFT.MESSGE_LENGTH_INDEX]), 4);
+		IF nBytes = 0 THEN
+			nErrId := GVL_SIFT.MEMCPY_ERROR;
+			eState := FAILURE;
+			RETURN;
+		END_IF
 		
 		nRecvCount := hSiftClient.fbReceiveFrom.nRecBytes - GVL_SIFT.HEADER_LENGTH;
 		IF nRecvCount = 0 THEN
@@ -137,13 +165,19 @@ END_VAR
 			RETURN;
 		END_IF
 		
-		IF nRecvCount > (1024 - GVL_SIFT.HEADER_LENGTH) THEN
+		IF nRecvCount > (GVL_SIFT.SIFT_PROXY_RESP_MAX_UDP_MESSAGE_SIZE - GVL_SIFT.HEADER_LENGTH) THEN
 			eState := FAILURE;
 			nErrId := GVL_SIFT.BUFFER_CAPACITY_REACHED;;
 			RETURN;
 		END_IF
-		MEMCPY(ADR(stResponse.aData), ADR(aBuffer[GVL_SIFT.HEADER_LENGTH]), nRecvCount);
-
+		
+		nBytes := MEMCPY(ADR(stResponse.aData), ADR(aBuffer[GVL_SIFT.HEADER_LENGTH]), nRecvCount);
+		IF nBytes = 0 THEN
+			nErrId := GVL_SIFT.MEMCPY_ERROR;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		
 		IF stResponse.nType <> 16#FF THEN
 			eState := FAILURE;
 			nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;;

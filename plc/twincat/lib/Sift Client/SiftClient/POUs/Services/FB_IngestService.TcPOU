@@ -130,10 +130,6 @@ curOffset := curOffset + nStrLen + 1;
 
 FOR i := 1 TO stFlowConfig.nNumChannelConfigs  BY 1 DO
 	tmpCC REF= stFlowConfig.aChannelConfigs[i-1];
-	IF tmpCC.bError THEN
-		WriteData := FALSE;
-		RETURN;
-	END_IF
 	
 	CASE tmpCC.eDataType OF
 		E_ChannelDataType.Bool_:

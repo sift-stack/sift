@@ -7,8 +7,13 @@ VAR_INPUT
 	nLocalPort     : UINT       := GVL_SIFT.SIFT_CLIENT_DEFAULT_LOCAL_PORT;
 	sSiftProxyHost : T_IPv4Addr := GVL_SIFT.SIFT_PROXY_DEFAULT_HOST;
 	nSiftProxyPort : UINT       := GVL_SIFT.SIFT_PROXY_DEFAULT_LISTEN_PORT;
+	
 	sGrpcUri : STRING(255);
 	sApiKey : STRING(255);
+	
+	pJsonBuffer : POINTER TO BYTE;
+	pJbLength : UDINT;
+	
 	bExecute : BOOL;
 END_VAR
 
@@ -74,6 +79,15 @@ END_VAR
 		bError := FALSE;
 		hSiftClient.sHost := sSiftProxyHost;
 		hSiftClient.nPort := nSiftProxyPort;
+		
+		IF pJsonBuffer = 0 THEN
+			nErrId := GVL_SIFT.NULL_JSON_POINTER;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		hSiftClient.pJsonBuffer := pJsonBuffer;
+		hSiftClient.pJbLength := pJbLength;
+		
 		hSiftClient.fbCreate(sLocalHost := sLocalHost, nLocalPort := nLocalPort, bExecute := TRUE);
 		eState := CREATE_WAIT;
 		

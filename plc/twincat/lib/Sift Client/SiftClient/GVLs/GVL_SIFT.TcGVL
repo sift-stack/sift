@@ -9,6 +9,7 @@ VAR_GLOBAL CONSTANT
 	SIFT_PROXY_DEFAULT_HOST : T_IPv4Addr := '127.0.0.1';
 	SIFT_PROXY_DEFAULT_LISTEN_PORT : UINT := 10010;
 	SIFT_PROXY_START_DELAY : TIME := T#5S;
+	SIFT_PROXY_RESP_MAX_UDP_MESSAGE_SIZE : UDINT := 1024;
 	
 	SYNC_WORD : UDINT := 16#ABCDEF00;
 	HEADER_LENGTH : UDINT := 9;
@@ -20,8 +21,10 @@ VAR_GLOBAL CONSTANT
 	
 	(* Error Codes *)
 	BUFFER_CAPACITY_REACHED : UDINT := 16#5000_0000; // Buffer is at capacity.
-	JSON_CAPACITY_REACHED : UDINT := 16#5000_0001; // JSON message is too large. Should increase MAX_JSON_SIZE parameter.
-	INGEST_RING_BUFFER_REMOVE_ERROR : UDINT := 16#5000_0002; // Error removing data from ingest ring buffer.
+	JSON_CAPACITY_REACHED : UDINT := 16#5000_0001; // JSON message is too large. Should increase JSON buffer size.
+	NULL_JSON_POINTER : UDINT := 16#5000_0002; // The JSON buffer passed in is Null.
+	INGEST_RING_BUFFER_REMOVE_ERROR : UDINT := 16#5000_0003; // Error removing data from ingest ring buffer.
+	MEMCPY_ERROR : UDINT := 16#5000_0004; // Error calling MEMCPY
 	
 	SIFT_PROXY_NO_RESPONSE : UDINT := 16#5000_1000; // No response from Sift Proxy
 	SIFT_PROXY_FAILED_TO_START : UDINT := 16#5000_1001;  // Failed to start Sift Proxy

@@ -7,20 +7,29 @@ VAR_INPUT
 	sDescription : STRING(255);
 	aTags : ARRAY[0..SiftClientParameters.MAX_NUM_TAGS] OF STRING(255);
 	stMsg : REFERENCE TO _ST_SiftMessage;
+	pJsonBuffer : POINTER TO BYTE;
+	nLength : UDINT;
 END_VAR
 
 VAR
 	fbJson : FB_JsonSaxWriter;
 	i : UDINT;
-	sData : STRING(1024);
 	nBytes : UDINT;
+	pJsonString: POINTER TO STRING;
 END_VAR
 
 VAR_OUTPUT
 	stErr : ST_SiftError;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fbJson.StartObject();
+      <ST><![CDATA[IF pJsonBuffer = 0 THEN
+	stErr.bError := TRUE;
+	stErr.nErrId := GVL_SIFT.NULL_JSON_POINTER;
+	stErr.sReason := 'The JSON buffer is null';
+	RETURN;
+END_IF
+
+fbJson.StartObject();
 
 fbJson.AddKey('name');
 fbJson.AddString(sName);
@@ -39,14 +48,19 @@ fbJson.EndArray();
 
 fbJson.EndObject();
 
-nBytes := fbJson.CopyDocument(sData, 1024) - 1;
-IF nBytes = 1024 THEN
+pJsonString := pJsonBuffer;
+nBytes := fbJson.CopyDocument(pJsonString^, nLength);
+IF nBytes = 0 THEN
 	stErr.nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
 	stErr.bError := TRUE;
 	RETURN;
 END_IF
 
-stErr := _F_CreateEndpointMessage(sEndpoint:='create_run', pData:=ADR(sData), nLength:=nBytes, stMsg:=stMsg);]]></ST>
+stErr := _F_CreateEndpointMessage(sEndpoint:='create_run', 
+								  pData:=pJsonString, 
+								  nLength:=nBytes-1, 
+                                  nBufferLength := nLength, 
+                                  stMsg:=stMsg);]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>
