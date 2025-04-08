@@ -7,7 +7,7 @@ STRUCT
 	eDataType : E_ChannelDataType;
 	sDescription : STRING(255);
 	sUnit : STRING(255);
-	aEnumTypes : ARRAY[0..GVL_SIFT.MAX_NUM_ENUMS_PER_CHANNEL - 1] OF ST_EnumType;
+	aEnumTypes : ARRAY[0..SiftClientParameters.MAX_NUM_ENUMS_PER_CHANNEL - 1] OF ST_EnumType;
 	nNumEnumTypes : UDINT;
 	
 	Value : _U_SiftChannelValue;

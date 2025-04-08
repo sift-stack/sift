@@ -133,7 +133,7 @@ END_VAR
 		nRecvCount := hSiftClient.fbReceiveFrom.nRecBytes - GVL_SIFT.HEADER_LENGTH;
 		IF nRecvCount = 0 THEN
 			eState := FAILURE;
-			nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;;
+			nErrId := GVL_SIFT.SIFT_PROXY_NO_RESPONSE;;
 			RETURN;
 		END_IF
 		
@@ -143,6 +143,12 @@ END_VAR
 			RETURN;
 		END_IF
 		MEMCPY(ADR(stResponse.aData), ADR(aBuffer[GVL_SIFT.HEADER_LENGTH]), nRecvCount);
+
+		IF stResponse.nType <> 16#FF THEN
+			eState := FAILURE;
+			nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;;
+			RETURN;
+		END_IF
 		
 		eState := SUCCESS;
 		

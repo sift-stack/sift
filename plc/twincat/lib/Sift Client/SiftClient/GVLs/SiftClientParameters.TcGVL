@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <GVL Name="SiftClientParameters" Id="{e264b09a-7a34-4941-b8fb-3ffbb93a8966}" ParameterList="True">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL CONSTANT
+	MAX_NUM_FLOWS : UDINT := 8; // Max number of Flows per Ingestion Config.
+	MAX_NUM_CHANNELS_PER_FLOW : UDINT := 256; // Max number of Channels per Flow.
+	MAX_NUM_ENUMS_PER_CHANNEL : UDINT := 256; // Max number of Enums per Channel.
+	MAX_NUM_TAGS : UDINT := 32; // Max number of tags (for a run).
+	
+	MAX_JSON_SIZE : UDINT := 1024; // Max expected JSON size.
+	MAX_DATA_MESSAGE_SIZE : UDINT := 4096; // Max size of a Sift Proxy Data Message type.
+	MAX_UDP_PACKET_SIZE : UDINT := MAX_DATA_MESSAGE_SIZE * MAX_NUM_FLOWS; // The max size of a UDP packet.
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

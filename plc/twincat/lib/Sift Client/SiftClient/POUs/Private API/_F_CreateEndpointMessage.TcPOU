@@ -11,7 +11,7 @@ END_VAR
 
 VAR
 	fbJson : FB_JsonSaxWriter;
-	sBuffer : STRING(GVL_SIFT.MAX_JSON_SIZE);
+	sBuffer : STRING(SiftClientParameters.MAX_JSON_SIZE);
 	nBytes : UDINT;
 END_VAR
 
@@ -20,8 +20,7 @@ VAR_OUTPUT
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[(* TODO: Use library constant for stMsg max length *)
-IF nLength > GVL_SIFT.MAX_JSON_SIZE THEN
+      <ST><![CDATA[IF nLength > SiftClientParameters.MAX_JSON_SIZE THEN
 	stErr.bError := TRUE;
 	stErr.nErrId := 1;
 END_IF
@@ -33,16 +32,16 @@ fbJson.AddKey('data');
 fbJson.AddRawObject(pData^);
 fbJson.EndObject();
 
-nBytes := fbJson.CopyDocument(sBuffer, GVL_SIFT.MAX_JSON_SIZE) - 1;  (* Omit null delimeter *)
+nBytes := fbJson.CopyDocument(sBuffer, SiftClientParameters.MAX_JSON_SIZE) - 1;  (* Omit null delimeter *)
 
-IF nBytes > GVL_SIFT.MAX_JSON_SIZE THEN
+IF nBytes > SiftClientParameters.MAX_JSON_SIZE THEN
 	stErr.bError := TRUE;
-	stErr.nErrId := GVL_SIFT.BUFFER_CAPACITY_REACHED;
+	stErr.nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
 	RETURN;
 END_IF
 
 MEMCPY(ADR(stMsg.aData), ADR(sBuffer), nBytes);
-stMsg.nType := 1;
+stMsg.nType := 16#01;
 stMsg.nLength := nBytes;]]></ST>
     </Implementation>
   </POU>

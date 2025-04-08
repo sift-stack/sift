@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_F_CreateIngestionConfigMessage" Id="{e5079918-0a05-4adf-bee4-a1d66848a106}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION _F_CreateIngestionConfigMessage : _ST_SiftMessage
+    <Declaration><![CDATA[FUNCTION _F_CreateIngestionConfigMessage 
 
 VAR_INPUT
 	stIngestionConfig : REFERENCE TO ST_IngestionConfig;
@@ -31,7 +31,7 @@ fbJson.AddString(stIngestionConfig.sAssetName);
 
 fbJson.AddKey('flows');
 fbJson.StartArray();
-FOR i := 1 TO stIngestionConfig.nNumFlowConfigs  BY 1 DO
+FOR i := 1 TO stIngestionConfig.nNumFlowConfigs DO
 	fbJson.StartObject();
 
 	fbJson.AddKey('name');
@@ -39,7 +39,7 @@ FOR i := 1 TO stIngestionConfig.nNumFlowConfigs  BY 1 DO
 
 	fbJson.AddKey('channels');
 	fbJson.StartArray();
-	FOR j := 1 TO stIngestionConfig.aFlowConfigs[i-1].nNumChannelConfigs  BY 1 DO
+	FOR j := 1 TO stIngestionConfig.aFlowConfigs[i-1].nNumChannelConfigs DO
 		fbJson.StartObject();
 		tmpChannelConfig REF= stIngestionConfig.aFlowConfigs[i-1].aChannelConfigs[j-1];
 
@@ -85,7 +85,7 @@ FOR i := 1 TO stIngestionConfig.nNumFlowConfigs  BY 1 DO
 		
 		fbJson.AddKey('enumTypes');
 		fbJson.StartArray();
-		FOR k := 1 TO tmpChannelConfig.nNumEnumTypes  BY 1 DO
+		FOR k := 1 TO tmpChannelConfig.nNumEnumTypes DO
 			tmpEnumType REF= tmpChannelConfig.aEnumTypes[k-1];
 			fbJson.StartObject();
 			
@@ -111,11 +111,12 @@ fbJson.EndObject();
 
 nBytes := fbJson.CopyDocument(sData, 1024) - 1;
 IF nBytes = 1024 THEN
-	stErr.nErrId := 1; (* TODO: Use real error code *)
+	stErr.nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
 	stErr.bError := TRUE;
 	RETURN;
 END_IF
-stErr := _F_CreateEndpointMessage(sEndpoint:='create_ingestion_config', pData:=ADR(sData), nLength:=SIZEOF(sData), stMsg:=stMsg);
+
+stErr := _F_CreateEndpointMessage(sEndpoint:='create_ingestion_config', pData:=ADR(sData), nLength:=nBytes, stMsg:=stMsg);
 ]]></ST>
     </Implementation>
   </POU>

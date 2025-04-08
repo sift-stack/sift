@@ -4,7 +4,7 @@
     <Declaration><![CDATA[TYPE ST_FlowConfig :
 STRUCT
 	sName : STRING(255);
-	aChannelConfigs : ARRAY[0..GVL_SIFT.MAX_NUM_CHANNELS_PER_FLOW - 1] OF ST_ChannelConfig;
+	aChannelConfigs : ARRAY[0..SiftClientParameters.MAX_NUM_CHANNELS_PER_FLOW - 1] OF ST_ChannelConfig;
 	nNumChannelConfigs : UDINT;
 END_STRUCT
 END_TYPE

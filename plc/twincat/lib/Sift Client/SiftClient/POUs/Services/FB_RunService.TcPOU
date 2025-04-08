@@ -3,21 +3,112 @@
   <POU Name="FB_RunService" Id="{70836db8-1be0-49f5-9330-dfa699479aa2}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_RunService
 VAR_INPUT
-	bSubmit : BOOL;
-	sTitle : STRING(255);
+	hSiftClient : T_SiftClient;
+	bExecute : BOOL;
+	sName : STRING(255);
 	sDescription : STRING(255);
+	aTags : ARRAY[0..SiftClientParameters.MAX_NUM_TAGS] OF STRING(255);
 END_VAR
+
 VAR_OUTPUT
 	sId : STRING(255);
 	bBusy : BOOL;
 	bError : BOOL;
 	nErrId : UDINT;
+	stSiftError : ST_SiftError;
 END_VAR
+
 VAR
+	eState : (IDLE, SEND_MESSAGE, WAIT_FOR_RESPONSE, SUCCESS, FAILURE) := IDLE;
+	fbSendSiftMessage : _FB_SendSiftMessage;
+	stRunReq : _ST_SiftMessage;
+	fbJson : FB_JsonDomParser;
+	sResponse : STRING(255);
+	jsonDoc : SJsonValue;	
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[CASE eState OF
+	IDLE:
+		IF bExecute THEN
+			eState := SEND_MESSAGE;
+		END_IF
+		
+	SEND_MESSAGE:
+		bBusy := TRUE;
+		bError := FALSE;
+		
+		stSiftError := _F_CreateRunMessage(stMsg:=stRunReq,
+										   sName := sName,
+										   sDescription := sDescription,
+										   aTags := aTags);
+		IF stSiftError.bError THEN
+			nErrId := stSiftError.nErrId;
+			eState := FAILURE;
+		END_IF
+		
+		fbSendSiftMessage(hSiftClient:=hSiftClient, stMsg:=stRunReq, bExecute:=TRUE);
+		eState := WAIT_FOR_RESPONSE;
+
+	WAIT_FOR_RESPONSE:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbSendSiftMessage(bExecute := FALSE);
+		
+		IF fbSendSiftMessage.bBusy THEN
+			RETURN;
+		ELSIF fbSendSiftMessage.bError THEN
+			nErrId := fbSendSiftMessage.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		
+		MEMCPY(ADR(sResponse), ADR(fbSendSiftMessage.stResponse.aData), fbSendSiftMessage.stResponse.nLength);
+		jsonDoc := fbJson.ParseDocument(sResponse);
+		
+		IF _F_IsSuccessfulResponse(jsonDoc) THEN
+			IF NOT fbJson.HasMember(jsonDoc, 'response') THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+				eState := FAILURE;
+				RETURN;
+			END_IF
+			jsonDoc := fbJson.FindMember(jsonDoc, 'response');
+				
+			IF NOT fbJson.HasMember(jsonDoc, 'run') THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+				eState := FAILURE;
+				RETURN;
+			END_IF
+			jsonDoc := fbJson.FindMember(jsonDoc, 'run');
+			
+			IF NOT fbJson.HasMember(jsonDoc, 'runId') THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+				eState := FAILURE;
+				RETURN;
+			END_IF
+			jsonDoc := fbJson.FindMember(jsonDoc, 'runId');
+			sId := fbJson.GetString(jsonDoc);
+			eState := SUCCESS;
+		ELSE
+			IF NOT _F_SetSiftError(jsonDoc, stSiftError) THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+			END_IF
+			nErrId := stSiftError.nErrId;
+			eState := FAILURE;
+		END_IF
+		
+	SUCCESS:
+		bBusy := FALSE;
+		bError := FALSE;
+		eState := IDLE;
+		
+	FAILURE:
+		bBusy := FALSE;
+		bError := TRUE;
+		eState := IDLE;
+END_CASE
+
+]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

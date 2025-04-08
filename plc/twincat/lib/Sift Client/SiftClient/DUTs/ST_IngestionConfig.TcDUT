@@ -4,7 +4,7 @@
     <Declaration><![CDATA[TYPE ST_IngestionConfig :
 STRUCT
 	sAssetName : STRING(255);
-	aFlowConfigs : ARRAY[0..GVL_SIFT.MAX_NUM_FLOWS - 1] OF ST_FlowConfig;
+	aFlowConfigs : ARRAY[0..SiftClientParameters.MAX_NUM_FLOWS - 1] OF ST_FlowConfig;
 	nNumFlowConfigs : UDINT;
 END_STRUCT
 END_TYPE

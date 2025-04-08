@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="_F_CreateRunMessage" Id="{c8036387-84d4-48a0-9429-9a51227f44ca}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION _F_CreateRunMessage
+VAR_INPUT
+	sName : STRING(255);
+	sDescription : STRING(255);
+	aTags : ARRAY[0..SiftClientParameters.MAX_NUM_TAGS] OF STRING(255);
+	stMsg : REFERENCE TO _ST_SiftMessage;
+END_VAR
+
+VAR
+	fbJson : FB_JsonSaxWriter;
+	i : UDINT;
+	sData : STRING(1024);
+	nBytes : UDINT;
+END_VAR
+
+VAR_OUTPUT
+	stErr : ST_SiftError;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbJson.StartObject();
+
+fbJson.AddKey('name');
+fbJson.AddString(sName);
+
+fbJson.AddKey('description');
+fbJson.AddString(sDescription);
+
+fbJson.AddKey('tags');
+fbJson.StartArray();
+FOR i := 1 TO SiftClientParameters.MAX_NUM_TAGS DO
+	IF LEN(aTags[i-1]) > 0 THEN
+		 fbJson.AddString(aTags[i-1]);
+	END_IF
+END_FOR
+fbJson.EndArray();
+
+fbJson.EndObject();
+
+nBytes := fbJson.CopyDocument(sData, 1024) - 1;
+IF nBytes = 1024 THEN
+	stErr.nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
+	stErr.bError := TRUE;
+	RETURN;
+END_IF
+
+stErr := _F_CreateEndpointMessage(sEndpoint:='create_run', pData:=ADR(sData), nLength:=nBytes, stMsg:=stMsg);]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

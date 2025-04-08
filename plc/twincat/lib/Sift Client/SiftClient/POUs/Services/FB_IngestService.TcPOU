@@ -4,7 +4,6 @@
     <Declaration><![CDATA[FUNCTION_BLOCK FB_IngestService
 VAR_INPUT
 	hSiftClient : REFERENCE TO T_SiftClient;
-	sIngestionConfigId : STRING(255);
 	sRunId : STRING(255);
 	aFlowConfigs : POINTER TO ST_FlowConfig;
 END_VAR
@@ -17,8 +16,8 @@ END_VAR
 VAR
 	eState : (IDLE, SEND_MESSAGE, SEND_MESSAGE_WAIT, SUCCESS, FAILURE):= IDLE;
 	fbSendRingBuffer : FB_MemRingBuffer;
-	aSendRingBuffer : ARRAY[0..GVL_SIFT.SEND_BUFFER_SIZE] OF BYTE;
-	aTmpBuffer : ARRAY[0..GVL_SIFT.SEND_BUFFER_SIZE] OF BYTE;
+	aSendRingBuffer : ARRAY[0..SiftClientParameters.MAX_UDP_PACKET_SIZE] OF BYTE;
+	aTmpBuffer : ARRAY[0..SiftClientParameters.MAX_UDP_PACKET_SIZE] OF BYTE;
 	curOffset : UDINT;
 	i : UDINT;
 	nCount : UDINT;
@@ -41,9 +40,9 @@ END_VAR
 		curOffset := 0;
 		FOR i := 1 TO nCount DO
 			fbSendRingBuffer.A_RemoveHead(pRead := ADR(aTmpBuffer[curOffset]),
-										  cbRead := GVL_SIFT.SEND_BUFFER_SIZE - curOffset,
+										  cbRead := SiftClientParameters.MAX_UDP_PACKET_SIZE - curOffset,
 										  pBuffer := ADR(aSendRingBuffer),
-										  cbBuffer := GVL_SIFT.SEND_BUFFER_SIZE);
+										  cbBuffer := SiftClientParameters.MAX_UDP_PACKET_SIZE);
 			IF NOT fbSendRingBuffer.bOk THEN
 				eState := FAILURE;
 				nErrId := GVL_SIFT.INGEST_RING_BUFFER_REMOVE_ERROR;
@@ -99,7 +98,7 @@ VAR
 	i : UDINT;
 	curOffset : UDINT := GVL_SIFT.HEADER_LENGTH;
 	nStrLen : UINT;
-	aCurBuf : ARRAY[0..GVL_SIFT.DATA_MESSAGE_MAX_SIZE] OF BYTE;
+	aCurBuf : ARRAY[0..SiftClientParameters.MAX_DATA_MESSAGE_SIZE] OF BYTE;
 	nMsgSize : UDINT;
 END_VAR
 ]]></Declaration>
@@ -187,7 +186,7 @@ MEMCPY(ADR(aCurBuf[GVL_SIFT.MESSGE_LENGTH_INDEX]), ADR(nMsgSize), 4);
 fbSendRingBuffer.A_AddTail(pWrite := ADR(aCurBuf), 
 						   cbWrite := nMsgSize + GVL_SIFT.HEADER_LENGTH, 
 						   pBuffer := ADR(aSendRingBuffer), 
-						   cbBuffer := GVL_SIFT.SEND_BUFFER_SIZE);
+						   cbBuffer := SiftClientParameters.MAX_UDP_PACKET_SIZE);
 						   
 WriteData := fbSendRingBuffer.bOk;]]></ST>
       </Implementation>

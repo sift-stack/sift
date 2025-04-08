@@ -35,7 +35,12 @@ END_VAR
 		bBusy := TRUE;
 		bError := FALSE;
 		
-		_F_CreatePingMessage(stMsg:=stPingReq);
+		stSiftError := _F_CreatePingMessage(stMsg:=stPingReq);
+		IF stSiftError.bError THEN
+			nErrId := stSiftError.nErrId;
+			eState := FAILURE;
+		END_IF
+		
 		fbSendSiftMessage(hSiftClient:=hSiftClient, stMsg:=stPingReq, bExecute:=TRUE);
 		eState := WAIT_FOR_RESPONSE;
 

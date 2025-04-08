@@ -4,11 +4,18 @@
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
 	/// Ingestion example
-	/// See https://docs.siftstack.com/docs/api/authentication 
-	/// For obtaining gRPC and API key information.
-	/// Make sure install_sift_proxy.bat script has been run.
+	/// Instrucstions to run:
+	/// 1. Fill in sGrpcUri and sApiKey
+	///     See https://docs.siftstack.com/docs/api/authentication 
+	///     For obtaining gRPC and API key information.
+	/// 2. Make sure install_sift_proxy.bat script has been run to install sift_proxy.
+	/// 3. Run!
 	sGrpcUri : STRING(255) := '';
 	sApiKey : STRING(255) := '';
+	
+	// Run information.
+	sRunName : STRING(255) := 'TwinCat3 PLC Ingestion Example';
+	sRunDescription : STRING(255) := 'Example run from TwinCat3 application.';
 	
 	// The Ingestion Config. See https://docs.siftstack.com/docs/glossary#ingestion-config
 	stIngestionConfig : ST_IngestionConfig;
@@ -17,7 +24,7 @@ VAR
 	pFlow1 : POINTER TO ST_FlowConfig;
 	pIntChannel1 : POINTER TO ST_ChannelConfig;
 	pEnumChannel2 : POINTER TO ST_ChannelConfig;
-	aChannel2Enums : ARRAY[1..GVL_Sift.MAX_NUM_ENUMS_PER_CHANNEL] OF ST_EnumType := [
+	aChannel2Enums : ARRAY[1..SiftClientParameters.MAX_NUM_ENUMS_PER_CHANNEL] OF ST_EnumType := [
 		(nKey:=0, sName:='enum1'),
 		(nKey:=1, sName:='enum2'),
 		(nKey:=2, sName:='enum3'),
@@ -151,11 +158,14 @@ END_VAR]]></Declaration>
 
 	// Create a new run
 	SUBMIT_RUN:
-		fbRun(sTitle:='', sDescription:='', bSubmit:=TRUE);
+		fbRun(bExecute := TRUE, 
+			  hSiftClient := fbSiftClient.hSiftClient,
+			  sName:=sRunName, 
+			  sDescription := sRunDescription);
 		eSiftState := SUBMIT_RUN_WAIT;
 
 	SUBMIT_RUN_WAIT:
-		fbRun(bSubmit:=FALSE);
+		fbRun(bExecute := FALSE);
 		IF fbRun.bBusy THEN
 			RETURN;
 		ELSIF fbRun.bError THEN
@@ -167,9 +177,7 @@ END_VAR]]></Declaration>
 
 	// Ingest data until there's an error.		
 	INGEST_DATA:
-		fbIngest(hSiftClient := fbSiftClient.hSiftClient,
-				 sIngestionConfigId:=fbIngestionConfig.sId, 
-				 sRunId:=fbRun.sId);
+		fbIngest(hSiftClient := fbSiftClient.hSiftClient, sRunId:=fbRun.sId);
 				 
 		// Verify there are no ingestion errors.
 		IF fbIngest.bError THEN

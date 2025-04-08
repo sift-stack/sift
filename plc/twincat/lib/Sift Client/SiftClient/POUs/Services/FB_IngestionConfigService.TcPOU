@@ -12,7 +12,7 @@ VAR_OUTPUT
 	bBusy : BOOL;
 	bError : BOOL;
 	nErrId : UDINT;
-	sId : STRING(255); (* Ingestion Config ID. Note: This isn't needed by the client since Sift Proxy holds onto the ID.*)
+	sId : STRING(255);
 	stSiftError : ST_SiftError;
 END_VAR
 VAR
@@ -31,16 +31,20 @@ END_VAR]]></Declaration>
 		END_IF
 		
 	SEND_MESSAGE:
-		(* Serialize and send packet *)
 		bBusy := TRUE;
 		bError := FALSE;
 		
-		_F_CreateIngestionConfigMessage(stIngestionConfig := stIngestionConfig, stMsg := stConfigReq);
+		stSiftError := _F_CreateIngestionConfigMessage(stIngestionConfig := stIngestionConfig, 
+													   stMsg := stConfigReq);
+		IF stSiftError.bError THEN
+			nErrId := stSiftError.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF
 		fbSendSiftMessage(hSiftClient := hSiftClient, stMsg := stConfigReq, bExecute := TRUE);
 		eState := WAIT_FOR_RESPONSE;
 
 	WAIT_FOR_RESPONSE:
-		(* Wait for response *)
 		bBusy := TRUE;
 		bError := FALSE;
 		fbSendSiftMessage(bExecute := FALSE);
@@ -93,7 +97,6 @@ END_VAR]]></Declaration>
 		eState := IDLE;
 		
 	FAILURE:
-	    (* Set error *)
 		bBusy := FALSE;
 		bError := TRUE;
 		eState := IDLE;
@@ -121,7 +124,7 @@ END_VAR
 	RETURN;
 END_IF
 
-IF pFlowConfig^.nNumChannelConfigs >= GVL_SIFT.MAX_NUM_CHANNELS_PER_FLOW THEN
+IF pFlowConfig^.nNumChannelConfigs >= SiftClientParameters.MAX_NUM_CHANNELS_PER_FLOW THEN
 	CreateChannelConfig := 0;
 	RETURN;
 END_IF
@@ -143,7 +146,7 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF stIngestionConfig.nNumFlowConfigs >= GVL_SIFT.MAX_NUM_FLOWS THEN
+        <ST><![CDATA[IF stIngestionConfig.nNumFlowConfigs >= SiftClientParameters.MAX_NUM_FLOWS THEN
 	CreateFlowConfig := 0;
 	RETURN;
 END_IF
@@ -158,7 +161,7 @@ stIngestionConfig.nNumFlowConfigs := stIngestionConfig.nNumFlowConfigs + 1;]]></
       <Declaration><![CDATA[METHOD InitEnumTypes : BOOL
 VAR_INPUT
 	pChannelConfig : POINTER TO ST_ChannelConfig;
-	aEnumTypes : REFERENCE TO ARRAY[0..GVL_SIFT.MAX_NUM_ENUMS_PER_CHANNEL - 1] OF ST_EnumType;
+	aEnumTypes : REFERENCE TO ARRAY[0..SiftClientParameters.MAX_NUM_ENUMS_PER_CHANNEL - 1] OF ST_EnumType;
 END_VAR
 
 VAR 
@@ -176,7 +179,7 @@ IF pChannelConfig^.eDataType <> E_ChannelDataType.Enum THEN
 END_IF
 
 
-FOR i := 1 TO GVL_SIFT.MAX_NUM_ENUMS_PER_CHANNEL DO
+FOR i := 1 TO SiftClientParameters.MAX_NUM_ENUMS_PER_CHANNEL DO
 	IF aEnumTypes[i-1].sName = '' THEN
 		CONTINUE;
 	END_IF
@@ -235,7 +238,7 @@ END_VAR]]></Declaration>
 END_FOR
 
 (* TODO: Figure out how much margin we should have. *)
-Validate := nSizeInBytes < GVL_SIFT.DATA_MESSAGE_MAX_SIZE + GVL_SIFT.HEADER_LENGTH;]]></ST>
+Validate := nSizeInBytes < SiftClientParameters.MAX_DATA_MESSAGE_SIZE + GVL_SIFT.HEADER_LENGTH;]]></ST>
       </Implementation>
     </Method>
   </POU>

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_F_CreatePingMessage" Id="{f66f2735-207d-4dcd-8e50-ed9c5d150534}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION _F_CreatePingMessage : _ST_SiftMessage
+    <Declaration><![CDATA[FUNCTION _F_CreatePingMessage
 VAR_INPUT
 	stMsg : REFERENCE TO _ST_SiftMessage;
 END_VAR
@@ -15,7 +15,10 @@ VAR_OUTPUT
 	stErr : ST_SiftError;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[stErr := _F_CreateEndpointMessage(sEndpoint:='ping', pData:=ADR(sPingRequest), nLength:=SIZEOF(sPingRequest), stMsg := stMsg);]]></ST>
+      <ST><![CDATA[stErr := _F_CreateEndpointMessage(sEndpoint:='ping', 
+                                  pData:=ADR(sPingRequest), 
+                                  nLength:=INT_TO_UDINT(LEN(sPingRequest)), 
+                                  stMsg := stMsg);]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>
