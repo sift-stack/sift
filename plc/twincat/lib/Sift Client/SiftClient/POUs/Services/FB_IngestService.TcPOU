@@ -11,38 +11,43 @@ END_VAR
 VAR_OUTPUT
 	bError : BOOL;
 	nErrId : UDINT;
+	nMsgsSent : UDINT; // Number of total messages sent to sift_proxy.
+	nBufSize : UDINT; // The number of messages in the buffer.
+	fBufferUtilization : LREAL; // The percent utilization of the internal buffer.
 END_VAR
 
 VAR
 	eState : (IDLE, SEND_MESSAGE, SEND_MESSAGE_WAIT, SUCCESS, FAILURE):= IDLE;
 	fbSendRingBuffer : FB_MemRingBuffer;
-	aSendRingBuffer : ARRAY[0..SiftClientParameters.MAX_UDP_PACKET_SIZE] OF BYTE;
-	aTmpBuffer : ARRAY[0..SiftClientParameters.MAX_UDP_PACKET_SIZE] OF BYTE;
+	aSendRingBuffer : ARRAY[0..SiftClientParameters.MAX_PACKET_SIZE - 1] OF BYTE;
+	aTmpBuffer : ARRAY[0..SiftClientParameters.MAX_PACKET_SIZE - 1] OF BYTE;
 	curOffset : UDINT;
 	i : UDINT;
 	nCount : UDINT;
-	nMsgsSent : UDINT;
-	
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[CASE eState OF
+      <ST><![CDATA[nBufSize := fbSendRingBuffer.nCount;
+fBufferUtilization := UDINT_TO_LREAL(fbSendRingBuffer.cbSize) / UDINT_TO_LREAL(SiftClientParameters.MAX_PACKET_SIZE);
+
+CASE eState OF
 	IDLE:
 		bError := FALSE;
-		IF fbSendRingBuffer.nCount > 0 THEN
-			nCount := fbSendRingBuffer.nCount;
+		IF nBufSize > 0 THEN
+			nCount := nBufSize;
 			eState := SEND_MESSAGE;
+			
 		END_IF
-		
+			
 	SEND_MESSAGE:
 		bError := FALSE;
 		
 		curOffset := 0;
 		FOR i := 1 TO nCount DO
 			fbSendRingBuffer.A_RemoveHead(pRead := ADR(aTmpBuffer[curOffset]),
-										  cbRead := SiftClientParameters.MAX_UDP_PACKET_SIZE - curOffset,
+										  cbRead := SiftClientParameters.MAX_PACKET_SIZE - curOffset,
 										  pBuffer := ADR(aSendRingBuffer),
-										  cbBuffer := SiftClientParameters.MAX_UDP_PACKET_SIZE);
+										  cbBuffer := SiftClientParameters.MAX_PACKET_SIZE);
 			IF NOT fbSendRingBuffer.bOk THEN
 				eState := FAILURE;
 				nErrId := GVL_SIFT.INGEST_RING_BUFFER_REMOVE_ERROR;
@@ -52,10 +57,8 @@ END_VAR
 		END_FOR
 		nCount := 0;
 		
-		hSiftClient.fbSendTo(
-			hSocket := hSiftClient.fbCreate.hSocket, 
-			sRemoteHost := hSiftClient.sHost,
-			nRemotePort := hSiftClient.nPort,
+		hSiftClient.fbSend(
+			hSocket := hSiftClient.fbConnect.hSocket, 
 			pSrc := ADR(aTmpBuffer),
 			cbLen := curOffset,
 			bExecute := TRUE,
@@ -65,12 +68,12 @@ END_VAR
 
 	SEND_MESSAGE_WAIT:
 		bError := FALSE;
-		hSiftClient.fbSendTo(bExecute := FALSE);
+		hSiftClient.fbSend(bExecute := FALSE);
 		
-		IF hSiftClient.fbSendTo.bBusy THEN
+		IF hSiftClient.fbSend.bBusy THEN
 			RETURN;
-		ELSIF hSiftClient.fbSendTo.bError THEN
-			nErrId := hSiftClient.fbSendTo.nErrId;
+		ELSIF hSiftClient.fbSend.bError THEN
+			nErrId := hSiftClient.fbSend.nErrId;
 			eState := FAILURE;
 			RETURN;
 		END_IF	
@@ -96,9 +99,9 @@ VAR
 	stFlowConfig : REFERENCE TO ST_FlowConfig;
 	tmpCC : REFERENCE TO ST_ChannelConfig;
 	i : UDINT;
-	curOffset : UDINT := GVL_SIFT.HEADER_LENGTH;
 	nStrLen : UINT;
-	aCurBuf : ARRAY[0..SiftClientParameters.MAX_DATA_MESSAGE_SIZE] OF BYTE;
+	aRawBuf : ARRAY[1..SiftClientParameters.MAX_PACKET_SIZE] OF BYTE;
+	stBuf : _FB_BufferWriter := (pRawBuf := ADR(aRawBuf), nSize := SIZEOF(aRawBuf));
 	nMsgSize : UDINT;
 END_VAR
 ]]></Declaration>
@@ -109,80 +112,128 @@ END_VAR
 END_IF
 
 stFlowConfig REF= pFlowConfig^;
-	
+
+stBuf.SetOffset(GVL_SIFT.HEADER_LENGTH);
+
 (* Timestamp *);
-MEMCPY(ADR(aCurBuf[curOffset]), ADR(stTimestamp.nSeconds), 8);
-curOffset := curOffset + 8;
-MEMCPY(ADR(aCurBuf[curOffset]), ADR(stTimestamp.nNanoseconds), 4);
-curOffset := curOffset + 4;
+IF NOT stBuf.Write(ADR(stTimestamp.nSeconds), 8) THEN
+		WriteData := FALSE;
+	RETURN;
+END_IF
+
+IF NOT stBuf.Write(ADR(stTimestamp.nNanoseconds), 4) THEN
+		WriteData := FALSE;
+	RETURN;
+END_IF
 
 (* Flow Name *)
-nStrLen := LEN(stFlowConfig.sName);
-MEMCPY(ADR(aCurBuf[curOffset]), ADR(stFlowConfig.sName), nStrLen);
-aCurBuf[curOffset+nStrLen] := 0;
-curOffset := curOffset + nStrLen + 1;
+nStrLen := INT_TO_UINT(LEN(stFlowConfig.sName));
+IF NOT stBuf.Write(ADR(stFlowConfig.sName), nStrLen) THEN
+		WriteData := FALSE;
+	RETURN;
+END_IF
+IF NOT stBuf.WriteByte(0) THEN
+		WriteData := FALSE;
+	RETURN;
+END_IF
 
 (* Run ID *)
-nStrLen := LEN(sRunId);
-MEMCPY(ADR(aCurBuf[curOffset]), ADR(sRunId), nStrLen);
-aCurBuf[curOffset+nStrLen] := 0;
-curOffset := curOffset + nStrLen + 1;
+nStrLen := INT_TO_UINT(LEN(sRunId));
+IF NOT stBuf.Write(ADR(sRunId), nStrLen) THEN
+		WriteData := FALSE;
+	RETURN;
+END_IF
+IF NOT stBuf.WriteByte(0) THEN
+		WriteData := FALSE;
+	RETURN;
+END_IF
 
 FOR i := 1 TO stFlowConfig.nNumChannelConfigs  BY 1 DO
 	tmpCC REF= stFlowConfig.aChannelConfigs[i-1];
 	
 	CASE tmpCC.eDataType OF
 		E_ChannelDataType.Bool_:
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.bBool), 1);
-			curOffset := curOffset + 1;
+			IF NOT stBuf.Write(ADR(tmpCC.Value.bBool), 1) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 	
 		E_ChannelDataType.Double:
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.fDouble), 8);
-			curOffset := curOffset + 8;
+			IF NOT stBuf.Write(ADR(tmpCC.Value.fDouble), 8) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 			
 		E_ChannelDataType.Enum:
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nEnum), 4);
-			curOffset := curOffset + 4;
+			IF NOT stBuf.Write(ADR(tmpCC.Value.nEnum), 4) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 			
 		E_ChannelDataType.Float:
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.fFloat), 4);
-			curOffset := curOffset + 4;
+			IF NOT stBuf.Write(ADR(tmpCC.Value.fFloat), 4) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 			
 		E_ChannelDataType.Int32:
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nInt32), 4);
-			curOffset := curOffset + 4;
+			IF NOT stBuf.Write(ADR(tmpCC.Value.nInt32), 4) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 			
 		E_ChannelDataType.Int64:
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nInt64), 8);
-			curOffset := curOffset + 8;
+			IF NOT stBuf.Write(ADR(tmpCC.Value.nInt64), 8) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 			
 		E_ChannelDataType.UInt32:
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nInt32), 4);
-			curOffset := curOffset + 4;
+			IF NOT stBuf.Write(ADR(tmpCC.Value.nInt32), 4) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 			
 		E_ChannelDataType.UInt64:
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.nInt64), 8);
-			curOffset := curOffset + 8;
+			IF NOT stBuf.Write(ADR(tmpCC.Value.nInt64), 8) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 			
 		E_ChannelDataType.String_:
-			nStrLen := LEN(tmpCC.Value.sString);
-			MEMCPY(ADR(aCurBuf[curOffset]), ADR(tmpCC.Value.sString), nStrLen);
-			aCurBuf[curOffset+nStrLen] := 0;
-			curOffset := curOffset + nStrLen + 1;
+			nStrLen := INT_TO_UINT(LEN(tmpCC.Value.sString));
+			IF NOT stBuf.Write(ADR(tmpCC.Value.sString), nStrLen) THEN
+				WriteData := FALSE;
+					RETURN;
+			END_IF
+			IF NOT stBuf.WriteByte(0) THEN
+				WriteData := FALSE;
+				RETURN;
+			END_IF
 	END_CASE
 
 END_FOR
 
-MEMCPY(ADR(aCurBuf[0]), ADR(GVL_SIFT.SYNC_WORD), 4);
-aCurBuf[GVL_SIFT.MESSAGE_TYPE_INDEX] := 16#02;
+IF NOT stBuf.WriteAt(0, ADR(GVL_SIFT.SYNC_WORD), 4) THEN
+	WriteData := FALSE;
+	RETURN;
+END_IF
 
-nMsgSize := curOffset - GVL_SIFT.HEADER_LENGTH;
-MEMCPY(ADR(aCurBuf[GVL_SIFT.MESSGE_LENGTH_INDEX]), ADR(nMsgSize), 4);
+IF NOT stBuf.WriteAt(GVL_SIFT.MESSAGE_TYPE_INDEX, ADR(GVL_SIFT.DATA_MESSAGE_TYPE), 1) THEN
+	WriteData := FALSE;
+	RETURN;
+END_IF
 
-fbSendRingBuffer.A_AddTail(pWrite := ADR(aCurBuf), 
+nMsgSize := stBuf.nCurOffset - GVL_SIFT.HEADER_LENGTH;
+IF NOT stBuf.WriteAt(GVL_SIFT.MESSGE_LENGTH_INDEX, ADR(nMsgSize), 4) THEN
+	WriteData := FALSE;
+	RETURN;
+END_IF
+
+fbSendRingBuffer.A_AddTail(pWrite := ADR(aRawBuf), 
 						   cbWrite := nMsgSize + GVL_SIFT.HEADER_LENGTH, 
 						   pBuffer := ADR(aSendRingBuffer), 
-						   cbBuffer := SiftClientParameters.MAX_UDP_PACKET_SIZE);
+						   cbBuffer := SiftClientParameters.MAX_PACKET_SIZE);
 						   
 WriteData := fbSendRingBuffer.bOk;]]></ST>
       </Implementation>

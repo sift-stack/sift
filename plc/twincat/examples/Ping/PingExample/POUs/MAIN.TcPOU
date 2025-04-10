@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="MAIN" Id="{7334c2f3-7b67-4b0c-a1c4-2871bd28419c}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	/// Ping example: Verifies API credentials and that the PLC can ping Sift Proxy and reach the Sift application successfully.
+	/// Instrucstions to run:
+	/// 1. Fill in sGrpcUri and sApiKey
+	///     See https://docs.siftstack.com/docs/api/authentication 
+	///     For obtaining gRPC and API key information.
+	/// 2. Make sure install_sift_proxy.bat script has been run to install sift_proxy.
+	/// 3. Run!
+	sGrpcUri : STRING(255) := '';
+	sApiKey : STRING(255) := '';
+	
+	aJsonBuffer : ARRAY[1..65535] OF BYTE; // Buffer used to create JSON messages. Increase this if you get JSON_CAPACITY_REACHED errors.
+	
+	fbSiftClient : FB_SiftClient; // Sift Client used for all services.
+	fbPing : FB_PingService;	// Ping service used to ping the Sift application.
+	fbRun : FB_RunService; // Run service used to create new Runs.
+	fbIngest : FB_IngestService; // Ingest service used to stream data.
+
+	eSiftState : (
+		INIT_SIFT_CLIENT,		// Begin initializing the Sift Client.
+		INIT_SIFT_CLIENT_WAIT,	// Complete initializing the Sift Client.
+		PING,					// Ping Sift.
+		PING_WAIT,				// Wait for ping.
+		PING_SUCCESS,				// Close and stop the Sift Client after successful ping.
+		PING_FAIL,				// Was able to talk to sift_proxy, but pinging the Sift application failed.
+		ERROR,					// An error has occurred.
+		IDLE_SUCCESS,			// Idle state after stopping.
+		IDLE_ERROR,				// Idle state after an error.
+	) := INIT_SIFT_CLIENT;
+	
+	sResult : STRING(255);
+	nErrId : UDINT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE eSiftState OF
+	INIT_SIFT_CLIENT:
+		fbSiftClient(sGrpcUri := sGrpcUri, 
+					 sApiKey := sApiKey,
+					 pJsonBuffer := ADR(aJsonBuffer),
+					 pJbLength := SIZEOF(aJsonBuffer),
+					 bExecute := TRUE);
+		eSiftState := INIT_SIFT_CLIENT_WAIT;
+
+	INIT_SIFT_CLIENT_WAIT:
+		fbSiftClient(bExecute := FALSE);
+		IF fbSiftClient.bBusy THEN
+			RETURN;
+		ELSIF fbSiftClient.bError THEN
+			nErrId := fbSiftClient.nErrId;
+			eSiftState := ERROR;
+			RETURN;
+		END_IF
+		eSiftState := PING;
+	
+	PING:
+		fbPing(bExecute:=TRUE, hSiftClient:=fbSiftClient.hSiftClient);
+		eSiftState := PING_WAIT;
+
+	PING_WAIT:
+		fbPing(bExecute:=FALSE);
+		IF fbPing.bBusy THEN
+			RETURN;
+		ELSIF fbPing.bError THEN
+			nErrId := fbPing.nErrId;
+			eSiftState := ERROR;
+			RETURN;
+		END_IF
+		
+		IF fbPing.bSuccess THEN
+			eSiftState := PING_SUCCESS;
+		ELSE
+			eSiftState := PING_FAIL;
+		END_IF
+
+	PING_SUCCESS:
+		fbSiftClient(bStop := TRUE);
+		fbSiftClient(bStop := FALSE);
+		sResult := 'Ping success!';
+		eSiftState := IDLE_SUCCESS;
+		
+	PING_FAIL:
+		fbSiftClient(bStop := TRUE);
+		fbSiftClient(bStop := FALSE);
+		sResult := 'Was able to ping sift_proxy, but ping to Sift application failed. Verify gRPC endpoint and API key.';
+		eSiftState := IDLE_SUCCESS;
+		
+	ERROR:
+		fbSiftClient(bStop := TRUE);
+		fbSiftClient(bStop := FALSE);
+		sResult := 'Failed';
+		eSiftState := IDLE_ERROR;
+END_CASE
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -5,7 +5,7 @@
 VAR_INPUT
 	sName : STRING(255);
 	sDescription : STRING(255);
-	aTags : ARRAY[0..SiftClientParameters.MAX_NUM_TAGS] OF STRING(255);
+	aTags : ARRAY[0..SiftClientParameters.MAX_NUM_TAGS - 1] OF STRING(255);
 	stMsg : REFERENCE TO _ST_SiftMessage;
 	pJsonBuffer : POINTER TO BYTE;
 	nLength : UDINT;

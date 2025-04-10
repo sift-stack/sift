@@ -52,16 +52,19 @@ FOR i := 1 TO stIngestionConfig.nNumFlowConfigs DO
 		fbJson.StartObject();
 		tmpChannelConfig REF= stIngestionConfig.aFlowConfigs[i-1].aChannelConfigs[j-1];
 
-		
 		fbJson.AddKey('name');
 		fbJson.AddString(tmpChannelConfig.sName);
 
-		fbJson.AddKey('unit');
-		fbJson.AddString(tmpChannelConfig.sUnit);
+		IF tmpChannelConfig.sUnit <> '' THEN
+			fbJson.AddKey('unit');
+			fbJson.AddString(tmpChannelConfig.sUnit);
+		END_IF
+		
+		IF tmpChannelConfig.sDescription <> '' THEN
+			fbJson.AddKey('description');
+			fbJson.AddString(tmpChannelConfig.sDescription);
+		END_IF
 	
-		fbJson.AddKey('description');
-		fbJson.AddString(tmpChannelConfig.sDescription);
-
 		fbJson.AddKey('dataType');
 		CASE tmpChannelConfig.eDataType OF
 			E_ChannelDataType.Bool_:

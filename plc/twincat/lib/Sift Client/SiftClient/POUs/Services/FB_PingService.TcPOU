@@ -20,7 +20,7 @@ VAR
 	fbSendSiftMessage : _FB_SendSiftMessage;
 	stPingReq : _ST_SiftMessage;
 	fbJson : FB_JsonDomParser;
-	sResponse : STRING(255);
+	sResponse : STRING(GVL_SIFT.MAX_JSON_RESPONSE_SIZE);
 	jsonDoc : SJsonValue;
 END_VAR
 ]]></Declaration>
@@ -59,7 +59,19 @@ END_VAR
 			RETURN;
 		END_IF
 
-		MEMCPY(ADR(sResponse), ADR(fbSendSiftMessage.stResponse.aData), fbSendSiftMessage.stResponse.nLength);
+		// Verify response.
+		IF fbSendSiftMessage.stResponse.nLength > GVL_SIFT.MAX_JSON_RESPONSE_SIZE THEN
+			nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
+			eState := FAILURE;
+			RETURN;	
+		END_IF
+		
+		IF NOT SAFE_MEMCPY(ADR(sResponse), SIZEOF(sResponse), 
+			               ADR(fbSendSiftMessage.stResponse.aData), fbSendSiftMessage.stResponse.nLength) THEN
+			nErrId := GVL_SIFT.MEMCPY_ERROR;
+			eState := FAILURE;
+		END_IF
+		
 		jsonDoc := fbJson.ParseDocument(sResponse);
 		
 		IF _F_IsSuccessfulResponse(jsonDoc) THEN

@@ -47,8 +47,25 @@ END_IF
 // Omit null delimeter.
 nBytes := nBytes - 1;
 
-MEMCPY(ADR(stMsg.aData), pData, nBytes);
-stMsg.nType := 16#01;
+IF nBytes > SIZEOF(stMsg.aData) THEN
+	stErr.bError := TRUE;
+	stErr.nErrId := GVL_SIFT.BUFFER_CAPACITY_REACHED;
+	stErr.sReason := CONCAT(
+		CONCAT('Increase MAX_PACKET_SIZE. Message is too large: ', UDINT_TO_STRING(nBytes)),
+		CONCAT(' endpoint= ', sEndpoint),
+	);
+	RETURN;
+END_IF
+
+IF NOT SAFE_MEMCPY(ADR(stMsg.aData), SIZEOF(stMsg.aData), 
+				   pData, nBytes) THEN
+	stErr.bError := TRUE;
+	stErr.nErrId := GVL_SIFT.MEMCPY_ERROR;
+	stErr.sReason := 'MEMCPY failed in CreateEndpointMessage';
+	RETURN;
+END_IF
+
+stMsg.nType := GVL_SIFT.ENDPOINT_MESSAGE_TYPE;
 stMsg.nLength := nBytes;]]></ST>
     </Implementation>
   </POU>

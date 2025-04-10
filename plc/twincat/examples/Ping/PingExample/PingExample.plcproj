@@ -3,139 +3,39 @@
   <PropertyGroup>
     <FileVersion>1.0.0.0</FileVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{2f3e9f0a-f907-43e5-b54e-d225ea584c2a}</ProjectGuid>
+    <ProjectGuid>{ac376f8d-7752-4726-a4fe-f5fc9287341b}</ProjectGuid>
     <SubObjectsSortedByName>true</SubObjectsSortedByName>
     <DownloadApplicationInfo>true</DownloadApplicationInfo>
     <WriteProductVersion>false</WriteProductVersion>
     <GenerateTpy>false</GenerateTpy>
-    <Name>SiftClient</Name>
+    <Name>PingExample</Name>
     <ProgramVersion>3.1.4026.14</ProgramVersion>
-    <Application>{2331c5e2-9960-4d18-bc3f-a51c4ae94353}</Application>
-    <TypeSystem>{f546ec7a-749b-4122-b9fa-32fb05407f7e}</TypeSystem>
-    <Implicit_Task_Info>{bc992f63-a24f-481a-b8bb-8d370690e5bc}</Implicit_Task_Info>
-    <Implicit_KindOfTask>{30affebf-08f7-49c7-bb02-0243997f5f42}</Implicit_KindOfTask>
-    <Implicit_Jitter_Distribution>{f9942cb8-4f12-432b-a625-aeeb07eade72}</Implicit_Jitter_Distribution>
-    <LibraryReferences>{ae860615-ad04-4adc-9724-1d15280c7712}</LibraryReferences>
-    <Company>Sift Stack Inc</Company>
-    <Released>false</Released>
-    <AllowChecksForLibrary>false</AllowChecksForLibrary>
-    <POUsForPropertyAccessIncluded>false</POUsForPropertyAccessIncluded>
-    <GlobalVersionStructureIncluded>true</GlobalVersionStructureIncluded>
-    <Title>Sift Client Library</Title>
-    <ProjectVersion>0.1.0.0</ProjectVersion>
-    <DefaultNamespace>Sift</DefaultNamespace>
-    <Author>Marc Julien</Author>
-    <Description>Sift Client library for streaming data from PLC applications into Sift.</Description>
+    <Application>{65476a50-84e9-4ff1-95d6-1744e14171a7}</Application>
+    <TypeSystem>{7dbecd31-750b-4ebd-a295-70b8df522ac4}</TypeSystem>
+    <Implicit_Task_Info>{f9e1a1bd-4fa2-4cf2-95fe-dc11994c3ba6}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{20bed6dd-c069-4750-a92f-d254313f4cfa}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{a3a112ab-5a63-4d6f-a022-379f6db0034e}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{fd0ed7db-2d6f-495b-bd5c-22b1ce62fa8c}</LibraryReferences>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="DUTs\E_ChannelDataType.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\Private API\_ST_SiftMessage.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\Private API\_U_SiftChannelValue.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\ST_ChannelConfig.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\ST_EnumType.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\ST_FlowConfig.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\ST_IngestionConfig.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\ST_Timestamp.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\T_SiftClient.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\ST_SiftError.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="GVLs\GVL_SIFT.TcGVL">
-      <SubType>Code</SubType>
-      <LinkAlways>true</LinkAlways>
-    </Compile>
-    <Compile Include="GVLs\SiftClientParameters.TcGVL">
-      <SubType>Code</SubType>
-      <LinkAlways>true</LinkAlways>
-    </Compile>
     <Compile Include="PlcTask.TcTTO">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\FB_SiftClient.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\MAIN.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\SAFE_MEMCPY.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Private API\_FB_SendSiftMessage.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Private API\_FB_BufferWriter.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Private API\_F_CreateEndpointMessage.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Private API\_F_CreateIngestionConfigMessage.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Private API\_F_CreatePingMessage.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Private API\_F_CreateRunMessage.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Private API\_F_IsSuccessfulResponse.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Private API\_F_SetSiftError.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Services\FB_IngestionConfigService.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Services\FB_IngestService.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Services\FB_PingService.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Services\FB_RunService.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Util\GetCurrentTime.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Util\SetChannelValue.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Version\Global_Version.TcGVL">
-      <SubType>Code</SubType>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="DUTs" />
-    <Folder Include="DUTs\Private API" />
     <Folder Include="GVLs" />
-    <Folder Include="POUs\Private API" />
-    <Folder Include="POUs\Services" />
-    <Folder Include="POUs\Util" />
-    <Folder Include="Version" />
     <Folder Include="VISUs" />
     <Folder Include="POUs" />
   </ItemGroup>
   <ItemGroup>
+    <PlaceholderReference Include="Sift Client Library">
+      <DefaultResolution>Sift Client Library, * (Sift Stack Inc)</DefaultResolution>
+      <Namespace>Sift</Namespace>
+    </PlaceholderReference>
     <PlaceholderReference Include="Tc2_Standard">
       <DefaultResolution>Tc2_Standard, * (Beckhoff Automation GmbH)</DefaultResolution>
       <Namespace>Tc2_Standard</Namespace>
@@ -163,7 +63,7 @@
     </PlaceholderReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="SiftClient.tmc">
+    <None Include="PingExample.tmc">
       <SubType>Content</SubType>
     </None>
   </ItemGroup>
@@ -177,12 +77,6 @@
         <v>{192FAD59-8248-4824-A8DE-9177C94C195A}</v>
         <o>
           <v n="Name">"{192FAD59-8248-4824-A8DE-9177C94C195A}"</v>
-          <d n="SubKeys" t="Hashtable" />
-          <d n="Values" t="Hashtable" />
-        </o>
-        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
-        <o>
-          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
           <d n="SubKeys" t="Hashtable" />
           <d n="Values" t="Hashtable" />
         </o>

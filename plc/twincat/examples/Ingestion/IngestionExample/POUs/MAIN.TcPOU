@@ -13,6 +13,8 @@ VAR
 	sGrpcUri : STRING(255) := '';
 	sApiKey : STRING(255) := '';
 	
+	aJsonBuffer : ARRAY[1..65535] OF BYTE; // Buffer used to create JSON messages. Increase this if you get JSON_CAPACITY_REACHED errors.
+	
 	// Run information.
 	sRunName : STRING(255) := 'TwinCat3 PLC Ingestion Example';
 	sRunDescription : STRING(255) := 'Example run from TwinCat3 application.';
@@ -38,7 +40,7 @@ VAR
 	// Example values that would come from sensors or other parts of the PLC application.
 	nData1 : DINT := 0;
 	nData2 : UDINT := 0;
-	sData3 : STRING(255) := 'This is a string value';
+	sData3 : STRING(255) := 'This is a string value from the PLC task.';
 	fData4 : LREAL := 1.2345;
 
 	fbSiftClient : FB_SiftClient; // Sift Client used for all services.
@@ -46,16 +48,33 @@ VAR
 	fbRun : FB_RunService; // Run service used to create new Runs.
 	fbIngest : FB_IngestService; // Ingest service used to stream data.
 
-	eSiftState : (INIT_SIFT_CLIENT, INIT_SIFT_CLIENT_WAIT, SUBMIT_CONFIG, SUBMIT_CONFIG_WAIT, SUBMIT_RUN, SUBMIT_RUN_WAIT, INGEST_DATA, ERROR) := INIT_SIFT_CLIENT;
-	bConfigError : BOOL;
-	bWriteOk : BOOL;
+	eSiftState : (
+		INIT_SIFT_CLIENT,		// Begin initializing the Sift Client.
+		INIT_SIFT_CLIENT_WAIT,	// Complete initializing the Sift Client.
+		SUBMIT_CONFIG,			// Create and submit the ingestion config.
+		SUBMIT_CONFIG_WAIT,		// Wait for the call to finish.
+		SUBMIT_RUN,				// Create and submit the Run.
+		SUBMIT_RUN_WAIT,		// Wait for the call to finish.
+		INGEST_DATA,			// Main state for ingesting data.
+		STOP,					// Close and stop the Sift Client.
+		ERROR,					// An error has occurred.
+		IDLE_STOP,				// Idle state after stopping.
+		IDLE_ERROR,				// Idle state after an error.
+	) := INIT_SIFT_CLIENT;
+	
+	bStop : BOOL; 			// Set this to True to close the Sift Client and stop the program.
+	bConfigError : BOOL;	// True if there is an error creating or submitting the ingestion config.
+	bWriteOk : BOOL; 		// True if there is an error writing data.
 	nErrId : UDINT;
 END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[CASE eSiftState OF
-	// Initialize the Sift Client.
 	INIT_SIFT_CLIENT:
-		fbSiftClient(sGrpcUri := sGrpcUri, sApiKey := sApiKey, bExecute := TRUE);
+		fbSiftClient(sGrpcUri := sGrpcUri, 
+					 sApiKey := sApiKey,
+					 pJsonBuffer := ADR(aJsonBuffer),
+					 pJbLength := SIZEOF(aJsonBuffer),
+					 bExecute := TRUE);
 		eSiftState := INIT_SIFT_CLIENT_WAIT;
 
 	INIT_SIFT_CLIENT_WAIT:
@@ -69,7 +88,6 @@ END_VAR]]></Declaration>
 		END_IF
 		eSiftState := SUBMIT_CONFIG;
 	
-	// Create and submit the ingestion config.
 	SUBMIT_CONFIG:
 		stIngestionConfig.sAssetName := 'Test-PLC-Example';
 		
@@ -156,7 +174,6 @@ END_VAR]]></Declaration>
 		END_IF
 		eSiftState := SUBMIT_RUN;
 
-	// Create a new run
 	SUBMIT_RUN:
 		fbRun(bExecute := TRUE, 
 			  hSiftClient := fbSiftClient.hSiftClient,
@@ -190,12 +207,19 @@ END_VAR]]></Declaration>
 		IF nData1 MOD 1000 = 0 THEN
 			nData2 := (nData2 + 1) MOD 4;
 		END_IF
-		SetChannelValue(pIntChannel1, nData1);
-		SetChannelValue(pEnumChannel2, nData2);
-		SetChannelValue(pStringChannel3, sData3);
-		SetChannelValue(pDoubleChannel4, fData4);
 		
-		// Call WriteData at the desired frequency for each flow 
+		// Ideally you should check the result between each call,
+		// but we only check once to simplify the example.
+		bWriteOk := SetChannelValue(pIntChannel1, nData1);
+		bWriteOk := bWriteOk OR SetChannelValue(pEnumChannel2, nData2);
+		bWriteOk := bWriteOk OR SetChannelValue(pStringChannel3, sData3);
+		bWriteOk := bWriteOk OR SetChannelValue(pDoubleChannel4, fData4);
+		IF NOT bWriteOk THEN
+			eSiftState := ERROR;
+			RETURN;
+		END_IF
+		
+		// Call WriteData at the desired frequency for each flow.
 		bWriteOk := fbIngest.WriteData(pFlow1, GetCurrentTime());
 		IF NOT bWriteOk THEN
 			eSiftState := ERROR;
@@ -207,6 +231,21 @@ END_VAR]]></Declaration>
 			eSiftState := ERROR;
 			RETURN;
 		END_IF
+		
+		IF bStop THEN
+			eSiftState := STOP;
+			RETURN;
+		END_IF
+		
+	STOP:
+		fbSiftClient(bStop := TRUE);
+		fbSiftClient(bStop := FALSE);
+		eSiftState := IDLE_STOP;
+		
+	ERROR:
+		fbSiftClient(bStop := TRUE);
+		fbSiftClient(bStop := FALSE);
+		eSiftState := IDLE_ERROR;
 END_CASE
 ]]></ST>
     </Implementation>

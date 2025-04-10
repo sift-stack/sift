@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4026.14">
-	<Project ProjectGUID="{FCC273D9-B714-46C4-AC60-51CBE2F520BC}" Target64Bit="true" ShowHideConfigurations="#x3c7">
+	<Project ProjectGUID="{97B30DFE-3E17-4E6F-854E-5A240E5DBCA6}" Target64Bit="true" ShowHideConfigurations="#x6">
 		<System>
 			<Licenses>
 				<Target>
@@ -14,9 +14,9 @@
 			</Tasks>
 		</System>
 		<Plc>
-			<Project GUID="{2F3E9F0A-F907-43E5-B54E-D225EA584C2A}" Name="SiftClient" PrjFilePath="SiftClient\SiftClient.plcproj" TmcFilePath="SiftClient\SiftClient.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{1B3B7E32-933B-3559-0407-0BC83A0AFA07}" TmcPath="SiftClient\SiftClient.tmc">
-					<Name>SiftClient Instance</Name>
+			<Project GUID="{AC376F8D-7752-4726-A4FE-F5FC9287341B}" Name="PingExample" PrjFilePath="PingExample\PingExample.plcproj" TmcFilePath="PingExample\PingExample.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{4A60DC1C-B7EC-1A1F-0081-3084386150E5}">
+					<Name>PingExample Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Contexts>
 						<Context>

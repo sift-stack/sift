@@ -5,7 +5,7 @@
 STRUCT
 	nType : BYTE;
 	nLength : UDINT;
-	aData : ARRAY[1..SiftClientParameters.MAX_DATA_MESSAGE_SIZE] OF BYTE;
+	aData : ARRAY[1..SiftClientParameters.MAX_PACKET_SIZE] OF BYTE;
 END_STRUCT
 END_TYPE
 ]]></Declaration>

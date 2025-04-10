@@ -12,13 +12,12 @@ STRUCT
 	pJsonBuffer : POINTER TO BYTE;
 	pJbLength : UDINT;
 	
-	// UDP function blocks.
+	// TCP function blocks.
    	fbCloseAll 		: FB_SocketCloseAll;
-	fbCreate		: FB_SocketUdpCreate;
+	fbConnect		: FB_SocketConnect;
+	fbSend		    : FB_SocketSend;
+	fbReceive     	: FB_SocketReceive;
 	fbClose			: FB_SocketClose;
-	fbReceiveFrom	: FB_SocketUdpReceiveFrom;
-	fbSendTo		: FB_SocketUdpSendTo;
-	
 	
 END_STRUCT
 END_TYPE

@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="_FB_BufferWriter" Id="{f3d5358a-0bf2-4a52-9f95-9801ddb8841e}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK _FB_BufferWriter
+VAR_INPUT
+	pRawBuf : POINTER TO BYTE; 
+	nSize : UDINT;
+END_VAR
+
+VAR_OUTPUT
+	nCurOffset : UDINT;
+END_VAR
+
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="SetOffset" Id="{073d1dd1-b5f7-4f4f-8f3e-dfd435173099}">
+      <Declaration><![CDATA[METHOD SetOffset : BOOL
+VAR_INPUT
+	nOffset : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nOffset >= nSize THEN
+	SetOffset := FALSE;
+ELSE
+	nCurOffset := nOffset;	
+	SetOffset := TRUE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Write" Id="{eff76194-79d9-4d9c-9b14-16156e53c9eb}">
+      <Declaration><![CDATA[METHOD Write : BOOL
+VAR_INPUT
+	pSrc : POINTER TO BYTE;
+	nBytes : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nCurOffset + nBytes >= nSize THEN
+	Write := FALSE;
+ELSE
+	Write := SAFE_MEMCPY(ADR(pRawBuf[nCurOffset]), nSize, pSrc, nBytes);
+	nCurOffset := nCurOffset + nBytes;	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="WriteAt" Id="{b0c2235a-a289-49c6-8e22-f373296a49a0}">
+      <Declaration><![CDATA[METHOD WriteAt : BOOL
+VAR_INPUT
+	nIndex : UDINT;
+	pSrc : POINTER TO BYTE;
+	nBytes : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[WriteAt := SAFE_MEMCPY(ADR(pRawBuf[nIndex]), nSize-nIndex, pSrc, nBytes);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="WriteByte" Id="{83829bc1-d501-4035-a0f9-a6d297ae4b16}">
+      <Declaration><![CDATA[METHOD WriteByte : BOOL
+VAR_INPUT
+	nByte : BYTE;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF nCurOffset < nSize THEN
+	pRawBuf[nCurOffset] := nByte;
+	nCurOffset := nCurOffset + 1;
+	WriteByte := TRUE;
+ELSE
+	WriteByte := FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

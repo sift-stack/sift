@@ -20,7 +20,7 @@ VAR
 	fbSendSiftMessage : _FB_SendSiftMessage;
 	stConfigReq : _ST_SiftMessage;
 	fbJson : FB_JsonDomParser;
-	sResponse : STRING(GVL_SIFT.SIFT_PROXY_RESP_MAX_UDP_MESSAGE_SIZE);
+	sResponse : STRING(GVL_SIFT.MAX_JSON_RESPONSE_SIZE);
 	jsonDoc : SJsonValue;
 END_VAR]]></Declaration>
     <Implementation>
@@ -59,7 +59,19 @@ END_VAR]]></Declaration>
 			RETURN;
 		END_IF
 		
-		MEMCPY(ADR(sResponse), ADR(fbSendSiftMessage.stResponse.aData), fbSendSiftMessage.stResponse.nLength);
+		// Verify response.
+		IF fbSendSiftMessage.stResponse.nLength > GVL_SIFT.MAX_JSON_RESPONSE_SIZE THEN
+			nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
+			eState := FAILURE;
+			RETURN;	
+		END_IF
+		
+		IF NOT SAFE_MEMCPY(ADR(sResponse), SIZEOF(sResponse), 
+			               ADR(fbSendSiftMessage.stResponse.aData), fbSendSiftMessage.stResponse.nLength) THEN
+			nErrId := GVL_SIFT.MEMCPY_ERROR;
+			eState := FAILURE;
+		END_IF
+		
 		jsonDoc := fbJson.ParseDocument(sResponse);
 		
 		IF _F_IsSuccessfulResponse(jsonDoc) THEN
@@ -239,8 +251,7 @@ END_VAR]]></Declaration>
 	END_FOR
 END_FOR
 
-(* TODO: Figure out how much margin we should have. *)
-Validate := nSizeInBytes < SiftClientParameters.MAX_DATA_MESSAGE_SIZE + GVL_SIFT.HEADER_LENGTH;]]></ST>
+Validate := nSizeInBytes < SiftClientParameters.MAX_PACKET_SIZE;]]></ST>
       </Implementation>
     </Method>
   </POU>

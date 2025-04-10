@@ -5,26 +5,32 @@
 VAR_GLOBAL CONSTANT
 	//Defaults
 	SIFT_PROXY_PATH : STRING := 'C:\Sift\Beckoff\start_sift_proxy.bat';
-	SIFT_PROXY_CMD_ARGS : STRING := '--listen_port=%d --grpc_uri=%s --api_key=%s';
+	SIFT_PROXY_CMD_ARGS : STRING(255) := '--listen_port=%d --grpc_uri=%s --api_key=%s tcp sift_proxy --little_endian --skip_stream_status --verbose';
 	SIFT_PROXY_DEFAULT_HOST : T_IPv4Addr := '127.0.0.1';
 	SIFT_PROXY_DEFAULT_LISTEN_PORT : UINT := 10010;
 	SIFT_PROXY_START_DELAY : TIME := T#5S;
-	SIFT_PROXY_RESP_MAX_UDP_MESSAGE_SIZE : UDINT := 1024;
 	
 	SYNC_WORD : UDINT := 16#ABCDEF00;
 	HEADER_LENGTH : UDINT := 9;
 	MESSAGE_TYPE_INDEX : BYTE := 4;
 	MESSGE_LENGTH_INDEX : BYTE := 5;
+
+	ENDPOINT_MESSAGE_TYPE : BYTE := 16#01;
+	DATA_MESSAGE_TYPE : BYTE := 16#02;
+	RESPONSE_MESSAGE_TYPE : BYTE := 16#FF;
 	
 	SIFT_CLIENT_DEFAULT_LOCAL_IP : T_IPv4Addr := '127.0.0.1';
 	SIFT_CLIENT_DEFAULT_LOCAL_PORT : UINT := 10009;
 	
+	MAX_JSON_RESPONSE_SIZE : UDINT := 1024; // Max JSON response size.
+		
 	(* Error Codes *)
 	BUFFER_CAPACITY_REACHED : UDINT := 16#5000_0000; // Buffer is at capacity.
 	JSON_CAPACITY_REACHED : UDINT := 16#5000_0001; // JSON message is too large. Should increase JSON buffer size.
 	NULL_JSON_POINTER : UDINT := 16#5000_0002; // The JSON buffer passed in is Null.
 	INGEST_RING_BUFFER_REMOVE_ERROR : UDINT := 16#5000_0003; // Error removing data from ingest ring buffer.
 	MEMCPY_ERROR : UDINT := 16#5000_0004; // Error calling MEMCPY
+	BAD_PARAMETERS : UDINT := 16#5000_0005; // User has configured the parameters incorrectly.
 	
 	SIFT_PROXY_NO_RESPONSE : UDINT := 16#5000_1000; // No response from Sift Proxy
 	SIFT_PROXY_FAILED_TO_START : UDINT := 16#5000_1001;  // Failed to start Sift Proxy

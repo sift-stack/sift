@@ -3,8 +3,6 @@
   <POU Name="FB_SiftClient" Id="{4caab956-b0cf-47ee-89e4-4108cb730320}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_SiftClient
 VAR_INPUT
-	sLocalHost     : T_IPv4Addr := GVL_SIFT.SIFT_CLIENT_DEFAULT_LOCAL_IP;
-	nLocalPort     : UINT       := GVL_SIFT.SIFT_CLIENT_DEFAULT_LOCAL_PORT;
 	sSiftProxyHost : T_IPv4Addr := GVL_SIFT.SIFT_PROXY_DEFAULT_HOST;
 	nSiftProxyPort : UINT       := GVL_SIFT.SIFT_PROXY_DEFAULT_LISTEN_PORT;
 	
@@ -15,6 +13,7 @@ VAR_INPUT
 	pJbLength : UDINT;
 	
 	bExecute : BOOL;
+	bStop : BOOL;
 END_VAR
 
 VAR_OUTPUT
@@ -35,15 +34,15 @@ VAR
 		IDLE, 
 		CLOSE_ALL, 
 		CLOSE_ALL_WAIT, 
-		CREATE, 
-		CREATE_WAIT, 
-		PING, 
-		PING_WAIT, 
+		CONNECT, 
+		CONNECT_WAIT, 
 		START_SIFT_PROXY, 
 		START_SIFT_PROXY_DELAY,
 		START_SIFT_PROXY_WAIT,  
 		SUCCESS, 
-		FAILURE
+		FAILURE,
+		STOP,
+		STOP_WAIT,
 	) := IDLE;
 END_VAR
 ]]></Declaration>
@@ -52,6 +51,8 @@ END_VAR
 	IDLE:
 		IF bExecute THEN
 			eState := CLOSE_ALL;
+		ELSIF bStop THEN
+			eState := STOP;
 		END_IF
 
 	CLOSE_ALL:
@@ -72,9 +73,9 @@ END_VAR
 			eState := FAILURE;
 			RETURN;
 		END_IF
-		eState := CREATE;
+		eState := CONNECT;
 
-	CREATE:
+	CONNECT:
 		bBusy := TRUE;
 		bError := FALSE;
 		hSiftClient.sHost := sSiftProxyHost;
@@ -88,53 +89,32 @@ END_VAR
 		hSiftClient.pJsonBuffer := pJsonBuffer;
 		hSiftClient.pJbLength := pJbLength;
 		
-		hSiftClient.fbCreate(sLocalHost := sLocalHost, nLocalPort := nLocalPort, bExecute := TRUE);
-		eState := CREATE_WAIT;
+		hSiftClient.fbConnect(sRemoteHost := sSiftProxyHost, 
+						      nRemotePort := nSiftProxyPort, 
+							  bExecute := TRUE,
+							  tTimeout := T#1S);
 		
-	CREATE_WAIT:
-		bBusy := TRUE;
-		bError := FALSE;
-		hSiftClient.fbCreate(bExecute := FALSE);
-		
-		IF hSiftClient.fbCreate.bBusy THEN
-			RETURN;
-		ELSIF hSiftClient.fbCreate.bError THEN
-			nErrId := hSiftClient.fbCreate.nErrId;
-			eState := FAILURE;
-			RETURN;
-		END_IF
-		eState := PING;
-		
-	PING:
-		bBusy := TRUE;
-		bError := FALSE;
-		fbPing(hSiftClient := hSiftClient, bExecute := TRUE);
 		nAttempts := nAttempts + 1;
 		IF nAttempts = 3 THEN
 			nErrId := GVL_SIFT.SIFT_PROXY_FAILED_TO_START;
 			eState := FAILURE;
 			RETURN;
 		END_IF
-		eState := PING_WAIT;
 		
-	PING_WAIT:
+		eState := CONNECT_WAIT;
+		
+	CONNECT_WAIT:
 		bBusy := TRUE;
 		bError := FALSE;
-		fbPing(bExecute := FALSE);
+		hSiftClient.fbConnect(bExecute := FALSE);
 		
-		IF fbPing.bBusy THEN
+		IF hSiftClient.fbConnect.bBusy THEN
 			RETURN;
-		ELSIF fbPing.bError THEN
-			IF fbPing.nErrId = GVL_SIFT.SIFT_PROXY_NO_RESPONSE THEN
-				eState := START_SIFT_PROXY;
-				RETURN;
-			END_IF
-			
-			nErrId := fbPing.nErrId;
-			eState := FAILURE;
+		ELSIF hSiftClient.fbConnect.bError THEN
+			nErrId := hSiftClient.fbConnect.nErrId;
+			eState := START_SIFT_PROXY;
 			RETURN;
 		END_IF
-		
 		eState := SUCCESS;
 
 	START_SIFT_PROXY:
@@ -197,7 +177,7 @@ END_VAR
 			RETURN;
 		END_IF
 		
-		eState := PING;
+		eState := CONNECT;
 		
 	SUCCESS:
 		bBusy := FALSE;
@@ -207,6 +187,26 @@ END_VAR
 	FAILURE:
 		bBusy := FALSE;
 		bError := TRUE;
+		eState := IDLE;
+		
+	STOP:
+		bBusy := TRUE;
+		bError := FALSE;
+		hSiftClient.fbCloseAll(bExecute := TRUE);
+		eState := STOP_WAIT;
+		
+	STOP_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		hSiftClient.fbCloseAll(bExecute := FALSE);
+		
+		IF hSiftClient.fbCloseAll.bBusy THEN
+			RETURN;
+		ELSIF hSiftClient.fbCloseAll.bError THEN
+			nErrId := hSiftClient.fbCloseAll.nErrId;
+			eState := FAILURE;
+			RETURN;
+		END_IF
 		eState := IDLE;
 END_CASE
 

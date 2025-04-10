@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="SAFE_MEMCPY" Id="{7c59690b-5c27-4eac-81b1-0f5b54aa1407}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION SAFE_MEMCPY : BOOL
+
+VAR_INPUT
+	pDst : POINTER TO BYTE;
+	nDstLen : UDINT;
+	pSrc : POINTER TO BYTE;
+	nSrcLen : UDINT;
+END_VAR
+
+VAR
+	nMcErr : UDINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF nDstLen < nSrcLen THEN
+	SAFE_MEMCPY := FALSE;
+END_IF
+
+nMcErr := MEMCPY(pDst, pSrc, nSrcLen);
+IF nMcErr = 0 THEN
+	SAFE_MEMCPY := FALSE;
+END_IF
+
+SAFE_MEMCPY := TRUE;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
