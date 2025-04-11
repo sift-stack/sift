@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_CreatePingMessage_Test" Id="{cff0359a-aba1-453d-9fa5-12970330a1d2}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CreatePingMessage_Test EXTENDS TcUnit.FB_TestSuite
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Nominal();]]></ST>
+    </Implementation>
+    <Method Name="Nominal" Id="{154f45f7-bbc0-4aa4-b76b-cac0a0fe646a}">
+      <Declaration><![CDATA[METHOD Nominal : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+VAR
+	pJsonBuffer : POINTER TO STRING(255);
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	sExpectedJson : STRING(255) := '{"endpoint":"ping","data":{}}';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating a nominal ping message.
+TEST('CreatePingMessage Nominal');
+
+stErr := _F_CreatePingMessage(stMsg := stMsg);
+								
+AssertFalse(stErr.bError, Message := 'error creating ping message');
+
+pJsonBuffer := ADR(stMsg.aData);
+AssertEquals_STRING(Expected := sExpectedJson, 
+				    Actual := pJsonBuffer^, 
+				    Message := 'bad ping message was created');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

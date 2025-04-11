@@ -1,0 +1,153 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="_F_CreateDataMessage" Id="{d34d4966-ec4b-45ee-a4db-d5f64afa485d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION _F_CreateDataMessage : UDINT;
+
+VAR_INPUT
+	fbWriter : REFERENCE TO _FB_BufferWriter;
+	pFlowConfig : POINTER TO ST_FlowConfig;
+	sRunId : STRING(255);
+	stTimestamp : _ST_Timestamp;
+END_VAR
+
+VAR
+	stFlowConfig : REFERENCE TO ST_FlowConfig;
+	tmpCC : REFERENCE TO ST_ChannelConfig;
+	nStrLen : UINT;
+	nMsgSize : UDINT;
+	i : UDINT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF pFlowConfig = 0 THEN
+	_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+stFlowConfig REF= pFlowConfig^;
+
+IF NOT fbWriter.SetOffset(GVL_SIFT.HEADER_LENGTH) THEN
+	_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+(* Timestamp *);
+IF NOT fbWriter.Write(ADR(stTimestamp.nSeconds), 8) THEN
+		_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+IF NOT fbWriter.Write(ADR(stTimestamp.nNanoseconds), 4) THEN
+		_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+(* Flow Name *)
+nStrLen := INT_TO_UINT(LEN(stFlowConfig.sName));
+IF NOT fbWriter.Write(ADR(stFlowConfig.sName), nStrLen) THEN
+		_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+IF NOT fbWriter.WriteByte(0) THEN
+		_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+(* Run ID *)
+nStrLen := INT_TO_UINT(LEN(sRunId));
+IF NOT fbWriter.Write(ADR(sRunId), nStrLen) THEN
+		_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+IF NOT fbWriter.WriteByte(0) THEN
+		_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+FOR i := 1 TO stFlowConfig.nNumChannelConfigs  BY 1 DO
+	tmpCC REF= stFlowConfig.aChannelConfigs[i-1];
+	
+	CASE tmpCC.eDataType OF
+		E_ChannelDataType.Bool_:
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.bBool), 1) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+	
+		E_ChannelDataType.Double:
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.fDouble), 8) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+			
+		E_ChannelDataType.Enum:
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.nEnum), 4) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+			
+		E_ChannelDataType.Float:
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.fFloat), 4) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+			
+		E_ChannelDataType.Int32:
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.nInt32), 4) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+			
+		E_ChannelDataType.Int64:
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.nInt64), 8) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+			
+		E_ChannelDataType.UInt32:
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.nInt32), 4) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+			
+		E_ChannelDataType.UInt64:
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.nInt64), 8) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+			
+		E_ChannelDataType.String_:
+			nStrLen := INT_TO_UINT(LEN(tmpCC.Value.sString));
+			IF NOT fbWriter.Write(ADR(tmpCC.Value.sString), nStrLen) THEN
+				_F_CreateDataMessage := 0;
+					RETURN;
+			END_IF
+			IF NOT fbWriter.WriteByte(0) THEN
+				_F_CreateDataMessage := 0;
+				RETURN;
+			END_IF
+	END_CASE
+
+END_FOR
+
+IF NOT fbWriter.WriteAt(0, ADR(GVL_SIFT.SYNC_WORD), 4) THEN
+	_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+IF NOT fbWriter.WriteAt(GVL_SIFT.MESSAGE_TYPE_INDEX, ADR(GVL_SIFT.DATA_MESSAGE_TYPE), 1) THEN
+	_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+nMsgSize := fbWriter.nCurOffset - GVL_SIFT.HEADER_LENGTH;
+IF NOT fbWriter.WriteAt(GVL_SIFT.MESSGE_LENGTH_INDEX, ADR(nMsgSize), 4) THEN
+	_F_CreateDataMessage := 0;
+	RETURN;
+END_IF
+
+						   
+_F_CreateDataMessage := nMsgSize;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

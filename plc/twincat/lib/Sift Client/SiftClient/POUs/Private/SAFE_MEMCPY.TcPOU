@@ -15,8 +15,14 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[IF nDstLen < nSrcLen THEN
+      <ST><![CDATA[IF pDst = 0 OR pSrc = 0 THEN
 	SAFE_MEMCPY := FALSE;
+	RETURN;
+END_IF
+
+IF nDstLen < nSrcLen THEN
+	SAFE_MEMCPY := FALSE;
+	RETURN;
 END_IF
 
 nMcErr := MEMCPY(pDst, pSrc, nSrcLen);

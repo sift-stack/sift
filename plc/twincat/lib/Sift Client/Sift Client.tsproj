@@ -2,6 +2,9 @@
 <TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4026.14">
 	<Project ProjectGUID="{FCC273D9-B714-46C4-AC60-51CBE2F520BC}" Target64Bit="true" ShowHideConfigurations="#x3c7">
 		<System>
+			<Settings MaxCpus="22" NonWinCpus="1" PCoreAffinity="1047555" ECoreAffinity="3146748">
+				<Cpu CpuId="21"/>
+			</Settings>
 			<Licenses>
 				<Target>
 					<ManualSelect>{3EBB9639-5FF3-42B6-8847-35C70DC013C8}</ManualSelect>
@@ -15,7 +18,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{2F3E9F0A-F907-43E5-B54E-D225EA584C2A}" Name="SiftClient" PrjFilePath="SiftClient\SiftClient.plcproj" TmcFilePath="SiftClient\SiftClient.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{1B3B7E32-933B-3559-0407-0BC83A0AFA07}" TmcPath="SiftClient\SiftClient.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{B00D9BF6-7D5F-D19B-E3C2-516050AEF274}" TmcPath="SiftClient\SiftClient.tmc">
 					<Name>SiftClient Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Contexts>

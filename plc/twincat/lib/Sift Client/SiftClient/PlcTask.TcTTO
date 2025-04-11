@@ -5,13 +5,12 @@
     <CycleTime>10000</CycleTime>
     <Priority>20</Priority>
     <PouCall>
-      <Name>MAIN</Name>
+      <Name>PRG_TEST</Name>
     </PouCall>
     <TaskFBGuid>{2231bf32-8e15-485a-a6b2-5b9b0962e91a}</TaskFBGuid>
     <Fb_init>{d4d2d961-1cfb-4354-a0e3-432e0e533f08}</Fb_init>
     <Fb_exit>{66bdc1c0-5624-40e0-b866-3c7c338da798}</Fb_exit>
     <CycleUpdate>{af5cc34c-b155-4c82-8703-ddb3609aa4d2}</CycleUpdate>
     <PostCycleUpdate>{d889a211-bacd-4e87-8588-b89a17ab2517}</PostCycleUpdate>
-    <ObjectProperties />
   </Task>
 </TcPlcObject>

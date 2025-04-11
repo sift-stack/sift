@@ -4,8 +4,6 @@
     <Declaration><![CDATA[FUNCTION _F_CreatePingMessage
 VAR_INPUT
 	stMsg : REFERENCE TO _ST_SiftMessage;
-	pJsonBuffer : POINTER TO BYTE;
-	nLength : UDINT;
 END_VAR
 
 VAR
@@ -16,14 +14,7 @@ VAR_OUTPUT
 	stErr : ST_SiftError;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[IF pJsonBuffer = 0 THEN
-	stErr.bError := TRUE;
-	stErr.nErrId := GVL_SIFT.NULL_JSON_POINTER;
-	stErr.sReason := 'The JSON buffer is null';
-	RETURN;
-END_IF
-
-stErr := _F_CreateEndpointMessage(sEndpoint := 'ping', 
+      <ST><![CDATA[stErr := _F_CreateEndpointMessage(sEndpoint := 'ping', 
                                   pData := ADR(sPingRequest), 
                                   nLength := INT_TO_UDINT(LEN(sPingRequest)), 
                                   nBufferLength := 255, 

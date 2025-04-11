@@ -90,18 +90,17 @@ END_CASE
       <Declaration><![CDATA[METHOD PUBLIC WriteData : BOOL
 VAR_INPUT
 	pFlowConfig : POINTER TO ST_FlowConfig;
-	stTimestamp : ST_Timestamp;
+	stTimestamp : _ST_Timestamp;
 END_VAR
+
 VAR_OUTPUT
 	bError : BOOL;
 END_VAR
+
 VAR
-	stFlowConfig : REFERENCE TO ST_FlowConfig;
-	tmpCC : REFERENCE TO ST_ChannelConfig;
-	i : UDINT;
-	nStrLen : UINT;
+	// TODO: This should be allocated on the heap (FB local var);
 	aRawBuf : ARRAY[1..SiftClientParameters.MAX_PACKET_SIZE] OF BYTE;
-	stBuf : _FB_BufferWriter := (pRawBuf := ADR(aRawBuf), nSize := SIZEOF(aRawBuf));
+	fbWriter : _FB_BufferWriter := (pRawBuf := ADR(aRawBuf), nSize := SIZEOF(aRawBuf));
 	nMsgSize : UDINT;
 END_VAR
 ]]></Declaration>
@@ -111,121 +110,11 @@ END_VAR
 	RETURN;
 END_IF
 
-stFlowConfig REF= pFlowConfig^;
-
-stBuf.SetOffset(GVL_SIFT.HEADER_LENGTH);
-
-(* Timestamp *);
-IF NOT stBuf.Write(ADR(stTimestamp.nSeconds), 8) THEN
-		WriteData := FALSE;
-	RETURN;
-END_IF
-
-IF NOT stBuf.Write(ADR(stTimestamp.nNanoseconds), 4) THEN
-		WriteData := FALSE;
-	RETURN;
-END_IF
-
-(* Flow Name *)
-nStrLen := INT_TO_UINT(LEN(stFlowConfig.sName));
-IF NOT stBuf.Write(ADR(stFlowConfig.sName), nStrLen) THEN
-		WriteData := FALSE;
-	RETURN;
-END_IF
-IF NOT stBuf.WriteByte(0) THEN
-		WriteData := FALSE;
-	RETURN;
-END_IF
-
-(* Run ID *)
-nStrLen := INT_TO_UINT(LEN(sRunId));
-IF NOT stBuf.Write(ADR(sRunId), nStrLen) THEN
-		WriteData := FALSE;
-	RETURN;
-END_IF
-IF NOT stBuf.WriteByte(0) THEN
-		WriteData := FALSE;
-	RETURN;
-END_IF
-
-FOR i := 1 TO stFlowConfig.nNumChannelConfigs  BY 1 DO
-	tmpCC REF= stFlowConfig.aChannelConfigs[i-1];
-	
-	CASE tmpCC.eDataType OF
-		E_ChannelDataType.Bool_:
-			IF NOT stBuf.Write(ADR(tmpCC.Value.bBool), 1) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-	
-		E_ChannelDataType.Double:
-			IF NOT stBuf.Write(ADR(tmpCC.Value.fDouble), 8) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-			
-		E_ChannelDataType.Enum:
-			IF NOT stBuf.Write(ADR(tmpCC.Value.nEnum), 4) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-			
-		E_ChannelDataType.Float:
-			IF NOT stBuf.Write(ADR(tmpCC.Value.fFloat), 4) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-			
-		E_ChannelDataType.Int32:
-			IF NOT stBuf.Write(ADR(tmpCC.Value.nInt32), 4) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-			
-		E_ChannelDataType.Int64:
-			IF NOT stBuf.Write(ADR(tmpCC.Value.nInt64), 8) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-			
-		E_ChannelDataType.UInt32:
-			IF NOT stBuf.Write(ADR(tmpCC.Value.nInt32), 4) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-			
-		E_ChannelDataType.UInt64:
-			IF NOT stBuf.Write(ADR(tmpCC.Value.nInt64), 8) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-			
-		E_ChannelDataType.String_:
-			nStrLen := INT_TO_UINT(LEN(tmpCC.Value.sString));
-			IF NOT stBuf.Write(ADR(tmpCC.Value.sString), nStrLen) THEN
-				WriteData := FALSE;
-					RETURN;
-			END_IF
-			IF NOT stBuf.WriteByte(0) THEN
-				WriteData := FALSE;
-				RETURN;
-			END_IF
-	END_CASE
-
-END_FOR
-
-IF NOT stBuf.WriteAt(0, ADR(GVL_SIFT.SYNC_WORD), 4) THEN
-	WriteData := FALSE;
-	RETURN;
-END_IF
-
-IF NOT stBuf.WriteAt(GVL_SIFT.MESSAGE_TYPE_INDEX, ADR(GVL_SIFT.DATA_MESSAGE_TYPE), 1) THEN
-	WriteData := FALSE;
-	RETURN;
-END_IF
-
-nMsgSize := stBuf.nCurOffset - GVL_SIFT.HEADER_LENGTH;
-IF NOT stBuf.WriteAt(GVL_SIFT.MESSGE_LENGTH_INDEX, ADR(nMsgSize), 4) THEN
+nMsgSize := _F_CreateDataMessage(fbWriter := fbWriter, 
+							     pFlowConfig := pFlowConfig, 
+								 sRunId := sRunId,
+							     stTimestamp := stTimestamp);
+IF nMsgSize = 0 THEN
 	WriteData := FALSE;
 	RETURN;
 END_IF

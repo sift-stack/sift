@@ -143,7 +143,7 @@ END_VAR
 		END_IF
 		
 		fbStartSiftProxy(
-			PATHSTR:=GVL_SIFT.SIFT_PROXY_PATH, 
+			PATHSTR:=SiftClientParameters.START_SIFT_PROXY_PATH, 
 			COMNDLINE:=fbFormat.sOut,
 			START := TRUE,
 		);

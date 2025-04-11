@@ -15,7 +15,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{C3914C85-8E07-41AA-979E-BFD1FA0B8413}" Name="IngestionExample" PrjFilePath="IngestionExample\IngestionExample.plcproj" TmcFilePath="IngestionExample\IngestionExample.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{8C59B73C-C2EF-34E3-7A96-AD366467551D}" TmcPath="IngestionExample\IngestionExample.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{5A531614-D139-6009-E31A-B1FC3CECB7A6}" TmcPath="IngestionExample\IngestionExample.tmc">
 					<Name>IngestionExample Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Contexts>

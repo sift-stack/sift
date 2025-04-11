@@ -31,10 +31,13 @@
     <Compile Include="DUTs\E_ChannelDataType.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\Private API\_ST_SiftMessage.TcDUT">
+    <Compile Include="DUTs\Private\_ST_Timestamp.TcDUT">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DUTs\Private API\_U_SiftChannelValue.TcDUT">
+    <Compile Include="DUTs\Private\_ST_SiftMessage.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\Private\_U_SiftChannelValue.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="DUTs\ST_ChannelConfig.TcDUT">
@@ -47,9 +50,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="DUTs\ST_IngestionConfig.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\ST_Timestamp.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="DUTs\T_SiftClient.TcDUT">
@@ -72,34 +72,34 @@
     <Compile Include="POUs\FB_SiftClient.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\MAIN.TcPOU">
+    <Compile Include="POUs\Private\SAFE_MEMCPY.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\SAFE_MEMCPY.TcPOU">
+    <Compile Include="POUs\Private\_FB_SendSiftMessage.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\_FB_SendSiftMessage.TcPOU">
+    <Compile Include="POUs\Private\_FB_BufferWriter.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\_FB_BufferWriter.TcPOU">
+    <Compile Include="POUs\Private\_F_CreateDataMessage.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\_F_CreateEndpointMessage.TcPOU">
+    <Compile Include="POUs\Private\_F_CreateEndpointMessage.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\_F_CreateIngestionConfigMessage.TcPOU">
+    <Compile Include="POUs\Private\_F_CreateIngestionConfigMessage.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\_F_CreatePingMessage.TcPOU">
+    <Compile Include="POUs\Private\_F_CreatePingMessage.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\_F_CreateRunMessage.TcPOU">
+    <Compile Include="POUs\Private\_F_CreateRunMessage.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\_F_IsSuccessfulResponse.TcPOU">
+    <Compile Include="POUs\Private\_F_IsSuccessfulResponse.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Private API\_F_SetSiftError.TcPOU">
+    <Compile Include="POUs\Private\_F_SetSiftError.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Services\FB_IngestionConfigService.TcPOU">
@@ -120,15 +120,43 @@
     <Compile Include="POUs\Util\SetChannelValue.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Tests\FB_BufferWriter_Test.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\FB_CreateDataMessage_Test.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\FB_CreateIngestionConfigMessage_Test.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\FB_CreatePingMessage_Test.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\FB_CreateRunMessage_Test.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\FB_SAFE_MEMCPY_Test.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\FB_SetChannelValue_Test.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\FB_SiftError_Test.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\PRG_TEST.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Version\Global_Version.TcGVL">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="DUTs" />
-    <Folder Include="DUTs\Private API" />
+    <Folder Include="DUTs\Private" />
     <Folder Include="GVLs" />
-    <Folder Include="POUs\Private API" />
+    <Folder Include="Tests" />
+    <Folder Include="POUs\Private" />
     <Folder Include="POUs\Services" />
     <Folder Include="POUs\Util" />
     <Folder Include="Version" />
@@ -160,6 +188,10 @@
       <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>
       <Namespace>Tc3_Module</Namespace>
       <SystemLibrary>true</SystemLibrary>
+    </PlaceholderReference>
+    <PlaceholderReference Include="TcUnit">
+      <DefaultResolution>TcUnit, * (www.tcunit.org)</DefaultResolution>
+      <Namespace>TcUnit</Namespace>
     </PlaceholderReference>
   </ItemGroup>
   <ItemGroup>

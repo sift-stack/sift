@@ -41,7 +41,7 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[IF nCurOffset + nBytes >= nSize THEN
+        <ST><![CDATA[IF nCurOffset + nBytes > nSize THEN
 	Write := FALSE;
 ELSE
 	Write := SAFE_MEMCPY(ADR(pRawBuf[nCurOffset]), nSize, pSrc, nBytes);

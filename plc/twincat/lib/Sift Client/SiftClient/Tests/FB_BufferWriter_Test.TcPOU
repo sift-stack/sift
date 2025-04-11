@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_BufferWriter_Test" Id="{95ec165c-1a2e-486c-8967-aefdfaed3a85}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_BufferWriter_Test EXTENDS TcUnit.FB_TestSuite
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	aRawBuf : ARRAY[1..10] OF BYTE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[NominalAndInvalid();]]></ST>
+    </Implementation>
+    <Method Name="NominalAndInvalid" Id="{89f6d582-5ede-4d75-aebb-fda92be9f47f}">
+      <Declaration><![CDATA[METHOD NominalAndInvalid : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+
+VAR
+	fbWriter : _FB_BufferWriter := (pRawBuf := ADR(aRawBuf), nSize := SIZEOF(aRawBuf));
+	nData : UDINT;
+	// Data is written in little-endian
+	aExpected1 : ARRAY[1..10] OF BYTE := [16#AA, 16#EF, 16#CD, 16#AB, 16#DD, 16#CC, 16#AB, 16#FF, 16#AA, 16#AA];
+	aExpected2 : ARRAY[1..10] OF BYTE := [16#AA, 16#EF, 16#CD, 16#AB, 16#DD, 16#04, 16#03, 16#02, 16#01, 16#AA];
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TEST('BufferWriter Nominal and Invalid');
+
+nData := 16#ABCDEFAA;
+AssertTrue(fbWriter.Write(ADR(nData), 4), Message := 'Write 1 failed');
+
+nData := 16#FFABCCDD;
+AssertTrue(fbWriter.Write(ADR(nData), 4), Message := 'Write 2 failed');
+
+nData := 16#AAAA;
+AssertTrue(fbWriter.Write(ADR(nData), 2), Message := 'Write 3 failed');
+
+nData := 16#ABCD;
+AssertFalse(fbWriter.Write(ADR(nData), 2), Message := 'buffer full, Write should have failed');
+
+AssertArrayEquals_BYTE(Expecteds := aExpected1, Actuals := aRawBuf, Message := 'array values dont match');
+AssertEquals_UDINT(Expected := 10, Actual := fbWriter.nCurOffset, Message := 'incorrect BufferedWriter offset');
+
+nData := 16#01020304;
+AssertTrue(fbWriter.WriteAt(5, ADR(nData), 4), Message := 'BufferWriter::WriteAt 1 failed');
+AssertArrayEquals_BYTE(Expecteds := aExpected2, Actuals := aRawBuf, Message := 'WriteAt did not correctly write data');
+AssertEquals_UDINT(Expected := 10, Actual := fbWriter.nCurOffset, Message := 'BufferedWriter offset should not change with WriteAt');
+
+fbWriter.SetOffset(3);
+AssertTrue(fbWriter.WriteByte(16#05), Message := 'BufferWriter::WriteByte 1 failed');
+AssertEquals_BYTE(Expected := 16#05, Actual := aRawBuf[4], Message := 'WriteByte did not correctly write data');
+AssertEquals_UDINT(Expected := 4, Actual := fbWriter.nCurOffset, Message := 'Incorrect BufferedWriter offset after WriteByte');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

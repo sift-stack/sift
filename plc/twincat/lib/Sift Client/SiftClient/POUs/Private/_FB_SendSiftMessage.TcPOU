@@ -19,7 +19,7 @@ END_VAR
 VAR
 	eState : (IDLE, SEND_MESSAGE, SEND_MESSAGE_WAIT, RECEIVE_REPLY_START_TIMER, RECEIVE_REPLY, RECEIVE_REPLY_WAIT, SUCCESS, FAILURE):= IDLE;
 	aRawBuf : ARRAY[1..SiftClientParameters.MAX_PACKET_SIZE] OF BYTE; // For the BufferWriter. Used for sending/receiving.
-	stWriter : _FB_BufferWriter := (pRawBuf := ADR(aRawBuf), nSize := SIZEOF(aRawBuf));	
+	fbWriter : _FB_BufferWriter := (pRawBuf := ADR(aRawBuf), nSize := SIZEOF(aRawBuf));	
 	aRecvBuf : ARRAY[1..SiftClientParameters.MAX_PACKET_SIZE] OF BYTE; // Used for immediate recv calls.
 	responseTimer : TON; // Timer for how longer to wait for a response from sift_proxy.
 	nBytesRead : UDINT; // Current offset into the recv message.
@@ -47,28 +47,28 @@ END_VAR
 		END_IF
 		
 		// Sync word
-		IF NOT stWriter.Write(ADR(GVL_SIFT.SYNC_WORD), 4) THEN
+		IF NOT fbWriter.Write(ADR(GVL_SIFT.SYNC_WORD), 4) THEN
 			nErrId := GVL_SIFT.MEMCPY_ERROR;
 			eState := FAILURE;
 			RETURN;
 		END_IF
 		
 		// Message type		
-		IF NOT stWriter.Write(ADR(stMsg.nType), 1) THEN
+		IF NOT fbWriter.Write(ADR(stMsg.nType), 1) THEN
 			nErrId := GVL_SIFT.MEMCPY_ERROR;
 			eState := FAILURE;
 			RETURN;
 		END_IF
 		
 		// Message length
-		IF NOT stWriter.Write(ADR(stMsg.nLength), 4) THEN
+		IF NOT fbWriter.Write(ADR(stMsg.nLength), 4) THEN
 			nErrId := GVL_SIFT.MEMCPY_ERROR;
 			eState := FAILURE;
 			RETURN;
 		END_IF
 			
 		// Data.
-		IF NOT stWriter.Write(ADR(stMsg.aData), stMsg.nLength) THEN
+		IF NOT fbWriter.Write(ADR(stMsg.aData), stMsg.nLength) THEN
 			nErrId := GVL_SIFT.MEMCPY_ERROR;
 			eState := FAILURE;
 			RETURN;
@@ -80,7 +80,7 @@ END_VAR
 			cbLen := stMsg.nLength + GVL_SIFT.HEADER_LENGTH,
 			bExecute := TRUE,
 		);
-		stWriter.SetOffset(0);	
+		fbWriter.SetOffset(0);	
 		eState := SEND_MESSAGE_WAIT;
 
 	SEND_MESSAGE_WAIT:
@@ -150,14 +150,14 @@ END_VAR
 			RETURN;
 		END_IF
 			
-		IF NOT stWriter.Write(ADR(aRecvBuf), hSiftClient.fbReceive.nRecBytes) THEN
+		IF NOT fbWriter.Write(ADR(aRecvBuf), hSiftClient.fbReceive.nRecBytes) THEN
 			nErrId := GVL_SIFT.MEMCPY_ERROR;
 			eState := FAILURE;
 			RETURN;
 		END_IF
 		
 		// If we have a complete header.
-		IF stWriter.nCurOffset >= GVL_SIFT.HEADER_LENGTH THEN
+		IF fbWriter.nCurOffset >= GVL_SIFT.HEADER_LENGTH THEN
 			IF NOT SAFE_MEMCPY(ADR(nRecvSyncWord), SIZEOF(nRecvSyncWord), ADR(aRawBuf), 4) THEN
 				nErrId := GVL_SIFT.MEMCPY_ERROR;
 				eState := FAILURE;
@@ -190,7 +190,7 @@ END_VAR
 			END_IF
 			
 			// Check if we have the whole packet
-			IF stWriter.nCurOffset >= GVL_SIFT.HEADER_LENGTH + stResponse.nLength THEN
+			IF fbWriter.nCurOffset >= GVL_SIFT.HEADER_LENGTH + stResponse.nLength THEN
 				IF NOT SAFE_MEMCPY(ADR(stResponse.aData), SIZEOF(stResponse.aData),
 								   ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+1]), stResponse.nLength) THEN
 					nErrId := GVL_SIFT.MEMCPY_ERROR;

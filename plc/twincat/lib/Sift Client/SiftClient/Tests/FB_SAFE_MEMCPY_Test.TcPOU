@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_SAFE_MEMCPY_Test" Id="{d1b854e8-e3f4-408b-bd92-21cc29f57e7c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SAFE_MEMCPY_Test EXTENDS TcUnit.FB_TestSuite
+VAR_INPUT
+END_VAR
+
+VAR_OUTPUT
+END_VAR
+
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Nominal();
+Invalid();]]></ST>
+    </Implementation>
+    <Method Name="Invalid" Id="{94e80a63-48da-4d1e-a960-3799114e2572}">
+      <Declaration><![CDATA[METHOD Invalid : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+VAR
+	pSrc : ARRAY[1..10] OF BYTE;
+	pDst : ARRAY[1..10] OF BYTE;
+	i : BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TEST('SAFE_MEMCPY Invalid');
+
+AssertFalse(SAFE_MEMCPY(ADR(pSrc), 5, ADR(pDst), 10), Message := 'SAFE_MEMCPY should have failed with small dst buffer');
+AssertFalse(SAFE_MEMCPY(0, 5, ADR(pDst), 10), Message := 'SAFE_MEMCPY should have failed with null dst');
+AssertFalse(SAFE_MEMCPY(ADR(pSrc), 5, 0, 10), Message := 'SAFE_MEMCPY should have failed with null src');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Nominal" Id="{8e8a2cc0-f449-4df9-b49e-d9de1267d4d3}">
+      <Declaration><![CDATA[METHOD Nominal : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+VAR
+	pSrc : ARRAY[1..10] OF BYTE;
+	pDst : ARRAY[1..10] OF BYTE;
+	i : BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TEST('SAFE_MEMCPY Nominal');
+
+FOR i := 1 TO 10 DO
+	pSrc[i] := i * 10;
+END_FOR
+
+// Test nominal write
+AssertTrue(SAFE_MEMCPY(ADR(pSrc), 10, ADR(pDst), 10), Message := 'SAFE_MEMCPY failed');
+AssertArrayEquals_BYTE(Expecteds := pSrc, Actuals := pDst, 'pSrc != pDst');
+
+// Test 0 write
+AssertTrue(SAFE_MEMCPY(ADR(pSrc), 10, ADR(pDst), 0), Message := 'SAFE_MEMCPY failed writing 0 bytes');
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

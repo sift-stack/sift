@@ -4,7 +4,7 @@
     <Declaration><![CDATA[FUNCTION_BLOCK FB_IngestionConfigService
 VAR_INPUT
 	hSiftClient : REFERENCE TO T_SiftClient;
-	stIngestionConfig : REFERENCE TO ST_IngestionConfig;
+	sAssetName : STRING(255);
 	bExecute : BOOL;
 	
 END_VAR
@@ -13,6 +13,7 @@ VAR_OUTPUT
 	bError : BOOL;
 	nErrId : UDINT;
 	sId : STRING(255);
+	stIngestionConfig : ST_IngestionConfig;
 	stSiftError : ST_SiftError;
 END_VAR
 VAR
@@ -24,7 +25,9 @@ VAR
 	jsonDoc : SJsonValue;
 END_VAR]]></Declaration>
     <Implementation>
-      <ST><![CDATA[CASE eState OF
+      <ST><![CDATA[stIngestionConfig.sAssetName := sAssetName;
+		
+CASE eState OF
 	IDLE:		
 		IF bExecute THEN
 			eState := SEND_MESSAGE;
@@ -33,7 +36,6 @@ END_VAR]]></Declaration>
 	SEND_MESSAGE:
 		bBusy := TRUE;
 		bError := FALSE;
-		
 		stSiftError := _F_CreateIngestionConfigMessage(stIngestionConfig := stIngestionConfig, 
 													   stMsg := stConfigReq,
 													   pJsonBuffer := hSiftClient.pJsonBuffer,
@@ -119,6 +121,24 @@ END_CASE
 
 ]]></ST>
     </Implementation>
+    <Folder Name="Private" Id="{5a0d0350-eed4-49e7-8d5f-4ea2d6bdbcaf}" />
+    <Method Name="ClearIngestionConfig" Id="{c172fb8d-536f-4e72-9ae1-1fdaed358a28}" FolderPath="Private\">
+      <Declaration><![CDATA[/// Used in unit tests.
+METHOD ClearIngestionConfig : BOOL
+VAR_INPUT
+END_VAR
+
+VAR
+	i : UDINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO stIngestionConfig.nNumFlowConfigs DO
+	stIngestionConfig.aFlowConfigs[i-1].nNumChannelConfigs := 0;
+END_FOR
+stIngestionConfig.nNumFlowConfigs := 0;]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="CreateChannelConfig" Id="{aaac4fe3-becc-423b-ad6a-32269352defd}">
       <Declaration><![CDATA[METHOD CreateChannelConfig : POINTER TO ST_ChannelConfig
 VAR_INPUT
@@ -217,7 +237,7 @@ VAR
 END_VAR]]></Declaration>
       <Implementation>
         <ST><![CDATA[FOR i := 1 TO stIngestionConfig.nNumFlowConfigs DO
-	FOR j := 1 TO stIngestionConfig.aFlowConfigs[i].nNumChannelConfigs DO
+	FOR j := 1 TO stIngestionConfig.aFlowConfigs[i-1].nNumChannelConfigs DO
 		tmpChannelConfig REF= stIngestionConfig.aFlowConfigs[i-1].aChannelConfigs[j-1];
 
 		CASE tmpChannelConfig.eDataType OF

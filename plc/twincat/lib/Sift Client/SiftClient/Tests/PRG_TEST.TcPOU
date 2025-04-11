@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="PRG_TEST" Id="{4a3c4449-661a-4601-9c50-53f510eed44a}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PRG_TEST
+VAR
+	fbSetChannelValue_Test : FB_SetChannelValue_Test;
+	fbSafeMemcpy_Test : FB_SAFE_MEMCPY_Test;
+	fbBufferWriter_Test : FB_BufferWriter_Test;
+	fbCreateIngestionConfigMessage_Test: FB_CreateIngestionConfigMessage_Test;
+	fbCreatePingMessage_Test : FB_CreatePingMessage_Test;
+	fbCreateRunMessage_Test : FB_CreateRunMessage_Test;
+	fbSiftError_Test : FB_SiftError_Test;
+	fbCreateDataMessage_Test : FB_CreateDataMessage_Test;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[TcUnit.RUN();]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

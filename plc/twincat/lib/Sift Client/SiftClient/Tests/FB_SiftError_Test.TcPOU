@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_SiftError_Test" Id="{81ad9b65-7554-40f2-995c-5578f5e2ee34}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SiftError_Test EXTENDS TcUnit.FB_TestSuite
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Responses();]]></ST>
+    </Implementation>
+    <Method Name="Responses" Id="{5eada4e9-9330-4fd9-8bf1-670acf761359}">
+      <Declaration><![CDATA[METHOD Responses : REFERENCE TO FB_Test
+VAR
+	fbJson : FB_JsonDomParser;
+	sResponse : STRING(GVL_SIFT.MAX_JSON_RESPONSE_SIZE);
+	jsonDoc : SJsonValue;
+	stErr : ST_SiftError;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TEST('SiftError Responses');
+
+// Test 1: Nominal response
+sResponse := '{
+	"status": true,
+	"response": {}
+}';
+jsonDoc := fbJson.ParseDocument(sResponse);
+AssertTrue(_F_IsSuccessfulResponse(jsonDoc), Message := 'failed to parse successful response');
+
+// Test 2: Failure response
+sResponse := '{
+	"status": false,
+	"response": {}
+}';
+jsonDoc := fbJson.ParseDocument(sResponse);
+AssertFalse(_F_IsSuccessfulResponse(jsonDoc), Message := 'failed to parse failure response');
+
+// Test 3: Failure response with reason
+sResponse := '{
+	"status": false,
+	"response": {
+		"reason": "this is the reason for the error"
+	}
+}';
+jsonDoc := fbJson.ParseDocument(sResponse);
+AssertTrue(_F_SetSiftError(jsonDoc, stErr), Message := 'failed to parse error');
+AssertTrue(stErr.bError, Message := 'error flag not set');
+AssertEquals_STRING(Expected := 'this is the reason for the error',
+					Actual := stErr.sReason,
+					Message := 'reason does not match');
+					
+// Test 4: 'status' spelled wrong
+sResponse := '{
+	"status_": false,
+	"response": {}
+}';
+jsonDoc := fbJson.ParseDocument(sResponse);
+AssertFalse(_F_SetSiftError(jsonDoc, stErr), Message := 'failed to handle status typo');
+
+// Test 5: 'response' spelled wrong
+sResponse := '{
+	"status": false,
+	"response_": {}
+}';
+jsonDoc := fbJson.ParseDocument(sResponse);
+AssertFalse(_F_SetSiftError(jsonDoc, stErr), Message := 'failed to handle response typo');
+
+// Test 6: 'reason' spelled wrong
+sResponse := '{
+	"status": false,
+	"response": {
+		"reason_": "this is the reason for the error"
+	}
+}';
+jsonDoc := fbJson.ParseDocument(sResponse);
+AssertFalse(_F_SetSiftError(jsonDoc, stErr), Message := 'failed to handle reason typo');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

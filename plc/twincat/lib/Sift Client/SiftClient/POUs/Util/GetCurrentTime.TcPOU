@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="GetCurrentTime" Id="{1911fe31-0ecb-47a0-abd4-e089d302e401}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION GetCurrentTime : ST_Timestamp
+    <Declaration><![CDATA[FUNCTION GetCurrentTime : _ST_Timestamp
 VAR_INPUT
 END_VAR
 VAR

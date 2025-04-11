@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_CreateRunMessage_Test" Id="{bf1669ec-44b6-4056-8ffe-105eee9b2b7b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CreateRunMessage_Test EXTENDS TcUnit.FB_TestSuite
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	aTags : ARRAY[1..SiftClientParameters.MAX_NUM_TAGS] OF STRING(255) := [
+		'tag1',
+		'tag2',
+		'another tag'
+	];
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Nominal();
+EndpointMessageTooBig();
+NullJsonBuffer();]]></ST>
+    </Implementation>
+    <Method Name="EndpointMessageTooBig" Id="{54d97978-2600-400f-95c5-35a8bdc072af}">
+      <Declaration><![CDATA[METHOD EndpointMessageTooBig : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+
+VAR
+	sJsonBuffer : STRING(10);
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	pos : INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating a message that too big to fit in the JsonBuffer.
+TEST('CreateRunMessage MessageTooBig');
+
+stErr := _F_CreateRunMessage(sName := 'Test Run Name',
+							 sDescription := 'A description', 
+							 aTags := aTags,
+							 stMsg := stMsg, 
+							 pJsonBuffer := ADR(sJsonBuffer), 
+							 nLength:= SIZEOF(sJsonBuffer));
+								
+AssertTrue(stErr.bError, Message := 'CreateRunMessage did not return an error');
+
+pos := FIND(STR1 := stErr.sReason, STR2 := 'JSON msg too large');
+AssertTrue(pos <> 0, Message := 'incorrect error string');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Nominal" Id="{c19dfd87-2022-4053-ba80-aa9fabc74cf1}">
+      <Declaration><![CDATA[METHOD Nominal : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+
+VAR
+	sJsonBuffer : STRING(255);
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	sExpectedJson : STRING(255) := '{"endpoint":"create_run","data":{"name":"Test Run Name","description":"A description","tags":["tag1","tag2","another tag"]}}';
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating a nominal ping message.
+TEST('CreateRunMessage Nominal');
+
+stErr := _F_CreateRunMessage(sName := 'Test Run Name',
+							 sDescription := 'A description', 
+							 aTags := aTags,
+							 stMsg := stMsg, 
+							 pJsonBuffer := ADR(sJsonBuffer), 
+							 nLength:= SIZEOF(sJsonBuffer));
+								
+AssertFalse(stErr.bError, Message := 'error creating run message');
+AssertEquals_STRING(Expected := sExpectedJson, 
+				    Actual := sJsonBuffer, 
+					Message := 'bad ingestion config was created');
+
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="NullJsonBuffer" Id="{2dcd3192-61d4-4d17-83db-dcd73da41e4c}">
+      <Declaration><![CDATA[METHOD NullJsonBuffer : REFERENCE TO FB_Test
+VAR
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	pos : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating a message with a null buffer.
+TEST('CreateRunMessage NullJsonBuffer');
+
+stErr := _F_CreateRunMessage(sName := 'Test Run Name',
+							 sDescription := 'A description', 
+							 aTags := aTags,
+							 stMsg := stMsg, 
+							 pJsonBuffer := 0, 
+							 nLength:= 10);
+								
+AssertTrue(stErr.bError, Message := 'CreateRunMessage did not return an error');
+
+pos := FIND(STR1 := stErr.sReason, STR2 := 'null');
+AssertTrue(pos <> 0, Message := 'incorrect error string');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

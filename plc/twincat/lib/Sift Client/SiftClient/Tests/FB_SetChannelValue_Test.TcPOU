@@ -1,0 +1,267 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_SetChannelValue_Test" Id="{9a0e47a2-6443-4f3b-a28e-bc19aa7688d9}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SetChannelValue_Test EXTENDS TcUnit.FB_TestSuite
+VAR_INPUT
+END_VAR
+
+VAR_OUTPUT
+END_VAR
+
+VAR
+	stIngestionConfig : ST_IngestionConfig;
+	fbIngestionConfig : FB_IngestionConfigService := (stIngestionConfig := stIngestionConfig);
+	pFlowConfig : POINTER TO ST_FlowConfig;
+	pChannel : POINTER TO ST_ChannelConfig;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Nominal();
+Invalid();]]></ST>
+    </Implementation>
+    <Method Name="Invalid" Id="{08c16e50-0445-4797-9b8d-6431993cdf32}">
+      <Declaration><![CDATA[METHOD Invalid : REFERENCE TO FB_Test
+VAR_INPUT
+	bBoolTestValue : BOOL := TRUE;
+	fDoubleTestValue : LREAL := 1.2345;
+	nEnumTestValue : UDINT := 10;
+	fFloatTestValue : REAL := 9.8765;
+	nInt32TestValue : DINT := 12345;
+	sStringTestValue : STRING(255) := 'Test string value';
+	nUInt32TestValue : UDINT := 4893573;
+	nInt64TestValue : LINT := -12232423;
+	nUInt64TestValue : ULINT := 1249864785;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TEST('SetChannelValue Invalid');
+
+pFlowConfig := fbIngestionConfig.CreateFlowConfig('flow_name');
+
+// Null
+AssertFalse(SetChannelValue(pChannel := pChannel, fDoubleTestValue),
+            Message := 'setting a null pointer should have failed');
+
+// BOOL
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'bool_channel',
+                                                  E_ChannelDataType.Bool_,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertFalse(SetChannelValue(pChannel := pChannel, fDoubleTestValue),
+            Message := 'setting the bool value should have failed');
+
+// STRING
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'string_channel',
+                                                  E_ChannelDataType.String_,
+                                                  sDescription := '',
+                                                  sUnit := '');
+AssertFalse(SetChannelValue(pChannel := pChannel, nUInt32TestValue),
+            Message := 'setting the string value should have failed');
+
+// DOUBLE
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'double_channel',
+                                                  E_ChannelDataType.Double,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertFalse(SetChannelValue(pChannel := pChannel, nEnumTestValue),
+            Message := 'setting the string value should have failed');
+
+// FLOAT
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'float_channel',
+                                                  E_ChannelDataType.Float,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertFalse(SetChannelValue(pChannel := pChannel, nInt32TestValue),
+            Message := 'setting the float value should have failed');
+
+// ENUM
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'enum_channel',
+                                                  E_ChannelDataType.Enum,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertFalse(SetChannelValue(pChannel := pChannel, fFloatTestValue),
+            Message := 'setting the enum value should have failed');
+
+// INT32
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'int32_channel',
+                                                  E_ChannelDataType.Int32,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertFalse(SetChannelValue(pChannel := pChannel, sStringTestValue),
+            Message := 'setting the int32 value should have failed');
+
+// UINT32
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'uint32_channel',
+                                                  E_ChannelDataType.Uint32,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertFalse(SetChannelValue(pChannel := pChannel, nInt64TestValue),
+            Message := 'setting the uint32 value should have failed');
+
+// INT64
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'int64_channel',
+                                                  E_ChannelDataType.Int64,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertFalse(SetChannelValue(pChannel := pChannel, nUInt64TestValue),
+            Message := 'setting the int64 value should have failed');
+
+// UINT64
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'uint64_channel',
+                                                  E_ChannelDataType.Uint64,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertFalse(SetChannelValue(pChannel := pChannel, bBoolTestValue),
+            Message := 'setting the uint64 value should have failed');
+
+
+TEST_FINISHED();
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Nominal" Id="{e5219003-9e8b-4592-afa2-d8160314608d}">
+      <Declaration><![CDATA[METHOD Nominal : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+
+VAR
+	bBoolTestValue : BOOL := TRUE;
+	fDoubleTestValue : LREAL := 1.2345;
+	nEnumTestValue : UDINT := 10;
+	fFloatTestValue : REAL := 9.8765;
+	nInt32TestValue : DINT := 12345;
+	sStringTestValue : STRING(255) := 'Test string value';
+	nUInt32TestValue : UDINT := 4893573;
+	nInt64TestValue : LINT := -12232423;
+	nUInt64TestValue : ULINT := 1249864785;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TEST('SetChannelValue Nominal');
+
+pFlowConfig := fbIngestionConfig.CreateFlowConfig('flow_name');
+
+// BOOL
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'bool_channel',
+                                                  E_ChannelDataType.Bool_,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertTrue(SetChannelValue(pChannel := pChannel, bBoolTestValue),
+           Message := 'the bool value was not set correctly');
+AssertEquals_BOOL(Expected := bBoolTestValue, 
+                  Actual := pChannel^.Value.bBool,
+                  Message := 'the bool value is incorrect');
+
+// STRING
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'string_channel',
+                                                  E_ChannelDataType.String_,
+                                                  sDescription := '',
+                                                  sUnit := '');
+AssertTrue(SetChannelValue(pChannel := pChannel, sStringTestValue),
+           Message := 'the string value was not set correctly');
+AssertEquals_STRING(Expected := sStringTestValue, 
+                    Actual := pChannel^.Value.sString,
+                    Message := 'the string value is incorrect');
+
+// DOUBLE
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'double_channel',
+                                                  E_ChannelDataType.Double,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertTrue(SetChannelValue(pChannel := pChannel, fDoubleTestValue),
+           Message := 'the double value was not set correctly');
+AssertEquals_LREAL(Expected := fDoubleTestValue, 
+                   Actual := pChannel^.Value.fDouble,
+                   Message := 'the double value is incorrect',
+                   Delta := 0.0);
+
+// FLOAT
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'float_channel',
+                                                  E_ChannelDataType.Float,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertTrue(SetChannelValue(pChannel := pChannel, fFloatTestValue),
+           Message := 'the float value was not set correctly');
+AssertEquals_REAL(Expected := fFloatTestValue, 
+                  Actual := pChannel^.Value.fFloat,
+                  Message := 'the float value is incorrect',
+                  Delta := 0.0);
+
+// ENUM
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'enum_channel',
+                                                  E_ChannelDataType.Enum,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertTrue(SetChannelValue(pChannel := pChannel, nEnumTestValue),
+           Message := 'the enum value was not set correctly');
+AssertEquals_UDINT(Expected := nEnumTestValue, 
+                   Actual := pChannel^.Value.nEnum,
+                   Message := 'the enum value is incorrect');
+
+// INT32
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'int32_channel',
+                                                  E_ChannelDataType.Int32,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertTrue(SetChannelValue(pChannel := pChannel, nInt32TestValue),
+           Message := 'the int32 value was not set correctly');
+AssertEquals_DINT(Expected := nInt32TestValue, 
+                  Actual := pChannel^.Value.nInt32,
+                  Message := 'the int32 value is incorrect');
+
+// UINT32
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'uint32_channel',
+                                                  E_ChannelDataType.Uint32,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertTrue(SetChannelValue(pChannel := pChannel, nUInt32TestValue),
+           Message := 'the uint32 value was not set correctly');
+AssertEquals_UDINT(Expected := nUInt32TestValue, 
+                   Actual := pChannel^.Value.nUInt32,
+                   Message := 'the uint32 value is incorrect');
+
+// INT64
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'int64_channel',
+                                                  E_ChannelDataType.Int64,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertTrue(SetChannelValue(pChannel := pChannel, nInt64TestValue),
+           Message := 'the int64 value was not set correctly');
+AssertEquals_LINT(Expected := nInt64TestValue, 
+                  Actual := pChannel^.Value.nInt64,
+                  Message := 'the int64 value is incorrect');
+
+// UINT64
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlowConfig,
+                                                  sName := 'uint64_channel',
+                                                  E_ChannelDataType.Uint64,
+                                                  sDescription := '',
+                                                  sUnit := '');				  
+AssertTrue(SetChannelValue(pChannel := pChannel, nUInt64TestValue),
+           Message := 'the uint64 value was not set correctly');
+AssertEquals_ULINT(Expected := nUInt64TestValue, 
+                   Actual := pChannel^.Value.nUInt64,
+                   Message := 'the uint64 value is incorrect');
+
+TEST_FINISHED();
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

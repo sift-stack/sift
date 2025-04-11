@@ -1,0 +1,394 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_CreateDataMessage_Test" Id="{a17ce2db-18ff-4f69-aed8-507c78c5afdc}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CreateDataMessage_Test EXTENDS TcUnit.FB_TestSuite
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	pFlow1 : POINTER TO ST_FlowConfig;
+	pFlow2 : POINTER TO ST_FlowConfig;	
+	pEmptyFlow : POINTER TO ST_FlowConfig;	
+	pEnumChannel : POINTER TO ST_ChannelConfig;
+	pBoolChannel : POINTER TO ST_ChannelConfig;
+	pDoubleChannel : POINTER TO ST_ChannelConfig;
+	pFloatChannel : POINTER TO ST_ChannelConfig;
+	pInt32Channel : POINTER TO ST_ChannelConfig;
+	pInt64Channel : POINTER TO ST_ChannelConfig;
+	pStringChannel : POINTER TO ST_ChannelConfig;
+	pUint32Channel : POINTER TO ST_ChannelConfig;
+	pUint64Channel : POINTER TO ST_ChannelConfig;
+	aEnums : ARRAY[1..SiftClientParameters.MAX_NUM_ENUMS_PER_CHANNEL] OF ST_EnumType := [
+		(nKey:=0, sName:='enum1'),
+		(nKey:=1, sName:='enum2'),
+		(nKey:=2, sName:='enum3'),
+		(nKey:=3, sName:='enum4')
+	];
+
+	aRawBuf : ARRAY[0..SiftClientParameters.MAX_PACKET_SIZE - 1] OF BYTE;
+	fbWriter : _FB_BufferWriter := (pRawBuf := ADR(aRawBuf), nSize := SIZEOF(aRawBuf));
+
+	fbIngest : FB_IngestService;	
+	fbIngestionConfig : FB_IngestionConfigService;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbIngestionConfig.ClearIngestionConfig();
+
+pFlow1 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_1');
+AssertTrue(pFlow1 <> 0, Message := 'flow_1 was not created successfully');
+
+pEnumChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_1', 
+													  eDataType:=E_ChannelDataType.Enum, 
+													  sDescription:='An enum channel', 
+													  sUnit:='count');
+AssertTrue(pEnumChannel <> 0, Message := 'enum channel was not created successfully');
+
+AssertTrue(fbIngestionConfig.InitEnumTypes(pEnumChannel, aEnums),
+	       Message := 'enum were not initialized correctly');
+
+pBoolChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_2', 
+													  eDataType:=E_ChannelDataType.Bool_, 
+													  sDescription:='A bool channel', 
+													  sUnit:='a');
+AssertTrue(pBoolChannel <> 0, Message := 'bool channel was not created successfully');
+
+pDoubleChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_3', 
+													  eDataType:=E_ChannelDataType.Double, 
+													  sDescription:='A double channel', 
+													  sUnit:='b');
+AssertTrue(pDoubleChannel <> 0, Message := 'double channel was not created successfully');
+
+pFloatChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_4', 
+													  eDataType:=E_ChannelDataType.Float, 
+													  sDescription:='A float channel', 
+													  sUnit:='c');
+AssertTrue(pFloatChannel <> 0, Message := 'float channel was not created successfully');
+
+pInt32Channel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_5', 
+													  eDataType:=E_ChannelDataType.Int32, 
+													  sDescription:='A int32 channel', 
+													  sUnit:='d');
+AssertTrue(pInt32Channel <> 0, Message := 'int32 channel was not created successfully');
+
+pFlow2 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_2');
+AssertTrue(pFlow2 <> 0, Message := 'flow_2 was not created successfully');
+pInt64Channel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													  sName:='test_channel_6', 
+													  eDataType:=E_ChannelDataType.Int64, 
+													  sDescription:='A int64 channel', 
+													  sUnit:='e');
+AssertTrue(pInt64Channel <> 0, Message := 'int64 channel was not created successfully');
+
+pStringChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													  sName:='test_channel_7', 
+													  eDataType:=E_ChannelDataType.String_, 
+													  sDescription:='A string channel', 
+													  sUnit:='f');
+AssertTrue(pStringChannel <> 0, Message := 'string channel was not created successfully');
+
+pUint32Channel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													  sName:='test_channel_8', 
+													  eDataType:=E_ChannelDataType.Uint32, 
+													  sDescription:='A uint32 channel', 
+													  sUnit:='g');
+AssertTrue(pUint32Channel <> 0, Message := 'uint32 channel was not created successfully');
+
+pUint64Channel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													  sName:='test_channel_9', 
+													  eDataType:=E_ChannelDataType.Uint64, 
+													  sDescription:='A uint64 channel', 
+													  sUnit:='h');
+AssertTrue(pUint64Channel <> 0, Message := 'uint64 channel was not created successfully');
+
+pEmptyFlow := fbIngestionConfig.CreateFlowConfig(sName := 'flow_3_empty');
+AssertTrue(pEmptyFlow <> 0, Message := 'flow_3_empty was not created successfully');
+
+Nominal();
+InvalidWrites();]]></ST>
+    </Implementation>
+    <Method Name="InvalidWrites" Id="{b4f31c39-e8a0-4cec-95c8-a7df102339f8}">
+      <Declaration><![CDATA[METHOD InvalidWrites : REFERENCE TO FB_Test
+VAR
+	aRawBufSmall : ARRAY[0..10] OF BYTE;
+	fbWriterSmall : _FB_BufferWriter := (pRawBuf := ADR(aRawBufSmall), nSize := SIZEOF(aRawBufSmall));
+	stTimestamp : _ST_Timestamp;
+	nBytes: UDINT;
+END_VAR
+
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TEST('CreateDataMessage InvalidWrites');  
+
+// Null Flow
+AssertTrue(_F_CreateDataMessage(fbWriter := fbWriterSmall, 
+			    			   pFlowConfig := 0, 
+							   sRunId := 'test-run-id',
+							   stTimestamp := stTimestamp) = 0,
+			Message := 'should error on null flow');
+
+// Small buffer
+AssertTrue(_F_CreateDataMessage(fbWriter := fbWriterSmall, 
+			    			   pFlowConfig := pFlow1, 
+							   sRunId := 'test-run-id',
+							   stTimestamp := stTimestamp) = 0,
+			Message := 'should error on small flow');
+							   
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Nominal" Id="{1041ff36-79c1-4cfc-a209-a62f902eafcb}">
+      <Declaration><![CDATA[METHOD Nominal : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+
+VAR 
+	nEnumTestValue : UDINT := 10;
+	bBoolTestValue : BOOL := TRUE;
+	fDoubleTestValue : LREAL := 1.2345;
+	fFloatTestValue : REAL := 9.8765;
+	nInt32TestValue : DINT := 12345;
+	nInt64TestValue : LINT := -12232423;
+	sStringTestValue : STRING(255) := 'Test string value';
+	nUInt32TestValue : UDINT := 4893573;
+	nUInt64TestValue : ULINT := 1249864785;
+	sRunId : STRING := 'test-run-id';
+	
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	stTimestamp : _ST_Timestamp;
+	nBytes : UDINT;
+	nValuesOffset : UDINT;
+	
+	bTmpBool : BOOL;
+	fTmpDouble : LREAL;
+	fTmpFloat : REAL;
+	nTmpUdint : UDINT;
+	nTmpUlint : ULINT;
+	nTmpLint : LINT;
+	nTmpDint : DINT;
+	pTmpString : POINTER TO STRING;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating a nominal data message
+TEST('CreateDataMessage Nominal');
+
+AssertTrue(SetChannelValue(pChannel := pEnumChannel, nEnumTestValue),
+           Message := 'the enum value was not set correctly');
+AssertTrue(SetChannelValue(pChannel := pBoolChannel, bBoolTestValue),
+           Message := 'the bool value was not set correctly');
+AssertTrue(SetChannelValue(pChannel := pDoubleChannel, fDoubleTestValue),
+           Message := 'the double value was not set correctly');
+AssertTrue(SetChannelValue(pChannel := pFloatChannel, fFloatTestValue),
+           Message := 'the float value was not set correctly');
+AssertTrue(SetChannelValue(pChannel := pInt32Channel, nInt32TestValue),
+           Message := 'the int32 value was not set correctly');
+AssertTrue(SetChannelValue(pChannel := pInt64Channel, nInt64TestValue),
+           Message := 'the int64 value was not set correctly');
+AssertTrue(SetChannelValue(pChannel := pStringChannel, sStringTestValue),
+           Message := 'the string value was not set correctly');
+AssertTrue(SetChannelValue(pChannel := pUint32Channel, nUInt32TestValue),
+           Message := 'the uint32 value was not set correctly');
+AssertTrue(SetChannelValue(pChannel := pUint64Channel, nUInt64TestValue),
+           Message := 'the uint64 value was not set correctly');
+		   
+stTimestamp.nSeconds := 1234567;		   
+stTimestamp.nNanoseconds := 65432;		   
+
+// Flow 1	  
+nBytes := _F_CreateDataMessage(fbWriter := fbWriter, 
+			    			   pFlowConfig := pFlow1, 
+							   sRunId := sRunId,
+							   stTimestamp := stTimestamp);
+ 
+MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[0]), 4);
+AssertEquals_UDINT(Expected := GVL_SIFT.SYNC_WORD,
+				   Actual := nTmpUdint,
+				   Message := 'sync word did not match');
+				   
+AssertEquals_BYTE(Expected := GVL_SIFT.DATA_MESSAGE_TYPE,
+				  Actual := aRawBuf[GVL_SIFT.MESSAGE_TYPE_INDEX],
+				  Message := 'incorrect message type');
+				  
+MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[GVL_SIFT.MESSGE_LENGTH_INDEX]), 4);
+AssertEquals_UDINT(Expected := nBytes,
+				   Actual := nTmpUdint,
+				   Message := 'incorrect message length');
+				   
+MEMCPY(ADR(nTmpLint), ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH]), 8);
+AssertEquals_LINT(Expected := stTimestamp.nSeconds,
+				   Actual := nTmpLint,
+				   Message := 'incorrect timestamp (seconds)');
+				   
+MEMCPY(ADR(nTmpDint), ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+8]), 4);
+AssertEquals_LINT(Expected := stTimestamp.nNanoseconds,
+				   Actual := nTmpDint,
+				   Message := 'incorrect timestamp (nanoseconds)');
+
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12]);
+AssertEquals_STRING(Expected := pFlow1^.sName,
+				    Actual := pTmpString^,
+				    Message := 'incorrect flow');
+					
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + LEN(pFlow1^.sName) + 1]);
+AssertEquals_STRING(Expected := sRunId,
+				    Actual := pTmpString^,
+				    Message := 'incorrect run id');
+					
+nValuesOffset := DINT_TO_UDINT(GVL_SIFT.HEADER_LENGTH+12 + LEN(pFlow1^.sName) + 1 + LEN(sRunId) + 1);
+		   
+MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[nValuesOffset]), SIZEOF(nEnumTestValue));
+AssertEquals_UDINT(Expected := nEnumTestValue,
+				   Actual := nTmpUdint,
+				   Message := 'incorrect enum value in message');
+nValuesOffset := nValuesOffset + SIZEOF(nEnumTestValue);
+
+MEMCPY(ADR(bTmpBool), ADR(aRawBuf[nValuesOffset]), SIZEOF(bBoolTestValue));
+AssertEquals_BOOL(Expected := bBoolTestValue,
+				   Actual := bTmpBool,
+				   Message := 'incorrect bool value in message');
+nValuesOffset := nValuesOffset + SIZEOF(bBoolTestValue);
+
+MEMCPY(ADR(fTmpDouble), ADR(aRawBuf[nValuesOffset]), SIZEOF(fDoubleTestValue));
+AssertEquals_LREAL(Expected := fDoubleTestValue,
+				   Actual := fTmpDouble,
+				   Delta := 0,
+				   Message := 'incorrect double value in message');
+nValuesOffset := nValuesOffset + SIZEOF(fDoubleTestValue);
+				   
+MEMCPY(ADR(fTmpFloat), ADR(aRawBuf[nValuesOffset]), SIZEOF(fFloatTestValue));
+AssertEquals_LREAL(Expected := fFloatTestValue,
+				   Actual := fTmpFloat,
+				   Delta := 0,
+				   Message := 'incorrect float value in message');
+nValuesOffset := nValuesOffset + SIZEOF(fFloatTestValue);
+
+MEMCPY(ADR(nTmpDint), ADR(aRawBuf[nValuesOffset]), SIZEOF(nInt32TestValue));
+AssertEquals_DINT(Expected := nInt32TestValue,
+				   Actual := nTmpDint,
+				   Message := 'incorrect int32 value in message');
+nValuesOffset := nValuesOffset + SIZEOF(nInt32TestValue);
+
+// Flow 2
+fbWriter.SetOffset(0);
+
+// Test empty run
+sRunId := '';
+
+nBytes := _F_CreateDataMessage(fbWriter := fbWriter, 
+			    			   pFlowConfig := pFlow2, 
+							   sRunId := sRunId,
+							   stTimestamp := stTimestamp);
+ 
+MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[0]), 4);
+AssertEquals_UDINT(Expected := GVL_SIFT.SYNC_WORD,
+				   Actual := nTmpUdint,
+				   Message := 'sync word did not match');
+				   
+AssertEquals_BYTE(Expected := GVL_SIFT.DATA_MESSAGE_TYPE,
+				  Actual := aRawBuf[GVL_SIFT.MESSAGE_TYPE_INDEX],
+				  Message := 'incorrect message type');
+				  
+MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[GVL_SIFT.MESSGE_LENGTH_INDEX]), 4);
+AssertEquals_UDINT(Expected := nBytes,
+				   Actual := nTmpUdint,
+				   Message := 'incorrect message length');
+				   
+MEMCPY(ADR(nTmpLint), ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH]), 8);
+AssertEquals_LINT(Expected := stTimestamp.nSeconds,
+				   Actual := nTmpLint,
+				   Message := 'incorrect timestamp (seconds)');
+				   
+MEMCPY(ADR(nTmpDint), ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+8]), 4);
+AssertEquals_LINT(Expected := stTimestamp.nNanoseconds,
+				   Actual := nTmpDint,
+				   Message := 'incorrect timestamp (nanoseconds)');
+
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12]);
+AssertEquals_STRING(Expected := pFlow2^.sName,
+				    Actual := pTmpString^,
+				    Message := 'incorrect flow');
+					
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + LEN(pFlow2^.sName) + 1]);
+AssertEquals_STRING(Expected := sRunId,
+				    Actual := pTmpString^,
+				    Message := 'incorrect run id');
+					
+nValuesOffset := DINT_TO_UDINT(GVL_SIFT.HEADER_LENGTH+12 + LEN(pFlow2^.sName) + 1 + LEN(sRunId) + 1);
+		   
+MEMCPY(ADR(nTmpLint), ADR(aRawBuf[nValuesOffset]), SIZEOF(nInt64TestValue));
+AssertEquals_LINT(Expected := nInt64TestValue,
+				   Actual := nTmpLint,
+				   Message := 'incorrect int64 value in message');
+nValuesOffset := nValuesOffset + SIZEOF(nInt64TestValue);
+
+pTmpString := ADR(aRawBuf[nValuesOffset]);
+AssertEquals_STRING(Expected := sStringTestValue,
+				    Actual := pTmpString^,
+				    Message := 'incorrect string value in message');
+nValuesOffset := nValuesOffset + DINT_TO_UDINT(LEN(sStringTestValue)) + 1;
+
+MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[nValuesOffset]), SIZEOF(nUInt32TestValue));
+AssertEquals_UDINT(Expected := nUInt32TestValue,
+				   Actual := nTmpUdint,
+				   Message := 'incorrect uint32 value in message');
+nValuesOffset := nValuesOffset + SIZEOF(nUInt32TestValue);
+
+MEMCPY(ADR(nTmpUlint), ADR(aRawBuf[nValuesOffset]), SIZEOF(nUInt64TestValue));
+AssertEquals_ULINT(Expected := nUInt64TestValue,
+				   Actual := nTmpUlint,
+				   Message := 'incorrect uint64 value in message');
+nValuesOffset := nValuesOffset + SIZEOF(nUInt64TestValue);
+
+// Empty Flow
+fbWriter.SetOffset(0);
+nBytes := _F_CreateDataMessage(fbWriter := fbWriter, 
+			    			   pFlowConfig := pEmptyFlow, 
+							   sRunId := sRunId,
+							   stTimestamp := stTimestamp);
+							   
+MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[0]), 4);
+AssertEquals_UDINT(Expected := GVL_SIFT.SYNC_WORD,
+				   Actual := nTmpUdint,
+				   Message := 'sync word did not match');
+				   
+AssertEquals_BYTE(Expected := GVL_SIFT.DATA_MESSAGE_TYPE,
+				  Actual := aRawBuf[GVL_SIFT.MESSAGE_TYPE_INDEX],
+				  Message := 'incorrect message type');
+				  
+MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[GVL_SIFT.MESSGE_LENGTH_INDEX]), 4);
+AssertEquals_UDINT(Expected := nBytes,
+				   Actual := nTmpUdint,
+				   Message := 'incorrect message length');
+				   
+MEMCPY(ADR(nTmpLint), ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH]), 8);
+AssertEquals_LINT(Expected := stTimestamp.nSeconds,
+				   Actual := nTmpLint,
+				   Message := 'incorrect timestamp (seconds)');
+				   
+MEMCPY(ADR(nTmpDint), ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+8]), 4);
+AssertEquals_LINT(Expected := stTimestamp.nNanoseconds,
+				   Actual := nTmpDint,
+				   Message := 'incorrect timestamp (nanoseconds)');
+
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12]);
+AssertEquals_STRING(Expected := pEmptyFlow^.sName,
+				    Actual := pTmpString^,
+				    Message := 'incorrect flow');
+					
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + LEN(pEmptyFlow^.sName) + 1]);
+AssertEquals_STRING(Expected := sRunId,
+				    Actual := pTmpString^,
+				    Message := 'incorrect run id');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

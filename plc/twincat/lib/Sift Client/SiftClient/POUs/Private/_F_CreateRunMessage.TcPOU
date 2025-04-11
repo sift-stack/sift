@@ -53,6 +53,10 @@ nBytes := fbJson.CopyDocument(pJsonString^, nLength);
 IF nBytes = 0 THEN
 	stErr.nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
 	stErr.bError := TRUE;
+	stErr.sReason := CONCAT(
+		CONCAT('JSON msg too large: ', UDINT_TO_STRING(fbJson.GetDocumentLength())),
+		' endpoint=create_run',
+	);
 	RETURN;
 END_IF
 

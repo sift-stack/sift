@@ -1,0 +1,305 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="FB_CreateIngestionConfigMessage_Test" Id="{c7b66129-c5e5-4d96-9389-5db1b74d8021}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CreateIngestionConfigMessage_Test EXTENDS TcUnit.FB_TestSuite
+VAR_INPUT
+END_VAR
+
+VAR_OUTPUT
+END_VAR
+
+VAR
+	fbIngestionConfig : FB_IngestionConfigService;
+	aEnums : ARRAY[1..SiftClientParameters.MAX_NUM_ENUMS_PER_CHANNEL] OF ST_EnumType := [
+		(nKey:=0, sName:='enum1'),
+		(nKey:=1, sName:='enum2'),
+		(nKey:=2, sName:='enum3'),
+		(nKey:=3, sName:='enum4')
+	];
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbIngestionConfig(sAssetName := 'Unit-Test-Asset');
+Nominal();
+EndpointMessageTooBig();
+NullArguments();
+ConfigParamsExceeded();]]></ST>
+    </Implementation>
+    <Method Name="ConfigParamsExceeded" Id="{bc5324ba-4ebf-4bba-8420-2b8d8cb47cef}">
+      <Declaration><![CDATA[METHOD ConfigParamsExceeded : REFERENCE TO FB_Test
+
+VAR
+	pFlow1 : POINTER TO ST_FlowConfig;
+	pChannel : POINTER TO ST_ChannelConfig;
+	sJsonBuffer : STRING(1024);
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	i,j : UDINT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating flows and channels after exceeding the limit.
+TEST('CreateIngestionConfig ConfigParamsExceeded');
+
+fbIngestionConfig.ClearIngestionConfig();
+
+pFlow1 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_1');
+AssertTrue(pFlow1 <> 0, Message := 'flow_1 was not created successfully');
+
+FOR i := 1 TO SiftClientParameters.MAX_NUM_FLOWS - 1 DO
+	AssertTrue(fbIngestionConfig.CreateFlowConfig(sName := 'flow')  <> 0,
+			   Message := 'failed to create additional flows');
+END_FOR
+AssertTrue(fbIngestionConfig.CreateFlowConfig(sName := 'flow') = 0,
+		   Message := 'should have exceeded flow capacity');
+
+
+FOR i := 1 TO SiftClientParameters.MAX_NUM_CHANNELS_PER_FLOW DO
+	pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='channel',
+													  eDataType:=E_ChannelDataType.String_, 
+													  sDescription:='A double channel channel', 
+													  sUnit:='count');
+	AssertTrue(pChannel <> 0, Message := 'channel was not created successfully');	
+END_FOR
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+												  sName:='channel',
+												  eDataType:=E_ChannelDataType.Double, 
+												  sDescription:='A double channel channel', 
+												  sUnit:='count');
+AssertTrue(pChannel = 0, Message := 'should have exceeded channel capacity');
+
+AssertFalse(fbIngestionConfig.Validate(), 
+			Message := 'ingestion config validation should have failed');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="EndpointMessageTooBig" Id="{6509e2e6-5572-4b61-8c6e-72811e54ee7b}">
+      <Declaration><![CDATA[METHOD EndpointMessageTooBig : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+
+VAR
+	pFlow1 : POINTER TO ST_FlowConfig;
+	pChannel : POINTER TO ST_ChannelConfig;
+	sJsonBuffer : STRING(10);
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	pos : INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating a message that too big to fit in the JsonBuffer.
+TEST('CreateIngestionConfig MessageTooBig');
+
+fbIngestionConfig.ClearIngestionConfig();
+
+pFlow1 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_1');
+AssertTrue(pFlow1 <> 0, Message := 'flow_1 was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+									  sName:='longer_than_10_chars',
+									  eDataType:=E_ChannelDataType.Double, 
+									  sDescription:='A double channel channel', 
+									  sUnit:='count');
+AssertTrue(pChannel <> 0, Message := 'channel was not created successfully');
+
+stErr := _F_CreateIngestionConfigMessage(stIngestionConfig := fbIngestionConfig.stIngestionConfig, 
+							    stMsg := stMsg, 
+								pJsonBuffer := ADR(sJsonBuffer), 
+								SIZEOF(sJsonBuffer));
+								
+AssertTrue(stErr.bError, Message := 'CreateIngestionConfigMessage should have returned an error');
+
+pos := FIND(STR1 := stErr.sReason, STR2 := 'JSON msg too large');
+AssertTrue(pos <> 0, Message := 'incorrect error string');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Nominal" Id="{5d648cb3-107d-4711-8f6e-24eab29a0aaf}">
+      <Declaration><![CDATA[METHOD Nominal : REFERENCE TO FB_Test
+VAR_INPUT
+END_VAR
+
+VAR 
+	pFlow1 : POINTER TO ST_FlowConfig;
+	pFlow2 : POINTER TO ST_FlowConfig;	
+	pChannel : POINTER TO ST_ChannelConfig;
+	
+	sJsonBuffer : STRING(1500);
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	
+	sExpectedJson : STRING(1500) := '{"endpoint":"create_ingestion_config","data":{"assetName":"Unit-Test-Asset","flows":[{"name":"flow_1","channels":[{"name":"test_channel_1","unit":"count","description":"An enum channel","dataType":"CHANNEL_DATA_TYPE_ENUM","enumTypes":[{"name":"enum1","key":0},{"name":"enum2","key":1},{"name":"enum3","key":2},{"name":"enum4","key":3}]},{"name":"test_channel_2","unit":"a","description":"A bool channel","dataType":"CHANNEL_DATA_TYPE_BOOL","enumTypes":[]},{"name":"test_channel_3","unit":"b","description":"A double channel","dataType":"CHANNEL_DATA_TYPE_DOUBLE","enumTypes":[]},{"name":"test_channel_4","unit":"c","description":"A float channel","dataType":"CHANNEL_DATA_TYPE_FLOAT","enumTypes":[]},{"name":"test_channel_5","unit":"d","description":"A int32 channel","dataType":"CHANNEL_DATA_TYPE_INT_32","enumTypes":[]}]},{"name":"flow_2","channels":[{"name":"test_channel_6","unit":"e","description":"A int64 channel","dataType":"CHANNEL_DATA_TYPE_INT_64","enumTypes":[]},{"name":"test_channel_7","unit":"f","description":"A string channel","dataType":"CHANNEL_DATA_TYPE_STRING","enumTypes":[]},{"name":"test_channel_8","unit":"g","description":"A uint32 channel","dataType":"CHANNEL_DATA_TYPE_UINT_32","enumTypes":[]},{"name":"test_channel_9","unit":"h","description":"A uint64 channel","dataType":"CHANNEL_DATA_TYPE_UINT_64","enumTypes":[]}]}]}}';
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating a nominal ingestion config message.
+TEST('CreateIngestionConfig Nominal');
+
+fbIngestionConfig.ClearIngestionConfig();
+
+pFlow1 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_1');
+AssertTrue(pFlow1 <> 0, Message := 'flow_1 was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_1', 
+													  eDataType:=E_ChannelDataType.Enum, 
+													  sDescription:='An enum channel', 
+													  sUnit:='count');
+AssertTrue(pChannel <> 0, Message := 'enum channel was not created successfully');
+
+AssertTrue(fbIngestionConfig.InitEnumTypes(pChannel, aEnums),
+	       Message := 'enum were not initialized correctly');
+
+AssertEquals_UDINT(Expected := aEnums[1].nKey,
+				   Actual := pChannel^.aEnumTypes[0].nKey,
+				   Message := 'enum 1 key doesnt match');
+AssertEquals_UDINT(Expected := aEnums[2].nKey,
+				   Actual := pChannel^.aEnumTypes[1].nKey,
+				   Message := 'enum 2 key doesnt match');
+AssertEquals_UDINT(Expected := aEnums[3].nKey,
+				   Actual := pChannel^.aEnumTypes[2].nKey,
+				   Message := 'enum 3 key doesnt match');
+AssertEquals_UDINT(Expected := aEnums[4].nKey,
+				   Actual := pChannel^.aEnumTypes[3].nKey,
+				   Message := 'enum 4 key doesnt match');
+AssertEquals_STRING(Expected := aEnums[1].sName,
+				   Actual := pChannel^.aEnumTypes[0].sName,
+				   Message := 'enum 1 name doesnt match');
+AssertEquals_STRING(Expected := aEnums[2].sName,
+				   Actual := pChannel^.aEnumTypes[1].sName,
+				   Message := 'enum 2 name doesnt match');
+AssertEquals_STRING(Expected := aEnums[3].sName,
+				   Actual := pChannel^.aEnumTypes[2].sName,
+				   Message := 'enum 3 name doesnt match');
+AssertEquals_STRING(Expected := aEnums[4].sName,
+				   Actual := pChannel^.aEnumTypes[3].sName,
+				   Message := 'enum 4 name doesnt match');
+				   
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_2', 
+													  eDataType:=E_ChannelDataType.Bool_, 
+													  sDescription:='A bool channel', 
+													  sUnit:='a');
+AssertTrue(pChannel <> 0, Message := 'bool channel was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_3', 
+													  eDataType:=E_ChannelDataType.Double, 
+													  sDescription:='A double channel', 
+													  sUnit:='b');
+AssertTrue(pChannel <> 0, Message := 'double channel was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_4', 
+													  eDataType:=E_ChannelDataType.Float, 
+													  sDescription:='A float channel', 
+													  sUnit:='c');
+AssertTrue(pChannel <> 0, Message := 'float channel was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+													  sName:='test_channel_5', 
+													  eDataType:=E_ChannelDataType.Int32, 
+													  sDescription:='A int32 channel', 
+													  sUnit:='d');
+AssertTrue(pChannel <> 0, Message := 'int32 channel was not created successfully');
+
+pFlow2 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_2');
+AssertTrue(pFlow2 <> 0, Message := 'flow_2 was not created successfully');
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													  sName:='test_channel_6', 
+													  eDataType:=E_ChannelDataType.Int64, 
+													  sDescription:='A int64 channel', 
+													  sUnit:='e');
+AssertTrue(pChannel <> 0, Message := 'int64 channel was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													  sName:='test_channel_7', 
+													  eDataType:=E_ChannelDataType.String_, 
+													  sDescription:='A string channel', 
+													  sUnit:='f');
+AssertTrue(pChannel <> 0, Message := 'string channel was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													  sName:='test_channel_8', 
+													  eDataType:=E_ChannelDataType.Uint32, 
+													  sDescription:='A uint32 channel', 
+													  sUnit:='g');
+AssertTrue(pChannel <> 0, Message := 'uint32 channel was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2, 
+													  sName:='test_channel_9', 
+													  eDataType:=E_ChannelDataType.Uint64, 
+													  sDescription:='A uint64 channel', 
+													  sUnit:='h');
+AssertTrue(pChannel <> 0, Message := 'uint64 channel was not created successfully');
+
+stErr := _F_CreateIngestionConfigMessage(stIngestionConfig := fbIngestionConfig.stIngestionConfig, 
+							    stMsg := stMsg, 
+								pJsonBuffer := ADR(sJsonBuffer), 
+								SIZEOF(sJsonBuffer));
+								
+AssertFalse(stErr.bError, Message := 'error creating ingestion config message');
+AssertEquals_STRING(Expected := sExpectedJson, 
+				    Actual := sJsonBuffer, 
+					Message := 'bad ingestion config was created');
+
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="NullArguments" Id="{b93bf4cb-41ba-4466-883f-35aa1ad80315}">
+      <Declaration><![CDATA[METHOD NullArguments : REFERENCE TO FB_Test
+VAR
+	pFlow1 : POINTER TO ST_FlowConfig;
+	pChannel : POINTER TO ST_ChannelConfig;
+	stMsg : _ST_SiftMessage;
+	stErr : ST_SiftError;
+	pos : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Test creating a message with a null buffer.
+TEST('CreateIngestionConfig NullArguments');
+
+fbIngestionConfig.ClearIngestionConfig();
+
+pFlow1 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_1');
+AssertTrue(pFlow1 <> 0, Message := 'flow_1 was not created successfully');
+
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+									  sName:='longer_than_10_chars',
+									  eDataType:=E_ChannelDataType.Double, 
+									  sDescription:='A double channel channel', 
+									  sUnit:='count');
+AssertTrue(pChannel <> 0, Message := 'channel was not created successfully');
+
+// Test Null JSON buffer
+stErr := _F_CreateIngestionConfigMessage(stIngestionConfig := fbIngestionConfig.stIngestionConfig, 
+							    stMsg := stMsg, 
+								pJsonBuffer := 0, 
+								nLength:= 10);
+								
+AssertTrue(stErr.bError, Message := 'CreateIngestionConfigMessage did not return an error');
+
+pos := FIND(STR1 := stErr.sReason, STR2 := 'null');
+AssertTrue(pos <> 0, Message := 'incorrect error string');
+
+// Test Null flow config
+pChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := 0, 
+												  sName:='channel',
+												  eDataType:=E_ChannelDataType.Double, 
+												  sDescription:='A double channel channel', 
+												  sUnit:='count');
+AssertTrue(pChannel = 0, Message := 'channel should have failed');
+
+// Test Null channel
+AssertFalse(fbIngestionConfig.InitEnumTypes(pChannelConfig := 0, aEnums),
+	       Message := 'enum initialization should have failed');
+
+TEST_FINISHED();]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

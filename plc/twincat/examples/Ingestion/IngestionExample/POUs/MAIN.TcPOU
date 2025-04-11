@@ -18,9 +18,6 @@ VAR
 	// Run information.
 	sRunName : STRING(255) := 'TwinCat3 PLC Ingestion Example';
 	sRunDescription : STRING(255) := 'Example run from TwinCat3 application.';
-	
-	// The Ingestion Config. See https://docs.siftstack.com/docs/glossary#ingestion-config
-	stIngestionConfig : ST_IngestionConfig;
 
 	// Flows and Channels created here should all be pointers and initialized with CreateFlowConfig and CreateChannelConfig
 	pFlow1 : POINTER TO ST_FlowConfig;
@@ -43,10 +40,18 @@ VAR
 	sData3 : STRING(255) := 'This is a string value from the PLC task.';
 	fData4 : LREAL := 1.2345;
 
-	fbSiftClient : FB_SiftClient; // Sift Client used for all services.
-	fbIngestionConfig : FB_IngestionConfigService := (stIngestionConfig := stIngestionConfig); 	// Ingestion Config service used to register the ingestion config.
-	fbRun : FB_RunService; // Run service used to create new Runs.
-	fbIngest : FB_IngestService; // Ingest service used to stream data.
+	// Sift Client used for all services.
+	fbSiftClient : FB_SiftClient;
+	
+	// The Ingestion Config. See https://docs.siftstack.com/docs/glossary#ingestion-config
+ 	// Ingestion Config service used to register the ingestion config.
+	fbIngestionConfig : FB_IngestionConfigService;
+	
+	// Run service used to create new Runs.
+	fbRun : FB_RunService;
+	
+	// Ingest service used to stream data.
+	fbIngest : FB_IngestService;
 
 	eSiftState : (
 		INIT_SIFT_CLIENT,		// Begin initializing the Sift Client.
@@ -89,8 +94,6 @@ END_VAR]]></Declaration>
 		eSiftState := SUBMIT_CONFIG;
 	
 	SUBMIT_CONFIG:
-		stIngestionConfig.sAssetName := 'Test-PLC-Example';
-		
 		pFlow1 := fbIngestionConfig.CreateFlowConfig(sName := 'flow_1');
 		IF pFlow1 = 0 THEN
 			eSiftState := ERROR;
@@ -160,7 +163,9 @@ END_VAR]]></Declaration>
 			RETURN;
 		END_IF
 		
-		fbIngestionConfig(bExecute:=TRUE, hSiftClient:=fbSiftClient.hSiftClient);
+		fbIngestionConfig(sAssetName := 'Test-PLC-Example', 
+						  hSiftClient:=fbSiftClient.hSiftClient,
+					      bExecute:=TRUE);
 		eSiftState := SUBMIT_CONFIG_WAIT;
 
 	SUBMIT_CONFIG_WAIT:

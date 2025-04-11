@@ -35,9 +35,7 @@ END_VAR
 		bBusy := TRUE;
 		bError := FALSE;
 		
-		stSiftError := _F_CreatePingMessage(stMsg:=stPingReq,
-    										pJsonBuffer := hSiftClient.pJsonBuffer,
-										    nLength := hSiftClient.pJbLength);
+		stSiftError := _F_CreatePingMessage(stMsg:=stPingReq);
 		IF stSiftError.bError THEN
 			nErrId := stSiftError.nErrId;
 			eState := FAILURE;
