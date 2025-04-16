@@ -59,6 +59,7 @@ END_VAR
 		bBusy := TRUE;
 		bError := FALSE;
 		hSiftClient.fbCloseAll(bExecute := TRUE);
+		nAttempts := 0;
 		eState := CLOSE_ALL_WAIT;
 		
 	CLOSE_ALL_WAIT:
@@ -95,7 +96,7 @@ END_VAR
 							  tTimeout := T#1S);
 		
 		nAttempts := nAttempts + 1;
-		IF nAttempts = 3 THEN
+		IF nAttempts >= 3 THEN
 			nErrId := GVL_SIFT.SIFT_PROXY_FAILED_TO_START;
 			eState := FAILURE;
 			RETURN;
