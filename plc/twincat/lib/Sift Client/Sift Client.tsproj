@@ -18,7 +18,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{2F3E9F0A-F907-43E5-B54E-D225EA584C2A}" Name="SiftClient" PrjFilePath="SiftClient\SiftClient.plcproj" TmcFilePath="SiftClient\SiftClient.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{B00D9BF6-7D5F-D19B-E3C2-516050AEF274}" TmcPath="SiftClient\SiftClient.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{90006D26-9391-79FC-A021-9AF8C423F5BE}" TmcPath="SiftClient\SiftClient.tmc">
 					<Name>SiftClient Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Contexts>

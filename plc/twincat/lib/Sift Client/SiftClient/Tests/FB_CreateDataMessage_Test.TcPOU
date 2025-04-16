@@ -236,12 +236,12 @@ AssertEquals_STRING(Expected := pFlow1^.sName,
 				    Actual := pTmpString^,
 				    Message := 'incorrect flow');
 					
-pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + LEN(pFlow1^.sName) + 1]);
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + DINT_TO_UDINT(LEN(pFlow1^.sName)) + 1]);
 AssertEquals_STRING(Expected := sRunId,
 				    Actual := pTmpString^,
 				    Message := 'incorrect run id');
 					
-nValuesOffset := DINT_TO_UDINT(GVL_SIFT.HEADER_LENGTH+12 + LEN(pFlow1^.sName) + 1 + LEN(sRunId) + 1);
+nValuesOffset := GVL_SIFT.HEADER_LENGTH+12 + DINT_TO_UDINT(LEN(pFlow1^.sName)) + 1 + DINT_TO_UDINT(LEN(sRunId)) + 1;
 		   
 MEMCPY(ADR(nTmpUdint), ADR(aRawBuf[nValuesOffset]), SIZEOF(nEnumTestValue));
 AssertEquals_UDINT(Expected := nEnumTestValue,
@@ -315,12 +315,12 @@ AssertEquals_STRING(Expected := pFlow2^.sName,
 				    Actual := pTmpString^,
 				    Message := 'incorrect flow');
 					
-pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + LEN(pFlow2^.sName) + 1]);
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + DINT_TO_UDINT(LEN(pFlow2^.sName)) + 1]);
 AssertEquals_STRING(Expected := sRunId,
 				    Actual := pTmpString^,
 				    Message := 'incorrect run id');
 					
-nValuesOffset := DINT_TO_UDINT(GVL_SIFT.HEADER_LENGTH+12 + LEN(pFlow2^.sName) + 1 + LEN(sRunId) + 1);
+nValuesOffset := GVL_SIFT.HEADER_LENGTH+12 + DINT_TO_UDINT(LEN(pFlow2^.sName)) + 1 + DINT_TO_UDINT(LEN(sRunId)) + 1;
 		   
 MEMCPY(ADR(nTmpLint), ADR(aRawBuf[nValuesOffset]), SIZEOF(nInt64TestValue));
 AssertEquals_LINT(Expected := nInt64TestValue,
@@ -382,7 +382,7 @@ AssertEquals_STRING(Expected := pEmptyFlow^.sName,
 				    Actual := pTmpString^,
 				    Message := 'incorrect flow');
 					
-pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + LEN(pEmptyFlow^.sName) + 1]);
+pTmpString := ADR(aRawBuf[GVL_SIFT.HEADER_LENGTH+12 + DINT_TO_UDINT(LEN(pEmptyFlow^.sName)) + 1]);
 AssertEquals_STRING(Expected := sRunId,
 				    Actual := pTmpString^,
 				    Message := 'incorrect run id');

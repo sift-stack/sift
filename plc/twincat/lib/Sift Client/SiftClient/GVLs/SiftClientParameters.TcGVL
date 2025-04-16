@@ -4,7 +4,7 @@
     <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL CONSTANT
 	// The path to the `start_sift_proxy.bat` file.
-	START_SIFT_PROXY_PATH : STRING := 'C:\Sift\Beckoff\start_sift_proxy.bat';
+	START_SIFT_PROXY_PATH : STRING := 'C:\Sift\Beckhoff\start_sift_proxy.bat';
 		
 	MAX_NUM_FLOWS : UDINT := 8; // Max number of Flows per Ingestion Config.
 	MAX_NUM_CHANNELS_PER_FLOW : UDINT := 256; // Max number of Channels per Flow.
