@@ -4,6 +4,7 @@ package sift.protobuf_descriptors.v2;
 
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
 
@@ -107,6 +108,7 @@ message ProtobufDescriptor {
   string proto_file_name = 3;
   string namespace = 4;
   string protobuf_descriptor_id = 5;
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // The request for a call to `ProtobufDescriptorService_ListProtobufDescriptors` to retrieve protobuf descriptors.
