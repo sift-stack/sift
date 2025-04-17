@@ -62,7 +62,7 @@ TIME_CHANNEL_NAME = "Time"
 # TdmsChannel like objects without having to save and read the channels to
 # a file.
 _TdmsChannel = namedtuple(
-    "_TdmsChannel", ["group_name", "name", "data_type", "data", "properties", "n_points"]
+    "_TdmsChannel", ["group_name", "name", "data_type", "data", "properties"]
 )
 
 
@@ -321,16 +321,16 @@ class TdmsUploadService:
             time_channels = get_time_channels(group)
             if len(time_channels) != 1:
                 msg = (
-                    "contains more than one time channel"
+                    f"{group.name} contains more than one time channel"
                     if len(time_channels) > 1
                     else "no time channels"
                 )
                 if ignore_errors:
-                    print(f"{group.name} {msg}. Skipping.")
+                    print(f"{msg}. Skipping.")
                     continue
                 else:
                     raise Exception(
-                        f"{group.name} {msg}. Set `ignore_errors` to True to skip this group."
+                        f"{msg}. Set `ignore_errors` to True to skip this group."
                     )
 
             time_channel = time_channels[0]
@@ -345,10 +345,16 @@ class TdmsUploadService:
                         + "Z"
                     )
                 else:
-                    if len(time_channel.data) < len(channel.data):
-                        raise Exception(
-                            f"{time_channel.name} contains fewer points than {channel.name}"
-                        )
+                    if len(time_channel.data) != len(channel.data):
+                        msg = f"Length mismatch between {time_channel.name} and {channel.name}"
+                        if ignore_errors:
+                            print(f"{msg}. Skipping.")
+                            continue
+                        else:
+                            raise Exception(
+                                f"{msg}. Set `ignore_errors` to True to skip this channel."
+                            )
+
                     updated_channel_name = sanitize_string(channel.name)
                     data = channel.data
 
@@ -358,14 +364,23 @@ class TdmsUploadService:
                     data_type=channel.data_type,
                     data=data,
                     properties=channel.properties,
-                    n_points=len(channel.data),
                 )
                 updated_channels.append(updated_channel)
 
                 if channel != time_channel:
                     all_tdms_channels.append(updated_channel)
 
-            valid_groups[updated_group_name] = updated_channels
+            if len(updated_channels) > 1:
+                valid_groups[updated_group_name] = updated_channels
+            else:
+                msg = f"{group.name} does not contain any valid channels"
+                if ignore_errors:
+                    print(f"{msg}. Skipping.")
+                    continue
+                else:
+                    raise Exception(
+                        f"{msg}. Set `ignore_errors` to True to skip this group."
+                    )
 
         if not valid_groups:
             raise Exception(f"No valid groups remaining in {src_path}")
@@ -380,13 +395,12 @@ class TdmsUploadService:
         csv_writer.writeheader()
         rows = []
         for updated_channels in valid_groups.values():
-            max_points = max(len(channel.data) for channel in updated_channels)
-            for i in range(max_points):
+            n_points = len(updated_channels[0].data)
+            for i in range(n_points):
                 rows.append(
                     {
                         channel.name: channel.data[i]
                         for channel in updated_channels
-                        if i < channel.n_points
                     }
                 )
         csv_writer.writerows(rows)

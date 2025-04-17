@@ -633,18 +633,21 @@ def test_time_channel_tdms_different_lengths(
 
     svc = TdmsUploadService(rest_config)
 
-    svc.upload("some_tdms.tdms", "asset_name", tdms_time_format=TdmsTimeFormat.TIME_CHANNEL)
+    svc.upload("some_tdms.tdms", "asset_name", tdms_time_format=TdmsTimeFormat.TIME_CHANNEL, ignore_errors=True)
     expected_csv_results = [
-        {"Time": "1970-01-01T00:00:00.000000001Z", "Test/channel_0": 1, "Test/channel_1": 1},
-        {"Time": "1970-01-01T00:00:00.000000002Z", "Test/channel_0": 2, "Test/channel_1": 2},
-        {"Time": "1970-01-01T00:00:00.000000003Z", "Test/channel_0": 3, "Test/channel_1": 3},
+        {"Time": "1970-01-01T00:00:00.000000001Z", "Test/channel_1": 1},
+        {"Time": "1970-01-01T00:00:00.000000002Z", "Test/channel_1": 2},
+        {"Time": "1970-01-01T00:00:00.000000003Z", "Test/channel_1": 3},
         {"Time": "1970-01-01T00:00:00.000000004Z", "Test/channel_1": 4},
         {"Time": "1970-01-01T00:00:00.000000005Z", "Test/channel_1": 5},
         {"Time": "1970-01-01T00:00:00.000000006Z", "Test/channel_1": 6},
     ]
     assert csv_results == expected_csv_results
 
-    # Create a TDMS file with not enough time samples.
+    with pytest.raises(Exception, match="Length mismatch"):
+        svc.upload("some_tdms.tdms", "asset_name", tdms_time_format=TdmsTimeFormat.TIME_CHANNEL)
+
+    # Create a TDMS file with no valid channels
     mock_tdms_file = MockTdmsFile(
         groups=[
             MockTdmsGroup(
@@ -674,5 +677,5 @@ def test_time_channel_tdms_different_lengths(
 
     mocker.patch("sift_py.data_import.tdms.TdmsFile", mock_tdms_file_constructor2)
 
-    with pytest.raises(Exception, match="contains fewer points than"):
-        svc.upload("some_tdms.tdms", "asset_name", tdms_time_format=TdmsTimeFormat.TIME_CHANNEL)
+    with pytest.raises(Exception, match="No valid groups"):
+        svc.upload("some_tdms.tdms", "asset_name", tdms_time_format=TdmsTimeFormat.TIME_CHANNEL, ignore_errors=True)
