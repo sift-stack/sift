@@ -1,6 +1,11 @@
 import warnings
+from collections import namedtuple
+from csv import DictWriter
+from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, TextIO, Union
+
+from pandas import to_datetime
 
 try:
     from nptdms import (  # type: ignore
@@ -8,6 +13,7 @@ try:
         RootObject,
         TdmsChannel,
         TdmsFile,
+        TdmsGroup,
         TdmsWriter,
         types,
     )
@@ -42,6 +48,39 @@ TDMS_TO_SIFT_TYPES = {
 }
 
 
+class TdmsTimeFormat(Enum):
+    # Time information is encoded as a waveform.
+    WAVEFORM = "waveform"
+    # Time information is encoded as a separate TDMS channel.
+    TIME_CHANNEL = "time_channel"
+
+
+# The common time channel name to use with TdmsTimeFormat.TIME_CHANNEL.
+TIME_CHANNEL_NAME = "Time"
+
+# Implements the same interface as TdmsChannel. Allows us to create
+# TdmsChannel like objects without having to save and read the channels to
+# a file.
+_TdmsChannel = namedtuple(
+    "_TdmsChannel", ["group_name", "name", "data_type", "data", "properties", "n_points"]
+)
+
+
+def sanitize_string(input_string: str) -> str:
+    """
+    Removes the characters ", \\, `, ~, and | from the input string.
+
+    See https://docs.siftstack.com/docs/data-model/assets-channels-runs#assets-and-channels
+
+    Args:
+        input_string: The string to sanitize.
+
+    Returns:
+        The sanitized string.
+    """
+    return input_string.translate(str.maketrans("", "", r"\"\`~|"))
+
+
 class TdmsUploadService:
     """
     Service to upload TDMS files.
@@ -61,17 +100,23 @@ class TdmsUploadService:
         ignore_errors: bool = False,
         run_name: Optional[str] = None,
         run_id: Optional[str] = None,
+        tdms_time_format: TdmsTimeFormat = TdmsTimeFormat.WAVEFORM,
     ) -> DataImportService:
         """
         Uploads the TDMS file pointed to by `path` to the specified asset.
 
-        Set `prefix_channel_with_group` to True if you want to prefix the channel name with TDMS group.
-        This can later be used to group into folders in the Sift UI.
+        Args:
+            path: The path to the file to upload.
+            asset_name: The name of the asset to upload to.
+            prefix_channel_with_group: Set to True if you want to prefix the channel name with TDMS group.
+                This can later be used to group into folders in the Sift UI. Default is False.
+            ignore_errors: If True will skip channels without timing information. Default is False.
+            run_name: The name of the run to create for this data. Default is None.
+            run_id: The id of the run to add this data to. Default is None.
+            tdms_time_format: Specify how timing information is encoded in the file. Default is WAVEFORM.
 
-        If `ignore_errors` is True will skip channels without timing information.
-
-        Override `run_name` to specify the name of the run to create for this data. Default is None.
-        Override `run_id` to specify the id of the run to add this data to. Default is None.
+        Returns:
+            The DataImportService used to get the status of the import.
         """
         if group_into_components:
             warnings.warn(
@@ -87,31 +132,91 @@ class TdmsUploadService:
         if not posix_path.is_file():
             raise Exception(f"Provided path, '{path}', does not point to a regular file.")
 
-        with NamedTemporaryFile(mode="w", suffix=".csv") as temp_file:
-            valid_channels = self._convert_to_csv(path, temp_file.name, ignore_errors)
-            if not valid_channels:
-                raise Exception(f"No valid channels remaining in {path}")
-
-            csv_config = self._create_csv_config(
-                channels=valid_channels,
-                asset_name=asset_name,
-                prefix_channel_with_group=prefix_channel_with_group,
-                run_name=run_name,
-                run_id=run_id,
+        with NamedTemporaryFile(mode="wt", suffix=".csv.gz") as temp_file:
+            csv_config = self._convert_to_csv(
+                path,
+                temp_file,
+                asset_name,
+                prefix_channel_with_group,
+                ignore_errors,
+                run_name,
+                run_id,
+                tdms_time_format,
             )
             return self._csv_upload_service.upload(temp_file.name, csv_config)
 
     def _convert_to_csv(
-        self, src_path: Union[str, Path], dst_path: Union[str, Path], ignore_errors: bool
-    ) -> List[TdmsChannel]:
+        self,
+        src_path: Union[str, Path],
+        dst_file: TextIO,
+        asset_name: str,
+        prefix_channel_with_group: bool,
+        ignore_errors: bool,
+        run_name: Optional[str],
+        run_id: Optional[str],
+        tdms_time_format: TdmsTimeFormat,
+    ) -> CsvConfig:
         """Converts the TDMS file to a temporary CSV on disk that we will upload.
 
-        Returns the valid channels after parsing the TDMS file. Valid channels contain
-        timing information.
+        Args:
+            src_path: The source path to the TDMS file.
+            dst_file: The output CSV file.
+            asset_name: The name of the asset to upload to.
+            prefix_channel_with_group: Set to True if you want to prefix the channel name with TDMS group.
+                This can later be used to group into folders in the Sift UI.
+            ignore_errors: If True will skip channels without timing information.
+            run_name: The name of the run to create for this data.
+            run_id: The id of the run to add this data to.
+            tdms_time_format: Specify how timing information is encoded in the file.
+
+        Returns:
+            The CSV config for the import.
+        """
+        if tdms_time_format == TdmsTimeFormat.WAVEFORM:
+            convert_func = self._convert_waveform_tdms_to_csv
+        elif tdms_time_format == TdmsTimeFormat.TIME_CHANNEL:
+            convert_func = self._convert_time_channel_tdms_to_csv
+        else:
+            raise Exception(f"Unknown TDMS time format: {tdms_time_format}")
+
+        return convert_func(
+            src_path,
+            dst_file,
+            asset_name,
+            prefix_channel_with_group,
+            ignore_errors,
+            run_name,
+            run_id,
+        )
+
+    def _convert_waveform_tdms_to_csv(
+        self,
+        src_path: Union[str, Path],
+        dst_file: TextIO,
+        asset_name: str,
+        prefix_channel_with_group: bool,
+        ignore_errors: bool,
+        run_name: Optional[str],
+        run_id: Optional[str],
+    ) -> CsvConfig:
+        """Converts the TDMS file to a temporary CSV on disk using channel waveform properties.
+
+        Args:
+            src_path: The source path to the TDMS file.
+            dst_file: The output CSV file.
+            asset_name: The name of the asset to upload to.
+            prefix_channel_with_group: Set to True if you want to prefix the channel name with TDMS group.
+                This can later be used to group into folders in the Sift UI.
+            ignore_errors: If True will skip channels without timing information.
+            run_name: The name of the run to create for this data.
+            run_id: The id of the run to add this data to.
+
+        Returns:
+            The CSV config for the import.
         """
 
         def contains_timing(channel: TdmsChannel) -> bool:
-            """Returns true if the TDMS Channel contains timing information."""
+            """Returns True if the TDMS Channel contains timing information."""
             return all(
                 [
                     "wf_increment" in channel.properties,
@@ -119,10 +224,6 @@ class TdmsUploadService:
                     "wf_start_offset" in channel.properties,
                 ]
             )
-
-        def normalize_name(channel_name: str) -> str:
-            """Normalize channel names by invalid characters."""
-            return " ".join(channel_name.replace("/", " ").split())
 
         src_file = TdmsFile(src_path)
 
@@ -132,8 +233,8 @@ class TdmsUploadService:
             for channel in group.channels():
                 if contains_timing(channel):
                     new_channel = ChannelObject(
-                        group=normalize_name(channel.group_name),
-                        channel=normalize_name(channel.name),
+                        group=sanitize_string(channel.group_name),
+                        channel=sanitize_string(channel.name),
                         data=channel.data,
                         properties=channel.properties,
                     )
@@ -149,6 +250,9 @@ class TdmsUploadService:
                             "Set `ignore_errors` to True to skip channels without timing information."
                         )
 
+        if not valid_channels:
+            raise Exception(f"No valid channels remaining in {src_path}")
+
         # Write out the new TDMS file with invalid channels removed, then convert to csv.
         with NamedTemporaryFile(mode="w") as f:
             with TdmsWriter(f.name) as tdms_writer:
@@ -157,19 +261,173 @@ class TdmsUploadService:
 
             filtered_tdms_file = TdmsFile(f.name)
             df = filtered_tdms_file.as_dataframe(time_index=True, absolute_time=True)
-            df.to_csv(dst_path, encoding="utf-8")
+            df.to_csv(dst_file, encoding="utf-8")
 
-        return [channel for group in filtered_tdms_file.groups() for channel in group.channels()]
+            # Close the file to make sure all contents are written.
+            # Required if using gzip compression to ensure all data
+            # is flushed: https://bugs.python.org/issue1110242
+            dst_file.close()
+
+        valid_tdms_channels = [
+            channel for group in filtered_tdms_file.groups() for channel in group.channels()
+        ]
+
+        return self._create_csv_config(
+            channels=valid_tdms_channels,
+            asset_name=asset_name,
+            prefix_channel_with_group=prefix_channel_with_group,
+            run_name=run_name,
+            run_id=run_id,
+        )
+
+    def _convert_time_channel_tdms_to_csv(
+        self,
+        src_path: Union[str, Path],
+        dst_file: TextIO,
+        asset_name: str,
+        prefix_channel_with_group: bool,
+        ignore_errors: bool,
+        run_name: Optional[str],
+        run_id: Optional[str],
+    ) -> CsvConfig:
+        """Converts the TDMS file to a temporary CSV using time channels in each group.
+
+        Args:
+            src_path: The source path to the TDMS file.
+            dst_file: The output CSV file.
+            asset_name: The name of the asset to upload to.
+            prefix_channel_with_group: Set to True if you want to prefix the channel name with TDMS group.
+                This can later be used to group into folders in the Sift UI.
+            ignore_errors: If True will skip channels without timing information.
+            run_name: The name of the run to create for this data.
+            run_id: The id of the run to add this data to.
+
+        Returns:
+            The CSV config for the import.
+        """
+
+        def get_time_channels(group: TdmsGroup) -> List[TdmsChannel]:
+            """Returns the time channels."""
+            return [channel for channel in group.channels() if channel.data_type == types.TimeStamp]
+
+        src_file = TdmsFile(src_path)
+
+        # Process each group by setting the Time channel within each group
+        # to have a common name (i.e, "Time").
+        valid_groups: Dict[str, List[_TdmsChannel]] = {}
+        all_tdms_channels: List[_TdmsChannel] = []
+        for group in src_file.groups():
+            updated_group_name = sanitize_string(group.name)
+            time_channels = get_time_channels(group)
+            if len(time_channels) != 1:
+                msg = (
+                    "contains more than one time channel"
+                    if len(time_channels) > 1
+                    else "no time channels"
+                )
+                if ignore_errors:
+                    print(f"{group.name} {msg}. Skipping.")
+                    continue
+                else:
+                    raise Exception(
+                        f"{group.name} {msg}. Set `ignore_errors` to True to skip this group."
+                    )
+
+            time_channel = time_channels[0]
+            updated_channels = []
+            for channel in group.channels():
+                if channel == time_channel:
+                    updated_channel_name = TIME_CHANNEL_NAME
+                    data = to_datetime(channel.data).tz_localize("UTC")
+                    data = (
+                        data.strftime("%Y-%m-%dT%H:%M:%S.%f")
+                        + data.nanosecond.map(lambda ns: f"{ns % 1000:03d}")
+                        + "Z"
+                    )
+                else:
+                    if len(time_channel.data) < len(channel.data):
+                        raise Exception(
+                            f"{time_channel.name} contains fewer points than {channel.name}"
+                        )
+                    updated_channel_name = sanitize_string(channel.name)
+                    data = channel.data
+
+                updated_channel = _TdmsChannel(
+                    group_name=updated_group_name,
+                    name=updated_channel_name,
+                    data_type=channel.data_type,
+                    data=data,
+                    properties=channel.properties,
+                    n_points=len(channel.data),
+                )
+                updated_channels.append(updated_channel)
+
+                if channel != time_channel:
+                    all_tdms_channels.append(updated_channel)
+
+            valid_groups[updated_group_name] = updated_channels
+
+        if not valid_groups:
+            raise Exception(f"No valid groups remaining in {src_path}")
+
+        # Write the CSV manually instead of calling pandas.DataFrame.to_csv
+        # in order to preserve the data types. Calling to_csv will end up casting
+        # everything to a double when the channels have different number of points
+        # since it has to fill the empty cells with NaN. By writing the CSV manually
+        # the empty cells can be empty.
+        headers = [TIME_CHANNEL_NAME] + [channel.name for channel in all_tdms_channels]
+        csv_writer = DictWriter(dst_file, headers)
+        csv_writer.writeheader()
+        rows = []
+        for updated_channels in valid_groups.values():
+            max_points = max(len(channel.data) for channel in updated_channels)
+            for i in range(max_points):
+                rows.append(
+                    {
+                        channel.name: channel.data[i]
+                        for channel in updated_channels
+                        if i < channel.n_points
+                    }
+                )
+        csv_writer.writerows(rows)
+
+        # Close the file to make sure all contents are written.
+        # Required if using gzip compression to ensure all data
+        # is flushed: https://bugs.python.org/issue1110242
+        dst_file.close()
+
+        return self._create_csv_config(
+            channels=all_tdms_channels,
+            asset_name=asset_name,
+            prefix_channel_with_group=prefix_channel_with_group,
+            run_name=run_name,
+            run_id=run_id,
+            time_format=TimeFormatType.ABSOLUTE_RFC3339,
+        )
 
     def _create_csv_config(
         self,
-        channels: List[TdmsChannel],
+        channels: Sequence[Union[TdmsChannel, _TdmsChannel]],
         asset_name: str,
         prefix_channel_with_group: bool,
         run_name: Optional[str] = None,
         run_id: Optional[str] = None,
+        time_format: TimeFormatType = TimeFormatType.ABSOLUTE_DATETIME,
     ) -> CsvConfig:
-        """Construct a CsvConfig based on metadata within the TDMS file."""
+        """Construct a CsvConfig based on metadata within the TDMS file.
+
+        Args:
+            channels: The collection of channels.
+            asset_name: The name of the asset.
+            prefix_channel_with_group: Set to True if you want to prefix the channel name with TDMS group.
+                This can later be used to group into folders in the Sift UI.
+            run_name: The name of the run to create for this data. Default is None.
+            run_id: The id of the run to add this data to. Default is None.
+            time_format: The CSV time format. Default is ABSOLUTE_DATETIME.
+
+        Returns:
+            The CSV config.
+        """
         data_config: Dict[int, DataColumn] = {}
         # Data columns start in column 2 (1-indexed)
         first_data_column = 2
@@ -197,7 +455,7 @@ class TdmsUploadService:
             "asset_name": asset_name,
             "first_data_row": first_data_column,
             "time_column": TimeColumn(
-                format=TimeFormatType.ABSOLUTE_DATETIME,
+                format=time_format,
                 column_number=1,
             ),
             "data_columns": data_config,
