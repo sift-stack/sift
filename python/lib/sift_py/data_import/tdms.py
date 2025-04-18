@@ -61,9 +61,16 @@ TIME_CHANNEL_NAME = "Time"
 # Implements the same interface as TdmsChannel. Allows us to create
 # TdmsChannel like objects without having to save and read the channels to
 # a file.
-_TdmsChannel = namedtuple(
-    "_TdmsChannel", ["group_name", "name", "data_type", "data", "properties"]
-)
+_TdmsChannel = namedtuple("_TdmsChannel", ["group_name", "name", "data_type", "data", "properties"])
+
+
+CHARACTER_REPLACEMENTS = {
+    '"': "_",
+    "\\": "_",
+    "`": "_",
+    "~": "_",
+    "|": "_",
+}
 
 
 def sanitize_string(input_string: str) -> str:
@@ -78,7 +85,7 @@ def sanitize_string(input_string: str) -> str:
     Returns:
         The sanitized string.
     """
-    return input_string.translate(str.maketrans("", "", r"\"\`~|"))
+    return input_string.translate(str.maketrans(CHARACTER_REPLACEMENTS))  # type: ignore
 
 
 class TdmsUploadService:
@@ -114,6 +121,8 @@ class TdmsUploadService:
             run_name: The name of the run to create for this data. Default is None.
             run_id: The id of the run to add this data to. Default is None.
             tdms_time_format: Specify how timing information is encoded in the file. Default is WAVEFORM.
+                If using the TIME_CHANNEL format, timestamps should use the LabVIEW/TDMS epoch (number of
+                seconds since 01/01/1904 00:00:00.00 UTC).
 
         Returns:
             The DataImportService used to get the status of the import.
@@ -251,7 +260,7 @@ class TdmsUploadService:
                         )
 
         if not valid_channels:
-            raise Exception(f"No valid channels remaining in {src_path}")
+            raise Exception(f"No valid channels found in {src_path}")
 
         # Write out the new TDMS file with invalid channels removed, then convert to csv.
         with NamedTemporaryFile(mode="w") as f:
@@ -329,9 +338,7 @@ class TdmsUploadService:
                     print(f"{msg}. Skipping.")
                     continue
                 else:
-                    raise Exception(
-                        f"{msg}. Set `ignore_errors` to True to skip this group."
-                    )
+                    raise Exception(f"{msg}. Set `ignore_errors` to True to skip this group.")
 
             time_channel = time_channels[0]
             updated_channels = []
@@ -378,18 +385,16 @@ class TdmsUploadService:
                     print(f"{msg}. Skipping.")
                     continue
                 else:
-                    raise Exception(
-                        f"{msg}. Set `ignore_errors` to True to skip this group."
-                    )
+                    raise Exception(f"{msg}. Set `ignore_errors` to True to skip this group.")
 
         if not valid_groups:
             raise Exception(f"No valid groups remaining in {src_path}")
 
-        # Write the CSV manually instead of calling pandas.DataFrame.to_csv
-        # in order to preserve the data types. Calling to_csv will end up casting
+        # Write the CSV manually instead of calling pandas.concat
+        # in order to preserve the data types. Calling pandas.concat will end up casting
         # everything to a double when the channels have different number of points
         # since it has to fill the empty cells with NaN. By writing the CSV manually
-        # the empty cells can be empty.
+        # we can write out empty cells.
         headers = [TIME_CHANNEL_NAME] + [channel.name for channel in all_tdms_channels]
         csv_writer = DictWriter(dst_file, headers)
         csv_writer.writeheader()
@@ -397,12 +402,7 @@ class TdmsUploadService:
         for updated_channels in valid_groups.values():
             n_points = len(updated_channels[0].data)
             for i in range(n_points):
-                rows.append(
-                    {
-                        channel.name: channel.data[i]
-                        for channel in updated_channels
-                    }
-                )
+                rows.append({channel.name: channel.data[i] for channel in updated_channels})
         csv_writer.writerows(rows)
 
         # Close the file to make sure all contents are written.

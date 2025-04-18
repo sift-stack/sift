@@ -6,7 +6,7 @@ import pytest
 from nptdms import TdmsFile, types  # type: ignore
 from pytest_mock import MockFixture
 
-from sift_py.data_import.tdms import TdmsTimeFormat, TdmsUploadService
+from sift_py.data_import.tdms import TdmsTimeFormat, TdmsUploadService, sanitize_string
 from sift_py.rest import SiftRestConfig
 
 
@@ -121,6 +121,18 @@ rest_config: SiftRestConfig = {
     "uri": "some_uri.com",
     "apikey": "123123123",
 }
+
+
+def test_sanitize_string(mocker: MockFixture):
+    invalid_strings = [
+        'Test"Channel',
+        "Test\\Channel",
+        "Test`Channel",
+        "Test~Channel",
+        "Test|Channel",
+    ]
+    for invalid_string in invalid_strings:
+        assert sanitize_string(invalid_string) == "Test_Channel"
 
 
 def test_tdms_upload_service_upload_validate_path(mocker: MockFixture):
@@ -476,7 +488,7 @@ def test_waveform_tdms_upload_ignore_errors(mocker: MockFixture):
     with pytest.raises(Exception, match="does not contain timing information"):
         svc.upload("some_tdms.tdms", "asset_name")
 
-    with pytest.raises(Exception, match="No valid channels remaining"):
+    with pytest.raises(Exception, match="No valid channels found in"):
         svc.upload("some_tdms.tdms", "asset_name", ignore_errors=True)
 
 
@@ -614,7 +626,33 @@ def test_time_channel_tdms_different_lengths(
                         data_type=types.Int32,
                     ),
                 ],
-            )
+            ),
+            MockTdmsGroup(
+                "Group 1",
+                channels=[
+                    MockTdmsChannel(
+                        name="Test/Time2",
+                        group_name="Group 0",
+                        properties={},
+                        data=[1, 2, 3],
+                        data_type=types.TimeStamp,
+                    ),
+                    MockTdmsChannel(
+                        name="Test/channel2_0",
+                        group_name="Group 0",
+                        properties={},
+                        data=[1, 2, 3],
+                        data_type=types.Int32,
+                    ),
+                    MockTdmsChannel(
+                        name="Test/channel2_1",
+                        group_name="Group 0",
+                        properties={},
+                        data=[1, 2, 3],
+                        data_type=types.Int32,
+                    ),
+                ],
+            ),
         ]
     )
 
@@ -633,7 +671,12 @@ def test_time_channel_tdms_different_lengths(
 
     svc = TdmsUploadService(rest_config)
 
-    svc.upload("some_tdms.tdms", "asset_name", tdms_time_format=TdmsTimeFormat.TIME_CHANNEL, ignore_errors=True)
+    svc.upload(
+        "some_tdms.tdms",
+        "asset_name",
+        tdms_time_format=TdmsTimeFormat.TIME_CHANNEL,
+        ignore_errors=True,
+    )
     expected_csv_results = [
         {"Time": "1970-01-01T00:00:00.000000001Z", "Test/channel_1": 1},
         {"Time": "1970-01-01T00:00:00.000000002Z", "Test/channel_1": 2},
@@ -641,6 +684,9 @@ def test_time_channel_tdms_different_lengths(
         {"Time": "1970-01-01T00:00:00.000000004Z", "Test/channel_1": 4},
         {"Time": "1970-01-01T00:00:00.000000005Z", "Test/channel_1": 5},
         {"Time": "1970-01-01T00:00:00.000000006Z", "Test/channel_1": 6},
+        {"Time": "1970-01-01T00:00:00.000000001Z", "Test/channel2_0": 1, "Test/channel2_1": 1},
+        {"Time": "1970-01-01T00:00:00.000000002Z", "Test/channel2_0": 2, "Test/channel2_1": 2},
+        {"Time": "1970-01-01T00:00:00.000000003Z", "Test/channel2_0": 3, "Test/channel2_1": 3},
     ]
     assert csv_results == expected_csv_results
 
@@ -678,4 +724,9 @@ def test_time_channel_tdms_different_lengths(
     mocker.patch("sift_py.data_import.tdms.TdmsFile", mock_tdms_file_constructor2)
 
     with pytest.raises(Exception, match="No valid groups"):
-        svc.upload("some_tdms.tdms", "asset_name", tdms_time_format=TdmsTimeFormat.TIME_CHANNEL, ignore_errors=True)
+        svc.upload(
+            "some_tdms.tdms",
+            "asset_name",
+            tdms_time_format=TdmsTimeFormat.TIME_CHANNEL,
+            ignore_errors=True,
+        )
