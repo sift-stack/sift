@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.5.1] - April 18, 2025
+- [Add support for TDMS files with time channel](https://github.com/sift-stack/sift/pull/200)
+
 ## [v0.5.0] - March 31, 2025
 ### What's New
 #### Rosbag2 Uploads
