@@ -111,6 +111,7 @@ message GetDataResponse {
   //   sift.data.v1.Int64Values
   //   sift.data.v1.Uint32Values
   //   sift.data.v1.Uint64Values
+  //   sift.data.v1.BytesValues
   repeated google.protobuf.Any data = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -254,4 +255,14 @@ message Uint64Value {
 message Uint64Values {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated Uint64Value values = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BytesValue {
+  google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];
+  bytes value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BytesValues {
+  Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated BytesValue values = 2 [(google.api.field_behavior) = REQUIRED];
 }
