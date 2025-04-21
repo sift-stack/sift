@@ -22,7 +22,7 @@ def load_named_expression_modules(paths: List[Path]) -> Dict[str, str]:
     """
     Takes in a list of paths to YAML files which contains named expressions and processes them into a `dict`.
     The key is the name of the expression and the value is the expression itself. For more information on
-    named expression modules see `sift_py/yaml/rule.py`.
+    named expression modules see `sift_py/yaml/service_example.py`.
     """
 
     named_expressions = {}
@@ -44,7 +44,7 @@ def load_rule_modules(paths: List[Path]) -> List[RuleYamlSpec]:
     """
     Takes in a list of paths which may either be directories or files containing rule module YAML files,
     and processes them into a `list`. For more information on rule modules see
-    RulemoduleYamlSpec in `sift_py/yaml/rule.py`.
+    RulemoduleYamlSpec in `sift_py/yaml/service_example.py`.
     """
 
     rule_modules: List[RuleYamlSpec] = []

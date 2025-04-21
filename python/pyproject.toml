@@ -163,6 +163,7 @@ exclude = [
   "lib/sift",
   "lib/google",
   "lib/protoc_gen_openapiv2",
+  "betterproto_lib"
 ]
 
 [tool.ruff.lint]
