@@ -1,4 +1,3 @@
-import datetime
 import os
 
 from dotenv import load_dotenv
@@ -84,7 +83,7 @@ async def create_view():
         )
         req = CreateViewRequest(
             view=View(
-                name="test-view",
+                name="test-view2",
                 channels=[
                     ViewChannel(
                         name="voltage",
@@ -94,11 +93,11 @@ async def create_view():
                     )
                 ],
                 axis_groups=ViewAxisGroups(left=["left1"], right=[]),
-                created_date=datetime.datetime.now(datetime.timezone.utc),
-                modified_date=datetime.datetime.now(datetime.timezone.utc),
-                created_by_user_id="",
-                modified_by_user_id="",
-                is_pinned=False,
+                # created_date=datetime.datetime.now(datetime.timezone.utc),
+                # modified_date=datetime.datetime.now(datetime.timezone.utc),
+                # created_by_user_id="",
+                # modified_by_user_id="",
+                # is_pinned=False,
             )
         )
         view = await api.views.create_view(req)

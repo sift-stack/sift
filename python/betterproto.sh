@@ -11,5 +11,7 @@ protoc \
 -I /tmp/proto-include/googleapis \
 -I /tmp/proto-include/grpc-gateway \
 --python_betterproto_out=./python/betterproto_lib \
---python_betterproto_opt=pydantic_dataclasses \
 ./**/*.proto
+
+
+#--python_betterproto_opt=pydantic_dataclasses \
