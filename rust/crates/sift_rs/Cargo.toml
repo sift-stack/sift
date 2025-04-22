@@ -18,8 +18,8 @@ pbjson-types = "^0.7"
 prost = "^0.13"
 prost-types = "^0.13"
 serde = { version = "^1.0" }
-sift_connect = { version = "0.1.0", path = "../sift_connect" }
-sift_error = { version = "0.1.0", path = "../sift_error" }
+sift_connect = { workspace = true }
+sift_error = { workspace = true }
 tonic = { version = "^0.12" }
 
 [dev-dependencies]
