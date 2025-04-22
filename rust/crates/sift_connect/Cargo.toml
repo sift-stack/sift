@@ -1,6 +1,6 @@
 [package]
 name = "sift_connect"
-version = "0.1.0"
+version = { workspace = true }
 description = "A convenient and opinionated way to connect to the Sift API"
 edition = { workspace = true }
 authors = { workspace = true }

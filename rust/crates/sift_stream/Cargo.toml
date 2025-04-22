@@ -1,6 +1,6 @@
 [package]
 name = "sift_stream"
-version = "0.1.0"
+version = { workspace = true }
 description = "A robust Sift telemetry streaming library"
 edition = { workspace = true }
 authors = { workspace = true }

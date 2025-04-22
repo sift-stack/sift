@@ -1,6 +1,6 @@
 [package]
 name = "sift_error"
-version = "0.1.0"
+version = { workspace = true }
 description = "Crate-specific Sift errors"
 edition = { workspace = true }
 authors = { workspace = true }
