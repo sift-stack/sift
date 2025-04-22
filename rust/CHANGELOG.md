@@ -5,8 +5,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.2.0] - April 22, 2025
 
-This change introduces various enhancements from this [pull request](https://github.com/sift-stack/azimuth).
-
 - Method to decode backup file is now public, giving users the ability to write a program that can reingest their backup files manually.
 - `SiftStreamBuilder` can now specify a run by run ID.
 - When attaching a run using RunForm, Optional fields that are None will not cause corresponding fields to zero out in Sift.
