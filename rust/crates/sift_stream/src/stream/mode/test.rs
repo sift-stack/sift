@@ -265,7 +265,7 @@ fn validate_handling_message_against_multiple_flows_with_same_name_with_atleast_
     assert_eq!(
         Some(Type::Uint32(12)),
         channel_values.next().unwrap().r#type,
-        "quuz should be 12_u32"
+        "quux should be 12_u32"
     );
 }
 

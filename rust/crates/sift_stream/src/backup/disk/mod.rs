@@ -6,7 +6,7 @@ use sift_error::prelude::*;
 use std::{
     fs::{self, File},
     io::{BufReader, Error as IoError, ErrorKind as IoErrorKind, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 use tokio::{
@@ -30,6 +30,23 @@ pub const DEFAULT_MAX_BACKUP_SIZE: usize = 100 * 2_usize.pow(20);
 /// The buffer size used for the channel that sends and receives data to the backup task as well as
 /// the in-memory message buffer that gets flushed when full.
 const CHANNEL_BUFFER_SIZE: usize = 10_000;
+
+/// Takes in a path to a backup file and returns an instance of [BackupsDecoder] which is an
+/// iterator over the protobuf messages found in the backup file. The iterator will terminate when
+/// reaching an EOF or it hits a corrupt message; in this case the error returned by the item will
+/// be an `Err` whose kind if [ErrorKind::BackupIntegrityError].
+pub fn decode_backup<P, M>(path: P) -> Result<BackupsDecoder<M, BufReader<File>>>
+where
+    P: AsRef<Path>,
+    M: PbMessage + Default + 'static,
+{
+    File::open(path.as_ref())
+        .map(BufReader::new)
+        .map(BackupsDecoder::new)
+        .map_err(|e| Error::new(ErrorKind::IoError, e))
+        .context("failed to open backup")
+        .help("contact Sift")
+}
 
 /// Disk-based backup strategy implementation.
 #[derive(Debug)]
@@ -230,12 +247,7 @@ where
         let _ = self.data_tx.send(Message::Flush).await;
         self.flush_and_sync_notification.notified().await;
 
-        let backups_decoder = File::open(&self.backup_file)
-            .map(BufReader::new)
-            .map(BackupsDecoder::new)
-            .map_err(|e| Error::new(ErrorKind::IoError, e))
-            .context("failed to open backup")
-            .help("contact Sift")?;
+        let backups_decoder = decode_backup(&self.backup_file)?;
 
         Ok(backups_decoder.into_iter())
     }

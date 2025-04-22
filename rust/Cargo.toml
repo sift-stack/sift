@@ -6,6 +6,7 @@ members = [
   "crates/sift_stream",
   "crates/sift_error",
   "crates/sift_connect",
+  "crates/sift_cli",
 ]
 
 [workspace.package]

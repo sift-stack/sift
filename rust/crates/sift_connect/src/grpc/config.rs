@@ -1,8 +1,14 @@
 use sift_error::prelude::*;
+use std::path::PathBuf;
 use toml::{Table, Value};
 
 /// The expected name of the config file.
 pub const SIFT_CONFIG_NAME: &str = "sift.toml";
+
+/// Returns the path to where [SIFT_CONFIG_NAME] should be.
+pub fn sift_config() -> Option<PathBuf> {
+    dirs::config_local_dir().map(|dir| dir.join(SIFT_CONFIG_NAME))
+}
 
 /// Specifies source of credentials. If `Profile` is used, then the provided string will be used to
 /// query the corresponding table from [`SIFT_CONFIG_NAME`] located at
@@ -36,11 +42,9 @@ impl TryFrom<Credentials> for SiftChannelConfig {
         match creds {
             Credentials::Config { uri, apikey } => Ok(Self::new(&uri, &apikey)),
             Credentials::Profile(profile) => {
-                let config = dirs::config_local_dir()
-                    .map(|dir| dir.join(SIFT_CONFIG_NAME))
-                    .ok_or_else(|| {
-                        Error::new_general("failed to find path to user config directory")
-                    })?;
+                let config = sift_config().ok_or_else(|| {
+                    Error::new_general("failed to find path to user config directory")
+                })?;
 
                 let config_str = std::fs::read_to_string(&config)
                     .map_err(Error::from)
