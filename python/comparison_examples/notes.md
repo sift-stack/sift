@@ -13,3 +13,6 @@ Betterproto uses grpclib instead of grpc for handling grpc messages.
 
 ## Betterproto2?
 - python 3.10 and up
+- compiler==0.4.0, 0.5.0 doesn't work
+- Supports both sync and async
+  - sync seems to use the original grpc library while async uses grpclib

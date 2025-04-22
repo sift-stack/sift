@@ -24,8 +24,8 @@ def buf():
 
 import asyncio
 
-from betterproto_lib.betterproto_sift.ping.v1 import PingRequest as BPPingRequest
-from betterproto_lib.betterproto_sift.ping.v1 import PingServiceStub as BPPingServiceStub
+from betterproto_lib.sift.ping.v1 import PingRequest as BPPingRequest
+from betterproto_lib.sift.ping.v1 import PingServiceStub as BPPingServiceStub
 from comparison_examples.util import use_sift_betterproto_channel
 
 
