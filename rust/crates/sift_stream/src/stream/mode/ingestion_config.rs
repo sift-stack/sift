@@ -44,9 +44,9 @@ const DATA_BUFFER_CAPACITY: usize = 10_000;
 /// Dependencies specifically for ingestion-config based streaming. Users shouldn't have to
 /// interact with this directly.
 pub struct IngestionConfigMode {
+    pub(crate) run: Option<Run>,
     ingestion_config: IngestionConfig,
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
-    run: Option<Run>,
     checkpoint_interval: Duration,
     streaming_task: Option<JoinHandle<Result<IngestWithConfigDataStreamResponse>>>,
     retry_policy: Option<RetryPolicy>,
@@ -194,7 +194,6 @@ impl SiftStream<IngestionConfigMode> {
                 .with_context(|| format!("unknown flow provided: {message:?}"))
                 .help("try adding this flow to your ingestion config");
         };
-
         let Some(req) = Self::message_to_ingest_req(
             &message,
             &self.mode.ingestion_config.ingestion_config_id,
@@ -206,7 +205,32 @@ impl SiftStream<IngestionConfigMode> {
                 "failed to turn provided flow into a valid ingestion request",
             ));
         };
+        self.send_impl(req).await
+    }
 
+    /// This method offers a way to send data in a manner that's identical to the raw
+    /// [`gRPC service`] for ingestion-config based streaming. Users are expected to handle
+    /// channel value ordering as well as empty values correctly.
+    ///
+    /// ### Important
+    ///
+    /// Note that most users should prefer to use [SiftStream::send]. This method primarily exists
+    /// to make is easier for existing integrations to utilize `sift-stream`.
+    ///
+    /// [`gRPC service`]: https://github.com/sift-stack/sift/blob/main/protos/sift/ingest/v1/ingest.proto#L11
+    pub async fn send_requests<I>(&mut self, requests: I) -> Result<()>
+    where
+        I: IntoIterator<Item = IngestWithConfigDataStreamRequest>,
+    {
+        for req in requests {
+            self.send_impl(req).await?;
+        }
+        Ok(())
+    }
+
+    /// Concerned with sending the actual ingest request to [DataStream] which will then write it
+    /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
+    async fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
         if self
             .backup_data(&req)
             .await
@@ -242,13 +266,13 @@ impl SiftStream<IngestionConfigMode> {
             Err(SendError(_)) => match self.mode.streaming_task.take() {
                 None => {
                     self.restart_stream_and_backups_manager(false).await?;
-                    Box::pin(self.send(message)).await
+                    Box::pin(self.send_impl(req)).await
                 }
 
                 Some(streaming_task) => match streaming_task.await {
                     Ok(Ok(_)) => {
                         self.restart_stream_and_backups_manager(false).await?;
-                        Box::pin(self.send(message)).await
+                        Box::pin(self.send_impl(req)).await
                     }
                     Ok(Err(err)) => {
                         #[cfg(feature = "tracing")]

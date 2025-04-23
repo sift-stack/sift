@@ -40,12 +40,15 @@ pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
 /// attempts to call [SiftStreamBuilder::build] will panic.
 pub struct SiftStreamBuilder<C> {
     credentials: Credentials,
-    run: Option<RunForm>,
     recovery_strategy: Option<RecoveryStrategy>,
     checkpoint_interval: Duration,
     ingestion_config: Option<IngestionConfigForm>,
     enable_tls: bool,
     kind: PhantomData<C>,
+
+    // Either `run` or `run_id`. If both are provided then the `run_id` will be prioritized.
+    run: Option<RunForm>,
+    run_id: Option<String>,
 }
 
 /// Various recovery strategies users can enable for [SiftStream] when constructing it via
@@ -99,7 +102,10 @@ pub struct IngestionConfigForm {
     pub flows: Vec<FlowConfig>,
 }
 
-/// A form to create a new run or retrieve an existing run based on the `client_key` provided.
+/// A form to create a new run or retrieve an existing run based on the `client_key` provided. This
+/// is used in [SiftStreamBuilder::attach_run]. Note that if there is an existing run with the
+/// given `client_key`, any other fields that are updated in this [RunForm] will be updated in
+/// Sift, with the exception of `Option` fields that are `None`.
 #[derive(Debug)]
 pub struct RunForm {
     pub name: String,
@@ -148,9 +154,20 @@ where
 
     /// Sets the run to use for this period of streaming. Any data sent will be associated with
     /// this run. If the `run` used is an existing run, then any fields that have been updated will
-    /// also be updated in Sift.
+    /// also be updated in Sift. Optional fields that are `None` will be ignored when determining
+    /// which fields to update. This method should not be used if [SiftStreamBuilder::attach_run_id]
+    /// is used. If for whatever reason both are used, [SiftStreamBuilder::attach_run_id] will take
+    /// precedent.
     pub fn attach_run(mut self, run: RunForm) -> SiftStreamBuilder<C> {
         self.run = Some(run);
+        self
+    }
+
+    // Sets the run based on run ID for this period of streaming. Any data sent will be associated
+    // with this run. This method should not be used if [SiftStreamBuilder::attach_run] is used. If
+    // for whatever reason both are used, this will take precedent.
+    pub fn attach_run_id(mut self, run_id: &str) -> SiftStreamBuilder<C> {
+        self.run_id = Some(run_id.into());
         self
     }
 
@@ -160,11 +177,26 @@ where
         self
     }
 
+    /// Retrieves a run by run ID.
+    async fn load_run_by_id(grpc_channel: SiftChannel, run_id: &str) -> Result<Run> {
+        let mut run_service = new_run_service(grpc_channel);
+        let run = run_service.try_get_run_by_id(run_id).await?;
+
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            run_id = run.run_id,
+            run_name = run.name,
+            "successfully retrieve run by ID",
+        );
+
+        Ok(run)
+    }
+
     /// Retrieves a run or creates a run. If the run exists, this method will also update the run
     /// if the `run_form` has changed since the last time it was used.
-    async fn load_run(grpc_channel: SiftChannel, run_form: RunForm) -> Result<Run> {
+    async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunForm) -> Result<Run> {
         #[cfg(feature = "tracing")]
-        let _info_span = tracing::info_span!("load_run");
+        tracing::info_span!("load_run_by_form");
 
         let mut run_service = new_run_service(grpc_channel);
 
@@ -197,6 +229,7 @@ where
                 #[cfg(feature = "tracing")]
                 tracing::info!(
                     run_id = run.run_id,
+                    run_name = run.name,
                     "an existing run was found with the provided client-key"
                 );
 
@@ -207,7 +240,8 @@ where
                     update_mask.push("name".to_string());
                     run.name = name;
                 }
-                if description.as_ref() != Some(&run.description) {
+
+                if description.as_ref().is_some_and(|d| d != &run.description) {
                     update_mask.push("description".to_string());
                     run.description = description.unwrap_or_default();
                 }
@@ -225,10 +259,6 @@ where
                             update_mask.push("tags".to_string());
                             run.tags = new_tags;
                         }
-                    }
-                    None if !run.tags.is_empty() => {
-                        update_mask.push("tags".to_string());
-                        run.tags = Vec::new();
                     }
                     _ => (),
                 }
@@ -263,6 +293,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             enable_tls: true,
             ingestion_config: None,
             run: None,
+            run_id: None,
             kind: PhantomData,
             checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
@@ -277,6 +308,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             checkpoint_interval,
             ingestion_config,
             run,
+            run_id,
             recovery_strategy,
             enable_tls,
             ..
@@ -304,10 +336,14 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         let (ingestion_config, flows) =
             Self::load_ingestion_config(channel.clone(), ingestion_config).await?;
 
-        let run = if let Some(selector) = run {
-            Some(Self::load_run(channel.clone(), selector).await?)
-        } else {
-            None
+        let run = {
+            if let Some(run_id) = run_id.as_ref() {
+                Some(Self::load_run_by_id(channel.clone(), run_id).await?)
+            } else if let Some(selector) = run {
+                Some(Self::load_run_by_form(channel.clone(), selector).await?)
+            } else {
+                None
+            }
         };
 
         let mut backups_manager = None;
@@ -382,7 +418,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         ingestion_config: IngestionConfigForm,
     ) -> Result<(IngestionConfigPb, Vec<FlowConfig>)> {
         #[cfg(feature = "tracing")]
-        let _info_span = tracing::info_span!("load_ingestion_config");
+        tracing::info_span!("load_ingestion_config");
 
         let mut ingestion_config_service = new_ingestion_config_service(grpc_channel);
 
