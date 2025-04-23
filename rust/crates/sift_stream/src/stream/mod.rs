@@ -1,4 +1,5 @@
 use sift_connect::SiftChannel;
+use sift_rs::runs::v2::Run;
 
 /// Concerned with building and configuring and instance of [SiftStream].
 pub mod builder;
@@ -8,6 +9,7 @@ pub mod channel;
 
 /// Implementations for different modes of streaming.
 pub mod mode;
+use mode::ingestion_config::IngestionConfigMode;
 
 /// Concerned with gRPC retries.
 pub mod retry;
@@ -36,3 +38,10 @@ pub struct SiftStream<M: SiftStreamMode> {
 
 /// A trait that defines a particular mode of streaming. Only one more is currently supported.
 pub trait SiftStreamMode {}
+
+impl SiftStream<IngestionConfigMode> {
+    /// Retrieves the attached run if if it exists.
+    pub fn run(&self) -> Option<&Run> {
+        self.mode.run.as_ref()
+    }
+}

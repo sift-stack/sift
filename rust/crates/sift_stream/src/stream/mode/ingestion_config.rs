@@ -44,9 +44,9 @@ const DATA_BUFFER_CAPACITY: usize = 10_000;
 /// Dependencies specifically for ingestion-config based streaming. Users shouldn't have to
 /// interact with this directly.
 pub struct IngestionConfigMode {
+    pub(crate) run: Option<Run>,
     ingestion_config: IngestionConfig,
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
-    run: Option<Run>,
     checkpoint_interval: Duration,
     streaming_task: Option<JoinHandle<Result<IngestWithConfigDataStreamResponse>>>,
     retry_policy: Option<RetryPolicy>,
