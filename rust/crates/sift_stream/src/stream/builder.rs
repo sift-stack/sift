@@ -418,7 +418,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         ingestion_config: IngestionConfigForm,
     ) -> Result<(IngestionConfigPb, Vec<FlowConfig>)> {
         #[cfg(feature = "tracing")]
-        let _info_span = tracing::info_span!("load_ingestion_config");
+        tracing::info_span!("load_ingestion_config");
 
         let mut ingestion_config_service = new_ingestion_config_service(grpc_channel);
 
