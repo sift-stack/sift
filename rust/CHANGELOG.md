@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `SiftStreamBuilder` can now specify a run by run ID.
 - When attaching a run using RunForm, Optional fields that are None will not cause corresponding fields to zero out in Sift.
 - Users can now send raw protobuf ingestion requests through `SiftStream`.
+- Allows users to get a reference to the underlying run attached to `SiftStream` if it exists.
 
 ## [v0.1.0] - April 1, 2025
 
