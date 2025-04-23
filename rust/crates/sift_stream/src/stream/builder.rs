@@ -196,7 +196,7 @@ where
     /// if the `run_form` has changed since the last time it was used.
     async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunForm) -> Result<Run> {
         #[cfg(feature = "tracing")]
-        let _info_span = tracing::info_span!("load_run_by_form");
+        tracing::info_span!("load_run_by_form");
 
         let mut run_service = new_run_service(grpc_channel);
 
