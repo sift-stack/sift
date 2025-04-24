@@ -45,6 +45,7 @@ TDMS_TO_SIFT_TYPES = {
     types.Uint64: ChannelDataType.UINT_64,
     types.SingleFloat: ChannelDataType.FLOAT,
     types.DoubleFloat: ChannelDataType.DOUBLE,
+    types.String: ChannelDataType.STRING,
 }
 
 
