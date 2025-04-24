@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.5.2] - April 23, 2025
+- [Add string support to TDMS upload](https://github.com/sift-stack/sift/pull/207)
+
 ## [v0.5.1] - April 18, 2025
 - [Add support for TDMS files with time channel](https://github.com/sift-stack/sift/pull/200)
 
