@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.2.1] - April 28, 2025
+
+- Downgraded `chrono` from `0.4.40` to `0.4.39` due to function naming collisions introduced
+  in [arrow](https://github.com/apache/arrow-rs/issues/7196).
+
 ## [v0.2.0] - April 22, 2025
 
 - Method to decode backup file is now public, giving users the ability to write a program that can reingest their backup files manually.

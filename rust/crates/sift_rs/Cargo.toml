@@ -14,16 +14,16 @@ readme = "README.md"
 [dependencies]
 async-trait = "^0.1"
 pbjson = "^0.7"
-pbjson-types = "^0.7"
+pbjson-types = { workspace = true }
 prost = "^0.13"
 prost-types = "^0.13"
 serde = { version = "^1.0" }
 sift_connect = { workspace = true }
 sift_error = { workspace = true }
-tonic = { version = "^0.12" }
+tonic = { workspace = true }
 
 [dev-dependencies]
-chrono = "0.4.38"
+chrono = { workspace = true }
 rand = "0.8.5"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1.16"
