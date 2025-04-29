@@ -32,7 +32,7 @@ from sift_py._internal.channel import get_channels
 from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
-from sift_py.ingestion.channel import channel_fqn
+from sift_py.ingestion.channel import ChannelConfig, channel_fqn
 from sift_py.rule.config import (
     ExpressionChannelReference,
     ExpressionChannelReferenceChannelConfig,
@@ -325,16 +325,19 @@ class RuleService:
                     ),
                 )
 
-        channel_references = {}
-        for channel_reference in config.channel_references:
-            ref = channel_reference["channel_reference"]
-            ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
-            channel_references[ref] = ident
+        # Get all channels that need validation (both expression and contextual)
+        expression_channels = {ref["channel_identifier"] for ref in config.channel_references}
+        contextual_channels = {channel.fqn() for channel in config.contextual_channels}
+        all_channel_references = expression_channels | contextual_channels
 
-        if assets and channel_references:
+        # Validate all channels exist in assets
+        if assets and all_channel_references:
             names = [
-                _channel_fqn(name=ident.name, component=ident.component)
-                for ident in channel_references.values()
+                _channel_fqn(
+                    name=channel_reference_from_fqn(ident).name,
+                    component=channel_reference_from_fqn(ident).component,
+                )
+                for ident in all_channel_references
             ]
 
             # Create CEL search filters
@@ -353,6 +356,19 @@ class RuleService:
                     raise RuntimeError(
                         f"Asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}"
                     )
+
+        # Create channel references map for expression channels
+        channel_references = {}
+        for channel_reference in config.channel_references:
+            ref = channel_reference["channel_reference"]
+            ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
+            channel_references[ref] = ident
+
+        # Create channel references map for contextual channels
+        contextual_references = {}
+        for channel in config.contextual_channels:
+            ident = channel_reference_from_fqn(channel.fqn())
+            contextual_references[channel.name] = ident
 
         rule_id = None
         organization_id = ""
@@ -373,6 +389,7 @@ class RuleService:
                         calculated_channel=CalculatedChannelConfig(
                             expression=config.expression,
                             channel_references=channel_references,
+                            contextual_channel_references=contextual_references,
                         )
                     ),
                 )
@@ -391,12 +408,16 @@ class RuleService:
             return None
 
         channel_references: List[ExpressionChannelReference] = []
+        contextual_channels: List[ChannelConfig] = []
         expression = ""
         action: Optional[
             Union[RuleActionCreateDataReviewAnnotation, RuleActionCreatePhaseAnnotation]
         ] = None
+
         for condition in rule_pb.conditions:
             expression = condition.expression.calculated_channel.expression
+
+            # Get expression channel references
             for ref, id in condition.expression.calculated_channel.channel_references.items():
                 channel_references.append(
                     {
@@ -404,6 +425,20 @@ class RuleService:
                         "channel_identifier": id.name,
                     }
                 )
+
+            # Get contextual channels
+            for (
+                name,
+                channel_ref,
+            ) in condition.expression.calculated_channel.contextual_channel_references.items():
+                contextual_channels.append(
+                    ChannelConfig(
+                        name=channel_ref.name,
+                        component=channel_ref.component,
+                        data_type=channel_ref.data_type,
+                    )
+                )
+
             for action_config in condition.actions:
                 annotation_type = action_config.configuration.annotation.annotation_type
                 if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
@@ -427,6 +462,7 @@ class RuleService:
             description=rule_pb.description,
             rule_client_key=rule_pb.client_key,
             channel_references=channel_references,  # type: ignore
+            contextual_channels=contextual_channels,
             asset_names=asset_names,
             action=action,
             expression=expression,
