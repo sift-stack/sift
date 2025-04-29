@@ -136,10 +136,6 @@ def _validate_rule(val: Any):
                     ["rules"],
                 )
 
-            from sift_py.yaml.channel import _validate_channel_config
-
-            _validate_channel_config(channel)
-
     rule_client_key = rule.get("rule_client_key")
     description = rule.get("description")
     expression = rule.get("expression")

@@ -12,6 +12,7 @@ from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
     AnnotationActionConfiguration,
     CalculatedChannelConfig,
+    ContextualChannels,
     CreateRuleRequest,
     GetRuleRequest,
     GetRuleResponse,
@@ -124,13 +125,11 @@ class RuleService:
                 if isinstance(channel_config, dict):
                     name = channel_config.get("name", "")
                     data_type = channel_config.get("data_type")
-                    component = channel_config.get("component")
 
                     contextual_channels.append(
                         ChannelConfig(
                             name=name,
-                            data_type=ChannelDataType[data_type],
-                            component=component,
+                            data_type=ChannelDataType.from_str(data_type),
                         )
                     )
                 else:
@@ -388,12 +387,11 @@ class RuleService:
             channel_references[ref] = ident
 
         # Create channel references map for contextual channels
-        contextual_references = {}
+        contextual_channels = []
         for channel in config.contextual_channels:
             ident = channel_reference_from_fqn(channel.fqn())
-            contextual_references[channel.name] = ident
+            contextual_channels.append(ident)
 
-        rule_id = None
         organization_id = ""
         if rule:
             rule_id = rule.rule_id
@@ -412,7 +410,6 @@ class RuleService:
                         calculated_channel=CalculatedChannelConfig(
                             expression=config.expression,
                             channel_references=channel_references,
-                            contextual_channel_references=contextual_references,
                         )
                     ),
                 )
@@ -420,6 +417,7 @@ class RuleService:
             asset_configuration=RuleAssetConfiguration(
                 asset_ids=[asset.asset_id for asset in assets] if assets else None,
             ),
+            contextual_channels=ContextualChannels(channels=contextual_channels),
         )
 
     def get_rule(self, rule: str) -> Optional[RuleConfig]:

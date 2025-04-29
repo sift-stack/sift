@@ -18,5 +18,8 @@ rules:
     channel_references:
       - $1: vehicle_state
       - $2: voltage
+    contextual_channels:
+      - name: log
+        data_type: string
     asset_names:
       - NostromoLV426
