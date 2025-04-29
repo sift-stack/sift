@@ -32,7 +32,7 @@ from sift_py._internal.channel import get_channels
 from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
-from sift_py.ingestion.channel import ChannelConfig, channel_fqn
+from sift_py.ingestion.channel import ChannelConfig, ChannelDataType, channel_fqn
 from sift_py.rule.config import (
     ExpressionChannelReference,
     ExpressionChannelReferenceChannelConfig,
@@ -116,6 +116,28 @@ class RuleService:
             if not rule_channel_references:
                 raise ValueError(f"Rule of name '{rule_yaml['name']}' requires channel_references")
 
+            # Parse contextual channels
+            yaml_contextual_channels = rule_yaml.get("contextual_channels", [])
+            contextual_channels: List[ChannelConfig] = []
+
+            for channel_config in yaml_contextual_channels:
+                if isinstance(channel_config, dict):
+                    name = channel_config.get("name", "")
+                    data_type = channel_config.get("data_type")
+                    component = channel_config.get("component")
+
+                    contextual_channels.append(
+                        ChannelConfig(
+                            name=name,
+                            data_type=ChannelDataType[data_type],
+                            component=component,
+                        )
+                    )
+                else:
+                    raise ValueError(
+                        f"Contextual channel '{channel_config}' must be a ChannelConfigYamlSpec"
+                    )
+
             # Parse expression for named expressions and sub expressions
             expression = rule_yaml["expression"]
             if isinstance(expression, dict):
@@ -153,6 +175,7 @@ class RuleService:
                     expression=str(expression),
                     action=action,
                     channel_references=rule_channel_references,
+                    contextual_channels=contextual_channels,
                     asset_names=rule_yaml.get("asset_names", []),
                     sub_expressions=subexpr,
                 )

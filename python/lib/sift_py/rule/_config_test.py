@@ -12,6 +12,10 @@ from .config import (
 
 def test_rule_config_json():
     voltage_rule_expression = "$1 > 10"
+    temperature_channel = ChannelConfig(
+        name="temperature",
+        data_type=ChannelDataType.DOUBLE,
+    )
     voltage_rule_config = RuleConfig(
         name="High Voltage",
         description="Rock & Roll",
@@ -26,8 +30,11 @@ def test_rule_config_json():
                 ),
             }
         ],
+        contextual_channels=[temperature_channel],
     )
     assert voltage_rule_config.expression == voltage_rule_expression
+    assert len(voltage_rule_config.contextual_channels) == 1
+    assert voltage_rule_config.contextual_channels[0].name == "temperature"
 
     overheating_rule_expression = '$1 == "Accelerating" && $2 > $3'
 
@@ -115,3 +122,41 @@ def test_rule_named_expressions():
         },
     )
     assert rule_on_kinetic_energy.expression == "0.5 * 10 * $1 * $1 > 35"
+
+
+def test_rule_config_with_contextual_channels():
+    """Test that RuleConfig properly handles contextual channels"""
+    humidity_channel = ChannelConfig(
+        name="humidity",
+        data_type=ChannelDataType.DOUBLE,
+    )
+    pressure_channel = ChannelConfig(
+        name="pressure",
+        data_type=ChannelDataType.DOUBLE,
+    )
+
+    rule_config = RuleConfig(
+        name="test_rule",
+        description="test rule with contextual channels",
+        expression="$1 > 10",
+        action=RuleActionCreatePhaseAnnotation(),
+        channel_references=[
+            {
+                "channel_reference": "$1",
+                "channel_config": ChannelConfig(
+                    name="temperature",
+                    data_type=ChannelDataType.DOUBLE,
+                ),
+            }
+        ],
+        contextual_channels=[humidity_channel, pressure_channel],
+    )
+
+    assert len(rule_config.contextual_channels) == 2
+    assert rule_config.contextual_channels[0].name == "humidity"
+    assert rule_config.contextual_channels[1].name == "pressure"
+
+    # Test JSON output includes contextual channels
+    json_output = rule_config.as_json()
+    assert "contextual_channel_references" in json_output
+    assert len(json_output["contextual_channel_references"]) == 2
