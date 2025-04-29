@@ -1,5 +1,5 @@
 asset_name: NostromoLV426
-ingestion_client_key: nostromo_lv_426_asdflj1243
+ingestion_client_key: nostromo_lv_426
 
 channels:
   log_channel: &log_channel
