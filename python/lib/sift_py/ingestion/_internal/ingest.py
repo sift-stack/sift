@@ -174,12 +174,14 @@ class _IngestionServiceImpl:
                     channel_values_by_fqn[fqn] = channel_value
                 else:
                     raise IngestionValidationError(f"Encountered multiple values for {fqn}")
-        except KeyError as e:
-            logger.debug(f"Encountered KeyError, but continuing: {e}")
+        except KeyError:
+            logger.debug(
+                "Encountered KeyError, assuming this is a FlowOrderedChannelValues object and continuing."
+            )
 
         values: List[IngestWithConfigDataChannelValue] = []
 
-        if channel_values_by_fqn:
+        if channel_values_by_fqn:  # Validate data types by channel name
             for channel in flow_config.channels:
                 fqn = channel_fqn(channel)
                 channel_val: Optional[ChannelValue] = channel_values_by_fqn.pop(fqn, None)
@@ -202,7 +204,7 @@ class _IngestionServiceImpl:
                     raise IngestionValidationError(
                         f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}"
                     )
-        else:
+        else:  # Validate data types by index, the order of the channels in a FlowOrderedChannelValues object should match the flow config
             for i in range(len(channel_values)):
                 value = channel_values[i]
 
