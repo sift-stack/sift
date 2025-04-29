@@ -205,6 +205,10 @@ class _IngestionServiceImpl:
                         f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}"
                     )
         else:  # Validate data types by index, the order of the channels in a FlowOrderedChannelValues object should match the flow config
+            if len(channel_values) != len(flow_config.channels):
+                raise IngestionValidationError(
+                    f"Expected {len(flow_config.channels)} channel values, got {len(channel_values)}."
+                )
             for i in range(len(channel_values)):
                 channel_dict = channel_values[i]
 
@@ -216,10 +220,11 @@ class _IngestionServiceImpl:
                 channel_type_key = channel_type[0]
 
                 channel_config = flow_config.channels[i]
-                chan_value = channel_config.try_value_from(channel_dict[channel_type_key])  # type: ignore
-                if is_data_type(chan_value, channel_config.data_type):
-                    values.append(chan_value)
-                else:
+                try:
+                    chan_value = channel_config.try_value_from(channel_dict[channel_type_key])  # type: ignore
+                    if is_data_type(chan_value, channel_config.data_type):
+                        values.append(chan_value)
+                except ValueError:
                     raise IngestionValidationError(
                         f"Expected value for `{flow_config.channels[i].name}` to be a '{flow_config.channels[i].data_type}'. Instead found {channel_type} in flow {flow_name}."
                     )
