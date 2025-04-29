@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -33,6 +34,8 @@ from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import Flow, FlowConfig, FlowOrderedChannelValues
 from sift_py.ingestion.rule.config import RuleConfig
 from sift_py.rule.service import RuleService
+
+logger = logging.getLogger(__name__)
 
 
 class _IngestionServiceImpl:
@@ -163,38 +166,61 @@ class _IngestionServiceImpl:
 
         channel_values_by_fqn: Dict[str, ChannelValue] = {}
 
-        for channel_value in channel_values:
-            fqn = channel_fqn(channel_value)
+        try:
+            for channel_value in channel_values:
+                fqn = channel_fqn(channel_value)
 
-            if channel_values_by_fqn.get(fqn, None) is None:
-                channel_values_by_fqn[fqn] = channel_value
-            else:
-                raise IngestionValidationError(f"Encountered multiple values for {fqn}")
+                if channel_values_by_fqn.get(fqn, None) is None:
+                    channel_values_by_fqn[fqn] = channel_value
+                else:
+                    raise IngestionValidationError(f"Encountered multiple values for {fqn}")
+        except KeyError as e:
+            logger.debug(f"Encountered KeyError, but continuing: {e}")
 
         values: List[IngestWithConfigDataChannelValue] = []
 
-        for channel in flow_config.channels:
-            fqn = channel_fqn(channel)
-            channel_val: Optional[ChannelValue] = channel_values_by_fqn.pop(fqn, None)
+        if channel_values_by_fqn:
+            for channel in flow_config.channels:
+                fqn = channel_fqn(channel)
+                channel_val: Optional[ChannelValue] = channel_values_by_fqn.pop(fqn, None)
 
-            if channel_val is None:
-                values.append(empty_value())
-                continue
+                if channel_val is None:
+                    values.append(empty_value())
+                    continue
 
-            value = channel_val["value"]
+                value = channel_val["value"]
 
-            if is_data_type(value, channel.data_type):
-                values.append(value)
-            else:
-                raise IngestionValidationError(
-                    f"Expected value for `{channel.name}` to be a '{channel.data_type}'."
-                )
+                if is_data_type(value, channel.data_type):
+                    values.append(value)
+                else:
+                    raise IngestionValidationError(
+                        f"Expected value for `{channel.name}` to be a '{channel.data_type}'."
+                    )
 
-        if len(channel_values_by_fqn) > 0:
-            unexpected_channels = [name for name in channel_values_by_fqn.keys()]
-            raise IngestionValidationError(
-                f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}"
-            )
+                if len(channel_values_by_fqn) > 0:
+                    unexpected_channels = [name for name in channel_values_by_fqn.keys()]
+                    raise IngestionValidationError(
+                        f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}"
+                    )
+        else:
+            for i in range(len(channel_values)):
+                value = channel_values[i]
+
+                channel_type = list(value.keys())
+                if len(channel_type) != 1:
+                    raise ValueError(
+                        f"Expected exactly one key in flow value, got keys: {channel_type}"
+                    )
+                channel_type = channel_type[0]
+
+                channel_config = flow_config.channels[i]
+                channel_value = channel_config.try_value_from(value[channel_type])
+                if is_data_type(channel_value, channel_config.data_type):
+                    values.append(channel_value)
+                else:
+                    raise IngestionValidationError(
+                        f"Expected value for `{flow_config.channels[i].name}` to be a '{flow_config.channels[i].data_type}'. Instead found {channel_type} in flow {flow_name}."
+                    )
 
         if timestamp.tzname() != "UTC":
             raise IngestionValidationError(
