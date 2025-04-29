@@ -416,9 +416,12 @@ def test_ingestion_service_try_create_ingestion_request_ordered_values(mocker: M
         flow_name="mixed_types",
         timestamp=timestamp,
         channel_values=[
-            {"double": 120.0},  # voltage (double)
-            {"int64": 42},  # count (int)
-            {"string": "active"},  # status (string)
+            # voltage (double)
+            {"double": 120.0},  # type: ignore
+            # count (int)
+            {"int64": 42},  # type: ignore
+            # status (string)
+            {"string": "active"},  # type: ignore
         ],
     )
 
@@ -434,9 +437,10 @@ def test_ingestion_service_try_create_ingestion_request_ordered_values(mocker: M
             flow_name="mixed_types",
             timestamp=timestamp,
             channel_values=[
-                {"string": "not a number"},  # wrong type for voltage (should be double)
-                {"int64": 42},
-                {"string": "active"},
+                # wrong type for voltage (should be double)
+                {"string": "not a number"},  # type: ignore
+                {"int64": 42},  # type: ignore
+                {"string": "active"},  # type: ignore
             ],
         )
 
@@ -445,9 +449,10 @@ def test_ingestion_service_try_create_ingestion_request_ordered_values(mocker: M
             flow_name="mixed_types",
             timestamp=timestamp,
             channel_values=[
-                {"double": 120.0},
-                {"int64": 42},
-                {"double": 1.0},  # wrong type for status (should be string)
+                {"double": 120.0},  # type: ignore
+                {"int64": 42},  # type: ignore
+                # wrong type for status (should be string)
+                {"double": 1.0},  # type: ignore
             ],
         )
 
@@ -457,8 +462,8 @@ def test_ingestion_service_try_create_ingestion_request_ordered_values(mocker: M
             flow_name="mixed_types",
             timestamp=timestamp,
             channel_values=[
-                {"double": 120.0},
-                {"int64": 42},
+                {"double": 120.0},  # type: ignore
+                {"int64": 42},  # type: ignore
                 # missing status value
             ],
         )
