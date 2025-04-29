@@ -206,19 +206,19 @@ class _IngestionServiceImpl:
                     )
         else:  # Validate data types by index, the order of the channels in a FlowOrderedChannelValues object should match the flow config
             for i in range(len(channel_values)):
-                value = channel_values[i]
+                channel_dict = channel_values[i]
 
-                channel_type = list(value.keys())
+                channel_type = list(channel_dict.keys())
                 if len(channel_type) != 1:
                     raise ValueError(
                         f"Expected exactly one key in flow value, got keys: {channel_type}"
                     )
-                channel_type = channel_type[0]
+                channel_type_key = channel_type[0]
 
                 channel_config = flow_config.channels[i]
-                channel_value = channel_config.try_value_from(value[channel_type])
-                if is_data_type(channel_value, channel_config.data_type):
-                    values.append(channel_value)
+                chan_value = channel_config.try_value_from(channel_dict[channel_type_key])  # type: ignore
+                if is_data_type(chan_value, channel_config.data_type):
+                    values.append(chan_value)
                 else:
                     raise IngestionValidationError(
                         f"Expected value for `{flow_config.channels[i].name}` to be a '{flow_config.channels[i].data_type}'. Instead found {channel_type} in flow {flow_name}."
