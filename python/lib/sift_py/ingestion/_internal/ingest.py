@@ -182,6 +182,16 @@ class _IngestionServiceImpl:
         values: List[IngestWithConfigDataChannelValue] = []
 
         if channel_values_by_fqn:  # Validate data types by channel name
+            unexpected_channels = [
+                name
+                for name in channel_values_by_fqn.keys()
+                if not any(name == channel_fqn(channel) for channel in flow_config.channels)
+            ]
+            if unexpected_channels:
+                raise IngestionValidationError(
+                    f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}"
+                )
+
             for channel in flow_config.channels:
                 fqn = channel_fqn(channel)
                 channel_val: Optional[ChannelValue] = channel_values_by_fqn.pop(fqn, None)
@@ -199,11 +209,6 @@ class _IngestionServiceImpl:
                         f"Expected value for `{channel.name}` to be a '{channel.data_type}'."
                     )
 
-                if len(channel_values_by_fqn) > 0:
-                    unexpected_channels = [name for name in channel_values_by_fqn.keys()]
-                    raise IngestionValidationError(
-                        f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}"
-                    )
         else:  # Validate data types by index, the order of the channels in a FlowOrderedChannelValues object should match the flow config
             if len(channel_values) != len(flow_config.channels):
                 raise IngestionValidationError(
