@@ -15,6 +15,8 @@ This library depends on the following TwinCAT modules:
 
 Ensure these libraries are installed and referenced in your project before using this package.
 
+While this library is in beta it depends on a special version of `sift_proxy`. Reach out to the Sift team for a copy and installation instructions.
+
 ## Examples
 
 Example usages are provided in the `examples` directory. These include:
