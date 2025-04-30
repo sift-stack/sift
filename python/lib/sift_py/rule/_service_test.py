@@ -205,10 +205,7 @@ def test_rule_service_load_rules_from_yaml_with_contextual_channels(rule_service
         "name": "rule",
         "rule_client_key": "rule-client-key",
         "channel_references": [{"$1": "temperature"}],
-        "contextual_channels": [
-            {"name": "humidity"},
-            {"name": "pressure"},
-        ],
+        "contextual_channels": ["humidity", "pressure"],
         "description": "description",
         "expression": "$1 > 0",
         "type": "review",
