@@ -28,6 +28,7 @@ from sift_py.ingestion._internal.ingestion_config import (
 from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelDataType,
+    ChannelValue,
     double_value,
     int32_value,
     string_value,
@@ -231,7 +232,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
             flow_name="lerg",  # typo
             timestamp=datetime.now(timezone.utc),
             channel_values=[
-                {"channel_name": "logs", "value": string_value("foobar")},
+                ChannelValue(channel_name="logs", value=string_value("foobar")),
             ],
         )
 
@@ -241,8 +242,8 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
             channel_values=[
-                {"channel_name": "logs", "value": string_value("foobar")},
-                {"channel_name": "logs", "value": string_value("foobar")},
+                ChannelValue(channel_name="logs", value=string_value("foobar")),
+                ChannelValue(channel_name="logs", value=string_value("foobar")),
             ],
         )
 
@@ -252,7 +253,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
             channel_values=[
-                {"channel_name": "logs", "value": int32_value(32)},
+                ChannelValue(channel_name="logs", value=int32_value(32)),
             ],
         )
 
@@ -262,7 +263,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
             channel_values=[
-                {"channel_name": "voltage", "value": double_value(32)},
+                ChannelValue(channel_name="voltage", value=double_value(32)),
             ],
         )
 
