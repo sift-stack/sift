@@ -70,4 +70,3 @@ flows:
   - name: logs
     channels:
       - <<: *log_channel
-
