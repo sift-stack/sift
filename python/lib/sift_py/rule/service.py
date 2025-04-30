@@ -383,6 +383,7 @@ class RuleService:
             contextual_channel_names.append(ident)
 
         organization_id = ""
+        rule_id = ""
         if rule:
             rule_id = rule.rule_id
             organization_id = rule.organization_id
