@@ -124,12 +124,16 @@ class RuleService:
             for channel_config in yaml_contextual_channels:
                 if isinstance(channel_config, dict):
                     name = channel_config.get("name", "")
-                    data_type = channel_config.get("data_type")
+                    data_type = ChannelDataType.from_str(channel_config.get("data_type", ""))
+                    if not data_type:
+                        raise ValueError(
+                            f"Contextual channel '{channel_config}' must have a data_type"
+                        )
 
                     contextual_channels.append(
                         ChannelConfig(
                             name=name,
-                            data_type=ChannelDataType.from_str(data_type),
+                            data_type=data_type,
                         )
                     )
                 else:
@@ -387,10 +391,10 @@ class RuleService:
             channel_references[ref] = ident
 
         # Create channel references map for contextual channels
-        contextual_channels = []
+        contextual_channel_names = []
         for channel in config.contextual_channels:
             ident = channel_reference_from_fqn(channel.fqn())
-            contextual_channels.append(ident)
+            contextual_channel_names.append(ident)
 
         organization_id = ""
         if rule:
@@ -417,7 +421,7 @@ class RuleService:
             asset_configuration=RuleAssetConfiguration(
                 asset_ids=[asset.asset_id for asset in assets] if assets else None,
             ),
-            contextual_channels=ContextualChannels(channels=contextual_channels),
+            contextual_channels=ContextualChannels(channels=contextual_channel_names),
         )
 
     def get_rule(self, rule: str) -> Optional[RuleConfig]:
@@ -447,19 +451,6 @@ class RuleService:
                     }
                 )
 
-            # Get contextual channels
-            for (
-                name,
-                channel_ref,
-            ) in condition.expression.calculated_channel.contextual_channel_references.items():
-                contextual_channels.append(
-                    ChannelConfig(
-                        name=channel_ref.name,
-                        component=channel_ref.component,
-                        data_type=channel_ref.data_type,
-                    )
-                )
-
             for action_config in condition.actions:
                 annotation_type = action_config.configuration.annotation.annotation_type
                 if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
@@ -477,6 +468,23 @@ class RuleService:
             ids=[asset_id for asset_id in rule_pb.asset_configuration.asset_ids]
         )
         asset_names = [asset.name for asset in assets]
+
+        contextual_channels = []
+        for channel_ref in rule_pb.contextual_channels.channels:
+            channel_name = channel_ref.name
+            found_channel = get_channels(
+                channel_service=self._channel_service_stub,
+                filter=f"{cel_in([channel_name])}",
+            )
+            if not found_channel:
+                raise ValueError(f"Contextual channel '{channel_name}' not found.")
+
+            contextual_channels.append(
+                ChannelConfig(
+                    name=channel_name,
+                    data_type=found_channel.data_type,
+                )
+            )
 
         rule_config = RuleConfig(
             name=rule_pb.name,

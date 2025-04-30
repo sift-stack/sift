@@ -67,7 +67,9 @@ class RuleConfig(AsJson):
         Produces the appropriate JSON structure that's suitable for the Rules API.
         """
 
-        hash_map: Dict[str, Union[List[ExpressionChannelReference], str, List[str], None]] = {
+        hash_map: Dict[
+            str, Union[List[ExpressionChannelReference], List[ChannelConfig], str, List[str], None]
+        ] = {
             "name": self.name,
             "description": self.description,
             "expression": self.expression,
