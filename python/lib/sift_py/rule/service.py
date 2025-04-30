@@ -33,7 +33,7 @@ from sift_py._internal.channel import get_channels
 from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
-from sift_py.ingestion.channel import ChannelConfig, ChannelDataType, channel_fqn
+from sift_py.ingestion.channel import channel_fqn
 from sift_py.rule.config import (
     ExpressionChannelReference,
     ExpressionChannelReferenceChannelConfig,
@@ -119,23 +119,14 @@ class RuleService:
 
             # Parse contextual channels
             yaml_contextual_channels = rule_yaml.get("contextual_channels", [])
-            contextual_channels: List[ChannelConfig] = []
+            contextual_channels: List[str] = []
 
             for channel_config in yaml_contextual_channels:
                 if isinstance(channel_config, dict):
                     name = channel_config.get("name", "")
-                    data_type = ChannelDataType.from_str(channel_config.get("data_type", ""))
-                    if not data_type:
-                        raise ValueError(
-                            f"Contextual channel '{channel_config}' must have a data_type"
-                        )
-
-                    contextual_channels.append(
-                        ChannelConfig(
-                            name=name,
-                            data_type=data_type,
-                        )
-                    )
+                    if not name:
+                        raise ValueError(f"Contextual channel '{channel_config}' must have a name")
+                    contextual_channels.append(name)
                 else:
                     raise ValueError(
                         f"Contextual channel '{channel_config}' must be a ChannelConfigYamlSpec"
@@ -353,7 +344,7 @@ class RuleService:
 
         # Get all channels that need validation (both expression and contextual)
         expression_channels = {ref["channel_identifier"] for ref in config.channel_references}
-        contextual_channels = {channel.fqn() for channel in config.contextual_channels}
+        contextual_channels = set(config.contextual_channels)
         all_channel_references = expression_channels | contextual_channels
 
         # Validate all channels exist in assets
@@ -393,7 +384,7 @@ class RuleService:
         # Create channel references map for contextual channels
         contextual_channel_names = []
         for channel in config.contextual_channels:
-            ident = channel_reference_from_fqn(channel.fqn())
+            ident = channel_reference_from_fqn(channel)
             contextual_channel_names.append(ident)
 
         organization_id = ""
@@ -433,7 +424,7 @@ class RuleService:
             return None
 
         channel_references: List[ExpressionChannelReference] = []
-        contextual_channels: List[ChannelConfig] = []
+        contextual_channels: List[str] = []
         expression = ""
         action: Optional[
             Union[RuleActionCreateDataReviewAnnotation, RuleActionCreatePhaseAnnotation]
@@ -471,20 +462,7 @@ class RuleService:
 
         contextual_channels = []
         for channel_ref in rule_pb.contextual_channels.channels:
-            channel_name = channel_ref.name
-            found_channel = get_channels(
-                channel_service=self._channel_service_stub,
-                filter=f"{cel_in([channel_name])}",
-            )
-            if not found_channel:
-                raise ValueError(f"Contextual channel '{channel_name}' not found.")
-
-            contextual_channels.append(
-                ChannelConfig(
-                    name=channel_name,
-                    data_type=found_channel.data_type,
-                )
-            )
+            contextual_channels.append(channel_ref.name)
 
         rule_config = RuleConfig(
             name=rule_pb.name,

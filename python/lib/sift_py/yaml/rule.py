@@ -123,7 +123,7 @@ def _validate_rule(val: Any):
             raise YamlConfigError._invalid_property(
                 contextual_channels,
                 "- contextual_channels",
-                f"List[{_type_fqn(ChannelConfigYamlSpec)}]",
+                "Dict[str, str]",
                 ["rules"],
             )
 
@@ -283,8 +283,7 @@ class RuleYamlSpec(TypedDict):
       - $1: *vehicle_state_channel
       - $2: *voltage_channel
     contextual_channels:
-      - *temperature_channel
-      - *humidity_channel
+      - name: log
     ```
 
     Sub-expressions:
@@ -326,7 +325,7 @@ class RuleYamlSpec(TypedDict):
     assignee: NotRequired[str]
     tags: NotRequired[List[str]]
     channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
-    contextual_channels: NotRequired[List[ChannelConfigYamlSpec]]
+    contextual_channels: NotRequired[Dict[str, str]]
     sub_expressions: NotRequired[List[Dict[str, str]]]
     asset_names: NotRequired[List[str]]
     tag_names: NotRequired[List[str]]

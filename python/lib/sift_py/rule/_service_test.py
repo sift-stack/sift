@@ -174,11 +174,6 @@ def test_rule_service_detach_asset_empty_list():
 
 def test_rule_service_create_rule_with_contextual_channels(rule_service):
     """Test creating a rule with contextual channels"""
-    humidity_channel = ChannelConfig(
-        name="humidity",
-        data_type=ChannelDataType.DOUBLE,
-    )
-
     rule = RuleConfig(
         name="rule",
         rule_client_key="rule-client-key",
@@ -191,7 +186,7 @@ def test_rule_service_create_rule_with_contextual_channels(rule_service):
                 ),
             }
         ],
-        contextual_channels=[humidity_channel],
+        contextual_channels=["humidity"],
         expression="$1 > 10",
         action=RuleActionCreateDataReviewAnnotation(),
     )
@@ -201,7 +196,7 @@ def test_rule_service_create_rule_with_contextual_channels(rule_service):
         mock_create_rule.assert_called_once_with(rule)
         created_rule = mock_create_rule.call_args[0][0]
         assert len(created_rule.contextual_channels) == 1
-        assert created_rule.contextual_channels[0].name == "humidity"
+        assert created_rule.contextual_channels[0] == "humidity"
 
 
 def test_rule_service_load_rules_from_yaml_with_contextual_channels(rule_service):
@@ -211,8 +206,8 @@ def test_rule_service_load_rules_from_yaml_with_contextual_channels(rule_service
         "rule_client_key": "rule-client-key",
         "channel_references": [{"$1": "temperature"}],
         "contextual_channels": [
-            {"name": "humidity", "data_type": "DOUBLE"},
-            {"name": "pressure", "data_type": "DOUBLE"},
+            {"name": "humidity"},
+            {"name": "pressure"},
         ],
         "description": "description",
         "expression": "$1 > 0",
@@ -230,5 +225,5 @@ def test_rule_service_load_rules_from_yaml_with_contextual_channels(rule_service
 
             rule_config = rule_configs[0]
             assert len(rule_config.contextual_channels) == 2
-            assert rule_config.contextual_channels[0].name == "humidity"
-            assert rule_config.contextual_channels[1].name == "pressure"
+            assert rule_config.contextual_channels[0] == "humidity"
+            assert rule_config.contextual_channels[1] == "pressure"

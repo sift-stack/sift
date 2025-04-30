@@ -25,7 +25,7 @@ class RuleConfig(AsJson):
     - `rule_client_key`: User defined unique string that uniquely identifies this rule.
     - `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `tag_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
-    - `contextual_channels`: A list of channel configs that provide context but aren't directly used in the expression.
+    - `contextual_channels`: A list of channel names that provide context but aren't directly used in the expression.
     """
 
     name: str
@@ -35,7 +35,7 @@ class RuleConfig(AsJson):
     channel_references: List[ExpressionChannelReference]
     rule_client_key: Optional[str]
     asset_names: List[str]
-    contextual_channels: List[ChannelConfig]
+    contextual_channels: List[str]
 
     def __init__(
         self,
@@ -50,7 +50,7 @@ class RuleConfig(AsJson):
         asset_names: Optional[List[str]] = None,
         tag_names: Optional[List[str]] = None,
         sub_expressions: Dict[str, Any] = {},
-        contextual_channels: Optional[List[ChannelConfig]] = None,
+        contextual_channels: Optional[List[str]] = None,
     ):
         self.channel_references = _channel_references_from_dicts(channel_references)
         self.contextual_channels = contextual_channels or []

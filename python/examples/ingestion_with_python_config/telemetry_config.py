@@ -127,7 +127,7 @@ def nostromos_lv_426() -> TelemetryConfig:
                 expression="contains($1, $sub_string)",
                 rule_client_key="failure-rule",
                 asset_names=["NostromoLV426"],
-                contextual_channels=[vehicle_state_channel],
+                contextual_channels=[vehicle_state_channel.name],
                 channel_references=[
                     {
                         "channel_reference": "$1",
