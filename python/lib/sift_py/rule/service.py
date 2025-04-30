@@ -118,19 +118,14 @@ class RuleService:
                 raise ValueError(f"Rule of name '{rule_yaml['name']}' requires channel_references")
 
             # Parse contextual channels
-            yaml_contextual_channels = rule_yaml.get("contextual_channels", [])
+            yaml_contextual_channels: List[str] = rule_yaml.get("contextual_channels", [])
             contextual_channels: List[str] = []
 
-            for channel_config in yaml_contextual_channels:
-                if isinstance(channel_config, dict):
-                    name = channel_config.get("name", "")
-                    if not name:
-                        raise ValueError(f"Contextual channel '{channel_config}' must have a name")
-                    contextual_channels.append(name)
+            for channel_name in yaml_contextual_channels:
+                if isinstance(channel_name, str):
+                    contextual_channels.append(channel_name)
                 else:
-                    raise ValueError(
-                        f"Contextual channel '{channel_config}' must be a ChannelConfigYamlSpec"
-                    )
+                    raise ValueError(f"Contextual channel '{channel_name}' must be a string")
 
             # Parse expression for named expressions and sub expressions
             expression = rule_yaml["expression"]
