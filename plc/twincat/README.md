@@ -15,7 +15,11 @@ This library depends on the following TwinCAT modules:
 
 Ensure these libraries are installed and referenced in your project before using this package.
 
-While this library is in beta it depends on a special version of `sift_proxy`. Reach out to the Sift team for a copy and installation instructions.
+## Installation
+
+Download the release zip which includes the `Sift Client.library` library file, `sift_proxy` binary, and various scripts. After extracting the contents on your PLC run `install_sift_proxy.bat` to install `sift_proxy` then install `Sift Client.library`.
+
+Note: While this library is in beta it depends on a special version of `sift_proxy`. Reach out to the Sift team for a copy and installation instructions.
 
 ## Examples
 
