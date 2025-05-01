@@ -17,8 +17,6 @@ VAR
 	
 	fbSiftClient : FB_SiftClient; // Sift Client used for all services.
 	fbPing : FB_PingService;	// Ping service used to ping the Sift application.
-	fbRun : FB_RunService; // Run service used to create new Runs.
-	fbIngest : FB_IngestService; // Ingest service used to stream data.
 
 	eSiftState : (
 		INIT_SIFT_CLIENT,		// Begin initializing the Sift Client.
