@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="SetChannelValue" Id="{b0486be0-db7d-42c4-90b3-6475f110e9fc}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION SetChannelValue : BOOL
+    <Declaration><![CDATA[// Update the value of a Sift Channel. Should be called before FB_Ingest.WriteData() to update
+// the values before they are written to the Flow.
+FUNCTION SetChannelValue : BOOL
 VAR_INPUT
 	pChannel : POINTER TO ST_ChannelConfig;
 	anyValue : ANY;

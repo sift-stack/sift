@@ -3,9 +3,9 @@
   <DUT Name="ST_SiftError" Id="{a683186e-ad47-4198-a1bb-0226db3e164a}">
     <Declaration><![CDATA[TYPE ST_SiftError :
 STRUCT
-	bError : BOOL;
-	nErrId : UDINT;
-	sReason : STRING;
+	bError : BOOL;     // True is this is an error. 
+	nErrId : UDINT;    // The ID of this error.
+	sReason : STRING;  // Error message in string format.
 END_STRUCT
 END_TYPE
 ]]></Declaration>

@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_FB_BufferWriter" Id="{f3d5358a-0bf2-4a52-9f95-9801ddb8841e}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK _FB_BufferWriter
+    <Declaration><![CDATA[// Helper for writing bytes to an array buffer.
+FUNCTION_BLOCK _FB_BufferWriter
 VAR_INPUT
 	pRawBuf : POINTER TO BYTE; 
 	nSize : UDINT;

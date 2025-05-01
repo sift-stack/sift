@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_F_CreateIngestionConfigMessage" Id="{e5079918-0a05-4adf-bee4-a1d66848a106}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION _F_CreateIngestionConfigMessage 
+    <Declaration><![CDATA[// Creates a Sift Proxy Protocol "create_ingestion_config" Endpoint Message.
+FUNCTION _F_CreateIngestionConfigMessage 
 
 VAR_INPUT
 	stIngestionConfig : REFERENCE TO ST_IngestionConfig;

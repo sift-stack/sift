@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="FB_IngestService" Id="{3c66359b-9e66-4237-8835-89dcf998f3e0}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_IngestService
+    <Declaration><![CDATA[// Service for ingesting data. This function block should be called on 
+// every cycle to continually stream any data stored in the internal buffer.
+FUNCTION_BLOCK FB_IngestService
 VAR_INPUT
 	hSiftClient : REFERENCE TO T_SiftClient;
 	sRunId : STRING(255);
@@ -87,7 +89,10 @@ END_CASE
 ]]></ST>
     </Implementation>
     <Method Name="WriteData" Id="{e66bc1ce-d5b1-4b4a-9edc-01a0ca24d04c}">
-      <Declaration><![CDATA[METHOD PUBLIC WriteData : BOOL
+      <Declaration><![CDATA[// Writes data from a Flow to the buffer to be sent to Sift.
+// This should be called for each time you want to record data
+// for a given flow.
+METHOD PUBLIC WriteData : BOOL
 VAR_INPUT
 	pFlowConfig : POINTER TO ST_FlowConfig;
 	stTimestamp : _ST_Timestamp;

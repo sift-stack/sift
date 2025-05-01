@@ -3,9 +3,10 @@
   <DUT Name="ST_FlowConfig" Id="{d7b905d6-4a1e-4014-9e1a-01f024836dbe}">
     <Declaration><![CDATA[TYPE ST_FlowConfig :
 STRUCT
-	sName : STRING(255);
+	sName : STRING(255); // This Flow's name.
+	// The Channels in this Flow.
 	aChannelConfigs : ARRAY[0..SiftClientParameters.MAX_NUM_CHANNELS_PER_FLOW - 1] OF ST_ChannelConfig;
-	nNumChannelConfigs : UDINT;
+	nNumChannelConfigs : UDINT; // Total number of channels in this Flow.
 END_STRUCT
 END_TYPE
 ]]></Declaration>

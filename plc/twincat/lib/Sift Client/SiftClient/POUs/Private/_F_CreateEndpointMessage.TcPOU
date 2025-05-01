@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_F_CreateEndpointMessage" Id="{29c18fff-a10c-4ec1-8c4f-ee834e24bbff}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION _F_CreateEndpointMessage 
+    <Declaration><![CDATA[// Creates a Sift Proxy Protocol Endpoint Message.
+FUNCTION _F_CreateEndpointMessage 
 VAR_INPUT
 	sEndpoint : STRING; 
 	pData : POINTER TO STRING;

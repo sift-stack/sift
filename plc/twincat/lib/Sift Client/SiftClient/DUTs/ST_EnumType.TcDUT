@@ -3,8 +3,8 @@
   <DUT Name="ST_EnumType" Id="{f450a283-2574-453a-9804-7cb9de34a5f1}">
     <Declaration><![CDATA[TYPE ST_EnumType :
 STRUCT
-	nKey : UDINT;
-	sName : STRING(255);
+	nKey : UDINT;        // Numerical key for this Enum.
+	sName : STRING(255); // Name or label for this Enum.
 END_STRUCT
 END_TYPE
 ]]></Declaration>

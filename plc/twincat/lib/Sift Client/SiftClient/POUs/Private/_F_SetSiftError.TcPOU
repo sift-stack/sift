@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_F_SetSiftError" Id="{e1dff285-17e2-4a28-9e74-7805e4415f2f}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION _F_SetSiftError : BOOL
+    <Declaration><![CDATA[// Set stSiftError to the contents of the JSON.
+FUNCTION _F_SetSiftError : BOOL
 VAR_INPUT
 	jsonDoc : SJsonValue;
 	stSiftError : REFERENCE TO ST_SiftError; 

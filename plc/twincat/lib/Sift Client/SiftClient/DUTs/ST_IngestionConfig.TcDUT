@@ -3,9 +3,10 @@
   <DUT Name="ST_IngestionConfig" Id="{ae044fd7-f4ac-42d7-b26e-a7ac03d69cad}">
     <Declaration><![CDATA[TYPE ST_IngestionConfig :
 STRUCT
-	sAssetName : STRING(255);
+	sAssetName : STRING(255); // Asset name for this Ingestion Config.
+	// The Flows for this Ingestion Config.
 	aFlowConfigs : ARRAY[0..SiftClientParameters.MAX_NUM_FLOWS - 1] OF ST_FlowConfig;
-	nNumFlowConfigs : UDINT;
+	nNumFlowConfigs : UDINT; // Total number of Flows in this Ingestion Config.
 END_STRUCT
 END_TYPE
 ]]></Declaration>

@@ -3,14 +3,15 @@
   <DUT Name="ST_ChannelConfig" Id="{fa8bf50b-664e-4788-a759-59b3e531d27f}">
     <Declaration><![CDATA[TYPE ST_ChannelConfig :
 STRUCT
-	sName : STRING(255);
-	eDataType : E_ChannelDataType;
-	sDescription : STRING(255);
-	sUnit : STRING(255);
+	sName : STRING(255); 		   // This Channel's name. Required.
+	eDataType : E_ChannelDataType; // This Channel's data type. Required.
+	sDescription : STRING(255);	   // This Channel's description. Optional.
+	sUnit : STRING(255);           // This Channel's units. Optional.
+	// Enums for this channel. Required for Channels with the Enum data type.
 	aEnumTypes : ARRAY[0..SiftClientParameters.MAX_NUM_ENUMS_PER_CHANNEL - 1] OF ST_EnumType;
-	nNumEnumTypes : UDINT;
+	nNumEnumTypes : UDINT; // Total number of enums for this Channel.
 	
-	Value : _U_SiftChannelValue;
+	Value : _U_SiftChannelValue; // The current value of this Channel.
 END_STRUCT
 END_TYPE
 ]]></Declaration>

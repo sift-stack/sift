@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="FB_IngestionConfigService" Id="{fa570322-3000-48fa-b355-167e4a60d192}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_IngestionConfigService
+    <Declaration><![CDATA[// Service for creating and sending an Ingestion Config.
+// The Ingestion Config is sent on the rising edge of bExecute.
+FUNCTION_BLOCK FB_IngestionConfigService
 VAR_INPUT
 	hSiftClient : REFERENCE TO T_SiftClient;
 	sAssetName : STRING(255);

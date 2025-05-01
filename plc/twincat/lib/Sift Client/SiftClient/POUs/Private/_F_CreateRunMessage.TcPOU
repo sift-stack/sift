@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_F_CreateRunMessage" Id="{c8036387-84d4-48a0-9429-9a51227f44ca}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION _F_CreateRunMessage
+    <Declaration><![CDATA[// Creates a Sift Proxy Protocol "create_run" Endpoint Message.
+FUNCTION _F_CreateRunMessage
 VAR_INPUT
 	sName : STRING(255);
 	sDescription : STRING(255);

@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_F_CreateDataMessage" Id="{d34d4966-ec4b-45ee-a4db-d5f64afa485d}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION _F_CreateDataMessage : UDINT;
+    <Declaration><![CDATA[// Creates a Sift Proxy Protocol Data Message.
+FUNCTION _F_CreateDataMessage : UDINT;
 
 VAR_INPUT
 	fbWriter : REFERENCE TO _FB_BufferWriter;

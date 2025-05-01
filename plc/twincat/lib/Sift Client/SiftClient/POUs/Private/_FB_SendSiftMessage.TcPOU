@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="_FB_SendSiftMessage" Id="{7623e9eb-5640-4421-9ec0-77d8fab14f49}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK _FB_SendSiftMessage
+    <Declaration><![CDATA[// Sends a message to Sift Proxy using the Sift Proxy Protocol and waits for a response.
+FUNCTION_BLOCK _FB_SendSiftMessage
 VAR_INPUT
 	hSiftClient : REFERENCE TO T_SiftClient;
 	stMsg : REFERENCE TO _ST_SiftMessage;

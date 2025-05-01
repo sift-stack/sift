@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="GetCurrentTime" Id="{1911fe31-0ecb-47a0-abd4-e089d302e401}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION GetCurrentTime : _ST_Timestamp
+    <Declaration><![CDATA[// Returns a Sift compatible UTC timestamp. Should be used with FB_Ingest.WriteData().
+FUNCTION GetCurrentTime : _ST_Timestamp
 VAR_INPUT
 END_VAR
 VAR
@@ -9,7 +10,8 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[nUnixTimeNs := (F_GetSystemTime() - 116444736000000000) * 100;
+      <ST><![CDATA[// Convert to UTC.
+nUnixTimeNs := (F_GetSystemTime() - 116444736000000000) * 100;
 GetCurrentTime.nSeconds := ULINT_TO_LINT(nUnixTimeNs/1_000_000_000);
 GetCurrentTime.nNanoseconds := ULINT_TO_DINT(nUnixTimeNs MOD 1_000_000_000);]]></ST>
     </Implementation>

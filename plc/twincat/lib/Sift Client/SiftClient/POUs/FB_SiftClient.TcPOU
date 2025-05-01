@@ -1,7 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="FB_SiftClient" Id="{4caab956-b0cf-47ee-89e4-4108cb730320}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_SiftClient
+    <Declaration><![CDATA[// Entry point for the Sift Client. This function block must be initialized successfully
+// first before using any of the other services. The function block begins initialization
+// on the rising edge of bExecute and completes initialization when bBusy goes low.
+FUNCTION_BLOCK FB_SiftClient
 VAR_INPUT
 	sSiftProxyHost : T_IPv4Addr := GVL_SIFT.SIFT_PROXY_DEFAULT_HOST;
 	nSiftProxyPort : UINT       := GVL_SIFT.SIFT_PROXY_DEFAULT_LISTEN_PORT;

@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
   <POU Name="SAFE_MEMCPY" Id="{7c59690b-5c27-4eac-81b1-0f5b54aa1407}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION SAFE_MEMCPY : BOOL
+    <Declaration><![CDATA[// Safe version of MEMCPY. Checks NULL pointers and bounds before copying.
+FUNCTION SAFE_MEMCPY : BOOL
 
 VAR_INPUT
 	pDst : POINTER TO BYTE;

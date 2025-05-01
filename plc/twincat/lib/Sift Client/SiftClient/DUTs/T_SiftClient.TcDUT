@@ -4,15 +4,14 @@
     <Declaration><![CDATA[TYPE T_SiftClient :
 STRUCT
 	sHost : T_IPv4Addr; // Sift Proxy address.
-	nPort : UINT; // Sift Proxy port.
+	nPort : UINT;       // Sift Proxy port.
 	
 	sGrpcUri : STRING(255); // Sift gRPC URI.
-	sApiKey : STRING; // Sift API key.
+	sApiKey : STRING;       // Sift API key.
 	
-	pJsonBuffer : POINTER TO BYTE;
-	pJbLength : UDINT;
+	pJsonBuffer : POINTER TO BYTE; // Buffer used to create JSON messages.
+	pJbLength : UDINT;			   // Size of pJsonBuffer.
 	
-	// TCP function blocks.
    	fbCloseAll 		: FB_SocketCloseAll;
 	fbConnect		: FB_SocketConnect;
 	fbSend		    : FB_SocketSend;
