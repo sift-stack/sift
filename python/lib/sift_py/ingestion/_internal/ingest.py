@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sift.ingest.v1.ingest_pb2 import (
@@ -33,6 +34,8 @@ from sift_py.ingestion.config.telemetry import TelemetryConfig
 from sift_py.ingestion.flow import Flow, FlowConfig, FlowOrderedChannelValues
 from sift_py.ingestion.rule.config import RuleConfig
 from sift_py.rule.service import RuleService
+
+logger = logging.getLogger(__name__)
 
 
 class _IngestionServiceImpl:
@@ -144,23 +147,48 @@ class _IngestionServiceImpl:
         """
         self.run_id = None
 
-    def try_create_ingestion_request(
+    def try_create_ingestion_request_ordered_values(
         self,
         flow_name: str,
+        flow_config: FlowConfig,
+        timestamp: datetime,
+        channel_values: List[IngestWithConfigDataChannelValue],
+    ) -> List[IngestWithConfigDataChannelValue]:
+        values: List[IngestWithConfigDataChannelValue] = []
+
+        if len(channel_values) != len(flow_config.channels):
+            raise IngestionValidationError(
+                f"Expected {len(flow_config.channels)} channel values, got {len(channel_values)}."
+            )
+        for i in range(len(channel_values)):
+            channel_dict = channel_values[i]
+
+            channel_type = list(channel_dict.keys())  # type: ignore
+            if len(channel_type) != 1:
+                raise ValueError(
+                    f"Expected exactly one key in flow value, got keys: {channel_type}"
+                )
+            channel_type_key = channel_type[0]
+
+            channel_config = flow_config.channels[i]
+            try:
+                chan_value = channel_config.try_value_from(channel_dict[channel_type_key])  # type: ignore
+                if is_data_type(chan_value, channel_config.data_type):
+                    values.append(chan_value)
+            except ValueError:
+                raise IngestionValidationError(
+                    f"Expected value for `{flow_config.channels[i].name}` to be a '{flow_config.channels[i].data_type}'. Instead found {channel_type} in flow {flow_name}."
+                )
+
+        return values
+
+    def try_create_ingestion_request_channel_values(
+        self,
+        flow_name: str,
+        flow_config: FlowConfig,
         timestamp: datetime,
         channel_values: List[ChannelValue],
-    ) -> IngestWithConfigDataStreamRequest:
-        """
-        Creates an ingestion request for a flow that must exist in `flow_configs_by_name`. This method
-        performs a series of client-side validations and will return a `IngestionValidationError` if any validations fail.
-        """
-        flow_config = self.flow_configs_by_name.get(flow_name)
-
-        if flow_config is None:
-            raise IngestionValidationError(
-                f"A flow config of name '{flow_name}' could not be found."
-            )
-
+    ) -> List[IngestWithConfigDataChannelValue]:
         channel_values_by_fqn: Dict[str, ChannelValue] = {}
 
         for channel_value in channel_values:
@@ -194,6 +222,81 @@ class _IngestionServiceImpl:
             unexpected_channels = [name for name in channel_values_by_fqn.keys()]
             raise IngestionValidationError(
                 f"Unexpected channel(s) for flow '{flow_name}': {unexpected_channels}"
+            )
+
+        return values
+
+    def _is_channel_value(self, value: Any) -> bool:
+        """
+        Check if a value is a ChannelValue.
+        ChannelValue has a "value" field and either a "name" or "channel_name" field.
+        """
+        return (
+            isinstance(value, dict)
+            and "value" in value
+            and ("name" in value or "channel_name" in value)
+        )
+
+    def _is_ingest_channel_value(self, value: Any) -> bool:
+        """
+        Check if a value is an IngestWithConfigDataChannelValue.
+        This is a protobuf message with specific fields.
+        """
+        return isinstance(value, IngestWithConfigDataChannelValue) or (
+            isinstance(value, dict)
+            and any(
+                field in value
+                for field in [
+                    "double",
+                    "string",
+                    "int32",
+                    "int64",
+                    "bool",
+                ]
+            )
+        )
+
+    def try_create_ingestion_request(
+        self,
+        flow_name: str,
+        timestamp: datetime,
+        channel_values: Union[List[ChannelValue], List[IngestWithConfigDataChannelValue]],
+    ) -> IngestWithConfigDataStreamRequest:
+        """
+        Creates an ingestion request for a flow that must exist in `flow_configs_by_name`. This method
+        performs a series of client-side validations and will return a `IngestionValidationError` if any validations fail.
+        Channel values can be provided as a list of `sift_py.ingestion.channel.ChannelValue` or a list of values from a
+        `sift_py.ingestion.flow.FlowOrderedChannelValues`.
+        """
+        flow_config = self.flow_configs_by_name.get(flow_name)
+        if flow_config is None:
+            raise IngestionValidationError(
+                f"A flow config of name '{flow_name}' could not be found."
+            )
+
+        if not channel_values:
+            raise IngestionValidationError("Channel values list cannot be empty")
+
+        first_value = channel_values[0]
+        values: List[IngestWithConfigDataChannelValue] = []
+
+        if self._is_channel_value(first_value):
+            # Handle ChannelValue list
+            values = self.try_create_ingestion_request_channel_values(
+                flow_name, flow_config, timestamp, cast(List[ChannelValue], channel_values)
+            )
+        elif self._is_ingest_channel_value(first_value):
+            # Handle IngestWithConfigDataChannelValue list
+            values = self.try_create_ingestion_request_ordered_values(
+                flow_name,
+                flow_config,
+                timestamp,
+                cast(List[IngestWithConfigDataChannelValue], channel_values),
+            )
+        else:
+            raise ValueError(
+                f"Unknown channel values format: {type(first_value)}. "
+                "Expected either ChannelValue or IngestWithConfigDataChannelValue"
             )
 
         if timestamp.tzname() != "UTC":

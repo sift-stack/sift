@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataChannelValue,
@@ -83,7 +83,7 @@ class IngestionService(_IngestionServiceImpl):
         self,
         flow_name: str,
         timestamp: datetime,
-        channel_values: List[ChannelValue],
+        channel_values: Union[List[ChannelValue], List[IngestWithConfigDataChannelValue]],
     ) -> IngestWithConfigDataStreamRequest:
         """
         Creates an `IngestWithConfigDataStreamRequest`, i.e. a flow, given a `flow_name` and a
