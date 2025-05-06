@@ -15,6 +15,7 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/annotations/v1/annotations.proto";
 import "sift/common/type/v1/resource_identifier.proto";
+import "sift/common/type/v1/user_defined_functions.proto";
 
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -283,6 +284,7 @@ message Rule {
   RuleAssetConfiguration asset_configuration = 15 [(google.api.field_behavior) = REQUIRED];
   ContextualChannels contextual_channels = 16 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp deleted_date = 17 [(google.api.field_behavior) = OPTIONAL];
+  bool is_external = 18 [(google.api.field_behavior) = REQUIRED];
 }
 message RuleCondition {
   // 4 is reserved from old "status" column that lived directly on rule condition
@@ -400,6 +402,7 @@ message UpdateRuleRequest {
   optional string client_key = 9;
   RuleAssetConfiguration asset_configuration = 10;
   ContextualChannels contextual_channels = 11;
+  bool is_external = 12;
 }
 message UpdateConditionRequest {
   // 2 is reserved from old status update support on rule condition directly
@@ -417,6 +420,7 @@ enum ActionKind {
   ACTION_KIND_UNSPECIFIED = 0 [deprecated = true];
   NOTIFICATION = 1;
   ANNOTATION = 2;
+  WEBHOOK = 3;
 }
 message UpdateRuleResponse {
   string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
@@ -460,6 +464,15 @@ message BatchUpdateRulesResponse {
 
   // One ValidationResult per rule in the request will be returned
   repeated ValidationResult validation_results = 5 [(google.api.field_behavior) = REQUIRED];
+
+  message RuleIdentifiers {
+    string rule_id = 1 [(google.api.field_behavior) = REQUIRED];
+    string name = 2 [(google.api.field_behavior) = REQUIRED];
+    optional string client_key = 3 [(google.api.field_behavior) = OPTIONAL];
+  }
+
+  // The created rule id, name, version, and client key.
+  repeated RuleIdentifiers created_rule_identifiers = 6 [(google.api.field_behavior) = REQUIRED];
 }
 
 // DeleteRuleRequest is used to delete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
@@ -673,6 +686,8 @@ enum ConditionComparator {
 message CalculatedChannelConfig {
   map<string, ChannelReference> channel_references = 1 [(google.api.field_behavior) = REQUIRED];
   string expression = 2 [(google.api.field_behavior) = REQUIRED];
+  // This will be ignored in requests and will be generated automatically.
+  repeated sift.common.type.v1.FunctionDependency function_dependencies = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 message ChannelReference {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
@@ -686,9 +701,12 @@ message RuleActionConfiguration {
     AnnotationActionConfiguration annotation = 2;
   }
 }
+
 message NotificationActionConfiguration {
   repeated string recipient_user_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
+
+
 message AnnotationActionConfiguration {
   repeated string tag_ids = 1 [(google.api.field_behavior) = REQUIRED];
   sift.annotations.v1.AnnotationType annotation_type = 2;
