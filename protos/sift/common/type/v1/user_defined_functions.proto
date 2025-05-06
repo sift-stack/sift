@@ -2,11 +2,8 @@ syntax = "proto3";
 
 package sift.common.type.v1;
 
-import "buf/validate/validate.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
-
-option go_package = "azimuth/gen/protos/go/sift/common/type/v1;typev1pb";
 
 enum FunctionDataType {
   FUNCTION_DATA_TYPE_UNSPECIFIED = 0;
@@ -37,10 +34,7 @@ message UserDefinedFunction {
 }
 
 message FunctionDependency {
-  string user_defined_function_version_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
-  ];
+  string user_defined_function_version_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message FunctionInput {
