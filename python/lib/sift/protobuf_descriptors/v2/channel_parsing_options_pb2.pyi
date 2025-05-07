@@ -141,7 +141,7 @@ class _BytesDecodingType:
 class _BytesDecodingTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_BytesDecodingType.ValueType], builtins.type):
     DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
     BYTES_DECODING_TYPE_UNSPECIFIED: _BytesDecodingType.ValueType  # 0
-    """Default value, will be ignored"""
+    """Default value, will be stored as raw bytes"""
     BYTES_DECODING_TYPE_UTF8: _BytesDecodingType.ValueType  # 1
     """Decode bytes as UTF-8"""
 
@@ -149,7 +149,7 @@ class BytesDecodingType(_BytesDecodingType, metaclass=_BytesDecodingTypeEnumType
     """Enum for how to decode bytes fields"""
 
 BYTES_DECODING_TYPE_UNSPECIFIED: BytesDecodingType.ValueType  # 0
-"""Default value, will be ignored"""
+"""Default value, will be stored as raw bytes"""
 BYTES_DECODING_TYPE_UTF8: BytesDecodingType.ValueType  # 1
 """Decode bytes as UTF-8"""
 global___BytesDecodingType = BytesDecodingType
@@ -222,6 +222,7 @@ BYTES_DECODING_TYPE_FIELD_NUMBER: builtins.int
 IGNORE_FIELD_FIELD_NUMBER: builtins.int
 DISPLAY_OVERRIDE_ENUM_FIELD_NUMBER: builtins.int
 ARRAY_INDEX_OVERRIDE_TYPE_FIELD_NUMBER: builtins.int
+STORE_MESSAGE_AS_BYTES_FIELD_NUMBER: builtins.int
 MESSAGE_IS_TAG_TARGET_FIELD_NUMBER: builtins.int
 units: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.FieldOptions, builtins.str]
 """Adding the units FieldOption to a field sets the units displayed on the channel when charted"""
@@ -265,6 +266,12 @@ is the replacement value for an ancestor array's index display. Note that source
 ancestor arrays that contain those arrays. This tag will be ignored if the field is not an array or if there
 are no `ARRAY_INDEX_OVERRIDE_SOURCE` fields that apply. If multiple apply then the first override will be applied and an
 error will be logged.
+"""
+store_message_as_bytes: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.FieldOptions, builtins.bool]
+"""Adding the store_message_as_bytes FieldOption to a message field indicates that the message should be stored as serialized
+protobuf. When enabled, instead of creating channels for each field in the message, a single bytes channel will be created
+for the entire message. This tag will cause a validation error if the field is not a message type, or is a repeated/map of
+a message.
 """
 message_is_tag_target: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.MessageOptions, builtins.bool]
 """The message_is_tag_target option indicates that the message will allow its fields to have tags

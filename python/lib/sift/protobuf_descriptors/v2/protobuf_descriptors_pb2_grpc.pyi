@@ -25,6 +25,12 @@ class ProtobufDescriptorServiceStub:
     ]
     """Used to register a protobuf message to be ingested."""
 
+    CheckProtobufDescriptorCompatibility: grpc.UnaryUnaryMultiCallable[
+        sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.CheckProtobufDescriptorCompatibilityRequest,
+        sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.CheckProtobufDescriptorCompatibilityResponse,
+    ]
+    """Used to check if a protobuf descriptor is compatible with the existing descriptors."""
+
     DeleteProtobufDescriptors: grpc.UnaryUnaryMultiCallable[
         sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.DeleteProtobufDescriptorsRequest,
         sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.DeleteProtobufDescriptorsResponse,
@@ -43,6 +49,12 @@ class ProtobufDescriptorServiceAsyncStub:
         sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.AddProtobufDescriptorResponse,
     ]
     """Used to register a protobuf message to be ingested."""
+
+    CheckProtobufDescriptorCompatibility: grpc.aio.UnaryUnaryMultiCallable[
+        sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.CheckProtobufDescriptorCompatibilityRequest,
+        sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.CheckProtobufDescriptorCompatibilityResponse,
+    ]
+    """Used to check if a protobuf descriptor is compatible with the existing descriptors."""
 
     DeleteProtobufDescriptors: grpc.aio.UnaryUnaryMultiCallable[
         sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.DeleteProtobufDescriptorsRequest,
@@ -64,6 +76,14 @@ class ProtobufDescriptorServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.AddProtobufDescriptorResponse, collections.abc.Awaitable[sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.AddProtobufDescriptorResponse]]:
         """Used to register a protobuf message to be ingested."""
+
+    @abc.abstractmethod
+    def CheckProtobufDescriptorCompatibility(
+        self,
+        request: sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.CheckProtobufDescriptorCompatibilityRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.CheckProtobufDescriptorCompatibilityResponse, collections.abc.Awaitable[sift.protobuf_descriptors.v2.protobuf_descriptors_pb2.CheckProtobufDescriptorCompatibilityResponse]]:
+        """Used to check if a protobuf descriptor is compatible with the existing descriptors."""
 
     @abc.abstractmethod
     def DeleteProtobufDescriptors(
