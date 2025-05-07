@@ -21,8 +21,8 @@ class Report:
         self._report_stub = ReportServiceStub(channel)
         self.report_id = report_id
 
-    def get_result(self) -> Report_pb2:
-        """Returns the result of the report.
+    def get_results(self) -> Report_pb2:
+        """Returns the results of the report.
 
         Returns:
             Information about the report.
@@ -46,7 +46,7 @@ class Report:
                 if time.time() - start_time > timeout:
                     return False
 
-            result = self.get_result()
+            result = self.get_results()
             all_done = all([
                 summary.status in NOT_RUNNING_STATUS
                 for summary in result.summaries

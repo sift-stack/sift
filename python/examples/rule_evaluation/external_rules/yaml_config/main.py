@@ -4,7 +4,6 @@ from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
-from sift_py.ingestion.service import IngestionService
 from sift_py.rule_evalutation.service import RuleEvaluationService
 
 import argparse
@@ -29,12 +28,10 @@ if __name__ == "__main__":
     load_dotenv()
 
     apikey = os.getenv("SIFT_API_KEY")
-
     if apikey is None:
         raise Exception("Missing 'SIFT_API_KEY' environment variable.")
 
     base_uri = os.getenv("BASE_URI")
-
     if base_uri is None:
         raise Exception("Missing 'BASE_URI' environment variable.")
 
@@ -52,15 +49,26 @@ if __name__ == "__main__":
         report = rule_eval_service.evaluate_external_rules_from_yaml(
             run_id,
             paths,
-            report_name=f"Example Rule Evaluation Report ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
+            report_name=f"Rule Evaluation Example ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
         )
+        print("Waiting up to 60s for report to finish ...")
         print(f"Report ID: {report.report_id}")
-
         # Wait for the report to finish then print the results.
-        print("Waiting for report to finish (timeout=60) ...")
         finished = report.wait_until_done(timeout=60)
         if not finished:
             print("Report did not finish in 60s")
         else:
-            print("Report finished.")
-            print(report.get_result())
+            total_open = 0
+            total_failed = 0
+            total_passed = 0
+
+            results = report.get_results()
+            for rule_summary in results.summaries:
+                total_open += rule_summary.num_open
+                total_failed += rule_summary.num_failed
+                total_passed += rule_summary.num_passed
+
+            print("Report Summary:")
+            print(f"Total Open: {total_open}")
+            print(f"Total Failed: {total_failed}")
+            print(f"Total Passed: {total_passed}")
