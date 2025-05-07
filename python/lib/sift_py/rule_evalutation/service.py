@@ -15,7 +15,7 @@ from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
 from sift_py.report_templates.config import ReportTemplateConfig
 from sift_py.rule.config import RuleConfig
 from sift_py.rule.service import RuleIdentifier, RuleService
-from sift.common.type.v1.resource_identifier_pb2 import ClientKeys, NamedResources, Names, ResourceIdentifier, ResourceIdentifiers, Ids
+from sift.common.type.v1.resource_identifier_pb2 import NamedResources, Names, ResourceIdentifier, ResourceIdentifiers, Ids
 from pathlib import Path
 
 from sift_py.rule_evalutation.report import Report
@@ -37,11 +37,19 @@ class RuleEvaluationService:
     def evaluate_against_run(
         self,
         run_id: str,
-        rules: Union[ReportTemplateConfig, List[RuleIdentifier], List[RuleConfig]],
+        rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]],
         report_name: str = "",
     ) -> Report:
-        """
-        TODO
+        """Evaluate a set of rules against a run.
+
+        Args:
+            run_id: The Run ID to run against.
+            rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
+                RuleIdentifier's (typically from `RuleService.create_external_rules`).
+            report_name: Optional report name.
+
+        Returns:
+            A Report object that can be use to get the status of the executed report.
         """
         eval_kwargs = self._get_rules_kwargs(rules)
 
@@ -50,8 +58,8 @@ class RuleEvaluationService:
             run=ResourceIdentifier(id=run_id),
             **eval_kwargs,
         )
-
         res = cast(EvaluateRulesResponse, self._rule_evaluation_stub.EvaluateRules(req))
+
         return Report(self._channel, res.report_id)
 
     def evaluate_against_assets(
@@ -59,11 +67,21 @@ class RuleEvaluationService:
         asset_names: List[str],
         start_time: datetime,
         end_time: datetime,
-        rules: Union[ReportTemplateConfig, List[RuleIdentifier], List[RuleConfig]],
+        rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]],
         report_name: str = "",
     ) -> Report:
-        """
-        TODO
+        """Evaluate a set of rules against assets.
+
+        Args:
+            asset_names: The list of assets to run against.
+            start_time: The start time to evaluate.
+            end_time: The end time to evaluate.
+            rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
+                RuleIdentifier's (typically from `RuleService.create_external_rules`).
+            report_name: Optional report name.
+
+        Returns:
+            A Report object that can be use to get the status of the executed report.
         """
         asset_time_range = AssetsTimeRange(
             assets=NamedResources(names=Names(names=asset_names)),
@@ -77,18 +95,24 @@ class RuleEvaluationService:
             assets=asset_time_range,
             **eval_kwargs,
         )
-
         res = cast(EvaluateRulesResponse, self._rule_evaluation_stub.EvaluateRules(req))
+
         return Report(self._channel, res.report_id)
 
-    def evaluate_against_run_preview(
+    def preview_against_run(
         self,
         run_id: str,
-        rules: Union[ReportTemplateConfig, List[RuleIdentifier], List[RuleConfig]],
-        report_name: str = "",
+        rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]],
     ) -> EvaluateRulesPreviewResponse:
-        """
-        TODO
+        """Preview the evaluation of a set of rules against a run.
+
+        Args:
+            run_id: The Run ID to run against.
+            rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
+                RuleIdentifier's (typically from `RuleService.create_external_rules`).
+
+        Returns:
+            The EvaluateRulesPreviewResponse object.
         """
         eval_kwargs = self._get_rules_kwargs(rules)
 
@@ -105,8 +129,15 @@ class RuleEvaluationService:
         rules: List[RuleConfig],
         report_name: str = "",
     ) -> Report:
-        """
-        TODO
+        """Evaluate a set of external rules against a run.
+
+        Args:
+            run_id: The Run ID to run against.
+            rules: A list of RuleConfigs. These must be external rules.
+            report_name: Optional report name.
+
+        Returns:
+            A Report object that can be use to get the status of the executed report.
         """
         rule_ids = self._rule_service.create_external_rules(rules)
         return self.evaluate_against_run(run_id, rule_ids, report_name)
@@ -118,35 +149,56 @@ class RuleEvaluationService:
         named_expressions: Optional[Dict[str, str]] = None,
         report_name: str = "",
     ) -> Report:
-        """
-        TODO
+        """Evaluate a set of external rules from a YAML config against a run.
+
+        Args:
+            run_id: The Run ID to run against.
+            paths: The YAML paths to load rules from.
+            report_name: Optional report name.
+
+        Returns:
+            A Report object that can be use to get the status of the executed report.
         """
         rule_ids = self._rule_service.create_external_rules_from_yaml(paths, named_expressions)
         return self.evaluate_against_run(run_id, rule_ids, report_name)
 
-    def evaluate_external_rules_preview(
+    def preview_external_rules(
         self,
         run_id: str,
         rules: List[RuleConfig],
-        report_name: str = "",
-    ) -> EvaluateRulesResponse:
-        rule_ids = self._rule_service.create_external_rules(rules)
-        return self.evaluate_against_run_preview(run_id, rule_ids, report_name)
+    ) -> EvaluateRulesPreviewResponse:
+        """Preview the evaluation a set of external rules against a run.
 
-    def evaluate_external_rules_from_yaml_preview(
+        Args:
+            run_id: The Run ID to run against.
+            rules: A list of RuleConfigs. These must be external rules.
+
+        Returns:
+            The EvaluateRulesPreviewResponse object.
+        """
+        rule_ids = self._rule_service.create_external_rules(rules)
+        return self.preview_against_run(run_id, rule_ids)
+
+    def preview_external_rules_from_yaml(
         self,
         run_id: str,
         paths: List[Path],
         named_expressions: Optional[Dict[str, str]] = None,
-        report_name: str = "",
-    ) -> EvaluateRulesResponse:
-        """
-        TODO
+    ) -> EvaluateRulesPreviewResponse:
+        """Preview the evaluation a set of external rules from a YAML config against a run.
+
+        Args:
+            run_id: The Run ID to run against.
+            paths: The YAML paths to load rules from.
+            named_expressions: The named expressions to substitute in the rules.
+
+        Returns:
+            The EvaluateRulesPreviewResponse object.
         """
         rule_ids = self._rule_service.create_external_rules_from_yaml(paths, named_expressions)
-        return self.evaluate_against_run_preview(run_id, rule_ids, report_name)
+        return self.preview_against_run(run_id, rule_ids)
 
-    def _get_rules_kwargs(self, rules: Union[ReportTemplateConfig, List[RuleIdentifier], List[RuleConfig]]) -> dict:
+    def _get_rules_kwargs(self, rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]]) -> dict:
         """Returns the keyword arguments for a EvalutateRules request based on the input type.
         Currently does not support evaluating rules from a specific version.
 

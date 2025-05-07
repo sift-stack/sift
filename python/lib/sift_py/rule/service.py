@@ -73,6 +73,13 @@ class RuleService:
         """
         Loads rules from a YAML spec, and creates or updates the rules in the Sift API.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The loaded RuleConfigs.
         """
         rule_configs = self._parse_rules_from_yaml(paths, named_expressions)
 
@@ -88,15 +95,21 @@ class RuleService:
         named_expressions: Optional[Dict[str, str]] = None,
     ) -> List[RuleIdentifier]:
         """
-        Loads rules from a YAML spec and creates external rules in the Sift API.
+        Creates external rules from a YAML spec in the Sift API.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The loaded RuleConfigs as external rules.
         """
         rule_configs = self._parse_rules_from_yaml(paths, named_expressions)
 
         # Prepare all of the rules.
         for rule_config in rule_configs:
             rule_config.is_external = True
-            # TODO: Should we do this? Should we allow users to use yaml configs for standard rules and external rules interchangeably?
             if rule_config.rule_client_key:
                 raise ValueError(f"Rule of name '{rule_config.name}' requires rule_client_key to be empty")
 
@@ -110,8 +123,15 @@ class RuleService:
         named_expressions: Optional[Dict[str, str]] = None,
     ) -> List[RuleConfig]:
         """
-        Loads rules from a YAML spec.
+        Parses rules from a YAML spec.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The parsed RuleConfigs.
         """
         module_rules = load_rule_modules(paths)
 
@@ -282,6 +302,12 @@ class RuleService:
         """
         Create external rules via RuleConfigs. The configs must have is_external set to
         True or an exception will be raised. rule_client_key must be empty.
+
+        Args:
+            configs: The list of RuleConfigs to create as external rules.
+
+        Returns:
+            The list of RuleIdentifiers created.
         """
         for config in configs:
             if not config.is_external:
