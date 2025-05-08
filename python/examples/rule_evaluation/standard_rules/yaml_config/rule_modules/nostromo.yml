@@ -1,0 +1,43 @@
+rules:
+  - name: overheating
+    description: Checks for vehicle overheating
+    expression: $1 == "Accelerating" && $2 > 80
+    rule_client_key: overheating-rule
+    asset_names:
+      - NostromoLV426
+    channel_references:
+      - $1: vehicle_state
+      - $2: voltage
+    type: review
+
+  - name: kinetic_energy
+    description: Tracks high energy output while in motion
+    type: review
+    rule_client_key: kinetic-energy-rule
+    asset_names:
+      - NostromoLV426
+    # assignee: ellen.ripley@weylandcorp.com
+    expression: 0.5 * $mass * $1 * $1 > $threshold
+    channel_references:
+      - $1: mainmotor.velocity
+    sub_expressions:
+      - $mass: 10
+      - $threshold: 470
+    tags:
+      - nostromo
+
+  - name: failure
+    description: Checks for failures reported by logs
+    type: review
+    rule_client_key: failure-rule
+    asset_names:
+      - NostromoLV426
+    # assignee: ellen.ripley@weylandcorp.com
+    expression: contains($1, $sub_string)
+    channel_references:
+      - $1: log
+    sub_expressions:
+      - $sub_string: failure
+    tags:
+      - failure
+      - nostromo

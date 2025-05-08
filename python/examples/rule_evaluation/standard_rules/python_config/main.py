@@ -4,6 +4,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.rule_evalutation.service import RuleEvaluationService
+from sift_py.rule.service import RuleService
 
 import argparse
 from rule_configs import load_nostromos_lv_426_rule_configs
@@ -11,11 +12,11 @@ from rule_configs import load_nostromos_lv_426_rule_configs
 
 if __name__ == "__main__":
     """
-    Example of evaluating external rules against a run on the 'NostromoLV426' asset.
+    Example of evaluating rules against a run on the 'NostromoLV426' asset.
     You must already have a run created with the NostromoLV426 asset.
     """
     def parse_args():
-        parser = argparse.ArgumentParser(description="Evaluate external rules against a specific run.")
+        parser = argparse.ArgumentParser(description="Evaluate rules against a specific run.")
         parser.add_argument("--run_id", required=True, help="The ID of the run to evaluate rules against.")
         return parser.parse_args()
 
@@ -37,15 +38,19 @@ if __name__ == "__main__":
     rule_configs = load_nostromos_lv_426_rule_configs()
 
     with use_sift_channel(sift_channel_config) as channel:
-        # Evaluate the rules as external rules.
+        # Make sure the rules in Sift are up to date.
+        rule_service = RuleService(channel)
+        rule_service.create_or_update_rules(rule_configs)
+
+        # Evaluate the rules.
         rule_eval_service = RuleEvaluationService(channel)
-        report = rule_eval_service.evaluate_external_rules(
+        report = rule_eval_service.evaluate_against_run(
             run_id,
             rule_configs,
             report_name=f"Rule Evaluation Example ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
         )
 
-        # Wait for the report to finish then print the results.s
+        # Wait for the report to finish then print the results.
         print("Waiting up to 60s for report to finish ...")
         print(f"Report ID: {report.report_id}")
         finished = report.wait_until_done(timeout=60)

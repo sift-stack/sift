@@ -51,9 +51,10 @@ if __name__ == "__main__":
             paths,
             report_name=f"Rule Evaluation Example ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
         )
+
+        # Wait for the report to finish then print the results.
         print("Waiting up to 60s for report to finish ...")
         print(f"Report ID: {report.report_id}")
-        # Wait for the report to finish then print the results.
         finished = report.wait_until_done(timeout=60)
         if not finished:
             print("Report did not finish in 60s")

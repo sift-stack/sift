@@ -1,17 +1,21 @@
 import os
 from datetime import datetime
 
+from pathlib import Path
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.rule_evalutation.service import RuleEvaluationService
+from sift_py.rule.service import RuleService
 
 import argparse
-from rule_configs import load_nostromos_lv_426_rule_configs
+
+
+RULE_MODULES_DIR = Path().joinpath("rule_modules")
 
 
 if __name__ == "__main__":
     """
-    Example of evaluating external rules against a run on the 'NostromoLV426' asset.
+    Example of evaluating rules from a yaml against a run on the 'NostromoLV426' asset.
     You must already have a run created with the NostromoLV426 asset.
     """
     def parse_args():
@@ -34,18 +38,26 @@ if __name__ == "__main__":
 
     sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
 
-    rule_configs = load_nostromos_lv_426_rule_configs()
+    paths = [
+        RULE_MODULES_DIR.joinpath("voltage.yml"),
+        RULE_MODULES_DIR.joinpath("velocity.yml"),
+        RULE_MODULES_DIR.joinpath("nostromo.yml"),
+    ]
 
     with use_sift_channel(sift_channel_config) as channel:
-        # Evaluate the rules as external rules.
+        # Make sure the rules in Sift are up to date.
+        rule_service = RuleService(channel)
+        rule_configs = rule_service.load_rules_from_yaml(paths)
+
+        # Evaluate the rules from a yaml config.
         rule_eval_service = RuleEvaluationService(channel)
-        report = rule_eval_service.evaluate_external_rules(
+        report = rule_eval_service.evaluate_against_run(
             run_id,
             rule_configs,
             report_name=f"Rule Evaluation Example ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
         )
 
-        # Wait for the report to finish then print the results.s
+        # Wait for the report to finish then print the results.
         print("Waiting up to 60s for report to finish ...")
         print(f"Report ID: {report.report_id}")
         finished = report.wait_until_done(timeout=60)

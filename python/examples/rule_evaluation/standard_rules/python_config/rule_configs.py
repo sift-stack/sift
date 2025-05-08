@@ -16,23 +16,17 @@ from sift_py.ingestion.rule.config import (
 
 
 def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
-    """Returns a set of RuleConfigs that we want to evaluate."""
-    # Filename and linenumber is passed into the Rule description for
-    # traceability.
-    frame = inspect.currentframe()
-    filename = str(Path(inspect.getfile(frame)).resolve())
-    filename = filename[filename.index("sift"):]
-
     log_channel = ChannelConfig(
         name="log",
         data_type=ChannelDataType.STRING,
         description="asset logs",
     )
     velocity_channel = ChannelConfig(
-        name="mainmotor.velocity",
+        name="velocity",
         data_type=ChannelDataType.DOUBLE,
         description="speed",
         unit="Miles Per Hour",
+        component="mainmotor",
     )
     voltage_channel = ChannelConfig(
         name="voltage",
@@ -62,11 +56,12 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
         ],
     )
 
-    rule_configs =  [
+    return [
             RuleConfig(
                 name="overheating",
-                description=f"Checks for vehicle overheating (Created from: {filename}:{frame.f_lineno})",
+                description="Checks for vehicle overheating",
                 expression='$1 == "Accelerating" && $2 > 80',
+                rule_client_key="overheating-rule",
                 asset_names=["NostromoLV426"],
                 channel_references=[
                     # INFO: Can use either a channel idenfier string or a ChannelConfig
@@ -83,8 +78,9 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
             ),
             RuleConfig(
                 name="kinetic_energy",
-                description=f"Tracks high energy output while in motion (Created from: {filename}:{frame.f_lineno})",
+                description="Tracks high energy output while in motion",
                 expression="0.5 * $mass * $1 * $1 > $threshold",
+                rule_client_key="kinetic-energy-rule",
                 asset_names=["NostromoLV426"],
                 channel_references=[
                     {
@@ -104,8 +100,9 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
             ),
             RuleConfig(
                 name="failure",
-                description=f"Checks for failures reported by logs (Created from: {filename}:{frame.f_lineno})",
+                description="Checks for failures reported by logs",
                 expression="contains($1, $sub_string)",
+                rule_client_key="failure-rule",
                 asset_names=["NostromoLV426"],
                 contextual_channels=[vehicle_state_channel.name],
                 channel_references=[
@@ -124,9 +121,3 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
                 ),
             ),
         ]
-
-    # Set these as external rules.
-    for rule_config in rule_configs:
-        rule_config.is_external = True
-
-    return rule_configs
