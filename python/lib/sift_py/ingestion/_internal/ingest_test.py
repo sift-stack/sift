@@ -215,6 +215,9 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
+    mock_ingestion_config_flows = mocker.patch("sift_py.ingestion._internal.ingest.get_ingestion_config_flows")
+    mock_ingestion_config_flows.return_value = [f.as_pb(FlowConfigPb) for f in telemetry_config.flows]
+
     mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "_update_flow_configs")
     mock_update_flow_configs.return_value = None
 
@@ -349,6 +352,9 @@ def test_ingestion_service_init_with_rules(mocker: MockFixture):
         rules=[rule_on_voltage, rule_on_pressure],
     )
 
+    mock_ingestion_config_flows = mocker.patch("sift_py.ingestion._internal.ingest.get_ingestion_config_flows")
+    mock_ingestion_config_flows.return_value = [f.as_pb(FlowConfigPb) for f in telemetry_config.flows]
+
     mock_channel = MockChannel()
 
     with mocker.patch("sift_py.ingestion._internal.ingest.RuleService"):
@@ -388,6 +394,9 @@ def test_ingestion_service_try_create_ingestion_request_ordered_values(mocker: M
             ),
         ],
     )
+
+    mock_ingestion_config_flows = mocker.patch("sift_py.ingestion._internal.ingest.get_ingestion_config_flows")
+    mock_ingestion_config_flows.return_value = [f.as_pb(FlowConfigPb) for f in telemetry_config.flows]
 
     mock_ingestion_config = IngestionConfigPb(
         ingestion_config_id="ingestion-config-id",

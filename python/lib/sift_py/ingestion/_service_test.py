@@ -297,7 +297,9 @@ def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
         telemetry_config.ingestion_client_key,
         None,
     )
-    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0] == channel_a
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].name == channel_a.name
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].component == channel_a.component
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].data_type == channel_a.data_type
 
     # Modify an existing channel but don't modify flow
     channel_a.data_type = ChannelDataType.STRING
@@ -308,18 +310,15 @@ def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
     mock_get_ingestion_config_by_client_key.reset_mock()
     mock_get_ingestion_config_by_client_key.return_value = mock_ingestion_config
 
-    # Re-initialize ingestion service
-    ingestion_service = IngestionService(
-        channel=mock_channel,
-        config=telemetry_config,
-    )
-
     # Assert that we are trying to create a new flow with the same name as `flow_a`
-    # but with a new channel.
-    mock_create_flow_configs.assert_called_once_with(
-        mock_channel, mock_ingestion_config.ingestion_config_id, [flow_a]
-    )
-    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0] == channel_a
+    # but with a new channel, an error is raised.
+
+    # Re-initialize ingestion service
+    with pytest.raises(IngestionValidationError):
+        ingestion_service = IngestionService(
+            channel=mock_channel,
+            config=telemetry_config,
+        )
 
     # Okay now what happens if someone were to change the channel config back to the original..
 
@@ -336,7 +335,9 @@ def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
 
     # We shouldn't be creating a new flow, should re-use an existing flow.
     mock_create_flow_configs.assert_not_called()
-    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0] == channel_a
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].name == channel_a.name
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].component == channel_a.component
+    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].data_type == channel_a.data_type
 
 
 def test_ingestion_service_register_new_flow(mocker: MockFixture):
