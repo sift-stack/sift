@@ -298,8 +298,14 @@ def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
         None,
     )
     assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].name == channel_a.name
-    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].component == channel_a.component
-    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].data_type == channel_a.data_type
+    assert (
+        ingestion_service.flow_configs_by_name[flow_a.name].channels[0].component
+        == channel_a.component
+    )
+    assert (
+        ingestion_service.flow_configs_by_name[flow_a.name].channels[0].data_type
+        == channel_a.data_type
+    )
 
     # Modify an existing channel but don't modify flow
     channel_a.data_type = ChannelDataType.STRING
@@ -336,8 +342,14 @@ def test_ingestion_service_modify_existing_channel_configs(mocker: MockFixture):
     # We shouldn't be creating a new flow, should re-use an existing flow.
     mock_create_flow_configs.assert_not_called()
     assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].name == channel_a.name
-    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].component == channel_a.component
-    assert ingestion_service.flow_configs_by_name[flow_a.name].channels[0].data_type == channel_a.data_type
+    assert (
+        ingestion_service.flow_configs_by_name[flow_a.name].channels[0].component
+        == channel_a.component
+    )
+    assert (
+        ingestion_service.flow_configs_by_name[flow_a.name].channels[0].data_type
+        == channel_a.data_type
+    )
 
 
 def test_ingestion_service_register_new_flow(mocker: MockFixture):
