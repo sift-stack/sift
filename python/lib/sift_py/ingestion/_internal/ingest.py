@@ -74,8 +74,13 @@ class _IngestionServiceImpl:
         self.run_id = run_id
         self.organization_id = config.organization_id
         self.end_stream_on_error = end_stream_on_error
-        self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
         self.ingest_service_stub = IngestServiceStub(channel)
+
+        flows = [
+            FlowConfig.from_pb(f)
+            for f in get_ingestion_config_flows(channel, ingestion_config.ingestion_config_id)
+        ]
+        self.flow_configs_by_name = {flow.name: flow for flow in flows}
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
@@ -335,8 +340,7 @@ class _IngestionServiceImpl:
     def try_create_flow(self, flow_config: FlowConfig):
         """
         Tries to create a new flow at runtime. Will raise an `IngestionValidationError` if there already exists
-        a flow with the name of the `flow_config` argument. If you'd like to overwrite any flow configs with that
-        have the same name as the provided `flow_config`, then see `create_flow`.
+        a flow with the name of the `flow_config` argument.
         """
 
         if flow_config.name in self.flow_configs_by_name:
@@ -354,8 +358,8 @@ class _IngestionServiceImpl:
 
     def create_flow(self, flow_config: FlowConfig):
         """
-        Like `try_create_flow` but will automatically overwrite any existing flow config with `flow_config` if they
-        share the same name. If you'd an exception to be raise in the case of a name collision then see `try_create_flow`.
+        Like `try_create_flow` but will not do any client side validation and
+        raise `IngestionValidationError`.
         """
         create_flow_configs(
             self.transport_channel,
@@ -370,7 +374,7 @@ class _IngestionServiceImpl:
     ):
         """
         Compares local flows from a telemetry config with the flows registered in Sift. If a local flow
-        contains channels that isn't in Sift then this will create a new flow containing those channels.
+        contains channels that isn't in Sift then this will fail.
         """
         config_flows = telemetry_config.flows
 
@@ -413,8 +417,9 @@ class _IngestionServiceImpl:
                 # Found a channel for this flow that doesn't exist in Sift based on channel
                 # fully-qualified name and data-type. Create a new flow.
                 if not config_channel_identifier(config_channel) in sift_channel_identifiers:
-                    flows_to_create.append(config_flow)
-                    break
+                    raise IngestionValidationError(
+                        "Encountered duplicate flow with mismatched channels"
+                    )
 
         if len(flows_to_create) > 0:
             create_flow_configs(channel, ingestion_config_id, flows_to_create)
