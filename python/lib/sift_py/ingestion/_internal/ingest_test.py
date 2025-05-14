@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
+import grpc
 import pytest
 from pytest_mock import MockFixture
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
@@ -9,6 +11,9 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigPb,
+)
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
+    ListIngestionConfigFlowsResponse,
 )
 
 import sift_py.ingestion._internal.ingest
@@ -489,3 +494,63 @@ def test_ingestion_service_try_create_ingestion_request_ordered_values(mocker: M
                 # missing status value
             ],
         )
+
+
+def test_get_ingestion_config_flows_returns_flows(mocker: MockFixture):
+    """
+    Tests that get_ingestion_config_flows correctly retrieves flows from the API.
+    """
+    ingestion_config_id = "test-ingestion-config-id"
+    mock_channel = MockChannel()
+
+    mock_response = ListIngestionConfigFlowsResponse(
+        flows=[FlowConfigPb(name="flow_a"), FlowConfigPb(name="flow_b")],
+        next_page_token="",
+    )
+
+    service_mock = MagicMock()
+    service_mock.ListIngestionConfigFlows.return_value = mock_response
+
+    stub_mock = mocker.patch(
+        "sift_py.ingestion._internal.ingestion_config.IngestionConfigServiceStub"
+    )
+    stub_mock.return_value = service_mock
+
+    flows = get_ingestion_config_flows(mock_channel, ingestion_config_id)
+
+    service_mock.ListIngestionConfigFlows.assert_called_once()
+    assert len(flows) == 2
+    assert flows[0].name == "flow_a"
+    assert flows[1].name == "flow_b"
+
+
+def test_get_ingestion_config_flows_updates_page_size(mocker: MockFixture):
+    """
+    Tests that get_ingestion_config_flows falls back to using a page_size of 1.
+    """
+    ingestion_config_id = "test-ingestion-config-id"
+    mock_channel = MockChannel()
+
+    mock_response = ListIngestionConfigFlowsResponse(
+        flows=[FlowConfigPb(name="flow_a"), FlowConfigPb(name="flow_b")],
+        next_page_token="",
+    )
+
+    rpc_error = grpc.RpcError()
+    rpc_error.code = lambda: grpc.StatusCode.RESOURCE_EXHAUSTED
+
+    service_mock = MagicMock()
+    service_mock.ListIngestionConfigFlows.side_effect = [rpc_error, mock_response]
+
+    stub_mock = mocker.patch(
+        "sift_py.ingestion._internal.ingestion_config.IngestionConfigServiceStub"
+    )
+    stub_mock.return_value = service_mock
+
+    flows = get_ingestion_config_flows(mock_channel, ingestion_config_id)
+
+    assert service_mock.ListIngestionConfigFlows.mock_calls[0].args[0].page_size == 1_000
+    assert service_mock.ListIngestionConfigFlows.mock_calls[1].args[0].page_size == 1
+    assert len(flows) == 2
+    assert flows[0].name == "flow_a"
+    assert flows[1].name == "flow_b"
