@@ -1,0 +1,2 @@
+python-dotenv
+sift-stack-py==0.3.0rc3
