@@ -1,14 +1,12 @@
+import argparse
 import os
 from datetime import datetime
-
 from pathlib import Path
+
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
-from sift_py.rule_evalutation.service import RuleEvaluationService
 from sift_py.rule.service import RuleService
-
-import argparse
-
+from sift_py.rule_evalutation.service import RuleEvaluationService
 
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
 
@@ -18,9 +16,14 @@ if __name__ == "__main__":
     Example of evaluating rules from a yaml against a run on the 'NostromoLV426' asset.
     You must already have a run created with the NostromoLV426 asset.
     """
+
     def parse_args():
-        parser = argparse.ArgumentParser(description="Evaluate external rules against a specific run.")
-        parser.add_argument("--run_id", required=True, help="The ID of the run to evaluate rules against.")
+        parser = argparse.ArgumentParser(
+            description="Evaluate external rules against a specific run."
+        )
+        parser.add_argument(
+            "--run_id", required=True, help="The ID of the run to evaluate rules against."
+        )
         return parser.parse_args()
 
     args = parse_args()
@@ -54,7 +57,7 @@ if __name__ == "__main__":
         report = rule_eval_service.evaluate_against_run(
             run_id,
             rule_configs,
-            report_name=f"Rule Evaluation Example ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
+            report_name=f"Rule Evaluation Example ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})",
         )
 
         # Wait for the report to finish then print the results.

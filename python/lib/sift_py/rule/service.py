@@ -111,11 +111,11 @@ class RuleService:
         for rule_config in rule_configs:
             rule_config.is_external = True
             if rule_config.rule_client_key:
-                raise ValueError(f"Rule of name '{rule_config.name}' requires rule_client_key to be empty")
+                raise ValueError(
+                    f"Rule of name '{rule_config.name}' requires rule_client_key to be empty"
+                )
 
-        rule_ids = self.create_external_rules(rule_configs)
-
-        return rule_ids
+        return self.create_external_rules(rule_configs)
 
     def _parse_rules_from_yaml(
         self,
@@ -313,12 +313,11 @@ class RuleService:
             if not config.is_external:
                 raise ValueError(f"Rule of name '{config.name}' requires is_external to be set")
             if config.rule_client_key:
-                raise ValueError(f"Rule of name '{config.name}' requires rule_client_key to be empty")
+                raise ValueError(
+                    f"Rule of name '{config.name}' requires rule_client_key to be empty"
+                )
 
-        update_rule_reqs = [
-            self._update_req_from_rule_config(config)
-            for config in configs
-        ]
+        update_rule_reqs = [self._update_req_from_rule_config(config) for config in configs]
 
         req = BatchUpdateRulesRequest(rules=update_rule_reqs)
         res = cast(BatchUpdateRulesResponse, self._rule_service_stub.BatchUpdateRules(req))
@@ -326,10 +325,7 @@ class RuleService:
         if not res.success:
             raise Exception("Failed to create external rules")
 
-        return [
-            RuleIdentifier(r.rule_id, r.name)
-            for r in res.created_rule_identifiers
-        ]
+        return [RuleIdentifier(r.rule_id, r.name) for r in res.created_rule_identifiers]
 
     def _update_rule(self, updated_config: RuleConfig, rule: Rule):
         req = self._update_req_from_rule_config(updated_config, rule)

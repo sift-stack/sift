@@ -1,23 +1,32 @@
 from __future__ import annotations
-from typing import Optional, List, Union, cast, Dict
+
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Union, cast
+
+from sift.common.type.v1.resource_identifier_pb2 import (
+    ClientKeys,
+    Ids,
+    NamedResources,
+    Names,
+    ResourceIdentifier,
+    ResourceIdentifiers,
+)
+from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
+    AssetsTimeRange,
+    EvaluateRulesFromCurrentRuleVersions,
+    EvaluateRulesFromReportTemplate,
+    EvaluateRulesPreviewRequest,
+    EvaluateRulesPreviewResponse,
+    EvaluateRulesRequest,
+    EvaluateRulesResponse,
+)
 from sift.rule_evaluation.v1.rule_evaluation_pb2_grpc import RuleEvaluationServiceStub
 from sift_py._internal.time import to_timestamp_pb
 from sift_py.grpc.transport import SiftChannel
-from datetime import datetime
-from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
-    AssetsTimeRange,
-    EvaluateRulesRequest,
-    EvaluateRulesResponse,
-    EvaluateRulesPreviewRequest,
-    EvaluateRulesPreviewResponse,
-    EvaluateRulesFromCurrentRuleVersions,
-)
 from sift_py.report_templates.config import ReportTemplateConfig
 from sift_py.rule.config import RuleConfig
 from sift_py.rule.service import RuleIdentifier, RuleService
-from sift.common.type.v1.resource_identifier_pb2 import NamedResources, Names, ResourceIdentifier, ResourceIdentifiers, Ids
-from pathlib import Path
-
 from sift_py.rule_evalutation.report import Report
 
 
@@ -25,6 +34,7 @@ class RuleEvaluationService:
     """
     A service for evaluating rules. Provides methods to evaluate rules and perform dry-run evaluations.
     """
+
     _channel: SiftChannel
     _rule_evaluation_stub: RuleEvaluationServiceStub
     _rule_service: RuleService
@@ -198,7 +208,9 @@ class RuleEvaluationService:
         rule_ids = self._rule_service.create_external_rules_from_yaml(paths, named_expressions)
         return self.preview_against_run(run_id, rule_ids)
 
-    def _get_rules_kwargs(self, rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]]) -> dict:
+    def _get_rules_kwargs(
+        self, rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]]
+    ) -> dict:
         """Returns the keyword arguments for a EvalutateRules request based on the input type.
         Currently does not support evaluating rules from a specific version.
 
@@ -211,7 +223,11 @@ class RuleEvaluationService:
         if isinstance(rules, ReportTemplateConfig):
             if not rules.template_id:
                 raise ValueError("Invalid report template")
-            return {"report_template": ResourceIdentifier(id=rules.template_id)}
+            return {
+                "report_template": EvaluateRulesFromReportTemplate(
+                    report_template=ResourceIdentifier(id=rules.template_id)
+                )
+            }
         else:
             if len(rules) == 0:
                 raise ValueError("Rule set is empty")
@@ -221,9 +237,7 @@ class RuleEvaluationService:
 
                 return {
                     "rules": EvaluateRulesFromCurrentRuleVersions(
-                        rules=ResourceIdentifiers(
-                            ids=Ids(ids=[r.rule_id for r in rule_ids])
-                        ),
+                        rules=ResourceIdentifiers(ids=Ids(ids=[r.rule_id for r in rule_ids])),
                     ),
                 }
 
@@ -237,9 +251,9 @@ class RuleEvaluationService:
                 return {
                     "rules": EvaluateRulesFromCurrentRuleVersions(
                         rules=ResourceIdentifiers(
-                            client_keys=[ # type: ignore
-                                r.rule_client_key for r in rule_configs
-                            ]
+                            client_keys=ClientKeys(
+                                client_keys=[r.rule_client_key for r in rule_configs]  # type: ignore
+                            ),
                         ),
                     ),
                 }

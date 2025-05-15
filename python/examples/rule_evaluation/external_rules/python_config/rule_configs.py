@@ -1,14 +1,12 @@
 import inspect
-from typing import List
 from pathlib import Path
+from typing import List
 
 from sift_py.ingestion.channel import (
-    ChannelBitFieldElement,
     ChannelConfig,
     ChannelDataType,
     ChannelEnumType,
 )
-from sift_py.ingestion.config.telemetry import FlowConfig, TelemetryConfig
 from sift_py.ingestion.rule.config import (
     RuleActionCreateDataReviewAnnotation,
     RuleConfig,
@@ -21,18 +19,12 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
     # traceability.
     frame = inspect.currentframe()
     filename = str(Path(inspect.getfile(frame)).resolve())
-    filename = filename[filename.index("sift"):]
+    filename = filename[filename.index("sift") :]
 
     log_channel = ChannelConfig(
         name="log",
         data_type=ChannelDataType.STRING,
         description="asset logs",
-    )
-    velocity_channel = ChannelConfig(
-        name="mainmotor.velocity",
-        data_type=ChannelDataType.DOUBLE,
-        description="speed",
-        unit="Miles Per Hour",
     )
     voltage_channel = ChannelConfig(
         name="voltage",
@@ -50,80 +42,69 @@ def load_nostromos_lv_426_rule_configs() -> List[RuleConfig]:
             ChannelEnumType(name="Stopped", key=2),
         ],
     )
-    gpio_channel = ChannelConfig(
-        name="gpio",
-        data_type=ChannelDataType.BIT_FIELD,
-        description="on/off values for pins on gpio",
-        bit_field_elements=[
-            ChannelBitFieldElement(name="12v", index=0, bit_count=1),
-            ChannelBitFieldElement(name="charge", index=1, bit_count=2),
-            ChannelBitFieldElement(name="led", index=3, bit_count=4),
-            ChannelBitFieldElement(name="heater", index=7, bit_count=1),
-        ],
-    )
 
-    rule_configs =  [
-            RuleConfig(
-                name="overheating",
-                description=f"Checks for vehicle overheating (Created from: {filename}:{frame.f_lineno})",
-                expression='$1 == "Accelerating" && $2 > 80',
-                asset_names=["NostromoLV426"],
-                channel_references=[
-                    # INFO: Can use either a channel idenfier string or a ChannelConfig
-                    {
-                        "channel_reference": "$1",
-                        "channel_identifier": vehicle_state_channel.identifier,
-                    },
-                    {
-                        "channel_reference": "$2",
-                        "channel_config": voltage_channel,
-                    },
-                ],
-                action=RuleActionCreateDataReviewAnnotation(),
-            ),
-            RuleConfig(
-                name="kinetic_energy",
-                description=f"Tracks high energy output while in motion (Created from: {filename}:{frame.f_lineno})",
-                expression="0.5 * $mass * $1 * $1 > $threshold",
-                asset_names=["NostromoLV426"],
-                channel_references=[
-                    {
-                        "channel_reference": "$1",
-                        "channel_config": voltage_channel,
-                    },
-                ],
-                sub_expressions={
-                    "$mass": 10,
-                    "$threshold": 470,
+    rule_configs = [
+        RuleConfig(
+            name="overheating",
+            description=f"Checks for vehicle overheating (Created from: {filename}:{frame.f_lineno})",
+            expression='$1 == "Accelerating" && $2 > 80',
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                # INFO: Can use either a channel idenfier string or a ChannelConfig
+                {
+                    "channel_reference": "$1",
+                    "channel_identifier": vehicle_state_channel.identifier,
                 },
-                action=RuleActionCreateDataReviewAnnotation(
-                    # User in your organization to notify
-                    # assignee="ellen.ripley@weylandcorp.com",
-                    tags=["nostromo"],
-                ),
-            ),
-            RuleConfig(
-                name="failure",
-                description=f"Checks for failures reported by logs (Created from: {filename}:{frame.f_lineno})",
-                expression="contains($1, $sub_string)",
-                asset_names=["NostromoLV426"],
-                contextual_channels=[vehicle_state_channel.name],
-                channel_references=[
-                    {
-                        "channel_reference": "$1",
-                        "channel_config": log_channel,
-                    },
-                ],
-                sub_expressions={
-                    "$sub_string": "failure",
+                {
+                    "channel_reference": "$2",
+                    "channel_config": voltage_channel,
                 },
-                action=RuleActionCreateDataReviewAnnotation(
-                    # User in your organization to notify
-                    # assignee="ellen.ripley@weylandcorp.com",
-                    tags=["nostromo", "failure"],
-                ),
+            ],
+            action=RuleActionCreateDataReviewAnnotation(),
+        ),
+        RuleConfig(
+            name="kinetic_energy",
+            description=f"Tracks high energy output while in motion (Created from: {filename}:{frame.f_lineno})",
+            expression="0.5 * $mass * $1 * $1 > $threshold",
+            asset_names=["NostromoLV426"],
+            channel_references=[
+                {
+                    "channel_reference": "$1",
+                    "channel_config": voltage_channel,
+                },
+            ],
+            sub_expressions={
+                "$mass": 10,
+                "$threshold": 470,
+            },
+            action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
+                tags=["nostromo"],
             ),
-        ]
+        ),
+        RuleConfig(
+            name="failure",
+            description=f"Checks for failures reported by logs (Created from: {filename}:{frame.f_lineno})",
+            expression="contains($1, $sub_string)",
+            asset_names=["NostromoLV426"],
+            contextual_channels=[vehicle_state_channel.name],
+            channel_references=[
+                {
+                    "channel_reference": "$1",
+                    "channel_config": log_channel,
+                },
+            ],
+            sub_expressions={
+                "$sub_string": "failure",
+            },
+            action=RuleActionCreateDataReviewAnnotation(
+                # User in your organization to notify
+                # assignee="ellen.ripley@weylandcorp.com",
+                tags=["nostromo", "failure"],
+            ),
+        ),
+    ]
 
     # Set these as external rules.
     for rule_config in rule_configs:

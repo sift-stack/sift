@@ -9,7 +9,6 @@ from sift_py.rule.service import RuleService
 from simulator import Simulator
 from telemetry_config import nostromos_lv_426
 
-
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
 
 

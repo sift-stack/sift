@@ -1,8 +1,10 @@
+import time
 from typing import cast
-from sift.reports.v1.reports_pb2 import GetReportRequest, GetReportResponse, Report as Report_pb2, ReportRuleStatus
+
+from sift.reports.v1.reports_pb2 import GetReportRequest, GetReportResponse, ReportRuleStatus
+from sift.reports.v1.reports_pb2 import Report as Report_pb2
 from sift.reports.v1.reports_pb2_grpc import ReportServiceStub
 from sift_py.grpc.transport import SiftChannel
-import time
 
 NOT_RUNNING_STATUS = [
     ReportRuleStatus.REPORT_RULE_STATUS_CANCELED,
@@ -10,6 +12,7 @@ NOT_RUNNING_STATUS = [
     ReportRuleStatus.REPORT_RULE_STATUS_FAILED,
     ReportRuleStatus.REPORT_RULE_STATUS_FINISHED,
 ]
+
 
 class Report:
     """Used to track the status of a Report."""
@@ -47,10 +50,7 @@ class Report:
                     return False
 
             result = self.get_results()
-            all_done = all([
-                summary.status in NOT_RUNNING_STATUS
-                for summary in result.summaries
-            ])
+            all_done = all([summary.status in NOT_RUNNING_STATUS for summary in result.summaries])
 
             if all_done:
                 return True

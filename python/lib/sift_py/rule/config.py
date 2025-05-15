@@ -72,7 +72,10 @@ class RuleConfig(AsJson):
         """
 
         hash_map: Dict[
-            str, Union[List[ExpressionChannelReference], List[ChannelConfig], str, List[str], bool, None]
+            str,
+            Union[
+                List[ExpressionChannelReference], List[ChannelConfig], str, List[str], bool, None
+            ],
         ] = {
             "name": self.name,
             "description": self.description,

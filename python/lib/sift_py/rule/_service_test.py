@@ -2,7 +2,7 @@ from unittest import mock
 
 import pytest
 from sift.assets.v1.assets_pb2 import Asset
-from sift.rules.v1.rules_pb2 import Rule
+from sift.rules.v1.rules_pb2 import BatchUpdateRulesResponse, Rule
 
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
@@ -116,6 +116,62 @@ def test_rule_service_load_rules_from_yaml(rule_service):
             assert rule_config.action.assignee == rule_yaml["assignee"]
             assert rule_config.asset_names == rule_yaml["asset_names"]
             assert isinstance(rule_config.action, RuleActionCreateDataReviewAnnotation)
+
+
+def test_rule_service_create_external_rules_from_yaml(rule_service):
+    rule_yaml = {
+        "name": "rule",
+        "channel_references": [{"$1": "channel"}],
+        "description": "description",
+        "expression": "$1 > 0",
+        "assignee": "assignee@abc.com",
+        "type": "phase",
+        "asset_names": ["asset"],
+    }
+    with mock.patch.object(RuleService, "_get_assets"):
+        with mock.patch.object(
+            rule_service._rule_service_stub, "BatchUpdateRules"
+        ) as mock_batch_update_rules:
+            resp = BatchUpdateRulesResponse(
+                created_rule_identifiers=[
+                    BatchUpdateRulesResponse.RuleIdentifiers(rule_id="rule-id", name="rule")
+                ],
+                success=True,
+            )
+            mock_batch_update_rules.return_value = resp
+
+            with mock.patch(
+                "sift_py.rule.service.load_rule_modules",
+                return_value=[rule_yaml],
+            ):
+                rule_identifiers = rule_service.create_external_rules_from_yaml(
+                    ["path/to/rules.yml"]
+                )
+                assert len(rule_identifiers) == 1
+
+                rule_identifier = rule_identifiers[0]
+                assert rule_identifier.name == rule_yaml["name"]
+                assert rule_identifier.rule_id == "rule-id"
+
+
+def test_rule_service_create_invalid_external_rules_from_yaml(rule_service):
+    # External rules should not have client_keys
+    rule_yaml = {
+        "name": "rule",
+        "rule_client_key": "rule-client-key",
+        "channel_references": [{"$1": "channel"}],
+        "description": "description",
+        "expression": "$1 > 0",
+        "assignee": "assignee@abc.com",
+        "type": "review",
+        "asset_names": ["asset"],
+    }
+    with mock.patch(
+        "sift_py.rule.service.load_rule_modules",
+        return_value=[rule_yaml],
+    ):
+        with pytest.raises(ValueError, match="requires rule_client_key to be empty"):
+            rule_service.create_external_rules_from_yaml(["path/to/rules.yml"])
 
 
 def test_rule_service_attach_asset():
