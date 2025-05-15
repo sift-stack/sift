@@ -26,6 +26,7 @@ class RuleConfig(AsJson):
     - `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `tag_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     - `contextual_channels`: A list of channel names that provide context but aren't directly used in the expression.
+    - `is_external`: If this is an external rule.
     """
 
     name: str
@@ -36,6 +37,7 @@ class RuleConfig(AsJson):
     rule_client_key: Optional[str]
     asset_names: List[str]
     contextual_channels: List[str]
+    is_external: bool
 
     def __init__(
         self,
@@ -51,6 +53,7 @@ class RuleConfig(AsJson):
         tag_names: Optional[List[str]] = None,
         sub_expressions: Dict[str, Any] = {},
         contextual_channels: Optional[List[str]] = None,
+        is_external: bool = False,
     ):
         self.channel_references = _channel_references_from_dicts(channel_references)
         self.contextual_channels = contextual_channels or []
@@ -61,6 +64,7 @@ class RuleConfig(AsJson):
         self.rule_client_key = rule_client_key
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
+        self.is_external = is_external
 
     def as_json(self) -> Any:
         """
@@ -68,11 +72,15 @@ class RuleConfig(AsJson):
         """
 
         hash_map: Dict[
-            str, Union[List[ExpressionChannelReference], List[ChannelConfig], str, List[str], None]
+            str,
+            Union[
+                List[ExpressionChannelReference], List[ChannelConfig], str, List[str], bool, None
+            ],
         ] = {
             "name": self.name,
             "description": self.description,
             "expression": self.expression,
+            "is_external": self.is_external,
         }
 
         hash_map["expression_channel_references"] = self.channel_references
