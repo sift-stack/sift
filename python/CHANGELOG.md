@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.5.3] - May 20, 2025
+- [Contextual channels support](https://github.com/sift-stack/sift/pull/212)
+- [Updates for user defined functions and external rules](https://github.com/sift-stack/sift/pull/215)
+- [Fix bugs within the IngestService](https://github.com/sift-stack/sift/pull/216)
+
 ## [v0.5.2] - April 23, 2025
 - [Add string support to TDMS upload](https://github.com/sift-stack/sift/pull/207)
 
