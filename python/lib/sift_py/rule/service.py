@@ -11,6 +11,8 @@ from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
     AnnotationActionConfiguration,
+    BatchUpdateRulesRequest,
+    BatchUpdateRulesResponse,
     CalculatedChannelConfig,
     ContextualChannels,
     CreateRuleRequest,
@@ -71,6 +73,65 @@ class RuleService:
         """
         Loads rules from a YAML spec, and creates or updates the rules in the Sift API.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The loaded RuleConfigs.
+        """
+        rule_configs = self._parse_rules_from_yaml(paths, named_expressions)
+
+        # Create all the rules
+        for rule_config in rule_configs:
+            self.create_or_update_rule(rule_config)
+
+        return rule_configs
+
+    def create_external_rules_from_yaml(
+        self,
+        paths: List[Path],
+        named_expressions: Optional[Dict[str, str]] = None,
+    ) -> List[RuleIdentifier]:
+        """
+        Creates external rules from a YAML spec in the Sift API.
+        For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The loaded RuleConfigs as external rules.
+        """
+        rule_configs = self._parse_rules_from_yaml(paths, named_expressions)
+
+        # Prepare all of the rules.
+        for rule_config in rule_configs:
+            rule_config.is_external = True
+            if rule_config.rule_client_key:
+                raise ValueError(
+                    f"Rule of name '{rule_config.name}' requires rule_client_key to be empty"
+                )
+
+        return self.create_external_rules(rule_configs)
+
+    def _parse_rules_from_yaml(
+        self,
+        paths: List[Path],
+        named_expressions: Optional[Dict[str, str]] = None,
+    ) -> List[RuleConfig]:
+        """
+        Parses rules from a YAML spec.
+        For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The parsed RuleConfigs.
         """
         module_rules = load_rule_modules(paths)
 
@@ -170,10 +231,6 @@ class RuleService:
                 )
             )
 
-        # Create all the rules
-        for rule_config in rule_configs:
-            self.create_or_update_rule(rule_config)
-
         return rule_configs
 
     def create_or_update_rules(self, rule_configs: List[RuleConfig]):
@@ -240,6 +297,35 @@ class RuleService:
             self._update_rule(config, rule)
         else:
             self._create_rule(config)
+
+    def create_external_rules(self, configs: List[RuleConfig]) -> List[RuleIdentifier]:
+        """
+        Create external rules via RuleConfigs. The configs must have is_external set to
+        True or an exception will be raised. rule_client_key must be empty.
+
+        Args:
+            configs: The list of RuleConfigs to create as external rules.
+
+        Returns:
+            The list of RuleIdentifiers created.
+        """
+        for config in configs:
+            if not config.is_external:
+                raise ValueError(f"Rule of name '{config.name}' requires is_external to be set")
+            if config.rule_client_key:
+                raise ValueError(
+                    f"Rule of name '{config.name}' requires rule_client_key to be empty"
+                )
+
+        update_rule_reqs = [self._update_req_from_rule_config(config) for config in configs]
+
+        req = BatchUpdateRulesRequest(rules=update_rule_reqs)
+        res = cast(BatchUpdateRulesResponse, self._rule_service_stub.BatchUpdateRules(req))
+
+        if not res.success:
+            raise Exception("Failed to create external rules")
+
+        return [RuleIdentifier(r.rule_id, r.name) for r in res.created_rule_identifiers]
 
     def _update_rule(self, updated_config: RuleConfig, rule: Rule):
         req = self._update_req_from_rule_config(updated_config, rule)
@@ -409,6 +495,7 @@ class RuleService:
                 asset_ids=[asset.asset_id for asset in assets] if assets else None,
             ),
             contextual_channels=ContextualChannels(channels=contextual_channel_names),
+            is_external=config.is_external,
         )
 
     def get_rule(self, rule: str) -> Optional[RuleConfig]:
@@ -527,3 +614,13 @@ class RuleChannelReference:
 
     rule_name: str
     channel_references: Dict[str, Any]
+
+
+@dataclass
+class RuleIdentifier:
+    """
+    Wrapper around RuleIdentifier for working with external rules.
+    """
+
+    rule_id: str
+    name: str
