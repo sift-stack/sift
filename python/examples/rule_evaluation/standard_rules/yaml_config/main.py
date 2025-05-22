@@ -6,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.rule.service import RuleService
-from sift_py.rule_evalutation.service import RuleEvaluationService
+from sift_py.rule_evaluation.service import RuleEvaluationService
 
 RULE_MODULES_DIR = Path().joinpath("rule_modules")
 

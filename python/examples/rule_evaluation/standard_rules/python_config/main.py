@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from rule_configs import load_nostromos_lv_426_rule_configs
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.rule.service import RuleService
-from sift_py.rule_evalutation.service import RuleEvaluationService
+from sift_py.rule_evaluation.service import RuleEvaluationService
 
 if __name__ == "__main__":
     """

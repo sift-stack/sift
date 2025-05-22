@@ -13,7 +13,7 @@ from sift_py.rule.config import (
     RuleConfig,
 )
 from sift_py.rule.service import RuleIdentifier
-from sift_py.rule_evalutation.service import RuleEvaluationService
+from sift_py.rule_evaluation.service import RuleEvaluationService
 
 
 @pytest.fixture
