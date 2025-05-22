@@ -1,4 +1,4 @@
-from typing import List, Optional, cast
+from typing import List, Optional, Sequence, cast
 
 import grpc
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
@@ -124,7 +124,7 @@ def get_ingestion_config_flows(
 def create_flow_configs(
     channel: SiftChannel,
     ingestion_config_id: str,
-    flow_configs: List[FlowConfig],
+    flow_configs: Sequence[FlowConfig],
 ):
     """
     Adds flow configs to an existing ingestion config.

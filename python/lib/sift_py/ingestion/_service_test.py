@@ -407,7 +407,7 @@ def test_ingestion_service_register_new_flow(mocker: MockFixture):
     ingestion_service.try_create_flow(new_flow_config)
 
     mock_create_flow_configs.assert_called_once_with(
-        mock_channel, mock_ingestion_config.ingestion_config_id, [new_flow_config]
+        mock_channel, mock_ingestion_config.ingestion_config_id, (new_flow_config,)
     )
     assert ingestion_service.flow_configs_by_name["my_new_flow"] == new_flow_config
 
