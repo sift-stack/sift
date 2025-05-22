@@ -24,10 +24,10 @@ from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
 from sift.rule_evaluation.v1.rule_evaluation_pb2_grpc import RuleEvaluationServiceStub
 from sift_py._internal.time import to_timestamp_pb
 from sift_py.grpc.transport import SiftChannel
+from sift_py.report.service import ReportService
 from sift_py.report_templates.config import ReportTemplateConfig
 from sift_py.rule.config import RuleConfig
 from sift_py.rule.service import RuleIdentifier, RuleService
-from sift_py.rule_evalutation.report import Report
 
 
 class RuleEvaluationService:
@@ -49,17 +49,17 @@ class RuleEvaluationService:
         run_id: str,
         rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]],
         report_name: str = "",
-    ) -> Report:
+    ) -> ReportService:
         """Evaluate a set of rules against a run.
 
         Args:
             run_id: The Run ID to run against.
             rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
-                RuleIdentifier's (typically from `RuleService.create_external_rules`).
+                RuleIdentifiers (typically from `RuleService.create_external_rules`).
             report_name: Optional report name.
 
         Returns:
-            A Report object that can be use to get the status of the executed report.
+            A ReportService object that can be use to get the status of the executed report.
         """
         eval_kwargs = self._get_rules_kwargs(rules)
 
@@ -70,16 +70,16 @@ class RuleEvaluationService:
         )
         res = cast(EvaluateRulesResponse, self._rule_evaluation_stub.EvaluateRules(req))
 
-        return Report(self._channel, res.report_id)
+        return ReportService(self._channel, res.report_id)
 
     def evaluate_against_assets(
         self,
         asset_names: List[str],
-        start_time: datetime,
-        end_time: datetime,
+        start_time: Union[datetime, str, int],
+        end_time: Union[datetime, str, int],
         rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]],
         report_name: str = "",
-    ) -> Report:
+    ) -> ReportService:
         """Evaluate a set of rules against assets.
 
         Args:
@@ -87,7 +87,7 @@ class RuleEvaluationService:
             start_time: The start time to evaluate.
             end_time: The end time to evaluate.
             rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
-                RuleIdentifier's (typically from `RuleService.create_external_rules`).
+                RuleIdentifiers (typically from `RuleService.create_external_rules`).
             report_name: Optional report name.
 
         Returns:
@@ -107,7 +107,7 @@ class RuleEvaluationService:
         )
         res = cast(EvaluateRulesResponse, self._rule_evaluation_stub.EvaluateRules(req))
 
-        return Report(self._channel, res.report_id)
+        return ReportService(self._channel, res.report_id)
 
     def preview_against_run(
         self,
@@ -119,7 +119,7 @@ class RuleEvaluationService:
         Args:
             run_id: The Run ID to run against.
             rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
-                RuleIdentifier's (typically from `RuleService.create_external_rules`).
+                RuleIdentifiers (typically from `RuleService.create_external_rules`).
 
         Returns:
             The EvaluateRulesPreviewResponse object.
@@ -138,7 +138,7 @@ class RuleEvaluationService:
         run_id: str,
         rules: List[RuleConfig],
         report_name: str = "",
-    ) -> Report:
+    ) -> ReportService:
         """Evaluate a set of external rules against a run.
 
         Args:
@@ -158,7 +158,7 @@ class RuleEvaluationService:
         paths: List[Path],
         named_expressions: Optional[Dict[str, str]] = None,
         report_name: str = "",
-    ) -> Report:
+    ) -> ReportService:
         """Evaluate a set of external rules from a YAML config against a run.
 
         Args:

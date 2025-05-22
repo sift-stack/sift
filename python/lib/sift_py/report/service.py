@@ -1,5 +1,5 @@
 import time
-from typing import cast
+from typing import Optional, cast
 
 from sift.reports.v1.reports_pb2 import GetReportRequest, GetReportResponse, ReportRuleStatus
 from sift.reports.v1.reports_pb2 import Report as Report_pb2
@@ -14,8 +14,8 @@ NOT_RUNNING_STATUS = [
 ]
 
 
-class Report:
-    """Used to track the status of a Report."""
+class ReportService:
+    """Service to track the status of reports."""
 
     report_id: str
     _report_stub: ReportServiceStub
@@ -34,7 +34,7 @@ class Report:
         res = cast(GetReportResponse, self._report_stub.GetReport(req))
         return res.report
 
-    def wait_until_done(self, timeout=None) -> bool:
+    def wait_until_done(self, timeout: Optional[float] = None) -> bool:
         """Waits until the report processing is complete or the timeout is reached.
 
         Args:
