@@ -3,6 +3,20 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.6.0] - May 23, 2025
+### What's New
+#### Rule Evaluation Service
+The `RuleEvaluationService` has been introduced to provide functionality for evaluating rules and reports against runs or assets. This includes support for dry-run evaluations and previews, as well as evaluating rules defined in YAML configurations.
+
+#### External Rules
+The `RuleService` has been updated to support External Rules. External Rules are ideal for automated workflows such as CI/CD pipelines, where external Rules are managed and evaluated programmatically.
+
+Read more about External Rules here [here](https://docs.siftstack.com/docs/api-how-to-guides/external-rules).
+
+### Full Changelog
+- [Add support for rule evaluation service and external rules](https://github.com/sift-stack/sift/pull/219)
+- [Allow creating multiple new flows at the same time](https://github.com/sift-stack/sift/pull/221)
+
 ## [v0.5.3] - May 20, 2025
 - [Contextual channels support](https://github.com/sift-stack/sift/pull/212)
 - [Updates for user defined functions and external rules](https://github.com/sift-stack/sift/pull/215)
