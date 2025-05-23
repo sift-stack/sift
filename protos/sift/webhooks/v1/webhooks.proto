@@ -1,0 +1,446 @@
+syntax = "proto3";
+
+package sift.webhooks.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+
+service WebhookService {
+  // Retrieve a webhook by ID.
+  rpc GetWebhook(GetWebhookRequest) returns (GetWebhookResponse) {
+    option (google.api.http) = {get: "/api/v1/webhooks/{webhook_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetWebhook",
+      description: "Retrieve a webhook by ID."
+    };
+  }
+
+  // Create a webhook.
+  rpc CreateWebhook(CreateWebhookRequest) returns (CreateWebhookResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/webhooks"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateWebhook",
+      description: "Create a webhook."
+    };
+  }
+
+  // Update select fields of an existing webhook.
+  rpc UpdateWebhook(UpdateWebhookRequest) returns (UpdateWebhookResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/webhooks"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateWebhook",
+      description: "Update select fields of an existing webhook."
+    };
+  }
+
+  // Retrieve and optionally filter a list of webhooks.
+  rpc ListWebhooks(ListWebhooksRequest) returns (ListWebhooksResponse) {
+    option (google.api.http) = {get: "/api/v1/webhooks"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListWebhooks",
+      description: "Retrieve and optionally filter a list of webhooks."
+    };
+  }
+
+  // Test an existing webhook or a webhook create request. This RPC will attempt to send an actual webhook
+  // with the provided parameters and forward back the response from the target.
+  rpc TestWebhook(TestWebhookRequest) returns (TestWebhookResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/webhooks:test"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "TestWebhook",
+      description:
+        "Test an existing webhook or a webhook create request. This RPC will attempt to send an actual webhook "
+        "with the provided parameters and forward back the response from the target."
+    };
+  }
+
+  // Create an webhook signature key. If a webhook signature key is active, the bodies of all webhooks will be signed using the signature key with HMAC-SHA-256.
+  // The signature generated will then included in the `X-Sift-Signature` HTTP header. Only one key can be held per organization. If an existing key exists, then
+  // this will simply return it. See `WebhookService_RotateWebhookSignatureKey` to rotate the key.
+  rpc CreateWebhookSignatureKey(CreateWebhookSignatureKeyRequest) returns (CreateWebhookSignatureKeyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/webhooks/signature-key"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateOrUpdateWebhookSignatureKey",
+      description:
+        "Create a webhook signature key and set its activation state. If a webhook signature key is active, the bodies of all webhooks will be signed using the signature key with HMAC-SHA-256."
+        "The signature generated will then included in the `X-Sift-Signature` HTTP header. Only one key can be held per organization. If an existing key exists, then this will simply return it."
+        "See `WebhookService_RotateWebhookSignatureKey` to rotate the key."
+    };
+  }
+
+  // Retrieve the current webhook signature key. Will return a not found error if one doesn't yet exist.
+  rpc GetWebhookSignatureKey(GetWebhookSignatureKeyRequest) returns (GetWebhookSignatureKeyResponse) {
+    option (google.api.http) = {get: "/api/v1/webhooks/signature-key"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetWebhookSignatureKey",
+      description: "Retrieve the current webhook signature key. Will return a not found error if one doesn't yet exist."
+    };
+  }
+
+  // Set the activation state of the organization's current webhook signature key. Will return a not found error if one doesn't yet exist.
+  rpc ToggleWebhookSignatureKeyActivation(ToggleWebhookSignatureKeyActivationRequest) returns (ToggleWebhookSignatureKeyActivationResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/webhooks/signature-key"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ToggleWebhookSignatureKeyActivation",
+      description: "Set the activation state of the organization's current webhook signature key. Will return a not found error if one doesn't yet exist."
+    };
+  }
+
+  // Generate a new webhook signature key and replace the previous one. The activation state of the new key will match the activation state of the previous.
+  rpc RotateWebhookSignatureKey(RotateWebhookSignatureKeyRequest) returns (RotateWebhookSignatureKeyResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/webhooks/signature-key"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ToggleWebhookSignatureKeyActivation",
+      description: "Generate a new webhook signature key and replace the previous one. The activation state of the new key will match the activation state of the previous."
+    };
+  }
+
+  // Create a batch of webhook logs. Users should not have to call this directly.
+  rpc BatchCreateWebhookLogs(BatchCreateWebhookLogsRequest) returns (BatchCreateWebhookLogsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/webhooks/logs:batch-create"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchCreateWebhookLogs",
+      description: "Create a batch of webhook logs. Users should not have to call this directly."
+    };
+  }
+
+  // Retrieve and optionally filter a list of webhook logs.
+  rpc ListWebhookLogs(ListWebhookLogsRequest) returns (ListWebhookLogsResponse) {
+    option (google.api.http) = {get: "/api/v1/webhooks/logs"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListWebhookLogs",
+      description: "Retrieve and optionally filter a list of webhook logs."
+    };
+  }
+}
+
+message Webhook {
+  string webhook_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string organization_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string target_url = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uri = true
+  ];
+  string name = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.min_len = 1
+  ];
+  WebhookEventType event_type = 5 [(google.api.field_behavior) = REQUIRED];
+  optional string payload = 6 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp created_date = 7 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 8 [(google.api.field_behavior) = REQUIRED];
+  optional google.protobuf.Timestamp archived_date = 9 [(google.api.field_behavior) = OPTIONAL];
+  string created_by_user_id = 10 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string modified_by_user_id = 11 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  repeated WebhookHttpHeader http_headers = 12 [(google.api.field_behavior) = REQUIRED];
+}
+
+enum WebhookEventType {
+  WEBHOOK_EVENT_TYPE_UNSPECIFIED = 0;
+  WEBHOOK_EVENT_TYPE_RULE_VIOLATION = 1;
+}
+
+message WebhookLog {
+  string webhook_log_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uri = true
+  ];
+  string webhook_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uri = true
+  ];
+  string event_id = 3 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uri = true
+  ];
+  WebhookLogStatus status = 5 [(google.api.field_behavior) = REQUIRED];
+  optional string payload = 6 [(google.api.field_behavior) = OPTIONAL];
+  uint32 retry_attempt_number = 7 [(google.api.field_behavior) = REQUIRED];
+  optional string error_reason = 8 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp sent_date = 9 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 10 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 11 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 12 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 13 [(google.api.field_behavior) = REQUIRED];
+}
+
+message WebhookSignatureKey {
+  string signature_key = 1 [(google.api.field_behavior) = REQUIRED];
+  bool active = 2 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 3 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 4 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 5 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 6 [(google.api.field_behavior) = REQUIRED];
+}
+
+message WebhookHttpHeader {
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.well_known_regex = KNOWN_REGEX_HTTP_HEADER_NAME
+  ];
+  string value = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+enum WebhookLogStatus {
+  WEBHOOK_LOG_STATUS_UNSPECIFIED = 0;
+  WEBHOOK_LOG_STATUS_SENT = 1;
+  WEBHOOK_LOG_STATUS_FAILED = 2;
+  WEBHOOK_LOG_STATUS_RETRYING = 3;
+}
+
+// The request for a call to `WebhookService_GetWebhook` to retrieve a webhook.
+message GetWebhookRequest {
+  string webhook_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// The response of a call to `WebhookService_GetWebhook`.
+message GetWebhookResponse {
+  Webhook webhook = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_UpdateWebhook` to update a webhook.
+message UpdateWebhookRequest {
+  // The webhook to update. The webhook's `webhook_id` field is used to identify
+  // the webhook to update and is required.
+  Webhook webhook = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to be updated. The fields available to be updated are
+  // 'target_url', 'name', 'event_type', 'payload', 'http_headers', 'archived_date'.
+  google.protobuf.FieldMask update_mask = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).cel = {
+      id: "invalid_field_mask_path"
+      message: "field mask path must be in ['target_url', 'targetUrl', 'name', 'event_type', 'targetUrl', 'payload', 'http_headers', 'httpHeaders', 'archived_date', 'archivedDate']"
+      expression: "this.paths.all(path, path in ['target_url', 'targetUrl', 'name', 'event_type', 'targetUrl', 'payload', 'http_headers', 'httpHeaders', 'archived_date', 'archivedDate'])",
+    }
+  ];
+}
+
+// The response of a call to `WebhookService_UpdateWebhook`. To archive a webhook, specify `archived_date`
+// in the `update mask` as well as a non-null value for `archived_date` in the `webhook` object.
+// To unarchive a webhook, specify `archived_date` in the `update mask` and a `null` value for
+// `archived_date` in the `webhook` object.
+message UpdateWebhookResponse {
+  Webhook webhook = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_CreateWebhook` to create a webhook.
+message CreateWebhookRequest {
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.min_len = 1
+  ];
+  string target_url = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uri = true
+  ];
+  WebhookEventType event_type = 3 [(google.api.field_behavior) = REQUIRED];
+  optional string payload = 4 [(google.api.field_behavior) = OPTIONAL];
+  repeated WebhookHttpHeader http_headers = 5 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `WebhookService_CreateWebhook`.
+message CreateWebhookResponse {
+  Webhook webhook = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_ListWebhooks` to retrieve and filter webhooks.
+message ListWebhooksRequest {
+  // The maximum number of webhooks to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 runs will be returned.
+  // The maximum value is 1000.
+  uint32 page_size = 1 [
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint32.lte = 1000
+  ];
+
+  // A page token, received from a previous `ListWebhooks` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListWebhooks` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `webhook_id`, `name`, and `event_type`.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved webhooks. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available field to order_by is `created_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `WebhookService_ListWebhooks`.
+message ListWebhooksResponse {
+  repeated Webhook webhooks = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_TestWebhook` to test an existing webhook
+// or a webhook create request.
+message TestWebhookRequest {
+  oneof form {
+    string webhook_id = 1;
+    Webhook webhook = 2;
+    CreateWebhookRequest create_request = 3;
+  }
+}
+
+// The response of a call to `WebhookService_TestWebhook`. The response code and body will come from the HTTP response
+// from the target URL.
+message TestWebhookResponse {
+  uint32 http_response_code = 1 [(google.api.field_behavior) = REQUIRED];
+  bytes http_response_body = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_CreateWebhookSignatureKey` to create a webhook signature key.
+message CreateWebhookSignatureKeyRequest {}
+
+// The response for a call to `WebhookService_CreateWebhookSignatureKey`. The `active` field indicates whether
+// or not whether the key is currently active.
+message CreateWebhookSignatureKeyResponse {
+  WebhookSignatureKey signature_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_GetWebhookSignatureKey` to retrieve the current webhook signature key.
+message GetWebhookSignatureKeyRequest {
+  // Optional organization ID.
+  string organization_id = 1 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for a call to `WebhookService_GetWebhookSignatureKey`. The `active` field indicates whether
+// or not whether the key is currently active.
+message GetWebhookSignatureKeyResponse {
+  WebhookSignatureKey signature_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_ToggleWebhookSignatureKeyActivation` to enable or disable the current
+// webhook signature key. Set `enable` to `true` to activate the signature key, and `false` to deactivate.
+message ToggleWebhookSignatureKeyActivationRequest {
+  bool enable = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response for a call to `WebhookService_ToggleWebhookSignatureKeyActivation`.
+message ToggleWebhookSignatureKeyActivationResponse {
+  WebhookSignatureKey signature_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_RotateWebhookSignatureKey` replace the current webhook signature key
+// with a new one. The activation state of the new signature key will be inherited from the previous key. If no key
+// exists then this will return an error - see `WebhookService_CreateWebhookSignatureKey`.
+message RotateWebhookSignatureKeyRequest {}
+
+// The response for a call to `WebhookService_RotateWebhookSignatureKey`. The `active` field indicates whether
+// or not whether the key is currently active.
+message RotateWebhookSignatureKeyResponse {
+  WebhookSignatureKey signature_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_ListWebhookLogs` to retrieve and filter webhook logs.
+message ListWebhookLogsRequest {
+  // The maximum number of webhook logs to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 runs will be returned.
+  // The maximum value is 1000.
+  uint32 page_size = 1 [
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint32.lte = 1000
+  ];
+
+  // A page token, received from a previous `ListWebhookLogs` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListWebhookLogs` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // The available fields to filter by are `webhook_id`, `status`.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved webhook logs. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available field to order_by is `created_date`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `WebhookService_ListWebhookLogsResponse`.
+message ListWebhookLogsResponse {
+  repeated WebhookLog logs = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Request to create a single webhook log entry.
+message CreateWebhookLogRequest {
+  string webhook_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  string event_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  uint32 retry_attempt_number = 3 [(google.api.field_behavior) = REQUIRED];
+  WebhookLogStatus status = 4 [(google.api.field_behavior) = REQUIRED];
+  optional string payload = 5 [(google.api.field_behavior) = REQUIRED];
+  optional string error_reason = 6 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp sent_date = 7 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `WebhookService_BatchCreateWebhookLogs` to create a batch of webhook logs.
+message BatchCreateWebhookLogsRequest {
+  repeated CreateWebhookLogRequest requests = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated.max_items = 1000
+  ];
+}
+
+// The response of a call to `WebhookService_BatchCreateWebhookResponse`.
+message BatchCreateWebhookLogsResponse {}
