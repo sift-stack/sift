@@ -337,26 +337,31 @@ class _IngestionServiceImpl:
             end_stream_on_validation_error=self.end_stream_on_error,
         )
 
-    def try_create_flow(self, flow_config: FlowConfig):
+    def try_create_flow(self, *flow_config: FlowConfig):
         """
         Tries to create a new flow at runtime. Will raise an `IngestionValidationError` if there already exists
         a flow with the name of the `flow_config` argument.
         """
-
-        if flow_config.name in self.flow_configs_by_name:
-            raise IngestionValidationError(
-                f"There is already a flow with name '{flow_config.name}'."
-            )
+        for fc in flow_config:
+            if fc.name in self.flow_configs_by_name:
+                raise IngestionValidationError(f"There is already a flow with name '{fc.name}'.")
 
         create_flow_configs(
             self.transport_channel,
             self.ingestion_config.ingestion_config_id,
-            [flow_config],
+            flow_config,
         )
 
-        self.flow_configs_by_name[flow_config.name] = flow_config
+        for fc in flow_config:
+            self.flow_configs_by_name[fc.name] = fc
 
-    def create_flow(self, flow_config: FlowConfig):
+    def try_create_flows(self, *flow_configs: FlowConfig):
+        """
+        See `try_create_flows`.
+        """
+        return self.try_create_flow(*flow_configs)
+
+    def create_flow(self, *flow_config: FlowConfig):
         """
         Like `try_create_flow` but will not do any client side validation and
         raise `IngestionValidationError`.
@@ -364,9 +369,16 @@ class _IngestionServiceImpl:
         create_flow_configs(
             self.transport_channel,
             self.ingestion_config.ingestion_config_id,
-            [flow_config],
+            flow_config,
         )
-        self.flow_configs_by_name[flow_config.name] = flow_config
+        for fc in flow_config:
+            self.flow_configs_by_name[fc.name] = fc
+
+    def create_flows(self, *flow_configs: FlowConfig):
+        """
+        See `create_flow`.
+        """
+        return self.create_flow(*flow_configs)
 
     @staticmethod
     def _update_flow_configs(
