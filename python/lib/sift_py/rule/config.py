@@ -10,6 +10,7 @@ from typing_extensions import TypedDict
 
 from sift_py._internal.convert.json import AsJson
 from sift_py.ingestion.channel import ChannelConfig
+import re
 
 
 class RuleConfig(AsJson):
@@ -42,9 +43,9 @@ class RuleConfig(AsJson):
     def __init__(
         self,
         name: str,
-        channel_references: List[
+        channel_references: Optional[List[
             Union[ExpressionChannelReference, ExpressionChannelReferenceChannelConfig]
-        ],
+        ]] = None,
         description: str = "",
         expression: str = "",
         action: Optional[RuleAction] = None,
@@ -55,7 +56,11 @@ class RuleConfig(AsJson):
         contextual_channels: Optional[List[str]] = None,
         is_external: bool = False,
     ):
-        self.channel_references = _channel_references_from_dicts(channel_references)
+        if channel_references:
+            self.channel_references = _channel_references_from_dicts(channel_references)
+        else:
+            self.channel_references = []
+
         self.contextual_channels = contextual_channels or []
 
         self.name = name
@@ -65,6 +70,7 @@ class RuleConfig(AsJson):
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
         self.is_external = is_external
+        self._extract_channels_from_expression()
 
     def as_json(self) -> Any:
         """
@@ -122,6 +128,46 @@ class RuleConfig(AsJson):
                     expression = expression.replace(ref, str(expr))
 
         return expression
+
+    def _extract_channels_from_expression(self):
+        """Extracts hard coded channels from the expression and turns them into channel references.
+
+        Example:
+            expression: |velocity| > 10 && |current_state| == "Accelerating"
+        turns into
+            expresison: $1 > 10 && $2 == "Accelerating"
+            channel_references : {
+                "$1": "velocity",
+                "$2": "current_state",
+            }
+        """
+        channel_pattern = re.compile(r"\|([\w\s]{2,})\|")
+        matches = channel_pattern.findall(self.expression)
+
+        if matches and self.channel_references:
+            raise ValueError(f"channel_references and hardcoded channel names defined in rule {self.name}")
+
+        if not self.channel_references:
+            raise ValueError(f"No channel references or hard coded channel names found in rule {self.name}")
+
+        channel_references = {}
+        channel_index = 1
+        for channel_name in matches:
+            if channel_name not in channel_references.values():
+                channel_references[f"${channel_index}"] = channel_name
+                channel_index += 1
+
+        for reference, channel_name in channel_references.items():
+            self.expression = self.expression.replace(f"|{channel_name}|", reference)
+
+        self.channel_references.extend(
+            {
+                "channel_reference": reference,
+                "channel_identifier": channel_name,
+            }
+            for reference, channel_name in channel_references.items()
+        )
+
 
 
 class RuleAction(ABC):

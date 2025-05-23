@@ -1,5 +1,6 @@
 import pytest
 
+from sift_py import rule
 from sift_py.error import SiftAPIDeprecationWarning
 from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
 
@@ -147,3 +148,71 @@ def test_rule_config_with_contextual_channels():
     json_output = rule_config.as_json()
     assert "contextual_channel_references" in json_output
     assert len(json_output["contextual_channel_references"]) == 2
+
+
+def test_rule_config_with_hardcoded_channel_references():
+    """Test that RuleConfig properly handles hard coded channel references"""
+    rule_config = RuleConfig(
+        name="test_rule",
+        expression='|channel_1| > 10 && |channel_2| == "Hello" || |channel_1| < 10',
+        action=RuleActionCreatePhaseAnnotation(),
+    )
+    expected_channel_references = [
+        {'channel_reference': '$1', 'channel_identifier': 'channel_1'},
+        {'channel_reference': '$2', 'channel_identifier': 'channel_2'}
+    ]
+    expected_expression = '$1 > 10 && $2 == "Hello" || $1 < 10'
+    assert rule_config.channel_references == expected_channel_references
+    assert rule_config.expression == expected_expression
+
+
+def test_rule_config_with_hardcoded_channel_references_with_spaces():
+    """Test that RuleConfig properly handles hard coded channel references"""
+    rule_config = RuleConfig(
+        name="test_rule",
+        expression="|channel with spaces 1| > 10 && |  two leading spaces| == 2 && |two trailing spaces  | == 3",
+        action=RuleActionCreatePhaseAnnotation(),
+    )
+    expected_channel_references = [
+        {'channel_reference': '$1', 'channel_identifier': 'channel with spaces 1'},
+        {'channel_reference': '$2', 'channel_identifier': '  two leading spaces'},
+        {'channel_reference': '$3', 'channel_identifier': 'two trailing spaces  '},
+    ]
+    expected_expression = '$1 > 10 && $2 == 2 && $3 == 3'
+    assert rule_config.channel_references == expected_channel_references
+    assert rule_config.expression == expected_expression
+
+
+def test_rule_config_with_invalid_hardcoded_channel_references():
+    """Test that RuleConfig properly handles hard coded channel references"""
+    with pytest.raises(ValueError, match="No channel references or hard coded channel names found"):
+        RuleConfig(
+            name="test_rule",
+            expression='$1 > 10',
+            action=RuleActionCreatePhaseAnnotation(),
+        )
+
+    with pytest.raises(ValueError, match="No channel references or hard coded channel names found"):
+        RuleConfig(
+            name="test_rule",
+            expression='| | > 10',
+            action=RuleActionCreatePhaseAnnotation(),
+        )
+
+    with pytest.raises(ValueError, match="channel_references and hardcoded channel names defined in rule test_rule"):
+        RuleConfig(
+            name="test_rule",
+            expression='$1 > 10 || |channel_1| == 2',
+            action=RuleActionCreatePhaseAnnotation(),
+            channel_references=[
+                {
+                    "channel_reference": "$1",
+                    "channel_config": ChannelConfig(
+                        name="temperature",
+                        data_type=ChannelDataType.DOUBLE,
+                    ),
+                }
+            ],
+        )
+
+
