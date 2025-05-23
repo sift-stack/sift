@@ -143,7 +143,7 @@ Say that we had the following project structure:
  example
  ├─ telemetry_configs
  │  └─ nostromo_lv_426.yml
- ├─ main.py
+ ├─ ping.py
  ├─ telemetry_config.py
  └─ requirements.txt
  ```
@@ -423,7 +423,7 @@ to the named expression module(s) wherever it may be. For example, given the fol
  example
  ├─ telemetry_configs
  │  └─ nostromo_lv_426.yml
- ├─ main.py
+ ├─ ping.py
  ├─ telemetry_config.py
  └─ expression_modules
     ├─ string.yml
