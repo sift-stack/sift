@@ -223,11 +223,11 @@ class IngestionService(_IngestionServiceImpl):
         """
         super().create_flow(*flow_config)
 
-    def create_flows(self, *flow_config: FlowConfig):
+    def create_flows(self, *flow_configs: FlowConfig):
         """
         See `create_flow`.
         """
-        super().create_flow(*flow_config)
+        super().create_flow(*flow_configs)
 
     def try_create_flow(self, *flow_config: FlowConfig):
         """
@@ -236,8 +236,8 @@ class IngestionService(_IngestionServiceImpl):
         """
         super().try_create_flow(*flow_config)
 
-    def try_create_flows(self, *flow_config: FlowConfig):
+    def try_create_flows(self, *flow_configs: FlowConfig):
         """
         See `try_create_flows`.
         """
-        super().try_create_flow(*flow_config)
+        super().try_create_flow(*flow_configs)
