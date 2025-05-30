@@ -5,8 +5,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
-from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
-from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
@@ -29,6 +27,7 @@ from sift.rules.v1.rules_pb2 import (
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift.users.v2.users_pb2_grpc import UserServiceStub
 
+from sift_py._internal.assets import get_assets
 from sift_py._internal.cel import cel_in
 from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.channel import get_channels
@@ -54,13 +53,13 @@ class RuleService:
     A service for managing rules. Allows for loading rules from YAML and creating or updating them in the Sift API.
     """
 
-    _asset_service_stub: AssetServiceStub
+    _channel: SiftChannel
     _channel_service_stub: ChannelServiceStub
     _rule_service_stub: RuleServiceStub
     _user_service_stub: UserServiceStub
 
     def __init__(self, channel: SiftChannel):
-        self._asset_service_stub = AssetServiceStub(channel)
+        self._channel = channel
         self._channel_service_stub = ChannelServiceStub(channel)
         self._rule_service_stub = RuleServiceStub(channel)
         self._user_service_stub = UserServiceStub(channel)
@@ -258,7 +257,7 @@ class RuleService:
     def _attach_or_detach_asset(
         self, rule: Union[str, RuleConfig], asset_names: List[str], attach: bool
     ) -> RuleConfig:
-        assets = self._get_assets(names=asset_names)
+        assets = get_assets(self._channel, names=asset_names)
         if not assets:
             raise ValueError(
                 f"Cannot find all assets in list '{asset_names}'. One of these assets does not exist."
@@ -378,7 +377,7 @@ class RuleService:
             )
 
         # TODO: once we have TagService_ListTags we can do asset-agnostic rules via tags
-        assets = self._get_assets(names=config.asset_names) if config.asset_names else None
+        assets = get_assets(self._channel, names=config.asset_names) if config.asset_names else None
 
         actions = []
         if config.action.kind() == RuleActionKind.NOTIFICATION:
@@ -538,9 +537,7 @@ class RuleService:
                         tags=[tag for tag in action_config.configuration.annotation.tag_ids],
                     )
 
-        assets = self._get_assets(
-            ids=[asset_id for asset_id in rule_pb.asset_configuration.asset_ids]
-        )
+        assets = get_assets(ids=[asset_id for asset_id in rule_pb.asset_configuration.asset_ids])
         asset_names = [asset.name for asset in assets]
 
         contextual_channels = []
@@ -575,34 +572,6 @@ class RuleService:
             return res.rule or None
         except:
             return None
-
-    def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
-        def get_assets_with_filter(cel_filter: str):
-            assets: List[Asset] = []
-            next_page_token = ""
-            while True:
-                req = ListAssetsRequest(
-                    filter=cel_filter,
-                    page_size=1_000,
-                    page_token=next_page_token,
-                )
-                res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
-                assets.extend(res.assets)
-
-                if not res.next_page_token:
-                    break
-                next_page_token = res.next_page_token
-
-            return assets
-
-        if names:
-            names_cel = cel_in("name", names)
-            return get_assets_with_filter(names_cel)
-        elif ids:
-            ids_cel = cel_in("asset_id", ids)
-            return get_assets_with_filter(ids_cel)
-        else:
-            return []
 
 
 @dataclass
