@@ -32,6 +32,7 @@ class RetryPolicy:
                     "maxBackoff": "5s",
                     "backoffMultiplier": 4,
                     "retryableStatusCodes": [
+                        StatusCode.INTERNAL.name,
                         StatusCode.UNKNOWN.name,
                         StatusCode.UNAVAILABLE.name,
                         StatusCode.ABORTED.name,
