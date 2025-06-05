@@ -58,7 +58,7 @@ class Simulator:
             self.logger.info(f"Beginning simulation for '{asset_name}'")
 
         start_time = time.time()
-        end_time = start_time + 60
+        end_time = start_time + 10
 
         last_reading_time = start_time
         last_log_time = start_time

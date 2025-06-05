@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from sift import ingest
 from sift_py.ingestion.channel import (
     ChannelBitFieldElement,
     ChannelConfig,
@@ -8,14 +7,13 @@ from sift_py.ingestion.channel import (
     ChannelEnumType,
 )
 from sift_py.ingestion.config.telemetry import FlowConfig, TelemetryConfig
-import random
-import string
 from sift_py.ingestion.rule.config import (
     RuleActionCreateDataReviewAnnotation,
     RuleConfig,
 )
 
 RULE_NAMESPACES_DIR = Path().joinpath("rule_modules")
+
 
 def nostromos_lv_426() -> TelemetryConfig:
     log_channel = ChannelConfig(

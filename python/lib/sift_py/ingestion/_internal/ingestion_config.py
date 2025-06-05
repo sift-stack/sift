@@ -20,7 +20,11 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import (
 )
 
 from sift_py.grpc.transport import SiftChannel
+from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion.flow import FlowConfig
+
+# The default max message size for our gRPC server.
+GRPC_MAX_MESSAGE_SIZE = 4194304
 
 
 def get_ingestion_config_by_client_key(
@@ -63,8 +67,55 @@ def create_ingestion_config(
         organization_id=organization_id or "",
         flows=[flow.as_pb(FlowConfigPb) for flow in flows],
     )
+    print(len(req.SerializeToString()))
+    if len(req.SerializeToString()) > GRPC_MAX_MESSAGE_SIZE:
+        return create_ingestion_config_with_iteratively(
+            channel,
+            asset_name,
+            flows,
+            client_key,
+            organization_id,
+        )
+    else:
+        res = cast(CreateIngestionConfigResponse, svc.CreateIngestionConfig(req))
+        return res.ingestion_config
+
+
+def create_ingestion_config_with_iteratively(
+    channel: SiftChannel,
+    asset_name: str,
+    flows: List[FlowConfig],
+    client_key: str,
+    organization_id: Optional[str],
+) -> IngestionConfig:
+    """
+    Creates a new ingestion config by adding flows one at a time if the request size exceeds the gRPC max message size.
+    """
+    svc = IngestionConfigServiceStub(channel)
+
+    req = CreateIngestionConfigRequest(
+        asset_name=asset_name,
+        client_key=client_key,
+        organization_id=organization_id or "",
+        flows=[],
+    )
     res = cast(CreateIngestionConfigResponse, svc.CreateIngestionConfig(req))
-    return res.ingestion_config
+    ingestion_config = res.ingestion_config
+
+    for flow in flows:
+        try:
+            create_flow_configs(channel, ingestion_config.ingestion_config_id, [flow])
+        except grpc.RpcError as e:
+            if e.code() == grpc.StatusCode.RESOURCE_EXHAUSTED:
+                raise IngestionValidationError(
+                    f"Flow {flow.name} is too large. Split this flow up to meet gRPC message size requirements."
+                )
+            elif e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                continue
+            else:
+                raise
+
+    return ingestion_config
 
 
 def get_ingestion_config_flow_names(

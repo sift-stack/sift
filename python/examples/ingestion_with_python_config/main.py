@@ -38,6 +38,8 @@ if __name__ == "__main__":
             telemetry_config,
             end_stream_on_error=True,  # End stream if errors occur API-side.
         )
+        print(f"ingestion_client_key={telemetry_config.ingestion_client_key}")
+        print(f"ingestion_config_id={ingestion_service.ingestion_config.ingestion_config_id}")
 
         # Create an optional run as part of this ingestion
         current_ts = datetime.now(timezone.utc)
