@@ -47,6 +47,7 @@ class _IngestionServiceImpl:
     run_id: Optional[str]
     organization_id: Optional[str]
     end_stream_on_error: bool
+    config: TelemetryConfig
 
     ingest_service_stub: IngestServiceStub
     rule_service: RuleService
@@ -59,6 +60,19 @@ class _IngestionServiceImpl:
         end_stream_on_error: bool = False,
     ):
         ingestion_config = self.__class__._get_or_create_ingestion_config(channel, config)
+        self.ingestion_config = ingestion_config
+
+        if config._ingestion_client_key_is_generated:
+            # If this is a generated key, use the local telemetry config since it is static.
+            self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
+        else:
+            # If the user specified a client key, use the configuration from Sift since it
+            # may have been updated.
+            flows = [
+                FlowConfig.from_pb(f)
+                for f in get_ingestion_config_flows(channel, ingestion_config.ingestion_config_id)
+            ]
+            self.flow_configs_by_name = {flow.name: flow for flow in flows}
 
         self.rule_service = RuleService(channel)
         if config.rules:
@@ -68,19 +82,13 @@ class _IngestionServiceImpl:
             self.rule_service.create_or_update_rules(config.rules)
 
         self.rules = config.rules
-        self.ingestion_config = ingestion_config
         self.asset_name = config.asset_name
         self.transport_channel = channel
         self.run_id = run_id
         self.organization_id = config.organization_id
         self.end_stream_on_error = end_stream_on_error
         self.ingest_service_stub = IngestServiceStub(channel)
-
-        flows = [
-            FlowConfig.from_pb(f)
-            for f in get_ingestion_config_flows(channel, ingestion_config.ingestion_config_id)
-        ]
-        self.flow_configs_by_name = {flow.name: flow for flow in flows}
+        self.config = config
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
@@ -342,6 +350,12 @@ class _IngestionServiceImpl:
         Tries to create a new flow at runtime. Will raise an `IngestionValidationError` if there already exists
         a flow with the name of the `flow_config` argument.
         """
+        if self.config._ingestion_client_key_is_generated:
+            raise IngestionValidationError(
+                "Telemetry configs with generated ingestion client keys can not be updated at runtime."
+                "Use a custom ingestion client key if you want to update flows at runtime."
+            )
+
         for fc in flow_config:
             if fc.name in self.flow_configs_by_name:
                 raise IngestionValidationError(f"There is already a flow with name '{fc.name}'.")
@@ -366,6 +380,12 @@ class _IngestionServiceImpl:
         Like `try_create_flow` but will not do any client side validation and
         raise `IngestionValidationError`.
         """
+        if self.config._ingestion_client_key_is_generated:
+            raise IngestionValidationError(
+                "Telemetry configs with generated ingestion client keys can not be updated at runtime."
+                "Use a custom ingestion client key if you want to update flows at runtime."
+            )
+
         create_flow_configs(
             self.transport_channel,
             self.ingestion_config.ingestion_config_id,
@@ -449,8 +469,11 @@ class _IngestionServiceImpl:
 
         # Exiting ingestion config.. update flows if necessary
         if ingestion_config is not None:
-            cls._update_flow_configs(channel, ingestion_config.ingestion_config_id, config)
-            return ingestion_config
+            if config._ingestion_client_key_is_generated:
+                return ingestion_config
+            else:
+                cls._update_flow_configs(channel, ingestion_config.ingestion_config_id, config)
+                return ingestion_config
 
         ingestion_config = create_ingestion_config(
             channel,

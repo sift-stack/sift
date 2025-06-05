@@ -492,3 +492,51 @@ def test_ingestion_service_buffered_ingestion_flush_timeout(mocker: MockFixture)
             sleep(5)
             assert mock_ingest.call_count == 2
             assert len(buffered_ingestion._buffer) == 0
+
+
+def test_ingestion_service_telemetry_config_without_ingestion_client_key(mocker: MockFixture):
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="my-ingestion-config-id",
+        client_key="my-ingestion-config",
+        asset_id="my-asset-id",
+    )
+
+    channel_a = ChannelConfig(
+        name="channel_a",
+        data_type=ChannelDataType.DOUBLE,
+    )
+
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[channel_a],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset-name",
+        flows=[flow_a],
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = None
+
+    mock_create_ingestion_config = mocker.patch(_mock_path(create_ingestion_config))
+    mock_create_ingestion_config.return_value = mock_ingestion_config
+
+    mock_channel = MockChannel()
+
+    ingestion_service = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+    )
+
+    mock_create_ingestion_config.assert_called_once_with(
+        mock_channel,
+        telemetry_config.asset_name,
+        telemetry_config.flows,
+        telemetry_config.hash(),
+        None,
+    )
+    with pytest.raises(IngestionValidationError, match="can not be updated at runtime"):
+        ingestion_service.create_flow()
