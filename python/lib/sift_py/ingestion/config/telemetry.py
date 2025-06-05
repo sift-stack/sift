@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
@@ -35,7 +36,8 @@ class TelemetryConfig:
     """
     Configurations necessary to start ingestion.
     - `asset_name`: The name of the asset that you wish to telemeter data for.
-    - `ingestion_client_key`: An arbitrary string chosen by the user to uniquely identify this ingestion configuration.
+    - `ingestion_client_key`: Optional string chosen by the user to uniquely identify this ingestion configuration. If this isn't
+       supplied a sha256 hash will be used as the client key.
     - `flows`: A single flow can specify a single channel value or a set of channel values that are ingested together.
     - `organization_id`: ID of your organization in Sift. This field is only required if your user belongs to multiple organizations.
     - `rules`: Rules to evaluate during ingestion.
@@ -46,11 +48,12 @@ class TelemetryConfig:
     organization_id: Optional[str]
     flows: List[FlowConfig]
     rules: List[RuleConfig]
+    _ingestion_client_key_is_generated: bool
 
     def __init__(
         self,
         asset_name: str,
-        ingestion_client_key: str,
+        ingestion_client_key: Optional[str] = None,
         organization_id: Optional[str] = None,
         flows: List[FlowConfig] = [],
         rules: List[RuleConfig] = [],
@@ -65,10 +68,16 @@ class TelemetryConfig:
         self.__class__.validate_rules(rules)
 
         self.asset_name = asset_name
-        self.ingestion_client_key = ingestion_client_key
         self.organization_id = organization_id
         self.flows = flows
         self.rules = rules
+
+        if ingestion_client_key:
+            self.ingestion_client_key = ingestion_client_key
+            self._ingestion_client_key_is_generated = False
+        else:
+            self.ingestion_client_key = self.hash()
+            self._ingestion_client_key_is_generated = True
 
     @staticmethod
     def validate_rules(rules: List[RuleConfig]):
@@ -268,11 +277,35 @@ class TelemetryConfig:
 
         return cls(
             asset_name=config_as_yaml["asset_name"],
-            ingestion_client_key=config_as_yaml["ingestion_client_key"],
+            ingestion_client_key=config_as_yaml.get("ingestion_client_key"),
             organization_id=config_as_yaml.get("organization_id"),
             rules=rules,
             flows=flows,
         )
+
+    def hash(self) -> str:
+        m = hashlib.sha256()
+        m.update(self.asset_name.encode())
+        for flow in sorted(self.flows, key=lambda f: f.name):
+            m.update(flow.name.encode())
+            # Do not sort channels in alphabetical order since order matters.
+            for channel in flow.channels:
+                m.update(channel.name.encode())
+                # Use api_format for data type since that should be consistent between languages.
+                m.update(channel.data_type.as_human_str(api_format=True).encode())
+                m.update((channel.description or "").encode())
+                # Deprecated.
+                m.update((channel.component or "").encode())
+                m.update((channel.unit or "").encode())
+                for bfe in sorted(channel.bit_field_elements, key=lambda bfe: bfe.index):
+                    m.update(bfe.name.encode())
+                    m.update(str(bfe.index).encode())
+                    m.update(str(bfe.bit_count).encode())
+                for enum in sorted(channel.enum_types, key=lambda et: et.key):
+                    m.update(str(enum.key).encode())
+                    m.update(enum.name.encode())
+
+        return m.hexdigest()
 
 
 class TelemetryConfigValidationError(Exception):

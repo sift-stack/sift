@@ -9,7 +9,12 @@ import sift_py.ingestion.config.telemetry
 import sift_py.ingestion.config.yaml.load
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
 from sift_py.error import SiftAPIDeprecationWarning
-from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
+from sift_py.ingestion.channel import (
+    ChannelBitFieldElement,
+    ChannelConfig,
+    ChannelDataType,
+    ChannelEnumType,
+)
 from sift_py.ingestion.config.telemetry import TelemetryConfig, TelemetryConfigValidationError
 from sift_py.ingestion.config.yaml.load import (
     _validate_yaml,
@@ -269,6 +274,135 @@ def test_telemetry_config_validations_flows_with_same_name():
                 ),
             ],
         )
+
+
+def get_telemetry_config():
+    channel_a = ChannelConfig(
+        name="channel_a",
+        data_type=ChannelDataType.DOUBLE,
+    )
+
+    channel_b = ChannelConfig(
+        name="channel_b",
+        data_type=ChannelDataType.STRING,
+    )
+
+    channel_enum = ChannelConfig(
+        name="channel_enum",
+        data_type=ChannelDataType.ENUM,
+        description="An example enum channel",
+        unit="Example Enum Unit",
+        enum_types=[
+            ChannelEnumType(name="OptionA", key=0),
+            ChannelEnumType(name="OptionB", key=1),
+            ChannelEnumType(name="OptionC", key=2),
+        ],
+    )
+
+    channel_bitfield = ChannelConfig(
+        name="channel_bitfield",
+        data_type=ChannelDataType.BIT_FIELD,
+        description="An example bitfield channel",
+        bit_field_elements=[
+            ChannelBitFieldElement(name="Element1", index=0, bit_count=1),
+            ChannelBitFieldElement(name="Element2", index=1, bit_count=2),
+            ChannelBitFieldElement(name="Element3", index=3, bit_count=4),
+        ],
+    )
+
+    rule_a = RuleConfig(
+        name="rule_a",
+        description="Rule A description",
+        expression="$1 > 10",
+        channel_references=[
+            {"channel_reference": "$1", "channel_identifier": channel_a.fqn()},
+        ],
+        action=RuleActionCreateDataReviewAnnotation(
+            assignee="alice@example.com",
+            tags=["tag_a"],
+        ),
+    )
+
+    rule_b = RuleConfig(
+        name="rule_b",
+        description="Rule B description",
+        expression='contains($1, "ERROR")',
+        channel_references=[
+            {"channel_reference": "$1", "channel_identifier": channel_b.fqn()},
+        ],
+        action=RuleActionCreatePhaseAnnotation(
+            tags=["tag_b"],
+        ),
+    )
+
+    return TelemetryConfig(
+        asset_name="asset_1",
+        flows=[
+            FlowConfig(
+                name="flow_1",
+                channels=[channel_a, channel_b, channel_enum, channel_bitfield],
+            )
+        ],
+        rules=[rule_a, rule_b],
+    )
+
+
+def test_telemetry_config_hash():
+    original_hash = get_telemetry_config().hash()
+
+    new_config = get_telemetry_config()
+    assert original_hash == new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.asset_name = "new_asset_name"
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].name = "new_flow_name"
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[0].name = "new_channel_name"
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[0].description = "Updated description"
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[0].unit = "Updated Unit"
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[2].enum_types[0].name = "Updated Enum Name"
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[2].enum_types[0].key = 10
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[3].bit_field_elements[0].name = "Updated Bit Field Name"
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[3].bit_field_elements[0].bit_count = 10
+    assert original_hash != new_config.hash()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[3].bit_field_elements[0].index = 9
+    assert original_hash != new_config.hash()
+
+    # Swap the order of the first two channels
+    original_config = get_telemetry_config()
+
+    new_config = get_telemetry_config()
+    new_config.flows[0].channels[0], new_config.flows[0].channels[1] = (
+        new_config.flows[0].channels[1],
+        new_config.flows[0].channels[0],
+    )
+
+    assert original_config.hash() != new_config.hash()
 
 
 # NOTE: Component is deprecated, but kept in yaml test to validate backwards compatibility

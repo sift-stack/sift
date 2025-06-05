@@ -88,7 +88,6 @@ overheating_rule = RuleConfig(
 # described above
 telemetry_config = TelemetryConfig(
     asset_name="NostromoLV426",
-    ingestion_client_key="nostromo_lv_426",
     rules=[overheating_rule],
     flows=[
         FlowConfig(
@@ -165,7 +164,6 @@ As for the contents of the `nostromo_lv_426.yml`, file it might look something l
 
 ```yaml
 asset_name: NostromoLV426
-ingestion_client_key: nostromo_lv_426
 
 channels:
   temperature_channel: &temperature_channel
@@ -213,7 +211,7 @@ schema:
 
   ingestion_client_key:
     type: string
-    description: User-defined string-key that uniquely identifies this telemetry config.
+    description: Optional user-defined string-key that uniquely identifies this telemetry config.
 
   organization_id:
     type: string
@@ -455,8 +453,8 @@ def nostromos_lv_426() -> TelemetryConfig:
 
 ## Updating a Telemetry Config
 
-The following section covers the situation in which you have an existing telemetry config that you would like to edit
-for future telemetry and how to use the `ingestion_client_key`.
+The following section covers the situation where you would like to maintain your config using an `ingestion_client_key`. Note that
+this is not required and only necessary if you are updating your telemetry config dynamically.
 
 ### Ingestion Client Key
 
@@ -540,7 +538,6 @@ def nostromos_lv_426() -> TelemetryConfig:
 
     return TelemetryConfig(
         asset_name="NostromoLV426",
-        ingestion_client_key="nostromo_lv_426",
         flows=[
             FlowConfig(
                 name="readings",

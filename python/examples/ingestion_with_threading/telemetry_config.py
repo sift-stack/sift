@@ -58,7 +58,6 @@ def nostromos_lv_426() -> TelemetryConfig:
 
     return TelemetryConfig(
         asset_name="NostromoLV426",
-        ingestion_client_key="nostromo_lv_426",
         flows=[
             FlowConfig(
                 name="readings",
