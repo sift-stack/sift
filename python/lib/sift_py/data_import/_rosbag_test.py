@@ -112,18 +112,35 @@ class TestRosChannel(unittest.TestCase):
     def test_get_underlying_fields_nested_type(self):
         sub_field1 = ("sub_field1", (Nodetype.BASE, ("int8", 0)))
         sub_field2 = ("sub_field2", (Nodetype.BASE, ("float64", 0)))
-        self.typestore.get_msgdef.return_value.fields = [sub_field1, sub_field2]
+        sub_field3 = ("sub_field3", (Nodetype.ARRAY, ((Nodetype.BASE, ("float64", 0)), 3)))
+        self.typestore.get_msgdef.return_value.fields = [sub_field1, sub_field2, sub_field3]
         field = ("field_name", (Nodetype.NAME, "some_msg_type"))
         channels = RosChannel.get_underlying_fields("my_prefix", field, self.typestore)
-        self.assertEqual(len(channels), 2)
+        self.assertEqual(len(channels), 5)
         self.assertEqual(channels[0].field_name, "sub_field1")
         self.assertEqual(channels[0].channel_name, "my_prefix.field_name.sub_field1")
         self.assertEqual(channels[0].node_type, Nodetype.BASE)
         self.assertEqual(channels[0].data_type, ChannelDataType.INT_32)
+
         self.assertEqual(channels[1].field_name, "sub_field2")
         self.assertEqual(channels[1].channel_name, "my_prefix.field_name.sub_field2")
         self.assertEqual(channels[1].node_type, Nodetype.BASE)
         self.assertEqual(channels[1].data_type, ChannelDataType.DOUBLE)
+
+        self.assertEqual(channels[2].field_name, "sub_field3")
+        self.assertEqual(channels[2].channel_name, "my_prefix.field_name.sub_field3[0]")
+        self.assertEqual(channels[2].node_type, Nodetype.BASE)
+        self.assertEqual(channels[2].data_type, ChannelDataType.DOUBLE)
+
+        self.assertEqual(channels[3].field_name, "sub_field3")
+        self.assertEqual(channels[3].channel_name, "my_prefix.field_name.sub_field3[1]")
+        self.assertEqual(channels[3].node_type, Nodetype.BASE)
+        self.assertEqual(channels[3].data_type, ChannelDataType.DOUBLE)
+
+        self.assertEqual(channels[4].field_name, "sub_field3")
+        self.assertEqual(channels[4].channel_name, "my_prefix.field_name.sub_field3[2]")
+        self.assertEqual(channels[4].node_type, Nodetype.BASE)
+        self.assertEqual(channels[4].data_type, ChannelDataType.DOUBLE)
 
 
 rest_config: SiftRestConfig = {
