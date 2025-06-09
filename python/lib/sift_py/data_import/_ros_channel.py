@@ -131,7 +131,7 @@ class RosChannel:
             for i in range(size):
                 sub_field = (field_name, sub_node_type)
                 channels.extend(
-                    RosChannel.get_underlying_fields(prefix, sub_field, typestore, index=i)
+                    RosChannel.get_underlying_fields(prefix, sub_field, typestore, i, parent_fields)
                 )
             return channels
         # Example of `field` for a nested value:
