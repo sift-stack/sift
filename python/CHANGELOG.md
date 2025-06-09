@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.6.2] - June 9, 2025
+- [Fixes bug in rosbags where nested arrays are not properly prefixed.](https://github.com/sift-stack/sift/pull/227)
+
 ## [v0.6.1] - June 2, 2025
 - [Retry on internal grpc errors](https://github.com/sift-stack/sift/pull/224)
 
