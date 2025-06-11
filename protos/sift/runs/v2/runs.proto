@@ -2,13 +2,15 @@ syntax = "proto3";
 
 package sift.runs.v2;
 
+import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/metadata/v1/metadata.proto";
 
-
+option go_package = "azimuth/gen/protos/go/sift/runs/v2;runsv2pb";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Run service"}
 };
@@ -113,12 +115,19 @@ message Run {
   repeated string tags = 12 [(google.api.field_behavior) = REQUIRED];
   string default_report_id = 13 [(google.api.field_behavior) = OPTIONAL];
   optional string client_key = 14 [(google.api.field_behavior) = OPTIONAL];
+  // The metadata values associated with this run.
+  repeated sift.metadata.v1.MetadataValue metadata = 15 [(google.api.field_behavior) = REQUIRED];
+  repeated string asset_ids = 16 [(google.api.field_behavior) = REQUIRED];
+  optional google.protobuf.Timestamp archived_date = 17 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The request for a call to `RunService_GetRun` to retrieve run.
 message GetRunRequest {
   // The ID of the run to retrieve.
-  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string run_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
 }
 
 // The response of a call to `RunService_GetRun` containing the requested run.
@@ -142,14 +151,15 @@ message ListRunsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-  // `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, `client_key`, and `asset_name`.
+  // `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, `asset_name`, `archived_date`,
+  // and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/runs#run). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved runs. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-  // Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `stop_time`.
-  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // Available fields to order_by are `name`, `description`, `created_date`, `modified_date`, `start_time`, and `stop_time`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date"
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
@@ -187,7 +197,17 @@ message CreateRunRequest {
   string organization_id = 7 [(google.api.field_behavior) = OPTIONAL];
 
   // An arbitrary user-chosen key that uniquely identifies this run. Optional, though it is recommended to provide.
-  optional string client_key = 8 [(google.api.field_behavior) = OPTIONAL];
+  optional string client_key = 8 [
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).cel = {
+      id: "invalid_client_key"
+      message: "client key must be 3-128 characters, start and end with an alphanumeric, and contain only [a-zA-Z0-9_~.-]."
+      expression: "this.matches('^[a-zA-Z0-9][a-zA-Z0-9_~.-]{0,126}[a-zA-Z0-9]$')"
+    }
+  ];
+
+  // The metadata values associated with this run.
+  repeated sift.metadata.v1.MetadataValue metadata = 9 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `RunService_CreateRuns` containing the newly created run.
@@ -202,12 +222,19 @@ message UpdateRunRequest {
   Run run = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The list of fields to be updated. The fields available to be updated are `name`, `description`,
-  // `start_time`, `stop_time`, `is_pinned`, `client_key`  and `tags`.
+  // `start_time`, `stop_time`, `is_pinned`, `client_key`, `tags`, and `metadata`.
   // Important Note: When updating the `start_time`, please be aware that if a subsequent data ingestion
   // commences for this run, the `start_time` will be automatically overwritten and set to the timestamp
   // corresponding to the beginning of the latest run. Additionally, `client_key` can only be set once either in run creation or in update.
   // Any subsequent attempt to update `client_key` will result in an error.
-  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.FieldMask update_mask = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).cel = {
+      id: "invalid_field_mask_path"
+      message: "field mask path must be in ['name', 'description', 'start_time', 'startTime', 'stop_time', 'stopTime', 'is_pinned', 'isPinned', 'client_key', 'clientKey', 'tags', 'metadata', 'archived_date']"
+      expression: "this.paths.all(path, path in ['name', 'description', 'start_time', 'startTime', 'stop_time', 'stopTime', 'is_pinned', 'isPinned', 'client_key', 'clientKey', 'tags', 'metadata', 'archived_date'])",
+    }
+  ];
 }
 
 // The response of a call to `RunService_UpdateRun` containing the updated run.
@@ -217,7 +244,10 @@ message UpdateRunResponse {
 
 message CreateAutomaticRunAssociationForAssetsRequest {
   // The ID of the run to associate the asset with.
-  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string run_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
 
   // A list of asset names to automatically associate with the run.
   // Any data that is received for these assets will automatically added to the run.
@@ -233,7 +263,10 @@ message CreateAutomaticRunAssociationForAssetsResponse {}
 
 // The request for a call to `RunService_DeleteRun`.
 message DeleteRunRequest {
-  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string run_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
 }
 
 // The response of a call to `RunService_DeleteRun`.
@@ -241,7 +274,10 @@ message DeleteRunResponse {}
 
 // The request for a call to `RunService_StopRun` to stop a run.
 message StopRunRequest {
-  string run_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string run_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
 }
 
 // The response of a call to `RunService_StopRun` to stop a run.
