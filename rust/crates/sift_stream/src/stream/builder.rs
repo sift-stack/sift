@@ -40,10 +40,12 @@ pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
 /// [tokio](https://docs.rs/tokio/latest/tokio/) asynchronous runtime is required, otherwise
 /// attempts to call [SiftStreamBuilder::build] will panic.
 pub struct SiftStreamBuilder<C> {
-    credentials: Credentials,
+    credentials: Option<Credentials>,
+    channel: Option<SiftChannel>,
     recovery_strategy: Option<RecoveryStrategy>,
     checkpoint_interval: Duration,
     ingestion_config: Option<IngestionConfigForm>,
+    warn_on_flow_not_found: bool,
     enable_tls: bool,
     kind: PhantomData<C>,
 
@@ -172,9 +174,20 @@ where
         self
     }
 
-    /// Disables TLS. Useful for testing.
+    /// Disables TLS. Useful for testing. This is ignored if [SiftStreamBuilder::from_channel] is
+    /// used to initialize the builder.
     pub fn disable_tls(mut self) -> SiftStreamBuilder<C> {
         self.enable_tls = false;
+        self
+    }
+
+    /// By default if a user tries to ingest a message for which there is no [FlowConfig] on the
+    /// [IngestionConfigForm], [SiftStream::send] and [SiftStream::send_requests] will return an
+    /// error. By calling this method, the aforementioned methods will simply emit a warning
+    /// log and send the message [SiftStream]'s internal DLQ - if the flow is later registered the
+    /// messages will be retransmitted.
+    pub fn warn_on_flow_not_found(mut self) -> SiftStreamBuilder<C> {
+        self.warn_on_flow_not_found = true;
         self
     }
 
@@ -287,10 +300,11 @@ where
 
 /// Builds a [SiftStream] specifically for ingestion-config based streaming.
 impl SiftStreamBuilder<IngestionConfigMode> {
-    /// Initializes a new builder for ingestion-config-based streaming.
+    /// Initializes a new builder for ingestion-config-based streaming from [Credentials].
     pub fn new(credentials: Credentials) -> SiftStreamBuilder<IngestionConfigMode> {
         SiftStreamBuilder {
-            credentials,
+            credentials: Some(credentials),
+            channel: None,
             enable_tls: true,
             ingestion_config: None,
             run: None,
@@ -298,6 +312,23 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             kind: PhantomData,
             checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
+            warn_on_flow_not_found: false,
+        }
+    }
+
+    /// Initializes a new builder for ingestion-config-based streaming from a [SiftChannel].
+    pub fn from_channel(channel: SiftChannel) -> SiftStreamBuilder<IngestionConfigMode> {
+        SiftStreamBuilder {
+            credentials: None,
+            channel: Some(channel),
+            enable_tls: true,
+            ingestion_config: None,
+            run: None,
+            run_id: None,
+            kind: PhantomData,
+            checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
+            recovery_strategy: None,
+            warn_on_flow_not_found: false,
         }
     }
 
@@ -305,13 +336,15 @@ impl SiftStreamBuilder<IngestionConfigMode> {
     /// streaming.
     pub async fn build(self) -> Result<SiftStream<IngestionConfigMode>> {
         let SiftStreamBuilder {
-            credentials,
             checkpoint_interval,
+            channel: grpc_channel,
+            credentials,
+            enable_tls,
             ingestion_config,
+            recovery_strategy,
             run,
             run_id,
-            recovery_strategy,
-            enable_tls,
+            warn_on_flow_not_found,
             ..
         } = self;
 
@@ -319,12 +352,22 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             return Err(Error::new_arg_error("ingestion_config is required"));
         };
 
-        let mut sift_channel_builder = SiftChannelBuilder::new(credentials);
+        let channel = match grpc_channel {
+            Some(ch) => ch,
+            None if credentials.is_some() => {
+                let mut sift_channel_builder = SiftChannelBuilder::new(credentials.unwrap());
 
-        if enable_tls {
-            sift_channel_builder = sift_channel_builder.use_tls(true);
-        }
-        let channel = sift_channel_builder.build()?;
+                if enable_tls {
+                    sift_channel_builder = sift_channel_builder.use_tls(true);
+                }
+                sift_channel_builder.build()?
+            }
+            None => {
+                return Err(Error::new_arg_error(
+                    "either credentials or a gRPC channel must be provided",
+                ));
+            }
+        };
 
         // Since the gRPC connection is lazy, we'll connect right away and ensure the connection is
         // valid.
@@ -549,5 +592,17 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                 Ok((ingestion_config, flows))
             }
         }
+    }
+}
+
+impl From<Credentials> for SiftStreamBuilder<IngestionConfigMode> {
+    fn from(value: Credentials) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<SiftChannel> for SiftStreamBuilder<IngestionConfigMode> {
+    fn from(value: SiftChannel) -> Self {
+        Self::from_channel(value)
     }
 }
