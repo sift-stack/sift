@@ -45,7 +45,6 @@ pub struct SiftStreamBuilder<C> {
     recovery_strategy: Option<RecoveryStrategy>,
     checkpoint_interval: Duration,
     ingestion_config: Option<IngestionConfigForm>,
-    warn_on_flow_not_found: bool,
     enable_tls: bool,
     kind: PhantomData<C>,
 
@@ -181,16 +180,6 @@ where
         self
     }
 
-    /// By default if a user tries to ingest a message for which there is no [FlowConfig] on the
-    /// [IngestionConfigForm], [SiftStream::send] and [SiftStream::send_requests] will return an
-    /// error. By calling this method, the aforementioned methods will simply emit a warning
-    /// log and send the message [SiftStream]'s internal DLQ - if the flow is later registered the
-    /// messages will be retransmitted.
-    pub fn warn_on_flow_not_found(mut self) -> SiftStreamBuilder<C> {
-        self.warn_on_flow_not_found = true;
-        self
-    }
-
     /// Retrieves a run by run ID.
     async fn load_run_by_id(grpc_channel: SiftChannel, run_id: &str) -> Result<Run> {
         let mut run_service = new_run_service(grpc_channel);
@@ -312,7 +301,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             kind: PhantomData,
             checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
-            warn_on_flow_not_found: false,
         }
     }
 
@@ -328,7 +316,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             kind: PhantomData,
             checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
-            warn_on_flow_not_found: false,
         }
     }
 
@@ -344,7 +331,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             recovery_strategy,
             run,
             run_id,
-            warn_on_flow_not_found,
             ..
         } = self;
 
@@ -482,24 +468,31 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     .try_create_ingestion_config(&asset_name, &client_key, &flows)
                     .await?;
 
-                let flows = ingestion_config_service
-                    .try_filter_flows(&ingestion_config.ingestion_config_id, "")
-                    .await?;
+                let new_flows = {
+                    if flows.is_empty() {
+                        Vec::new()
+                    } else {
+                        ingestion_config_service
+                            .try_filter_flows(&ingestion_config.ingestion_config_id, "")
+                            .await?
+                    }
+                };
 
                 #[cfg(feature = "tracing")]
                 {
-                    let flow_names = flows
-                        .iter()
-                        .map(|f| f.name.as_str())
-                        .collect::<Vec<&str>>()
-                        .join(",");
-                    tracing::info!(
-                        ingestion_config_id = ingestion_config.ingestion_config_id,
-                        flow_names = flow_names,
-                        "created new ingestion config"
-                    );
+                    if !new_flows.is_empty() {
+                        let flow_names = new_flows
+                            .iter()
+                            .map(|f| f.name.as_str())
+                            .collect::<Vec<&str>>()
+                            .join(",");
+                        tracing::info!(
+                            ingestion_config_id = ingestion_config.ingestion_config_id,
+                            flow_names = flow_names,
+                            "created new ingestion config"
+                        );
+                    }
                 }
-
                 Ok((ingestion_config, flows))
             }
             Err(err) => Err(err),
@@ -532,7 +525,11 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     .collect::<Vec<String>>()
                     .join(",");
 
-                let filter = format!("flow_name in [{flow_names}]");
+                let filter = flow_names
+                    .is_empty()
+                    .then(String::new)
+                    .unwrap_or_else(|| format!("flow_name in [{flow_names}]"));
+
                 let existing_flows = ingestion_config_service
                     .try_filter_flows(&ingestion_config.ingestion_config_id, &filter)
                     .await?;
