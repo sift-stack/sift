@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package sift.runs.v2;
 
-import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/field_mask.proto";
@@ -125,8 +124,7 @@ message Run {
 message GetRunRequest {
   // The ID of the run to retrieve.
   string run_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
+    (google.api.field_behavior) = REQUIRED
   ];
 }
 
@@ -198,12 +196,7 @@ message CreateRunRequest {
 
   // An arbitrary user-chosen key that uniquely identifies this run. Optional, though it is recommended to provide.
   optional string client_key = 8 [
-    (google.api.field_behavior) = OPTIONAL,
-    (buf.validate.field).cel = {
-      id: "invalid_client_key"
-      message: "client key must be 3-128 characters, start and end with an alphanumeric, and contain only [a-zA-Z0-9_~.-]."
-      expression: "this.matches('^[a-zA-Z0-9][a-zA-Z0-9_~.-]{0,126}[a-zA-Z0-9]$')"
-    }
+    (google.api.field_behavior) = OPTIONAL
   ];
 
   // The metadata values associated with this run.
@@ -228,12 +221,7 @@ message UpdateRunRequest {
   // corresponding to the beginning of the latest run. Additionally, `client_key` can only be set once either in run creation or in update.
   // Any subsequent attempt to update `client_key` will result in an error.
   google.protobuf.FieldMask update_mask = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).cel = {
-      id: "invalid_field_mask_path"
-      message: "field mask path must be in ['name', 'description', 'start_time', 'startTime', 'stop_time', 'stopTime', 'is_pinned', 'isPinned', 'client_key', 'clientKey', 'tags', 'metadata', 'archived_date']"
-      expression: "this.paths.all(path, path in ['name', 'description', 'start_time', 'startTime', 'stop_time', 'stopTime', 'is_pinned', 'isPinned', 'client_key', 'clientKey', 'tags', 'metadata', 'archived_date'])",
-    }
+    (google.api.field_behavior) = REQUIRED
   ];
 }
 
@@ -245,8 +233,7 @@ message UpdateRunResponse {
 message CreateAutomaticRunAssociationForAssetsRequest {
   // The ID of the run to associate the asset with.
   string run_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
+    (google.api.field_behavior) = REQUIRED
   ];
 
   // A list of asset names to automatically associate with the run.
@@ -264,8 +251,7 @@ message CreateAutomaticRunAssociationForAssetsResponse {}
 // The request for a call to `RunService_DeleteRun`.
 message DeleteRunRequest {
   string run_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
+    (google.api.field_behavior) = REQUIRED
   ];
 }
 
@@ -275,8 +261,7 @@ message DeleteRunResponse {}
 // The request for a call to `RunService_StopRun` to stop a run.
 message StopRunRequest {
   string run_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string.uuid = true
+    (google.api.field_behavior) = REQUIRED
   ];
 }
 
