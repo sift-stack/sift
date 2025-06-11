@@ -270,8 +270,7 @@ error will be logged.
 store_message_as_bytes: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.FieldOptions, builtins.bool]
 """Adding the store_message_as_bytes FieldOption to a message field indicates that the message should be stored as serialized
 protobuf. When enabled, instead of creating channels for each field in the message, a single bytes channel will be created
-for the entire message. This tag will cause a validation error if the field is not a message type, or is a repeated/map of
-a message.
+for the entire message. This tag will cause a validation error if the field is not a message type.
 """
 message_is_tag_target: google.protobuf.internal.extension_dict._ExtensionFieldDescriptor[google.protobuf.descriptor_pb2.MessageOptions, builtins.bool]
 """The message_is_tag_target option indicates that the message will allow its fields to have tags

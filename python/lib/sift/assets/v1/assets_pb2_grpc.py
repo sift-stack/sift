@@ -40,7 +40,7 @@ class AssetServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def DeleteAsset(self, request, context):
-        """Deletes an asset.
+        """Delete will archive an asset.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
