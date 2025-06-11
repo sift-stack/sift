@@ -17,9 +17,10 @@ from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior_
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapiv2_dot_options_dot_annotations__pb2
+from sift.metadata.v1 import metadata_pb2 as sift_dot_metadata_dot_v1_dot_metadata__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1bsift/assets/v1/assets.proto\x12\x0esift.assets.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xf7\x02\n\x05\x41sset\x12\x1e\n\x08\x61sset_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x07\x61ssetId\x12\x17\n\x04name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x04name\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\x42\n\x0c\x63reated_date\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x30\n\x12\x63reated_by_user_id\x18\x06 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x44\n\rmodified_date\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x32\n\x13modified_by_user_id\x18\x08 \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12\x17\n\x04tags\x18\t \x03(\tB\x03\xe0\x41\x02R\x04tags\"\x96\x01\n\x11ListAssetsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"k\n\x12ListAssetsResponse\x12-\n\x06\x61ssets\x18\x01 \x03(\x0b\x32\x15.sift.assets.v1.AssetR\x06\x61ssets\x12&\n\x0fnext_page_token\x18\x05 \x01(\tR\rnextPageToken\"4\n\x12\x44\x65leteAssetRequest\x12\x1e\n\x08\x61sset_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x07\x61ssetId\"\x15\n\x13\x44\x65leteAssetResponse\"1\n\x0fGetAssetRequest\x12\x1e\n\x08\x61sset_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x07\x61ssetId\"?\n\x10GetAssetResponse\x12+\n\x05\x61sset\x18\x01 \x01(\x0b\x32\x15.sift.assets.v1.AssetR\x05\x61sset\"\x83\x01\n\x12UpdateAssetRequest\x12+\n\x05\x61sset\x18\x01 \x01(\x0b\x32\x15.sift.assets.v1.AssetR\x05\x61sset\x12@\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x03\xe0\x41\x02R\nupdateMask\"B\n\x13UpdateAssetResponse\x12+\n\x05\x61sset\x18\x01 \x01(\x0b\x32\x15.sift.assets.v1.AssetR\x05\x61sset2\x87\x06\n\x0c\x41ssetService\x12\x9c\x01\n\x0b\x44\x65leteAsset\x12\".sift.assets.v1.DeleteAssetRequest\x1a#.sift.assets.v1.DeleteAssetResponse\"D\x92\x41 \x12\x0b\x44\x65leteAsset\x1a\x11\x44\x65letes an asset.\x82\xd3\xe4\x93\x02\x1b*\x19/api/v1/assets/{asset_id}\x12\x92\x01\n\x08GetAsset\x12\x1f.sift.assets.v1.GetAssetRequest\x1a .sift.assets.v1.GetAssetResponse\"C\x92\x41\x1f\x12\x08GetAsset\x1a\x13Retrieves an asset.\x82\xd3\xe4\x93\x02\x1b\x12\x19/api/v1/assets/{asset_id}\x12\xa6\x01\n\nListAssets\x12!.sift.assets.v1.ListAssetsRequest\x1a\".sift.assets.v1.ListAssetsResponse\"Q\x92\x41\x38\x12\nListAssets\x1a*Retrieves assets using an optional filter.\x82\xd3\xe4\x93\x02\x10\x12\x0e/api/v1/assets\x12\x9d\x01\n\x0bUpdateAsset\x12\".sift.assets.v1.UpdateAssetRequest\x1a#.sift.assets.v1.UpdateAssetResponse\"E\x92\x41)\x12\x0bUpdateAsset\x1a\x1aUpdate fields on an asset.\x82\xd3\xe4\x93\x02\x13\x32\x0e/api/v1/assets:\x01*\x1az\x92\x41w\x12\x44Service to programmatically interact with [assets](/glossary#asset).\x1a/\n Read more about what assets are.\x12\x0b/data-modelB\x8f\x01\n\x12\x63om.sift.assets.v1B\x0b\x41ssetsProtoP\x01\xa2\x02\x03SAX\xaa\x02\x0eSift.Assets.V1\xca\x02\x0eSift\\Assets\\V1\xe2\x02\x1aSift\\Assets\\V1\\GPBMetadata\xea\x02\x10Sift::Assets::V1\x92\x41\x11\x12\x0f\n\rAsset Serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1bsift/assets/v1/assets.proto\x12\x0esift.assets.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1fsift/metadata/v1/metadata.proto\"\xff\x03\n\x05\x41sset\x12\x1e\n\x08\x61sset_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x07\x61ssetId\x12\x17\n\x04name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x04name\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\x42\n\x0c\x63reated_date\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x30\n\x12\x63reated_by_user_id\x18\x06 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x44\n\rmodified_date\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x32\n\x13modified_by_user_id\x18\x08 \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12\x17\n\x04tags\x18\t \x03(\tB\x03\xe0\x41\x02R\x04tags\x12@\n\x08metadata\x18\n \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x02R\x08metadata\x12\x44\n\rarchived_date\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01R\x0c\x61rchivedDate\"\x96\x01\n\x11ListAssetsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"k\n\x12ListAssetsResponse\x12-\n\x06\x61ssets\x18\x01 \x03(\x0b\x32\x15.sift.assets.v1.AssetR\x06\x61ssets\x12&\n\x0fnext_page_token\x18\x05 \x01(\tR\rnextPageToken\"\\\n\x12\x44\x65leteAssetRequest\x12\x1e\n\x08\x61sset_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x07\x61ssetId\x12&\n\x0c\x61rchive_runs\x18\x02 \x01(\x08\x42\x03\xe0\x41\x01R\x0b\x61rchiveRuns\"\x15\n\x13\x44\x65leteAssetResponse\"1\n\x0fGetAssetRequest\x12\x1e\n\x08\x61sset_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x07\x61ssetId\"?\n\x10GetAssetResponse\x12+\n\x05\x61sset\x18\x01 \x01(\x0b\x32\x15.sift.assets.v1.AssetR\x05\x61sset\"\x83\x01\n\x12UpdateAssetRequest\x12+\n\x05\x61sset\x18\x01 \x01(\x0b\x32\x15.sift.assets.v1.AssetR\x05\x61sset\x12@\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x03\xe0\x41\x02R\nupdateMask\"B\n\x13UpdateAssetResponse\x12+\n\x05\x61sset\x18\x01 \x01(\x0b\x32\x15.sift.assets.v1.AssetR\x05\x61sset2\x87\x06\n\x0c\x41ssetService\x12\x9c\x01\n\x0b\x44\x65leteAsset\x12\".sift.assets.v1.DeleteAssetRequest\x1a#.sift.assets.v1.DeleteAssetResponse\"D\x92\x41 \x12\x0b\x44\x65leteAsset\x1a\x11\x44\x65letes an asset.\x82\xd3\xe4\x93\x02\x1b*\x19/api/v1/assets/{asset_id}\x12\x92\x01\n\x08GetAsset\x12\x1f.sift.assets.v1.GetAssetRequest\x1a .sift.assets.v1.GetAssetResponse\"C\x92\x41\x1f\x12\x08GetAsset\x1a\x13Retrieves an asset.\x82\xd3\xe4\x93\x02\x1b\x12\x19/api/v1/assets/{asset_id}\x12\xa6\x01\n\nListAssets\x12!.sift.assets.v1.ListAssetsRequest\x1a\".sift.assets.v1.ListAssetsResponse\"Q\x92\x41\x38\x12\nListAssets\x1a*Retrieves assets using an optional filter.\x82\xd3\xe4\x93\x02\x10\x12\x0e/api/v1/assets\x12\x9d\x01\n\x0bUpdateAsset\x12\".sift.assets.v1.UpdateAssetRequest\x1a#.sift.assets.v1.UpdateAssetResponse\"E\x92\x41)\x12\x0bUpdateAsset\x1a\x1aUpdate fields on an asset.\x82\xd3\xe4\x93\x02\x13\x32\x0e/api/v1/assets:\x01*\x1az\x92\x41w\x12\x44Service to programmatically interact with [assets](/glossary#asset).\x1a/\n Read more about what assets are.\x12\x0b/data-modelB\x8f\x01\n\x12\x63om.sift.assets.v1B\x0b\x41ssetsProtoP\x01\xa2\x02\x03SAX\xaa\x02\x0eSift.Assets.V1\xca\x02\x0eSift\\Assets\\V1\xe2\x02\x1aSift\\Assets\\V1\\GPBMetadata\xea\x02\x10Sift::Assets::V1\x92\x41\x11\x12\x0f\n\rAsset Serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,6 +44,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ASSET'].fields_by_name['modified_by_user_id']._serialized_options = b'\340A\002'
   _globals['_ASSET'].fields_by_name['tags']._loaded_options = None
   _globals['_ASSET'].fields_by_name['tags']._serialized_options = b'\340A\002'
+  _globals['_ASSET'].fields_by_name['metadata']._loaded_options = None
+  _globals['_ASSET'].fields_by_name['metadata']._serialized_options = b'\340A\002'
+  _globals['_ASSET'].fields_by_name['archived_date']._loaded_options = None
+  _globals['_ASSET'].fields_by_name['archived_date']._serialized_options = b'\340A\001'
   _globals['_LISTASSETSREQUEST'].fields_by_name['page_size']._loaded_options = None
   _globals['_LISTASSETSREQUEST'].fields_by_name['page_size']._serialized_options = b'\340A\001'
   _globals['_LISTASSETSREQUEST'].fields_by_name['page_token']._loaded_options = None
@@ -53,6 +58,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTASSETSREQUEST'].fields_by_name['order_by']._serialized_options = b'\340A\001'
   _globals['_DELETEASSETREQUEST'].fields_by_name['asset_id']._loaded_options = None
   _globals['_DELETEASSETREQUEST'].fields_by_name['asset_id']._serialized_options = b'\340A\002'
+  _globals['_DELETEASSETREQUEST'].fields_by_name['archive_runs']._loaded_options = None
+  _globals['_DELETEASSETREQUEST'].fields_by_name['archive_runs']._serialized_options = b'\340A\001'
   _globals['_GETASSETREQUEST'].fields_by_name['asset_id']._loaded_options = None
   _globals['_GETASSETREQUEST'].fields_by_name['asset_id']._serialized_options = b'\340A\002'
   _globals['_UPDATEASSETREQUEST'].fields_by_name['update_mask']._loaded_options = None
@@ -67,24 +74,24 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ASSETSERVICE'].methods_by_name['ListAssets']._serialized_options = b'\222A8\022\nListAssets\032*Retrieves assets using an optional filter.\202\323\344\223\002\020\022\016/api/v1/assets'
   _globals['_ASSETSERVICE'].methods_by_name['UpdateAsset']._loaded_options = None
   _globals['_ASSETSERVICE'].methods_by_name['UpdateAsset']._serialized_options = b'\222A)\022\013UpdateAsset\032\032Update fields on an asset.\202\323\344\223\002\0232\016/api/v1/assets:\001*'
-  _globals['_ASSET']._serialized_start=226
-  _globals['_ASSET']._serialized_end=601
-  _globals['_LISTASSETSREQUEST']._serialized_start=604
-  _globals['_LISTASSETSREQUEST']._serialized_end=754
-  _globals['_LISTASSETSRESPONSE']._serialized_start=756
-  _globals['_LISTASSETSRESPONSE']._serialized_end=863
-  _globals['_DELETEASSETREQUEST']._serialized_start=865
-  _globals['_DELETEASSETREQUEST']._serialized_end=917
-  _globals['_DELETEASSETRESPONSE']._serialized_start=919
-  _globals['_DELETEASSETRESPONSE']._serialized_end=940
-  _globals['_GETASSETREQUEST']._serialized_start=942
-  _globals['_GETASSETREQUEST']._serialized_end=991
-  _globals['_GETASSETRESPONSE']._serialized_start=993
-  _globals['_GETASSETRESPONSE']._serialized_end=1056
-  _globals['_UPDATEASSETREQUEST']._serialized_start=1059
-  _globals['_UPDATEASSETREQUEST']._serialized_end=1190
-  _globals['_UPDATEASSETRESPONSE']._serialized_start=1192
-  _globals['_UPDATEASSETRESPONSE']._serialized_end=1258
-  _globals['_ASSETSERVICE']._serialized_start=1261
-  _globals['_ASSETSERVICE']._serialized_end=2036
+  _globals['_ASSET']._serialized_start=259
+  _globals['_ASSET']._serialized_end=770
+  _globals['_LISTASSETSREQUEST']._serialized_start=773
+  _globals['_LISTASSETSREQUEST']._serialized_end=923
+  _globals['_LISTASSETSRESPONSE']._serialized_start=925
+  _globals['_LISTASSETSRESPONSE']._serialized_end=1032
+  _globals['_DELETEASSETREQUEST']._serialized_start=1034
+  _globals['_DELETEASSETREQUEST']._serialized_end=1126
+  _globals['_DELETEASSETRESPONSE']._serialized_start=1128
+  _globals['_DELETEASSETRESPONSE']._serialized_end=1149
+  _globals['_GETASSETREQUEST']._serialized_start=1151
+  _globals['_GETASSETREQUEST']._serialized_end=1200
+  _globals['_GETASSETRESPONSE']._serialized_start=1202
+  _globals['_GETASSETRESPONSE']._serialized_end=1265
+  _globals['_UPDATEASSETREQUEST']._serialized_start=1268
+  _globals['_UPDATEASSETREQUEST']._serialized_end=1399
+  _globals['_UPDATEASSETRESPONSE']._serialized_start=1401
+  _globals['_UPDATEASSETRESPONSE']._serialized_end=1467
+  _globals['_ASSETSERVICE']._serialized_start=1470
+  _globals['_ASSETSERVICE']._serialized_end=2245
 # @@protoc_insertion_point(module_scope)

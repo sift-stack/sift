@@ -10,6 +10,7 @@ import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.metadata.v1.metadata_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -32,6 +33,9 @@ class Run(google.protobuf.message.Message):
     TAGS_FIELD_NUMBER: builtins.int
     DEFAULT_REPORT_ID_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
+    ASSET_IDS_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     run_id: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
@@ -51,6 +55,14 @@ class Run(google.protobuf.message.Message):
     def stop_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """The metadata values associated with this run."""
+
+    @property
+    def asset_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -68,9 +80,14 @@ class Run(google.protobuf.message.Message):
         tags: collections.abc.Iterable[builtins.str] | None = ...,
         default_report_id: builtins.str = ...,
         client_key: builtins.str | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        asset_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "client_key", b"client_key", "created_date", b"created_date", "modified_date", b"modified_date", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "default_report_id", b"default_report_id", "description", b"description", "is_pinned", b"is_pinned", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "modified_date", b"modified_date", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_start_time", b"_start_time", "_stop_time", b"_stop_time", "archived_date", b"archived_date", "asset_ids", b"asset_ids", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "default_report_id", b"default_report_id", "description", b"description", "is_pinned", b"is_pinned", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "run_id", b"run_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -142,14 +159,15 @@ class ListRunsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-    `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, `client_key`, and `asset_name`.
+    `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, `asset_name`, `archived_date`,
+    and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/runs#run). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved runs. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `stop_time`.
-    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    Available fields to order_by are `name`, `description`, `created_date`, `modified_date`, `start_time`, and `stop_time`.
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
     """
@@ -199,6 +217,7 @@ class CreateRunRequest(google.protobuf.message.Message):
     STOP_TIME_FIELD_NUMBER: builtins.int
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     name: builtins.str
     """The name that will be assigned to the new run."""
     description: builtins.str
@@ -226,6 +245,10 @@ class CreateRunRequest(google.protobuf.message.Message):
         set based on the timestamp of the data for this run.
         """
 
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """The metadata values associated with this run."""
+
     def __init__(
         self,
         *,
@@ -236,9 +259,10 @@ class CreateRunRequest(google.protobuf.message.Message):
         stop_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         organization_id: builtins.str = ...,
         client_key: builtins.str | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "client_key", b"client_key", "start_time", b"start_time", "stop_time", b"stop_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "client_key", b"client_key", "description", b"description", "name", b"name", "organization_id", b"organization_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "client_key", b"client_key", "description", b"description", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "start_time", b"start_time", "stop_time", b"stop_time", "tags", b"tags"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
 
 global___CreateRunRequest = CreateRunRequest
@@ -279,7 +303,7 @@ class UpdateRunRequest(google.protobuf.message.Message):
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
         """The list of fields to be updated. The fields available to be updated are `name`, `description`,
-        `start_time`, `stop_time`, `is_pinned`, `client_key`  and `tags`.
+        `start_time`, `stop_time`, `is_pinned`, `client_key`, `tags`, and `metadata`.
         Important Note: When updating the `start_time`, please be aware that if a subsequent data ingestion
         commences for this run, the `start_time` will be automatically overwritten and set to the timestamp
         corresponding to the beginning of the latest run. Additionally, `client_key` can only be set once either in run creation or in update.

@@ -7,6 +7,7 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/metadata/v1/metadata.proto";
 
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -22,7 +23,7 @@ service AssetService {
     }
   };
 
-  // Deletes an asset.
+  // Delete will archive an asset.
   rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse) {
     option (google.api.http) = {delete: "/api/v1/assets/{asset_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -70,8 +71,14 @@ message Asset {
   google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
 
-  // The names of the tags to associate with this asset.
+  // The names of the tags associated with this asset.
   repeated string tags = 9 [(google.api.field_behavior) = REQUIRED];
+
+  // The metadata values associated with this asset.
+  repeated sift.metadata.v1.MetadataValue metadata = 10 [(google.api.field_behavior) = REQUIRED];
+
+  // The date the asset was archived.
+  google.protobuf.Timestamp archived_date = 11 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The request for a call to `AssetService_ListAssets`.
@@ -90,14 +97,14 @@ message ListAssetsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
-  // `created_date`, `modified_date`, and `name`.
+  // `created_date`, `modified_date`, `name`, `tag_id`, `tag_name`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/assets#asset). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved assets. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-  // Available fields to order_by are `created_date` and `modified_date`.
-  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // Available fields to order_by are `name`, `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date"
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
@@ -109,10 +116,13 @@ message ListAssetsResponse {
   string next_page_token = 5;
 }
 
-// The request for a call to `AssetService_DeleteAsset` to delete a single existing annotation by its asset_id.
+// The request for a call to `AssetService_DeleteAsset` to archive a single existing asset by its asset_id.
 message DeleteAssetRequest {
-  // The id of the asset to be deleted. Required.
+  // The id of the asset to be archived. Required.
   string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // If true, will archive all runs associated with the asset.
+  bool archive_runs = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The response of a call to `AssetService_DeleteAsset`.
@@ -127,14 +137,18 @@ message GetAssetRequest {
 message GetAssetResponse {
   Asset asset = 1;
 }
+
+// The request for a call to `AssetService_UpdateAsset` to update a single existing asset.
 message UpdateAssetRequest {
   // The asset to update. The asset's `asset_id` field is used to identify asset run to update
   // and is required.
   Asset asset = 1;
 
-  // The list of fields to be updated. Currently, the only field available to be updated is `tags`.
+  // The list of fields to be updated. The fields available to be updated are `tags`, `metadata`, and `archived_date`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
+
+// The response of a call to `AssetService_UpdateAsset`.
 message UpdateAssetResponse {
   Asset asset = 1;
 }
