@@ -11,6 +11,7 @@ use sift_rs::{
     ping::v1::{PingRequest, ping_service_client::PingServiceClient},
     runs::v2::Run,
     wrappers::{
+        assets::{AssetServiceWrapper, new_asset_service},
         ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
         runs::{RunServiceWrapper, new_run_service},
     },
@@ -420,7 +421,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         #[cfg(feature = "tracing")]
         tracing::info_span!("load_ingestion_config");
 
-        let mut ingestion_config_service = new_ingestion_config_service(grpc_channel);
+        let mut ingestion_config_service = new_ingestion_config_service(grpc_channel.clone());
+        let mut asset_service = new_asset_service(grpc_channel);
 
         let IngestionConfigForm {
             asset_name,
@@ -465,6 +467,21 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     ingestion_config_id = ingestion_config.ingestion_config_id,
                     "an existing ingestion config was found with the provided client-key"
                 );
+
+                let asset = asset_service
+                    .try_get_asset_by_id(&ingestion_config.asset_id)
+                    .await
+                    .context("failed to retrieve asset specified by ingestion config")?;
+
+                if asset.name != asset_name {
+                    return Err(Error::new_msg(
+                        ErrorKind::IncompatibleIngestionConfigChange,
+                        format!(
+                            "local ingestion config references asset '{asset_name}' but this existing config in Sift refers to asset '{}'",
+                            asset.name
+                        ),
+                    ));
+                }
 
                 let flow_names = flows
                     .iter()
