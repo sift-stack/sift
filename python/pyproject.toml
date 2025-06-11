@@ -6,33 +6,32 @@ requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE" }
 classifiers = [
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 maintainers = [
-  { name = "Sift Software Engineers", email = "engineering@siftstack.com" },
+    { name = "Sift Software Engineers", email = "engineering@siftstack.com" },
 ]
 keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
-  "grpcio~=1.13",
-  "PyYAML~=6.0",
-  "pandas~=2.0",
-  "protobuf>=4.0",
-  "pydantic~=2.0",
-  "pydantic_core~=2.3",
-  "requests~=2.25",
-  "requests-toolbelt~=1.0",
-
-  # May move these to optional dependencies in the future.
-  "pandas-stubs~=2.0",
-  "types-PyYAML~=6.0",
-  "types-protobuf>=4.0",
-  "typing-extensions~=4.6",
-  "types-requests~=2.25",
+    "grpcio~=1.13",
+    "PyYAML~=6.0",
+    "pandas~=2.0",
+    "protobuf>=4.0",
+    "pydantic~=2.0",
+    "pydantic_core~=2.3",
+    "requests~=2.25",
+    "requests-toolbelt~=1.0",
+    # May move these to optional dependencies in the future.
+    "pandas-stubs~=2.0",
+    "types-PyYAML~=6.0",
+    "types-protobuf>=4.0",
+    "typing-extensions~=4.6",
+    "types-requests~=2.25",
 ]
 
 [project.urls]
@@ -43,14 +42,14 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
 development = [
-  "grpcio-testing~=1.13",
-  "mypy==1.10.0",
-  "pyright==1.1.386",
-  "pytest==8.2.2",
-  "pytest-asyncio==0.23.7",
-  "pytest-benchmark==4.0.0",
-  "pytest-mock==3.14.0",
-  "ruff",
+    "grpcio-testing~=1.13",
+    "mypy==1.10.0",
+    "pyright==1.1.386",
+    "pytest==8.2.2",
+    "pytest-asyncio==0.23.7",
+    "pytest-benchmark==4.0.0",
+    "pytest-mock==3.14.0",
+    "ruff",
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
@@ -68,36 +67,38 @@ python_version = "3.8"
 reportOptionalMemberAccess = "none"
 reportArgumentType = "none"
 reportAttributeAccessIssue = "none"
+stubPath = "lib/sift_client/resources/sync_stubs"
+useLibraryCodeForTypes = true
 exclude = [
-  ".bzr",
-  ".direnv",
-  ".eggs",
-  ".git",
-  ".git-rewrite",
-  ".hg",
-  ".ipynb_checkpoints",
-  ".mypy_cache",
-  ".nox",
-  ".pants.d",
-  ".pyenv",
-  ".pytest_cache",
-  ".pytype",
-  ".ruff_cache",
-  ".svn",
-  ".tox",
-  ".venv",
-  ".vscode",
-  "__pypackages__",
-  "_build",
-  "buck-out",
-  "build",
-  "dist",
-  "node_modules",
-  "site-packages",
-  "venv",
-  "lib/sift",
-  "lib/google",
-  "lib/protoc_gen_openapiv2",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "lib/sift",
+    "lib/google",
+    "lib/protoc_gen_openapiv2",
 ]
 
 # No official typing stubs for Python gRPC libraries yet.
@@ -128,42 +129,44 @@ where = ["lib"]
 [tool.setuptools.package-data]
 sift_grafana = ["py.typed"]
 sift_py = ["py.typed"]
+sift_client = ["py.typed", "resources/sync_stubs/*.pyi"]
 
 [tool.ruff]
 line-length = 100
 indent-width = 4
 target-version = "py38" # Python 3.8
 exclude = [
-  ".bzr",
-  ".direnv",
-  ".eggs",
-  ".git",
-  ".git-rewrite",
-  ".hg",
-  ".ipynb_checkpoints",
-  ".mypy_cache",
-  ".nox",
-  ".pants.d",
-  ".pyenv",
-  ".pytest_cache",
-  ".pytype",
-  ".ruff_cache",
-  ".svn",
-  ".tox",
-  ".venv",
-  ".vscode",
-  "__pypackages__",
-  "_build",
-  "buck-out",
-  "build",
-  "dist",
-  "node_modules",
-  "site-packages",
-  "venv",
-  "lib/sift",
-  "lib/google",
-  "lib/protoc_gen_openapiv2",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "lib/sift",
+    "lib/google",
+    "lib/protoc_gen_openapiv2",
 ]
 
 [tool.ruff.lint]
 select = ["F", "W", "I", "N", "TID"]
+unfixable = ["F401"]

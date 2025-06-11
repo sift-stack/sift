@@ -7,13 +7,10 @@ It handles automatic handling of gRPC services, seamless type conversion, and cl
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from typing import Any
 
 from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
 from sift_client.transport.grpc_transport import GrpcClient
-from sift_client._internal.sync_wrapper import generate_sync_api
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -43,40 +40,3 @@ class PingAPIAsync:
         """
         return await self._low_level_client.ping()
 
-
-# class PingAPI:
-#     """
-#     Synchronous façade around HighLevelAsyncClient.
-#
-#     Internally, each method calls into an event loop to run the async code.
-#     """
-#
-#     def __init__(self, client: GrpcClient):
-#         """
-#         Initialize the PingAPI.
-#
-#         Args:
-#             client: The gRPC client to use for making API calls.
-#         """
-#         self._client = client
-#         self._async_impl = PingAPIAsync(client)
-#
-#     def _run(self, coro) -> Any:
-#         """
-#         Run the given coroutine on the client's default sync loop.
-#         """
-#         future = asyncio.run_coroutine_threadsafe(coro, self._client._default_loop)
-#         return future.result()
-#
-#     def ping(self) -> str:
-#         """
-#         Send a ping request to the server synchronously.
-#
-#         Returns:
-#             The response from the server.
-#         """
-#         return self._run(self._async_impl.ping())
-
-
-
-PingAPI = generate_sync_api(PingAPIAsync)
