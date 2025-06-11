@@ -42,7 +42,8 @@ def parse_csv(
 
 
 def load_telemetry_config(
-    path_to_csv: Path, asset_name: str, ingestion_client_key: str
+    path_to_csv: Path,
+    asset_name: str,
 ) -> TelemetryConfig:
     channels = []
 
@@ -61,7 +62,6 @@ def load_telemetry_config(
 
     return TelemetryConfig(
         asset_name=asset_name,
-        ingestion_client_key=ingestion_client_key,
         flows=[FlowConfig(name="data", channels=channels)],
     )
 
@@ -82,12 +82,9 @@ if __name__ == "__main__":
     asset_name = os.getenv("ASSET_NAME")
     assert asset_name, "expected 'ASSET_NAME' environment variable to be set"
 
-    ingestion_client_key = os.getenv("INGESTION_CLIENT_KEY")
-    assert ingestion_client_key, "expected 'INGESTION_CLIENT_KEY' environment variable to be set"
-
     sample_data_csv = Path("sample_data.csv")
 
-    telemetry_config = load_telemetry_config(sample_data_csv, asset_name, ingestion_client_key)
+    telemetry_config = load_telemetry_config(sample_data_csv, asset_name)
     flows = parse_csv(sample_data_csv, telemetry_config)
 
     sift_channel_config = SiftChannelConfig(

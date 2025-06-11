@@ -23,7 +23,7 @@ class TelemetryConfigYamlSpec(TypedDict):
     Formal spec that defines what the telemetry config should look like in YAML.
 
     `asset_name`: The name of the asset to telemeter.
-    `ingestion_client_key`: User-defined string-key that uniquely identifies this telemetry config.
+    `ingestion_client_key`: Optional user-defined string-key that uniquely identifies this telemetry config.
     `organization_id`: Optional ID of user's organization. Required if user belongs to multiple orgs.
     `channels`: Sensors that send the data.
     `rules`: Rules that, when evaluated to a true, will perform some sort of acction.
@@ -31,7 +31,7 @@ class TelemetryConfigYamlSpec(TypedDict):
     """
 
     asset_name: str
-    ingestion_client_key: str
+    ingestion_client_key: NotRequired[str]
     organization_id: NotRequired[str]
     channels: Dict[str, ChannelConfigYamlSpec]
     rules: NotRequired[List[RuleYamlSpec]]

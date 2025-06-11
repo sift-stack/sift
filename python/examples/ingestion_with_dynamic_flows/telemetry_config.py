@@ -58,6 +58,7 @@ def nostromos_lv_426() -> TelemetryConfig:
 
     return TelemetryConfig(
         asset_name="NostromoLV426",
+        ingestion_client_key="nostromo_lv_426-dynamic-config",
         flows=[
             FlowConfig(
                 name="readings",
@@ -142,5 +143,18 @@ def nostromos_lv_426() -> TelemetryConfig:
                     tags=["nostromo", "failure"],
                 ),
             ),
+        ],
+    )
+
+
+def get_new_flow_config():
+    """Returns a new flow config to add to our ingestion config."""
+    return FlowConfig(
+        name="new_flow_config",
+        channels=[
+            ChannelConfig(
+                name="new_channel",
+                data_type=ChannelDataType.DOUBLE,
+            )
         ],
     )
