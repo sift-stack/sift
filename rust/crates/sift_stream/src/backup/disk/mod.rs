@@ -87,7 +87,7 @@ where
         };
         let backups_dir = backups_root.join(new_dir_name);
 
-        match fs::create_dir(&backups_dir) {
+        match fs::create_dir_all(&backups_dir) {
             Err(err) if err.kind() != IoErrorKind::AlreadyExists => {
                 return Err(Error::new(ErrorKind::BackupsError, err))
                     .with_context(|| format!("failed to create directory for backups at {}", backups_dir.display()))
