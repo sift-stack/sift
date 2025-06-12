@@ -78,11 +78,6 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
                 "ingestion config client key cannot be blank",
             ));
         }
-        if flows.is_empty() {
-            return Err(Error::new_arg_error(
-                "cannot create an ingestion config with no flows",
-            ));
-        }
 
         self.create_ingestion_config(CreateIngestionConfigRequest {
             asset_name: asset_name.to_string(),

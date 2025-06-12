@@ -106,6 +106,8 @@ pub enum ErrorKind {
     GrpcConnectError,
     /// Indicates that the program was unable to retrieve the run being requested.
     RetrieveRunError,
+    /// Indicates that the program was unable to retrieve the asset being requested.
+    RetrieveAssetError,
     /// Indicates a failure to update a run.
     UpdateRunError,
     /// Indicates that the program was unable to retrieve the ingestion config being requested.
@@ -190,6 +192,7 @@ impl fmt::Display for ErrorKind {
         match self {
             Self::GrpcConnectError => write!(f, "GrpcConnectError"),
             Self::RetriesExhausted => write!(f, "RetriesExhausted"),
+            Self::RetrieveAssetError => write!(f, "RetrieveAssetError"),
             Self::RetrieveRunError => write!(f, "RetrieveRunError"),
             Self::RetrieveIngestionConfigError => write!(f, "RetrieveIngestionConfigError"),
             Self::EmptyResponseError => write!(f, "EmptyResponseError"),

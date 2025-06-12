@@ -1,3 +1,6 @@
+/// Offers a wrapper over Sift's assets API.
+pub mod assets;
+
 /// Offers a wrapper over Sift's ingestion configs API.
 pub mod ingestion_configs;
 

@@ -13,6 +13,7 @@ use sift_rs::{
     },
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     runs::v2::Run,
+    wrappers::ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
 };
 use std::{
     collections::HashMap,
@@ -296,6 +297,29 @@ impl SiftStream<IngestionConfigMode> {
                 },
             },
         }
+    }
+
+    /// Modify the existing ingestion config by adding new flows that weren't accounted for during
+    /// initialization.
+    pub async fn add_new_flows(&mut self, flow_configs: &[FlowConfig]) -> Result<()> {
+        new_ingestion_config_service(self.grpc_channel.clone())
+            .try_create_flows(
+                &self.mode.ingestion_config.ingestion_config_id,
+                flow_configs,
+            )
+            .await
+            .context("SiftStream::add_new_flows")?;
+
+        for flow_config in flow_configs {
+            self.mode
+                .flows_by_name
+                .entry(flow_config.name.clone())
+                .and_modify(|flows| flows.push(flow_config.clone()))
+                .or_insert_with(|| vec![flow_config.clone()]);
+
+            tracing::info!(flow = flow_config.name, "successfully registered new flow");
+        }
+        Ok(())
     }
 
     async fn backup_data(&mut self, req: &IngestWithConfigDataStreamRequest) -> Result<()> {
@@ -709,7 +733,8 @@ impl SiftStream<IngestionConfigMode> {
         })
     }
 
-    /// Flows passed into this function should have names match `flow_name`.
+    /// Flows passed into this function should have names match `flow_name`. The only case
+    /// in which this returns `None` is if there is no [FlowConfig] for the given `message`.
     pub(crate) fn message_to_ingest_req(
         message: &Flow,
         ingestion_config_id: &str,

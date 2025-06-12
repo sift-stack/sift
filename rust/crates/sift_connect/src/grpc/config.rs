@@ -8,13 +8,13 @@ pub const SIFT_CONFIG_NAME: &str = "sift.toml";
 /// query the corresponding table from [`SIFT_CONFIG_NAME`] located at
 /// [these locations](https://docs.rs/dirs/6.0.0/dirs/fn.config_local_dir.html)
 /// depending on your operating system. If `None` is provided, then the top-level table is used.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Credentials {
     Profile(Option<String>),
     Config { uri: String, apikey: String },
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub(crate) struct SiftChannelConfig {
     pub uri: String,
     pub apikey: String,
