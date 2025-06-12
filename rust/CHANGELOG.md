@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.3.0] - June 12, 2025
+
+- Users can now initialize `SiftStreamBuilder` from an existing instance of `SiftChannel`
+- Users can now call `SiftStream::add_new_flow` to generate a new flow that wasn't initially configured on their ingestion config.
+- Fixed a bug where the disk-based-backups manager would return an error if the backup-directory that needed to be created had intermediate directories that didn't yet exist.
+- Fixed a bug where changing the asset-name without changing the client key on the ingestion config didn't return an error - assuming the ingestion config with that key already exists.
+
+All of these changes can be found in this [pull-request](https://github.com/sift-stack/sift/pull/229).
+
 ## [v0.2.1] - April 28, 2025
 
 - Downgraded `chrono` from `0.4.40` to `0.4.39` due to function naming collisions introduced
