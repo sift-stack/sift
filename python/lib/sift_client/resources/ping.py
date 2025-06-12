@@ -21,7 +21,7 @@ class PingAPIAsync:
     High-level API for performing health checks.
     """
 
-    def __init__(self, client: GrpcClient):
+    def __init__(self, client: GrpcClient = None):
         """
         Initialize the AssetsAPI.
 
@@ -40,3 +40,9 @@ class PingAPIAsync:
         """
         return await self._low_level_client.ping()
 
+    async def test(self, a: logging.Logger = None)  -> GrpcClient:
+        ...
+
+    @property
+    def testProp(self) -> int:
+        return 1

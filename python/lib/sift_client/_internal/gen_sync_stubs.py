@@ -4,14 +4,15 @@ Generate .pyi stub files for sync API classes created with generate_sync_api.
 This script:
 1. Imports all modules in sift_client.resources to ensure all @generate_sync_api decorators run
 2. Collects all registered (async_cls, sync_cls) pairs from sync_wrapper._registered
-3. Generates .pyi stubs in a dedicated sync_stubs directory next to resources
+3. Generates .pyi stubs in the specified target directory, including all imports from the original file
 """
 
 import inspect
 import importlib
 import pathlib
 import sys
-from typing import Type, Any
+import ast
+from typing import Type, Any, List, Dict
 
 # Add the parent directory to sys.path so we can import sift_client
 script_dir = pathlib.Path(__file__).parent.parent.parent.parent
@@ -19,9 +20,6 @@ sys.path.insert(0, str(script_dir))
 
 # Import the registration list
 from sift_client._internal.sync_wrapper import _registered
-
-# Place stubs in a dedicated sync_stubs directory next to resources
-STUB_DIR = pathlib.Path(__file__).parent.parent / "resources" / "sync_stubs"
 
 
 def make_stub_block(async_cls: Type[Any], cls: Type[Any]) -> str:
@@ -58,6 +56,40 @@ def make_stub_block(async_cls: Type[Any], cls: Type[Any]) -> str:
     return "\n".join(lines)
 
 
+def extract_imports(file_path: pathlib.Path) -> List[str]:
+    """Extract import statements from a Python file."""
+    with open(file_path, 'r') as f:
+        content = f.read()
+    
+    try:
+        tree = ast.parse(content)
+        import_lines = []
+        
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                # Get the line from the source
+                start_line = node.lineno - 1
+                end_line = node.end_lineno if hasattr(node, 'end_lineno') else start_line
+                
+                # Extract the import statement from the source
+                lines = content.splitlines()[start_line:end_line+1]
+                import_statement = '\n'.join(lines)
+                import_lines.append(import_statement)
+        
+        return import_lines
+    except SyntaxError:
+        # Fallback to simple parsing if AST parsing fails
+        lines = content.splitlines()
+        import_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('import ') or line.startswith('from '):
+                import_lines.append(line)
+        
+        return import_lines
+
+
 def import_all_resources():
     """Import all modules in sift_client.resources to ensure all decorators run."""
     try:
@@ -78,43 +110,53 @@ def import_all_resources():
             print(f"Error importing {name}: {e}")
 
 
-def main():
-    """Generate stubs for all registered sync classes."""
-    # Ensure stub directory exists
-    STUB_DIR.mkdir(exist_ok=True, parents=True)
+def generate_stubs(target_dir):
+    """Generate stubs for all registered sync classes in the target directory."""
+    # Ensure target directory exists
+    target_dir = pathlib.Path(target_dir)
+    target_dir.mkdir(exist_ok=True, parents=True)
     
     # Import all resources to populate _registered
     import_all_resources()
     
-    # Group by module
-    module_stubs = {}
-    for async_cls, sync_cls in _registered:
-        module = async_cls.__module__
-        if module not in module_stubs:
-            module_stubs[module] = []
-        module_stubs[module].append((async_cls, sync_cls))
+    # Generate __init__.pyi in the target directory
+    init_pyi = target_dir / "__init__.pyi"
+    init_py = target_dir / "__init__.py"
     
-    # Generate stubs by module
-    for module, pairs in module_stubs.items():
-        # Get module name for stub file
-        module_parts = module.split('.')
-        stub_name = module_parts[-1] + ".pyi"
-        stub_file = STUB_DIR / stub_name
-        
-        # Generate content
-        content = f"# Generated stubs for {module}\n\n"
-        
-        # Import everything from the original module
-        content += f"from {module} import *\n\n"
-        
-        # Add class stubs
-        for async_cls, sync_cls in pairs:
-            # Only add the sync class stub
-            content += make_stub_block(async_cls, sync_cls) + "\n\n"
-        
-        # Write stub file
-        stub_file.write_text(content)
-        print(f"Generated stub file: {stub_file}")
+    # Extract imports from the original file
+    imports = []
+    if init_py.exists():
+        imports = extract_imports(init_py)
+    
+    # Generate content
+    content = f"# Generated stubs for sync API classes\n\n"
+    
+    # Add imports from the original file
+    for import_line in imports:
+        content += f"{import_line}\n"
+    
+    if imports:
+        content += "\n"
+    
+    # Add class stubs
+    for async_cls, sync_cls in _registered:
+        # Only add the sync class stub
+        content += make_stub_block(async_cls, sync_cls) + "\n\n"
+    
+    # Write stub file
+    init_pyi.write_text(content)
+    print(f"Generated stub file: {init_pyi}")
+
+
+def main():
+    """Generate stubs for all registered sync classes."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Generate .pyi stub files for sync API classes")
+    parser.add_argument("-t", "--target", required=True, help="Target directory for stub files")
+    
+    args = parser.parse_args()
+    generate_stubs(args.target)
 
 
 if __name__ == "__main__":

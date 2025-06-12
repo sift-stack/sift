@@ -16,7 +16,7 @@ _registered: list[tuple[Type[Any],Type[Any]]] = []
 T = TypeVar('T')
 S = TypeVar('S')
 
-def generate_sync_api(cls: Type[T]) -> Type[S]:
+def generate_sync_api(cls: Type[T], sync_name: str) -> Type[S]:
     """
     Generate a synchronous wrapper class for the given async API class.
     
@@ -34,9 +34,7 @@ def generate_sync_api(cls: Type[T]) -> Type[S]:
     """
     # derive sync class name
     name = cls.__name__
-    assert name.endswith('Async'), f"Expected {name} to end with 'Async'"
-    sync_name = name[:-5]
-    module = cls.__module__
+    module = None
 
     # Build an __init__ that stores the async implementation:
     def __init__(self, client, *args, **kwargs):
