@@ -42,7 +42,8 @@ if __name__ == "__main__":
         # Create an optional run as part of this ingestion
         current_ts = datetime.now(timezone.utc)
         run_name = f"[{telemetry_config.asset_name}].{current_ts.timestamp()}"
-        ingestion_service.attach_run(channel, run_name, "Run simulation")
+        metadata = {"test_key": "test_value"}
+        ingestion_service.attach_run(channel, run_name, "Run simulation", metadata=metadata)
 
         # Create our simulator
         simulator = Simulator(ingestion_service)
