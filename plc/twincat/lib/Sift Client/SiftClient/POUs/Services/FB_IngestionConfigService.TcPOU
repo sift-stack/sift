@@ -79,31 +79,25 @@ CASE eState OF
 		jsonDoc := fbJson.ParseDocument(sResponse);
 		
 		IF _F_IsSuccessfulResponse(jsonDoc) THEN
-			IF NOT fbJson.HasMember(jsonDoc, 'response') THEN
+			IF NOT fbJson.HasMember(jsonDoc, 'data') THEN
 				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
 				eState := FAILURE;
 				RETURN;
 			END_IF
-			jsonDoc := fbJson.FindMember(jsonDoc, 'response');
+			jsonDoc := fbJson.FindMember(jsonDoc, 'data');
 				
-			IF NOT fbJson.HasMember(jsonDoc, 'ingestionConfig') THEN
+			IF NOT fbJson.HasMember(jsonDoc, 'ingestion_config_id') THEN
 				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
 				eState := FAILURE;
 				RETURN;
 			END_IF
-			jsonDoc := fbJson.FindMember(jsonDoc, 'ingestionConfig');
-			
-			IF NOT fbJson.HasMember(jsonDoc, 'ingestionConfigId') THEN
-				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
-				eState := FAILURE;
-				RETURN;
-			END_IF
-			jsonDoc := fbJson.FindMember(jsonDoc, 'ingestionConfigId');
+			jsonDoc := fbJson.FindMember(jsonDoc, 'ingestion_config_id');
 			sId := fbJson.GetString(jsonDoc);
 			eState := SUCCESS;
 		ELSE
 			IF NOT _F_SetSiftError(jsonDoc, stSiftError) THEN
 				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+				RETURN;
 			END_IF
 			nErrId := stSiftError.nErrId;
 			eState := FAILURE;

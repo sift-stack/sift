@@ -19,14 +19,14 @@ END_VAR
 END_IF
 
 jsonProp := fbJson.FindMember(jsonDoc, 'status');
-stSiftError.bError := fbJson.GetBool(jsonProp);
+stSiftError.bError := NOT fbJson.GetBool(jsonProp);
 	
-IF NOT fbJson.HasMember(jsonDoc, 'response') THEN
+IF NOT fbJson.HasMember(jsonDoc, 'data') THEN
 	_F_SetSiftError := FALSE;
 	RETURN;
 END_IF
 
-jsonProp := fbJson.FindMember(jsonDoc, 'response');
+jsonProp := fbJson.FindMember(jsonDoc, 'data');
 IF NOT fbJson.HasMember(jsonProp, 'reason') THEN
 	_F_SetSiftError := FALSE;
 	RETURN;

@@ -15,7 +15,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{AC376F8D-7752-4726-A4FE-F5FC9287341B}" Name="PingExample" PrjFilePath="PingExample\PingExample.plcproj" TmcFilePath="PingExample\PingExample.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{4A60DC1C-B7EC-1A1F-0081-3084386150E5}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{2CFE0F7A-48B2-3E79-A0C9-FF3CFBF18CEE}" TmcPath="PingExample\PingExample.tmc">
 					<Name>PingExample Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Contexts>

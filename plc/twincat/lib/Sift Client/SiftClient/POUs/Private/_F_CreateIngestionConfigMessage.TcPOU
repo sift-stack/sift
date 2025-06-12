@@ -36,7 +36,7 @@ END_IF
 
 fbJson.StartObject();
 
-fbJson.AddKey('assetName');
+fbJson.AddKey('asset_name');
 fbJson.AddString(stIngestionConfig.sAssetName);
 
 fbJson.AddKey('flows');
@@ -66,7 +66,7 @@ FOR i := 1 TO stIngestionConfig.nNumFlowConfigs DO
 			fbJson.AddString(tmpChannelConfig.sDescription);
 		END_IF
 	
-		fbJson.AddKey('dataType');
+		fbJson.AddKey('data_type');
 		CASE tmpChannelConfig.eDataType OF
 			E_ChannelDataType.Bool_:
 				fbJson.AddString('CHANNEL_DATA_TYPE_BOOL');
@@ -96,7 +96,7 @@ FOR i := 1 TO stIngestionConfig.nNumFlowConfigs DO
 				fbJson.AddString('CHANNEL_DATA_TYPE_UINT_64');
 		END_CASE
 		
-		fbJson.AddKey('enumTypes');
+		fbJson.AddKey('enum_types');
 		fbJson.StartArray();
 		FOR k := 1 TO tmpChannelConfig.nNumEnumTypes DO
 			tmpEnumType REF= tmpChannelConfig.aEnumTypes[k-1];

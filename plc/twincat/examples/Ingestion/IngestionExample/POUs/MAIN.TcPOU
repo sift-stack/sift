@@ -6,12 +6,13 @@ VAR
 	/// Ingestion example
 	/// Instrucstions to run:
 	/// 1. Fill in sGrpcUri and sApiKey
-	///     See https://docs.siftstack.com/docs/api/authentication 
+	///     See https://docs.siftstack.com/docs
 	///     For obtaining gRPC and API key information.
 	/// 2. Make sure install_sift_proxy.bat script has been run to install sift_proxy.
 	/// 3. Run!
 	sGrpcUri : STRING(255) := '';
 	sApiKey : STRING(255) := '';
+	sLogDir : STRING(255) := '';
 	
 	aJsonBuffer : ARRAY[1..65535] OF BYTE; // Buffer used to create JSON messages. Increase this if you get JSON_CAPACITY_REACHED errors.
 	
@@ -77,6 +78,7 @@ END_VAR]]></Declaration>
 	INIT_SIFT_CLIENT:
 		fbSiftClient(sGrpcUri := sGrpcUri, 
 					 sApiKey := sApiKey,
+					 sLogDir := sLogDir,
 					 pJsonBuffer := ADR(aJsonBuffer),
 					 pJbLength := SIZEOF(aJsonBuffer),
 					 bExecute := TRUE);

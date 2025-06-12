@@ -27,7 +27,7 @@ END_VAR
 // Test 1: Nominal response
 sResponse := '{
 	"status": true,
-	"response": {}
+	"data": {}
 }';
 jsonDoc := fbJson.ParseDocument(sResponse);
 AssertTrue(_F_IsSuccessfulResponse(jsonDoc), Message := 'failed to parse successful response');
@@ -35,7 +35,7 @@ AssertTrue(_F_IsSuccessfulResponse(jsonDoc), Message := 'failed to parse success
 // Test 2: Failure response
 sResponse := '{
 	"status": false,
-	"response": {}
+	"data": {}
 }';
 jsonDoc := fbJson.ParseDocument(sResponse);
 AssertFalse(_F_IsSuccessfulResponse(jsonDoc), Message := 'failed to parse failure response');
@@ -43,7 +43,7 @@ AssertFalse(_F_IsSuccessfulResponse(jsonDoc), Message := 'failed to parse failur
 // Test 3: Failure response with reason
 sResponse := '{
 	"status": false,
-	"response": {
+	"data": {
 		"reason": "this is the reason for the error"
 	}
 }';
@@ -57,7 +57,7 @@ AssertEquals_STRING(Expected := 'this is the reason for the error',
 // Test 4: 'status' spelled wrong
 sResponse := '{
 	"status_": false,
-	"response": {}
+	"data": {}
 }';
 jsonDoc := fbJson.ParseDocument(sResponse);
 AssertFalse(_F_SetSiftError(jsonDoc, stErr), Message := 'failed to handle status typo');
@@ -73,7 +73,7 @@ AssertFalse(_F_SetSiftError(jsonDoc, stErr), Message := 'failed to handle respon
 // Test 6: 'reason' spelled wrong
 sResponse := '{
 	"status": false,
-	"response": {
+	"data": {
 		"reason_": "this is the reason for the error"
 	}
 }';

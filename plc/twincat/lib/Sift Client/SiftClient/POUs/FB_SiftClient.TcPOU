@@ -8,6 +8,7 @@ FUNCTION_BLOCK FB_SiftClient
 VAR_INPUT
 	sSiftProxyHost : T_IPv4Addr := GVL_SIFT.SIFT_PROXY_DEFAULT_HOST;
 	nSiftProxyPort : UINT       := GVL_SIFT.SIFT_PROXY_DEFAULT_LISTEN_PORT;
+	sLogDir : STRING(255);
 	
 	sGrpcUri : STRING(255);
 	sApiKey : STRING(255);
@@ -134,12 +135,18 @@ END_VAR
 			eState := FAILURE;
 			RETURN;
 		END_IF
-		
+		IF sLogDir = '' THEN
+			nErrId := GVL_SIFT.INVALID_LOG_DIR;
+			eState := FAILURE;
+			RETURN;
+		END_IF
+				
 		fbFormat(
 			sFormat := GVL_SIFT.SIFT_PROXY_CMD_ARGS, 
-			arg1 := F_UINT(nSiftProxyPort), 
-			arg2 := F_STRING(sGrpcUri), 
-			arg3 := F_STRING(sApiKey),
+			arg1 := F_STRING(sLogDir),
+			arg2 := F_UINT(nSiftProxyPort), 
+			arg3 := F_STRING(sGrpcUri), 
+			arg4 := F_STRING(sApiKey),
 		);
 		IF fbFormat.bError THEN
 			nErrId := fbFormat.nErrId;

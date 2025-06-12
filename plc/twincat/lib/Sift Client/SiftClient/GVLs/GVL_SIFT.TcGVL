@@ -4,10 +4,10 @@
     <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL CONSTANT
 	//Defaults
-	SIFT_PROXY_CMD_ARGS : STRING(255) := '--listen_port=%d --grpc_uri=%s --api_key=%s tcp sift_proxy --little_endian --skip_stream_status --verbose';
+	SIFT_PROXY_CMD_ARGS : STRING(255) := '--stream_metrics --storage_path %s --listen_port=%d --grpc_uri=%s --api_key=%s tcp sift_proxy --little_endian --end_stream_on_error';
 	SIFT_PROXY_DEFAULT_HOST : T_IPv4Addr := '127.0.0.1';
 	SIFT_PROXY_DEFAULT_LISTEN_PORT : UINT := 10010;
-	SIFT_PROXY_START_DELAY : TIME := T#5S;
+	SIFT_PROXY_START_DELAY : TIME := T#30S;
 	
 	SYNC_WORD : UDINT := 16#ABCDEF00;
 	HEADER_LENGTH : UDINT := 9;
@@ -40,7 +40,8 @@ VAR_GLOBAL CONSTANT
 	INVALID_GRPC_URI : UDINT := 16#5000_2000;
 	INVALID_API_KEY : UDINT := 16#5000_2001;
 	INVALID_INGESTION_CONFIG : UDINT := 16#5000_2002;
-
+    INVALID_LOG_DIR : UDINT := 16#5000_2003;
+	
 END_VAR]]></Declaration>
   </GVL>
 </TcPlcObject>
