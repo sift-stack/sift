@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
@@ -30,7 +31,7 @@ if __name__ == "__main__":
 
     # Create a gRPC transport channel configured specifically for the Sift API
     sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
-
+    sift_channel_config["use_ssl"] = (urlparse(base_uri).scheme == "https")
     with use_sift_channel(sift_channel_config) as channel:
         # Create ingestion service using the telemetry config we loaded in
         ingestion_service = IngestionService(
@@ -42,7 +43,8 @@ if __name__ == "__main__":
         # Create an optional run as part of this ingestion
         current_ts = datetime.now(timezone.utc)
         run_name = f"[{telemetry_config.asset_name}].{current_ts.timestamp()}"
-        ingestion_service.attach_run(channel, run_name, "Run simulation")
+        metadata = {"test_key": "test_value"}
+        ingestion_service.attach_run(channel, run_name, "Run simulation", metadata=metadata)
 
         # Create our simulator
         simulator = Simulator(ingestion_service)

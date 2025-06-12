@@ -32,6 +32,7 @@ from sift.users.v2.users_pb2_grpc import UserServiceStub
 from sift_py._internal.cel import cel_in
 from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.channel import get_channels
+from sift_py.asset._internal.shared import list_assets_impl
 from sift_py._internal.user import get_active_users
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
@@ -577,32 +578,7 @@ class RuleService:
             return None
 
     def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
-        def get_assets_with_filter(cel_filter: str):
-            assets: List[Asset] = []
-            next_page_token = ""
-            while True:
-                req = ListAssetsRequest(
-                    filter=cel_filter,
-                    page_size=1_000,
-                    page_token=next_page_token,
-                )
-                res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
-                assets.extend(res.assets)
-
-                if not res.next_page_token:
-                    break
-                next_page_token = res.next_page_token
-
-            return assets
-
-        if names:
-            names_cel = cel_in("name", names)
-            return get_assets_with_filter(names_cel)
-        elif ids:
-            ids_cel = cel_in("asset_id", ids)
-            return get_assets_with_filter(ids_cel)
-        else:
-            return []
+        return list_assets_impl(self._asset_service_stub, names, ids)
 
 
 @dataclass

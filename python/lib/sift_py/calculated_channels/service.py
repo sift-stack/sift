@@ -26,6 +26,7 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
 from sift.calculated_channels.v2.calculated_channels_pb2_grpc import CalculatedChannelServiceStub
 
 from sift_py._internal.cel import cel_in
+from sift_py.asset._internal.shared import list_assets_impl
 from sift_py.calculated_channels.config import CalculatedChannelConfig, CalculatedChannelUpdate
 from sift_py.grpc.transport import SiftChannel
 from sift_py.rule.config import (
@@ -405,34 +406,5 @@ class CalculatedChannelService:
     def _get_assets(
         self, names: Optional[List[str]] = None, ids: Optional[List[str]] = None
     ) -> List[Asset]:
-        if names is None:
-            names = []
-        if ids is None:
-            ids = []
+        return list_assets_impl(self._asset_service_stub, names, ids)
 
-        def get_assets_with_filter(cel_filter: str):
-            assets: List[Asset] = []
-            next_page_token = ""
-            while True:
-                req = ListAssetsRequest(
-                    filter=cel_filter,
-                    page_size=1_000,
-                    page_token=next_page_token,
-                )
-                res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
-                assets.extend(res.assets)
-
-                if not res.next_page_token:
-                    break
-                next_page_token = res.next_page_token
-
-            return assets
-
-        if names:
-            names_cel = cel_in("name", names)
-            return get_assets_with_filter(names_cel)
-        elif ids:
-            ids_cel = cel_in("asset_id", ids)
-            return get_assets_with_filter(ids_cel)
-        else:
-            return []
