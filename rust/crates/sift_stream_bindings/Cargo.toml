@@ -1,0 +1,17 @@
+[package]
+name = "sift-stream-bindings"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "sift_stream_bindings"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.25.0" }
+# pyo3-asyncio = { version = "0.20.0", features = ["tokio", "tokio-runtime"] }
+sift_rs = "0.2.1"
+sift_stream = "0.2.1"
+sift_error = "0.2.1"
+pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
