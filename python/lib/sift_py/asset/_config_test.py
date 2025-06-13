@@ -38,11 +38,7 @@ class TestAssetConfig(TestCase):
     def test_from_asset_with_optional_fields(self):
         # Arrange
         timestamp = datetime.now(timezone.utc)
-        metadata = {
-            "string_key": "string_value",
-            "number_key": 42,
-            "bool_key": True
-        }
+        metadata = {"string_key": "string_value", "number_key": 42, "bool_key": True}
         asset = Asset(
             asset_id="test-asset-id",
             name="Test Asset",
@@ -52,7 +48,7 @@ class TestAssetConfig(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=["tag1", "tag2"],
-            metadata=wrap_metadata(metadata)
+            metadata=wrap_metadata(metadata),
         )
 
         # Act
@@ -81,7 +77,7 @@ class TestAssetConfig(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=[],  # Empty tags
-            metadata=[]  # Empty metadata
+            metadata=[],  # Empty metadata
         )
 
         # Act
@@ -128,11 +124,7 @@ class TestAssetConfig(TestCase):
     def test_to_asset_with_optional_fields(self):
         # Arrange
         timestamp = datetime.now(timezone.utc)
-        metadata = {
-            "string_key": "string_value",
-            "number_key": 42,
-            "bool_key": True
-        }
+        metadata = {"string_key": "string_value", "number_key": 42, "bool_key": True}
         config = AssetConfig(
             asset_id="test-asset-id",
             name="Test Asset",
@@ -142,7 +134,7 @@ class TestAssetConfig(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=["tag1", "tag2"],
-            metadata=metadata
+            metadata=metadata,
         )
 
         # Act
@@ -167,11 +159,7 @@ class TestAssetConfig(TestCase):
     def test_roundtrip_conversion(self):
         # Arrange
         timestamp = datetime.now(timezone.utc)
-        metadata = {
-            "string_key": "string_value",
-            "number_key": 42,
-            "bool_key": True
-        }
+        metadata = {"string_key": "string_value", "number_key": 42, "bool_key": True}
         original_asset = Asset(
             asset_id="test-asset-id",
             name="Test Asset",
@@ -181,7 +169,7 @@ class TestAssetConfig(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=["tag1", "tag2"],
-            metadata=wrap_metadata(metadata)
+            metadata=wrap_metadata(metadata),
         )
 
         # Act
@@ -195,7 +183,9 @@ class TestAssetConfig(TestCase):
         self.assertEqual(roundtrip_asset.created_by_user_id, original_asset.created_by_user_id)
         self.assertEqual(roundtrip_asset.modified_by_user_id, original_asset.modified_by_user_id)
         self.assertEqual(roundtrip_asset.created_date.seconds, original_asset.created_date.seconds)
-        self.assertEqual(roundtrip_asset.modified_date.seconds, original_asset.modified_date.seconds)
+        self.assertEqual(
+            roundtrip_asset.modified_date.seconds, original_asset.modified_date.seconds
+        )
         self.assertEqual(list(roundtrip_asset.tags), list(original_asset.tags))
 
         # Compare metadata
@@ -205,20 +195,17 @@ class TestAssetConfig(TestCase):
         for key in original_metadata:
             self.assertEqual(
                 original_metadata[key].WhichOneof("value"),
-                roundtrip_metadata[key].WhichOneof("value")
+                roundtrip_metadata[key].WhichOneof("value"),
             )
             if original_metadata[key].HasField("string_value"):
                 self.assertEqual(
-                    original_metadata[key].string_value,
-                    roundtrip_metadata[key].string_value
+                    original_metadata[key].string_value, roundtrip_metadata[key].string_value
                 )
             elif original_metadata[key].HasField("number_value"):
                 self.assertEqual(
-                    original_metadata[key].number_value,
-                    roundtrip_metadata[key].number_value
+                    original_metadata[key].number_value, roundtrip_metadata[key].number_value
                 )
             elif original_metadata[key].HasField("boolean_value"):
                 self.assertEqual(
-                    original_metadata[key].boolean_value,
-                    roundtrip_metadata[key].boolean_value
+                    original_metadata[key].boolean_value, roundtrip_metadata[key].boolean_value
                 )

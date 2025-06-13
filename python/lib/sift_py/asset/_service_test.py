@@ -148,7 +148,7 @@ class TestAssetService(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=["tag1", "tag2"],
-            metadata={"key1": "value1", "key2": 42, "key3": True}
+            metadata={"key1": "value1", "key2": 42, "key3": True},
         )
 
         expected_asset = Asset(
@@ -160,7 +160,7 @@ class TestAssetService(TestCase):
             modified_date=timestamp,
             modified_by_user_id=asset.modified_by_user_id,
             tags=asset.tags,
-            metadata=wrap_metadata(asset.metadata)
+            metadata=wrap_metadata(asset.metadata),
         )
         self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 
@@ -184,7 +184,7 @@ class TestAssetService(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=["tag1", "tag2"],
-            metadata={"key1": "value1"}
+            metadata={"key1": "value1"},
         )
 
         expected_asset = Asset(
@@ -196,7 +196,7 @@ class TestAssetService(TestCase):
             modified_date=timestamp,
             modified_by_user_id=asset.modified_by_user_id,
             tags=asset.tags,
-            metadata=wrap_metadata(asset.metadata)
+            metadata=wrap_metadata(asset.metadata),
         )
         self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 
@@ -221,7 +221,7 @@ class TestAssetService(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=[],
-            metadata={}
+            metadata={},
         )
 
         expected_asset = Asset(
@@ -233,7 +233,7 @@ class TestAssetService(TestCase):
             modified_date=timestamp,
             modified_by_user_id=asset.modified_by_user_id,
             tags=[],
-            metadata=[]
+            metadata=[],
         )
         self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 
@@ -263,8 +263,8 @@ class TestAssetService(TestCase):
                 "float_value": 3.14,
                 "bool_value": True,
                 "zero_value": 0,
-                "empty_string": ""
-            }
+                "empty_string": "",
+            },
         )
 
         expected_asset = Asset(
@@ -275,7 +275,7 @@ class TestAssetService(TestCase):
             created_by_user_id=asset.created_by_user_id,
             modified_date=timestamp,
             modified_by_user_id=asset.modified_by_user_id,
-            metadata=wrap_metadata(asset.metadata)
+            metadata=wrap_metadata(asset.metadata),
         )
         self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 

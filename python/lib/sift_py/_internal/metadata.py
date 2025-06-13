@@ -45,6 +45,7 @@ def wrap_metadata(_metadata: Dict[str, Union[str, float, bool]]) -> List[Metadat
 
     return metadata
 
+
 def unwrap_metadata(metadata: List[MetadataValue]) -> Dict[str, Union[str, float, bool]]:
     """
     Unwraps a list of MetadataValue objects into a dictionary.

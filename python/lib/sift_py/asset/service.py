@@ -66,9 +66,14 @@ class AssetService:
         Returns:
             A list of assets matching the criteria.
         """
-        return [AssetConfig.from_asset(asset) for asset in list_assets_impl(self._asset_service_stub, names, ids)]
+        return [
+            AssetConfig.from_asset(asset)
+            for asset in list_assets_impl(self._asset_service_stub, names, ids)
+        ]
 
-    def update_asset(self, asset: AssetConfig, update_tags: bool = True, update_metadata: bool = True) -> AssetConfig:
+    def update_asset(
+        self, asset: AssetConfig, update_tags: bool = True, update_metadata: bool = True
+    ) -> AssetConfig:
         """
         Updates an existing asset.
 

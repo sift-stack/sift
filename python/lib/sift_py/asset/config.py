@@ -16,6 +16,7 @@ class AssetConfig:
     Thin wrapper class for an Asset that can be created from an Asset protobuf object.
     This provides a more Python-friendly interface than the generated protobuf object.
     """
+
     asset_id: Optional[str]
     name: str
     organization_id: str
@@ -41,9 +42,13 @@ class AssetConfig:
             asset_id=asset.asset_id,
             name=asset.name,
             organization_id=asset.organization_id,
-            created_date=datetime.fromtimestamp(asset.created_date.ToMicroseconds() / 1000000, tz=timezone.utc),
+            created_date=datetime.fromtimestamp(
+                asset.created_date.ToMicroseconds() / 1000000, tz=timezone.utc
+            ),
             created_by_user_id=asset.created_by_user_id,
-            modified_date=datetime.fromtimestamp(asset.modified_date.ToMicroseconds() / 1000000, tz=timezone.utc),
+            modified_date=datetime.fromtimestamp(
+                asset.modified_date.ToMicroseconds() / 1000000, tz=timezone.utc
+            ),
             modified_by_user_id=asset.modified_by_user_id,
             tags=asset.tags,
             metadata=unwrap_metadata(asset.metadata),
