@@ -25,15 +25,8 @@ chrono = { version = "0.4.39", default-features = false, features = ["clock"] }
 pbjson-types = "^0.7"
 tonic = { version = "^0.12" }
 
-<<<<<<< HEAD
 sift_connect = { version = "0.3.0", path = "crates/sift_connect" }
 sift_rs = { version = "0.3.0", path = "crates/sift_rs" }
 sift_error = { version = "0.3.0", path = "crates/sift_error" }
 sift_stream = { version = "0.3.0", path = "crates/sift_stream" }
-=======
-sift_connect = { version = "0.2.0", path = "crates/sift_connect" }
-sift_rs = { version = "0.2.0", path = "crates/sift_rs" }
-sift_error = { version = "0.2.0", path = "crates/sift_error" }
-sift_stream = { version = "0.2.0", path = "crates/sift_stream" }
-sift_stream_bindings = { version = "0.2.0", path = "crates/sift_stream_bindings" }
->>>>>>> efc47ec (chore: Add sift-stream-bindings to toml)
+sift_stream_bindings = { version = "0.3.0", path = "crates/sift_stream_bindings" }

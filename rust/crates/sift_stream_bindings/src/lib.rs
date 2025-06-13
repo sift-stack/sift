@@ -110,6 +110,7 @@ pub enum ChannelDataTypePy {
     Uint32,
     Int64,
     Uint64,
+    Bytes,
 }
 
 impl From<ChannelDataType> for ChannelDataTypePy {
@@ -126,6 +127,7 @@ impl From<ChannelDataType> for ChannelDataTypePy {
             ChannelDataType::Uint32 => ChannelDataTypePy::Uint32,
             ChannelDataType::Int64 => ChannelDataTypePy::Int64,
             ChannelDataType::Uint64 => ChannelDataTypePy::Uint64,
+            ChannelDataType::Bytes => ChannelDataTypePy::Bytes,
         }
     }
 }
@@ -144,6 +146,7 @@ impl From<ChannelDataTypePy> for ChannelDataType {
             ChannelDataTypePy::Uint32 => ChannelDataType::Uint32,
             ChannelDataTypePy::Int64 => ChannelDataType::Int64,
             ChannelDataTypePy::Uint64 => ChannelDataType::Uint64,
+            ChannelDataTypePy::Bytes => ChannelDataType::Bytes,
         }
     }
 }
@@ -945,6 +948,13 @@ impl ChannelValueTypePy {
     pub fn bitfield(value: Vec<u8>) -> Self {
         Self {
             inner: ChannelValueType::BitField(value),
+        }
+    }
+
+    #[staticmethod]
+    pub fn bytes(value: Vec<u8>) -> Self {
+        Self {
+            inner: ChannelValueType::Bytes(value),
         }
     }
 }
