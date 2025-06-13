@@ -14,6 +14,7 @@ from typing_extensions import Self
 
 from sift_py._internal.convert.protobuf import AsProtobuf
 from sift_py.ingestion.channel import ChannelConfig, ChannelValue, channel_fqn
+from sift_py.error import raise_if_too_large
 
 
 class FlowConfig(AsProtobuf):
@@ -36,10 +37,12 @@ class FlowConfig(AsProtobuf):
         self.channel_by_fqn = {channel_fqn(c): i for i, c in enumerate(channels)}
 
     def as_pb(self, klass: Type[FlowConfigPb]) -> FlowConfigPb:
-        return klass(
+        pb = klass(
             name=self.name,
             channels=[conf.as_pb(ChannelConfigPb) for conf in self.channels],
         )
+        raise_if_too_large(pb)
+        return pb
 
     @classmethod
     def from_pb(cls, message: FlowConfigPb) -> Self:

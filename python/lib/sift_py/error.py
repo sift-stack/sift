@@ -1,4 +1,5 @@
 import warnings
+import google.protobuf.message
 
 
 class SiftError(Exception):
@@ -28,3 +29,20 @@ def _component_deprecation_warning():
         "See docs for more details: https://docs.siftstack.com/docs/glossary#component",
         SiftAPIDeprecationWarning,
     )
+
+
+# The default max message size for our gRPC server.
+GRPC_MAX_MESSAGE_SIZE = 4_194_304
+
+
+class ProtobufMaxSizeExceeded(Exception):
+    """
+    The library limits the size of certain protobufs to prevent gRPC messages from being too big.
+    """
+
+
+def raise_if_too_large(pb: google.protobuf.message.Message):
+    size = len(pb.SerializeToString())
+    name = getattr(pb, "name", pb.__class__.__name__)
+    if size > GRPC_MAX_MESSAGE_SIZE:
+        raise ProtobufMaxSizeExceeded(f"{name} too large: {size}")
