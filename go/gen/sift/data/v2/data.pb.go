@@ -369,6 +369,7 @@ type GetDataResponse struct {
 	//	sift.data.v2.Int64Values
 	//	sift.data.v2.Uint32Values
 	//	sift.data.v2.Uint64Values
+	//	sift.data.v2.BytesValues
 	Data []*anypb.Any `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty"`
 }
 
@@ -1652,6 +1653,116 @@ func (x *Uint64Values) GetValues() []*Uint64Value {
 	return nil
 }
 
+type BytesValue struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Value     []byte                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *BytesValue) Reset() {
+	*x = BytesValue{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sift_data_v2_data_proto_msgTypes[27]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BytesValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BytesValue) ProtoMessage() {}
+
+func (x *BytesValue) ProtoReflect() protoreflect.Message {
+	mi := &file_sift_data_v2_data_proto_msgTypes[27]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BytesValue.ProtoReflect.Descriptor instead.
+func (*BytesValue) Descriptor() ([]byte, []int) {
+	return file_sift_data_v2_data_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *BytesValue) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *BytesValue) GetValue() []byte {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+type BytesValues struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Metadata *Metadata     `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Values   []*BytesValue `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
+}
+
+func (x *BytesValues) Reset() {
+	*x = BytesValues{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sift_data_v2_data_proto_msgTypes[28]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BytesValues) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BytesValues) ProtoMessage() {}
+
+func (x *BytesValues) ProtoReflect() protoreflect.Message {
+	mi := &file_sift_data_v2_data_proto_msgTypes[28]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BytesValues.ProtoReflect.Descriptor instead.
+func (*BytesValues) Descriptor() ([]byte, []int) {
+	return file_sift_data_v2_data_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *BytesValues) GetMetadata() *Metadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *BytesValues) GetValues() []*BytesValue {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
 type Metadata_Asset struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1664,7 +1775,7 @@ type Metadata_Asset struct {
 func (x *Metadata_Asset) Reset() {
 	*x = Metadata_Asset{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_data_v2_data_proto_msgTypes[27]
+		mi := &file_sift_data_v2_data_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1677,7 +1788,7 @@ func (x *Metadata_Asset) String() string {
 func (*Metadata_Asset) ProtoMessage() {}
 
 func (x *Metadata_Asset) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_data_v2_data_proto_msgTypes[27]
+	mi := &file_sift_data_v2_data_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1721,7 +1832,7 @@ type Metadata_Run struct {
 func (x *Metadata_Run) Reset() {
 	*x = Metadata_Run{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_data_v2_data_proto_msgTypes[28]
+		mi := &file_sift_data_v2_data_proto_msgTypes[30]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1734,7 +1845,7 @@ func (x *Metadata_Run) String() string {
 func (*Metadata_Run) ProtoMessage() {}
 
 func (x *Metadata_Run) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_data_v2_data_proto_msgTypes[28]
+	mi := &file_sift_data_v2_data_proto_msgTypes[30]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1781,7 +1892,7 @@ type Metadata_Channel struct {
 func (x *Metadata_Channel) Reset() {
 	*x = Metadata_Channel{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_data_v2_data_proto_msgTypes[29]
+		mi := &file_sift_data_v2_data_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1794,7 +1905,7 @@ func (x *Metadata_Channel) String() string {
 func (*Metadata_Channel) ProtoMessage() {}
 
 func (x *Metadata_Channel) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_data_v2_data_proto_msgTypes[29]
+	mi := &file_sift_data_v2_data_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1857,7 +1968,7 @@ type Metadata_Channel_Unit struct {
 func (x *Metadata_Channel_Unit) Reset() {
 	*x = Metadata_Channel_Unit{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sift_data_v2_data_proto_msgTypes[30]
+		mi := &file_sift_data_v2_data_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1870,7 +1981,7 @@ func (x *Metadata_Channel_Unit) String() string {
 func (*Metadata_Channel_Unit) ProtoMessage() {}
 
 func (x *Metadata_Channel_Unit) ProtoReflect() protoreflect.Message {
-	mi := &file_sift_data_v2_data_proto_msgTypes[30]
+	mi := &file_sift_data_v2_data_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2187,31 +2298,45 @@ var file_sift_data_v2_data_proto_rawDesc = []byte{
 	0x75, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x73, 0x69, 0x66, 0x74,
 	0x2e, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76, 0x32, 0x2e, 0x55, 0x69, 0x6e, 0x74, 0x36, 0x34, 0x56,
 	0x61, 0x6c, 0x75, 0x65, 0x42, 0x03, 0xe0, 0x41, 0x02, 0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65,
-	0x73, 0x32, 0xba, 0x01, 0x0a, 0x0b, 0x44, 0x61, 0x74, 0x61, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63,
-	0x65, 0x12, 0x8e, 0x01, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x12, 0x1c, 0x2e,
-	0x73, 0x69, 0x66, 0x74, 0x2e, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76, 0x32, 0x2e, 0x47, 0x65, 0x74,
-	0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x73, 0x69,
-	0x66, 0x74, 0x2e, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76, 0x32, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x61,
-	0x74, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x46, 0x92, 0x41, 0x2c, 0x12,
-	0x07, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x1a, 0x0a, 0x51, 0x75, 0x65, 0x72, 0x79, 0x20,
-	0x64, 0x61, 0x74, 0x61, 0x2a, 0x15, 0x44, 0x61, 0x74, 0x61, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63,
-	0x65, 0x5f, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x56, 0x32, 0x82, 0xd3, 0xe4, 0x93, 0x02,
-	0x11, 0x3a, 0x01, 0x2a, 0x22, 0x0c, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76, 0x32, 0x2f, 0x64, 0x61,
-	0x74, 0x61, 0x1a, 0x1a, 0x92, 0x41, 0x17, 0x12, 0x15, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65,
-	0x20, 0x74, 0x6f, 0x20, 0x71, 0x75, 0x65, 0x72, 0x79, 0x20, 0x64, 0x61, 0x74, 0x61, 0x42, 0xb9,
-	0x01, 0x0a, 0x10, 0x63, 0x6f, 0x6d, 0x2e, 0x73, 0x69, 0x66, 0x74, 0x2e, 0x64, 0x61, 0x74, 0x61,
-	0x2e, 0x76, 0x32, 0x42, 0x09, 0x44, 0x61, 0x74, 0x61, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01,
-	0x5a, 0x35, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x73, 0x69, 0x66,
-	0x74, 0x2d, 0x73, 0x74, 0x61, 0x63, 0x6b, 0x2f, 0x73, 0x69, 0x66, 0x74, 0x2f, 0x67, 0x6f, 0x2f,
-	0x67, 0x65, 0x6e, 0x2f, 0x73, 0x69, 0x66, 0x74, 0x2f, 0x64, 0x61, 0x74, 0x61, 0x2f, 0x76, 0x32,
-	0x3b, 0x64, 0x61, 0x74, 0x61, 0x76, 0x32, 0xa2, 0x02, 0x03, 0x53, 0x44, 0x58, 0xaa, 0x02, 0x0c,
-	0x53, 0x69, 0x66, 0x74, 0x2e, 0x44, 0x61, 0x74, 0x61, 0x2e, 0x56, 0x32, 0xca, 0x02, 0x0c, 0x53,
-	0x69, 0x66, 0x74, 0x5c, 0x44, 0x61, 0x74, 0x61, 0x5c, 0x56, 0x32, 0xe2, 0x02, 0x18, 0x53, 0x69,
-	0x66, 0x74, 0x5c, 0x44, 0x61, 0x74, 0x61, 0x5c, 0x56, 0x32, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65,
-	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x0e, 0x53, 0x69, 0x66, 0x74, 0x3a, 0x3a, 0x44,
-	0x61, 0x74, 0x61, 0x3a, 0x3a, 0x56, 0x32, 0x92, 0x41, 0x10, 0x12, 0x0e, 0x0a, 0x0c, 0x44, 0x61,
-	0x74, 0x61, 0x20, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x73, 0x22, 0x66, 0x0a, 0x0a, 0x42, 0x79, 0x74, 0x65, 0x73, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12,
+	0x3d, 0x0a, 0x09, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x42, 0x03,
+	0xe0, 0x41, 0x02, 0x52, 0x09, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x12, 0x19,
+	0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x42, 0x03, 0xe0,
+	0x41, 0x02, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x7d, 0x0a, 0x0b, 0x42, 0x79, 0x74,
+	0x65, 0x73, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x12, 0x37, 0x0a, 0x08, 0x6d, 0x65, 0x74, 0x61,
+	0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x73, 0x69, 0x66,
+	0x74, 0x2e, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76, 0x32, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
+	0x74, 0x61, 0x42, 0x03, 0xe0, 0x41, 0x02, 0x52, 0x08, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74,
+	0x61, 0x12, 0x35, 0x0a, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x18, 0x2e, 0x73, 0x69, 0x66, 0x74, 0x2e, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76, 0x32,
+	0x2e, 0x42, 0x79, 0x74, 0x65, 0x73, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x03, 0xe0, 0x41, 0x02,
+	0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x32, 0xba, 0x01, 0x0a, 0x0b, 0x44, 0x61, 0x74,
+	0x61, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x8e, 0x01, 0x0a, 0x07, 0x47, 0x65, 0x74,
+	0x44, 0x61, 0x74, 0x61, 0x12, 0x1c, 0x2e, 0x73, 0x69, 0x66, 0x74, 0x2e, 0x64, 0x61, 0x74, 0x61,
+	0x2e, 0x76, 0x32, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x73, 0x69, 0x66, 0x74, 0x2e, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76,
+	0x32, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x22, 0x46, 0x92, 0x41, 0x2c, 0x12, 0x07, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61, 0x1a,
+	0x0a, 0x51, 0x75, 0x65, 0x72, 0x79, 0x20, 0x64, 0x61, 0x74, 0x61, 0x2a, 0x15, 0x44, 0x61, 0x74,
+	0x61, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x47, 0x65, 0x74, 0x44, 0x61, 0x74, 0x61,
+	0x56, 0x32, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x11, 0x3a, 0x01, 0x2a, 0x22, 0x0c, 0x2f, 0x61, 0x70,
+	0x69, 0x2f, 0x76, 0x32, 0x2f, 0x64, 0x61, 0x74, 0x61, 0x1a, 0x1a, 0x92, 0x41, 0x17, 0x12, 0x15,
+	0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x20, 0x74, 0x6f, 0x20, 0x71, 0x75, 0x65, 0x72, 0x79,
+	0x20, 0x64, 0x61, 0x74, 0x61, 0x42, 0xb9, 0x01, 0x0a, 0x10, 0x63, 0x6f, 0x6d, 0x2e, 0x73, 0x69,
+	0x66, 0x74, 0x2e, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76, 0x32, 0x42, 0x09, 0x44, 0x61, 0x74, 0x61,
+	0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x35, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
+	0x63, 0x6f, 0x6d, 0x2f, 0x73, 0x69, 0x66, 0x74, 0x2d, 0x73, 0x74, 0x61, 0x63, 0x6b, 0x2f, 0x73,
+	0x69, 0x66, 0x74, 0x2f, 0x67, 0x6f, 0x2f, 0x67, 0x65, 0x6e, 0x2f, 0x73, 0x69, 0x66, 0x74, 0x2f,
+	0x64, 0x61, 0x74, 0x61, 0x2f, 0x76, 0x32, 0x3b, 0x64, 0x61, 0x74, 0x61, 0x76, 0x32, 0xa2, 0x02,
+	0x03, 0x53, 0x44, 0x58, 0xaa, 0x02, 0x0c, 0x53, 0x69, 0x66, 0x74, 0x2e, 0x44, 0x61, 0x74, 0x61,
+	0x2e, 0x56, 0x32, 0xca, 0x02, 0x0c, 0x53, 0x69, 0x66, 0x74, 0x5c, 0x44, 0x61, 0x74, 0x61, 0x5c,
+	0x56, 0x32, 0xe2, 0x02, 0x18, 0x53, 0x69, 0x66, 0x74, 0x5c, 0x44, 0x61, 0x74, 0x61, 0x5c, 0x56,
+	0x32, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x0e,
+	0x53, 0x69, 0x66, 0x74, 0x3a, 0x3a, 0x44, 0x61, 0x74, 0x61, 0x3a, 0x3a, 0x56, 0x32, 0x92, 0x41,
+	0x10, 0x12, 0x0e, 0x0a, 0x0c, 0x44, 0x61, 0x74, 0x61, 0x20, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63,
+	0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -2226,7 +2351,7 @@ func file_sift_data_v2_data_proto_rawDescGZIP() []byte {
 	return file_sift_data_v2_data_proto_rawDescData
 }
 
-var file_sift_data_v2_data_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_sift_data_v2_data_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_sift_data_v2_data_proto_goTypes = []interface{}{
 	(*GetDataRequest)(nil),             // 0: sift.data.v2.GetDataRequest
 	(*Query)(nil),                      // 1: sift.data.v2.Query
@@ -2255,72 +2380,77 @@ var file_sift_data_v2_data_proto_goTypes = []interface{}{
 	(*Int64Values)(nil),                // 24: sift.data.v2.Int64Values
 	(*Uint64Value)(nil),                // 25: sift.data.v2.Uint64Value
 	(*Uint64Values)(nil),               // 26: sift.data.v2.Uint64Values
-	(*Metadata_Asset)(nil),             // 27: sift.data.v2.Metadata.Asset
-	(*Metadata_Run)(nil),               // 28: sift.data.v2.Metadata.Run
-	(*Metadata_Channel)(nil),           // 29: sift.data.v2.Metadata.Channel
-	(*Metadata_Channel_Unit)(nil),      // 30: sift.data.v2.Metadata.Channel.Unit
-	(*timestamppb.Timestamp)(nil),      // 31: google.protobuf.Timestamp
-	(*v1.ExpressionRequest)(nil),       // 32: sift.calculated_channels.v1.ExpressionRequest
-	(v1.ExpressionMode)(0),             // 33: sift.calculated_channels.v1.ExpressionMode
-	(*anypb.Any)(nil),                  // 34: google.protobuf.Any
-	(v11.ChannelDataType)(0),           // 35: sift.common.type.v1.ChannelDataType
-	(*v11.ChannelEnumType)(nil),        // 36: sift.common.type.v1.ChannelEnumType
-	(*v11.ChannelBitFieldElement)(nil), // 37: sift.common.type.v1.ChannelBitFieldElement
+	(*BytesValue)(nil),                 // 27: sift.data.v2.BytesValue
+	(*BytesValues)(nil),                // 28: sift.data.v2.BytesValues
+	(*Metadata_Asset)(nil),             // 29: sift.data.v2.Metadata.Asset
+	(*Metadata_Run)(nil),               // 30: sift.data.v2.Metadata.Run
+	(*Metadata_Channel)(nil),           // 31: sift.data.v2.Metadata.Channel
+	(*Metadata_Channel_Unit)(nil),      // 32: sift.data.v2.Metadata.Channel.Unit
+	(*timestamppb.Timestamp)(nil),      // 33: google.protobuf.Timestamp
+	(*v1.ExpressionRequest)(nil),       // 34: sift.calculated_channels.v1.ExpressionRequest
+	(v1.ExpressionMode)(0),             // 35: sift.calculated_channels.v1.ExpressionMode
+	(*anypb.Any)(nil),                  // 36: google.protobuf.Any
+	(v11.ChannelDataType)(0),           // 37: sift.common.type.v1.ChannelDataType
+	(*v11.ChannelEnumType)(nil),        // 38: sift.common.type.v1.ChannelEnumType
+	(*v11.ChannelBitFieldElement)(nil), // 39: sift.common.type.v1.ChannelBitFieldElement
 }
 var file_sift_data_v2_data_proto_depIdxs = []int32{
 	1,  // 0: sift.data.v2.GetDataRequest.queries:type_name -> sift.data.v2.Query
-	31, // 1: sift.data.v2.GetDataRequest.start_time:type_name -> google.protobuf.Timestamp
-	31, // 2: sift.data.v2.GetDataRequest.end_time:type_name -> google.protobuf.Timestamp
+	33, // 1: sift.data.v2.GetDataRequest.start_time:type_name -> google.protobuf.Timestamp
+	33, // 2: sift.data.v2.GetDataRequest.end_time:type_name -> google.protobuf.Timestamp
 	2,  // 3: sift.data.v2.Query.channel:type_name -> sift.data.v2.ChannelQuery
 	3,  // 4: sift.data.v2.Query.calculated_channel:type_name -> sift.data.v2.CalculatedChannelQuery
-	32, // 5: sift.data.v2.CalculatedChannelQuery.expression:type_name -> sift.calculated_channels.v1.ExpressionRequest
-	33, // 6: sift.data.v2.CalculatedChannelQuery.mode:type_name -> sift.calculated_channels.v1.ExpressionMode
-	34, // 7: sift.data.v2.GetDataResponse.data:type_name -> google.protobuf.Any
-	35, // 8: sift.data.v2.Metadata.data_type:type_name -> sift.common.type.v1.ChannelDataType
-	27, // 9: sift.data.v2.Metadata.asset:type_name -> sift.data.v2.Metadata.Asset
-	28, // 10: sift.data.v2.Metadata.run:type_name -> sift.data.v2.Metadata.Run
-	29, // 11: sift.data.v2.Metadata.channel:type_name -> sift.data.v2.Metadata.Channel
-	31, // 12: sift.data.v2.DoubleValue.timestamp:type_name -> google.protobuf.Timestamp
+	34, // 5: sift.data.v2.CalculatedChannelQuery.expression:type_name -> sift.calculated_channels.v1.ExpressionRequest
+	35, // 6: sift.data.v2.CalculatedChannelQuery.mode:type_name -> sift.calculated_channels.v1.ExpressionMode
+	36, // 7: sift.data.v2.GetDataResponse.data:type_name -> google.protobuf.Any
+	37, // 8: sift.data.v2.Metadata.data_type:type_name -> sift.common.type.v1.ChannelDataType
+	29, // 9: sift.data.v2.Metadata.asset:type_name -> sift.data.v2.Metadata.Asset
+	30, // 10: sift.data.v2.Metadata.run:type_name -> sift.data.v2.Metadata.Run
+	31, // 11: sift.data.v2.Metadata.channel:type_name -> sift.data.v2.Metadata.Channel
+	33, // 12: sift.data.v2.DoubleValue.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 13: sift.data.v2.DoubleValues.metadata:type_name -> sift.data.v2.Metadata
 	6,  // 14: sift.data.v2.DoubleValues.values:type_name -> sift.data.v2.DoubleValue
-	31, // 15: sift.data.v2.StringValue.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 15: sift.data.v2.StringValue.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 16: sift.data.v2.StringValues.metadata:type_name -> sift.data.v2.Metadata
 	8,  // 17: sift.data.v2.StringValues.values:type_name -> sift.data.v2.StringValue
-	31, // 18: sift.data.v2.EnumValue.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 18: sift.data.v2.EnumValue.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 19: sift.data.v2.EnumValues.metadata:type_name -> sift.data.v2.Metadata
 	10, // 20: sift.data.v2.EnumValues.values:type_name -> sift.data.v2.EnumValue
-	31, // 21: sift.data.v2.BitFieldValue.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 21: sift.data.v2.BitFieldValue.timestamp:type_name -> google.protobuf.Timestamp
 	12, // 22: sift.data.v2.BitFieldElementValues.values:type_name -> sift.data.v2.BitFieldValue
 	5,  // 23: sift.data.v2.BitFieldValues.metadata:type_name -> sift.data.v2.Metadata
 	13, // 24: sift.data.v2.BitFieldValues.values:type_name -> sift.data.v2.BitFieldElementValues
-	31, // 25: sift.data.v2.BoolValue.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 25: sift.data.v2.BoolValue.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 26: sift.data.v2.BoolValues.metadata:type_name -> sift.data.v2.Metadata
 	15, // 27: sift.data.v2.BoolValues.values:type_name -> sift.data.v2.BoolValue
-	31, // 28: sift.data.v2.FloatValue.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 28: sift.data.v2.FloatValue.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 29: sift.data.v2.FloatValues.metadata:type_name -> sift.data.v2.Metadata
 	17, // 30: sift.data.v2.FloatValues.values:type_name -> sift.data.v2.FloatValue
-	31, // 31: sift.data.v2.Int32Value.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 31: sift.data.v2.Int32Value.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 32: sift.data.v2.Int32Values.metadata:type_name -> sift.data.v2.Metadata
 	19, // 33: sift.data.v2.Int32Values.values:type_name -> sift.data.v2.Int32Value
-	31, // 34: sift.data.v2.Uint32Value.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 34: sift.data.v2.Uint32Value.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 35: sift.data.v2.Uint32Values.metadata:type_name -> sift.data.v2.Metadata
 	21, // 36: sift.data.v2.Uint32Values.values:type_name -> sift.data.v2.Uint32Value
-	31, // 37: sift.data.v2.Int64Value.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 37: sift.data.v2.Int64Value.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 38: sift.data.v2.Int64Values.metadata:type_name -> sift.data.v2.Metadata
 	23, // 39: sift.data.v2.Int64Values.values:type_name -> sift.data.v2.Int64Value
-	31, // 40: sift.data.v2.Uint64Value.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 40: sift.data.v2.Uint64Value.timestamp:type_name -> google.protobuf.Timestamp
 	5,  // 41: sift.data.v2.Uint64Values.metadata:type_name -> sift.data.v2.Metadata
 	25, // 42: sift.data.v2.Uint64Values.values:type_name -> sift.data.v2.Uint64Value
-	30, // 43: sift.data.v2.Metadata.Channel.unit:type_name -> sift.data.v2.Metadata.Channel.Unit
-	36, // 44: sift.data.v2.Metadata.Channel.enum_types:type_name -> sift.common.type.v1.ChannelEnumType
-	37, // 45: sift.data.v2.Metadata.Channel.bit_field_elements:type_name -> sift.common.type.v1.ChannelBitFieldElement
-	0,  // 46: sift.data.v2.DataService.GetData:input_type -> sift.data.v2.GetDataRequest
-	4,  // 47: sift.data.v2.DataService.GetData:output_type -> sift.data.v2.GetDataResponse
-	47, // [47:48] is the sub-list for method output_type
-	46, // [46:47] is the sub-list for method input_type
-	46, // [46:46] is the sub-list for extension type_name
-	46, // [46:46] is the sub-list for extension extendee
-	0,  // [0:46] is the sub-list for field type_name
+	33, // 43: sift.data.v2.BytesValue.timestamp:type_name -> google.protobuf.Timestamp
+	5,  // 44: sift.data.v2.BytesValues.metadata:type_name -> sift.data.v2.Metadata
+	27, // 45: sift.data.v2.BytesValues.values:type_name -> sift.data.v2.BytesValue
+	32, // 46: sift.data.v2.Metadata.Channel.unit:type_name -> sift.data.v2.Metadata.Channel.Unit
+	38, // 47: sift.data.v2.Metadata.Channel.enum_types:type_name -> sift.common.type.v1.ChannelEnumType
+	39, // 48: sift.data.v2.Metadata.Channel.bit_field_elements:type_name -> sift.common.type.v1.ChannelBitFieldElement
+	0,  // 49: sift.data.v2.DataService.GetData:input_type -> sift.data.v2.GetDataRequest
+	4,  // 50: sift.data.v2.DataService.GetData:output_type -> sift.data.v2.GetDataResponse
+	50, // [50:51] is the sub-list for method output_type
+	49, // [49:50] is the sub-list for method input_type
+	49, // [49:49] is the sub-list for extension type_name
+	49, // [49:49] is the sub-list for extension extendee
+	0,  // [0:49] is the sub-list for field type_name
 }
 
 func init() { file_sift_data_v2_data_proto_init() }
@@ -2654,7 +2784,7 @@ func file_sift_data_v2_data_proto_init() {
 			}
 		}
 		file_sift_data_v2_data_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Metadata_Asset); i {
+			switch v := v.(*BytesValue); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2666,7 +2796,7 @@ func file_sift_data_v2_data_proto_init() {
 			}
 		}
 		file_sift_data_v2_data_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Metadata_Run); i {
+			switch v := v.(*BytesValues); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2678,7 +2808,7 @@ func file_sift_data_v2_data_proto_init() {
 			}
 		}
 		file_sift_data_v2_data_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Metadata_Channel); i {
+			switch v := v.(*Metadata_Asset); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2690,6 +2820,30 @@ func file_sift_data_v2_data_proto_init() {
 			}
 		}
 		file_sift_data_v2_data_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Metadata_Run); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sift_data_v2_data_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Metadata_Channel); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sift_data_v2_data_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Metadata_Channel_Unit); i {
 			case 0:
 				return &v.state
@@ -2715,7 +2869,7 @@ func file_sift_data_v2_data_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_sift_data_v2_data_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   31,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
