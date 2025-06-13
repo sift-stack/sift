@@ -356,6 +356,10 @@ impl serde::Serialize for IngestWithConfigDataChannelValue {
                 ingest_with_config_data_channel_value::Type::Empty(v) => {
                     struct_ser.serialize_field("empty", v)?;
                 }
+                ingest_with_config_data_channel_value::Type::Bytes(v) => {
+                    #[allow(clippy::needless_borrow)]
+                    struct_ser.serialize_field("bytes", pbjson::private::base64::encode(&v).as_str())?;
+                }
             }
         }
         struct_ser.end()
@@ -380,6 +384,7 @@ impl<'de> serde::Deserialize<'de> for IngestWithConfigDataChannelValue {
             "bitField",
             "enum",
             "empty",
+            "bytes",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -395,6 +400,7 @@ impl<'de> serde::Deserialize<'de> for IngestWithConfigDataChannelValue {
             BitField,
             Enum,
             Empty,
+            Bytes,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -427,6 +433,7 @@ impl<'de> serde::Deserialize<'de> for IngestWithConfigDataChannelValue {
                             "bitField" | "bit_field" => Ok(GeneratedField::BitField),
                             "enum" => Ok(GeneratedField::Enum),
                             "empty" => Ok(GeneratedField::Empty),
+                            "bytes" => Ok(GeneratedField::Bytes),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -515,6 +522,12 @@ impl<'de> serde::Deserialize<'de> for IngestWithConfigDataChannelValue {
                             }
                             r#type__ = map_.next_value::<::std::option::Option<_>>()?.map(ingest_with_config_data_channel_value::Type::Empty)
 ;
+                        }
+                        GeneratedField::Bytes => {
+                            if r#type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("bytes"));
+                            }
+                            r#type__ = map_.next_value::<::std::option::Option<::pbjson::private::BytesDeserialize<_>>>()?.map(|x| ingest_with_config_data_channel_value::Type::Bytes(x.0));
                         }
                     }
                 }

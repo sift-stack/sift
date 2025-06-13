@@ -19,6 +19,10 @@ pub struct Asset {
     pub modified_by_user_id: ::prost::alloc::string::String,
     #[prost(string, repeated, tag="9")]
     pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="10")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(message, optional, tag="11")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -45,6 +49,8 @@ pub struct ListAssetsResponse {
 pub struct DeleteAssetRequest {
     #[prost(string, tag="1")]
     pub asset_id: ::prost::alloc::string::String,
+    #[prost(bool, tag="2")]
+    pub archive_runs: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
