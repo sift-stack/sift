@@ -11,5 +11,9 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dynamic = ["version"]
+maintainers = [
+    { name = "Sift Software Engineers", email = "engineering@siftstack.com" },
+]
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
