@@ -1,26 +1,23 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Union, cast
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union, cast
 
+from google.protobuf.field_mask_pb2 import FieldMask
 from sift.assets.v1.assets_pb2 import (
     Asset,
     DeleteAssetRequest,
     GetAssetRequest,
     GetAssetResponse,
-    ListAssetsRequest,
-    ListAssetsResponse,
     UpdateAssetRequest,
     UpdateAssetResponse,
 )
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
-from google.protobuf.field_mask_pb2 import FieldMask
 
-from sift_py.grpc.transport import SiftChannel
-from sift_py._internal.cel import cel_in
 from sift_py._internal.metadata import wrap_metadata
 from sift_py._internal.time import to_timestamp_pb
 from sift_py.asset._internal.shared import list_assets_impl
+from sift_py.grpc.transport import SiftChannel
 
 
 class AssetService:

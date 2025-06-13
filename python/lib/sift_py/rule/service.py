@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
-from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
+from sift.assets.v1.assets_pb2 import Asset
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import (
@@ -32,8 +32,8 @@ from sift.users.v2.users_pb2_grpc import UserServiceStub
 from sift_py._internal.cel import cel_in
 from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.channel import get_channels
-from sift_py.asset._internal.shared import list_assets_impl
 from sift_py._internal.user import get_active_users
+from sift_py.asset._internal.shared import list_assets_impl
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
 from sift_py.ingestion.channel import channel_fqn

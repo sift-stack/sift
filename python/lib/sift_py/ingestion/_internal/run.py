@@ -1,4 +1,4 @@
-from typing import List, Optional, cast, Dict, Union
+from typing import Dict, List, Optional, Union, cast
 
 from sift.runs.v2.runs_pb2 import (
     CreateRunRequest,
@@ -8,8 +8,8 @@ from sift.runs.v2.runs_pb2 import (
 )
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
-from sift_py.grpc.transport import SiftChannel
 from sift_py._internal.metadata import wrap_metadata
+from sift_py.grpc.transport import SiftChannel
 
 
 def get_run_id_by_name(

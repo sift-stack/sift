@@ -1,6 +1,6 @@
-from unittest import TestCase
-from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
+from unittest import TestCase
+from unittest.mock import MagicMock
 
 from sift.assets.v1.assets_pb2 import (
     Asset,
@@ -8,11 +8,10 @@ from sift.assets.v1.assets_pb2 import (
     ListAssetsResponse,
     UpdateAssetResponse,
 )
-from sift.metadata.v1.metadata_pb2 import MetadataKey, MetadataValue
 
+from sift_py._internal.metadata import wrap_metadata
 from sift_py.asset.service import AssetService
 from sift_py.grpc.transport import SiftChannel
-from sift_py._internal.metadata import wrap_metadata
 
 
 class TestAssetService(TestCase):

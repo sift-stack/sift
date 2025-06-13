@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from google.protobuf.field_mask_pb2 import FieldMask
 from google.protobuf.timestamp_pb2 import Timestamp
-from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
+from sift.assets.v1.assets_pb2 import Asset
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannel,
@@ -25,7 +25,6 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
 )
 from sift.calculated_channels.v2.calculated_channels_pb2_grpc import CalculatedChannelServiceStub
 
-from sift_py._internal.cel import cel_in
 from sift_py.asset._internal.shared import list_assets_impl
 from sift_py.calculated_channels.config import CalculatedChannelConfig, CalculatedChannelUpdate
 from sift_py.grpc.transport import SiftChannel

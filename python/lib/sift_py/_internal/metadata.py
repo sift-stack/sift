@@ -1,6 +1,6 @@
 from typing import Dict, List, Union
 
-from sift.metadata.v1.metadata_pb2 import MetadataKey, MetadataValue, MetadataKeyType
+from sift.metadata.v1.metadata_pb2 import MetadataKey, MetadataKeyType, MetadataValue
 
 
 def wrap_metadata(_metadata: Dict[str, Union[str, float, bool]]) -> List[MetadataValue]:

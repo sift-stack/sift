@@ -1,10 +1,10 @@
 import os
+from datetime import datetime
 from urllib.parse import urlparse
-from datetime import datetime, timezone
 
 from dotenv import load_dotenv
-from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 from sift_py.asset.service import AssetService
+from sift_py.grpc.transport import SiftChannelConfig, use_sift_channel
 
 
 def update_asset_metadata():
