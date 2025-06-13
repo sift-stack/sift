@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     # Create a gRPC transport channel configured specifically for the Sift API
     sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
-    sift_channel_config["use_ssl"] = (urlparse(base_uri).scheme == "https")
+    sift_channel_config["use_ssl"] = urlparse(base_uri).scheme == "https"
     with use_sift_channel(sift_channel_config) as channel:
         # Create ingestion service using the telemetry config we loaded in
         ingestion_service = IngestionService(

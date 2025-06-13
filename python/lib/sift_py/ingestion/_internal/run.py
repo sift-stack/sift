@@ -38,9 +38,9 @@ def create_run(
     metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
 ) -> str:
     svc = RunServiceStub(channel)
-    
+
     _metadata = wrap_metadata(metadata) if metadata else None
-    
+
     req = CreateRunRequest(
         name=run_name,
         description=description,

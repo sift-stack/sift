@@ -407,4 +407,3 @@ class CalculatedChannelService:
         self, names: Optional[List[str]] = None, ids: Optional[List[str]] = None
     ) -> List[Asset]:
         return list_assets_impl(self._asset_service_stub, names, ids)
-

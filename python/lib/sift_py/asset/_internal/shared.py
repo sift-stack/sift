@@ -9,7 +9,7 @@ from sift_py._internal.cel import cel_in
 def list_assets_impl(
     _asset_service_stub: AssetServiceStub,
     names: Optional[List[str]] = None,
-    ids: Optional[List[str]] = None
+    ids: Optional[List[str]] = None,
 ) -> List[Asset]:
     """
     Lists assets in an organization.
@@ -22,7 +22,10 @@ def list_assets_impl(
     Returns:
         A list of assets matching the criteria.
     """
-    def get_assets_with_filter(_asset_service_stub: AssetServiceStub, cel_filter: str) -> List[Asset]:
+
+    def get_assets_with_filter(
+        _asset_service_stub: AssetServiceStub, cel_filter: str
+    ) -> List[Asset]:
         assets: List[Asset] = []
         next_page_token = ""
         while True:
@@ -39,12 +42,12 @@ def list_assets_impl(
             next_page_token = res.next_page_token
 
         return assets
-    
+
     if names is None:
         names = []
     if ids is None:
         ids = []
-    
+
     if names:
         names_cel = cel_in("name", names)
         return get_assets_with_filter(_asset_service_stub, names_cel)
@@ -52,4 +55,4 @@ def list_assets_impl(
         ids_cel = cel_in("asset_id", ids)
         return get_assets_with_filter(_asset_service_stub, ids_cel)
     else:
-        return [] 
+        return []

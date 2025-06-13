@@ -109,7 +109,9 @@ class AssetService:
             organization_id=asset.organization_id,
             created_date=asset.created_date,
             created_by_user_id=asset.created_by_user_id,
-            modified_date=to_timestamp_pb(datetime.now()), # This shouldn't need to be passed since they're set by backend but w/e.
+            modified_date=to_timestamp_pb(
+                datetime.now()
+            ),  # This shouldn't need to be passed since they're set by backend but w/e.
             modified_by_user_id=asset.modified_by_user_id,
             tags=new_tags,
             metadata=new_metadata,
@@ -121,4 +123,4 @@ class AssetService:
             update_mask=update_mask,
         )
         res = cast(UpdateAssetResponse, self._asset_service_stub.UpdateAsset(req))
-        return res.asset 
+        return res.asset

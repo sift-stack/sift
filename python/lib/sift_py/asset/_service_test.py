@@ -172,19 +172,19 @@ class TestMetadata(TestCase):
 
         # Assert
         self.assertEqual(len(result), 4)
-        
+
         # Check string metadata
         string_metadata = next(m for m in result if m.key.name == "string_key")
         self.assertEqual(string_metadata.string_value, "string_value")
-        
+
         # Check number metadata
         number_metadata = next(m for m in result if m.key.name == "number_key")
         self.assertEqual(number_metadata.number_value, 42.0)
-        
+
         # Check float metadata
         float_metadata = next(m for m in result if m.key.name == "float_key")
         self.assertEqual(float_metadata.number_value, 3.14)
-        
+
         # Check boolean metadata
         bool_metadata = next(m for m in result if m.key.name == "bool_key")
         self.assertTrue(bool_metadata.boolean_value)
@@ -196,5 +196,5 @@ class TestMetadata(TestCase):
         # Act & Assert
         with self.assertRaises(ValueError) as context:
             wrap_metadata(metadata)
-        
-        self.assertIn("Unsupported metadata value type", str(context.exception)) 
+
+        self.assertIn("Unsupported metadata value type", str(context.exception))

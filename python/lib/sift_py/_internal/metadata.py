@@ -24,7 +24,7 @@ def wrap_metadata(_metadata: Dict[str, Union[str, float, bool]]) -> List[Metadat
         if isinstance(value, str):
             string_value = value
             type = MetadataKeyType.METADATA_KEY_TYPE_STRING
-        elif isinstance(value, bool): 
+        elif isinstance(value, bool):
             # Need to check bool before int since python thinks "True" is an int
             boolean_value = value
             type = MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN
@@ -33,9 +33,14 @@ def wrap_metadata(_metadata: Dict[str, Union[str, float, bool]]) -> List[Metadat
             type = MetadataKeyType.METADATA_KEY_TYPE_NUMBER
         else:
             raise ValueError(f"Unsupported metadata value type for key '{key}': {value}")
-        
+
         wrapped_key = MetadataKey(name=key, type=type)
-        wrapped_value = MetadataValue(key=wrapped_key, string_value=string_value, boolean_value=boolean_value, number_value=number_value)
+        wrapped_value = MetadataValue(
+            key=wrapped_key,
+            string_value=string_value,
+            boolean_value=boolean_value,
+            number_value=number_value,
+        )
         metadata.append(wrapped_value)
-    
-    return metadata 
+
+    return metadata
