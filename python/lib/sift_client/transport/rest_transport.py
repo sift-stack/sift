@@ -7,11 +7,11 @@ This module provides a simple wrapper around sift_py/rest.py for making REST API
 from __future__ import annotations
 
 import logging
+from urllib.parse import urljoin, urlparse
 
 import requests
-from sift_py.rest import SiftRestConfig, _RestService, _DEFAULT_REST_RETRY
+from sift_py.rest import _DEFAULT_REST_RETRY, SiftRestConfig, _RestService
 from urllib3.util import Retry
-from urllib.parse import urljoin, urlparse
 
 # Configure logging
 logger = logging.getLogger(__name__)

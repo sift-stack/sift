@@ -1,10 +1,3 @@
-"""
-High-level API for interacting with assets.
-
-This module provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
-It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -13,14 +6,14 @@ from google.protobuf.field_mask_pb2 import FieldMask
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.errors import ClientError, RequestError
-from sift_client.transport.grpc_transport import GrpcClient
+from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.types.asset import Asset
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 
-class AssetsAPI:
+class AssetsAPIAsync(WithGrpcClient):
     """
     High-level API for interacting with assets.
 
@@ -31,17 +24,21 @@ class AssetsAPI:
     representation of an asset using standard Python data structures and types.
     """
 
-    def __init__(self, client: GrpcClient):
+    def __init__(self, grpc_client: GrpcClient):
         """
         Initialize the AssetsAPI.
 
         Args:
-            client: The gRPC client to use for making API calls.
+            grpc_client: The gRPC client to use for making API calls.
         """
-        self._client = client
-        self._low_level_client = AssetsLowLevelClient(client)
+        super().__init__(grpc_client)
+        self._low_level_client = AssetsLowLevelClient(self._grpc_client)
 
-    def get(self, asset_id: str) -> Asset:
+    async def get(
+        self,
+        asset_id: str = None,
+        name: str = None,
+    ) -> Asset:
         """
         Get an asset by ID.
 
@@ -50,24 +47,15 @@ class AssetsAPI:
 
         Returns:
             The asset.
-
-        Raises:
-            ClientError: If the request fails.
         """
-        try:
-            return self._low_level_client.get_asset(asset_id)
-        except ClientError:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error getting asset: {e}")
-            raise RequestError(f"Failed to get asset: {e}")
+        return self._low_level_client.get_asset(asset_id)
 
-    def list(
+    def list_(
         self,
-        page_size: int | None = None,
-        page_token: str | None = None,
-        filter: str | None = None,
-        order_by: str | None = None,
+        page_size: int = None,
+        page_token: str = None,
+        filter: str = None,
+        order_by: str = None,
     ) -> tuple[list[Asset], str]:
         """
         List assets.

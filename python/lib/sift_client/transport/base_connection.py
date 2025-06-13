@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from sift_client.transport.grpc_transport import GrpcConfig
-from sift_client.transport.rest_transport import RestConfig
+import asyncio
+
+from sift_client.transport.grpc_transport import GrpcConfig, GrpcClient
+from sift_client.transport.rest_transport import RestConfig, RestClient
 
 
 class SiftConnectionConfig:
@@ -34,3 +36,20 @@ class SiftConnectionConfig:
             use_ssl=self.use_ssl,
             cert_via_openssl=self.cert_via_openssl,
         )
+
+
+class WithGrpcClient:
+    _grpc_client: GrpcClient
+
+    def __init__(self, grpc_client: GrpcClient):
+        self._grpc_client = grpc_client
+
+    def _get_loop(self) -> asyncio.AbstractEventLoop:
+        return self._grpc_client.default_loop
+
+
+class WithRestClient:
+    _rest_client: RestClient
+
+    def __init__(self, rest_client: RestClient):
+        self._rest_client = rest_client

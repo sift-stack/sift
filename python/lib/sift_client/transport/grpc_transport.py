@@ -125,6 +125,10 @@ class GrpcClient:
         self.channel_sync = use_sift_channel(cfg, config.metadata)
         atexit.register(self.close_sync)
 
+    @property
+    def default_loop(self) -> asyncio.AbstractEventLoop:
+        return self._default_loop
+
     def get_stub(self, stub_class: Type[Any]) -> Any:
         """
         Get an async stub bound to the current event loop.
