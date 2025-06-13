@@ -7,13 +7,14 @@ import grpc
 import pytest
 from pytest_mock import MockFixture
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
+    CreateIngestionConfigResponse,
+    ListIngestionConfigFlowsResponse,
+)
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigPb,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigPb,
-)
-from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
-    ListIngestionConfigFlowsResponse,
 )
 
 import sift_py.ingestion._internal.ingest
@@ -554,3 +555,80 @@ def test_get_ingestion_config_flows_updates_page_size(mocker: MockFixture):
     assert len(flows) == 2
     assert flows[0].name == "flow_a"
     assert flows[1].name == "flow_b"
+
+
+def test_large_ingestion_config_creation(mocker: MockFixture):
+    """
+    Tests the creation of a large ingestion config with multiple flows and channels.
+    """
+    num_flows = 100
+    num_channels_per_flow = 3000
+
+    flows = []
+    for i in range(num_flows):
+        channels = [
+            ChannelConfig(
+                name=f"channel_{i}_{j}",
+                data_type=ChannelDataType.DOUBLE,
+            )
+            for j in range(num_channels_per_flow)
+        ]
+        flows.append(FlowConfig(name=f"flow_{i}", channels=channels))
+
+    telemetry_config = TelemetryConfig(
+        asset_name="large-config",
+        flows=flows,
+    )
+
+    mock_channel = MockChannel()
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="large-ingestion-config-id",
+        asset_id="large-asset-id",
+        client_key="large-client-key",
+    )
+    mock_svc = MagicMock()
+    mock_svc.CreateIngestionConfig.return_value = CreateIngestionConfigResponse(
+        ingestion_config=mock_ingestion_config
+    )
+
+    stub_mock = mocker.patch(
+        "sift_py.ingestion._internal.ingestion_config.IngestionConfigServiceStub"
+    )
+    stub_mock.return_value = mock_svc
+
+    create_ingestion_config(
+        mock_channel,
+        telemetry_config.asset_name,
+        telemetry_config.flows,
+        client_key="large-client-key",
+        organization_id="large-org-id",
+    )
+
+    mock_svc.CreateIngestionConfig.assert_called_once()
+    assert mock_svc.CreateIngestionConfigFlows.call_count == num_flows
+
+    # Test if some of the flows already exist
+    rpc_error = grpc.RpcError()
+    rpc_error.code = lambda: grpc.StatusCode.ALREADY_EXISTS
+    mock_svc.CreateIngestionConfigFlows.side_effect = rpc_error
+
+    create_ingestion_config(
+        mock_channel,
+        telemetry_config.asset_name,
+        telemetry_config.flows,
+        client_key="large-client-key",
+        organization_id="large-org-id",
+    )
+    assert mock_svc.CreateIngestionConfigFlows.call_count == 2 * num_flows
+
+    # Test if individual flows exceed the limit
+    rpc_error.code = lambda: grpc.StatusCode.RESOURCE_EXHAUSTED
+    with pytest.raises(IngestionValidationError, match="Flow flow_0 is too large"):
+        create_ingestion_config(
+            mock_channel,
+            telemetry_config.asset_name,
+            telemetry_config.flows,
+            client_key="large-client-key",
+            organization_id="large-org-id",
+        )
+    assert mock_svc.CreateIngestionConfigFlows.call_count == (2 * num_flows) + 1
