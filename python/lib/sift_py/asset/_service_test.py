@@ -49,7 +49,6 @@ class TestAssetService(TestCase):
         # Assert
         self.assertIsInstance(result, AssetConfig)
         self.assertEqual(result, AssetConfig.from_asset(expected_asset))
-
         self.asset_service_stub.GetAsset.assert_called_once()
 
     def test_get_asset_not_found(self):
@@ -205,8 +204,7 @@ class TestAssetService(TestCase):
 
         # Assert
         self.assertIsInstance(result, AssetConfig)
-        self.assertEqual(result.tags, ["tag1", "tag2"])
-        self.assertEqual(result.metadata, {"key1": "value1"})
+        self.assertEqual(result, AssetConfig.from_asset(expected_asset))
         self.asset_service_stub.UpdateAsset.assert_called_once()
 
     def test_update_asset_tags_only(self):
@@ -242,8 +240,7 @@ class TestAssetService(TestCase):
 
         # Assert
         self.assertIsInstance(result, AssetConfig)
-        self.assertEqual(result.tags, [])
-        self.assertEqual(result.metadata, {})
+        self.assertEqual(result, AssetConfig.from_asset(expected_asset))
         self.asset_service_stub.UpdateAsset.assert_called_once()
 
     def test_update_asset_metadata_only(self):

@@ -17,7 +17,7 @@ class AssetConfig:
     This provides a more Python-friendly interface than the generated protobuf object.
     """
 
-    asset_id: Optional[str]
+    asset_id: str
     name: str
     organization_id: str
     created_date: datetime
