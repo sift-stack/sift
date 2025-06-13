@@ -46,7 +46,7 @@ def update_asset_metadata():
         test_metadata = {
             "test_string": f"updated at {timestamp.isoformat()}",
             "test_number": timestamp.timestamp(),
-            "test_boolean": True,
+            # "test_boolean": True,
         }
 
         updated_asset = asset_service.update_asset(asset=asset, metadata=test_metadata)

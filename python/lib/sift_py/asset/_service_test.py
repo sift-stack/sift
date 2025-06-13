@@ -10,11 +10,18 @@ from sift.assets.v1.assets_pb2 import (
 )
 
 from sift_py._internal.metadata import wrap_metadata
+from sift_py.asset.config import AssetConfig
 from sift_py.asset.service import AssetService
 from sift_py.grpc.transport import SiftChannel
 
 
 class TestAssetService(TestCase):
+    """
+    Tests for the AssetService class.
+
+    Note: Most of these tests are useful purely for exercising code paths but importantly do not simulate the backend service so the returns are just the expected values.
+    """
+
     def setUp(self):
         self.channel = MagicMock(spec=SiftChannel)
         self.service = AssetService(self.channel)
@@ -40,7 +47,9 @@ class TestAssetService(TestCase):
         result = self.service.get_asset(asset_id)
 
         # Assert
-        self.assertEqual(result, expected_asset)
+        self.assertIsInstance(result, AssetConfig)
+        self.assertEqual(result, AssetConfig.from_asset(expected_asset))
+
         self.asset_service_stub.GetAsset.assert_called_once()
 
     def test_get_asset_not_found(self):
@@ -86,7 +95,10 @@ class TestAssetService(TestCase):
         result = self.service.list_assets(names=names)
 
         # Assert
-        self.assertEqual(result, expected_assets)
+        self.assertEqual(len(result), 2)
+        for i, config in enumerate(result):
+            self.assertIsInstance(config, AssetConfig)
+            self.assertEqual(config, AssetConfig.from_asset(expected_assets[i]))
         self.asset_service_stub.ListAssets.assert_called_once()
 
     def test_list_assets_by_ids(self):
@@ -110,7 +122,10 @@ class TestAssetService(TestCase):
         result = self.service.list_assets(ids=ids)
 
         # Assert
-        self.assertEqual(result, expected_assets)
+        self.assertEqual(len(result), 2)
+        for i, config in enumerate(result):
+            self.assertIsInstance(config, AssetConfig)
+            self.assertEqual(config, AssetConfig.from_asset(expected_assets[i]))
         self.asset_service_stub.ListAssets.assert_called_once()
 
     def test_list_assets_empty(self):
@@ -121,79 +136,153 @@ class TestAssetService(TestCase):
         self.assertEqual(result, [])
         self.asset_service_stub.ListAssets.assert_not_called()
 
-    def test_update_asset(self):
-        timestamp = datetime.now(timezone.utc)
+    def test_update_asset_full(self):
         # Arrange
-        asset = Asset(
+        timestamp = datetime.now(timezone.utc)
+        asset = AssetConfig(
             asset_id="test-asset",
             name="Test Asset",
             organization_id="test-org",
             created_date=timestamp,
+            created_by_user_id="creator-123",
             modified_date=timestamp,
+            modified_by_user_id="modifier-456",
+            tags=["tag1", "tag2"],
+            metadata={"key1": "value1", "key2": 42, "key3": True}
         )
-        new_tags = ["new-tag1", "new-tag2"]
-        new_metadata = {"key1": "value1", "key2": 42, "key3": True}
 
         expected_asset = Asset(
             asset_id=asset.asset_id,
             name=asset.name,
             organization_id=asset.organization_id,
             created_date=timestamp,
+            created_by_user_id=asset.created_by_user_id,
             modified_date=timestamp,
-            tags=new_tags,
+            modified_by_user_id=asset.modified_by_user_id,
+            tags=asset.tags,
+            metadata=wrap_metadata(asset.metadata)
         )
         self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 
         # Act
-        result = self.service.update_asset(
-            asset=asset,
-            tags=new_tags,
-            metadata=new_metadata,
-        )
+        result = self.service.update_asset(asset)
 
         # Assert
-        self.assertEqual(result, expected_asset)
+        self.assertIsInstance(result, AssetConfig)
+        self.assertEqual(result, AssetConfig.from_asset(expected_asset))
         self.asset_service_stub.UpdateAsset.assert_called_once()
 
-
-class TestMetadata(TestCase):
-    def test_wrap_metadata(self):
+    def test_update_asset_with_tags(self):
         # Arrange
-        metadata = {
-            "string_key": "string_value",
-            "number_key": 42,
-            "float_key": 3.14,
-            "bool_key": True,
-        }
+        timestamp = datetime.now(timezone.utc)
+        asset = AssetConfig(
+            asset_id="test-asset",
+            name="Test Asset",
+            organization_id="test-org",
+            created_date=timestamp,
+            created_by_user_id="creator-123",
+            modified_date=timestamp,
+            modified_by_user_id="modifier-456",
+            tags=["tag1", "tag2"],
+            metadata={"key1": "value1"}
+        )
+
+        expected_asset = Asset(
+            asset_id=asset.asset_id,
+            name=asset.name,
+            organization_id=asset.organization_id,
+            created_date=timestamp,
+            created_by_user_id=asset.created_by_user_id,
+            modified_date=timestamp,
+            modified_by_user_id=asset.modified_by_user_id,
+            tags=asset.tags,
+            metadata=wrap_metadata(asset.metadata)
+        )
+        self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 
         # Act
-        result = wrap_metadata(metadata)
+        result = self.service.update_asset(asset, update_tags=True, update_metadata=False)
 
         # Assert
-        self.assertEqual(len(result), 4)
+        self.assertIsInstance(result, AssetConfig)
+        self.assertEqual(result.tags, ["tag1", "tag2"])
+        self.assertEqual(result.metadata, {"key1": "value1"})
+        self.asset_service_stub.UpdateAsset.assert_called_once()
 
-        # Check string metadata
-        string_metadata = next(m for m in result if m.key.name == "string_key")
-        self.assertEqual(string_metadata.string_value, "string_value")
-
-        # Check number metadata
-        number_metadata = next(m for m in result if m.key.name == "number_key")
-        self.assertEqual(number_metadata.number_value, 42.0)
-
-        # Check float metadata
-        float_metadata = next(m for m in result if m.key.name == "float_key")
-        self.assertEqual(float_metadata.number_value, 3.14)
-
-        # Check boolean metadata
-        bool_metadata = next(m for m in result if m.key.name == "bool_key")
-        self.assertTrue(bool_metadata.boolean_value)
-
-    def test_wrap_metadata_invalid_type(self):
+    def test_update_asset_tags_only(self):
         # Arrange
-        metadata = {"invalid_key": [1, 2, 3]}  # List is not a supported type
+        timestamp = datetime.now(timezone.utc)
+        asset = AssetConfig(
+            asset_id="test-asset",
+            name="Test Asset",
+            organization_id="test-org",
+            created_date=timestamp,
+            created_by_user_id="creator-123",
+            modified_date=timestamp,
+            modified_by_user_id="modifier-456",
+            tags=[],
+            metadata={}
+        )
 
-        # Act & Assert
-        with self.assertRaises(ValueError) as context:
-            wrap_metadata(metadata)
+        expected_asset = Asset(
+            asset_id=asset.asset_id,
+            name=asset.name,
+            organization_id=asset.organization_id,
+            created_date=timestamp,
+            created_by_user_id=asset.created_by_user_id,
+            modified_date=timestamp,
+            modified_by_user_id=asset.modified_by_user_id,
+            tags=[],
+            metadata=[]
+        )
+        self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 
-        self.assertIn("Unsupported metadata value type", str(context.exception))
+        # Act
+        result = self.service.update_asset(asset)
+
+        # Assert
+        self.assertIsInstance(result, AssetConfig)
+        self.assertEqual(result.tags, [])
+        self.assertEqual(result.metadata, {})
+        self.asset_service_stub.UpdateAsset.assert_called_once()
+
+    def test_update_asset_metadata_only(self):
+        # Arrange
+        timestamp = datetime.now(timezone.utc)
+        asset = AssetConfig(
+            asset_id="test-asset",
+            name="Test Asset",
+            organization_id="test-org",
+            created_date=timestamp,
+            created_by_user_id="creator-123",
+            modified_date=timestamp,
+            modified_by_user_id="modifier-456",
+            metadata={
+                "string_value": "test",
+                "number_value": 42,
+                "float_value": 3.14,
+                "bool_value": True,
+                "zero_value": 0,
+                "empty_string": ""
+            }
+        )
+
+        expected_asset = Asset(
+            asset_id=asset.asset_id,
+            name=asset.name,
+            organization_id=asset.organization_id,
+            created_date=timestamp,
+            created_by_user_id=asset.created_by_user_id,
+            modified_date=timestamp,
+            modified_by_user_id=asset.modified_by_user_id,
+            metadata=wrap_metadata(asset.metadata)
+        )
+        self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
+
+        # Act
+        result = self.service.update_asset(asset, update_tags=False, update_metadata=True)
+
+        # Assert
+        self.assertIsInstance(result, AssetConfig)
+        self.assertEqual(result, AssetConfig.from_asset(expected_asset))
+        self.asset_service_stub.UpdateAsset.assert_called_once()

@@ -44,3 +44,18 @@ def wrap_metadata(_metadata: Dict[str, Union[str, float, bool]]) -> List[Metadat
         metadata.append(wrapped_value)
 
     return metadata
+
+def unwrap_metadata(metadata: List[MetadataValue]) -> Dict[str, Union[str, float, bool]]:
+    """
+    Unwraps a list of MetadataValue objects into a dictionary.
+    """
+    unwrapped_metadata = {}
+    for md in metadata:
+        if md.key.type == MetadataKeyType.METADATA_KEY_TYPE_STRING:
+            unwrapped_metadata[md.key.name] = md.string_value
+        elif md.key.type == MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN:
+            unwrapped_metadata[md.key.name] = md.boolean_value
+        elif md.key.type == MetadataKeyType.METADATA_KEY_TYPE_NUMBER:
+            unwrapped_metadata[md.key.name] = md.number_value
+
+    return unwrapped_metadata
