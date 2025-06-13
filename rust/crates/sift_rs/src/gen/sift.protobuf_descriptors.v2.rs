@@ -202,6 +202,38 @@ pub struct AddProtobufDescriptorResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckProtobufDescriptorCompatibilityRequest {
+    #[prost(message, optional, tag="1")]
+    pub protobuf_descriptor: ::core::option::Option<ProtobufDescriptor>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct IncompatibleProtobufField {
+    #[prost(string, tag="1")]
+    pub protobuf_descriptor_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub message_full_name: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub desired_field_name: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub current_field_name: ::prost::alloc::string::String,
+    #[prost(string, tag="5")]
+    pub field_number: ::prost::alloc::string::String,
+    #[prost(string, tag="6")]
+    pub reason: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub details: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CheckProtobufDescriptorCompatibilityResponse {
+    #[prost(bool, tag="1")]
+    pub is_valid: bool,
+    #[prost(message, repeated, tag="2")]
+    pub incompatible_protobuf_descriptor_fields: ::prost::alloc::vec::Vec<IncompatibleProtobufField>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ProtobufDescriptor {
     #[prost(string, tag="1")]
     pub message_type_full_name: ::prost::alloc::string::String,
@@ -213,6 +245,8 @@ pub struct ProtobufDescriptor {
     pub namespace: ::prost::alloc::string::String,
     #[prost(string, tag="5")]
     pub protobuf_descriptor_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="6")]
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

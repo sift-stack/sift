@@ -328,6 +328,7 @@ impl serde::Serialize for ChannelDataType {
             Self::Uint32 => "CHANNEL_DATA_TYPE_UINT_32",
             Self::Int64 => "CHANNEL_DATA_TYPE_INT_64",
             Self::Uint64 => "CHANNEL_DATA_TYPE_UINT_64",
+            Self::Bytes => "CHANNEL_DATA_TYPE_BYTES",
         };
         serializer.serialize_str(variant)
     }
@@ -350,6 +351,7 @@ impl<'de> serde::Deserialize<'de> for ChannelDataType {
             "CHANNEL_DATA_TYPE_UINT_32",
             "CHANNEL_DATA_TYPE_INT_64",
             "CHANNEL_DATA_TYPE_UINT_64",
+            "CHANNEL_DATA_TYPE_BYTES",
         ];
 
         struct GeneratedVisitor;
@@ -401,6 +403,7 @@ impl<'de> serde::Deserialize<'de> for ChannelDataType {
                     "CHANNEL_DATA_TYPE_UINT_32" => Ok(ChannelDataType::Uint32),
                     "CHANNEL_DATA_TYPE_INT_64" => Ok(ChannelDataType::Int64),
                     "CHANNEL_DATA_TYPE_UINT_64" => Ok(ChannelDataType::Uint64),
+                    "CHANNEL_DATA_TYPE_BYTES" => Ok(ChannelDataType::Bytes),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -746,6 +749,303 @@ impl<'de> serde::Deserialize<'de> for FindResourceBy {
             }
         }
         deserializer.deserialize_struct("sift.common.r#type.v1.FindResourceBy", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for FunctionDataType {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "FUNCTION_DATA_TYPE_UNSPECIFIED",
+            Self::Numeric => "FUNCTION_DATA_TYPE_NUMERIC",
+            Self::String => "FUNCTION_DATA_TYPE_STRING",
+            Self::Bool => "FUNCTION_DATA_TYPE_BOOL",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for FunctionDataType {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "FUNCTION_DATA_TYPE_UNSPECIFIED",
+            "FUNCTION_DATA_TYPE_NUMERIC",
+            "FUNCTION_DATA_TYPE_STRING",
+            "FUNCTION_DATA_TYPE_BOOL",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FunctionDataType;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "FUNCTION_DATA_TYPE_UNSPECIFIED" => Ok(FunctionDataType::Unspecified),
+                    "FUNCTION_DATA_TYPE_NUMERIC" => Ok(FunctionDataType::Numeric),
+                    "FUNCTION_DATA_TYPE_STRING" => Ok(FunctionDataType::String),
+                    "FUNCTION_DATA_TYPE_BOOL" => Ok(FunctionDataType::Bool),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
+impl serde::Serialize for FunctionDependency {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.user_defined_function_version_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.FunctionDependency", len)?;
+        if !self.user_defined_function_version_id.is_empty() {
+            struct_ser.serialize_field("userDefinedFunctionVersionId", &self.user_defined_function_version_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FunctionDependency {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "user_defined_function_version_id",
+            "userDefinedFunctionVersionId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            UserDefinedFunctionVersionId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "userDefinedFunctionVersionId" | "user_defined_function_version_id" => Ok(GeneratedField::UserDefinedFunctionVersionId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FunctionDependency;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.common.r#type.v1.FunctionDependency")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FunctionDependency, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut user_defined_function_version_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::UserDefinedFunctionVersionId => {
+                            if user_defined_function_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userDefinedFunctionVersionId"));
+                            }
+                            user_defined_function_version_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(FunctionDependency {
+                    user_defined_function_version_id: user_defined_function_version_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.common.r#type.v1.FunctionDependency", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for FunctionInput {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.identifier.is_empty() {
+            len += 1;
+        }
+        if self.data_type != 0 {
+            len += 1;
+        }
+        if self.constant {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.FunctionInput", len)?;
+        if !self.identifier.is_empty() {
+            struct_ser.serialize_field("identifier", &self.identifier)?;
+        }
+        if self.data_type != 0 {
+            let v = FunctionDataType::try_from(self.data_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.data_type)))?;
+            struct_ser.serialize_field("dataType", &v)?;
+        }
+        if self.constant {
+            struct_ser.serialize_field("constant", &self.constant)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FunctionInput {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "identifier",
+            "data_type",
+            "dataType",
+            "constant",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Identifier,
+            DataType,
+            Constant,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "identifier" => Ok(GeneratedField::Identifier),
+                            "dataType" | "data_type" => Ok(GeneratedField::DataType),
+                            "constant" => Ok(GeneratedField::Constant),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FunctionInput;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.common.r#type.v1.FunctionInput")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FunctionInput, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut identifier__ = None;
+                let mut data_type__ = None;
+                let mut constant__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Identifier => {
+                            if identifier__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("identifier"));
+                            }
+                            identifier__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DataType => {
+                            if data_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dataType"));
+                            }
+                            data_type__ = Some(map_.next_value::<FunctionDataType>()? as i32);
+                        }
+                        GeneratedField::Constant => {
+                            if constant__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("constant"));
+                            }
+                            constant__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(FunctionInput {
+                    identifier: identifier__.unwrap_or_default(),
+                    data_type: data_type__.unwrap_or_default(),
+                    constant: constant__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.common.r#type.v1.FunctionInput", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for Ids {
@@ -1743,5 +2043,367 @@ impl<'de> serde::Deserialize<'de> for User {
             }
         }
         deserializer.deserialize_struct("sift.common.r#type.v1.User", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UserDefinedFunction {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.user_defined_function_id.is_empty() {
+            len += 1;
+        }
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if self.archived_date.is_some() {
+            len += 1;
+        }
+        if !self.user_defined_function_version_id.is_empty() {
+            len += 1;
+        }
+        if self.version != 0 {
+            len += 1;
+        }
+        if !self.description.is_empty() {
+            len += 1;
+        }
+        if !self.change_message.is_empty() {
+            len += 1;
+        }
+        if !self.user_notes.is_empty() {
+            len += 1;
+        }
+        if !self.expression.is_empty() {
+            len += 1;
+        }
+        if !self.function_inputs.is_empty() {
+            len += 1;
+        }
+        if self.function_output_type != 0 {
+            len += 1;
+        }
+        if !self.function_dependencies.is_empty() {
+            len += 1;
+        }
+        if self.created_date.is_some() {
+            len += 1;
+        }
+        if self.modified_date.is_some() {
+            len += 1;
+        }
+        if !self.created_by_user_id.is_empty() {
+            len += 1;
+        }
+        if !self.modified_by_user_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.UserDefinedFunction", len)?;
+        if !self.user_defined_function_id.is_empty() {
+            struct_ser.serialize_field("userDefinedFunctionId", &self.user_defined_function_id)?;
+        }
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if let Some(v) = self.archived_date.as_ref() {
+            struct_ser.serialize_field("archivedDate", v)?;
+        }
+        if !self.user_defined_function_version_id.is_empty() {
+            struct_ser.serialize_field("userDefinedFunctionVersionId", &self.user_defined_function_version_id)?;
+        }
+        if self.version != 0 {
+            struct_ser.serialize_field("version", &self.version)?;
+        }
+        if !self.description.is_empty() {
+            struct_ser.serialize_field("description", &self.description)?;
+        }
+        if !self.change_message.is_empty() {
+            struct_ser.serialize_field("changeMessage", &self.change_message)?;
+        }
+        if !self.user_notes.is_empty() {
+            struct_ser.serialize_field("userNotes", &self.user_notes)?;
+        }
+        if !self.expression.is_empty() {
+            struct_ser.serialize_field("expression", &self.expression)?;
+        }
+        if !self.function_inputs.is_empty() {
+            struct_ser.serialize_field("functionInputs", &self.function_inputs)?;
+        }
+        if self.function_output_type != 0 {
+            let v = FunctionDataType::try_from(self.function_output_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.function_output_type)))?;
+            struct_ser.serialize_field("functionOutputType", &v)?;
+        }
+        if !self.function_dependencies.is_empty() {
+            struct_ser.serialize_field("functionDependencies", &self.function_dependencies)?;
+        }
+        if let Some(v) = self.created_date.as_ref() {
+            struct_ser.serialize_field("createdDate", v)?;
+        }
+        if let Some(v) = self.modified_date.as_ref() {
+            struct_ser.serialize_field("modifiedDate", v)?;
+        }
+        if !self.created_by_user_id.is_empty() {
+            struct_ser.serialize_field("createdByUserId", &self.created_by_user_id)?;
+        }
+        if !self.modified_by_user_id.is_empty() {
+            struct_ser.serialize_field("modifiedByUserId", &self.modified_by_user_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "user_defined_function_id",
+            "userDefinedFunctionId",
+            "name",
+            "archived_date",
+            "archivedDate",
+            "user_defined_function_version_id",
+            "userDefinedFunctionVersionId",
+            "version",
+            "description",
+            "change_message",
+            "changeMessage",
+            "user_notes",
+            "userNotes",
+            "expression",
+            "function_inputs",
+            "functionInputs",
+            "function_output_type",
+            "functionOutputType",
+            "function_dependencies",
+            "functionDependencies",
+            "created_date",
+            "createdDate",
+            "modified_date",
+            "modifiedDate",
+            "created_by_user_id",
+            "createdByUserId",
+            "modified_by_user_id",
+            "modifiedByUserId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            UserDefinedFunctionId,
+            Name,
+            ArchivedDate,
+            UserDefinedFunctionVersionId,
+            Version,
+            Description,
+            ChangeMessage,
+            UserNotes,
+            Expression,
+            FunctionInputs,
+            FunctionOutputType,
+            FunctionDependencies,
+            CreatedDate,
+            ModifiedDate,
+            CreatedByUserId,
+            ModifiedByUserId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "userDefinedFunctionId" | "user_defined_function_id" => Ok(GeneratedField::UserDefinedFunctionId),
+                            "name" => Ok(GeneratedField::Name),
+                            "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "userDefinedFunctionVersionId" | "user_defined_function_version_id" => Ok(GeneratedField::UserDefinedFunctionVersionId),
+                            "version" => Ok(GeneratedField::Version),
+                            "description" => Ok(GeneratedField::Description),
+                            "changeMessage" | "change_message" => Ok(GeneratedField::ChangeMessage),
+                            "userNotes" | "user_notes" => Ok(GeneratedField::UserNotes),
+                            "expression" => Ok(GeneratedField::Expression),
+                            "functionInputs" | "function_inputs" => Ok(GeneratedField::FunctionInputs),
+                            "functionOutputType" | "function_output_type" => Ok(GeneratedField::FunctionOutputType),
+                            "functionDependencies" | "function_dependencies" => Ok(GeneratedField::FunctionDependencies),
+                            "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
+                            "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
+                            "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
+                            "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UserDefinedFunction;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.common.r#type.v1.UserDefinedFunction")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UserDefinedFunction, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut user_defined_function_id__ = None;
+                let mut name__ = None;
+                let mut archived_date__ = None;
+                let mut user_defined_function_version_id__ = None;
+                let mut version__ = None;
+                let mut description__ = None;
+                let mut change_message__ = None;
+                let mut user_notes__ = None;
+                let mut expression__ = None;
+                let mut function_inputs__ = None;
+                let mut function_output_type__ = None;
+                let mut function_dependencies__ = None;
+                let mut created_date__ = None;
+                let mut modified_date__ = None;
+                let mut created_by_user_id__ = None;
+                let mut modified_by_user_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::UserDefinedFunctionId => {
+                            if user_defined_function_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userDefinedFunctionId"));
+                            }
+                            user_defined_function_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ArchivedDate => {
+                            if archived_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("archivedDate"));
+                            }
+                            archived_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::UserDefinedFunctionVersionId => {
+                            if user_defined_function_version_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userDefinedFunctionVersionId"));
+                            }
+                            user_defined_function_version_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Version => {
+                            if version__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("version"));
+                            }
+                            version__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Description => {
+                            if description__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("description"));
+                            }
+                            description__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ChangeMessage => {
+                            if change_message__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("changeMessage"));
+                            }
+                            change_message__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::UserNotes => {
+                            if user_notes__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("userNotes"));
+                            }
+                            user_notes__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Expression => {
+                            if expression__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("expression"));
+                            }
+                            expression__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FunctionInputs => {
+                            if function_inputs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("functionInputs"));
+                            }
+                            function_inputs__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FunctionOutputType => {
+                            if function_output_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("functionOutputType"));
+                            }
+                            function_output_type__ = Some(map_.next_value::<FunctionDataType>()? as i32);
+                        }
+                        GeneratedField::FunctionDependencies => {
+                            if function_dependencies__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("functionDependencies"));
+                            }
+                            function_dependencies__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::CreatedDate => {
+                            if created_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdDate"));
+                            }
+                            created_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::ModifiedDate => {
+                            if modified_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("modifiedDate"));
+                            }
+                            modified_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::CreatedByUserId => {
+                            if created_by_user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdByUserId"));
+                            }
+                            created_by_user_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ModifiedByUserId => {
+                            if modified_by_user_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("modifiedByUserId"));
+                            }
+                            modified_by_user_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(UserDefinedFunction {
+                    user_defined_function_id: user_defined_function_id__.unwrap_or_default(),
+                    name: name__.unwrap_or_default(),
+                    archived_date: archived_date__,
+                    user_defined_function_version_id: user_defined_function_version_id__.unwrap_or_default(),
+                    version: version__.unwrap_or_default(),
+                    description: description__.unwrap_or_default(),
+                    change_message: change_message__.unwrap_or_default(),
+                    user_notes: user_notes__.unwrap_or_default(),
+                    expression: expression__.unwrap_or_default(),
+                    function_inputs: function_inputs__.unwrap_or_default(),
+                    function_output_type: function_output_type__.unwrap_or_default(),
+                    function_dependencies: function_dependencies__.unwrap_or_default(),
+                    created_date: created_date__,
+                    modified_date: modified_date__,
+                    created_by_user_id: created_by_user_id__.unwrap_or_default(),
+                    modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.common.r#type.v1.UserDefinedFunction", FIELDS, GeneratedVisitor)
     }
 }

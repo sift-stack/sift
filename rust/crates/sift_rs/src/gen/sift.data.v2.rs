@@ -287,6 +287,22 @@ pub struct Uint64Values {
     #[prost(message, repeated, tag="2")]
     pub values: ::prost::alloc::vec::Vec<Uint64Value>,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BytesValue {
+    #[prost(message, optional, tag="1")]
+    pub timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bytes="vec", tag="2")]
+    pub value: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BytesValues {
+    #[prost(message, optional, tag="1")]
+    pub metadata: ::core::option::Option<Metadata>,
+    #[prost(message, repeated, tag="2")]
+    pub values: ::prost::alloc::vec::Vec<BytesValue>,
+}
 include!("sift.data.v2.tonic.rs");
 include!("sift.data.v2.serde.rs");
 // @@protoc_insertion_point(module)

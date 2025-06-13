@@ -36,6 +36,8 @@ pub struct Rule {
     pub contextual_channels: ::core::option::Option<ContextualChannels>,
     #[prost(message, optional, tag="17")]
     pub deleted_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bool, tag="18")]
+    pub is_external: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -207,6 +209,8 @@ pub struct UpdateRuleRequest {
     pub asset_configuration: ::core::option::Option<RuleAssetConfiguration>,
     #[prost(message, optional, tag="11")]
     pub contextual_channels: ::core::option::Option<ContextualChannels>,
+    #[prost(bool, tag="12")]
+    pub is_external: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -269,6 +273,21 @@ pub struct BatchUpdateRulesResponse {
     pub validate_only: bool,
     #[prost(message, repeated, tag="5")]
     pub validation_results: ::prost::alloc::vec::Vec<ValidationResult>,
+    #[prost(message, repeated, tag="6")]
+    pub created_rule_identifiers: ::prost::alloc::vec::Vec<batch_update_rules_response::RuleIdentifiers>,
+}
+/// Nested message and enum types in `BatchUpdateRulesResponse`.
+pub mod batch_update_rules_response {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct RuleIdentifiers {
+        #[prost(string, tag="1")]
+        pub rule_id: ::prost::alloc::string::String,
+        #[prost(string, tag="2")]
+        pub name: ::prost::alloc::string::String,
+        #[prost(string, optional, tag="3")]
+        pub client_key: ::core::option::Option<::prost::alloc::string::String>,
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -549,6 +568,8 @@ pub struct CalculatedChannelConfig {
     pub channel_references: ::std::collections::HashMap<::prost::alloc::string::String, ChannelReference>,
     #[prost(string, tag="2")]
     pub expression: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="3")]
+    pub function_dependencies: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::FunctionDependency>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -689,6 +710,7 @@ pub enum ActionKind {
     Unspecified = 0,
     Notification = 1,
     Annotation = 2,
+    Webhook = 3,
 }
 impl ActionKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -700,6 +722,7 @@ impl ActionKind {
             ActionKind::Unspecified => "ACTION_KIND_UNSPECIFIED",
             ActionKind::Notification => "NOTIFICATION",
             ActionKind::Annotation => "ANNOTATION",
+            ActionKind::Webhook => "WEBHOOK",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -708,6 +731,7 @@ impl ActionKind {
             "ACTION_KIND_UNSPECIFIED" => Some(Self::Unspecified),
             "NOTIFICATION" => Some(Self::Notification),
             "ANNOTATION" => Some(Self::Annotation),
+            "WEBHOOK" => Some(Self::Webhook),
             _ => None,
         }
     }

@@ -1,14 +1,14 @@
 // @generated
 /// Generated client implementations.
-pub mod protobuf_descriptor_service_client {
+pub mod api_key_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
-    pub struct ProtobufDescriptorServiceClient<T> {
+    pub struct ApiKeyServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl ProtobufDescriptorServiceClient<tonic::transport::Channel> {
+    impl ApiKeyServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -19,7 +19,7 @@ pub mod protobuf_descriptor_service_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> ProtobufDescriptorServiceClient<T>
+    impl<T> ApiKeyServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -37,7 +37,7 @@ pub mod protobuf_descriptor_service_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> ProtobufDescriptorServiceClient<InterceptedService<T, F>>
+        ) -> ApiKeyServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -51,9 +51,7 @@ pub mod protobuf_descriptor_service_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + Send + Sync,
         {
-            ProtobufDescriptorServiceClient::new(
-                InterceptedService::new(inner, interceptor),
-            )
+            ApiKeyServiceClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -86,11 +84,11 @@ pub mod protobuf_descriptor_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn add_protobuf_descriptor(
+        pub async fn list_api_keys(
             &mut self,
-            request: impl tonic::IntoRequest<super::AddProtobufDescriptorRequest>,
+            request: impl tonic::IntoRequest<super::ListApiKeysRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::AddProtobufDescriptorResponse>,
+            tonic::Response<super::ListApiKeysResponse>,
             tonic::Status,
         > {
             self.inner
@@ -104,25 +102,20 @@ pub mod protobuf_descriptor_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/sift.protobuf_descriptors.v2.ProtobufDescriptorService/AddProtobufDescriptor",
+                "/sift.api_keys.v2.ApiKeyService/ListApiKeys",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "sift.protobuf_descriptors.v2.ProtobufDescriptorService",
-                        "AddProtobufDescriptor",
-                    ),
+                    GrpcMethod::new("sift.api_keys.v2.ApiKeyService", "ListApiKeys"),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn check_protobuf_descriptor_compatibility(
+        pub async fn create_api_key(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::CheckProtobufDescriptorCompatibilityRequest,
-            >,
+            request: impl tonic::IntoRequest<super::CreateApiKeyRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::CheckProtobufDescriptorCompatibilityResponse>,
+            tonic::Response<super::CreateApiKeyResponse>,
             tonic::Status,
         > {
             self.inner
@@ -136,23 +129,20 @@ pub mod protobuf_descriptor_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/sift.protobuf_descriptors.v2.ProtobufDescriptorService/CheckProtobufDescriptorCompatibility",
+                "/sift.api_keys.v2.ApiKeyService/CreateApiKey",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "sift.protobuf_descriptors.v2.ProtobufDescriptorService",
-                        "CheckProtobufDescriptorCompatibility",
-                    ),
+                    GrpcMethod::new("sift.api_keys.v2.ApiKeyService", "CreateApiKey"),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn delete_protobuf_descriptors(
+        pub async fn delete_api_key(
             &mut self,
-            request: impl tonic::IntoRequest<super::DeleteProtobufDescriptorsRequest>,
+            request: impl tonic::IntoRequest<super::DeleteApiKeyRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::DeleteProtobufDescriptorsResponse>,
+            tonic::Response<super::DeleteApiKeyResponse>,
             tonic::Status,
         > {
             self.inner
@@ -166,23 +156,20 @@ pub mod protobuf_descriptor_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/sift.protobuf_descriptors.v2.ProtobufDescriptorService/DeleteProtobufDescriptors",
+                "/sift.api_keys.v2.ApiKeyService/DeleteApiKey",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "sift.protobuf_descriptors.v2.ProtobufDescriptorService",
-                        "DeleteProtobufDescriptors",
-                    ),
+                    GrpcMethod::new("sift.api_keys.v2.ApiKeyService", "DeleteApiKey"),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn list_protobuf_descriptors(
+        pub async fn api_key_organization(
             &mut self,
-            request: impl tonic::IntoRequest<super::ListProtobufDescriptorsRequest>,
+            request: impl tonic::IntoRequest<super::ApiKeyOrganizationRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::ListProtobufDescriptorsResponse>,
+            tonic::Response<super::ApiKeyOrganizationResponse>,
             tonic::Status,
         > {
             self.inner
@@ -196,14 +183,14 @@ pub mod protobuf_descriptor_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/sift.protobuf_descriptors.v2.ProtobufDescriptorService/ListProtobufDescriptors",
+                "/sift.api_keys.v2.ApiKeyService/ApiKeyOrganization",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "sift.protobuf_descriptors.v2.ProtobufDescriptorService",
-                        "ListProtobufDescriptors",
+                        "sift.api_keys.v2.ApiKeyService",
+                        "ApiKeyOrganization",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -211,43 +198,43 @@ pub mod protobuf_descriptor_service_client {
     }
 }
 /// Generated server implementations.
-pub mod protobuf_descriptor_service_server {
+pub mod api_key_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with ProtobufDescriptorServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with ApiKeyServiceServer.
     #[async_trait]
-    pub trait ProtobufDescriptorService: Send + Sync + 'static {
-        async fn add_protobuf_descriptor(
+    pub trait ApiKeyService: Send + Sync + 'static {
+        async fn list_api_keys(
             &self,
-            request: tonic::Request<super::AddProtobufDescriptorRequest>,
+            request: tonic::Request<super::ListApiKeysRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::AddProtobufDescriptorResponse>,
+            tonic::Response<super::ListApiKeysResponse>,
             tonic::Status,
         >;
-        async fn check_protobuf_descriptor_compatibility(
+        async fn create_api_key(
             &self,
-            request: tonic::Request<super::CheckProtobufDescriptorCompatibilityRequest>,
+            request: tonic::Request<super::CreateApiKeyRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::CheckProtobufDescriptorCompatibilityResponse>,
+            tonic::Response<super::CreateApiKeyResponse>,
             tonic::Status,
         >;
-        async fn delete_protobuf_descriptors(
+        async fn delete_api_key(
             &self,
-            request: tonic::Request<super::DeleteProtobufDescriptorsRequest>,
+            request: tonic::Request<super::DeleteApiKeyRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::DeleteProtobufDescriptorsResponse>,
+            tonic::Response<super::DeleteApiKeyResponse>,
             tonic::Status,
         >;
-        async fn list_protobuf_descriptors(
+        async fn api_key_organization(
             &self,
-            request: tonic::Request<super::ListProtobufDescriptorsRequest>,
+            request: tonic::Request<super::ApiKeyOrganizationRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::ListProtobufDescriptorsResponse>,
+            tonic::Response<super::ApiKeyOrganizationResponse>,
             tonic::Status,
         >;
     }
     #[derive(Debug)]
-    pub struct ProtobufDescriptorServiceServer<T: ProtobufDescriptorService> {
+    pub struct ApiKeyServiceServer<T: ApiKeyService> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
@@ -255,7 +242,7 @@ pub mod protobuf_descriptor_service_server {
         max_encoding_message_size: Option<usize>,
     }
     struct _Inner<T>(Arc<T>);
-    impl<T: ProtobufDescriptorService> ProtobufDescriptorServiceServer<T> {
+    impl<T: ApiKeyService> ApiKeyServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -307,10 +294,9 @@ pub mod protobuf_descriptor_service_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>>
-    for ProtobufDescriptorServiceServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for ApiKeyServiceServer<T>
     where
-        T: ProtobufDescriptorService,
+        T: ApiKeyService,
         B: Body + Send + 'static,
         B::Error: Into<StdError> + Send + 'static,
     {
@@ -326,31 +312,25 @@ pub mod protobuf_descriptor_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/sift.protobuf_descriptors.v2.ProtobufDescriptorService/AddProtobufDescriptor" => {
+                "/sift.api_keys.v2.ApiKeyService/ListApiKeys" => {
                     #[allow(non_camel_case_types)]
-                    struct AddProtobufDescriptorSvc<T: ProtobufDescriptorService>(
-                        pub Arc<T>,
-                    );
+                    struct ListApiKeysSvc<T: ApiKeyService>(pub Arc<T>);
                     impl<
-                        T: ProtobufDescriptorService,
-                    > tonic::server::UnaryService<super::AddProtobufDescriptorRequest>
-                    for AddProtobufDescriptorSvc<T> {
-                        type Response = super::AddProtobufDescriptorResponse;
+                        T: ApiKeyService,
+                    > tonic::server::UnaryService<super::ListApiKeysRequest>
+                    for ListApiKeysSvc<T> {
+                        type Response = super::ListApiKeysResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::AddProtobufDescriptorRequest>,
+                            request: tonic::Request<super::ListApiKeysRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ProtobufDescriptorService>::add_protobuf_descriptor(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
+                                <T as ApiKeyService>::list_api_keys(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -362,7 +342,7 @@ pub mod protobuf_descriptor_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = AddProtobufDescriptorSvc(inner);
+                        let method = ListApiKeysSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -378,36 +358,25 @@ pub mod protobuf_descriptor_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/sift.protobuf_descriptors.v2.ProtobufDescriptorService/CheckProtobufDescriptorCompatibility" => {
+                "/sift.api_keys.v2.ApiKeyService/CreateApiKey" => {
                     #[allow(non_camel_case_types)]
-                    struct CheckProtobufDescriptorCompatibilitySvc<
-                        T: ProtobufDescriptorService,
-                    >(
-                        pub Arc<T>,
-                    );
+                    struct CreateApiKeySvc<T: ApiKeyService>(pub Arc<T>);
                     impl<
-                        T: ProtobufDescriptorService,
-                    > tonic::server::UnaryService<
-                        super::CheckProtobufDescriptorCompatibilityRequest,
-                    > for CheckProtobufDescriptorCompatibilitySvc<T> {
-                        type Response = super::CheckProtobufDescriptorCompatibilityResponse;
+                        T: ApiKeyService,
+                    > tonic::server::UnaryService<super::CreateApiKeyRequest>
+                    for CreateApiKeySvc<T> {
+                        type Response = super::CreateApiKeyResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::CheckProtobufDescriptorCompatibilityRequest,
-                            >,
+                            request: tonic::Request<super::CreateApiKeyRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ProtobufDescriptorService>::check_protobuf_descriptor_compatibility(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
+                                <T as ApiKeyService>::create_api_key(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -419,7 +388,7 @@ pub mod protobuf_descriptor_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = CheckProtobufDescriptorCompatibilitySvc(inner);
+                        let method = CreateApiKeySvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -435,34 +404,25 @@ pub mod protobuf_descriptor_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/sift.protobuf_descriptors.v2.ProtobufDescriptorService/DeleteProtobufDescriptors" => {
+                "/sift.api_keys.v2.ApiKeyService/DeleteApiKey" => {
                     #[allow(non_camel_case_types)]
-                    struct DeleteProtobufDescriptorsSvc<T: ProtobufDescriptorService>(
-                        pub Arc<T>,
-                    );
+                    struct DeleteApiKeySvc<T: ApiKeyService>(pub Arc<T>);
                     impl<
-                        T: ProtobufDescriptorService,
-                    > tonic::server::UnaryService<
-                        super::DeleteProtobufDescriptorsRequest,
-                    > for DeleteProtobufDescriptorsSvc<T> {
-                        type Response = super::DeleteProtobufDescriptorsResponse;
+                        T: ApiKeyService,
+                    > tonic::server::UnaryService<super::DeleteApiKeyRequest>
+                    for DeleteApiKeySvc<T> {
+                        type Response = super::DeleteApiKeyResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::DeleteProtobufDescriptorsRequest,
-                            >,
+                            request: tonic::Request<super::DeleteApiKeyRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ProtobufDescriptorService>::delete_protobuf_descriptors(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
+                                <T as ApiKeyService>::delete_api_key(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -474,7 +434,7 @@ pub mod protobuf_descriptor_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = DeleteProtobufDescriptorsSvc(inner);
+                        let method = DeleteApiKeySvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -490,32 +450,25 @@ pub mod protobuf_descriptor_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/sift.protobuf_descriptors.v2.ProtobufDescriptorService/ListProtobufDescriptors" => {
+                "/sift.api_keys.v2.ApiKeyService/ApiKeyOrganization" => {
                     #[allow(non_camel_case_types)]
-                    struct ListProtobufDescriptorsSvc<T: ProtobufDescriptorService>(
-                        pub Arc<T>,
-                    );
+                    struct ApiKeyOrganizationSvc<T: ApiKeyService>(pub Arc<T>);
                     impl<
-                        T: ProtobufDescriptorService,
-                    > tonic::server::UnaryService<super::ListProtobufDescriptorsRequest>
-                    for ListProtobufDescriptorsSvc<T> {
-                        type Response = super::ListProtobufDescriptorsResponse;
+                        T: ApiKeyService,
+                    > tonic::server::UnaryService<super::ApiKeyOrganizationRequest>
+                    for ApiKeyOrganizationSvc<T> {
+                        type Response = super::ApiKeyOrganizationResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::ListProtobufDescriptorsRequest,
-                            >,
+                            request: tonic::Request<super::ApiKeyOrganizationRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ProtobufDescriptorService>::list_protobuf_descriptors(
-                                        &inner,
-                                        request,
-                                    )
+                                <T as ApiKeyService>::api_key_organization(&inner, request)
                                     .await
                             };
                             Box::pin(fut)
@@ -528,7 +481,7 @@ pub mod protobuf_descriptor_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = ListProtobufDescriptorsSvc(inner);
+                        let method = ApiKeyOrganizationSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -559,7 +512,7 @@ pub mod protobuf_descriptor_service_server {
             }
         }
     }
-    impl<T: ProtobufDescriptorService> Clone for ProtobufDescriptorServiceServer<T> {
+    impl<T: ApiKeyService> Clone for ApiKeyServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -571,7 +524,7 @@ pub mod protobuf_descriptor_service_server {
             }
         }
     }
-    impl<T: ProtobufDescriptorService> Clone for _Inner<T> {
+    impl<T: ApiKeyService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(Arc::clone(&self.0))
         }
@@ -581,8 +534,7 @@ pub mod protobuf_descriptor_service_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: ProtobufDescriptorService> tonic::server::NamedService
-    for ProtobufDescriptorServiceServer<T> {
-        const NAME: &'static str = "sift.protobuf_descriptors.v2.ProtobufDescriptorService";
+    impl<T: ApiKeyService> tonic::server::NamedService for ApiKeyServiceServer<T> {
+        const NAME: &'static str = "sift.api_keys.v2.ApiKeyService";
     }
 }

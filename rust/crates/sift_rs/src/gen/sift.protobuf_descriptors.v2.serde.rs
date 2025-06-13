@@ -352,6 +352,208 @@ impl<'de> serde::Deserialize<'de> for BytesDecodingType {
         deserializer.deserialize_any(GeneratedVisitor)
     }
 }
+impl serde::Serialize for CheckProtobufDescriptorCompatibilityRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.protobuf_descriptor.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.protobuf_descriptors.v2.CheckProtobufDescriptorCompatibilityRequest", len)?;
+        if let Some(v) = self.protobuf_descriptor.as_ref() {
+            struct_ser.serialize_field("protobufDescriptor", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CheckProtobufDescriptorCompatibilityRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "protobuf_descriptor",
+            "protobufDescriptor",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ProtobufDescriptor,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "protobufDescriptor" | "protobuf_descriptor" => Ok(GeneratedField::ProtobufDescriptor),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CheckProtobufDescriptorCompatibilityRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.protobuf_descriptors.v2.CheckProtobufDescriptorCompatibilityRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CheckProtobufDescriptorCompatibilityRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut protobuf_descriptor__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ProtobufDescriptor => {
+                            if protobuf_descriptor__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("protobufDescriptor"));
+                            }
+                            protobuf_descriptor__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(CheckProtobufDescriptorCompatibilityRequest {
+                    protobuf_descriptor: protobuf_descriptor__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.protobuf_descriptors.v2.CheckProtobufDescriptorCompatibilityRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CheckProtobufDescriptorCompatibilityResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.is_valid {
+            len += 1;
+        }
+        if !self.incompatible_protobuf_descriptor_fields.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.protobuf_descriptors.v2.CheckProtobufDescriptorCompatibilityResponse", len)?;
+        if self.is_valid {
+            struct_ser.serialize_field("isValid", &self.is_valid)?;
+        }
+        if !self.incompatible_protobuf_descriptor_fields.is_empty() {
+            struct_ser.serialize_field("incompatibleProtobufDescriptorFields", &self.incompatible_protobuf_descriptor_fields)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CheckProtobufDescriptorCompatibilityResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "is_valid",
+            "isValid",
+            "incompatible_protobuf_descriptor_fields",
+            "incompatibleProtobufDescriptorFields",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            IsValid,
+            IncompatibleProtobufDescriptorFields,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "isValid" | "is_valid" => Ok(GeneratedField::IsValid),
+                            "incompatibleProtobufDescriptorFields" | "incompatible_protobuf_descriptor_fields" => Ok(GeneratedField::IncompatibleProtobufDescriptorFields),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CheckProtobufDescriptorCompatibilityResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.protobuf_descriptors.v2.CheckProtobufDescriptorCompatibilityResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CheckProtobufDescriptorCompatibilityResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut is_valid__ = None;
+                let mut incompatible_protobuf_descriptor_fields__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::IsValid => {
+                            if is_valid__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isValid"));
+                            }
+                            is_valid__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::IncompatibleProtobufDescriptorFields => {
+                            if incompatible_protobuf_descriptor_fields__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("incompatibleProtobufDescriptorFields"));
+                            }
+                            incompatible_protobuf_descriptor_fields__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(CheckProtobufDescriptorCompatibilityResponse {
+                    is_valid: is_valid__.unwrap_or_default(),
+                    incompatible_protobuf_descriptor_fields: incompatible_protobuf_descriptor_fields__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.protobuf_descriptors.v2.CheckProtobufDescriptorCompatibilityResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for DeleteProtobufDescriptorsRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -566,6 +768,204 @@ impl<'de> serde::Deserialize<'de> for DeleteProtobufDescriptorsResponse {
             }
         }
         deserializer.deserialize_struct("sift.protobuf_descriptors.v2.DeleteProtobufDescriptorsResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for IncompatibleProtobufField {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.protobuf_descriptor_id.is_empty() {
+            len += 1;
+        }
+        if !self.message_full_name.is_empty() {
+            len += 1;
+        }
+        if !self.desired_field_name.is_empty() {
+            len += 1;
+        }
+        if !self.current_field_name.is_empty() {
+            len += 1;
+        }
+        if !self.field_number.is_empty() {
+            len += 1;
+        }
+        if !self.reason.is_empty() {
+            len += 1;
+        }
+        if !self.details.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.protobuf_descriptors.v2.IncompatibleProtobufField", len)?;
+        if !self.protobuf_descriptor_id.is_empty() {
+            struct_ser.serialize_field("protobufDescriptorId", &self.protobuf_descriptor_id)?;
+        }
+        if !self.message_full_name.is_empty() {
+            struct_ser.serialize_field("messageFullName", &self.message_full_name)?;
+        }
+        if !self.desired_field_name.is_empty() {
+            struct_ser.serialize_field("desiredFieldName", &self.desired_field_name)?;
+        }
+        if !self.current_field_name.is_empty() {
+            struct_ser.serialize_field("currentFieldName", &self.current_field_name)?;
+        }
+        if !self.field_number.is_empty() {
+            struct_ser.serialize_field("fieldNumber", &self.field_number)?;
+        }
+        if !self.reason.is_empty() {
+            struct_ser.serialize_field("reason", &self.reason)?;
+        }
+        if !self.details.is_empty() {
+            struct_ser.serialize_field("details", &self.details)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for IncompatibleProtobufField {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "protobuf_descriptor_id",
+            "protobufDescriptorId",
+            "message_full_name",
+            "messageFullName",
+            "desired_field_name",
+            "desiredFieldName",
+            "current_field_name",
+            "currentFieldName",
+            "field_number",
+            "fieldNumber",
+            "reason",
+            "details",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ProtobufDescriptorId,
+            MessageFullName,
+            DesiredFieldName,
+            CurrentFieldName,
+            FieldNumber,
+            Reason,
+            Details,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "protobufDescriptorId" | "protobuf_descriptor_id" => Ok(GeneratedField::ProtobufDescriptorId),
+                            "messageFullName" | "message_full_name" => Ok(GeneratedField::MessageFullName),
+                            "desiredFieldName" | "desired_field_name" => Ok(GeneratedField::DesiredFieldName),
+                            "currentFieldName" | "current_field_name" => Ok(GeneratedField::CurrentFieldName),
+                            "fieldNumber" | "field_number" => Ok(GeneratedField::FieldNumber),
+                            "reason" => Ok(GeneratedField::Reason),
+                            "details" => Ok(GeneratedField::Details),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = IncompatibleProtobufField;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.protobuf_descriptors.v2.IncompatibleProtobufField")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<IncompatibleProtobufField, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut protobuf_descriptor_id__ = None;
+                let mut message_full_name__ = None;
+                let mut desired_field_name__ = None;
+                let mut current_field_name__ = None;
+                let mut field_number__ = None;
+                let mut reason__ = None;
+                let mut details__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ProtobufDescriptorId => {
+                            if protobuf_descriptor_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("protobufDescriptorId"));
+                            }
+                            protobuf_descriptor_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::MessageFullName => {
+                            if message_full_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("messageFullName"));
+                            }
+                            message_full_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DesiredFieldName => {
+                            if desired_field_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("desiredFieldName"));
+                            }
+                            desired_field_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::CurrentFieldName => {
+                            if current_field_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("currentFieldName"));
+                            }
+                            current_field_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::FieldNumber => {
+                            if field_number__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fieldNumber"));
+                            }
+                            field_number__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Reason => {
+                            if reason__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("reason"));
+                            }
+                            reason__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Details => {
+                            if details__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("details"));
+                            }
+                            details__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(IncompatibleProtobufField {
+                    protobuf_descriptor_id: protobuf_descriptor_id__.unwrap_or_default(),
+                    message_full_name: message_full_name__.unwrap_or_default(),
+                    desired_field_name: desired_field_name__.unwrap_or_default(),
+                    current_field_name: current_field_name__.unwrap_or_default(),
+                    field_number: field_number__.unwrap_or_default(),
+                    reason: reason__.unwrap_or_default(),
+                    details: details__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.protobuf_descriptors.v2.IncompatibleProtobufField", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ListProtobufDescriptorsRequest {
@@ -928,6 +1328,9 @@ impl serde::Serialize for ProtobufDescriptor {
         if !self.protobuf_descriptor_id.is_empty() {
             len += 1;
         }
+        if self.created_date.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.protobuf_descriptors.v2.ProtobufDescriptor", len)?;
         if !self.message_type_full_name.is_empty() {
             struct_ser.serialize_field("messageTypeFullName", &self.message_type_full_name)?;
@@ -944,6 +1347,9 @@ impl serde::Serialize for ProtobufDescriptor {
         }
         if !self.protobuf_descriptor_id.is_empty() {
             struct_ser.serialize_field("protobufDescriptorId", &self.protobuf_descriptor_id)?;
+        }
+        if let Some(v) = self.created_date.as_ref() {
+            struct_ser.serialize_field("createdDate", v)?;
         }
         struct_ser.end()
     }
@@ -964,6 +1370,8 @@ impl<'de> serde::Deserialize<'de> for ProtobufDescriptor {
             "namespace",
             "protobuf_descriptor_id",
             "protobufDescriptorId",
+            "created_date",
+            "createdDate",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -973,6 +1381,7 @@ impl<'de> serde::Deserialize<'de> for ProtobufDescriptor {
             ProtoFileName,
             Namespace,
             ProtobufDescriptorId,
+            CreatedDate,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -999,6 +1408,7 @@ impl<'de> serde::Deserialize<'de> for ProtobufDescriptor {
                             "protoFileName" | "proto_file_name" => Ok(GeneratedField::ProtoFileName),
                             "namespace" => Ok(GeneratedField::Namespace),
                             "protobufDescriptorId" | "protobuf_descriptor_id" => Ok(GeneratedField::ProtobufDescriptorId),
+                            "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1023,6 +1433,7 @@ impl<'de> serde::Deserialize<'de> for ProtobufDescriptor {
                 let mut proto_file_name__ = None;
                 let mut namespace__ = None;
                 let mut protobuf_descriptor_id__ = None;
+                let mut created_date__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::MessageTypeFullName => {
@@ -1057,6 +1468,12 @@ impl<'de> serde::Deserialize<'de> for ProtobufDescriptor {
                             }
                             protobuf_descriptor_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CreatedDate => {
+                            if created_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdDate"));
+                            }
+                            created_date__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(ProtobufDescriptor {
@@ -1065,6 +1482,7 @@ impl<'de> serde::Deserialize<'de> for ProtobufDescriptor {
                     proto_file_name: proto_file_name__.unwrap_or_default(),
                     namespace: namespace__.unwrap_or_default(),
                     protobuf_descriptor_id: protobuf_descriptor_id__.unwrap_or_default(),
+                    created_date: created_date__,
                 })
             }
         }

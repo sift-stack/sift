@@ -209,6 +209,9 @@ impl serde::Serialize for CreateRunRequest {
         if self.client_key.is_some() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.runs.v2.CreateRunRequest", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -231,6 +234,9 @@ impl serde::Serialize for CreateRunRequest {
         if let Some(v) = self.client_key.as_ref() {
             struct_ser.serialize_field("clientKey", v)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -252,6 +258,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
             "organizationId",
             "client_key",
             "clientKey",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -263,6 +270,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
             StopTime,
             OrganizationId,
             ClientKey,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -291,6 +299,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                             "stopTime" | "stop_time" => Ok(GeneratedField::StopTime),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -317,6 +326,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                 let mut stop_time__ = None;
                 let mut organization_id__ = None;
                 let mut client_key__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -361,6 +371,12 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                             }
                             client_key__ = map_.next_value()?;
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CreateRunRequest {
@@ -371,6 +387,7 @@ impl<'de> serde::Deserialize<'de> for CreateRunRequest {
                     stop_time: stop_time__,
                     organization_id: organization_id__.unwrap_or_default(),
                     client_key: client_key__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -1120,6 +1137,15 @@ impl serde::Serialize for Run {
         if self.client_key.is_some() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
+        if !self.asset_ids.is_empty() {
+            len += 1;
+        }
+        if self.archived_date.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.runs.v2.Run", len)?;
         if !self.run_id.is_empty() {
             struct_ser.serialize_field("runId", &self.run_id)?;
@@ -1163,6 +1189,15 @@ impl serde::Serialize for Run {
         if let Some(v) = self.client_key.as_ref() {
             struct_ser.serialize_field("clientKey", v)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
+        if !self.asset_ids.is_empty() {
+            struct_ser.serialize_field("assetIds", &self.asset_ids)?;
+        }
+        if let Some(v) = self.archived_date.as_ref() {
+            struct_ser.serialize_field("archivedDate", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1198,6 +1233,11 @@ impl<'de> serde::Deserialize<'de> for Run {
             "defaultReportId",
             "client_key",
             "clientKey",
+            "metadata",
+            "asset_ids",
+            "assetIds",
+            "archived_date",
+            "archivedDate",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1216,6 +1256,9 @@ impl<'de> serde::Deserialize<'de> for Run {
             Tags,
             DefaultReportId,
             ClientKey,
+            Metadata,
+            AssetIds,
+            ArchivedDate,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1251,6 +1294,9 @@ impl<'de> serde::Deserialize<'de> for Run {
                             "tags" => Ok(GeneratedField::Tags),
                             "defaultReportId" | "default_report_id" => Ok(GeneratedField::DefaultReportId),
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            "metadata" => Ok(GeneratedField::Metadata),
+                            "assetIds" | "asset_ids" => Ok(GeneratedField::AssetIds),
+                            "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1284,6 +1330,9 @@ impl<'de> serde::Deserialize<'de> for Run {
                 let mut tags__ = None;
                 let mut default_report_id__ = None;
                 let mut client_key__ = None;
+                let mut metadata__ = None;
+                let mut asset_ids__ = None;
+                let mut archived_date__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RunId => {
@@ -1370,6 +1419,24 @@ impl<'de> serde::Deserialize<'de> for Run {
                             }
                             client_key__ = map_.next_value()?;
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AssetIds => {
+                            if asset_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetIds"));
+                            }
+                            asset_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ArchivedDate => {
+                            if archived_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("archivedDate"));
+                            }
+                            archived_date__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(Run {
@@ -1387,6 +1454,9 @@ impl<'de> serde::Deserialize<'de> for Run {
                     tags: tags__.unwrap_or_default(),
                     default_report_id: default_report_id__.unwrap_or_default(),
                     client_key: client_key__,
+                    metadata: metadata__.unwrap_or_default(),
+                    asset_ids: asset_ids__.unwrap_or_default(),
+                    archived_date: archived_date__,
                 })
             }
         }

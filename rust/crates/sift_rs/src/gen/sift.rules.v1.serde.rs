@@ -9,6 +9,7 @@ impl serde::Serialize for ActionKind {
             Self::Unspecified => "ACTION_KIND_UNSPECIFIED",
             Self::Notification => "NOTIFICATION",
             Self::Annotation => "ANNOTATION",
+            Self::Webhook => "WEBHOOK",
         };
         serializer.serialize_str(variant)
     }
@@ -23,6 +24,7 @@ impl<'de> serde::Deserialize<'de> for ActionKind {
             "ACTION_KIND_UNSPECIFIED",
             "NOTIFICATION",
             "ANNOTATION",
+            "WEBHOOK",
         ];
 
         struct GeneratedVisitor;
@@ -66,6 +68,7 @@ impl<'de> serde::Deserialize<'de> for ActionKind {
                     "ACTION_KIND_UNSPECIFIED" => Ok(ActionKind::Unspecified),
                     "NOTIFICATION" => Ok(ActionKind::Notification),
                     "ANNOTATION" => Ok(ActionKind::Annotation),
+                    "WEBHOOK" => Ok(ActionKind::Webhook),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -1244,6 +1247,9 @@ impl serde::Serialize for BatchUpdateRulesResponse {
         if !self.validation_results.is_empty() {
             len += 1;
         }
+        if !self.created_rule_identifiers.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.BatchUpdateRulesResponse", len)?;
         if self.success {
             struct_ser.serialize_field("success", &self.success)?;
@@ -1259,6 +1265,9 @@ impl serde::Serialize for BatchUpdateRulesResponse {
         }
         if !self.validation_results.is_empty() {
             struct_ser.serialize_field("validationResults", &self.validation_results)?;
+        }
+        if !self.created_rule_identifiers.is_empty() {
+            struct_ser.serialize_field("createdRuleIdentifiers", &self.created_rule_identifiers)?;
         }
         struct_ser.end()
     }
@@ -1279,6 +1288,8 @@ impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
             "validateOnly",
             "validation_results",
             "validationResults",
+            "created_rule_identifiers",
+            "createdRuleIdentifiers",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1288,6 +1299,7 @@ impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
             RulesUpdatedCount,
             ValidateOnly,
             ValidationResults,
+            CreatedRuleIdentifiers,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1314,6 +1326,7 @@ impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
                             "rulesUpdatedCount" | "rules_updated_count" => Ok(GeneratedField::RulesUpdatedCount),
                             "validateOnly" | "validate_only" => Ok(GeneratedField::ValidateOnly),
                             "validationResults" | "validation_results" => Ok(GeneratedField::ValidationResults),
+                            "createdRuleIdentifiers" | "created_rule_identifiers" => Ok(GeneratedField::CreatedRuleIdentifiers),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1338,6 +1351,7 @@ impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
                 let mut rules_updated_count__ = None;
                 let mut validate_only__ = None;
                 let mut validation_results__ = None;
+                let mut created_rule_identifiers__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Success => {
@@ -1374,6 +1388,12 @@ impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
                             }
                             validation_results__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::CreatedRuleIdentifiers => {
+                            if created_rule_identifiers__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("createdRuleIdentifiers"));
+                            }
+                            created_rule_identifiers__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(BatchUpdateRulesResponse {
@@ -1382,10 +1402,138 @@ impl<'de> serde::Deserialize<'de> for BatchUpdateRulesResponse {
                     rules_updated_count: rules_updated_count__.unwrap_or_default(),
                     validate_only: validate_only__.unwrap_or_default(),
                     validation_results: validation_results__.unwrap_or_default(),
+                    created_rule_identifiers: created_rule_identifiers__.unwrap_or_default(),
                 })
             }
         }
         deserializer.deserialize_struct("sift.rules.v1.BatchUpdateRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for batch_update_rules_response::RuleIdentifiers {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.rule_id.is_empty() {
+            len += 1;
+        }
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if self.client_key.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rules.v1.BatchUpdateRulesResponse.RuleIdentifiers", len)?;
+        if !self.rule_id.is_empty() {
+            struct_ser.serialize_field("ruleId", &self.rule_id)?;
+        }
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if let Some(v) = self.client_key.as_ref() {
+            struct_ser.serialize_field("clientKey", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for batch_update_rules_response::RuleIdentifiers {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "rule_id",
+            "ruleId",
+            "name",
+            "client_key",
+            "clientKey",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            RuleId,
+            Name,
+            ClientKey,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "ruleId" | "rule_id" => Ok(GeneratedField::RuleId),
+                            "name" => Ok(GeneratedField::Name),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = batch_update_rules_response::RuleIdentifiers;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rules.v1.BatchUpdateRulesResponse.RuleIdentifiers")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<batch_update_rules_response::RuleIdentifiers, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut rule_id__ = None;
+                let mut name__ = None;
+                let mut client_key__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::RuleId => {
+                            if rule_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("ruleId"));
+                            }
+                            rule_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(batch_update_rules_response::RuleIdentifiers {
+                    rule_id: rule_id__.unwrap_or_default(),
+                    name: name__.unwrap_or_default(),
+                    client_key: client_key__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rules.v1.BatchUpdateRulesResponse.RuleIdentifiers", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for CalculatedChannelConfig {
@@ -1402,12 +1550,18 @@ impl serde::Serialize for CalculatedChannelConfig {
         if !self.expression.is_empty() {
             len += 1;
         }
+        if !self.function_dependencies.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.CalculatedChannelConfig", len)?;
         if !self.channel_references.is_empty() {
             struct_ser.serialize_field("channelReferences", &self.channel_references)?;
         }
         if !self.expression.is_empty() {
             struct_ser.serialize_field("expression", &self.expression)?;
+        }
+        if !self.function_dependencies.is_empty() {
+            struct_ser.serialize_field("functionDependencies", &self.function_dependencies)?;
         }
         struct_ser.end()
     }
@@ -1422,12 +1576,15 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
             "channel_references",
             "channelReferences",
             "expression",
+            "function_dependencies",
+            "functionDependencies",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             ChannelReferences,
             Expression,
+            FunctionDependencies,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1451,6 +1608,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
                         match value {
                             "channelReferences" | "channel_references" => Ok(GeneratedField::ChannelReferences),
                             "expression" => Ok(GeneratedField::Expression),
+                            "functionDependencies" | "function_dependencies" => Ok(GeneratedField::FunctionDependencies),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1472,6 +1630,7 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
             {
                 let mut channel_references__ = None;
                 let mut expression__ = None;
+                let mut function_dependencies__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelReferences => {
@@ -1488,11 +1647,18 @@ impl<'de> serde::Deserialize<'de> for CalculatedChannelConfig {
                             }
                             expression__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::FunctionDependencies => {
+                            if function_dependencies__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("functionDependencies"));
+                            }
+                            function_dependencies__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CalculatedChannelConfig {
                     channel_references: channel_references__.unwrap_or_default(),
                     expression: expression__.unwrap_or_default(),
+                    function_dependencies: function_dependencies__.unwrap_or_default(),
                 })
             }
         }
@@ -4148,6 +4314,9 @@ impl serde::Serialize for Rule {
         if self.deleted_date.is_some() {
             len += 1;
         }
+        if self.is_external {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.Rule", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -4197,6 +4366,9 @@ impl serde::Serialize for Rule {
         if let Some(v) = self.deleted_date.as_ref() {
             struct_ser.serialize_field("deletedDate", v)?;
         }
+        if self.is_external {
+            struct_ser.serialize_field("isExternal", &self.is_external)?;
+        }
         struct_ser.end()
     }
 }
@@ -4236,6 +4408,8 @@ impl<'de> serde::Deserialize<'de> for Rule {
             "contextualChannels",
             "deleted_date",
             "deletedDate",
+            "is_external",
+            "isExternal",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4256,6 +4430,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
             AssetConfiguration,
             ContextualChannels,
             DeletedDate,
+            IsExternal,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4293,6 +4468,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             "assetConfiguration" | "asset_configuration" => Ok(GeneratedField::AssetConfiguration),
                             "contextualChannels" | "contextual_channels" => Ok(GeneratedField::ContextualChannels),
                             "deletedDate" | "deleted_date" => Ok(GeneratedField::DeletedDate),
+                            "isExternal" | "is_external" => Ok(GeneratedField::IsExternal),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4328,6 +4504,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                 let mut asset_configuration__ = None;
                 let mut contextual_channels__ = None;
                 let mut deleted_date__ = None;
+                let mut is_external__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -4426,6 +4603,12 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             }
                             deleted_date__ = map_.next_value()?;
                         }
+                        GeneratedField::IsExternal => {
+                            if is_external__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isExternal"));
+                            }
+                            is_external__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Rule {
@@ -4445,6 +4628,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                     asset_configuration: asset_configuration__,
                     contextual_channels: contextual_channels__,
                     deleted_date: deleted_date__,
+                    is_external: is_external__.unwrap_or_default(),
                 })
             }
         }
@@ -7128,6 +7312,9 @@ impl serde::Serialize for UpdateRuleRequest {
         if self.contextual_channels.is_some() {
             len += 1;
         }
+        if self.is_external {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.UpdateRuleRequest", len)?;
         if let Some(v) = self.rule_id.as_ref() {
             struct_ser.serialize_field("ruleId", v)?;
@@ -7162,6 +7349,9 @@ impl serde::Serialize for UpdateRuleRequest {
         if let Some(v) = self.contextual_channels.as_ref() {
             struct_ser.serialize_field("contextualChannels", v)?;
         }
+        if self.is_external {
+            struct_ser.serialize_field("isExternal", &self.is_external)?;
+        }
         struct_ser.end()
     }
 }
@@ -7191,6 +7381,8 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             "assetConfiguration",
             "contextual_channels",
             "contextualChannels",
+            "is_external",
+            "isExternal",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -7206,6 +7398,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             ClientKey,
             AssetConfiguration,
             ContextualChannels,
+            IsExternal,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -7238,6 +7431,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             "assetConfiguration" | "asset_configuration" => Ok(GeneratedField::AssetConfiguration),
                             "contextualChannels" | "contextual_channels" => Ok(GeneratedField::ContextualChannels),
+                            "isExternal" | "is_external" => Ok(GeneratedField::IsExternal),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -7268,6 +7462,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                 let mut client_key__ = None;
                 let mut asset_configuration__ = None;
                 let mut contextual_channels__ = None;
+                let mut is_external__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -7336,6 +7531,12 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             }
                             contextual_channels__ = map_.next_value()?;
                         }
+                        GeneratedField::IsExternal => {
+                            if is_external__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isExternal"));
+                            }
+                            is_external__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(UpdateRuleRequest {
@@ -7350,6 +7551,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                     client_key: client_key__,
                     asset_configuration: asset_configuration__,
                     contextual_channels: contextual_channels__,
+                    is_external: is_external__.unwrap_or_default(),
                 })
             }
         }

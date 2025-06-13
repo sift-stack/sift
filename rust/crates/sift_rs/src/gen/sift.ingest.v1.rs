@@ -25,7 +25,7 @@ pub struct IngestWithConfigDataStreamResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct IngestWithConfigDataChannelValue {
-    #[prost(oneof="ingest_with_config_data_channel_value::Type", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11")]
+    #[prost(oneof="ingest_with_config_data_channel_value::Type", tags="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12")]
     pub r#type: ::core::option::Option<ingest_with_config_data_channel_value::Type>,
 }
 /// Nested message and enum types in `IngestWithConfigDataChannelValue`.
@@ -55,6 +55,8 @@ pub mod ingest_with_config_data_channel_value {
         Enum(u32),
         #[prost(message, tag="11")]
         Empty(::pbjson_types::Empty),
+        #[prost(bytes, tag="12")]
+        Bytes(::prost::alloc::vec::Vec<u8>),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

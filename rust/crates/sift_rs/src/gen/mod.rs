@@ -32,6 +32,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.annotations.v1)
         }
     }
+    pub mod api_keys {
+        // @@protoc_insertion_point(attribute:sift.api_keys.v2)
+        pub mod v2 {
+            include!("sift.api_keys.v2.rs");
+            // @@protoc_insertion_point(sift.api_keys.v2)
+        }
+    }
     pub mod assets {
         // @@protoc_insertion_point(attribute:sift.assets.v1)
         pub mod v1 {
@@ -110,6 +117,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.data_imports.v2)
         }
     }
+    pub mod dlq_errors {
+        // @@protoc_insertion_point(attribute:sift.dlq_errors.v2)
+        pub mod v2 {
+            include!("sift.dlq_errors.v2.rs");
+            // @@protoc_insertion_point(sift.dlq_errors.v2)
+        }
+    }
     pub mod ingest {
         // @@protoc_insertion_point(attribute:sift.ingest.v1)
         pub mod v1 {
@@ -134,6 +148,20 @@ pub mod sift {
         pub mod v1 {
             include!("sift.jobs.v1.rs");
             // @@protoc_insertion_point(sift.jobs.v1)
+        }
+    }
+    pub mod me {
+        // @@protoc_insertion_point(attribute:sift.me.v2)
+        pub mod v2 {
+            include!("sift.me.v2.rs");
+            // @@protoc_insertion_point(sift.me.v2)
+        }
+    }
+    pub mod metadata {
+        // @@protoc_insertion_point(attribute:sift.metadata.v1)
+        pub mod v1 {
+            include!("sift.metadata.v1.rs");
+            // @@protoc_insertion_point(sift.metadata.v1)
         }
     }
     pub mod notifications {
@@ -178,6 +206,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.reports.v1)
         }
     }
+    pub mod roles {
+        // @@protoc_insertion_point(attribute:sift.roles.v2)
+        pub mod v2 {
+            include!("sift.roles.v2.rs");
+            // @@protoc_insertion_point(sift.roles.v2)
+        }
+    }
     pub mod rule_evaluation {
         // @@protoc_insertion_point(attribute:sift.rule_evaluation.v1)
         pub mod v1 {
@@ -216,6 +251,27 @@ pub mod sift {
         pub mod v2 {
             include!("sift.tags.v2.rs");
             // @@protoc_insertion_point(sift.tags.v2)
+        }
+    }
+    pub mod unit {
+        // @@protoc_insertion_point(attribute:sift.unit.v2)
+        pub mod v2 {
+            include!("sift.unit.v2.rs");
+            // @@protoc_insertion_point(sift.unit.v2)
+        }
+    }
+    pub mod user_defined_functions {
+        // @@protoc_insertion_point(attribute:sift.user_defined_functions.v1)
+        pub mod v1 {
+            include!("sift.user_defined_functions.v1.rs");
+            // @@protoc_insertion_point(sift.user_defined_functions.v1)
+        }
+    }
+    pub mod user_groups {
+        // @@protoc_insertion_point(attribute:sift.user_groups.v2)
+        pub mod v2 {
+            include!("sift.user_groups.v2.rs");
+            // @@protoc_insertion_point(sift.user_groups.v2)
         }
     }
     pub mod users {

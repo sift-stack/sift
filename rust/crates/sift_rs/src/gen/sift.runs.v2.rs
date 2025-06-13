@@ -31,6 +31,12 @@ pub struct Run {
     pub default_report_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="14")]
     pub client_key: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="15")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(string, repeated, tag="16")]
+    pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag="17")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -81,6 +87,8 @@ pub struct CreateRunRequest {
     pub organization_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="8")]
     pub client_key: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="9")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
