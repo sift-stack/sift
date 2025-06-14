@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Union
 
+from pydantic.dataclasses import dataclass
 from sift.assets.v1.assets_pb2 import Asset
 
-from sift_py._internal.metadata import unwrap_metadata, wrap_metadata
+from sift_py._internal.metadata import metadata_dict_to_pb, metadata_pb_to_dict
 from sift_py._internal.time import to_timestamp_pb
 
 
@@ -50,8 +50,8 @@ class AssetConfig:
                 asset.modified_date.ToMicroseconds() / 1000000, tz=timezone.utc
             ),
             modified_by_user_id=asset.modified_by_user_id,
-            tags=asset.tags,
-            metadata=unwrap_metadata(asset.metadata),
+            tags=list(asset.tags),
+            metadata=metadata_pb_to_dict(list(asset.metadata)),
         )
 
     def to_asset(self) -> Asset:
@@ -70,5 +70,5 @@ class AssetConfig:
             modified_date=to_timestamp_pb(self.modified_date),
             modified_by_user_id=self.modified_by_user_id,
             tags=self.tags if self.tags else [],
-            metadata=wrap_metadata(self.metadata) if self.metadata else [],
+            metadata=metadata_dict_to_pb(self.metadata) if self.metadata else [],
         )

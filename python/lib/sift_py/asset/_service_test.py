@@ -9,7 +9,7 @@ from sift.assets.v1.assets_pb2 import (
     UpdateAssetResponse,
 )
 
-from sift_py._internal.metadata import wrap_metadata
+from sift_py._internal.metadata import metadata_dict_to_pb
 from sift_py.asset.config import AssetConfig
 from sift_py.asset.service import AssetService
 from sift_py.grpc.transport import SiftChannel
@@ -159,7 +159,7 @@ class TestAssetService(TestCase):
             modified_date=timestamp,
             modified_by_user_id=asset.modified_by_user_id,
             tags=asset.tags,
-            metadata=wrap_metadata(asset.metadata),
+            metadata=metadata_dict_to_pb(asset.metadata),
         )
         self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 
@@ -195,7 +195,7 @@ class TestAssetService(TestCase):
             modified_date=timestamp,
             modified_by_user_id=asset.modified_by_user_id,
             tags=asset.tags,
-            metadata=wrap_metadata(asset.metadata),
+            metadata=metadata_dict_to_pb(asset.metadata),
         )
         self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 
@@ -272,7 +272,7 @@ class TestAssetService(TestCase):
             created_by_user_id=asset.created_by_user_id,
             modified_date=timestamp,
             modified_by_user_id=asset.modified_by_user_id,
-            metadata=wrap_metadata(asset.metadata),
+            metadata=metadata_dict_to_pb(asset.metadata),
         )
         self.asset_service_stub.UpdateAsset.return_value = UpdateAssetResponse(asset=expected_asset)
 

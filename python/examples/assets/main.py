@@ -41,15 +41,19 @@ def update_asset_metadata():
         asset = assets[0]
         print(f"Found asset {asset.name} with ID {asset.asset_id}")
 
-        # Update the asset with test metadata
+        # Update a specific metadata field.
+        asset.metadata["test_boolean"] = True
+
+        # You can update existing metadata with a dict.
         timestamp = datetime.now()
         test_metadata = {
             "test_string": f"updated at {timestamp.isoformat()}",
             "test_number": timestamp.timestamp(),
-            # "test_boolean": True,
         }
+        # Note: If you assign the metadata to a dict vs updating it, all existing metadata not in the new dict is lost.
+        asset.metadata.update(test_metadata)
 
-        updated_asset = asset_service.update_asset(asset=asset, metadata=test_metadata)
+        updated_asset = asset_service.update_asset(asset=asset, update_metadata=True)
 
         print(f"Successfully updated asset {updated_asset.name} with test metadata")
 

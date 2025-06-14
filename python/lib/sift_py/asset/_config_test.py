@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from sift.assets.v1.assets_pb2 import Asset
 
-from sift_py._internal.metadata import wrap_metadata
+from sift_py._internal.metadata import metadata_dict_to_pb
 from sift_py.asset.config import AssetConfig
 
 
@@ -48,7 +48,7 @@ class TestAssetConfig(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=["tag1", "tag2"],
-            metadata=wrap_metadata(metadata),
+            metadata=metadata_dict_to_pb(metadata),
         )
 
         # Act
@@ -169,7 +169,7 @@ class TestAssetConfig(TestCase):
             modified_date=timestamp,
             modified_by_user_id="modifier-456",
             tags=["tag1", "tag2"],
-            metadata=wrap_metadata(metadata),
+            metadata=metadata_dict_to_pb(metadata),
         )
 
         # Act

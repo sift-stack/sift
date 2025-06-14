@@ -3,7 +3,7 @@ from typing import Dict, List, Union
 from sift.metadata.v1.metadata_pb2 import MetadataKey, MetadataKeyType, MetadataValue
 
 
-def wrap_metadata(_metadata: Dict[str, Union[str, float, bool]]) -> List[MetadataValue]:
+def metadata_dict_to_pb(_metadata: Dict[str, Union[str, float, bool]]) -> List[MetadataValue]:
     """
     Wraps metadata dictionary into a list of MetadataValue objects.
 
@@ -37,20 +37,20 @@ def wrap_metadata(_metadata: Dict[str, Union[str, float, bool]]) -> List[Metadat
         wrapped_key = MetadataKey(name=key, type=type)
         wrapped_value = MetadataValue(
             key=wrapped_key,
-            string_value=string_value,
-            boolean_value=boolean_value,
-            number_value=number_value,
+            string_value=string_value,  # type: ignore
+            boolean_value=boolean_value,  # type: ignore
+            number_value=number_value,  # type: ignore
         )
         metadata.append(wrapped_value)
 
     return metadata
 
 
-def unwrap_metadata(metadata: List[MetadataValue]) -> Dict[str, Union[str, float, bool]]:
+def metadata_pb_to_dict(metadata: List[MetadataValue]) -> Dict[str, Union[str, float, bool]]:
     """
     Unwraps a list of MetadataValue objects into a dictionary.
     """
-    unwrapped_metadata = {}
+    unwrapped_metadata: Dict[str, Union[str, float, bool]] = {}
     for md in metadata:
         if md.key.type == MetadataKeyType.METADATA_KEY_TYPE_STRING:
             unwrapped_metadata[md.key.name] = md.string_value

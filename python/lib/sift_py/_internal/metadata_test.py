@@ -1,12 +1,12 @@
 from unittest import TestCase
 
-from sift_py._internal.metadata import unwrap_metadata, wrap_metadata
+from sift_py._internal.metadata import metadata_dict_to_pb, metadata_pb_to_dict
 
 
 class TestMetadata(TestCase):
     """Tests for metadata wrapping and unwrapping functions."""
 
-    def test_wrap_metadata_mixed_types(self):
+    def test_metadata_dict_to_pb_mixed_types(self):
         # Arrange
         metadata = {
             "string_key": "test",
@@ -14,11 +14,11 @@ class TestMetadata(TestCase):
             "float_key": 3.14,
             "bool_key": True,
             "zero_value": 0,
-            "empty_string": ""
+            "empty_string": "",
         }
 
         # Act
-        result = wrap_metadata(metadata)
+        result = metadata_dict_to_pb(metadata)
 
         # Assert
         self.assertEqual(len(result), 6)
@@ -41,33 +41,35 @@ class TestMetadata(TestCase):
         self.assertEqual(metadata_dict["bool_key"].key.type, 3)
         self.assertTrue(metadata_dict["bool_key"].boolean_value)
 
-    def test_wrap_metadata_invalid_type(self):
+    def test_metadata_dict_to_pb_invalid_type(self):
         # Arrange
         invalid_metadata = {
             "list_key": [1, 2, 3],
             "dict_key": {"nested": "value"},
-            "none_key": None
+            "none_key": None,
         }
 
         # Act & Assert
         for key, value in invalid_metadata.items():
             with self.assertRaises(ValueError) as context:
-                wrap_metadata({key: value})
+                metadata_dict_to_pb({key: value})
             self.assertIn("Unsupported metadata value type", str(context.exception))
 
-    def test_unwrap_metadata_mixed_types(self):
+    def test_metadata_pb_to_dict_mixed_types(self):
         # Arrange
-        wrapped_metadata = wrap_metadata({
-            "string_key": "test",
-            "number_key": 42,
-            "float_key": 3.14,
-            "bool_key": True,
-            "zero_value": 0,
-            "empty_string": ""
-        })
+        wrapped_metadata = metadata_dict_to_pb(
+            {
+                "string_key": "test",
+                "number_key": 42,
+                "float_key": 3.14,
+                "bool_key": True,
+                "zero_value": 0,
+                "empty_string": "",
+            }
+        )
 
         # Act
-        result = unwrap_metadata(wrapped_metadata)
+        result = metadata_pb_to_dict(wrapped_metadata)
 
         # Assert
         self.assertEqual(len(result), 6)
@@ -78,12 +80,12 @@ class TestMetadata(TestCase):
         self.assertEqual(result["zero_value"], 0.0)
         self.assertEqual(result["empty_string"], "")
 
-    def test_unwrap_metadata_empty(self):
+    def test_metadata_pb_to_dict_empty(self):
         # Arrange
         wrapped_metadata = []
 
         # Act
-        result = unwrap_metadata(wrapped_metadata)
+        result = metadata_pb_to_dict(wrapped_metadata)
 
         # Assert
         self.assertEqual(result, {})
@@ -96,12 +98,12 @@ class TestMetadata(TestCase):
             "float_key": 3.14,
             "bool_key": True,
             "zero_value": 0,
-            "empty_string": ""
+            "empty_string": "",
         }
 
         # Act
-        wrapped = wrap_metadata(original_metadata)
-        unwrapped = unwrap_metadata(wrapped)
+        wrapped = metadata_dict_to_pb(original_metadata)
+        unwrapped = metadata_pb_to_dict(wrapped)
 
         # Assert
         self.assertEqual(unwrapped, original_metadata)

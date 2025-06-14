@@ -8,7 +8,7 @@ from sift.runs.v2.runs_pb2 import (
 )
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
-from sift_py._internal.metadata import wrap_metadata
+from sift_py._internal.metadata import metadata_dict_to_pb
 from sift_py.grpc.transport import SiftChannel
 
 
@@ -39,7 +39,7 @@ def create_run(
 ) -> str:
     svc = RunServiceStub(channel)
 
-    _metadata = wrap_metadata(metadata) if metadata else None
+    _metadata = metadata_dict_to_pb(metadata) if metadata else None
 
     req = CreateRunRequest(
         name=run_name,
