@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 import logging
+from datetime import datetime
+import re
 from google.protobuf.field_mask_pb2 import FieldMask
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.errors import ClientError, RequestError
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.types.asset import Asset
+from sift_client.util import cel_utils
 from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
 
 class AssetsAPI:
@@ -101,26 +104,21 @@ class AssetsAPI:
         """Get an asset by ID.
         
         Args:
-            asset_id: The ID of the asset to get.
+            asset_id: The ID of the asset.
+            name: The name of the asset.
         
         Returns:
-            The asset."""
+            The Asset."""
         ...
     
-    def list_(self, page_size: int = None, page_token: str = None, filter: str = None, order_by: str = None) -> tuple[list[Asset], str]:
+    def list_(self, name: str = None, name_contains: str = None, name_regex: str | re.Pattern = None, created_after: datetime = None, created_before: datetime = None, modified_after: datetime = None, modified_before: datetime = None, tags: list[str] = None, filter_query: str = None, order_by: str = None) -> list[Asset]:
         """List assets.
         
         Args:
-            page_size: The maximum number of assets to return.
-            page_token: A page token, received from a previous `list` call.
-            filter: A filter string.
             order_by: How to order the retrieved assets.
         
         Returns:
-            A tuple containing the list of assets and the next page token.
-        
-        Raises:
-            ClientError: If the request fails."""
+            A list of Assets."""
         ...
     
     def update_tags(self, asset_id: str, tags: list[str]) -> Asset:

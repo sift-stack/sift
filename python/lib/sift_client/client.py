@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sift_client.resources import PingAPI, PingAPIAsync
+from sift_client.resources import PingAPI, PingAPIAsync, AssetsAPIAsync, AssetsAPI
 from sift_client.transport import (
     GrpcClient,
     GrpcConfig,
@@ -32,5 +32,5 @@ class SiftClient:
 
         self.ping = PingAPI(self._grpc_client)
         self.ping_async = PingAPIAsync(self._grpc_client)
-        # self.assets = SyncAssetsAPI(self._grpc_client)
-        self.assets_async = AssetsAPI(self._grpc_client)
+        self.assets = AssetsAPI(self._grpc_client)
+        self.assets_async = AssetsAPIAsync(self._grpc_client)

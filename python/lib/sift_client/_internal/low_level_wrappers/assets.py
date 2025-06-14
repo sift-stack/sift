@@ -47,7 +47,7 @@ class AssetsLowLevelClient(LowLevelClientBase):
         grpc_asset = cast(GetAssetResponse, response).asset
         return Asset.from_grpc(grpc_asset)
 
-    async def list_assets(
+    async def list_all_assets(
         self,
         query_filter: str = None,
         order_by: str = None,
@@ -68,14 +68,14 @@ class AssetsLowLevelClient(LowLevelClientBase):
 
         """
         return await self._handle_pagination(
-            self._list_assets,
+            self.list_assets,
             page_size=page_size,
             query_filter=query_filter,
             order_by=order_by,
             max_results=max_results,
         )
 
-    async def _list_assets(
+    async def list_assets(
         self,
         page_size: int = None,
         page_token: str = None,
