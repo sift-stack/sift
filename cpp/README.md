@@ -76,5 +76,5 @@ cmake --build . -j 4
 
 5. Run the example with required environment variables:
 ```
-$ SIFT_URL=<grpc_api_url>:443 SIFT_API_KEY=<api_key> SIFT_ORGANIZATION_ID=<organization_id> ./Example
+$ BASE_URI=<grpc_api_url>:443 SIFT_API_KEY=<api_key> SIFT_ORGANIZATION_ID=<organization_id> ./Example
 ```

@@ -1,4 +1,4 @@
-from typing import List, Optional, cast
+from typing import Dict, List, Optional, Union, cast
 
 from sift.runs.v2.runs_pb2 import (
     CreateRunRequest,
@@ -8,6 +8,7 @@ from sift.runs.v2.runs_pb2 import (
 )
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
+from sift_py._internal.metadata import metadata_dict_to_pb
 from sift_py.grpc.transport import SiftChannel
 
 
@@ -34,13 +35,18 @@ def create_run(
     description: str,
     organization_id: str,
     tags: List[str],
+    metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
 ) -> str:
     svc = RunServiceStub(channel)
+
+    _metadata = metadata_dict_to_pb(metadata) if metadata else None
+
     req = CreateRunRequest(
         name=run_name,
         description=description,
         organization_id=organization_id,
         tags=tags,
+        metadata=_metadata,
     )
     res = cast(CreateRunResponse, svc.CreateRun(req))
     return res.run.run_id
