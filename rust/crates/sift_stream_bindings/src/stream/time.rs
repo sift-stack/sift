@@ -7,6 +7,12 @@ pub struct TimeValuePy {
     pub inner: TimeValue,
 }
 
+impl Default for TimeValuePy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl TimeValuePy {
     #[new]
