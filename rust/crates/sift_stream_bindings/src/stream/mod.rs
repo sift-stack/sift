@@ -12,11 +12,40 @@ use sift_stream::{Flow, IngestionConfigMode, SiftStream};
 use std::sync::Arc;
 use std::sync::Mutex;
 
+// Type Definitions
 #[pyclass]
 pub struct SiftStreamPy {
     inner: Arc<Mutex<Option<SiftStream<IngestionConfigMode>>>>,
 }
 
+#[pyclass]
+#[derive(Clone, Debug)]
+pub struct FlowPy {
+    inner: Flow,
+}
+
+// Trait Implementations
+impl From<SiftStream<IngestionConfigMode>> for SiftStreamPy {
+    fn from(stream: SiftStream<IngestionConfigMode>) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(Some(stream))),
+        }
+    }
+}
+
+impl From<SiftStreamPy> for SiftStream<IngestionConfigMode> {
+    fn from(stream: SiftStreamPy) -> Self {
+        stream.inner.lock().unwrap().take().unwrap()
+    }
+}
+
+impl From<FlowPy> for Flow {
+    fn from(flow: FlowPy) -> Self {
+        flow.inner
+    }
+}
+
+// PyO3 Method Implementations
 #[pymethods]
 impl SiftStreamPy {
     pub fn send(&mut self, py: Python, flow: FlowPy) -> PyResult<Py<PyAny>> {
@@ -63,26 +92,6 @@ impl SiftStreamPy {
     }
 }
 
-impl From<SiftStream<IngestionConfigMode>> for SiftStreamPy {
-    fn from(stream: SiftStream<IngestionConfigMode>) -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(Some(stream))),
-        }
-    }
-}
-
-impl From<SiftStreamPy> for SiftStream<IngestionConfigMode> {
-    fn from(stream: SiftStreamPy) -> Self {
-        stream.inner.lock().unwrap().take().unwrap()
-    }
-}
-
-#[pyclass]
-#[derive(Clone, Debug)]
-pub struct FlowPy {
-    inner: Flow,
-}
-
 #[pymethods]
 impl FlowPy {
     #[new]
@@ -94,11 +103,5 @@ impl FlowPy {
                 &values.into_iter().map(|v| v.into()).collect::<Vec<_>>(),
             ),
         }
-    }
-}
-
-impl From<FlowPy> for Flow {
-    fn from(flow: FlowPy) -> Self {
-        flow.inner
     }
 }

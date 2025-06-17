@@ -1,18 +1,27 @@
 use pyo3::prelude::*;
 use sift_stream::stream::time::TimeValue;
 
+// Type Definitions
 #[pyclass]
 #[derive(Clone)]
 pub struct TimeValuePy {
     pub inner: TimeValue,
 }
 
+// Trait Implementations
 impl Default for TimeValuePy {
     fn default() -> Self {
         Self::new()
     }
 }
 
+impl From<TimeValuePy> for TimeValue {
+    fn from(time: TimeValuePy) -> Self {
+        time.inner
+    }
+}
+
+// PyO3 Method Implementations
 #[pymethods]
 impl TimeValuePy {
     #[new]
@@ -59,11 +68,5 @@ impl TimeValuePy {
             inner: TimeValue::try_from_rfc3339(val)
                 .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{}", e)))?,
         })
-    }
-}
-
-impl From<TimeValuePy> for TimeValue {
-    fn from(time: TimeValuePy) -> Self {
-        time.inner
     }
 }

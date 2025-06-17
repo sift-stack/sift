@@ -3,6 +3,7 @@ use crate::stream::time::TimeValuePy;
 use pyo3::prelude::*;
 use sift_rs::ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest};
 
+// Type Definitions
 #[pyclass]
 #[derive(Clone)]
 pub struct IngestWithConfigDataStreamRequestPy {
@@ -22,6 +23,28 @@ pub struct IngestWithConfigDataStreamRequestPy {
     pub organization_id: String,
 }
 
+// Trait Implementations
+impl From<IngestWithConfigDataStreamRequestPy> for IngestWithConfigDataStreamRequest {
+    fn from(request: IngestWithConfigDataStreamRequestPy) -> Self {
+        IngestWithConfigDataStreamRequest {
+            ingestion_config_id: request.ingestion_config_id,
+            flow: request.flow,
+            timestamp: request.timestamp.map(|t| *t.inner),
+            channel_values: request
+                .channel_values
+                .into_iter()
+                .map(|v| IngestWithConfigDataChannelValue {
+                    r#type: Some(ChannelValueTypePy::from(v.inner.value).into()),
+                })
+                .collect(),
+            run_id: request.run_id,
+            end_stream_on_validation_error: request.end_stream_on_validation_error,
+            organization_id: request.organization_id,
+        }
+    }
+}
+
+// PyO3 Method Implementations
 #[pymethods]
 impl IngestWithConfigDataStreamRequestPy {
     #[new]
@@ -42,26 +65,6 @@ impl IngestWithConfigDataStreamRequestPy {
             run_id,
             end_stream_on_validation_error,
             organization_id,
-        }
-    }
-}
-
-impl From<IngestWithConfigDataStreamRequestPy> for IngestWithConfigDataStreamRequest {
-    fn from(request: IngestWithConfigDataStreamRequestPy) -> Self {
-        IngestWithConfigDataStreamRequest {
-            ingestion_config_id: request.ingestion_config_id,
-            flow: request.flow,
-            timestamp: request.timestamp.map(|t| *t.inner),
-            channel_values: request
-                .channel_values
-                .into_iter()
-                .map(|v| IngestWithConfigDataChannelValue {
-                    r#type: Some(ChannelValueTypePy::from(v.inner.value).into()),
-                })
-                .collect(),
-            run_id: request.run_id,
-            end_stream_on_validation_error: request.end_stream_on_validation_error,
-            organization_id: request.organization_id,
         }
     }
 }

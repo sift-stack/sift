@@ -6,6 +6,7 @@ use sift_stream::{Credentials, IngestionConfigMode, SiftStreamBuilder};
 use std::sync::Arc;
 use std::sync::Mutex;
 
+// Type Definitions
 #[pyclass]
 pub struct SiftStreamBuilderPy {
     inner: Arc<Mutex<Option<SiftStreamBuilder<IngestionConfigMode>>>>,
@@ -27,6 +28,7 @@ pub struct SiftStreamBuilderPy {
     run_id: Option<String>,
 }
 
+// PyO3 Method Implementations
 #[pymethods]
 impl SiftStreamBuilderPy {
     #[new]

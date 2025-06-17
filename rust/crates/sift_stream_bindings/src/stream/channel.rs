@@ -3,6 +3,7 @@ use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelDataType, Chann
 use sift_rs::ingest::v1::ingest_with_config_data_channel_value::Type as ChannelValueType;
 use sift_stream::stream::channel::{ChannelValue, Value};
 
+// Type Definitions
 #[pyclass]
 #[derive(Clone)]
 pub struct ChannelBitFieldElementPy {
@@ -15,29 +16,6 @@ pub struct ChannelBitFieldElementPy {
     bit_count: u32,
 }
 
-#[pymethods]
-impl ChannelBitFieldElementPy {
-    #[new]
-    pub fn new(name: &str, index: i32, bit_count: u32) -> Self {
-        Self {
-            inner: ChannelBitFieldElement {
-                name: name.to_string(),
-                index,
-                bit_count,
-            },
-            name: name.to_string(),
-            index,
-            bit_count,
-        }
-    }
-}
-
-impl From<ChannelBitFieldElementPy> for ChannelBitFieldElement {
-    fn from(value: ChannelBitFieldElementPy) -> Self {
-        value.inner
-    }
-}
-
 #[pyclass]
 #[derive(Clone)]
 pub struct ChannelEnumTypePy {
@@ -46,27 +24,6 @@ pub struct ChannelEnumTypePy {
     name: String,
     #[pyo3(get, set)]
     key: u32,
-}
-
-#[pymethods]
-impl ChannelEnumTypePy {
-    #[new]
-    pub fn new(name: &str, key: u32) -> Self {
-        Self {
-            inner: ChannelEnumType {
-                name: name.to_string(),
-                key,
-            },
-            name: name.to_string(),
-            key,
-        }
-    }
-}
-
-impl From<ChannelEnumTypePy> for ChannelEnumType {
-    fn from(value: ChannelEnumTypePy) -> Self {
-        value.inner
-    }
 }
 
 #[pyclass]
@@ -84,6 +41,31 @@ pub enum ChannelDataTypePy {
     Int64,
     Uint64,
     Bytes,
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct ChannelValuePy {
+    pub inner: ChannelValue,
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct ChannelValueTypePy {
+    inner: ChannelValueType,
+}
+
+// Trait Implementations
+impl From<ChannelBitFieldElementPy> for ChannelBitFieldElement {
+    fn from(value: ChannelBitFieldElementPy) -> Self {
+        value.inner
+    }
+}
+
+impl From<ChannelEnumTypePy> for ChannelEnumType {
+    fn from(value: ChannelEnumTypePy) -> Self {
+        value.inner
+    }
 }
 
 impl From<ChannelDataType> for ChannelDataTypePy {
@@ -124,10 +106,66 @@ impl From<ChannelDataTypePy> for ChannelDataType {
     }
 }
 
-#[pyclass]
-#[derive(Clone)]
-pub struct ChannelValuePy {
-    pub inner: ChannelValue,
+impl From<ChannelValuePy> for ChannelValue {
+    fn from(value: ChannelValuePy) -> Self {
+        value.inner
+    }
+}
+
+impl From<Value> for ChannelValueTypePy {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Bool(val) => Self::bool(val),
+            Value::String(val) => Self::string(val),
+            Value::Float(val) => Self::float(val),
+            Value::Double(val) => Self::double(val),
+            Value::Int32(val) => Self::int32(val),
+            Value::Int64(val) => Self::int64(val),
+            Value::Uint32(val) => Self::uint32(val),
+            Value::Uint64(val) => Self::uint64(val),
+            Value::Enum(val) => Self::enum_value(val),
+            Value::BitField(val) => Self::bitfield(val),
+        }
+    }
+}
+
+impl From<ChannelValueTypePy> for ChannelValueType {
+    fn from(value: ChannelValueTypePy) -> Self {
+        value.inner
+    }
+}
+
+// PyO3 Method Implementations
+#[pymethods]
+impl ChannelBitFieldElementPy {
+    #[new]
+    pub fn new(name: &str, index: i32, bit_count: u32) -> Self {
+        Self {
+            inner: ChannelBitFieldElement {
+                name: name.to_string(),
+                index,
+                bit_count,
+            },
+            name: name.to_string(),
+            index,
+            bit_count,
+        }
+    }
+}
+
+#[pymethods]
+impl ChannelEnumTypePy {
+    #[new]
+    pub fn new(name: &str, key: u32) -> Self {
+        Self {
+            inner: ChannelEnumType {
+                name: name.to_string(),
+                key,
+            },
+            name: name.to_string(),
+            key,
+        }
+    }
 }
 
 #[pymethods]
@@ -233,18 +271,6 @@ impl ChannelValuePy {
     }
 }
 
-impl From<ChannelValuePy> for ChannelValue {
-    fn from(value: ChannelValuePy) -> Self {
-        value.inner
-    }
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub struct ChannelValueTypePy {
-    inner: ChannelValueType,
-}
-
 #[pymethods]
 impl ChannelValueTypePy {
     #[staticmethod]
@@ -322,28 +348,5 @@ impl ChannelValueTypePy {
         Self {
             inner: ChannelValueType::Bytes(value),
         }
-    }
-}
-
-impl From<Value> for ChannelValueTypePy {
-    fn from(value: Value) -> Self {
-        match value {
-            Value::Bool(val) => Self::bool(val),
-            Value::String(val) => Self::string(val),
-            Value::Float(val) => Self::float(val),
-            Value::Double(val) => Self::double(val),
-            Value::Int32(val) => Self::int32(val),
-            Value::Int64(val) => Self::int64(val),
-            Value::Uint32(val) => Self::uint32(val),
-            Value::Uint64(val) => Self::uint64(val),
-            Value::Enum(val) => Self::enum_value(val),
-            Value::BitField(val) => Self::bitfield(val),
-        }
-    }
-}
-
-impl From<ChannelValueTypePy> for ChannelValueType {
-    fn from(value: ChannelValueTypePy) -> Self {
-        value.inner
     }
 }
