@@ -155,7 +155,7 @@ impl RecoveryStrategyPy {
             retry_policy: Some(retry_policy),
             max_buffer_size: None,
             backups_dir,
-            max_backups_file_size: None,
+            max_backups_file_size,
         }
     }
 
