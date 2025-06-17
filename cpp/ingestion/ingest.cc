@@ -142,12 +142,12 @@ void GetTimestamp(std::chrono::time_point<std::chrono::system_clock> time, googl
 
 int main()
 {
-    const char *apiUrl = std::getenv("SIFT_URL");
+    const char *apiUrl = std::getenv("BASE_URI");
     const char *apiKey = std::getenv("SIFT_API_KEY");
     const char *organizationId = std::getenv("SIFT_ORGANIZATION_ID");
     if (!apiUrl)
     {
-        std::cerr << "Run with SIFT_URL environment variable" << std::endl;
+        std::cerr << "Run with BASE_URI environment variable" << std::endl;
         exit(1);
     }
     if (!apiKey)

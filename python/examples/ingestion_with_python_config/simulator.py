@@ -39,7 +39,7 @@ class Simulator:
         sample_bit_field_values = ["00001001", "00100011", "00001101", "11000001"]
         self.sample_bit_field_values = [bytes([int(byte, 2)]) for byte in sample_bit_field_values]
 
-        sample_logs = Path().joinpath("sample_data").joinpath("sample_logs.txt")
+        sample_logs = Path().joinpath(Path(__file__).parent, "sample_data", "sample_logs.txt")
 
         with open(sample_logs, "r") as file:
             self.sample_logs = file.readlines()

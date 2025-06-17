@@ -66,11 +66,12 @@ class IngestionService(_IngestionServiceImpl):
         description: Optional[str] = None,
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
         """
-        super().attach_run(channel, run_name, description, organization_id, tags)
+        super().attach_run(channel, run_name, description, organization_id, tags, metadata)
 
     def detach_run(self):
         """

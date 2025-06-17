@@ -135,6 +135,7 @@ class _IngestionServiceImpl:
         description: Optional[str] = None,
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
@@ -151,6 +152,7 @@ class _IngestionServiceImpl:
             description=description or "",
             organization_id=organization_id or "",
             tags=tags or [],
+            metadata=metadata,
         )
 
     def detach_run(self):
