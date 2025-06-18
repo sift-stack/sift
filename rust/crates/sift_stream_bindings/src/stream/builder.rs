@@ -2,14 +2,13 @@ use crate::stream::SiftStreamPy;
 use crate::stream::config::{IngestionConfigFormPy, RunFormPy};
 use crate::stream::retry::{DurationPy, RecoveryStrategyPy};
 use pyo3::prelude::*;
-use sift_stream::{Credentials, IngestionConfigMode, SiftStreamBuilder};
+use sift_stream::{Credentials, SiftStreamBuilder};
 use std::sync::Arc;
 use std::sync::Mutex;
 
 // Type Definitions
 #[pyclass]
 pub struct SiftStreamBuilderPy {
-    inner: Arc<Mutex<Option<SiftStreamBuilder<IngestionConfigMode>>>>,
     #[pyo3(get, set)]
     uri: String,
     #[pyo3(get, set)]
@@ -34,12 +33,6 @@ impl SiftStreamBuilderPy {
     #[new]
     pub fn new(uri: &str, apikey: &str) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(Some(SiftStreamBuilder::new(
-                Credentials::Config {
-                    uri: uri.into(),
-                    apikey: apikey.into(),
-                },
-            )))),
             uri: uri.into(),
             apikey: apikey.into(),
             enable_tls: true,
@@ -52,7 +45,11 @@ impl SiftStreamBuilderPy {
     }
 
     pub fn build(&mut self, py: Python) -> PyResult<Py<PyAny>> {
-        let mut inner = self.inner.lock().unwrap().take().unwrap();
+        let mut inner = SiftStreamBuilder::new(Credentials::Config {
+            uri: self.uri.clone(),
+            apikey: self.apikey.clone(),
+        });
+
         if let Some(config) = self.ingestion_config.as_ref() {
             inner = inner.ingestion_config(config.clone().into());
         }
