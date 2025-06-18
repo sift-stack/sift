@@ -6,8 +6,8 @@ from sift_client.client import SiftClient
 
 
 async def main(client):
-    print("Async in async loop:", await sift.ping_async.ping())
-    print("Sync in async loop:", sift.ping.ping())
+    print("Async in async loop:", await client.ping_async.ping())
+    print("Sync in async loop:", client.ping.ping())
 
 
 if __name__ == "__main__":
@@ -25,5 +25,3 @@ if __name__ == "__main__":
     asyncio.run(main(sift))
 
     print("Sync:", sift.ping.ping())
-
-    print(sift.assets.list_())

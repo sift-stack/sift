@@ -1,22 +1,23 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING,Any
 import logging
 from datetime import datetime
 import re
 
-from google.protobuf.field_mask_pb2 import FieldMask
-
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
-from sift_client.errors import ClientError, RequestError
-from sift_client.transport import GrpcClient, WithGrpcClient
+from sift_client.resources.base import ResourceBase
 from sift_client.types.asset import Asset
 from sift_client.util import cel_utils
+
+if TYPE_CHECKING:
+    from sift_client.client import SiftClient
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 
-class AssetsAPIAsync(WithGrpcClient):
+class AssetsAPIAsync(ResourceBase):
     """
     High-level API for interacting with assets.
 
@@ -27,15 +28,15 @@ class AssetsAPIAsync(WithGrpcClient):
     representation of an asset using standard Python data structures and types.
     """
 
-    def __init__(self, grpc_client: GrpcClient):
+    def __init__(self, sift_client: "SiftClient"):
         """
         Initialize the AssetsAPI.
 
         Args:
-            grpc_client: The gRPC client to use for making API calls.
+            sift_client: The Sift client to use.
         """
-        super().__init__(grpc_client)
-        self._low_level_client = AssetsLowLevelClient(self._grpc_client)
+        super().__init__(sift_client)
+        self._low_level_client = AssetsLowLevelClient(grpc_client=self.client.grpc_client)
 
     async def get(
         self,
@@ -53,17 +54,20 @@ class AssetsAPIAsync(WithGrpcClient):
             The Asset.
         """
         if asset_id:
-            return await self._low_level_client.get_asset(asset_id)
+            asset = await self._low_level_client.get_asset(asset_id)
 
-        if name:
+        elif name:
             assets = await self._low_level_client.list_all_assets(query_filter=cel_utils.equals("name", name))
             if len(assets) < 1:
                 raise ValueError(f"No asset found with name '{name}'")
             if len(assets) > 1:
                 raise ValueError(f"Multiple assets found with name '{name}'") # should not happen
-            return assets[0]
+            asset = assets[0]
 
-        raise ValueError("Either asset_id or name must be provided")
+        else:
+            raise ValueError("Either asset_id or name must be provided")
+
+        return self._apply_client_to_instance(asset)
 
     async def list_(
         self,
@@ -74,20 +78,35 @@ class AssetsAPIAsync(WithGrpcClient):
         created_before: datetime = None,
         modified_after: datetime = None,
         modified_before: datetime = None,
-        # created_by: User = None,
-        # modified_by: User = None,
+        created_by: Any = None,
+        modified_by: Any = None,
         tags: list[str] = None,
+        include_archived: bool = False,
         filter_query: str = None,
         order_by: str = None,
+        limit: int = None,
     ) -> list[Asset]:
         """
-        List assets.
+        List assets with optional filtering.
 
         Args:
-            order_by: How to order the retrieved assets.
+            name: Exact name of the asset.
+            name_contains: Partial name of the asset.
+            name_regex: Regular expression string to filter assets by name.
+            created_after: Created after this date.
+            created_before: Created before this date.
+            modified_after: Modified after this date.
+            modified_before: Modified before this date.
+            created_by: Assets created by this user.
+            modified_by: Assets last modified by this user.
+            tags: Assets with these tags.
+            include_archived: Include archived assets.
+            filter_query: Explicit CEL query to filter assets.
+            order_by: How to order the retrieved assets. # TODO: tooling for this?
+            limit: How many assets to retrieve. If None, retrieves all matches.
 
         Returns:
-            A list of Assets.
+            A list of Assets that matches the filter.
 
         """
         if not filter_query:
@@ -98,161 +117,49 @@ class AssetsAPIAsync(WithGrpcClient):
                 filters.append(cel_utils.contains("name", name_contains))
             if name_regex:
                 filters.append(cel_utils.match("name", name_regex))
-            # if created_after:
-            #     filter_query += f"created_after='{created_after.isoformat()}'"
-            # if created_before:
-            #     filter_query += f"created_before='{created_before.isoformat()}'"
-            # if modified_after:
+            if created_after:
+                filters.append(cel_utils.greater_than("created_date", created_after))
+            if created_before:
+                filters.append(cel_utils.less_than("created_date", created_before))
+            if modified_after:
+                filters.append(cel_utils.greater_than("modified_date", modified_after))
+            if modified_before:
+                filters.append(cel_utils.less_than("modified_date", modified_before))
+            if created_by:
+                raise NotImplementedError
+            if modified_by:
+                raise NotImplementedError
+            if tags:
+                # TODO: implement in API
+                raise NotImplementedError
+            if not include_archived:
+                filters.append(cel_utils.equals_null("archived_date"))
             filter_query = cel_utils.and_(*filters)
 
 
-        return await self._low_level_client.list_all_assets(
+        assets = await self._low_level_client.list_all_assets(
             query_filter=filter_query,
             order_by=order_by,
+            max_results=limit,
         )
+        return self._apply_client_to_instances(assets)
 
-
-    def update_tags(self, asset_id: str, tags: list[str]) -> Asset:
+    async def archive(self, asset_id: str = None, asset: Asset = None) -> Asset:
         """
-        Update the tags of an asset.
+       Archive an asset.
 
         Args:
-            asset_id: The ID of the asset to update.
-            tags: The new tags for the asset.
-
-        Returns:
-            The updated asset.
+            asset_id: The ID of the asset to archive.
+            asset: The Asset to archive.
 
         Raises:
             ClientError: If the request fails.
         """
-        try:
-            # Get the current asset
-            asset = self._low_level_client.get_asset(asset_id)
+        if not asset_id and not asset:
+            raise ValueError("Either asset_id or asset must be provided")
 
-            # Update the tags
-            asset.tags[:] = tags
+        await self._low_level_client.delete_asset(asset_id or asset.asset_id)
 
-            # Create the update mask
-            update_mask = FieldMask(paths=["tags"])
+        return await self.get(asset_id=asset_id or asset.asset_id)
 
-            # Update the asset
-            return self._low_level_client.update_asset(asset, update_mask)
-        except ClientError:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error updating asset tags: {e}")
-            raise RequestError(f"Failed to update asset tags: {e}")
 
-    def delete(self, asset_id: str) -> None:
-        """
-        Delete an asset.
-
-        Args:
-            asset_id: The ID of the asset to delete.
-
-        Raises:
-            ClientError: If the request fails.
-        """
-        try:
-            self._low_level_client.delete_asset(asset_id)
-        except ClientError:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error deleting asset: {e}")
-            raise RequestError(f"Failed to delete asset: {e}")
-
-    def find_by_name(self, name: str) -> Asset | None:
-        """
-        Find an asset by name.
-
-        Args:
-            name: The name of the asset to find.
-
-        Returns:
-            The asset, or None if not found.
-
-        Raises:
-            ClientError: If the request fails.
-            ValueError: If multiple assets are found with the same name.
-        """
-        try:
-            assets = self._low_level_client.get_assets_by_name([name])
-
-            if not assets:
-                return None
-
-            if len(assets) > 1:
-                raise ValueError(f"Multiple assets found with name '{name}'")
-
-            return assets[0]
-        except ClientError:
-            raise
-        except ValueError:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error finding asset by name: {e}")
-            raise RequestError(f"Failed to find asset by name: {e}")
-
-    def find_by_names(self, names: list[str]) -> list[Asset]:
-        """
-        Find assets by name.
-
-        Args:
-            names: The names of the assets to find.
-
-        Returns:
-            The assets.
-
-        Raises:
-            ClientError: If the request fails.
-        """
-        try:
-            return self._low_level_client.get_assets_by_name(names)
-        except ClientError:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error finding assets by name: {e}")
-            raise RequestError(f"Failed to find assets by name: {e}")
-
-    def find_by_tag(self, tag: str) -> list[Asset]:
-        """
-        Find assets by tag.
-
-        Args:
-            tag: The tag of the assets to find.
-
-        Returns:
-            The assets.
-
-        Raises:
-            ClientError: If the request fails.
-        """
-        try:
-            return self._low_level_client.get_assets_by_tag([tag])
-        except ClientError:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error finding assets by tag: {e}")
-            raise RequestError(f"Failed to find assets by tag: {e}")
-
-    def find_by_tags(self, tags: list[str]) -> list[Asset]:
-        """
-        Find assets by tags.
-
-        Args:
-            tags: The tags of the assets to find.
-
-        Returns:
-            The assets.
-
-        Raises:
-            ClientError: If the request fails.
-        """
-        try:
-            return self._low_level_client.get_assets_by_tag(tags)
-        except ClientError:
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error finding assets by tags: {e}")
-            raise RequestError(f"Failed to find assets by tags: {e}")

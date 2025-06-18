@@ -1,1 +1,36 @@
 from __future__ import annotations
+from abc import ABC
+from typing import TYPE_CHECKING, Iterable, TypeVar
+
+from sift_client.transport.base_connection import GrpcClient, RestClient
+from sift_client.types.base import BaseType
+
+if TYPE_CHECKING:
+    from sift_client.client import SiftClient
+
+T = TypeVar("T", bound="BaseType")
+
+class ResourceBase(ABC):
+    _sift_client: "SiftClient"
+
+    def __init__(self, sift_client: "SiftClient"):
+        self._sift_client = sift_client
+
+    @property
+    def client(self) -> "SiftClient":
+        return self._sift_client
+
+    @property
+    def grpc_client(self) -> GrpcClient:
+        return self.client.grpc_client
+
+    @property
+    def rest_client(self) -> RestClient:
+        return self.client.rest_client
+
+    def _apply_client_to_instance(self, instance: T ) -> T:
+        # Create a copy since it is frozen
+        return instance.model_copy(update={"_client": self.client})
+
+    def _apply_client_to_instances(self, instances: list[T]) ->  list[T]:
+        return [self._apply_client_to_instance(i) for i in instances]

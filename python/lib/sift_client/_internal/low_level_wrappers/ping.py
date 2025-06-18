@@ -21,13 +21,13 @@ from sift.ping.v1.ping_pb2_grpc import PingServiceStub
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-from sift_client.transport.grpc_transport import GrpcClient
+from sift_client.transport import GrpcClient, WithGrpcClient
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 
-class PingLowLevelClient(LowLevelClientBase):
+class PingLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """
     Low-level client for the PingAPI.
 
@@ -42,8 +42,7 @@ class PingLowLevelClient(LowLevelClientBase):
         Args:
             grpc_client: The gRPC client to use for making API calls.
         """
-        self._grpc_client = grpc_client
-        # stub is created inside ping() to bind to the correct event loop
+        super().__init__(grpc_client=grpc_client)
 
     async def ping(self) -> str:
         """

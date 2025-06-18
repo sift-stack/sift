@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from datetime import datetime
 
 
 def in_(field: str, vals: list[str]) -> str:
@@ -103,6 +104,19 @@ def equals_double(key: str, value: Any) -> str:
         return f"{key} == null"
     return f"{key} == double({value})"
 
+def equals_null(key: str) -> str:
+    """
+    Generates a CEL expression that checks for equality with null.
+
+    Args:
+        key: The field name
+
+    Returns:
+        A CEL expression string
+    """
+    return f"{key} == null"
+
+
 
 def and_(*clauses: str) -> str:
     """
@@ -176,8 +190,38 @@ def match(field: str, query: str | re.Pattern) -> str:
     Returns:
         A CEL expression string
     """
-    # Double-escape any backslashes that already exist in the regex
     if isinstance(query, re.Pattern):
         query = query.pattern
+    # Double-escape any backslashes that already exist in the regex
     escaped_regex = query.replace("\\", "\\\\")
     return f"{field}.matches('{escaped_regex}')"
+
+def greater_than(field: str, value: int | float | datetime) -> str:
+    """
+    Generates a CEL expression that checks whether a numeric or datetime field is greater than a given value.
+
+    Args:
+        field: The field name
+        value: The value to compare against
+
+    Returns:
+        A CEL expression string
+    """
+    if isinstance(value, datetime):
+        value = value.isoformat()
+    return f"{field} > {value}"
+
+def less_than(field: str, value: int | float | datetime) -> str:
+    """
+    Generates a CEL expression that checks whether a numeric or datetime field is less than a given value.
+
+    Args:
+        field: The field name
+        value: The value to compare against
+
+    Returns:
+        A CEL expression string
+    """
+    if isinstance(value, datetime):
+        value = value.isoformat()
+    return f"{field} < {value}"

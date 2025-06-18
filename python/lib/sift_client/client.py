@@ -7,10 +7,12 @@ from sift_client.transport import (
     RestClient,
     RestConfig,
     SiftConnectionConfig,
+    WithGrpcClient,
+    WithRestClient
 )
 
 
-class SiftClient:
+class SiftClient(WithGrpcClient, WithRestClient,):
     def __init__(
         self,
         api_key: str = None,
@@ -30,7 +32,15 @@ class SiftClient:
             self._grpc_client = GrpcClient(GrpcConfig(grpc_url, api_key))
             self._rest_client = RestClient(RestConfig(rest_url, api_key))
 
-        self.ping = PingAPI(self._grpc_client)
-        self.ping_async = PingAPIAsync(self._grpc_client)
-        self.assets = AssetsAPI(self._grpc_client)
-        self.assets_async = AssetsAPIAsync(self._grpc_client)
+        self.ping = PingAPI(self)
+        self.ping_async = PingAPIAsync(self)
+        self.assets = AssetsAPI(self)
+        self.assets_async = AssetsAPIAsync(self)
+
+    @property
+    def grpc_client(self) -> GrpcClient:
+        return self._grpc_client
+
+    @property
+    def rest_client(self) -> RestClient:
+        return self._rest_client

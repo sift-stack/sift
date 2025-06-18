@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 import asyncio
 
 from sift_client.transport.grpc_transport import GrpcConfig, GrpcClient
@@ -38,17 +39,17 @@ class SiftConnectionConfig:
         )
 
 
-class WithGrpcClient:
+class WithGrpcClient(ABC):
     _grpc_client: GrpcClient
 
     def __init__(self, grpc_client: GrpcClient):
         self._grpc_client = grpc_client
 
-    def _get_loop(self) -> asyncio.AbstractEventLoop:
+    def get_asyncio_loop(self) -> asyncio.AbstractEventLoop:
         return self._grpc_client.default_loop
 
 
-class WithRestClient:
+class WithRestClient(ABC):
     _rest_client: RestClient
 
     def __init__(self, rest_client: RestClient):

@@ -45,7 +45,7 @@ class AssetsLowLevelClient(LowLevelClientBase):
         request = GetAssetRequest(asset_id=asset_id)
         response = await self._grpc_client.get_stub(AssetServiceStub).GetAsset(request)
         grpc_asset = cast(GetAssetResponse, response).asset
-        return Asset.from_grpc(grpc_asset)
+        return Asset._from_proto(grpc_asset)
 
     async def list_all_assets(
         self,
@@ -95,14 +95,14 @@ class AssetsLowLevelClient(LowLevelClientBase):
         request = ListAssetsRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(AssetServiceStub).ListAssets(request)
         response = cast(ListAssetsResponse, response)
-        return [Asset.from_grpc(asset) for asset in response.assets], response.next_page_token
+        return [Asset._from_proto(asset) for asset in response.assets], response.next_page_token
 
     async def update_asset(self, asset: Asset, update_mask: FieldMask) -> Asset:
-        grpc_asset = asset.to_grpc()
+        grpc_asset = asset.to_proto()
         request = UpdateAssetRequest(asset=grpc_asset, update_mask=update_mask)
         response = await self._grpc_client.get_stub(AssetServiceStub).UpdateAsset(request)
         updated_grpc_asset = cast(UpdateAssetResponse, response).asset
-        return Asset.from_grpc(updated_grpc_asset)
+        return Asset._from_proto(updated_grpc_asset)
 
     async def delete_asset(self, asset_id: str) -> None:
         request = DeleteAssetRequest(asset_id=asset_id)

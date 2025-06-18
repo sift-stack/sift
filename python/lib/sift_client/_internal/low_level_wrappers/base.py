@@ -3,21 +3,8 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable
 
-from sift_client.transport import GrpcClient, RestClient
 
-
-class WithGrpcClient(ABC):
-    _grpc_client: GrpcClient
-
-
-class WithRestClient(ABC):
-    _rest_client: RestClient
-
-
-class LowLevelClientBase:
-    _grpc_client: GrpcClient
-    _rest_client: RestClient
-
+class LowLevelClientBase(ABC):
     @staticmethod
     async def _handle_pagination(
         func: Callable,

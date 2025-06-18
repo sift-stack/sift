@@ -1,28 +1,32 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
-from sift_client.transport import GrpcClient, WithGrpcClient
+from sift_client.resources.base import ResourceBase
+
+if TYPE_CHECKING:
+    from sift_client.client import SiftClient
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 
-class PingAPIAsync(WithGrpcClient):
+class PingAPIAsync(ResourceBase):
     """
     High-level API for performing health checks.
     """
 
-    def __init__(self, grpc_client: GrpcClient = None):
+    def __init__(self, sift_client: "SiftClient"):
         """
         Initialize the AssetsAPI.
 
         Args:
-            grpc_client: The gRPC client to use for making API calls.
+            sift_client: The Sift client to use.
         """
-        super().__init__(grpc_client)
-        self._low_level_client = PingLowLevelClient(self._grpc_client)
+        super().__init__(sift_client)
+        self._low_level_client = PingLowLevelClient(sift_client.grpc_client)
 
     async def ping(self) -> str:
         """

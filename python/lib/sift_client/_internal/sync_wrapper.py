@@ -11,7 +11,7 @@ from typing import Any, Type, TypeVar
 
 from typing_extensions import TypedDict
 
-from sift_client.transport.base_connection import WithGrpcClient
+from sift_client.resources.base import ResourceBase
 
 
 # registry of all classes decorated with @generate_sync_api
@@ -26,7 +26,7 @@ T = TypeVar("T")
 S = TypeVar("S")
 
 
-def generate_sync_api(cls: Type[WithGrpcClient], sync_name: str) -> Type[S]:
+def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> Type[S]:
     """
     Generate a synchronous wrapper class for the given async API class.
 
@@ -54,7 +54,8 @@ def generate_sync_api(cls: Type[WithGrpcClient], sync_name: str) -> Type[S]:
         self._async_impl = cls(*args, **kwargs)
 
     def _run(self, coro):
-        return asyncio.run_coroutine_threadsafe(coro, self._async_impl._get_loop()).result()
+        loop = self._async_impl.client.get_asyncio_loop()
+        return asyncio.run_coroutine_threadsafe(coro, loop).result()
 
     namespace = {
         "__module__": module,
