@@ -18,6 +18,7 @@ Subcommands:
   lint           Runs 'ruff check' to lint the lib directory
   mypy           Runs 'mypy lib' for static analysis
   pyright        Runs 'pyright lib' for type checking
+  gen-stubs      Generates pyi stubs for sift_client synchronous wrappers
   pip-install    Install project dependencies
   test           Execute tests
   update-dev     Copies changes to the dev script over to the venv bin
@@ -91,6 +92,15 @@ run_tests() {
   pytest
 }
 
+gen_stubs() {
+  source venv/bin/activate
+  cd lib
+  python3 sift_client/_internal/gen_pyi.py sift_client/resources/sync_stubs
+  cd ..
+  ruff check ./lib/sift_client/resources/sync_stubs --fix
+  ruff format ./lib/sift_client/resources/sync_stubs
+}
+
 shift "$((OPTIND - 1))"
 
 case "$1" in
@@ -130,6 +140,9 @@ case "$1" in
         ;;
     test)
         run_tests
+        ;;
+    gen-stubs)
+        gen_stubs
         ;;
     update-dev)
         update_dev

@@ -29,7 +29,6 @@ dependencies = [
     "requests~=2.25",
     "requests-toolbelt~=1.0",
     "alive-progress~=3.0",
-
     # May move these to optional dependencies in the future.
     "pandas-stubs~=2.0",
     "types-PyYAML~=6.0",
@@ -174,4 +173,3 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["F", "W", "I", "N", "TID"]
-unfixable = ["F401"]
