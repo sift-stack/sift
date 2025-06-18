@@ -43,8 +43,9 @@ class Asset(BaseType):
     archived_date: Optional[datetime]
 
     @property
-    def tags(self):
-        raise NotImplementedError
+    def is_archived(self):
+        # TODO: clean up this logic when gRPC returns a null
+        return self.archived_date is not None and self.archived_date > datetime(1970, 1 , 1)
 
     @property
     def metadata(self):
@@ -80,6 +81,8 @@ class Asset(BaseType):
             created_by_user_id=asset.created_by_user_id,
             modified_date=asset.modified_date.ToDatetime(),
             modified_by_user_id=asset.modified_by_user_id,
+            tags=asset.tags,
+            archived_date=asset.archived_date.ToDatetime(),
             _client=sift_client
         )
 

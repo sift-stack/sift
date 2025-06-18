@@ -167,10 +167,27 @@ def generate_method_stub(name: str, f: Callable, module, decorator: str = "") ->
         default = ""
         if param.default is not inspect._empty:
             default = f" = {param.default!r}"
-        if param.annotation and param.annotation is not inspect._empty:
-            params.append(f", {param.name}: {param.annotation}{default}")
+        
+        # Handle different parameter kinds
+        if param.kind == inspect.Parameter.VAR_POSITIONAL:
+            # Handle *args
+            if param.annotation and param.annotation is not inspect._empty:
+                params.append(f", *{param.name}: {param.annotation}")
+            else:
+                params.append(f", *{param.name}")
+        elif param.kind == inspect.Parameter.VAR_KEYWORD:
+            # Handle **kwargs
+            if param.annotation and param.annotation is not inspect._empty:
+                params.append(f", **{param.name}: {param.annotation}")
+            else:
+                params.append(f", **{param.name}")
         else:
-            params.append(f", {param.name}{default}")
+            # Handle normal parameters
+            if param.annotation and param.annotation is not inspect._empty:
+                params.append(f", {param.name}: {param.annotation}{default}")
+            else:
+                params.append(f", {param.name}{default}")
+
     params_txt = "".join(params)
 
     # Return annotation

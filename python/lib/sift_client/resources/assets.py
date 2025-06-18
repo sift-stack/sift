@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING,Any
 import logging
 from datetime import datetime
 import re
+import inspect
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.resources.base import ResourceBase
@@ -44,7 +45,7 @@ class AssetsAPIAsync(ResourceBase):
         name: str = None,
     ) -> Asset:
         """
-        Get an asset by ID.
+        Get an Asset.
 
         Args:
             asset_id: The ID of the asset.
@@ -143,6 +144,25 @@ class AssetsAPIAsync(ResourceBase):
             max_results=limit,
         )
         return self._apply_client_to_instances(assets)
+
+    async def find(self, *args, **kwargs) -> Asset | None:
+        """
+        Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
+        raises an error.
+
+        Args:
+            *args:
+            **kwargs:
+
+        Returns:
+            The Asset found.
+        """
+        assets = await self.list_(*args, **kwargs)
+        if len(assets) > 1:
+            raise ValueError("Multiple assets found for query")
+        elif len(assets) == 1:
+            return assets[0]
+        return None
 
     async def archive(self, asset_id: str = None, asset: Asset = None) -> Asset:
         """
