@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING,Dict, Any, Type, TypeVar, Optional, List, Iterable, Generic
+from typing import TYPE_CHECKING, Dict, Any, Type, TypeVar, Optional, List, Iterable, Generic
 
 from pydantic import BaseModel, PrivateAttr
 
@@ -11,8 +11,9 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
-T = TypeVar('T', bound=BaseModel)
-ProtoT = TypeVar('ProtoT', bound=message.Message)
+T = TypeVar("T", bound=BaseModel)
+ProtoT = TypeVar("ProtoT", bound=message.Message)
+
 
 class BaseType(BaseModel, ABC):
     _client: Optional["SiftClient"] = PrivateAttr(default=None)
@@ -23,17 +24,44 @@ class BaseType(BaseModel, ABC):
     @property
     def client(self) -> "SiftClient":
         if self._client is None:
-            raise ValueError("Sift client not set. Please retrieve with the SiftClient to use this method.")
+            raise ValueError(
+                "Sift client not set. Please retrieve with the SiftClient to use this method."
+            )
         return self._client
 
     @classmethod
     @abstractmethod
-    def _from_proto(cls, proto: ProtoT, sift_client: Optional["SiftClient"] = None) -> "BaseType":
-        ...
+    def _from_proto(
+        cls, proto: ProtoT, sift_client: Optional["SiftClient"] = None
+    ) -> "BaseType": ...
+
+    def _update(self, other: T) -> T:
+        """Update this instance with the values from another instance"""
+        # This bypasses the frozen status of the model
+        for key in other.model_fields.keys():
+            if key in self.model_fields:
+                self.__dict__.update({key: getattr(other, key)})
+        return self
+
+
 
 class ModelUpdate(BaseModel, ABC):
     """Base class for Pydantic models that generate proto patches with field masks"""
-    def to_proto_with_mask(self) -> tuple[message.Message, field_mask_pb2.FieldMask]:
+
+    _resource_id: Optional[Any] = PrivateAttr(default=None)
+
+    class Config:
+        frozen = False
+
+    @property
+    def resource_id(self):
+        return self._resource_id
+
+    @resource_id.setter
+    def resource_id(self, value):
+        self._resource_id = value
+
+    def to_proto_with_mask(self) -> tuple[ProtoT, field_mask_pb2.FieldMask]:
         """Convert to proto with field mask"""
         # Get the corresponding proto class
         proto_cls = self._get_proto_class()
@@ -42,6 +70,8 @@ class ModelUpdate(BaseModel, ABC):
         # Get only explicitly set fields
         data = self.model_dump(exclude_unset=True, exclude_none=True)
         paths = self._build_proto_and_paths(proto_msg, data)
+
+        self._add_resource_id_to_proto(proto_msg)
 
         return proto_msg, field_mask_pb2.FieldMask(paths=paths)
 
@@ -57,12 +87,21 @@ class ModelUpdate(BaseModel, ABC):
                 # Recursively process nested fields
                 sub_paths = self._build_proto_and_paths(sub_msg, value, path)
                 paths.extend(sub_paths)
+            elif isinstance(value, list):
+                repeated_field = getattr(proto_msg, field_name)
+                del repeated_field[:]  # Remove all existing items
+                repeated_field.extend(value)  # Add all new values
+                paths.append(path)
             else:
                 setattr(proto_msg, field_name, value)
                 paths.append(path)
 
         return paths
 
-    def _get_proto_class(self) -> Type[message.Message]:
+    def _get_proto_class(self) -> Type[ProtoT]:
         """Get the corresponding proto class - override in subclasses"""
+        raise NotImplementedError("Subclasses must implement this")
+
+    def _add_resource_id_to_proto(self, proto_msg: ProtoT) -> None:
+        """Assigns a resource ID (such as Asset ID) to the proto message"""
         raise NotImplementedError("Subclasses must implement this")

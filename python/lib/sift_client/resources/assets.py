@@ -1,21 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING,Any
-import logging
+from typing import TYPE_CHECKING, Any
 from datetime import datetime
 import re
-import inspect
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.resources.base import ResourceBase
-from sift_client.types.asset import Asset
+from sift_client.types.asset import Asset, AssetUpdate
 from sift_client.util import cel_utils
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-
-# Configure logging
-logger = logging.getLogger(__name__)
 
 
 class AssetsAPIAsync(ResourceBase):
@@ -58,11 +53,13 @@ class AssetsAPIAsync(ResourceBase):
             asset = await self._low_level_client.get_asset(asset_id)
 
         elif name:
-            assets = await self._low_level_client.list_all_assets(query_filter=cel_utils.equals("name", name))
+            assets = await self._low_level_client.list_all_assets(
+                query_filter=cel_utils.equals("name", name)
+            )
             if len(assets) < 1:
                 raise ValueError(f"No asset found with name '{name}'")
             if len(assets) > 1:
-                raise ValueError(f"Multiple assets found with name '{name}'") # should not happen
+                raise ValueError(f"Multiple assets found with name '{name}'")  # should not happen
             asset = assets[0]
 
         else:
@@ -82,6 +79,7 @@ class AssetsAPIAsync(ResourceBase):
         created_by: Any = None,
         modified_by: Any = None,
         tags: list[str] = None,
+        metadata: list[Any] = None,
         include_archived: bool = False,
         filter_query: str = None,
         order_by: str = None,
@@ -131,12 +129,12 @@ class AssetsAPIAsync(ResourceBase):
             if modified_by:
                 raise NotImplementedError
             if tags:
-                # TODO: implement in API
+                raise NotImplementedError
+            if metadata:
                 raise NotImplementedError
             if not include_archived:
                 filters.append(cel_utils.equals_null("archived_date"))
             filter_query = cel_utils.and_(*filters)
-
 
         assets = await self._low_level_client.list_all_assets(
             query_filter=filter_query,
@@ -155,7 +153,7 @@ class AssetsAPIAsync(ResourceBase):
             **kwargs:
 
         Returns:
-            The Asset found.
+            The Asset found or None.
         """
         assets = await self.list_(*args, **kwargs)
         if len(assets) > 1:
@@ -164,22 +162,38 @@ class AssetsAPIAsync(ResourceBase):
             return assets[0]
         return None
 
-    async def archive(self, asset_id: str = None, asset: Asset = None) -> Asset:
+    async def archive(self, asset: str | Asset, archive_runs: bool = False) -> Asset:
         """
-       Archive an asset.
+        Archive an asset.
+
+         Args:
+             asset: The Asset or asset ID to archive.
+             archive_runs: If True, archive all Runs associated with the Asset.
+
+         Returns:
+             The archived Asset.
+        """
+        asset_id = asset.asset_id if isinstance(asset, Asset) else asset
+
+        await self._low_level_client.delete_asset(asset_id, archive_runs=archive_runs)
+
+        return await self.get(asset_id=asset_id)
+
+
+    async def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
+        """
+        Update an Asset.
 
         Args:
-            asset_id: The ID of the asset to archive.
-            asset: The Asset to archive.
+            asset: The Asset or asset ID to update.
+            update: Updates to apply to the Asset.
 
-        Raises:
-            ClientError: If the request fails.
+        Returns:
+            The updated Asset.
+
         """
-        if not asset_id and not asset:
-            raise ValueError("Either asset_id or asset must be provided")
-
-        await self._low_level_client.delete_asset(asset_id or asset.asset_id)
-
-        return await self.get(asset_id=asset_id or asset.asset_id)
-
-
+        asset_id = asset.asset_id if isinstance(asset, Asset) else asset
+        if isinstance(update, dict):
+            update = AssetUpdate.model_validate(update)
+        update.resource_id = asset_id
+        return await self._low_level_client.update_asset(update=update)

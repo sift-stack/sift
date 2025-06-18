@@ -19,7 +19,7 @@ from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
 from sift_client.transport.grpc_transport import GrpcClient
-from sift_client.types.asset import Asset
+from sift_client.types.asset import Asset, AssetUpdate
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -97,13 +97,13 @@ class AssetsLowLevelClient(LowLevelClientBase):
         response = cast(ListAssetsResponse, response)
         return [Asset._from_proto(asset) for asset in response.assets], response.next_page_token
 
-    async def update_asset(self, asset: Asset, update_mask: FieldMask) -> Asset:
-        grpc_asset = asset.to_proto()
+    async def update_asset(self, update: AssetUpdate) -> Asset:
+        grpc_asset, update_mask = update.to_proto_with_mask()
         request = UpdateAssetRequest(asset=grpc_asset, update_mask=update_mask)
         response = await self._grpc_client.get_stub(AssetServiceStub).UpdateAsset(request)
         updated_grpc_asset = cast(UpdateAssetResponse, response).asset
         return Asset._from_proto(updated_grpc_asset)
 
-    async def delete_asset(self, asset_id: str) -> None:
-        request = DeleteAssetRequest(asset_id=asset_id)
+    async def delete_asset(self, asset_id: str, archive_runs: bool = False) -> None:
+        request = DeleteAssetRequest(asset_id=asset_id, archive_runs=archive_runs)
         await self._grpc_client.get_stub(AssetServiceStub).DeleteAsset(request)

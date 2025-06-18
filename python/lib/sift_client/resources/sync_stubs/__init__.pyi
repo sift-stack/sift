@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from sift_client.client import SiftClient
-from sift_client.types.asset import Asset
+from sift_client.types.asset import Asset, AssetUpdate
 
 class AssetsAPI:
     """
@@ -34,16 +34,15 @@ class AssetsAPI:
         """"""
         ...
 
-    def archive(self, asset_id: str = None, asset: Asset = None) -> Asset:
+    def archive(self, asset: str | Asset, archive_runs: bool = False) -> Asset:
         """Archive an asset.
 
         Args:
-            asset_id: The ID of the asset to archive.
-            asset: The Asset to archive.
+            asset: The Asset or asset ID to archive.
+            archive_runs: If True, archive all Runs associated with the Asset.
 
-        Raises:
-            ClientError: If the request fails.
-        """
+        Returns:
+            The archived Asset."""
         ...
 
     def find(self, *args, **kwargs) -> Asset | None:
@@ -55,7 +54,7 @@ class AssetsAPI:
             **kwargs:
 
         Returns:
-            The Asset found."""
+            The Asset found or None."""
         ...
 
     def get(self, asset_id: str = None, name: str = None) -> Asset:
@@ -81,6 +80,7 @@ class AssetsAPI:
         created_by: Any = None,
         modified_by: Any = None,
         tags: list[str] = None,
+        metadata: list[Any] = None,
         include_archived: bool = False,
         filter_query: str = None,
         order_by: str = None,
@@ -106,6 +106,10 @@ class AssetsAPI:
 
         Returns:
             A list of Assets that matches the filter."""
+        ...
+
+    def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
+        """"""
         ...
 
 class PingAPI:

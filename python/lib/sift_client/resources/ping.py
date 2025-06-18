@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
@@ -8,9 +7,6 @@ from sift_client.resources.base import ResourceBase
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-
-# Configure logging
-logger = logging.getLogger(__name__)
 
 
 class PingAPIAsync(ResourceBase):

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound="BaseType")
 
+
 class ResourceBase(ABC):
     _sift_client: "SiftClient"
 
@@ -28,9 +29,9 @@ class ResourceBase(ABC):
     def rest_client(self) -> RestClient:
         return self.client.rest_client
 
-    def _apply_client_to_instance(self, instance: T ) -> T:
+    def _apply_client_to_instance(self, instance: T) -> T:
         # Create a copy since it is frozen
         return instance.model_copy(update={"_client": self.client})
 
-    def _apply_client_to_instances(self, instances: list[T]) ->  list[T]:
+    def _apply_client_to_instances(self, instances: list[T]) -> list[T]:
         return [self._apply_client_to_instance(i) for i in instances]

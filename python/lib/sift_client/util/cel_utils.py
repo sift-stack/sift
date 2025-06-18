@@ -104,6 +104,7 @@ def equals_double(key: str, value: Any) -> str:
         return f"{key} == null"
     return f"{key} == double({value})"
 
+
 def equals_null(key: str) -> str:
     """
     Generates a CEL expression that checks for equality with null.
@@ -115,7 +116,6 @@ def equals_null(key: str) -> str:
         A CEL expression string
     """
     return f"{key} == null"
-
 
 
 def and_(*clauses: str) -> str:
@@ -196,6 +196,7 @@ def match(field: str, query: str | re.Pattern) -> str:
     escaped_regex = query.replace("\\", "\\\\")
     return f"{field}.matches('{escaped_regex}')"
 
+
 def greater_than(field: str, value: int | float | datetime) -> str:
     """
     Generates a CEL expression that checks whether a numeric or datetime field is greater than a given value.
@@ -210,6 +211,7 @@ def greater_than(field: str, value: int | float | datetime) -> str:
     if isinstance(value, datetime):
         value = value.isoformat()
     return f"{field} > {value}"
+
 
 def less_than(field: str, value: int | float | datetime) -> str:
     """

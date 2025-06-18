@@ -13,10 +13,10 @@ def main():
     )
 
     # Find an asset
-    assets = sift.assets.find(name_contains="Nostromo")
-    asset = assets[0]
-
-
+    asset = sift.assets.find(name_contains="Nostromo")
+    print(asset.tags)
+    asset.update(dict(tags=["simulator", "my_new_tag"]))
+    print(asset)
 
 
 if __name__ == "__main__":
@@ -26,4 +26,3 @@ if __name__ == "__main__":
     assert apikey, "Missing 'SIFT_API_KEY' environment variable."
 
     main()
-

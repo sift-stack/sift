@@ -8,11 +8,14 @@ from sift_client.transport import (
     RestConfig,
     SiftConnectionConfig,
     WithGrpcClient,
-    WithRestClient
+    WithRestClient,
 )
 
 
-class SiftClient(WithGrpcClient, WithRestClient,):
+class SiftClient(
+    WithGrpcClient,
+    WithRestClient,
+):
     def __init__(
         self,
         api_key: str = None,
@@ -26,11 +29,14 @@ class SiftClient(WithGrpcClient, WithRestClient,):
             )
 
         if connection_config:
-            self._grpc_client = GrpcClient(connection_config.get_grpc_config())
-            self._rest_client = RestClient(connection_config.get_rest_config())
+            grpc_client = GrpcClient(connection_config.get_grpc_config())
+            rest_client = RestClient(connection_config.get_rest_config())
         else:
-            self._grpc_client = GrpcClient(GrpcConfig(grpc_url, api_key))
-            self._rest_client = RestClient(RestConfig(rest_url, api_key))
+            grpc_client =  GrpcClient(GrpcConfig(grpc_url, api_key))
+            rest_client = RestClient(RestConfig(rest_url, api_key))
+
+        WithGrpcClient.__init__(self, grpc_client=grpc_client)
+        WithRestClient.__init__(self, rest_client=rest_client)
 
         self.ping = PingAPI(self)
         self.ping_async = PingAPIAsync(self)

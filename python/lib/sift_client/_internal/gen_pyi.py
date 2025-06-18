@@ -46,12 +46,12 @@ def extract_imports(path: pathlib.Path) -> list[str]:
             module = node.module or ""
             level = "." * node.level
             names = ", ".join(
-                alias.name + (f" as {alias.asname}" if alias.asname else "")
-                for alias in node.names
+                alias.name + (f" as {alias.asname}" if alias.asname else "") for alias in node.names
             )
             stmt = f"from {level + module} import {names}"
             imports.append(stmt)
     return imports
+
 
 def format_annotation(ann):
     if ann is inspect._empty:
@@ -87,7 +87,9 @@ def generate_stub_for_module(path_arg: str):
         rel = py.with_suffix("").relative_to(cwd)
         module_name = ".".join(rel.parts)
         module = importlib.import_module(module_name)
-        new_module_imports = [FUTURE_IMPORTS] # always use FUTURE_IMPORTS for backwards compatibility
+        new_module_imports = [
+            FUTURE_IMPORTS
+        ]  # always use FUTURE_IMPORTS for backwards compatibility
 
         lines = []
 
@@ -143,7 +145,7 @@ def generate_stub_for_module(path_arg: str):
             )
             lines.append(stub)
 
-        unique_imports =  list(OrderedDict.fromkeys(new_module_imports))
+        unique_imports = list(OrderedDict.fromkeys(new_module_imports))
         lines = [HEADER] + unique_imports + lines
         pyi = py.with_suffix(".pyi")
         print(f"Writing stub: {pyi}")
@@ -167,7 +169,7 @@ def generate_method_stub(name: str, f: Callable, module, decorator: str = "") ->
         default = ""
         if param.default is not inspect._empty:
             default = f" = {param.default!r}"
-        
+
         # Handle different parameter kinds
         if param.kind == inspect.Parameter.VAR_POSITIONAL:
             # Handle *args
