@@ -24,6 +24,3 @@ class MetadataValue(BaseType):
             value=proto.string_value or proto.float_value or proto.bool_value,
             _client=sift_client,
         )
-
-    def _get_proto_class(self) -> Type[MetadataProto]:
-        return MetadataValue

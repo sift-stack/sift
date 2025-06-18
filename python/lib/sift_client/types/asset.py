@@ -44,6 +44,7 @@ class Asset(BaseType):
 
     @property
     def runs(self):
+        # TODO: how to implement these efficiently without fetching all?
         raise NotImplementedError
 
     @property
@@ -97,10 +98,6 @@ class Asset(BaseType):
             ],
             _client=sift_client,
         )
-
-    def _get_proto_class(self) -> Type[ProtoAsset]:
-        return ProtoAsset
-
 
 class AssetUpdate(ModelUpdate):
     """
