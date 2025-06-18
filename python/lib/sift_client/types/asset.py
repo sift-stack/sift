@@ -39,6 +39,8 @@ class Asset(BaseType):
     created_by_user_id: str
     modified_date: datetime
     modified_by_user_id: str
+    tags: list[str]
+    archived_date: Optional[datetime]
 
     @property
     def tags(self):
