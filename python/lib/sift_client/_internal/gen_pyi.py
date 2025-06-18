@@ -2,6 +2,7 @@ import importlib
 import inspect
 import pathlib
 import sys
+import ast
 from typing import Any, Callable, get_type_hints
 from collections import OrderedDict
 
@@ -27,6 +28,30 @@ METHOD_TEMPLATE = '''\
         ...
 '''
 
+
+def extract_imports(path: pathlib.Path) -> list[str]:
+    """
+    Parse the given Python file and return a list of its import statements (as strings).
+    """
+    source = path.read_text()
+    tree = ast.parse(source, filename=str(path))
+
+    imports = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                stmt = f"import {alias.name}" + (f" as {alias.asname}" if alias.asname else "")
+                imports.append(stmt)
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            level = "." * node.level
+            names = ", ".join(
+                alias.name + (f" as {alias.asname}" if alias.asname else "")
+                for alias in node.names
+            )
+            stmt = f"from {level + module} import {names}"
+            imports.append(stmt)
+    return imports
 
 def format_annotation(ann):
     if ann is inspect._empty:
@@ -58,7 +83,6 @@ def generate_stub_for_module(path_arg: str):
     for py in search_root.rglob("*.py"):
         if py.name.startswith("test_"):
             continue
-
         # Determine module name to import
         rel = py.with_suffix("").relative_to(cwd)
         module_name = ".".join(rel.parts)
@@ -80,10 +104,9 @@ def generate_stub_for_module(path_arg: str):
 
             # Read imports from the original async class module
             orig_path = pathlib.Path(inspect.getsourcefile(async_class)).resolve()
-            # TODO: handle multi-line imports
-            for line in orig_path.read_text().splitlines():
-                if line.startswith("import ") or line.startswith("from "):
-                    new_module_imports.append(line)
+            imports = extract_imports(orig_path)
+            for imp in imports:
+                new_module_imports.append(imp)
 
             # Class docstring
             raw_doc = inspect.getdoc(cls) or ""
