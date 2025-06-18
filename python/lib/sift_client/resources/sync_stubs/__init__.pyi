@@ -109,7 +109,14 @@ class AssetsAPI:
         ...
 
     def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
-        """"""
+        """Update an Asset.
+
+        Args:
+            asset: The Asset or asset ID to update.
+            update: Updates to apply to the Asset.
+
+        Returns:
+            The updated Asset."""
         ...
 
 class PingAPI:
