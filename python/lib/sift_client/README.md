@@ -6,13 +6,7 @@ asynchronous interfaces, strong type checking, and a Pythonic API design.
 ## Installation
 
 ```bash
-pip install sift-client
-```
-
-For OpenSSL support:
-
-```bash
-pip install sift-client[openssl]
+pip install sift-stack-py
 ```
 
 ## Getting Started
