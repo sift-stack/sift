@@ -59,17 +59,26 @@ impl From<DurationPy> for std::time::Duration {
 impl From<RecoveryStrategyPy> for RecoveryStrategy {
     fn from(strategy: RecoveryStrategyPy) -> Self {
         match strategy.strategy_type.as_str() {
-            "RetryOnly" => RecoveryStrategy::RetryOnly(strategy.retry_policy.unwrap().into()),
-            "RetryWithInMemoryBackups" => RecoveryStrategy::RetryWithInMemoryBackups {
-                retry_policy: strategy.retry_policy.unwrap().into(),
-                max_buffer_size: strategy.max_buffer_size,
+            "RetryOnly" => match strategy.retry_policy {
+                Some(policy) => RecoveryStrategy::RetryOnly(policy.into()),
+                None => return Err("RetryOnly strategy requires retry policy"),
             },
-            "RetryWithDiskBackups" => RecoveryStrategy::RetryWithDiskBackups {
-                retry_policy: strategy.retry_policy.unwrap().into(),
-                backups_dir: strategy.backups_dir.map(PathBuf::from),
-                max_backups_file_size: strategy.max_backups_file_size,
+            "RetryWithInMemoryBackups" => match strategy.retry_policy {
+                Some(policy) => RecoveryStrategy::RetryWithInMemoryBackups {
+                    retry_policy: policy.into(),
+                    max_buffer_size: strategy.max_buffer_size,
+                },
+                None => return Err("RetryWithInMemoryBackups strategy requires retry policy"),
             },
-            _ => panic!("Invalid strategy type"),
+            "RetryWithDiskBackups" => match strategy.retry_policy {
+                Some(policy) => RecoveryStrategy::RetryWithDiskBackups {
+                    retry_policy: policy.into(),
+                    backups_dir: strategy.backups_dir.map(PathBuf::from),
+                    max_backups_file_size: strategy.max_backups_file_size,
+                },
+                None => return Err("RetryWithDiskBackups strategy requires retry policy"),
+            },
+            _ => return Err("Invalid strategy type"),
         }
     }
 }

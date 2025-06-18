@@ -35,7 +35,12 @@ impl From<SiftStream<IngestionConfigMode>> for SiftStreamPy {
 
 impl From<SiftStreamPy> for SiftStream<IngestionConfigMode> {
     fn from(stream: SiftStreamPy) -> Self {
-        stream.inner.lock().unwrap().take().unwrap()
+        match stream.inner.lock() {
+            Ok(mut guard) => match guard.take() {
+                Some(stream) => stream,
+                None => return Err("SiftStreamPy inner was None"),
+            },
+            Err(e) => return Err("Failed to acquire lock on SiftStreamPy inner"),
     }
 }
 
@@ -49,7 +54,24 @@ impl From<FlowPy> for Flow {
 #[pymethods]
 impl SiftStreamPy {
     pub fn send(&mut self, py: Python, flow: FlowPy) -> PyResult<Py<PyAny>> {
-        let mut inner = self.inner.lock().unwrap().take().unwrap();
+        let mut inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        let mut inner = match inner_guard.take() {
+            Some(stream) => stream,
+            None => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream was already consumed",
+                ));
+            }
+        };
+
         let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
             match inner.send(flow.into()).await {
                 Ok(_) => Ok(SiftStreamPy {
@@ -66,7 +88,24 @@ impl SiftStreamPy {
         py: Python,
         requests: Vec<request::IngestWithConfigDataStreamRequestPy>,
     ) -> PyResult<Py<PyAny>> {
-        let mut inner = self.inner.lock().unwrap().take().unwrap();
+        let mut inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        let mut inner = match inner_guard.take() {
+            Some(stream) => stream,
+            None => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream was already consumed",
+                ));
+            }
+        };
+
         let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let requests: Vec<sift_rs::ingest::v1::IngestWithConfigDataStreamRequest> =
                 requests.into_iter().map(|r| r.into()).collect();
@@ -81,7 +120,24 @@ impl SiftStreamPy {
     }
 
     pub fn finish(&mut self, py: Python) -> PyResult<Py<PyAny>> {
-        let inner = self.inner.lock().unwrap().take().unwrap();
+        let mut inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        let inner = match inner_guard.take() {
+            Some(stream) => stream,
+            None => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream was already consumed",
+                ));
+            }
+        };
+
         let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
             match inner.finish().await {
                 Ok(_) => Ok(()),
