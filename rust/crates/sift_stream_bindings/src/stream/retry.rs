@@ -61,14 +61,14 @@ impl From<RecoveryStrategyPy> for RecoveryStrategy {
         match strategy.strategy_type.as_str() {
             "RetryOnly" => match strategy.retry_policy {
                 Some(policy) => RecoveryStrategy::RetryOnly(policy.into()),
-                None => return Err("RetryOnly strategy requires retry policy"),
+                None => panic!("RetryOnly strategy requires retry policy"),
             },
             "RetryWithInMemoryBackups" => match strategy.retry_policy {
                 Some(policy) => RecoveryStrategy::RetryWithInMemoryBackups {
                     retry_policy: policy.into(),
                     max_buffer_size: strategy.max_buffer_size,
                 },
-                None => return Err("RetryWithInMemoryBackups strategy requires retry policy"),
+                None => panic!("RetryWithInMemoryBackups strategy requires retry policy"),
             },
             "RetryWithDiskBackups" => match strategy.retry_policy {
                 Some(policy) => RecoveryStrategy::RetryWithDiskBackups {
@@ -76,9 +76,9 @@ impl From<RecoveryStrategyPy> for RecoveryStrategy {
                     backups_dir: strategy.backups_dir.map(PathBuf::from),
                     max_backups_file_size: strategy.max_backups_file_size,
                 },
-                None => return Err("RetryWithDiskBackups strategy requires retry policy"),
+                None => panic!("RetryWithDiskBackups strategy requires retry policy"),
             },
-            _ => return Err("Invalid strategy type"),
+            _ => panic!("Invalid strategy type"),
         }
     }
 }
