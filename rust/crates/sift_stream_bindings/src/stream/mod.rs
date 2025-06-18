@@ -38,9 +38,10 @@ impl From<SiftStreamPy> for SiftStream<IngestionConfigMode> {
         match stream.inner.lock() {
             Ok(mut guard) => match guard.take() {
                 Some(stream) => stream,
-                None => return Err("SiftStreamPy inner was None"),
+                None => panic!("SiftStreamPy inner was None"),
             },
-            Err(e) => return Err("Failed to acquire lock on SiftStreamPy inner"),
+            Err(_) => panic!("Failed to acquire lock on SiftStreamPy inner"),
+        }
     }
 }
 
