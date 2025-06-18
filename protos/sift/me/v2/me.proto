@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package sift.me.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/organization.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Me Service"}
+};
+
+service MeService {
+  rpc GetMe(GetMeRequest) returns (GetMeResponse) {
+    option (google.api.http) = {get: "/api/v2/me"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get My User Information"
+      description: "Retrieve a user's information."
+      operation_id: "MeService_GetMeV2"
+    };
+  }
+}
+
+message Resources {
+  repeated string asset_ids = 1 [(google.api.field_behavior) = OPTIONAL];
+  bool all_assets = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message PermissionResources {
+  map<string, Resources> permission_resources = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message Permissions {
+  map<string, PermissionResources> organization_permission_resources = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetMeRequest {}
+
+message GetMeResponse {
+  string user_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_email = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.Organization organizations = 3 [(google.api.field_behavior) = REQUIRED];
+  bool is_admin = 4 [(google.api.field_behavior) = REQUIRED];
+  Permissions permissions = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = REQUIRED];
+  string hash_based_message_authentication_code = 7 [deprecated = true];
+}

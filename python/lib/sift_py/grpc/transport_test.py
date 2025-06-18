@@ -62,10 +62,14 @@ class ForceFailInterceptor(ServerInterceptor):
 
     failed_attempts: int
     expected_num_fails: int
+    failure_code: grpc.StatusCode
 
-    def __init__(self, expected_num_fails: int):
+    def __init__(
+        self, expected_num_fails: int, failure_code: grpc.StatusCode = grpc.StatusCode.UNKNOWN
+    ):
         self.expected_num_fails = expected_num_fails
         self.failed_attempts = 0
+        self.failure_code = failure_code
         super().__init__()
 
     def intercept(
@@ -77,33 +81,34 @@ class ForceFailInterceptor(ServerInterceptor):
     ) -> Any:
         if self.failed_attempts < self.expected_num_fails:
             self.failed_attempts += 1
-            context.set_code(grpc.StatusCode.UNKNOWN)
+            context.set_code(self.failure_code)
             context.set_details("something unknown happened")
             raise
 
         return method(request_or_iterator, context)
 
 
+@contextmanager
+def server_spy(mocker: MockFixture, *interceptors: ServerInterceptor) -> Iterator[MockType]:
+    server = grpc.server(
+        thread_pool=futures.ThreadPoolExecutor(max_workers=1), interceptors=list(interceptors)
+    )
+
+    data_service = DataService()
+    spy = mocker.spy(data_service, "GetData")
+
+    add_DataServiceServicer_to_server(data_service, server)
+    server.add_insecure_port("[::]:50052")
+    server.start()
+    try:
+        yield spy
+    finally:
+        server.stop(None)
+        server.wait_for_termination()
+
+
 def test_sift_channel(mocker: MockFixture):
-    @contextmanager
-    def test_server_spy(*interceptors: ServerInterceptor) -> Iterator[MockType]:
-        server = grpc.server(
-            thread_pool=futures.ThreadPoolExecutor(max_workers=1), interceptors=list(interceptors)
-        )
-
-        data_service = DataService()
-        spy = mocker.spy(data_service, "GetData")
-
-        add_DataServiceServicer_to_server(data_service, server)
-        server.add_insecure_port("[::]:50052")
-        server.start()
-        try:
-            yield spy
-        finally:
-            server.stop(None)
-            server.wait_for_termination()
-
-    with test_server_spy(AuthInterceptor()) as get_data_spy:
+    with server_spy(mocker, AuthInterceptor()) as get_data_spy:
         sift_channel_config_a: SiftChannelConfig = {
             "uri": "localhost:50052",
             "apikey": "",
@@ -130,7 +135,7 @@ def test_sift_channel(mocker: MockFixture):
             get_data_spy.assert_called_once()
 
     force_fail_interceptor = ForceFailInterceptor(4)
-    with test_server_spy(AuthInterceptor(), force_fail_interceptor) as get_data_spy:
+    with server_spy(mocker, AuthInterceptor(), force_fail_interceptor) as get_data_spy:
         sift_channel_config_c: SiftChannelConfig = {
             "uri": "localhost:50052",
             "apikey": "some-token",
@@ -150,7 +155,48 @@ def test_sift_channel(mocker: MockFixture):
     # Now we're going to fail beyond the max retry attempts
 
     force_fail_interceptor_max = ForceFailInterceptor(7)
-    with test_server_spy(AuthInterceptor(), force_fail_interceptor_max) as get_data_spy:
+    with server_spy(mocker, AuthInterceptor(), force_fail_interceptor_max) as get_data_spy:
+        sift_channel_config_d: SiftChannelConfig = {
+            "uri": "localhost:50052",
+            "apikey": "some-token",
+            "use_ssl": False,
+        }
+
+        with use_sift_channel(sift_channel_config_d) as channel:
+            stub = DataServiceStub(channel)
+
+            # This will go beyond the max number of attempts
+            with pytest.raises(Exception):
+                res = cast(GetDataResponse, stub.GetData(GetDataRequest()))
+
+            get_data_spy.assert_not_called()
+
+    # All attempts failed
+    assert force_fail_interceptor_max.failed_attempts == 5
+
+
+def test_internal_error_retry(mocker: MockFixture):
+    force_fail_interceptor = ForceFailInterceptor(4, failure_code=grpc.StatusCode.INTERNAL)
+    with server_spy(mocker, AuthInterceptor(), force_fail_interceptor) as get_data_spy:
+        sift_channel_config_c: SiftChannelConfig = {
+            "uri": "localhost:50052",
+            "apikey": "some-token",
+            "use_ssl": False,
+        }
+
+        with use_sift_channel(sift_channel_config_c) as channel:
+            stub = DataServiceStub(channel)
+            # This will attempt 5 times: fail 4 times, succeed on 5th
+            res = cast(GetDataResponse, stub.GetData(GetDataRequest()))
+            assert res.next_page_token == "next-page-token"
+            get_data_spy.assert_called_once()
+
+    # fail 4 times, pass the 5th attempt
+    assert force_fail_interceptor.failed_attempts == 4
+
+    # Now we're going to fail beyond the max retry attempts
+    force_fail_interceptor_max = ForceFailInterceptor(7)
+    with server_spy(mocker, AuthInterceptor(), force_fail_interceptor_max) as get_data_spy:
         sift_channel_config_d: SiftChannelConfig = {
             "uri": "localhost:50052",
             "apikey": "some-token",

@@ -93,7 +93,9 @@ class ChannelConfig(AsProtobuf):
         if value is None:
             return empty_value()
 
-        if isinstance(value, int) or isinstance(value, float):
+        if isinstance(value, bool) and self.data_type == ChannelDataType.BOOL:
+            return bool_value(value)
+        elif isinstance(value, int) or isinstance(value, float):
             if self.data_type == ChannelDataType.INT_32:
                 return int32_value(int(value))
             elif self.data_type == ChannelDataType.INT_64:
@@ -110,8 +112,6 @@ class ChannelConfig(AsProtobuf):
                 return enum_value(int(value))
         elif isinstance(value, str) and self.data_type == ChannelDataType.STRING:
             return string_value(value)
-        elif isinstance(value, bool) and self.data_type == ChannelDataType.BOOL:
-            return bool_value(value)
 
         raise ValueError(f"Failed to cast value of type {type(value)} to {self.data_type}")
 

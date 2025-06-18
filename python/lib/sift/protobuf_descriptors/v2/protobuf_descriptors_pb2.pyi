@@ -8,6 +8,7 @@ import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.message
+import google.protobuf.timestamp_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -87,6 +88,75 @@ class AddProtobufDescriptorResponse(google.protobuf.message.Message):
 global___AddProtobufDescriptorResponse = AddProtobufDescriptorResponse
 
 @typing.final
+class CheckProtobufDescriptorCompatibilityRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PROTOBUF_DESCRIPTOR_FIELD_NUMBER: builtins.int
+    @property
+    def protobuf_descriptor(self) -> global___ProtobufDescriptor: ...
+    def __init__(
+        self,
+        *,
+        protobuf_descriptor: global___ProtobufDescriptor | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["protobuf_descriptor", b"protobuf_descriptor"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["protobuf_descriptor", b"protobuf_descriptor"]) -> None: ...
+
+global___CheckProtobufDescriptorCompatibilityRequest = CheckProtobufDescriptorCompatibilityRequest
+
+@typing.final
+class IncompatibleProtobufField(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PROTOBUF_DESCRIPTOR_ID_FIELD_NUMBER: builtins.int
+    MESSAGE_FULL_NAME_FIELD_NUMBER: builtins.int
+    DESIRED_FIELD_NAME_FIELD_NUMBER: builtins.int
+    CURRENT_FIELD_NAME_FIELD_NUMBER: builtins.int
+    FIELD_NUMBER_FIELD_NUMBER: builtins.int
+    REASON_FIELD_NUMBER: builtins.int
+    DETAILS_FIELD_NUMBER: builtins.int
+    protobuf_descriptor_id: builtins.str
+    message_full_name: builtins.str
+    desired_field_name: builtins.str
+    current_field_name: builtins.str
+    field_number: builtins.str
+    reason: builtins.str
+    details: builtins.str
+    def __init__(
+        self,
+        *,
+        protobuf_descriptor_id: builtins.str = ...,
+        message_full_name: builtins.str = ...,
+        desired_field_name: builtins.str = ...,
+        current_field_name: builtins.str = ...,
+        field_number: builtins.str = ...,
+        reason: builtins.str = ...,
+        details: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["current_field_name", b"current_field_name", "desired_field_name", b"desired_field_name", "details", b"details", "field_number", b"field_number", "message_full_name", b"message_full_name", "protobuf_descriptor_id", b"protobuf_descriptor_id", "reason", b"reason"]) -> None: ...
+
+global___IncompatibleProtobufField = IncompatibleProtobufField
+
+@typing.final
+class CheckProtobufDescriptorCompatibilityResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    IS_VALID_FIELD_NUMBER: builtins.int
+    INCOMPATIBLE_PROTOBUF_DESCRIPTOR_FIELDS_FIELD_NUMBER: builtins.int
+    is_valid: builtins.bool
+    @property
+    def incompatible_protobuf_descriptor_fields(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___IncompatibleProtobufField]: ...
+    def __init__(
+        self,
+        *,
+        is_valid: builtins.bool = ...,
+        incompatible_protobuf_descriptor_fields: collections.abc.Iterable[global___IncompatibleProtobufField] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["incompatible_protobuf_descriptor_fields", b"incompatible_protobuf_descriptor_fields", "is_valid", b"is_valid"]) -> None: ...
+
+global___CheckProtobufDescriptorCompatibilityResponse = CheckProtobufDescriptorCompatibilityResponse
+
+@typing.final
 class ProtobufDescriptor(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -95,11 +165,14 @@ class ProtobufDescriptor(google.protobuf.message.Message):
     PROTO_FILE_NAME_FIELD_NUMBER: builtins.int
     NAMESPACE_FIELD_NUMBER: builtins.int
     PROTOBUF_DESCRIPTOR_ID_FIELD_NUMBER: builtins.int
+    CREATED_DATE_FIELD_NUMBER: builtins.int
     message_type_full_name: builtins.str
     file_descriptor_set: builtins.bytes
     proto_file_name: builtins.str
     namespace: builtins.str
     protobuf_descriptor_id: builtins.str
+    @property
+    def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -108,8 +181,10 @@ class ProtobufDescriptor(google.protobuf.message.Message):
         proto_file_name: builtins.str = ...,
         namespace: builtins.str = ...,
         protobuf_descriptor_id: builtins.str = ...,
+        created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["file_descriptor_set", b"file_descriptor_set", "message_type_full_name", b"message_type_full_name", "namespace", b"namespace", "proto_file_name", b"proto_file_name", "protobuf_descriptor_id", b"protobuf_descriptor_id"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["created_date", b"created_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["created_date", b"created_date", "file_descriptor_set", b"file_descriptor_set", "message_type_full_name", b"message_type_full_name", "namespace", b"namespace", "proto_file_name", b"proto_file_name", "protobuf_descriptor_id", b"protobuf_descriptor_id"]) -> None: ...
 
 global___ProtobufDescriptor = ProtobufDescriptor
 

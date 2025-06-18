@@ -23,7 +23,7 @@ class AssetServiceStub:
         sift.assets.v1.assets_pb2.DeleteAssetRequest,
         sift.assets.v1.assets_pb2.DeleteAssetResponse,
     ]
-    """Deletes an asset."""
+    """Delete will archive an asset."""
 
     GetAsset: grpc.UnaryUnaryMultiCallable[
         sift.assets.v1.assets_pb2.GetAssetRequest,
@@ -47,7 +47,7 @@ class AssetServiceAsyncStub:
         sift.assets.v1.assets_pb2.DeleteAssetRequest,
         sift.assets.v1.assets_pb2.DeleteAssetResponse,
     ]
-    """Deletes an asset."""
+    """Delete will archive an asset."""
 
     GetAsset: grpc.aio.UnaryUnaryMultiCallable[
         sift.assets.v1.assets_pb2.GetAssetRequest,
@@ -73,7 +73,7 @@ class AssetServiceServicer(metaclass=abc.ABCMeta):
         request: sift.assets.v1.assets_pb2.DeleteAssetRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.assets.v1.assets_pb2.DeleteAssetResponse, collections.abc.Awaitable[sift.assets.v1.assets_pb2.DeleteAssetResponse]]:
-        """Deletes an asset."""
+        """Delete will archive an asset."""
 
     @abc.abstractmethod
     def GetAsset(

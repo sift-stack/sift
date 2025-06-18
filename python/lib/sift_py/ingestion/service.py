@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataChannelValue,
@@ -66,11 +66,12 @@ class IngestionService(_IngestionServiceImpl):
         description: Optional[str] = None,
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
         """
-        super().attach_run(channel, run_name, description, organization_id, tags)
+        super().attach_run(channel, run_name, description, organization_id, tags, metadata)
 
     def detach_run(self):
         """
@@ -83,7 +84,7 @@ class IngestionService(_IngestionServiceImpl):
         self,
         flow_name: str,
         timestamp: datetime,
-        channel_values: List[ChannelValue],
+        channel_values: Union[List[ChannelValue], List[IngestWithConfigDataChannelValue]],
     ) -> IngestWithConfigDataStreamRequest:
         """
         Creates an `IngestWithConfigDataStreamRequest`, i.e. a flow, given a `flow_name` and a
@@ -216,17 +217,28 @@ class IngestionService(_IngestionServiceImpl):
         """
         return BufferedIngestionService(self, buffer_size, flush_interval_sec, on_error)
 
-    def create_flow(self, flow_config: FlowConfig):
+    def create_flow(self, *flow_config: FlowConfig):
         """
-        Like `try_create_new_flow` but will automatically overwrite any existing flow config with `flow_config` if they
-        share the same name. If you'd an exception to be raise in the case of a name collision then see `try_create_new_flow`.
+        Like `try_create_new_flow` but will not raise an `IngestionValidationError` if there already exists
+        a flow with the name of the `flow_config` argument.
         """
-        super().create_flow(flow_config)
+        super().create_flow(*flow_config)
 
-    def try_create_flow(self, flow_config: FlowConfig):
+    def create_flows(self, *flow_configs: FlowConfig):
+        """
+        See `create_flow`.
+        """
+        super().create_flow(*flow_configs)
+
+    def try_create_flow(self, *flow_config: FlowConfig):
         """
         Tries to create a new flow at runtime. Will raise an `IngestionValidationError` if there already exists
-        a flow with the name of the `flow_config` argument. If you'd like to overwrite any flow configs with that
-        have the same name as the provided `flow_config`, then see `create_new_flow`.
+        a flow with the name of the `flow_config` argument.
         """
-        super().try_create_flow(flow_config)
+        super().try_create_flow(*flow_config)
+
+    def try_create_flows(self, *flow_configs: FlowConfig):
+        """
+        See `try_create_flows`.
+        """
+        super().try_create_flow(*flow_configs)

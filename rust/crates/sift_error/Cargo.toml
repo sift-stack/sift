@@ -1,0 +1,17 @@
+[package]
+name = "sift_error"
+version = { workspace = true }
+description = "Crate-specific Sift errors"
+edition = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+categories = { workspace = true }
+readme = "README.md"
+
+[dependencies]
+
+[dev-dependencies]
+indoc = "2.0.6"

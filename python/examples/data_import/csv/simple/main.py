@@ -34,7 +34,8 @@ if __name__ == "__main__":
         asset_name,
         "sample_data.csv",
     )
-    print(import_service.get_data_import())
+    data_import = import_service.get_data_import()
+    print(data_import.model_dump_json(indent=1))
 
     print("Waiting for upload to complete...")
     import_service.wait_until_complete()

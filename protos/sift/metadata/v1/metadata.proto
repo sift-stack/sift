@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package sift.metadata.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Metadata service"}
+};
+
+service MetadataService {
+  // Create a metadata key.
+  rpc CreateMetadataKey(CreateMetadataKeyRequest) returns (CreateMetadataKeyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/metadata-keys"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateMetadataKey",
+      description: "Create a metadata key."
+    };
+  }
+
+  // List metadata keys.
+  rpc ListMetadataKeys(ListMetadataKeysRequest) returns (ListMetadataKeysResponse) {
+    option (google.api.http) = {get: "/api/v1/metadata-keys"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListMetadataKeys"
+      description: "List metadata keys."
+    };
+  }
+}
+
+// Metadata key type.
+enum MetadataKeyType {
+  METADATA_KEY_TYPE_UNSPECIFIED = 0;
+  // string
+  METADATA_KEY_TYPE_STRING = 1;
+  // number
+  METADATA_KEY_TYPE_NUMBER = 2;
+  // boolean
+  METADATA_KEY_TYPE_BOOLEAN = 3;
+}
+
+message MetadataKey {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  MetadataKeyType type = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message MetadataValue {
+  MetadataKey key = 1 [(google.api.field_behavior) = REQUIRED];
+  oneof value {
+    string string_value = 2;
+    double number_value = 3;
+    bool boolean_value = 4;
+  }
+}
+
+// The request of a call to `MetadataService_CreateMetadataKey` to create a metadata key.
+message CreateMetadataKeyRequest {
+  MetadataKey metadata_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `MetadataService_CreateMetadataKey` to create a metadata key.
+message CreateMetadataKeyResponse {
+  MetadataKey metadata_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `MetadataService_ListMetadataKeys` to retrieve metadata keys.
+message ListMetadataKeysRequest {
+  // The maximum number of metadata keys to return. The service may return fewer than this value.
+  // If unspecified, at most 50 metadata keys will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListMetadataKeys` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListMetadataKeys` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are:
+  // `name`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to this definition. Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved metadata keys. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date` and `name`.
+  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `MetadataService_ListMetadataKeysResponse`.
+message ListMetadataKeysResponse {
+  repeated MetadataKey metadata_keys = 1;
+  string next_page_token = 2;
+}

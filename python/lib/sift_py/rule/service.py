@@ -5,13 +5,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast
 
 from sift.annotations.v1.annotations_pb2 import AnnotationType
-from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
+from sift.assets.v1.assets_pb2 import Asset
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 from sift.rules.v1.rules_pb2 import (
     ANNOTATION,
     AnnotationActionConfiguration,
+    BatchUpdateRulesRequest,
+    BatchUpdateRulesResponse,
     CalculatedChannelConfig,
+    ContextualChannels,
     CreateRuleRequest,
     GetRuleRequest,
     GetRuleResponse,
@@ -30,6 +33,7 @@ from sift_py._internal.cel import cel_in
 from sift_py._internal.channel import channel_fqn as _channel_fqn
 from sift_py._internal.channel import get_channels
 from sift_py._internal.user import get_active_users
+from sift_py.asset._internal.shared import list_assets_impl
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.channel import channel_reference_from_fqn
 from sift_py.ingestion.channel import channel_fqn
@@ -70,6 +74,65 @@ class RuleService:
         """
         Loads rules from a YAML spec, and creates or updates the rules in the Sift API.
         For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The loaded RuleConfigs.
+        """
+        rule_configs = self._parse_rules_from_yaml(paths, named_expressions)
+
+        # Create all the rules
+        for rule_config in rule_configs:
+            self.create_or_update_rule(rule_config)
+
+        return rule_configs
+
+    def create_external_rules_from_yaml(
+        self,
+        paths: List[Path],
+        named_expressions: Optional[Dict[str, str]] = None,
+    ) -> List[RuleIdentifier]:
+        """
+        Creates external rules from a YAML spec in the Sift API.
+        For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The loaded RuleConfigs as external rules.
+        """
+        rule_configs = self._parse_rules_from_yaml(paths, named_expressions)
+
+        # Prepare all of the rules.
+        for rule_config in rule_configs:
+            rule_config.is_external = True
+            if rule_config.rule_client_key:
+                raise ValueError(
+                    f"Rule of name '{rule_config.name}' requires rule_client_key to be empty"
+                )
+
+        return self.create_external_rules(rule_configs)
+
+    def _parse_rules_from_yaml(
+        self,
+        paths: List[Path],
+        named_expressions: Optional[Dict[str, str]] = None,
+    ) -> List[RuleConfig]:
+        """
+        Parses rules from a YAML spec.
+        For more on rule YAML definitions, see `sift_py.ingestion.config.yaml.spec.RuleYamlSpec`.
+
+        Args:
+            paths: The list of YAML paths to load.
+            named_expressions: The named expressions to substitute into the rules.
+
+        Returns:
+            The parsed RuleConfigs.
         """
         module_rules = load_rule_modules(paths)
 
@@ -116,6 +179,16 @@ class RuleService:
             if not rule_channel_references:
                 raise ValueError(f"Rule of name '{rule_yaml['name']}' requires channel_references")
 
+            # Parse contextual channels
+            yaml_contextual_channels: List[str] = rule_yaml.get("contextual_channels", [])
+            contextual_channels: List[str] = []
+
+            for channel_name in yaml_contextual_channels:
+                if isinstance(channel_name, str):
+                    contextual_channels.append(channel_name)
+                else:
+                    raise ValueError(f"Contextual channel '{channel_name}' must be a string")
+
             # Parse expression for named expressions and sub expressions
             expression = rule_yaml["expression"]
             if isinstance(expression, dict):
@@ -153,14 +226,11 @@ class RuleService:
                     expression=str(expression),
                     action=action,
                     channel_references=rule_channel_references,
+                    contextual_channels=contextual_channels,
                     asset_names=rule_yaml.get("asset_names", []),
                     sub_expressions=subexpr,
                 )
             )
-
-        # Create all the rules
-        for rule_config in rule_configs:
-            self.create_or_update_rule(rule_config)
 
         return rule_configs
 
@@ -228,6 +298,35 @@ class RuleService:
             self._update_rule(config, rule)
         else:
             self._create_rule(config)
+
+    def create_external_rules(self, configs: List[RuleConfig]) -> List[RuleIdentifier]:
+        """
+        Create external rules via RuleConfigs. The configs must have is_external set to
+        True or an exception will be raised. rule_client_key must be empty.
+
+        Args:
+            configs: The list of RuleConfigs to create as external rules.
+
+        Returns:
+            The list of RuleIdentifiers created.
+        """
+        for config in configs:
+            if not config.is_external:
+                raise ValueError(f"Rule of name '{config.name}' requires is_external to be set")
+            if config.rule_client_key:
+                raise ValueError(
+                    f"Rule of name '{config.name}' requires rule_client_key to be empty"
+                )
+
+        update_rule_reqs = [self._update_req_from_rule_config(config) for config in configs]
+
+        req = BatchUpdateRulesRequest(rules=update_rule_reqs)
+        res = cast(BatchUpdateRulesResponse, self._rule_service_stub.BatchUpdateRules(req))
+
+        if not res.success:
+            raise Exception("Failed to create external rules")
+
+        return [RuleIdentifier(r.rule_id, r.name) for r in res.created_rule_identifiers]
 
     def _update_rule(self, updated_config: RuleConfig, rule: Rule):
         req = self._update_req_from_rule_config(updated_config, rule)
@@ -308,6 +407,7 @@ class RuleService:
                     configuration=RuleActionConfiguration(
                         annotation=AnnotationActionConfiguration(
                             assigned_to_user_id=user_id,
+                            annotation_type=AnnotationType.ANNOTATION_TYPE_DATA_REVIEW,
                             # tag_ids=config.action.tags,  # TODO: Requires TagService
                         )
                     ),
@@ -318,21 +418,25 @@ class RuleService:
                     action_type=ANNOTATION,
                     configuration=RuleActionConfiguration(
                         annotation=AnnotationActionConfiguration(
+                            annotation_type=AnnotationType.ANNOTATION_TYPE_PHASE,
                             # tag_ids=config.action.tags,  # TODO: Requires TagService
                         )
                     ),
                 )
 
-        channel_references = {}
-        for channel_reference in config.channel_references:
-            ref = channel_reference["channel_reference"]
-            ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
-            channel_references[ref] = ident
+        # Get all channels that need validation (both expression and contextual)
+        expression_channels = {ref["channel_identifier"] for ref in config.channel_references}
+        contextual_channels = set(config.contextual_channels)
+        all_channel_references = expression_channels | contextual_channels
 
-        if assets and channel_references:
+        # Validate all channels exist in assets
+        if assets and all_channel_references:
             names = [
-                _channel_fqn(name=ident.name, component=ident.component)
-                for ident in channel_references.values()
+                _channel_fqn(
+                    name=channel_reference_from_fqn(ident).name,
+                    component=channel_reference_from_fqn(ident).component,
+                )
+                for ident in all_channel_references
             ]
 
             # Create CEL search filters
@@ -352,8 +456,21 @@ class RuleService:
                         f"Asset {asset.name} is missing channels required for rule {config.name}: {missing_channels}"
                     )
 
-        rule_id = None
+        # Create channel references map for expression channels
+        channel_references = {}
+        for channel_reference in config.channel_references:
+            ref = channel_reference["channel_reference"]
+            ident = channel_reference_from_fqn(channel_reference["channel_identifier"])
+            channel_references[ref] = ident
+
+        # Create channel references map for contextual channels
+        contextual_channel_names = []
+        for channel in config.contextual_channels:
+            ident = channel_reference_from_fqn(channel)
+            contextual_channel_names.append(ident)
+
         organization_id = ""
+        rule_id = ""
         if rule:
             rule_id = rule.rule_id
             organization_id = rule.organization_id
@@ -378,6 +495,8 @@ class RuleService:
             asset_configuration=RuleAssetConfiguration(
                 asset_ids=[asset.asset_id for asset in assets] if assets else None,
             ),
+            contextual_channels=ContextualChannels(channels=contextual_channel_names),
+            is_external=config.is_external,
         )
 
     def get_rule(self, rule: str) -> Optional[RuleConfig]:
@@ -389,12 +508,16 @@ class RuleService:
             return None
 
         channel_references: List[ExpressionChannelReference] = []
+        contextual_channels: List[str] = []
         expression = ""
         action: Optional[
             Union[RuleActionCreateDataReviewAnnotation, RuleActionCreatePhaseAnnotation]
         ] = None
+
         for condition in rule_pb.conditions:
             expression = condition.expression.calculated_channel.expression
+
+            # Get expression channel references
             for ref, id in condition.expression.calculated_channel.channel_references.items():
                 channel_references.append(
                     {
@@ -402,6 +525,7 @@ class RuleService:
                         "channel_identifier": id.name,
                     }
                 )
+
             for action_config in condition.actions:
                 annotation_type = action_config.configuration.annotation.annotation_type
                 if annotation_type == AnnotationType.ANNOTATION_TYPE_PHASE:
@@ -420,11 +544,16 @@ class RuleService:
         )
         asset_names = [asset.name for asset in assets]
 
+        contextual_channels = []
+        for channel_ref in rule_pb.contextual_channels.channels:
+            contextual_channels.append(channel_ref.name)
+
         rule_config = RuleConfig(
             name=rule_pb.name,
             description=rule_pb.description,
             rule_client_key=rule_pb.client_key,
             channel_references=channel_references,  # type: ignore
+            contextual_channels=contextual_channels,
             asset_names=asset_names,
             action=action,
             expression=expression,
@@ -449,32 +578,7 @@ class RuleService:
             return None
 
     def _get_assets(self, names: List[str] = [], ids: List[str] = []) -> List[Asset]:
-        def get_assets_with_filter(cel_filter: str):
-            assets: List[Asset] = []
-            next_page_token = ""
-            while True:
-                req = ListAssetsRequest(
-                    filter=cel_filter,
-                    page_size=1_000,
-                    page_token=next_page_token,
-                )
-                res = cast(ListAssetsResponse, self._asset_service_stub.ListAssets(req))
-                assets.extend(res.assets)
-
-                if not res.next_page_token:
-                    break
-                next_page_token = res.next_page_token
-
-            return assets
-
-        if names:
-            names_cel = cel_in("name", names)
-            return get_assets_with_filter(names_cel)
-        elif ids:
-            ids_cel = cel_in("asset_id", ids)
-            return get_assets_with_filter(ids_cel)
-        else:
-            return []
+        return list_assets_impl(self._asset_service_stub, names, ids)
 
 
 @dataclass
@@ -486,3 +590,13 @@ class RuleChannelReference:
 
     rule_name: str
     channel_references: Dict[str, Any]
+
+
+@dataclass
+class RuleIdentifier:
+    """
+    Wrapper around RuleIdentifier for working with external rules.
+    """
+
+    rule_id: str
+    name: str

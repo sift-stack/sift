@@ -36,6 +36,12 @@ class CsvConfigImpl(ConfigBaseModel):
     def validate_config(self) -> Self:
         if not self.data_columns:
             raise PydanticCustomError("invalid_config_error", "Empty 'data_columns'")
+
+        if self.run_name and self.run_id:
+            raise PydanticCustomError(
+                "invalid_config_error", "Only specify run_name or run_id, not both."
+            )
+
         return self
 
 

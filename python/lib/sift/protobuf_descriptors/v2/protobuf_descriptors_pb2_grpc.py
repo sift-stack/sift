@@ -19,6 +19,11 @@ class ProtobufDescriptorServiceStub(object):
                 request_serializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.AddProtobufDescriptorRequest.SerializeToString,
                 response_deserializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.AddProtobufDescriptorResponse.FromString,
                 )
+        self.CheckProtobufDescriptorCompatibility = channel.unary_unary(
+                '/sift.protobuf_descriptors.v2.ProtobufDescriptorService/CheckProtobufDescriptorCompatibility',
+                request_serializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.CheckProtobufDescriptorCompatibilityRequest.SerializeToString,
+                response_deserializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.CheckProtobufDescriptorCompatibilityResponse.FromString,
+                )
         self.DeleteProtobufDescriptors = channel.unary_unary(
                 '/sift.protobuf_descriptors.v2.ProtobufDescriptorService/DeleteProtobufDescriptors',
                 request_serializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.DeleteProtobufDescriptorsRequest.SerializeToString,
@@ -36,6 +41,13 @@ class ProtobufDescriptorServiceServicer(object):
 
     def AddProtobufDescriptor(self, request, context):
         """Used to register a protobuf message to be ingested.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CheckProtobufDescriptorCompatibility(self, request, context):
+        """Used to check if a protobuf descriptor is compatible with the existing descriptors.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -62,6 +74,11 @@ def add_ProtobufDescriptorServiceServicer_to_server(servicer, server):
                     servicer.AddProtobufDescriptor,
                     request_deserializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.AddProtobufDescriptorRequest.FromString,
                     response_serializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.AddProtobufDescriptorResponse.SerializeToString,
+            ),
+            'CheckProtobufDescriptorCompatibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.CheckProtobufDescriptorCompatibility,
+                    request_deserializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.CheckProtobufDescriptorCompatibilityRequest.FromString,
+                    response_serializer=sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.CheckProtobufDescriptorCompatibilityResponse.SerializeToString,
             ),
             'DeleteProtobufDescriptors': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteProtobufDescriptors,
@@ -97,6 +114,23 @@ class ProtobufDescriptorService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.protobuf_descriptors.v2.ProtobufDescriptorService/AddProtobufDescriptor',
             sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.AddProtobufDescriptorRequest.SerializeToString,
             sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.AddProtobufDescriptorResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def CheckProtobufDescriptorCompatibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.protobuf_descriptors.v2.ProtobufDescriptorService/CheckProtobufDescriptorCompatibility',
+            sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.CheckProtobufDescriptorCompatibilityRequest.SerializeToString,
+            sift_dot_protobuf__descriptors_dot_v2_dot_protobuf__descriptors__pb2.CheckProtobufDescriptorCompatibilityResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

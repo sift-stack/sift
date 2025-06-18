@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package sift.common.type.v1;
+
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+enum FunctionDataType {
+  FUNCTION_DATA_TYPE_UNSPECIFIED = 0;
+  FUNCTION_DATA_TYPE_NUMERIC = 1;
+  FUNCTION_DATA_TYPE_STRING = 2;
+  FUNCTION_DATA_TYPE_BOOL = 3;
+}
+
+message UserDefinedFunction {
+  string user_defined_function_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  optional google.protobuf.Timestamp archived_date = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  string user_defined_function_version_id = 5 [(google.api.field_behavior) = REQUIRED];
+  uint32 version = 6 [(google.api.field_behavior) = REQUIRED];
+  string description = 7 [(google.api.field_behavior) = REQUIRED];
+  string change_message = 8 [(google.api.field_behavior) = REQUIRED];
+  string user_notes = 9 [(google.api.field_behavior) = REQUIRED];
+  string expression = 10 [(google.api.field_behavior) = REQUIRED];
+  repeated FunctionInput function_inputs = 12 [(google.api.field_behavior) = REQUIRED];
+  FunctionDataType function_output_type = 13 [(google.api.field_behavior) = OPTIONAL];
+  repeated FunctionDependency function_dependencies = 11 [(google.api.field_behavior) = REQUIRED];
+
+  google.protobuf.Timestamp created_date = 14 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 15 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 16 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 17 [(google.api.field_behavior) = REQUIRED];
+}
+
+message FunctionDependency {
+  string user_defined_function_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message FunctionInput {
+  string identifier = 1 [(google.api.field_behavior) = REQUIRED];
+  FunctionDataType data_type = 2 [(google.api.field_behavior) = REQUIRED];
+  bool constant = 3 [(google.api.field_behavior) = REQUIRED];
+}

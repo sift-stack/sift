@@ -30,6 +30,7 @@ jobs:
           pip install '.[development]'
           pip install '.[openssl]'
           pip install '.[tdms]'
+          pip install '.[rosbags]'
           pip install .
 
       - name: Lint

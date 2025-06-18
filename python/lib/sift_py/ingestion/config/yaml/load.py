@@ -34,13 +34,13 @@ def _validate_yaml(raw_config: Dict[Any, Any]) -> TelemetryConfigYamlSpec:
 
     ingestion_client_key = raw_config.get("ingestion_client_key")
 
-    if not isinstance(ingestion_client_key, str):
+    if ingestion_client_key is not None and not isinstance(ingestion_client_key, str):
         raise YamlConfigError._invalid_property(ingestion_client_key, "ingestion_client_key", "str")
 
     organization_id = raw_config.get("organization_id")
 
     if organization_id is not None and not isinstance(organization_id, str):
-        raise YamlConfigError._invalid_property(ingestion_client_key, "organization_id", "str")
+        raise YamlConfigError._invalid_property(organization_id, "organization_id", "str")
 
     channels = raw_config.get("channels")
 

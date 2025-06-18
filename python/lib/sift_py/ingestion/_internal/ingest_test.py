@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
+import grpc
 import pytest
 from pytest_mock import MockFixture
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
@@ -9,6 +11,9 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigPb,
+)
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
+    ListIngestionConfigFlowsResponse,
 )
 
 import sift_py.ingestion._internal.ingest
@@ -28,6 +33,7 @@ from sift_py.ingestion._internal.ingestion_config import (
 from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelDataType,
+    ChannelValue,
     double_value,
     int32_value,
     string_value,
@@ -214,6 +220,13 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
     )
     mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
 
+    mock_ingestion_config_flows = mocker.patch(
+        "sift_py.ingestion._internal.ingest.get_ingestion_config_flows"
+    )
+    mock_ingestion_config_flows.return_value = [
+        f.as_pb(FlowConfigPb) for f in telemetry_config.flows
+    ]
+
     mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "_update_flow_configs")
     mock_update_flow_configs.return_value = None
 
@@ -231,7 +244,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
             flow_name="lerg",  # typo
             timestamp=datetime.now(timezone.utc),
             channel_values=[
-                {"channel_name": "logs", "value": string_value("foobar")},
+                ChannelValue(channel_name="logs", value=string_value("foobar")),
             ],
         )
 
@@ -241,8 +254,8 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
             channel_values=[
-                {"channel_name": "logs", "value": string_value("foobar")},
-                {"channel_name": "logs", "value": string_value("foobar")},
+                ChannelValue(channel_name="logs", value=string_value("foobar")),
+                ChannelValue(channel_name="logs", value=string_value("foobar")),
             ],
         )
 
@@ -252,7 +265,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
             channel_values=[
-                {"channel_name": "logs", "value": int32_value(32)},
+                ChannelValue(channel_name="logs", value=int32_value(32)),
             ],
         )
 
@@ -262,7 +275,7 @@ def test_ingestion_service_try_create_ingestion_request_validations(mocker: Mock
             flow_name="log",
             timestamp=datetime.now(timezone.utc),
             channel_values=[
-                {"channel_name": "voltage", "value": double_value(32)},
+                ChannelValue(channel_name="voltage", value=double_value(32)),
             ],
         )
 
@@ -348,6 +361,13 @@ def test_ingestion_service_init_with_rules(mocker: MockFixture):
         rules=[rule_on_voltage, rule_on_pressure],
     )
 
+    mock_ingestion_config_flows = mocker.patch(
+        "sift_py.ingestion._internal.ingest.get_ingestion_config_flows"
+    )
+    mock_ingestion_config_flows.return_value = [
+        f.as_pb(FlowConfigPb) for f in telemetry_config.flows
+    ]
+
     mock_channel = MockChannel()
 
     with mocker.patch("sift_py.ingestion._internal.ingest.RuleService"):
@@ -357,3 +377,180 @@ def test_ingestion_service_init_with_rules(mocker: MockFixture):
         )
         for rule in svc.rules:
             assert rule.asset_names == ["my-asset"]
+
+
+def test_ingestion_service_try_create_ingestion_request_ordered_values(mocker: MockFixture):
+    """
+    Tests that try_create_ingestion_request correctly handles ordered channel values
+    with different data types when channel_values_by_fqn is empty (using index-based validation).
+    """
+    voltage_channel = ChannelConfig(
+        name="voltage",
+        data_type=ChannelDataType.DOUBLE,
+    )
+    count_channel = ChannelConfig(
+        name="count",
+        data_type=ChannelDataType.INT_64,
+    )
+    status_channel = ChannelConfig(
+        name="status",
+        data_type=ChannelDataType.STRING,
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        ingestion_client_key="my-client-key",
+        flows=[
+            FlowConfig(
+                name="mixed_types",
+                channels=[voltage_channel, count_channel, status_channel],
+            ),
+        ],
+    )
+
+    mock_ingestion_config_flows = mocker.patch(
+        "sift_py.ingestion._internal.ingest.get_ingestion_config_flows"
+    )
+    mock_ingestion_config_flows.return_value = [
+        f.as_pb(FlowConfigPb) for f in telemetry_config.flows
+    ]
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="ingestion-config-id",
+        asset_id="my-asset-id",
+        client_key="my-client-key",
+    )
+
+    mock_get_or_create_ingestion_config = mocker.patch.object(
+        _IngestionServiceImpl, "_get_or_create_ingestion_config"
+    )
+    mock_get_or_create_ingestion_config.return_value = mock_ingestion_config
+
+    mock_update_flow_configs = mocker.patch.object(_IngestionServiceImpl, "_update_flow_configs")
+    mock_update_flow_configs.return_value = None
+
+    transport_channel = MockChannel()
+
+    with mocker.patch("sift_py.ingestion._internal.ingest.RuleService"):
+        svc = _IngestionServiceImpl(
+            channel=transport_channel,
+            config=telemetry_config,
+        )
+
+    # Test successful case with ordered values of different types
+    timestamp = datetime.now(timezone.utc)
+    request = svc.try_create_ingestion_request(
+        flow_name="mixed_types",
+        timestamp=timestamp,
+        channel_values=[
+            # voltage (double)
+            {"double": 120.0},  # type: ignore
+            # count (int)
+            {"int64": 42},  # type: ignore
+            # status (string)
+            {"string": "active"},  # type: ignore
+        ],
+    )
+
+    assert request.flow == "mixed_types"
+    assert len(request.channel_values) == 3
+    assert request.channel_values[0].double == 120.0
+    assert request.channel_values[1].int64 == 42
+    assert request.channel_values[2].string == "active"
+
+    # Test wrong data type for each channel type
+    with pytest.raises(IngestionValidationError, match="Expected value"):
+        svc.try_create_ingestion_request(
+            flow_name="mixed_types",
+            timestamp=timestamp,
+            channel_values=[
+                # wrong type for voltage (should be double)
+                {"string": "not a number"},  # type: ignore
+                {"int64": 42},  # type: ignore
+                {"string": "active"},  # type: ignore
+            ],
+        )
+
+    with pytest.raises(IngestionValidationError, match="Expected value"):
+        svc.try_create_ingestion_request(
+            flow_name="mixed_types",
+            timestamp=timestamp,
+            channel_values=[
+                {"double": 120.0},  # type: ignore
+                {"int64": 42},  # type: ignore
+                # wrong type for status (should be string)
+                {"double": 1.0},  # type: ignore
+            ],
+        )
+
+    # Test wrong number of values
+    with pytest.raises(IngestionValidationError, match="Expected 3 channel values"):
+        svc.try_create_ingestion_request(
+            flow_name="mixed_types",
+            timestamp=timestamp,
+            channel_values=[
+                {"double": 120.0},  # type: ignore
+                {"int64": 42},  # type: ignore
+                # missing status value
+            ],
+        )
+
+
+def test_get_ingestion_config_flows_returns_flows(mocker: MockFixture):
+    """
+    Tests that get_ingestion_config_flows correctly retrieves flows from the API.
+    """
+    ingestion_config_id = "test-ingestion-config-id"
+    mock_channel = MockChannel()
+
+    mock_response = ListIngestionConfigFlowsResponse(
+        flows=[FlowConfigPb(name="flow_a"), FlowConfigPb(name="flow_b")],
+        next_page_token="",
+    )
+
+    service_mock = MagicMock()
+    service_mock.ListIngestionConfigFlows.return_value = mock_response
+
+    stub_mock = mocker.patch(
+        "sift_py.ingestion._internal.ingestion_config.IngestionConfigServiceStub"
+    )
+    stub_mock.return_value = service_mock
+
+    flows = get_ingestion_config_flows(mock_channel, ingestion_config_id)
+
+    service_mock.ListIngestionConfigFlows.assert_called_once()
+    assert len(flows) == 2
+    assert flows[0].name == "flow_a"
+    assert flows[1].name == "flow_b"
+
+
+def test_get_ingestion_config_flows_updates_page_size(mocker: MockFixture):
+    """
+    Tests that get_ingestion_config_flows falls back to using a page_size of 1.
+    """
+    ingestion_config_id = "test-ingestion-config-id"
+    mock_channel = MockChannel()
+
+    mock_response = ListIngestionConfigFlowsResponse(
+        flows=[FlowConfigPb(name="flow_a"), FlowConfigPb(name="flow_b")],
+        next_page_token="",
+    )
+
+    rpc_error = grpc.RpcError()
+    rpc_error.code = lambda: grpc.StatusCode.RESOURCE_EXHAUSTED
+
+    service_mock = MagicMock()
+    service_mock.ListIngestionConfigFlows.side_effect = [rpc_error, mock_response]
+
+    stub_mock = mocker.patch(
+        "sift_py.ingestion._internal.ingestion_config.IngestionConfigServiceStub"
+    )
+    stub_mock.return_value = service_mock
+
+    flows = get_ingestion_config_flows(mock_channel, ingestion_config_id)
+
+    assert service_mock.ListIngestionConfigFlows.mock_calls[0].args[0].page_size == 1_000
+    assert service_mock.ListIngestionConfigFlows.mock_calls[1].args[0].page_size == 1
+    assert len(flows) == 2
+    assert flows[0].name == "flow_a"
+    assert flows[1].name == "flow_b"

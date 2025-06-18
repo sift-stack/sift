@@ -199,6 +199,19 @@ func (m *IngestWithConfigDataChannelValue_Empty) CloneVT() isIngestWithConfigDat
 	return r
 }
 
+func (m *IngestWithConfigDataChannelValue_Bytes) CloneVT() isIngestWithConfigDataChannelValue_Type {
+	if m == nil {
+		return (*IngestWithConfigDataChannelValue_Bytes)(nil)
+	}
+	r := new(IngestWithConfigDataChannelValue_Bytes)
+	if rhs := m.Bytes; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Bytes = tmpBytes
+	}
+	return r
+}
+
 func (m *IngestArbitraryProtobufDataStreamRequest) CloneVT() *IngestArbitraryProtobufDataStreamRequest {
 	if m == nil {
 		return (*IngestArbitraryProtobufDataStreamRequest)(nil)
@@ -533,6 +546,23 @@ func (this *IngestWithConfigDataChannelValue_Empty) EqualVT(thatIface isIngestWi
 		if !(*emptypb1.Empty)(p).EqualVT((*emptypb1.Empty)(q)) {
 			return false
 		}
+	}
+	return true
+}
+
+func (this *IngestWithConfigDataChannelValue_Bytes) EqualVT(thatIface isIngestWithConfigDataChannelValue_Type) bool {
+	that, ok := thatIface.(*IngestWithConfigDataChannelValue_Bytes)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if string(this.Bytes) != string(that.Bytes) {
+		return false
 	}
 	return true
 }
@@ -1110,6 +1140,20 @@ func (m *IngestWithConfigDataChannelValue_Empty) MarshalToSizedBufferVT(dAtA []b
 	}
 	return len(dAtA) - i, nil
 }
+func (m *IngestWithConfigDataChannelValue_Bytes) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *IngestWithConfigDataChannelValue_Bytes) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.Bytes)
+	copy(dAtA[i:], m.Bytes)
+	i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Bytes)))
+	i--
+	dAtA[i] = 0x62
+	return len(dAtA) - i, nil
+}
 func (m *IngestArbitraryProtobufDataStreamRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1401,6 +1445,13 @@ func (m *IngestWithConfigDataChannelValue) MarshalToSizedBufferVTStrict(dAtA []b
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if msg, ok := m.Type.(*IngestWithConfigDataChannelValue_Bytes); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
 	if msg, ok := m.Type.(*IngestWithConfigDataChannelValue_Empty); ok {
 		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -1629,6 +1680,20 @@ func (m *IngestWithConfigDataChannelValue_Empty) MarshalToSizedBufferVTStrict(dA
 		i--
 		dAtA[i] = 0x5a
 	}
+	return len(dAtA) - i, nil
+}
+func (m *IngestWithConfigDataChannelValue_Bytes) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *IngestWithConfigDataChannelValue_Bytes) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.Bytes)
+	copy(dAtA[i:], m.Bytes)
+	i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Bytes)))
+	i--
+	dAtA[i] = 0x62
 	return len(dAtA) - i, nil
 }
 func (m *IngestArbitraryProtobufDataStreamRequest) MarshalVTStrict() (dAtA []byte, err error) {
@@ -1930,6 +1995,16 @@ func (m *IngestWithConfigDataChannelValue_Empty) SizeVT() (n int) {
 		l = (*emptypb1.Empty)(m.Empty).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	return n
+}
+func (m *IngestWithConfigDataChannelValue_Bytes) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Bytes)
+	n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	return n
 }
 func (m *IngestArbitraryProtobufDataStreamRequest) SizeVT() (n int) {
@@ -2584,6 +2659,39 @@ func (m *IngestWithConfigDataChannelValue) UnmarshalVT(dAtA []byte) error {
 				}
 				m.Type = &IngestWithConfigDataChannelValue_Empty{Empty: v}
 			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bytes", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Type = &IngestWithConfigDataChannelValue_Bytes{Bytes: v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -3608,6 +3716,38 @@ func (m *IngestWithConfigDataChannelValue) UnmarshalVTUnsafe(dAtA []byte) error 
 				}
 				m.Type = &IngestWithConfigDataChannelValue_Empty{Empty: v}
 			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bytes", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := dAtA[iNdEx:postIndex]
+			m.Type = &IngestWithConfigDataChannelValue_Bytes{Bytes: v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

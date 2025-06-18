@@ -1,0 +1,42 @@
+[package]
+name = "sift_stream"
+version = { workspace = true }
+description = "A robust Sift telemetry streaming library"
+edition = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+categories = { workspace = true }
+readme = "README.md"
+
+[dependencies]
+sift_connect = { workspace = true }
+sift_error = { workspace = true }
+sift_rs = { workspace = true }
+tracing = { version = "0.1.41", optional = true }
+bytesize = { version = "2", optional = true }
+pbjson-types = { workspace = true }
+tokio = { version = "1.43.0", features = ["rt", "sync", "time", "macros"] }
+chrono = { workspace = true }
+futures-core = "0.3.31"
+tokio-stream = "0.1.17"
+prost = "^0.13"
+dirs = "6.0.0"
+crc32fast = "1.4.2"
+
+[features]
+default = ["tracing"]
+tracing = ["dep:tracing", "dep:bytesize"]
+
+[dev-dependencies]
+async-trait = "^0.1"
+hyper-util = "0.1.10"
+tempdir = "0.3.7"
+tokio-stream = "0.1.17"
+tonic = { workspace = true }
+tower = { version = "0.5.2", features = ["util"] }
+tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
+tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "sync", "time"] }
+uuid = { version = "1.16.0", features = ["v4"] }

@@ -69,11 +69,11 @@ void ExitOnError(const std::string &msg, const Status &status)
 
 int main()
 {
-    const char *apiUrl = std::getenv("SIFT_URL");
+    const char *apiUrl = std::getenv("BASE_URI");
     const char *apiKey = std::getenv("SIFT_API_KEY");
     if (!apiUrl)
     {
-        std::cerr << "Run with SIFT_URL environment variable" << std::endl;
+        std::cerr << "Run with BASE_URI environment variable" << std::endl;
         exit(1);
     }
     if (!apiKey)

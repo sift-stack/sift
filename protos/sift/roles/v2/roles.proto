@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package sift.roles.v2;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Role Service"}
+};
+
+service RoleService {
+  rpc ListRoles(ListRolesRequest) returns (ListRolesResponse) {
+    option (google.api.http) = {get: "/api/v2/roles"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListRoles"
+      description: "Retrieves roles using an optional filter."
+      operation_id: "RoleService_ListRolesV2"
+    };
+  }
+}
+
+message Role {
+  string role_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message ListRolesRequest {
+  // The maximum number of roles to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 roles will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1;
+
+  // A page token, received from a previous `ListRoles` call.
+  // Provide this to retrieve the subsequent page.
+  //
+  // When paginating, all other parameters provided to `ListRoles` must match
+  // the call that provided the page token.
+  string page_token = 2;
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `role_id`, `name`, and `description`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `name` and `description`.
+  // If left empty, items are ordered by `name` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "name desc,description"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListRolesResponse {
+  repeated Role roles = 1;
+  string next_page_token = 2;
+}

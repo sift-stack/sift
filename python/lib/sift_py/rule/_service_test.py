@@ -2,10 +2,14 @@ from unittest import mock
 
 import pytest
 from sift.assets.v1.assets_pb2 import Asset
-from sift.rules.v1.rules_pb2 import Rule
+from sift.rules.v1.rules_pb2 import BatchUpdateRulesResponse, Rule
 
 from sift_py._internal.test_util.channel import MockChannel
-from sift_py.rule.config import RuleActionCreateDataReviewAnnotation, RuleConfig
+from sift_py.ingestion.channel import ChannelConfig, ChannelDataType
+from sift_py.rule.config import (
+    RuleActionCreateDataReviewAnnotation,
+    RuleConfig,
+)
 from sift_py.rule.service import RuleService
 
 
@@ -114,6 +118,62 @@ def test_rule_service_load_rules_from_yaml(rule_service):
             assert isinstance(rule_config.action, RuleActionCreateDataReviewAnnotation)
 
 
+def test_rule_service_create_external_rules_from_yaml(rule_service):
+    rule_yaml = {
+        "name": "rule",
+        "channel_references": [{"$1": "channel"}],
+        "description": "description",
+        "expression": "$1 > 0",
+        "assignee": "assignee@abc.com",
+        "type": "phase",
+        "asset_names": ["asset"],
+    }
+    with mock.patch.object(RuleService, "_get_assets"):
+        with mock.patch.object(
+            rule_service._rule_service_stub, "BatchUpdateRules"
+        ) as mock_batch_update_rules:
+            resp = BatchUpdateRulesResponse(
+                created_rule_identifiers=[
+                    BatchUpdateRulesResponse.RuleIdentifiers(rule_id="rule-id", name="rule")
+                ],
+                success=True,
+            )
+            mock_batch_update_rules.return_value = resp
+
+            with mock.patch(
+                "sift_py.rule.service.load_rule_modules",
+                return_value=[rule_yaml],
+            ):
+                rule_identifiers = rule_service.create_external_rules_from_yaml(
+                    ["path/to/rules.yml"]
+                )
+                assert len(rule_identifiers) == 1
+
+                rule_identifier = rule_identifiers[0]
+                assert rule_identifier.name == rule_yaml["name"]
+                assert rule_identifier.rule_id == "rule-id"
+
+
+def test_rule_service_create_invalid_external_rules_from_yaml(rule_service):
+    # External rules should not have client_keys
+    rule_yaml = {
+        "name": "rule",
+        "rule_client_key": "rule-client-key",
+        "channel_references": [{"$1": "channel"}],
+        "description": "description",
+        "expression": "$1 > 0",
+        "assignee": "assignee@abc.com",
+        "type": "review",
+        "asset_names": ["asset"],
+    }
+    with mock.patch(
+        "sift_py.rule.service.load_rule_modules",
+        return_value=[rule_yaml],
+    ):
+        with pytest.raises(ValueError, match="requires rule_client_key to be empty"):
+            rule_service.create_external_rules_from_yaml(["path/to/rules.yml"])
+
+
 def test_rule_service_attach_asset():
     rule_config = RuleConfig(
         name="rule",
@@ -166,3 +226,57 @@ def test_rule_service_detach_asset_empty_list():
         with mock.patch.object(RuleService, "_get_assets", return_value=[asset]):
             with pytest.raises(ValueError, match="must be associated with at least one asset"):
                 rule_service.detach_asset(rule_config, ["asset"])
+
+
+def test_rule_service_create_rule_with_contextual_channels(rule_service):
+    """Test creating a rule with contextual channels"""
+    rule = RuleConfig(
+        name="rule",
+        rule_client_key="rule-client-key",
+        channel_references=[
+            {
+                "channel_reference": "$1",
+                "channel_config": ChannelConfig(
+                    name="temperature",
+                    data_type=ChannelDataType.DOUBLE,
+                ),
+            }
+        ],
+        contextual_channels=["humidity"],
+        expression="$1 > 10",
+        action=RuleActionCreateDataReviewAnnotation(),
+    )
+
+    with mock.patch.object(RuleService, "_create_rule") as mock_create_rule:
+        rule_service.create_or_update_rule(rule)
+        mock_create_rule.assert_called_once_with(rule)
+        created_rule = mock_create_rule.call_args[0][0]
+        assert len(created_rule.contextual_channels) == 1
+        assert created_rule.contextual_channels[0] == "humidity"
+
+
+def test_rule_service_load_rules_from_yaml_with_contextual_channels(rule_service):
+    """Test loading rules from YAML with contextual channels"""
+    rule_yaml = {
+        "name": "rule",
+        "rule_client_key": "rule-client-key",
+        "channel_references": [{"$1": "temperature"}],
+        "contextual_channels": ["humidity", "pressure"],
+        "description": "description",
+        "expression": "$1 > 0",
+        "type": "review",
+        "asset_names": ["asset"],
+    }
+
+    with mock.patch.object(RuleService, "create_or_update_rule"):
+        with mock.patch(
+            "sift_py.rule.service.load_rule_modules",
+            return_value=[rule_yaml],
+        ):
+            rule_configs = rule_service.load_rules_from_yaml(["path/to/rules.yml"])
+            assert len(rule_configs) == 1
+
+            rule_config = rule_configs[0]
+            assert len(rule_config.contextual_channels) == 2
+            assert rule_config.contextual_channels[0] == "humidity"
+            assert rule_config.contextual_channels[1] == "pressure"

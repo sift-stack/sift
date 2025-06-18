@@ -1,10 +1,12 @@
 import json
 import mimetypes
+import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urljoin, urlparse
 
 import pandas as pd
+from alive_progress import alive_bar  # type: ignore
 
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
@@ -31,9 +33,15 @@ class CsvUploadService(_RestService):
         self,
         path: Union[str, Path],
         csv_config: CsvConfig,
+        show_progress: bool = True,
     ) -> DataImportService:
         """
         Uploads the CSV file pointed to by `path` using a custom CSV config.
+
+        Args:
+            path: The path to the CSV file.
+            csv_config: The CSV config.
+            show_progress: Whether to show the status bar or not.
         """
         content_encoding = self._validate_file_type(path)
 
@@ -61,7 +69,7 @@ class CsvUploadService(_RestService):
         except KeyError as e:
             raise Exception(f"Response missing required keys: {e}")
 
-        with open(path, "rb") as f:
+        with _ProgressFile(path, disable=not show_progress) as f:
             headers = {
                 "Content-Encoding": content_encoding,
             }
@@ -249,3 +257,34 @@ class CsvUploadService(_RestService):
         file_name = path.name
         mime, encoding = mimetypes.guess_type(path)
         return file_name, mime, encoding
+
+
+class _ProgressFile:
+    """Displays the status with alive_bar while reading the file."""
+
+    # alive_bar only supports context managers, so we have to make the
+    # context manager calls manually.
+    _bar_context: Callable
+
+    def __init__(self, path: Union[str, Path], disable=False):
+        self.path = path
+
+        self.file_size = os.path.getsize(self.path)
+        if self.file_size == 0:
+            raise Exception(f"{path} is 0 bytes")
+
+        self._file = open(self.path, mode="rb")
+        self._bar = alive_bar(self.file_size, unit=" bytes", disable=disable, scale="SI")
+
+    def read(self, *args, **kwargs):
+        chunk = self._file.read(*args, **kwargs)
+        self._bar_context(len(chunk))
+        return chunk
+
+    def __enter__(self):
+        self._bar_context = self._bar.__enter__()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self._bar.__exit__(None, None, None)
+        return

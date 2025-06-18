@@ -1,0 +1,294 @@
+syntax = "proto3";
+
+package sift.user_defined_functions.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/calculated_channels/v2/calculated_channels.proto";
+import "sift/common/type/v1/user_defined_functions.proto";
+import "sift/rules/v1/rules.proto";
+
+
+
+service UserDefinedFunctionService {
+  // Retrieve the latest version of a user defined function
+  rpc GetUserDefinedFunction(GetUserDefinedFunctionRequest) returns (GetUserDefinedFunctionResponse) {
+    option (google.api.http) = {get: "/api/v1/user-defined-functions/{user_defined_function_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUserDefinedFunction",
+      description: "Retrieve the latest version of a user defined function."
+    };
+  }
+
+  // Retrieve a specific version of a user defined function
+  rpc GetUserDefinedFunctionVersion(GetUserDefinedFunctionVersionRequest) returns (GetUserDefinedFunctionVersionResponse) {
+    option (google.api.http) = {get: "/api/v1/user-defined-functions/versions/{user_defined_function_version_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUserDefinedFunctionVersion",
+      description: "Retrieve a specific version of a user defined function."
+    };
+  }
+
+  // Retrieve versions of user defined functions
+  rpc GetUserDefinedFunctionVersions(GetUserDefinedFunctionVersionsRequest) returns (GetUserDefinedFunctionVersionsResponse) {
+    option (google.api.http) = {get: "/api/v1/user-defined-functions/versions"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUserDefinedFunctionVersions",
+      description: "Retrieve versions of user defined functions."
+    };
+  }
+
+  // Retrieve versions of user defined functions
+  rpc GetUserDefinedFunctionDependents(GetUserDefinedFunctionDependentsRequest) returns (GetUserDefinedFunctionDependentsResponse) {
+    option (google.api.http) = {get: "/api/v1/user-defined-functions/dependents"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetUserDefinedFunctionDependents",
+      description: "Retrieve dependents of a user defined function."
+    };
+  }
+
+  // Create a user defined function.
+  rpc CreateUserDefinedFunction(CreateUserDefinedFunctionRequest) returns (CreateUserDefinedFunctionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-defined-functions"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateUserDefinedFunction",
+      description: "Create a user defined function."
+    };
+  }
+
+  // Validate a potential user defined function
+  rpc ValidateUserDefinedFunction(ValidateUserDefinedFunctionRequest) returns (ValidateUserDefinedFunctionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user-defined-functions:validate"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ValidateUserDefinedFunction",
+      description: "Validates a potential user defined function."
+    };
+  }
+
+  // Update a user defined function.
+  rpc UpdateUserDefinedFunction(UpdateUserDefinedFunctionRequest) returns (UpdateUserDefinedFunctionResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/user-defined-functions"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateUserDefinedFunction",
+      description: "Update and create a new version of a user defined function."
+    };
+  }
+
+  // Check if given update paths are allowed to update for the user defined function.
+  rpc CheckUpdatableFields(CheckUpdatableFieldsRequest) returns (CheckUpdatableFieldsResponse) {
+    option (google.api.http) = {post: "/api/v1/user-defined-functions/updatable-fields"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CheckUpdatableFields",
+      description: "Check if given update paths are allowed to update for the user defined function"
+    };
+  }
+
+  // Retrieve the latest versions of user defined functions based on an optional filter.
+  rpc ListUserDefinedFunctions(ListUserDefinedFunctionsRequest) returns (ListUserDefinedFunctionsResponse) {
+    option (google.api.http) = {get: "/api/v1/user-defined-functions"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListUserDefinedFunctions",
+      description: "Retrieve the latest versions of user defined functions based on an optional filter."
+    };
+  }
+
+  // List versions of a particular user defined functions with an optional filter.
+  rpc ListUserDefinedFunctionVersions(ListUserDefinedFunctionVersionsRequest) returns (ListUserDefinedFunctionVersionsResponse) {
+    option (google.api.http) = {get: "/api/v1/user-defined-functions/{user_defined_function_id}/versions"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListUserDefinedFunctionVersions",
+      description: "List versions of a particular user defined function with an optional filter."
+    };
+  }
+}
+
+// The request for a call to `UserDefinedFunctionService_GetUserDefinedFunction` to retrieve the latest version of a user defined function.
+// If `user_defined_function_id` is provided then all other arguments will be ignored. The argument `user_defined_function_id`
+// should not be used together with `name`.
+message GetUserDefinedFunctionRequest {
+  string user_defined_function_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string name = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message GetUserDefinedFunctionResponse {
+  sift.common.type.v1.UserDefinedFunction user_defined_function = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `UserDefinedFunctionService_GetUserDefinedFunctionVersion` to retrieve a specific version of a user defined function.
+message GetUserDefinedFunctionVersionRequest {
+  string user_defined_function_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetUserDefinedFunctionVersionResponse {
+  sift.common.type.v1.UserDefinedFunction user_defined_function = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `UserDefinedFunctionService_GetUserDefinedFunctionDependents` to retrieve versions of user defined functions.
+message GetUserDefinedFunctionDependentsRequest {
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+  oneof user_defined_function {
+    string user_defined_function_id = 2 [(google.api.field_behavior) = OPTIONAL];
+    string user_defined_function_name = 3 [(google.api.field_behavior) = OPTIONAL];
+    string user_defined_function_version_id = 4 [(google.api.field_behavior) = OPTIONAL];
+  }
+}
+
+message GetUserDefinedFunctionDependentsResponse {
+  repeated sift.common.type.v1.UserDefinedFunction user_defined_functions = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token_user_defined_function = 2 [(google.api.field_behavior) = OPTIONAL];
+  repeated sift.calculated_channels.v2.CalculatedChannel calculated_channels = 3 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token_calculated_channel = 4 [(google.api.field_behavior) = OPTIONAL];
+  repeated sift.rules.v1.Rule rules = 5 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token_rule = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for a call to `UserDefinedFunctionService_GetUserDefinedFunctionVersions` to retrieve versions of user defined functions.
+message GetUserDefinedFunctionVersionsRequest {
+  repeated string user_defined_function_version_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetUserDefinedFunctionVersionsResponse {
+  repeated sift.common.type.v1.UserDefinedFunction user_defined_functions = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateUserDefinedFunctionRequest {
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  optional string description = 2 [(google.api.field_behavior) = OPTIONAL];
+  string expression = 3 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.FunctionInput function_inputs = 4 [(google.api.field_behavior) = REQUIRED];
+  optional string user_notes = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message CreateUserDefinedFunctionResponse {
+  sift.common.type.v1.UserDefinedFunction user_defined_function = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ValidateUserDefinedFunctionRequest {
+  string expression = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.FunctionInput function_inputs = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ValidateUserDefinedFunctionResponse {
+  message ErrorValidatingUserDefinedFunctionResult {
+    string error_message = 1 [(google.api.field_behavior) = REQUIRED];
+  }
+
+  message SuccessValidatingUserDefinedFunctionResult {
+    sift.common.type.v1.UserDefinedFunction user_defined_function = 1 [(google.api.field_behavior) = REQUIRED];
+  }
+
+  oneof result {
+    ErrorValidatingUserDefinedFunctionResult error = 1;
+    SuccessValidatingUserDefinedFunctionResult success = 2;
+  }
+}
+
+// The request for a call to `UserDefinedFunctionService_UpdateUserDefinedFunction` to update a user defined function. Updating a user
+// defined function creates a new version of the user defined function, leaving the previous untouched. If no update is deemed necessary, then the
+// the current version is returned. If name is changed then only name will be changed. If archive date is changed then only archive date will be changed.
+// To archive user defined function, specify `archived_date` in the `update mask` as well as a non-null value for `archived_date` in the
+// `user_defined_function` object. To unarchive a user defined function, specify `archived_date` in the `update mask` and a `null` value for `archived_date`
+// in the `user_defined_function` object.
+message UpdateUserDefinedFunctionRequest {
+  // The user defined function to update.
+  sift.common.type.v1.UserDefinedFunction user_defined_function = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `expression`, and `function_inputs`.
+  //  -- `name` can't be updated if the function has ever had any dependencies
+  //  -- `function_inputs` inputs can't be updated if the function has any dependents (functions or calculated channels with a dependency on this function).
+  //  -- `expression` can't be updated if the function has dependents and the expression changes the output type.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateUserDefinedFunctionResponse {
+  sift.common.type.v1.UserDefinedFunction user_defined_function = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CheckUpdatableFieldsRequest {
+  string user_defined_function_id = 1 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CheckUpdatableFieldsResponse {
+  google.protobuf.FieldMask allowed_fields = 1 [(google.api.field_behavior) = REQUIRED];
+  // Disallowed Fields will contain the update fields as the key and the reason for rejection as the value.
+  map<string, string> disallowed_fields = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `UserDefinedFunctionService_ListUserDefinedFunctions` to retrieve lateset versions of user defined functions.
+message ListUserDefinedFunctionsRequest {
+  // The maximum number of user defined functions to return. The service may return fewer than this value.
+  // If unspecified, at most 50 user defined functions will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListUserDefinedFunctions` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListUserDefinedFunctions` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // There are currently no available fields.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved user defined functions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`, `modified_date`, and `name`.
+  // If left empty, items are ordered by `name` in ascending order (alphabetical).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,modified_date".
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `UserDefinedFunctionService_ListUserDefinedFunctions`.
+message ListUserDefinedFunctionsResponse {
+  repeated sift.common.type.v1.UserDefinedFunction user_defined_functions = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for a call to `UserDefinedFunctionService_ListUserDefinedFunctionVersions` to retrieve versions of user defined function.
+// If `user_defined_function_id` is provided then `name` is ignored.
+message ListUserDefinedFunctionVersionsRequest {
+  string user_defined_function_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string name = 2 [(google.api.field_behavior) = OPTIONAL];
+  // The maximum number of user defined function versions to return. The service may return fewer than this value.
+  // If unspecified, at most 50 user defined function versions will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListUserDefinedFunctions` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListUserDefinedFunctions` must match
+  // the call that provided the page token. Optional.
+  string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // There are currently no available fields.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved user defined functions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`, `modified_date`, `name`, and `version`.
+  // If left empty, items are ordered by `name` in ascending order (oldest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "version desc,name".
+  string order_by = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `UserDefinedFunctionService_ListUserDefinedFunctionVersions`.
+message ListUserDefinedFunctionVersionsResponse {
+  repeated sift.common.type.v1.UserDefinedFunction user_defined_functions = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}

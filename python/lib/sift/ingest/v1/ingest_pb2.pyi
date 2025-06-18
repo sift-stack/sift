@@ -82,6 +82,7 @@ class IngestWithConfigDataChannelValue(google.protobuf.message.Message):
     BIT_FIELD_FIELD_NUMBER: builtins.int
     ENUM_FIELD_NUMBER: builtins.int
     EMPTY_FIELD_NUMBER: builtins.int
+    BYTES_FIELD_NUMBER: builtins.int
     string: builtins.str
     double: builtins.float
     float: builtins.float
@@ -92,6 +93,7 @@ class IngestWithConfigDataChannelValue(google.protobuf.message.Message):
     uint64: builtins.int
     bit_field: builtins.bytes
     enum: builtins.int
+    bytes: builtins.bytes
     @property
     def empty(self) -> google.protobuf.empty_pb2.Empty:
         """If there's not a new data point for a channel at the given timestamp, pass empty to skip it"""
@@ -110,10 +112,11 @@ class IngestWithConfigDataChannelValue(google.protobuf.message.Message):
         bit_field: builtins.bytes = ...,
         enum: builtins.int = ...,
         empty: google.protobuf.empty_pb2.Empty | None = ...,
+        bytes: builtins.bytes = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["bit_field", b"bit_field", "bool", b"bool", "double", b"double", "empty", b"empty", "enum", b"enum", "float", b"float", "int32", b"int32", "int64", b"int64", "string", b"string", "type", b"type", "uint32", b"uint32", "uint64", b"uint64"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["bit_field", b"bit_field", "bool", b"bool", "double", b"double", "empty", b"empty", "enum", b"enum", "float", b"float", "int32", b"int32", "int64", b"int64", "string", b"string", "type", b"type", "uint32", b"uint32", "uint64", b"uint64"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["type", b"type"]) -> typing.Literal["string", "double", "float", "bool", "int32", "uint32", "int64", "uint64", "bit_field", "enum", "empty"] | None: ...
+    def HasField(self, field_name: typing.Literal["bit_field", b"bit_field", "bool", b"bool", "bytes", b"bytes", "double", b"double", "empty", b"empty", "enum", b"enum", "float", b"float", "int32", b"int32", "int64", b"int64", "string", b"string", "type", b"type", "uint32", b"uint32", "uint64", b"uint64"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["bit_field", b"bit_field", "bool", b"bool", "bytes", b"bytes", "double", b"double", "empty", b"empty", "enum", b"enum", "float", b"float", "int32", b"int32", "int64", b"int64", "string", b"string", "type", b"type", "uint32", b"uint32", "uint64", b"uint64"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["type", b"type"]) -> typing.Literal["string", "double", "float", "bool", "int32", "uint32", "int64", "uint64", "bit_field", "enum", "empty", "bytes"] | None: ...
 
 global___IngestWithConfigDataChannelValue = IngestWithConfigDataChannelValue
 
@@ -138,9 +141,9 @@ class IngestArbitraryProtobufDataStreamRequest(google.protobuf.message.Message):
     namespace: builtins.str
     organization_id: builtins.str
     end_stream_on_validation_error: builtins.bool
-    """By default, if this request fails to parse for any reason, the request is 
-    stored in an error queue and the stream continues to accept data. This 
-    ensures all data is saved, but only valid data is fully ingested. If this 
+    """By default, if this request fails to parse for any reason, the request is
+    stored in an error queue and the stream continues to accept data. This
+    ensures all data is saved, but only valid data is fully ingested. If this
     is set to `true`, any validation errors end the stream and return the error to the client.
     """
     @property

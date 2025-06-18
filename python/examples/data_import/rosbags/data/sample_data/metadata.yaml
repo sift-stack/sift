@@ -1,0 +1,36 @@
+rosbag2_bagfile_information:
+  compression_format: ''
+  compression_mode: ''
+  custom_data: {}
+  duration:
+    nanoseconds: 9900000256
+  files:
+  - duration:
+      nanoseconds: 9900000256
+    message_count: 200
+    path: sample_data.db3
+    starting_time:
+      nanoseconds_since_epoch: 1742191091637121792
+  message_count: 200
+  relative_file_paths:
+  - sample_data.db3
+  ros_distro: rosbags
+  starting_time:
+    nanoseconds_since_epoch: 1742191091637121792
+  storage_identifier: sqlite3
+  topics_with_message_count:
+  - message_count: 100
+    topic_metadata:
+      name: /float_channel
+      offered_qos_profiles: ''
+      serialization_format: cdr
+      type: std_msgs/msg/Float64
+      type_description_hash: RIHS01_705ba9c3d1a09df43737eb67095534de36fd426c0587779bda2bc51fe790182a
+  - message_count: 100
+    topic_metadata:
+      name: /int_channel
+      offered_qos_profiles: ''
+      serialization_format: cdr
+      type: std_msgs/msg/Int64
+      type_description_hash: RIHS01_8cd1048c2f186b6bd9a92472dc1ce51723c0833a221e2b7aecfff111774f4b49
+  version: 8

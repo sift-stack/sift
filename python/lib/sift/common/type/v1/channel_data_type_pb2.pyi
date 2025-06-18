@@ -33,6 +33,7 @@ class _ChannelDataTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper
     CHANNEL_DATA_TYPE_UINT_32: _ChannelDataType.ValueType  # 8
     CHANNEL_DATA_TYPE_INT_64: _ChannelDataType.ValueType  # 9
     CHANNEL_DATA_TYPE_UINT_64: _ChannelDataType.ValueType  # 10
+    CHANNEL_DATA_TYPE_BYTES: _ChannelDataType.ValueType  # 11
 
 class ChannelDataType(_ChannelDataType, metaclass=_ChannelDataTypeEnumTypeWrapper): ...
 
@@ -47,4 +48,5 @@ CHANNEL_DATA_TYPE_INT_32: ChannelDataType.ValueType  # 7
 CHANNEL_DATA_TYPE_UINT_32: ChannelDataType.ValueType  # 8
 CHANNEL_DATA_TYPE_INT_64: ChannelDataType.ValueType  # 9
 CHANNEL_DATA_TYPE_UINT_64: ChannelDataType.ValueType  # 10
+CHANNEL_DATA_TYPE_BYTES: ChannelDataType.ValueType  # 11
 global___ChannelDataType = ChannelDataType

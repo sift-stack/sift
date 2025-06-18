@@ -3,6 +3,51 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.6.2] - June 9, 2025
+- [Fixes bug in rosbags where nested arrays are not properly prefixed.](https://github.com/sift-stack/sift/pull/227)
+
+## [v0.6.1] - June 2, 2025
+- [Retry on internal grpc errors](https://github.com/sift-stack/sift/pull/224)
+
+## [v0.6.0] - May 23, 2025
+### What's New
+#### Rule Evaluation Service
+The `RuleEvaluationService` has been introduced to provide functionality for evaluating rules and reports against runs or assets. This includes support for dry-run evaluations and previews, as well as evaluating rules defined in YAML configurations.
+
+#### External Rules
+The `RuleService` has been updated to support External Rules. External Rules are ideal for automated workflows such as CI/CD pipelines, where external Rules are managed and evaluated programmatically.
+
+Read more about External Rules here [here](https://docs.siftstack.com/docs/api-how-to-guides/external-rules).
+
+### Full Changelog
+- [Add support for rule evaluation service and external rules](https://github.com/sift-stack/sift/pull/219)
+- [Allow creating multiple new flows at the same time](https://github.com/sift-stack/sift/pull/221)
+
+## [v0.5.3] - May 20, 2025
+- [Contextual channels support](https://github.com/sift-stack/sift/pull/212)
+- [Updates for user defined functions and external rules](https://github.com/sift-stack/sift/pull/215)
+- [Fix bugs within the IngestService](https://github.com/sift-stack/sift/pull/216)
+
+## [v0.5.2] - April 23, 2025
+- [Add string support to TDMS upload](https://github.com/sift-stack/sift/pull/207)
+
+## [v0.5.1] - April 18, 2025
+- [Add support for TDMS files with time channel](https://github.com/sift-stack/sift/pull/200)
+
+## [v0.5.0] - March 31, 2025
+### What's New
+#### Rosbag2 Uploads
+A new `RosbagsUploadService` has been added to `sift_py.data_import.rosbags`, which provides the functionality for uploading
+rosbags, including video frames from a rosbag. See `examples/data_import/rosbags` for examples on how to use the new service.
+
+### Full Changelog
+- [Rosbag uploads](https://github.com/sift-stack/sift/pull/191)
+- [Threaded and generator ingestion examples](https://github.com/sift-stack/sift/pull/187)
+- [RuleService adds annotation type](https://github.com/sift-stack/sift/pull/192)
+
+## [v0.4.2] - March 4, 2025
+- [Fix bool conversion to protobuf bool](https://github.com/sift-stack/sift/pull/184)
+
 ## [v0.4.1] - February 27, 2025
 - [Allow using openssl certs with REST](https://github.com/sift-stack/sift/pull/181)
 

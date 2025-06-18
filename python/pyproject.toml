@@ -1,6 +1,6 @@
 [project]
 name = "sift_stack_py"
-version = "0.4.1"
+version = "0.6.2"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -28,6 +28,8 @@ dependencies = [
     "pydantic_core~=2.3",
     "requests~=2.25",
     "requests-toolbelt~=1.0",
+    "alive-progress~=3.0",
+
     # May move these to optional dependencies in the future.
     "pandas-stubs~=2.0",
     "types-PyYAML~=6.0",
@@ -56,6 +58,7 @@ development = [
 build = ["pdoc==14.5.0", "build==1.2.1"]
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
+rosbags = ["rosbags~=0.0"]
 
 [build-system]
 requires = ["setuptools"]

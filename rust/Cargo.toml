@@ -1,32 +1,30 @@
-[package]
-name = "sift_rs"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
+members = [
+  "crates/sift_error",
+  "crates/sift_rs",
+  "crates/sift_stream",
+  "crates/sift_error",
+  "crates/sift_connect",
+]
+
+[workspace.package]
 authors = ["Sift Software Engineers <engineering@siftstack.com>"]
-description = """
-Rust client library for the Sift API
-"""
+version = "0.3.0"
+edition = "2024"
 categories = ["aerospace", "science::robotics"]
 homepage = "https://github.com/sift-stack/sift/tree/main/rust"
 repository = "https://github.com/sift-stack/sift/tree/main/rust"
 keywords = ["sift", "siftstack", "sift-stack", "sift_rs", "telemetry"]
-exclude = ["examples/*"]
 readme = "README.md"
 license = "MIT"
 
-[dependencies]
-async-trait = "^0.1"
-pbjson = "^0.6"
-pbjson-types = "^0.6"
-prost = "^0.12"
-prost-types = "^0.12"
-serde = { version = "^1.0" }
-thiserror = "^2.0"
-tonic = { version = "^0.11", features = ["tls", "tls-roots", "tls-webpki-roots"] }
-tower = "^0.4"
+[workspace.dependencies]
+chrono = { version = "0.4.39", default-features = false, features = ["clock"] }
+pbjson-types = "^0.7"
+tonic = { version = "^0.12" }
 
-[dev-dependencies]
-chrono = "0.4.38"
-rand = "0.8.5"
-tokio = { version = "1", features = ["full"] }
-tokio-stream = "0.1.16"
+sift_connect = { version = "0.3.0", path = "crates/sift_connect" }
+sift_rs = { version = "0.3.0", path = "crates/sift_rs" }
+sift_error = { version = "0.3.0", path = "crates/sift_error" }
+sift_stream = { version = "0.3.0", path = "crates/sift_stream" }

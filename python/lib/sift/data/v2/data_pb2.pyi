@@ -182,6 +182,7 @@ class GetDataResponse(google.protobuf.message.Message):
           sift.data.v2.Int64Values
           sift.data.v2.Uint32Values
           sift.data.v2.Uint64Values
+          sift.data.v2.BytesValues
         """
 
     def __init__(
@@ -740,3 +741,44 @@ class Uint64Values(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
 
 global___Uint64Values = Uint64Values
+
+@typing.final
+class BytesValue(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TIMESTAMP_FIELD_NUMBER: builtins.int
+    VALUE_FIELD_NUMBER: builtins.int
+    value: builtins.bytes
+    @property
+    def timestamp(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        value: builtins.bytes = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["timestamp", b"timestamp"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["timestamp", b"timestamp", "value", b"value"]) -> None: ...
+
+global___BytesValue = BytesValue
+
+@typing.final
+class BytesValues(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_FIELD_NUMBER: builtins.int
+    VALUES_FIELD_NUMBER: builtins.int
+    @property
+    def metadata(self) -> global___Metadata: ...
+    @property
+    def values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BytesValue]: ...
+    def __init__(
+        self,
+        *,
+        metadata: global___Metadata | None = ...,
+        values: collections.abc.Iterable[global___BytesValue] | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["metadata", b"metadata"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["metadata", b"metadata", "values", b"values"]) -> None: ...
+
+global___BytesValues = BytesValues

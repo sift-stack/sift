@@ -1,5 +1,6 @@
-from typing import List, Optional, cast
+from typing import List, Optional, Sequence, cast
 
+import grpc
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     CreateIngestionConfigFlowsRequest,
     CreateIngestionConfigFlowsResponse,
@@ -78,7 +79,9 @@ def get_ingestion_config_flow_names(
 
 
 def get_ingestion_config_flows(
-    channel: SiftChannel, ingestion_config_id: str
+    channel: SiftChannel,
+    ingestion_config_id: str,
+    page_size: int = 1_000,
 ) -> List[FlowConfigPb]:
     svc = IngestionConfigServiceStub(channel)
 
@@ -86,10 +89,15 @@ def get_ingestion_config_flows(
 
     req = ListIngestionConfigFlowsRequest(
         ingestion_config_id=ingestion_config_id,
-        page_size=1_000,
+        page_size=page_size,
         filter="",
     )
-    res = cast(ListIngestionConfigFlowsResponse, svc.ListIngestionConfigFlows(req))
+    try:
+        res = cast(ListIngestionConfigFlowsResponse, svc.ListIngestionConfigFlows(req))
+    except grpc.RpcError as e:
+        if e.code() != grpc.StatusCode.RESOURCE_EXHAUSTED or page_size == 1:
+            raise
+        return get_ingestion_config_flows(channel, ingestion_config_id, page_size=1)
 
     for flow in res.flows:
         flows.append(flow)
@@ -99,7 +107,7 @@ def get_ingestion_config_flows(
     while len(page_token) > 0:
         req = ListIngestionConfigFlowsRequest(
             ingestion_config_id=ingestion_config_id,
-            page_size=1_000,
+            page_size=page_size,
             filter="",
             page_token=page_token,
         )
@@ -116,7 +124,7 @@ def get_ingestion_config_flows(
 def create_flow_configs(
     channel: SiftChannel,
     ingestion_config_id: str,
-    flow_configs: List[FlowConfig],
+    flow_configs: Sequence[FlowConfig],
 ):
     """
     Adds flow configs to an existing ingestion config.

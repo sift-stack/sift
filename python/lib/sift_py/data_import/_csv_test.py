@@ -93,6 +93,8 @@ def test_csv_upload_service_invalid_config_response(mocker: MockFixture):
 def test_csv_upload_service_invalid_data_response(mocker: MockFixture):
     mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
     mock_path_is_file.return_value = True
+    mock_path_getsize = mocker.patch("sift_py.data_import.csv.os.path.getsize")
+    mock_path_getsize.return_value = 1024
 
     mocker.patch(
         "sift_py.data_import.csv.open",
@@ -141,6 +143,8 @@ def test_csv_upload_service_invalid_data_response(mocker: MockFixture):
 def test_csv_upload_service_success(mocker: MockFixture):
     mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
     mock_path_is_file.return_value = True
+    mock_path_getsize = mocker.patch("sift_py.data_import.csv.os.path.getsize")
+    mock_path_getsize.return_value = 1024
 
     mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.side_effect = [
@@ -212,6 +216,8 @@ def test_csv_upload_service_upload_from_url_success(mocker: MockFixture):
 def test_simple_upload_invalid_csv(mocker: MockFixture):
     mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
     mock_path_is_file.return_value = True
+    mock_path_getsize = mocker.patch("sift_py.data_import.csv.os.path.getsize")
+    mock_path_getsize.return_value = 1024
 
     mock_read_csv = mocker.patch("sift_py.data_import.csv.pd.read_csv")
     mock_read_csv.return_value = pd.DataFrame(
@@ -264,6 +270,8 @@ def test_simple_upload_invalid_csv(mocker: MockFixture):
 def test_simple_upload_metadata_csv(mocker: MockFixture):
     mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
     mock_path_is_file.return_value = True
+    mock_path_getsize = mocker.patch("sift_py.data_import.csv.os.path.getsize")
+    mock_path_getsize.return_value = 1024
 
     def mock_read_csv(*_, **kwargs):
         if "skiprows" in kwargs:
@@ -333,6 +341,8 @@ def test_simple_upload_metadata_csv(mocker: MockFixture):
 def test_simple_upload_uint64_csv(mocker: MockFixture):
     mock_path_is_file = mocker.patch("sift_py.data_import.csv.Path.is_file")
     mock_path_is_file.return_value = True
+    mock_path_getsize = mocker.patch("sift_py.data_import.csv.os.path.getsize")
+    mock_path_getsize.return_value = 1024
 
     mock_read_csv = mocker.patch("sift_py.data_import.csv.pd.read_csv")
     mock_read_csv.return_value = pd.DataFrame(

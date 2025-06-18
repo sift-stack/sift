@@ -4,6 +4,7 @@ package sift.protobuf_descriptors.v2;
 
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
 
@@ -27,6 +28,16 @@ service ProtobufDescriptorService {
       summary: "AddProtobufDescriptor"
       description: "Used to register a protobuf message to be ingested."
       operation_id: "ProtobufDescriptorService_AddProtobufDescriptorV2"
+    };
+  }
+
+  // Used to check if a protobuf descriptor is compatible with the existing descriptors.
+  rpc CheckProtobufDescriptorCompatibility(CheckProtobufDescriptorCompatibilityRequest) returns (CheckProtobufDescriptorCompatibilityResponse) {
+    option (google.api.http) = {post: "/api/v2/protobuf-descriptors:check-compatibility"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CheckProtobufDescriptorCompatibility"
+      description: "Used to check if a protobuf descriptor is compatible with the existing descriptors."
+      operation_id: "ProtobufDescriptorService_CheckProtobufDescriptorCompatibilityV2"
     };
   }
 
@@ -72,12 +83,32 @@ message AddProtobufDescriptorResponse {
   ProtobufDescriptor protobuf_descriptor = 1;
 }
 
+message CheckProtobufDescriptorCompatibilityRequest {
+  ProtobufDescriptor protobuf_descriptor = 1;
+}
+
+message IncompatibleProtobufField {
+  string protobuf_descriptor_id = 1;
+  string message_full_name = 2;
+  string desired_field_name = 3;
+  string current_field_name = 4;
+  string field_number = 5;
+  string reason = 6;
+  string details = 7;
+} 
+
+message CheckProtobufDescriptorCompatibilityResponse {
+  bool is_valid = 1;
+  repeated IncompatibleProtobufField incompatible_protobuf_descriptor_fields = 2;
+}
+
 message ProtobufDescriptor {
   string message_type_full_name = 1;
   bytes file_descriptor_set = 2;
   string proto_file_name = 3;
   string namespace = 4;
   string protobuf_descriptor_id = 5;
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // The request for a call to `ProtobufDescriptorService_ListProtobufDescriptors` to retrieve protobuf descriptors.

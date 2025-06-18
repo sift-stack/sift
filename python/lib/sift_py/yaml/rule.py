@@ -117,6 +117,25 @@ def _validate_rule(val: Any):
         for channel_reference in cast(List[Any], channel_references):
             _validate_channel_reference(channel_reference)
 
+    contextual_channels = rule.get("contextual_channels")
+    if contextual_channels is not None:
+        if not isinstance(contextual_channels, list):
+            raise YamlConfigError._invalid_property(
+                contextual_channels,
+                "- contextual_channels",
+                "List[str]",
+                ["rules"],
+            )
+
+        for channel in contextual_channels:
+            if not isinstance(channel, str):
+                raise YamlConfigError._invalid_property(
+                    channel,
+                    "- contextual_channels[]",
+                    "str",
+                    ["rules"],
+                )
+
     rule_client_key = rule.get("rule_client_key")
     description = rule.get("description")
     expression = rule.get("expression")
@@ -250,6 +269,7 @@ class RuleYamlSpec(TypedDict):
     `assignee`: If `type` is `review`, determines who to notify. Expects an email.
     `tags`: Tags to associate with the rule.
     `channel_references`: A list of channel references that maps to an actual channel. More below.
+    `contextual_channels`: A list of channel configs that provide context but aren't directly used in the expression.
     `sub_expressions`: A list of sub-expressions which is a mapping of place-holders to sub-expressions. Only used if using named expressions.
     `asset_names`: A list of asset names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
     `tag_names`: A list of tag names that this rule should be applied to. ONLY VALID if defining rules outside of a telemetry config.
@@ -262,6 +282,8 @@ class RuleYamlSpec(TypedDict):
     channel_references:
       - $1: *vehicle_state_channel
       - $2: *voltage_channel
+    contextual_channels:
+      - name: log
     ```
 
     Sub-expressions:
@@ -303,6 +325,7 @@ class RuleYamlSpec(TypedDict):
     assignee: NotRequired[str]
     tags: NotRequired[List[str]]
     channel_references: NotRequired[List[Dict[str, ChannelConfigYamlSpec]]]
+    contextual_channels: NotRequired[List[str]]
     sub_expressions: NotRequired[List[Dict[str, str]]]
     asset_names: NotRequired[List[str]]
     tag_names: NotRequired[List[str]]

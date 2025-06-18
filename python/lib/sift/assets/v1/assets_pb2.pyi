@@ -10,6 +10,7 @@ import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.metadata.v1.metadata_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -26,6 +27,8 @@ class Asset(google.protobuf.message.Message):
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
     TAGS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     asset_id: builtins.str
     name: builtins.str
     organization_id: builtins.str
@@ -37,7 +40,15 @@ class Asset(google.protobuf.message.Message):
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """The names of the tags to associate with this asset."""
+        """The names of the tags associated with this asset."""
+
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """The metadata values associated with this asset."""
+
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """The date the asset was archived."""
 
     def __init__(
         self,
@@ -50,9 +61,11 @@ class Asset(google.protobuf.message.Message):
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         modified_by_user_id: builtins.str = ...,
         tags: collections.abc.Iterable[builtins.str] | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_id", b"asset_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
 
 global___Asset = Asset
 
@@ -81,14 +94,14 @@ class ListAssetsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
-    `created_date`, `modified_date`, and `name`.
+    `created_date`, `modified_date`, `name`, `tag_id`, `tag_name`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/assets#asset). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved assets. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `created_date` and `modified_date`.
-    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    Available fields to order_by are `name`, `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
     """
@@ -127,19 +140,23 @@ global___ListAssetsResponse = ListAssetsResponse
 
 @typing.final
 class DeleteAssetRequest(google.protobuf.message.Message):
-    """The request for a call to `AssetService_DeleteAsset` to delete a single existing annotation by its asset_id."""
+    """The request for a call to `AssetService_DeleteAsset` to archive a single existing asset by its asset_id."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ASSET_ID_FIELD_NUMBER: builtins.int
+    ARCHIVE_RUNS_FIELD_NUMBER: builtins.int
     asset_id: builtins.str
-    """The id of the asset to be deleted. Required."""
+    """The id of the asset to be archived. Required."""
+    archive_runs: builtins.bool
+    """If true, will archive all runs associated with the asset."""
     def __init__(
         self,
         *,
         asset_id: builtins.str = ...,
+        archive_runs: builtins.bool = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archive_runs", b"archive_runs", "asset_id", b"asset_id"]) -> None: ...
 
 global___DeleteAssetRequest = DeleteAssetRequest
 
@@ -192,6 +209,8 @@ global___GetAssetResponse = GetAssetResponse
 
 @typing.final
 class UpdateAssetRequest(google.protobuf.message.Message):
+    """The request for a call to `AssetService_UpdateAsset` to update a single existing asset."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ASSET_FIELD_NUMBER: builtins.int
@@ -204,7 +223,7 @@ class UpdateAssetRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. Currently, the only field available to be updated is `tags`."""
+        """The list of fields to be updated. The fields available to be updated are `tags`, `metadata`, and `archived_date`."""
 
     def __init__(
         self,
@@ -219,6 +238,8 @@ global___UpdateAssetRequest = UpdateAssetRequest
 
 @typing.final
 class UpdateAssetResponse(google.protobuf.message.Message):
+    """The response of a call to `AssetService_UpdateAsset`."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ASSET_FIELD_NUMBER: builtins.int
