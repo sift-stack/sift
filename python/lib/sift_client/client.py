@@ -32,7 +32,7 @@ class SiftClient(
             grpc_client = GrpcClient(connection_config.get_grpc_config())
             rest_client = RestClient(connection_config.get_rest_config())
         else:
-            grpc_client =  GrpcClient(GrpcConfig(grpc_url, api_key))
+            grpc_client = GrpcClient(GrpcConfig(grpc_url, api_key))
             rest_client = RestClient(RestConfig(rest_url, api_key))
 
         WithGrpcClient.__init__(self, grpc_client=grpc_client)

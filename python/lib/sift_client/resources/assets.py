@@ -179,7 +179,6 @@ class AssetsAPIAsync(ResourceBase):
 
         return await self.get(asset_id=asset_id)
 
-
     async def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
         """
         Update an Asset.

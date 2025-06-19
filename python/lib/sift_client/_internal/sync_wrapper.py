@@ -22,11 +22,10 @@ class SyncAPIRegistration(TypedDict):
 
 _registered: list[SyncAPIRegistration] = []
 
-T = TypeVar("T")
 S = TypeVar("S")
 
 
-def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> Type[S]:
+def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
     """
     Generate a synchronous wrapper class for the given async API class.
 
@@ -50,7 +49,7 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> Type[S]:
 
     # Build an __init__ that stores the async implementation:
     @wraps(orig_init)
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: N807
         self._async_impl = cls(*args, **kwargs)
 
     def _run(self, coro):
@@ -123,7 +122,7 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> Type[S]:
 
         namespace[name] = _wrap_sync(name)
 
-    SyncClass = type(sync_name, (object,), namespace)
-    _registered.append(SyncAPIRegistration(async_cls=cls, sync_cls=SyncClass))
+    sync_class = type(sync_name, (object,), namespace)
+    _registered.append(SyncAPIRegistration(async_cls=cls, sync_cls=sync_class))
 
-    return SyncClass
+    return sync_class

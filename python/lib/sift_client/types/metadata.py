@@ -10,8 +10,8 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
-class MetadataUpdate(ModelUpdate):
-    ...
+class MetadataUpdate(ModelUpdate): ...
+
 
 class MetadataValue(BaseType):
     key: str
@@ -20,7 +20,7 @@ class MetadataValue(BaseType):
     @classmethod
     def _from_proto(cls, proto: MetadataProto, sift_client: SiftClient = None) -> MetadataValue:
         return cls(
-           key=proto.key.name,
+            key=proto.key.name,
             value=proto.string_value or proto.float_value or proto.bool_value,
             _client=sift_client,
         )

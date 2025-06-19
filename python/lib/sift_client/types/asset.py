@@ -11,6 +11,7 @@ from sift_client.types.metadata import MetadataValue
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
+
 class Asset(BaseType):
     """
     Model of the Sift Asset.
@@ -32,7 +33,6 @@ class Asset(BaseType):
         """Whether the asset is archived."""
         # TODO: clean up this logic when gRPC returns a null
         return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
-
 
     @property
     def created_by(self):
@@ -93,16 +93,16 @@ class Asset(BaseType):
             modified_by_user_id=proto.modified_by_user_id,
             tags=proto.tags,
             archived_date=proto.archived_date.ToDatetime(),
-            metadata=[
-                MetadataValue._from_proto(m) for m in proto.metadata
-            ],
+            metadata=[MetadataValue._from_proto(m) for m in proto.metadata],
             _client=sift_client,
         )
+
 
 class AssetUpdate(ModelUpdate):
     """
     Model of the Asset Fields that can be updated.
     """
+
     tags: list[str] | None = None
     archived_date: Optional[datetime | str] = None
 
