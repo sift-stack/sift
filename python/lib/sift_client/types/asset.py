@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional, Type, TYPE_CHECKING, Dict
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional, Type
 
 from sift.assets.v1.assets_pb2 import Asset as ProtoAsset
 
-from sift_client.types.base import ModelUpdate, BaseType, PrivateAttr
-from sift_client.types.metadata import MetadataValue, MetadataUpdate
+from sift_client.types.base import BaseType, ModelUpdate
+from sift_client.types.metadata import MetadataValue
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -108,6 +108,6 @@ class AssetUpdate(ModelUpdate):
 
     def _get_proto_class(self) -> Type[ProtoAsset]:
         return ProtoAsset
-    
+
     def _add_resource_id_to_proto(self, proto_msg: ProtoAsset) -> None:
         proto_msg.asset_id = self._resource_id

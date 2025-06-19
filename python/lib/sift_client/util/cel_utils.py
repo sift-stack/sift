@@ -7,8 +7,8 @@ This module provides helper functions to generate CEL expressions for building f
 from __future__ import annotations
 
 import re
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 
 def in_(field: str, vals: list[str]) -> str:

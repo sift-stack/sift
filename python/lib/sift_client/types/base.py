@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict, Any, Type, TypeVar, Optional, List, Iterable, Generic
-
-from pydantic import BaseModel, PrivateAttr
+from typing import TYPE_CHECKING, Any, Optional, Type, TypeVar
 
 from google.protobuf import field_mask_pb2, message
+from pydantic import BaseModel, PrivateAttr
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -44,7 +43,7 @@ class BaseType(BaseModel, ABC):
         return self
 
 
-
+# TODO: how to handle nulling fields (undefined or something?)
 class ModelUpdate(BaseModel, ABC):
     """Base class for Pydantic models that generate proto patches with field masks"""
 

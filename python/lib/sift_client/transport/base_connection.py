@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from abc import ABC
 import asyncio
+from abc import ABC
 
-from sift_client.transport.grpc_transport import GrpcConfig, GrpcClient
-from sift_client.transport.rest_transport import RestConfig, RestClient
+from sift_client.transport.grpc_transport import GrpcClient, GrpcConfig
+from sift_client.transport.rest_transport import RestClient, RestConfig
 
 
 class SiftConnectionConfig:

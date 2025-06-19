@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-from datetime import datetime
 import re
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.resources.base import ResourceBase

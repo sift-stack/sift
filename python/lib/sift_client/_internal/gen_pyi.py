@@ -1,17 +1,16 @@
+import ast
 import importlib
 import inspect
 import pathlib
 import sys
-import ast
-from typing import Any, Callable, get_type_hints
 from collections import OrderedDict
-
+from typing import Callable
 
 # Import registry of decorated classes
 from sift_client._internal.sync_wrapper import _registered
 
 FUTURE_IMPORTS = "from __future__ import annotations"
-HEADER = f"""\
+HEADER = """\
 # Auto-generated stub
 """
 

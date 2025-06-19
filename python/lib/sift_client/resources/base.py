@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from abc import ABC
-from typing import TYPE_CHECKING, Iterable, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from sift_client.transport.base_connection import GrpcClient, RestClient
 from sift_client.types.base import BaseType

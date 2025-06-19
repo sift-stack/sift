@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import cast
 
-from google.protobuf.field_mask_pb2 import FieldMask
 from sift.assets.v1.assets_pb2 import (
     DeleteAssetRequest,
     GetAssetRequest,
