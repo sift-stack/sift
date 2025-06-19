@@ -28,11 +28,12 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: ${{ !startsWith(github.ref, 'refs/tags/sift-stream-bindings/') }}
           manylinux: auto
+          working-directory: rust/crates/sift_stream_bindings
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-linux-${{ matrix.platform.target }}
-          path: dist
+          path: rust/crates/sift_stream_bindings/dist
 
   windows:
     runs-on: ${{ matrix.platform.runner }}
@@ -53,11 +54,12 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
           sccache: ${{ !startsWith(github.ref, 'refs/tags/sift-stream-bindings/') }}
+          working-directory: rust/crates/sift_stream_bindings
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-windows-${{ matrix.platform.target }}
-          path: dist
+          path: rust/crates/sift_stream_bindings/dist
 
   macos:
     runs-on: ${{ matrix.platform.runner }}
@@ -79,11 +81,12 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
           sccache: ${{ !startsWith(github.ref, 'refs/tags/sift-stream-bindings/') }}
+          working-directory: rust/crates/sift_stream_bindings
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-macos-${{ matrix.platform.target }}
-          path: dist
+          path: rust/crates/sift_stream_bindings/dist
 
   sdist:
     runs-on: ubuntu-latest
@@ -94,11 +97,12 @@ jobs:
         with:
           command: sdist
           args: --out dist
+          working-directory: rust/crates/sift_stream_bindings
       - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
           name: wheels-sdist
-          path: dist
+          path: rust/crates/sift_stream_bindings/dist
 
   release:
     name: Release
@@ -126,3 +130,4 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
+          working-directory: rust/crates/sift_stream_bindings
