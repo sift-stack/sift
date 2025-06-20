@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar
 
 from google.protobuf import field_mask_pb2, message
 from pydantic import BaseModel, PrivateAttr
@@ -10,12 +10,12 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
-T = TypeVar("T", bound=BaseModel)
 ProtoT = TypeVar("ProtoT", bound=message.Message)
+SelfT = TypeVar("SelfT", bound="BaseType")
 
 
-class BaseType(BaseModel, ABC):
-    _client: Optional["SiftClient"] = PrivateAttr(default=None)
+class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
+    _client: SiftClient | None = None
 
     class Config:
         frozen = True
@@ -30,11 +30,9 @@ class BaseType(BaseModel, ABC):
 
     @classmethod
     @abstractmethod
-    def _from_proto(
-        cls, proto: ProtoT, sift_client: Optional["SiftClient"] = None
-    ) -> "BaseType": ...
+    def _from_proto(cls, proto: ProtoT, sift_client: SiftClient | None = None) -> SelfT: ...
 
-    def _update(self, other: T) -> T:
+    def _update(self, other: BaseType[ProtoT, SelfT]) -> BaseType[ProtoT, SelfT]:
         """Update this instance with the values from another instance"""
         # This bypasses the frozen status of the model
         for key in other.model_fields.keys():
@@ -44,7 +42,7 @@ class BaseType(BaseModel, ABC):
 
 
 # TODO: how to handle nulling fields (undefined or something?)
-class ModelUpdate(BaseModel, ABC):
+class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
     """Base class for Pydantic models that generate proto patches with field masks"""
 
     _resource_id: Optional[Any] = PrivateAttr(default=None)
@@ -63,7 +61,7 @@ class ModelUpdate(BaseModel, ABC):
     def to_proto_with_mask(self) -> tuple[ProtoT, field_mask_pb2.FieldMask]:
         """Convert to proto with field mask"""
         # Get the corresponding proto class
-        proto_cls = self._get_proto_class()
+        proto_cls: Type[ProtoT] = self._get_proto_class()
         proto_msg = proto_cls()
 
         # Get only explicitly set fields
@@ -101,6 +99,6 @@ class ModelUpdate(BaseModel, ABC):
         """Get the corresponding proto class - override in subclasses"""
         raise NotImplementedError("Subclasses must implement this")
 
-    def _add_resource_id_to_proto(self, proto_msg: ProtoT) -> None:
+    def _add_resource_id_to_proto(self, proto_msg: ProtoT):
         """Assigns a resource ID (such as Asset ID) to the proto message"""
         raise NotImplementedError("Subclasses must implement this")

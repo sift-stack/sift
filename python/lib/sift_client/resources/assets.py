@@ -36,8 +36,9 @@ class AssetsAPIAsync(ResourceBase):
 
     async def get(
         self,
-        asset_id: str = None,
-        name: str = None,
+        *,
+        asset_id: str | None = None,
+        name: str | None = None,
     ) -> Asset:
         """
         Get an Asset.
@@ -69,21 +70,22 @@ class AssetsAPIAsync(ResourceBase):
 
     async def list_(
         self,
-        name: str = None,
-        name_contains: str = None,
-        name_regex: str | re.Pattern = None,
-        created_after: datetime = None,
-        created_before: datetime = None,
-        modified_after: datetime = None,
-        modified_before: datetime = None,
-        created_by: Any = None,
-        modified_by: Any = None,
-        tags: list[str] = None,
-        metadata: list[Any] = None,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | None = None,
+        modified_by: Any | None = None,
+        tags: list[str] | None = None,
+        metadata: list[Any] | None = None,
         include_archived: bool = False,
-        filter_query: str = None,
-        order_by: str = None,
-        limit: int = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
     ) -> list[Asset]:
         """
         List assets with optional filtering.
@@ -143,26 +145,25 @@ class AssetsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(assets)
 
-    async def find(self, *args, **kwargs) -> Asset | None:
+    async def find(self, **kwargs) -> Asset | None:
         """
         Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
         raises an error.
 
         Args:
-            *args:
-            **kwargs:
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
             The Asset found or None.
         """
-        assets = await self.list_(*args, **kwargs)
+        assets = await self.list_(**kwargs)
         if len(assets) > 1:
             raise ValueError("Multiple assets found for query")
         elif len(assets) == 1:
             return assets[0]
         return None
 
-    async def archive(self, asset: str | Asset, archive_runs: bool = False) -> Asset:
+    async def archive(self, *, asset: str | Asset, archive_runs: bool = False) -> Asset:
         """
         Archive an asset.
 
@@ -179,7 +180,7 @@ class AssetsAPIAsync(ResourceBase):
 
         return await self.get(asset_id=asset_id)
 
-    async def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
+    async def update(self, *, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
         """
         Update an Asset.
 

@@ -191,7 +191,7 @@ def match(field: str, query: str | re.Pattern) -> str:
         A CEL expression string
     """
     if isinstance(query, re.Pattern):
-        query = query.pattern
+        query = str(query.pattern)
     # Double-escape any backslashes that already exist in the regex
     escaped_regex = query.replace("\\", "\\\\")
     return f"{field}.matches('{escaped_regex}')"
@@ -209,8 +209,10 @@ def greater_than(field: str, value: int | float | datetime) -> str:
         A CEL expression string
     """
     if isinstance(value, datetime):
-        value = value.isoformat()
-    return f"{field} > {value}"
+        as_string = value.isoformat()
+    else:
+        as_string = str(value)
+    return f"{field} > {as_string}"
 
 
 def less_than(field: str, value: int | float | datetime) -> str:
@@ -225,5 +227,7 @@ def less_than(field: str, value: int | float | datetime) -> str:
         A CEL expression string
     """
     if isinstance(value, datetime):
-        value = value.isoformat()
-    return f"{field} < {value}"
+        as_string = value.isoformat()
+    else:
+        as_string = str(value)
+    return f"{field} < {as_string}"

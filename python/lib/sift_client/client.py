@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sift_client.errors import _sift_client_experimental_warning
 from sift_client.resources import AssetsAPI, AssetsAPIAsync, PingAPI, PingAPIAsync
 from sift_client.transport import (
     GrpcClient,
@@ -11,6 +12,8 @@ from sift_client.transport import (
     WithRestClient,
 )
 
+_sift_client_experimental_warning()
+
 
 class SiftClient(
     WithGrpcClient,
@@ -18,10 +21,10 @@ class SiftClient(
 ):
     def __init__(
         self,
-        api_key: str = None,
-        grpc_url: str = None,
-        rest_url: str = None,
-        connection_config: SiftConnectionConfig = None,
+        api_key: str | None = None,
+        grpc_url: str | None = None,
+        rest_url: str | None = None,
+        connection_config: SiftConnectionConfig | None = None,
     ):
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
@@ -31,9 +34,13 @@ class SiftClient(
         if connection_config:
             grpc_client = GrpcClient(connection_config.get_grpc_config())
             rest_client = RestClient(connection_config.get_rest_config())
-        else:
+        elif api_key and grpc_url and rest_url:
             grpc_client = GrpcClient(GrpcConfig(grpc_url, api_key))
             rest_client = RestClient(RestConfig(rest_url, api_key))
+        else:
+            raise ValueError(
+                "Invalid connection configuration. Please provide api_key, grpc_uri and rest_uri or a connection_config."
+            )
 
         WithGrpcClient.__init__(self, grpc_client=grpc_client)
         WithRestClient.__init__(self, rest_client=rest_client)

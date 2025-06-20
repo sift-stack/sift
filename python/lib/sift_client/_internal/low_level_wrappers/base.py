@@ -8,13 +8,13 @@ class LowLevelClientBase(ABC):
     @staticmethod
     async def _handle_pagination(
         func: Callable,
-        page_size: int = None,
-        page_token: str = None,
-        query_filter: str = None,
-        order_by: str = None,
-        max_results: int = None,
-    ) -> Any:
-        results = []
+        page_size: int | None = None,
+        page_token: str | None = None,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        max_results: int | None = None,
+    ) -> list[Any]:
+        results: list[Any] = []
         if page_token is None:
             page_token = ""
         while True:

@@ -25,7 +25,7 @@ _registered: list[SyncAPIRegistration] = []
 S = TypeVar("S")
 
 
-def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
+def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> Type[Any]:
     """
     Generate a synchronous wrapper class for the given async API class.
 
@@ -90,21 +90,18 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
         if isinstance(attr, property) and attr.fget:
             func = attr.fget
             # async
-            if inspect.iscoroutinefunction(func):
 
-                @property  # type: ignore[misc]
-                @wraps(func)
-                def sync_prop(self):
-                    return self._run(func.__get__(self._async_impl)())
-            # sync
-            else:
+            @property  # type: ignore[misc]
+            @wraps(func)
+            def sync_prop_wrapper(self):
+                return self._run(func.__get__(self._async_impl)())
 
-                @property  # type: ignore[misc]
-                @wraps(func)
-                def sync_prop(self):
-                    return func.__get__(self._async_impl)()
+            @property  # type: ignore[misc]
+            @wraps(func)
+            def sync_prop(self):
+                return func.__get__(self._async_impl)()
 
-            namespace[name] = sync_prop
+            namespace[name] = sync_prop_wrapper if inspect.iscoroutinefunction(func) else sync_prop
             continue
 
         # ───────── staticmethod ─────────
@@ -122,7 +119,7 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
 
         namespace[name] = _wrap_sync(name)
 
-    sync_class = type(sync_name, (object,), namespace)
+    sync_class = type(sync_name, (object,), namespace)  # noqa
     _registered.append(SyncAPIRegistration(async_cls=cls, sync_cls=sync_class))
 
     return sync_class

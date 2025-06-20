@@ -97,8 +97,8 @@ gen_stubs() {
   cd lib
   python3 sift_client/_internal/gen_pyi.py sift_client/resources/sync_stubs
   cd ..
-  ruff check ./lib/sift_client/resources/sync_stubs --fix
   ruff format ./lib/sift_client/resources/sync_stubs
+  ruff check ./lib/sift_client/resources/sync_stubs --fix
 }
 
 shift "$((OPTIND - 1))"

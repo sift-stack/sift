@@ -13,14 +13,16 @@ if TYPE_CHECKING:
 class MetadataUpdate(ModelUpdate): ...
 
 
-class MetadataValue(BaseType):
+class MetadataValue(BaseType[MetadataProto, "MetadataValue"]):
     key: str
     value: str | float | bool
 
     @classmethod
-    def _from_proto(cls, proto: MetadataProto, sift_client: SiftClient = None) -> MetadataValue:
+    def _from_proto(
+        cls, proto: MetadataProto, sift_client: SiftClient | None = None
+    ) -> MetadataValue:
         return cls(
             key=proto.key.name,
-            value=proto.string_value or proto.float_value or proto.bool_value,
+            value=proto.string_value or proto.number_value or proto.boolean_value,
             _client=sift_client,
         )

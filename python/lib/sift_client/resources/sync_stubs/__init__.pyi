@@ -24,69 +24,78 @@ class AssetsAPI:
     """
 
     def __init__(self, sift_client: "SiftClient"):
-        """Initialize the AssetsAPI.
+        """
+        Initialize the AssetsAPI.
 
         Args:
-            sift_client: The Sift client to use."""
+            sift_client: The Sift client to use.
+        """
         ...
 
     def _run(self, coro):
-        """"""
+        """ """
         ...
 
-    def archive(self, asset: str | Asset, archive_runs: bool = False) -> Asset:
-        """Archive an asset.
+    def archive(self, *, asset: str | Asset, archive_runs: bool = False) -> Asset:
+        """
+        Archive an asset.
 
-        Args:
-            asset: The Asset or asset ID to archive.
-            archive_runs: If True, archive all Runs associated with the Asset.
+         Args:
+             asset: The Asset or asset ID to archive.
+             archive_runs: If True, archive all Runs associated with the Asset.
 
-        Returns:
-            The archived Asset."""
+         Returns:
+             The archived Asset.
+        """
         ...
 
-    def find(self, *args, **kwargs) -> Asset | None:
-        """Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
+    def find(self, **kwargs) -> Asset | None:
+        """
+        Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
         raises an error.
 
         Args:
-            *args:
-            **kwargs:
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
-            The Asset found or None."""
+            The Asset found or None.
+        """
         ...
 
-    def get(self, asset_id: str = None, name: str = None) -> Asset:
-        """Get an Asset.
+    def get(self, *, asset_id: str | None = None, name: str | None = None) -> Asset:
+        """
+        Get an Asset.
 
         Args:
             asset_id: The ID of the asset.
             name: The name of the asset.
 
         Returns:
-            The Asset."""
+            The Asset.
+        """
         ...
 
     def list_(
         self,
-        name: str = None,
-        name_contains: str = None,
-        name_regex: str | re.Pattern = None,
-        created_after: datetime = None,
-        created_before: datetime = None,
-        modified_after: datetime = None,
-        modified_before: datetime = None,
-        created_by: Any = None,
-        modified_by: Any = None,
-        tags: list[str] = None,
-        metadata: list[Any] = None,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | None = None,
+        modified_by: Any | None = None,
+        tags: list[str] | None = None,
+        metadata: list[Any] | None = None,
         include_archived: bool = False,
-        filter_query: str = None,
-        order_by: str = None,
-        limit: int = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
     ) -> list[Asset]:
-        """List assets with optional filtering.
+        """
+        List assets with optional filtering.
 
         Args:
             name: Exact name of the asset.
@@ -105,18 +114,21 @@ class AssetsAPI:
             limit: How many assets to retrieve. If None, retrieves all matches.
 
         Returns:
-            A list of Assets that matches the filter."""
+            A list of Assets that matches the filter.
+        """
         ...
 
-    def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
-        """Update an Asset.
+    def update(self, *, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
+        """
+        Update an Asset.
 
         Args:
             asset: The Asset or asset ID to update.
             update: Updates to apply to the Asset.
 
         Returns:
-            The updated Asset."""
+            The updated Asset.
+        """
         ...
 
 class PingAPI:
@@ -128,19 +140,23 @@ class PingAPI:
     """
 
     def __init__(self, sift_client: "SiftClient"):
-        """Initialize the AssetsAPI.
+        """
+        Initialize the AssetsAPI.
 
         Args:
-            sift_client: The Sift client to use."""
+            sift_client: The Sift client to use.
+        """
         ...
 
     def _run(self, coro):
-        """"""
+        """ """
         ...
 
     def ping(self) -> str:
-        """Send a ping request to the server.
+        """
+        Send a ping request to the server.
 
         Returns:
-            The response from the server."""
+            The response from the server.
+        """
         ...

@@ -64,7 +64,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10" # Use the Python 3.10 type checker since we are using eval-type-backport and `from __future__ import annotations`
 
 [tool.pyright]
 python_version = "3.8"

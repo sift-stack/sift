@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import cast
+from typing import Any, cast
 
 from sift.assets.v1.assets_pb2 import (
     DeleteAssetRequest,
@@ -48,10 +48,10 @@ class AssetsLowLevelClient(LowLevelClientBase):
 
     async def list_all_assets(
         self,
-        query_filter: str = None,
-        order_by: str = None,
-        max_results: int = None,
-        page_size: int = None,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        max_results: int | None = None,
+        page_size: int | None = None,
     ) -> list[Asset]:
         """
         List all results matching the given query.
@@ -76,12 +76,12 @@ class AssetsLowLevelClient(LowLevelClientBase):
 
     async def list_assets(
         self,
-        page_size: int = None,
-        page_token: str = None,
-        query_filter: str = None,
-        order_by: str = None,
+        page_size: int | None = None,
+        page_token: str | None = None,
+        query_filter: str | None = None,
+        order_by: str | None = None,
     ) -> tuple[list[Asset], str]:
-        request_kwargs = {}
+        request_kwargs: dict[str, Any] = {}
         if page_size is not None:
             request_kwargs["page_size"] = page_size
         if page_token is not None:

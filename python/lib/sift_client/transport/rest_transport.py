@@ -104,22 +104,33 @@ class RestClient:
 
     # Convenience methods for common HTTP methods
     def _execute(
-        self, method: str, endpoint: str, headers: dict = None, data: dict = None, **kwargs
+        self,
+        method: str,
+        endpoint: str,
+        headers: dict | None = None,
+        data: dict | None = None,
+        **kwargs,
     ) -> requests.Response:
         full_url = urljoin(self.base_url, endpoint)
         return self._client._session.request(method, full_url, headers=headers, data=data, **kwargs)
 
-    def get(self, endpoint: str, headers: dict = None, **kwargs) -> requests.Response:
+    def get(self, endpoint: str, headers: dict | None = None, **kwargs) -> requests.Response:
         return self._execute("GET", endpoint=endpoint, headers=headers, **kwargs)
 
-    def post(self, endpoint: str, headers: dict = None, data=None, **kwargs) -> requests.Response:
+    def post(
+        self, endpoint: str, headers: dict | None = None, data=None, **kwargs
+    ) -> requests.Response:
         return self._execute("POST", endpoint=endpoint, headers=headers, data=data, **kwargs)
 
-    def put(self, endpoint: str, headers: dict = None, data=None, **kwargs) -> requests.Response:
+    def put(
+        self, endpoint: str, headers: dict | None = None, data=None, **kwargs
+    ) -> requests.Response:
         return self._execute("PUT", endpoint=endpoint, headers=headers, data=data, **kwargs)
 
-    def delete(self, endpoint: str, headers: dict = None, **kwargs) -> requests.Response:
+    def delete(self, endpoint: str, headers: dict | None = None, **kwargs) -> requests.Response:
         return self._execute("DELETE", endpoint=endpoint, headers=headers, **kwargs)
 
-    def patch(self, endpoint: str, headers: dict = None, data=None, **kwargs) -> requests.Response:
+    def patch(
+        self, endpoint: str, headers: dict | None = None, data=None, **kwargs
+    ) -> requests.Response:
         return self._execute("PATCH", endpoint=endpoint, headers=headers, data=data, **kwargs)

@@ -8,7 +8,6 @@ It just stores the channel and the stubs, without any additional functionality.
 from __future__ import annotations
 
 import asyncio
-import atexit
 import logging
 import threading
 from typing import Any, Dict, Optional, Type
@@ -16,7 +15,6 @@ from typing import Any, Dict, Optional, Type
 from sift_py.grpc.transport import (
     SiftChannelConfig,
     use_sift_async_channel,
-    use_sift_channel,
 )
 
 # Configure logging
@@ -46,7 +44,7 @@ class GrpcConfig:
         api_key: str,
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
-        metadata: Optional[Dict[str, str]] = None,
+        metadata: Dict[str, str] | None = None,
     ):
         """
         Initialize the gRPC configuration.
@@ -121,9 +119,6 @@ class GrpcClient:
         channel = future.result()
         self._channels_async[self._default_loop] = channel
         self._stubs_async_map[self._default_loop] = {}
-        # sync channel
-        self.channel_sync = use_sift_channel(cfg, config.metadata)
-        atexit.register(self.close_sync)
 
     @property
     def default_loop(self) -> asyncio.AbstractEventLoop:
@@ -155,7 +150,6 @@ class GrpcClient:
 
     def close_sync(self):
         """Close the sync channel and all async channels."""
-        self.channel_sync.close()
         for ch in self._channels_async.values():
             asyncio.run_coroutine_threadsafe(ch.close(), self._default_loop).result()
         self._default_loop.call_soon_threadsafe(self._default_loop.stop)
@@ -163,7 +157,6 @@ class GrpcClient:
 
     async def close(self):
         """Close sync and async channels and stop the default loop."""
-        self.channel_sync.close()
         for ch in self._channels_async.values():
             await ch.close()
         self._default_loop.call_soon_threadsafe(self._default_loop.stop)

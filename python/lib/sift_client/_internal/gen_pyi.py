@@ -3,11 +3,12 @@ import importlib
 import inspect
 import pathlib
 import sys
+import warnings
 from collections import OrderedDict
 from typing import Callable
 
 # Import registry of decorated classes
-from sift_client._internal.sync_wrapper import _registered
+from sift_client._internal.sync_wrapper import SyncAPIRegistration, _registered
 
 FUTURE_IMPORTS = "from __future__ import annotations"
 HEADER = """\
@@ -23,7 +24,9 @@ class {cls_name}:
 METHOD_TEMPLATE = '''\
     {decorator}
     def {meth_name}(self{params}){ret_ann}:
-        """{meth_doc}"""
+        """
+        {meth_doc}
+        """
         ...
 '''
 
@@ -96,15 +99,27 @@ def generate_stub_for_module(path_arg: str):
         classes = _registered
 
         for cls_name, cls in inspect.getmembers(module, inspect.isclass):
-            matching_registered_classes = list(
+            matching_registered_classes: list[SyncAPIRegistration] = list(
                 filter(lambda c: c["sync_cls"].__name__ == cls_name, classes)
             )
             if len(matching_registered_classes) < 1:
                 continue
             async_class = matching_registered_classes[0].get("async_cls")
+            if async_class is None:
+                warnings.warn(
+                    f"Could not find async class for {cls_name}. Skipping stub generation."
+                )
+                continue
 
             # Read imports from the original async class module
-            orig_path = pathlib.Path(inspect.getsourcefile(async_class)).resolve()
+            source_file = inspect.getsourcefile(async_class)
+            if source_file is None:
+                warnings.warn(
+                    f"Could not find source file for {async_class.__name__}. Skipping stub generation."
+                )
+                continue
+
+            orig_path = pathlib.Path(source_file).resolve()
             imports = extract_imports(orig_path)
             for imp in imports:
                 new_module_imports.append(imp)
@@ -160,11 +175,20 @@ def generate_method_stub(name: str, f: Callable, module, decorator: str = "") ->
 
     # Parameters
     params = []
+    has_keyword_only = False
+    positional_only_count = 0
+
+    # First pass to count positional-only parameters
+    for param in sig.parameters.values():
+        if param.kind == inspect.Parameter.POSITIONAL_ONLY:
+            positional_only_count += 1
+
+    # Second pass to generate parameter strings
+    param_count = 0
     for param in sig.parameters.values():
         if param.name == "self":
             continue
-        # ann = hints.get(param.name, param.annotation)
-        # ann_txt = format_annotation(ann)
+
         default = ""
         if param.default is not inspect._empty:
             default = f" = {param.default!r}"
@@ -182,6 +206,29 @@ def generate_method_stub(name: str, f: Callable, module, decorator: str = "") ->
                 params.append(f", **{param.name}: {param.annotation}")
             else:
                 params.append(f", **{param.name}")
+        elif param.kind == inspect.Parameter.KEYWORD_ONLY:
+            # Handle keyword-only parameters (after *)
+            if not has_keyword_only:
+                # Add a standalone * if this is the first keyword-only parameter
+                params.append(", *")
+                has_keyword_only = True
+
+            if param.annotation and param.annotation is not inspect._empty:
+                params.append(f", {param.name}: {param.annotation}{default}")
+            else:
+                params.append(f", {param.name}{default}")
+        elif param.kind == inspect.Parameter.POSITIONAL_ONLY:
+            # Handle positional-only parameters (before /)
+            if param.annotation and param.annotation is not inspect._empty:
+                params.append(f", {param.name}: {param.annotation}{default}")
+            else:
+                params.append(f", {param.name}{default}")
+
+            # Add the / separator after the last positional-only parameter
+            param_count += 1
+            if param_count == positional_only_count:
+                params.append(", /")
+
         else:
             # Handle normal parameters
             if param.annotation and param.annotation is not inspect._empty:

@@ -3,11 +3,14 @@ from __future__ import annotations
 from abc import ABC
 from typing import TYPE_CHECKING, TypeVar
 
+from sift_client.errors import _sift_client_experimental_warning
 from sift_client.transport.base_connection import GrpcClient, RestClient
-from sift_client.types.base import BaseType
+
+_sift_client_experimental_warning()
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.types.base import BaseType
 
 T = TypeVar("T", bound="BaseType")
 

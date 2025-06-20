@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Type
+from typing import TYPE_CHECKING, Type
 
-from sift.assets.v1.assets_pb2 import Asset as ProtoAsset
+from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
 from sift_client.types.base import BaseType, ModelUpdate
 from sift_client.types.metadata import MetadataValue
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
-class Asset(BaseType):
+class Asset(BaseType[AssetProto, "Asset"]):
     """
     Model of the Sift Asset.
     """
@@ -26,7 +26,7 @@ class Asset(BaseType):
     modified_by_user_id: str
     tags: list[str]
     metadata: list[MetadataValue]
-    archived_date: Optional[datetime]
+    archived_date: datetime | None
 
     @property
     def is_archived(self):
@@ -59,7 +59,7 @@ class Asset(BaseType):
     def annotations(self):
         raise NotImplementedError
 
-    def archive(self, archive_runs: bool = False) -> Asset:
+    def archive(self, *, archive_runs: bool = False) -> Asset:
         """Archive the asset.
 
         Args:
@@ -82,7 +82,7 @@ class Asset(BaseType):
         return self
 
     @classmethod
-    def _from_proto(cls, proto: ProtoAsset, sift_client: SiftClient = None) -> Asset:
+    def _from_proto(cls, proto: AssetProto, sift_client: SiftClient | None = None) -> Asset:
         return cls(
             asset_id=proto.asset_id,
             name=proto.name,
@@ -91,23 +91,25 @@ class Asset(BaseType):
             created_by_user_id=proto.created_by_user_id,
             modified_date=proto.modified_date.ToDatetime(),
             modified_by_user_id=proto.modified_by_user_id,
-            tags=proto.tags,
+            tags=list(proto.tags) if proto.tags else [],
             archived_date=proto.archived_date.ToDatetime(),
             metadata=[MetadataValue._from_proto(m) for m in proto.metadata],
             _client=sift_client,
         )
 
 
-class AssetUpdate(ModelUpdate):
+class AssetUpdate(ModelUpdate[AssetProto]):
     """
     Model of the Asset Fields that can be updated.
     """
 
     tags: list[str] | None = None
-    archived_date: Optional[datetime | str] = None
+    archived_date: datetime | str | None = None
 
-    def _get_proto_class(self) -> Type[ProtoAsset]:
-        return ProtoAsset
+    def _get_proto_class(self) -> Type[AssetProto]:
+        return AssetProto
 
-    def _add_resource_id_to_proto(self, proto_msg: ProtoAsset) -> None:
+    def _add_resource_id_to_proto(self, proto_msg: AssetProto):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.asset_id = self._resource_id
