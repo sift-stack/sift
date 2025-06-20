@@ -119,12 +119,12 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: $GITHUB_WORKSPACE/dist
+          path: ${{ github.workspace }}/dist
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: 'wheels-*/*'
+          subject-path: ${{ github.workspace }}/dist/wheels-*/*
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: $GITHUB_WORKSPACE/dist
+          packages-dir: ${{ github.workspace }}/dist
