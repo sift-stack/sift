@@ -133,7 +133,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: $GITHUB_WORKSPACE/dist/wheels-*/*
+          subject-path: $GITHUB_WORKSPACE/artifacts/wheels-*/*
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
