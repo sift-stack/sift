@@ -163,7 +163,7 @@ class AssetsAPIAsync(ResourceBase):
             return assets[0]
         return None
 
-    async def archive(self, *, asset: str | Asset, archive_runs: bool = False) -> Asset:
+    async def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
         """
         Archive an asset.
 
@@ -180,7 +180,7 @@ class AssetsAPIAsync(ResourceBase):
 
         return await self.get(asset_id=asset_id)
 
-    async def update(self, *, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
+    async def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
         """
         Update an Asset.
 

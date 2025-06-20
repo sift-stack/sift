@@ -20,13 +20,13 @@ overriding the behavior of `typine._val_type`.
 
 ### Keyword Only Arguments
 
-To improve continued compatibility with user-code, user-facing methods should use keyword-only arguments. This allows
-us to evolve method signatures without breaking backwards compatibility.
+To improve continued compatibility with user-code, user-facing methods that use optional arguments should use
+keyword-only arguments. This allows us to evolve method signatures without breaking backwards compatibility.
 
 This can be done by adding a `*` to the argument list, e.g.:
 
 ```python
-def foo(self, *, b):
+def foo(self, *, b=None):
     pass
 ```
 
