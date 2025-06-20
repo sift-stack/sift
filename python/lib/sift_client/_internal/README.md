@@ -97,22 +97,6 @@ Update models are used for partial updates with field masks:
 2. It provides conversion to protocol buffers with field masks
 3. It only includes explicitly set fields in the update
 
-Example from `types/base.py`:
-
-```python
-class ModelUpdate(BaseModel, ABC):
-    """Base class for Pydantic models that generate proto patches with field masks"""
-
-    _resource_id: Optional[Any] = PrivateAttr(default=None)
-
-    class Config:
-        frozen = False
-
-    def to_proto_with_mask(self) -> tuple[ProtoT, field_mask_pb2.FieldMask]:
-        """Convert to proto with field mask"""
-        # Implementation that builds a proto message and field mask
-```
-
 ### Specific Types
 
 Specific types inherit from `BaseType` and implement domain-specific logic:
@@ -172,6 +156,8 @@ Using a dedicated event loop in a separate thread has some performance implicati
 2. **Synchronization Cost**: Communication between event loops requires thread synchronization
 3. **Concurrency Benefit**: gRPC operations can run concurrently with the main application
 
+However, this trade-off is often worth it for the ease of maintenance and development.
+
 #### Usage in Different Contexts
 
 1. **In a synchronous context**:
@@ -201,12 +187,7 @@ The `GrpcClient` class handles proper cleanup of resources:
     - Difficult to ensure reliability in all contexts
 
 2. **Fully Synchronous Low-Level API**: Using only sync gRPC stubs
-    - Simpler but less efficient
     - Would require duplicating code for async versions
-
-3. **Thread-Local Event Loops**: Using thread-local storage for event loops
-    - More complex implementation
-    - Potential for resource leaks
 
 The dedicated event loop approach was chosen as the best balance between reliability, performance, and code
 maintainability.
