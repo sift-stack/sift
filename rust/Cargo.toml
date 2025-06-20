@@ -6,6 +6,7 @@ members = [
   "crates/sift_stream",
   "crates/sift_error",
   "crates/sift_connect",
+  "crates/sift_stream_bindings",
 ]
 
 [workspace.package]
@@ -28,3 +29,4 @@ sift_connect = { version = "0.3.0", path = "crates/sift_connect" }
 sift_rs = { version = "0.3.0", path = "crates/sift_rs" }
 sift_error = { version = "0.3.0", path = "crates/sift_error" }
 sift_stream = { version = "0.3.0", path = "crates/sift_stream" }
+sift_stream_bindings = { version = "0.1.0", path = "crates/sift_stream_bindings" }

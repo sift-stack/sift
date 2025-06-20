@@ -1,0 +1,22 @@
+[package]
+name = "sift-stream-bindings"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+categories = { workspace = true }
+readme = "README.md"
+
+[lib]
+name = "sift_stream_bindings"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.25.0" }
+sift_rs = { workspace = true }
+sift_stream = { workspace = true }
+sift_error = { workspace = true }
+pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
