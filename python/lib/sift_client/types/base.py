@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar
 
 from google.protobuf import field_mask_pb2, message
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, ConfigDict, PrivateAttr
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -15,10 +15,9 @@ SelfT = TypeVar("SelfT", bound="BaseType")
 
 
 class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
-    _client: SiftClient | None = None
+    model_config = ConfigDict(frozen=True)
 
-    class Config:
-        frozen = True
+    _client: SiftClient | None = None
 
     @property
     def client(self) -> SiftClient:
@@ -49,10 +48,9 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
 class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
     """Base class for Pydantic models that generate proto patches with field masks"""
 
-    _resource_id: Optional[Any] = PrivateAttr(default=None)
+    model_config = ConfigDict(frozen=False)
 
-    class Config:
-        frozen = False
+    _resource_id: Optional[Any] = PrivateAttr(default=None)
 
     @property
     def resource_id(self):
