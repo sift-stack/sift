@@ -67,27 +67,16 @@ class IngestionService(_IngestionServiceImpl):
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
+        force_new: bool = False,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
-        """
-        super().attach_run(channel, run_name, description, organization_id, tags, metadata)
 
-    def attach_new_run(
-        self,
-        channel: SiftChannel,
-        run_name: str,
-        description: Optional[str] = None,
-        organization_id: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
-    ):
+        Include `force_new=True` to force the creation of a new run, which will allow creation of a new run using an existing name.
         """
-        Create a new run to use during this period of ingestion.
-        Will generate a new `run_id` even if a run with the same name already exists, allowing multiple runs with the same name.
-        Prefer `attach_run` unless intent is to create a new run regardless of existing run names.
-        """
-        super().attach_new_run(channel, run_name, description, organization_id, tags, metadata)
+        super().attach_run(
+            channel, run_name, description, organization_id, tags, metadata, force_new
+        )
 
     def detach_run(self):
         """

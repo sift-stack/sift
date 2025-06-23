@@ -136,39 +136,19 @@ class _IngestionServiceImpl:
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
+        force_new: bool = False,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
-        """
-        run_id = get_run_id_by_name(channel, run_name)
 
-        if run_id is not None:
-            self.run_id = run_id
-            return
-
-        self.run_id = create_run(
-            channel=channel,
-            run_name=run_name,
-            description=description or "",
-            organization_id=organization_id or "",
-            tags=tags or [],
-            metadata=metadata,
-        )
-
-    def attach_new_run(
-        self,
-        channel: SiftChannel,
-        run_name: str,
-        description: Optional[str] = None,
-        organization_id: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
-    ):
+        Include `force_new=True` to force the creation of a new run, which will allow creation of a new run using an existing name.
         """
-        Create a new run to use during this period of ingestion.
-        Will generate a new `run_id` even if a run with the same name already exists, allowing multiple runs with the same name.
-        Prefer `attach_run` unless intent is to create a new run regardless of existing run names.
-        """
+        if not force_new:
+            run_id = get_run_id_by_name(channel, run_name)
+
+            if run_id is not None:
+                self.run_id = run_id
+                return
 
         self.run_id = create_run(
             channel=channel,
