@@ -9,6 +9,7 @@ from typing import Any
 from sift_client.client import SiftClient
 from sift_client.types.asset import Asset, AssetUpdate
 
+
 class AssetsAPI:
     """
     Sync counterpart to `AssetsAPIAsync`.
@@ -130,6 +131,7 @@ class AssetsAPI:
             The updated Asset.
         """
         ...
+
 
 class PingAPI:
     """
