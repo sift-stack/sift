@@ -73,6 +73,22 @@ class IngestionService(_IngestionServiceImpl):
         """
         super().attach_run(channel, run_name, description, organization_id, tags, metadata)
 
+    def attach_new_run(
+        self,
+        channel: SiftChannel,
+        run_name: str,
+        description: Optional[str] = None,
+        organization_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
+    ):
+        """
+        Create a new run to use during this period of ingestion.
+        Will generate a new `run_id` even if a run with the same name already exists, allowing multiple runs with the same name.
+        Prefer `attach_run` unless intent is to create a new run regardless of existing run names.
+        """
+        super().attach_new_run(channel, run_name, description, organization_id, tags, metadata)
+
     def detach_run(self):
         """
         Detach run from this period of ingestion. Subsequent data ingested won't be associated with
