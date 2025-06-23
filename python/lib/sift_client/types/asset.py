@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Type
 
+from pydantic import BaseModel
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
 from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
@@ -10,6 +11,12 @@ from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+
+
+class Test(BaseModel):
+    """Model of a test."""
+
+    name: str
 
 
 class Asset(BaseType[AssetProto, "Asset"]):
