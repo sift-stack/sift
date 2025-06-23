@@ -21,7 +21,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
         frozen = True
 
     @property
-    def client(self) -> "SiftClient":
+    def client(self) -> SiftClient:
         if self._client is None:
             raise ValueError(
                 "Sift client not set. Please retrieve with the SiftClient to use this method."
@@ -31,6 +31,10 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     @classmethod
     @abstractmethod
     def _from_proto(cls, proto: ProtoT, sift_client: SiftClient | None = None) -> SelfT: ...
+
+    def _apply_client_to_instance(self, client: SiftClient) -> None:
+        # This bypasses the frozen status of the model
+        self.__dict__["_client"] = client
 
     def _update(self, other: BaseType[ProtoT, SelfT]) -> BaseType[ProtoT, SelfT]:
         """Update this instance with the values from another instance"""

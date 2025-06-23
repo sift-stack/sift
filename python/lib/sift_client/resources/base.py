@@ -34,8 +34,8 @@ class ResourceBase(ABC):
         return self.client.rest_client
 
     def _apply_client_to_instance(self, instance: T) -> T:
-        # Create a copy since it is frozen
-        return instance.model_copy(update={"_client": self.client})
+        instance._apply_client_to_instance(self.client)
+        return instance
 
     def _apply_client_to_instances(self, instances: list[T]) -> list[T]:
         return [self._apply_client_to_instance(i) for i in instances]
