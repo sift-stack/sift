@@ -64,7 +64,7 @@ class GrpcConfig:
         self.cert_via_openssl = cert_via_openssl
         self.metadata = metadata or {}
 
-    def to_sift_channel_config(self) -> SiftChannelConfig:
+    def _to_sift_channel_config(self) -> SiftChannelConfig:
         """
         Convert to a SiftChannelConfig.
 
@@ -114,7 +114,7 @@ class GrpcClient:
         )
         self._default_loop_thread.start()
         # init async channel on default loop via helper coroutine
-        cfg = config.to_sift_channel_config()
+        cfg = config._to_sift_channel_config()
         future = asyncio.run_coroutine_threadsafe(
             self._create_async_channel(cfg, config.metadata), self._default_loop
         )
@@ -140,7 +140,7 @@ class GrpcClient:
 
         if loop not in self._channels_async:
             channel = use_sift_async_channel(
-                self._config.to_sift_channel_config(), self._config.metadata
+                self._config._to_sift_channel_config(), self._config.metadata
             )
             self._channels_async[loop] = channel
             self._stubs_async_map[loop] = {}

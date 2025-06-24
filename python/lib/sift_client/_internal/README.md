@@ -117,7 +117,7 @@ The architecture consists of:
 
 1. **Low-level clients**: Pure async implementations that wrap gRPC stubs
 2. **High-level APIs**: Both sync and async versions that provide user-friendly interfaces
-3. **Dedicated event loop**: A separate event loop in its own thread for gRPC async operations
+3. **Dedicated event loop**: A separate event loop in its own thread for gRPC async operations if needed for high-level API synchronous calls
 
 ### Design Decisions
 
@@ -133,6 +133,10 @@ that:
 1. All gRPC async stubs are created in the same event loop
 2. All gRPC async operations run in that same event loop
 3. The client works reliably in any context (sync or async)
+
+When using within an async context, the dedicated event loop is not used and the client uses the default event loop.
+
+See `sift_client/transport/grpc_transport:GrpcClient.get_stub` for more details on event loop management.
 
 #### Low-Level vs High-Level APIs
 
