@@ -136,15 +136,19 @@ class _IngestionServiceImpl:
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
+        force_new: bool = False,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
-        """
-        run_id = get_run_id_by_name(channel, run_name)
 
-        if run_id is not None:
-            self.run_id = run_id
-            return
+        Include `force_new=True` to force the creation of a new run, which will allow creation of a new run using an existing name.
+        """
+        if not force_new:
+            run_id = get_run_id_by_name(channel, run_name)
+
+            if run_id is not None:
+                self.run_id = run_id
+                return
 
         self.run_id = create_run(
             channel=channel,

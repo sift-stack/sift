@@ -67,11 +67,16 @@ class IngestionService(_IngestionServiceImpl):
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
+        force_new: bool = False,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
+
+        Include `force_new=True` to force the creation of a new run, which will allow creation of a new run using an existing name.
         """
-        super().attach_run(channel, run_name, description, organization_id, tags, metadata)
+        super().attach_run(
+            channel, run_name, description, organization_id, tags, metadata, force_new
+        )
 
     def detach_run(self):
         """
