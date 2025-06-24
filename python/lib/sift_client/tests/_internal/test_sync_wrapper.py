@@ -120,12 +120,12 @@ class TestSyncWrapper:
     def mock_resource_sync(self):
         """Create a mock sync resource."""
         mock_client = MockClient()
-        MockResource = generate_sync_api(MockResourceAsync, "MockResource")
+        MockResource = generate_sync_api(MockResourceAsync, "MockResource")  # noqa: N806
         return MockResource(mock_client, value="testVal")
 
     def test_sync_class_creation(self):
         """Test that a sync class is created correctly."""
-        MockResource = generate_sync_api(MockResourceAsync, "MockResource")
+        MockResource = generate_sync_api(MockResourceAsync, "MockResource")  # noqa: N806
 
         # Check class properties
         assert MockResource.__name__ == "MockResource"
