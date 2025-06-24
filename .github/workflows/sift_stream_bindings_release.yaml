@@ -119,22 +119,22 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: $GITHUB_WORKSPACE/artifacts
+          path: ${{ github.workspace }}/artifacts
       - name: Extract artifacts
         run: |
-          mkdir -p $GITHUB_WORKSPACE/dist
+          mkdir -p ${{ github.workspace }}/dist
           # Extract each artifact directory's contents
-          for artifact_dir in $GITHUB_WORKSPACE/artifacts/*/; do
+          for artifact_dir in ${{ github.workspace }}/artifacts/*/; do
             if [ -d "$artifact_dir" ]; then
               echo "Extracting from $artifact_dir"
-              cp -r "$artifact_dir"* $GITHUB_WORKSPACE/dist/
+              cp -r "$artifact_dir"* ${{ github.workspace }}/dist/
             fi
           done
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: $GITHUB_WORKSPACE/artifacts/wheels-*/*
+          subject-path: ${{ github.workspace }}/artifacts/wheels-*/*
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: $GITHUB_WORKSPACE/dist
+          packages-dir: ${{ github.workspace }}/dist
