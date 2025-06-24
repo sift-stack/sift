@@ -135,7 +135,7 @@ class GrpcClient:
             loop = asyncio.get_running_loop()
             # suppress benign EAGAIN (no-data) errors from gRPC poll on this loop
             loop.set_exception_handler(_suppress_blocking_io)
-        except RuntimeError:
+        except RuntimeError:  # No running event loop
             loop = self._default_loop
 
         if loop not in self._channels_async:

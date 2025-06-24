@@ -36,7 +36,7 @@ class AssetsAPI:
         """ """
         ...
 
-    def archive(self, *, asset: str | Asset, archive_runs: bool = False) -> Asset:
+    def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
         """
         Archive an asset.
 
@@ -118,7 +118,7 @@ class AssetsAPI:
         """
         ...
 
-    def update(self, *, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
+    def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
         """
         Update an Asset.
 

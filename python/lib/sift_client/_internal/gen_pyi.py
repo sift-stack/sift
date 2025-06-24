@@ -5,6 +5,7 @@ import importlib
 import inspect
 import pathlib
 import sys
+import warnings
 from collections import OrderedDict
 from typing import Callable
 
@@ -77,9 +78,8 @@ def write_stub_files(stub_files: dict[pathlib.Path, str]):
         print(f"Writing stub: {pyi_file}")
         pyi_file.write_text(content)
 
+def generate_stub_for_class(classes: SyncAPIRegistration) -> str:
 
-# def generate_stub_for_class(classes: SyncAPIRegistration) -> str:
-#
 
 
 def generate_stubs_for_module(path_arg: str) -> dict[pathlib.Path, str]:
@@ -122,6 +122,65 @@ def generate_stubs_for_module(path_arg: str) -> dict[pathlib.Path, str]:
 
             matched: SyncAPIRegistration = matching_registered_classes[0]
 
+            async_class = matched.get("async_cls")
+            if async_class is None:
+                warnings.warn(
+                    f"Could not find async class for {cls_name}. Skipping stub generation."
+                )
+                continue
+
+
+            # Read imports from the original async class module
+            source_file = inspect.getsourcefile(async_class)
+            if source_file is None:
+                warnings.warn(
+                    f"Could not find source file for {async_class.__name__}. Skipping stub generation."
+                )
+                continue
+
+            orig_path = pathlib.Path(source_file).resolve()
+            imports = extract_imports(orig_path)
+            for imp in imports:
+                new_module_imports.append(imp)
+
+            # Class docstring
+            raw_doc = inspect.getdoc(cls) or ""
+            if raw_doc:
+                doc = (
+                    '    """\n' + "\n".join(f"    {l}" for l in raw_doc.splitlines()) + '\n    """'
+                )
+            else:
+                doc = "    ..."
+
+            methods = []
+
+            # Method stub generation
+            orig_methods = inspect.getmembers(cls, inspect.isfunction)
+            for meth_name, method in orig_methods:
+                methods.append(generate_method_stub(meth_name, method, module))
+
+            # Property stub generation
+            orig_properties = inspect.getmembers(cls, lambda o: isinstance(o, property))
+            for prop_name, prop in orig_properties:
+                # Getters
+                if prop.fget:
+                    methods.append(generate_method_stub(prop_name, prop.fget, module, "@property"))
+                # Setters
+                if prop.fset:
+                    methods.append(
+                        generate_method_stub(prop_name, prop.fset, module, "@property.setter")
+                    )
+                # Deleters
+                if prop.fdel:
+                    methods.append(
+                        generate_method_stub(prop_name, prop.fdel, module, "@property.deleter")
+                    )
+
+            stub = CLASS_TEMPLATE.format(
+                cls_name=cls_name,
+                doc=doc,
+                methods="".join(methods),
+            )
             lines.append(stub)
 
         unique_imports = list(OrderedDict.fromkeys(new_module_imports))
