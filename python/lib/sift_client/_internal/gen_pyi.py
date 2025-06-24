@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import ast
 import importlib
 import inspect
 import pathlib
 import sys
-import warnings
 from collections import OrderedDict
 from typing import Callable
 
@@ -71,7 +72,17 @@ def format_annotation(ann):
     return getattr(ann, "__qualname__", repr(ann))
 
 
-def generate_stub_for_module(path_arg: str):
+def write_stub_files(stub_files: dict[pathlib.Path, str]):
+    for pyi_file, content in stub_files.items():
+        print(f"Writing stub: {pyi_file}")
+        pyi_file.write_text(content)
+
+
+# def generate_stub_for_class(classes: SyncAPIRegistration) -> str:
+#
+
+
+def generate_stubs_for_module(path_arg: str) -> dict[pathlib.Path, str]:
     cwd = pathlib.Path.cwd().resolve()
     candidate = pathlib.Path(path_arg)
     abs_path = (cwd / candidate).resolve()
@@ -83,12 +94,14 @@ def generate_stub_for_module(path_arg: str):
     else:
         raise ValueError(f"{path_arg!r} is neither a file nor a directory")
 
+    stub_files: dict[pathlib.Path, str] = {}
+
     # Find all python files in the directory
-    for py in search_root.rglob("*.py"):
-        if py.name.startswith("test_"):
+    for py_file in search_root.rglob("*.py"):
+        if py_file.name.startswith("test_"):
             continue
         # Determine module name to import
-        rel = py.with_suffix("").relative_to(cwd)
+        rel = py_file.with_suffix("").relative_to(cwd)
         module_name = ".".join(rel.parts)
         module = importlib.import_module(module_name)
         new_module_imports = [
@@ -107,71 +120,17 @@ def generate_stub_for_module(path_arg: str):
             if len(matching_registered_classes) < 1:
                 continue
 
-            async_class = matching_registered_classes[0].get("async_cls")
-            if async_class is None:
-                warnings.warn(
-                    f"Could not find async class for {cls_name}. Skipping stub generation."
-                )
-                continue
+            matched: SyncAPIRegistration = matching_registered_classes[0]
 
-            # Read imports from the original async class module
-            source_file = inspect.getsourcefile(async_class)
-            if source_file is None:
-                warnings.warn(
-                    f"Could not find source file for {async_class.__name__}. Skipping stub generation."
-                )
-                continue
-
-            orig_path = pathlib.Path(source_file).resolve()
-            imports = extract_imports(orig_path)
-            for imp in imports:
-                new_module_imports.append(imp)
-
-            # Class docstring
-            raw_doc = inspect.getdoc(cls) or ""
-            if raw_doc:
-                doc = (
-                    '    """\n' + "\n".join(f"    {l}" for l in raw_doc.splitlines()) + '\n    """'
-                )
-            else:
-                doc = "    ..."
-
-            methods = []
-
-            # Method stub generation
-            orig_methods = inspect.getmembers(cls, inspect.isfunction)
-            for meth_name, method in orig_methods:
-                methods.append(generate_method_stub(meth_name, method, module))
-
-            # Property stub generation
-            orig_properties = inspect.getmembers(cls, lambda o: isinstance(o, property))
-            for prop_name, prop in orig_properties:
-                # Getters
-                if prop.fget:
-                    methods.append(generate_method_stub(prop_name, prop.fget, module, "@property"))
-                # Setters
-                if prop.fset:
-                    methods.append(
-                        generate_method_stub(prop_name, prop.fset, module, "@property.setter")
-                    )
-                # Deleters
-                if prop.fdel:
-                    methods.append(
-                        generate_method_stub(prop_name, prop.fdel, module, "@property.deleter")
-                    )
-
-            stub = CLASS_TEMPLATE.format(
-                cls_name=cls_name,
-                doc=doc,
-                methods="".join(methods),
-            )
             lines.append(stub)
 
         unique_imports = list(OrderedDict.fromkeys(new_module_imports))
         lines = [HEADER] + unique_imports + lines
-        pyi = py.with_suffix(".pyi")
-        print(f"Writing stub: {pyi}")
-        pyi.write_text("\n".join(lines))
+        pyi_file = py_file.with_suffix(".pyi")
+
+        stub_files[pyi_file] = "\n".join(lines)
+
+    return stub_files
 
 
 def generate_method_stub(name: str, f: Callable, module, decorator: str = "") -> str:
@@ -262,4 +221,6 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: gen_pyi.py <path/to/module-or-directory>")
         sys.exit(1)
-    generate_stub_for_module(sys.argv[1])
+
+    stubs = generate_stubs_for_module(sys.argv[1])
+    write_stub_files(stubs)
