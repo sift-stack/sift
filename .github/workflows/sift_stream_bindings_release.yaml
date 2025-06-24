@@ -119,22 +119,43 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: $GITHUB_WORKSPACE/artifacts
-      - name: Extract artifacts
+          path: ${{ github.workspace }}/artifacts
+      - name: Debug artifacts structure
         run: |
-          mkdir -p $GITHUB_WORKSPACE/dist
-          # Extract each artifact directory's contents
-          for artifact_dir in $GITHUB_WORKSPACE/artifacts/*/; do
+          echo "Current directory: $(pwd)"
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "Branch/Tag: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Artifacts directory contents:"
+          ls -la ${{ github.workspace }}/artifacts/
+          echo "Individual artifact contents:"
+          for artifact_dir in ${{ github.workspace }}/artifacts/*/; do
             if [ -d "$artifact_dir" ]; then
-              echo "Extracting from $artifact_dir"
-              cp -r "$artifact_dir"* $GITHUB_WORKSPACE/dist/
+              echo "Artifact: $(basename "$artifact_dir")"
+              ls -la "$artifact_dir"
             fi
           done
+      - name: Extract artifacts
+        run: |
+          mkdir -p ${{ github.workspace }}/dist
+          # Extract each artifact directory's contents
+          for artifact_dir in ${{ github.workspace }}/artifacts/*/; do
+            if [ -d "$artifact_dir" ]; then
+              echo "Extracting from $artifact_dir"
+              cp -r "$artifact_dir"* ${{ github.workspace }}/dist/
+            fi
+          done
+      - name: Debug final dist contents
+        run: |
+          echo "Final dist directory contents:"
+          ls -la ${{ github.workspace }}/dist/
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: $GITHUB_WORKSPACE/artifacts/wheels-*/*
+          subject-path: ${{ github.workspace }}/artifacts/wheels-*/*
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: $GITHUB_WORKSPACE/dist
+          packages-dir: ${{ github.workspace }}/dist
+          repository-url: https://test.pypi.org/legacy/
+          verbose: true
