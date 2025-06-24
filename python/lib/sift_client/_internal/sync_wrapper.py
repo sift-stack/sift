@@ -89,27 +89,42 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> Type[Any]:
         # ───────── property ─────────
         if isinstance(attr, property) and attr.fget:
             func = attr.fget
-            # async
+            is_async_prop = inspect.iscoroutinefunction(func)
 
-            @property  # type: ignore[misc]
-            @wraps(func)
-            def sync_prop_wrapper(self):
-                return self._run(func.__get__(self._async_impl)())
+            # Capture the current name in the closure
+            prop_name = name
 
-            @property  # type: ignore[misc]
-            @wraps(func)
-            def sync_prop(self):
-                return func.__get__(self._async_impl)()
+            if is_async_prop:
+                # wrap the async property getter _prop_name passed to ensure name is correct when called
+                @property  # type: ignore[misc]
+                @wraps(func)
+                def sync_prop_wrapper(self, _prop_name=prop_name):
+                    # Directly call the original function with the async implementation as self
+                    coro = getattr(self._async_impl, _prop_name)
+                    return self._run(coro)
 
-            namespace[name] = sync_prop_wrapper if inspect.iscoroutinefunction(func) else sync_prop
+                namespace[name] = sync_prop_wrapper
+
+            else:
+                # wrap the sync property getter _prop_name passed to ensure name is correct when called
+                @property  # type: ignore[misc]
+                @wraps(func)
+                def sync_prop(self, _prop_name=prop_name):
+                    # Access the property directly using getattr with the captured name
+                    return getattr(self._async_impl, _prop_name)
+
+                namespace[name] = sync_prop
+
             continue
 
         # ───────── staticmethod ─────────
         if isinstance(attr, staticmethod):
+            # Currently assumes that we have the _async_impl which is from class instantiation.
             raise NotImplementedError("staticmethod is not supported sync_wrapper")
 
         # ───────── classmethod ─────────
         if isinstance(attr, classmethod):
+            # Currently assumes that we have the _async_impl which is from class instantiation.
             raise NotImplementedError("classmethod is not supported for sync_wrapper")
 
         # ───────── plain method ─────────

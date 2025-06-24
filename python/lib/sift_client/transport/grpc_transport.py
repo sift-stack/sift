@@ -8,6 +8,7 @@ It just stores the channel and the stubs, without any additional functionality.
 from __future__ import annotations
 
 import asyncio
+import atexit
 import logging
 import threading
 from typing import Any, Dict, Optional, Type
@@ -98,6 +99,7 @@ class GrpcClient:
         self._stubs_async_map: Dict[asyncio.AbstractEventLoop, Dict[Type[Any], Any]] = {}
         # default loop for sync API
         self._default_loop = asyncio.new_event_loop()
+        atexit.register(self.close_sync)
         # suppress benign EAGAIN (no-data) errors from gRPC poll on default loop
         self._default_loop.set_exception_handler(_suppress_blocking_io)
 
@@ -150,10 +152,13 @@ class GrpcClient:
 
     def close_sync(self):
         """Close the sync channel and all async channels."""
-        for ch in self._channels_async.values():
-            asyncio.run_coroutine_threadsafe(ch.close(), self._default_loop).result()
-        self._default_loop.call_soon_threadsafe(self._default_loop.stop)
-        self._default_loop_thread.join(timeout=1.0)
+        try:
+            for ch in self._channels_async.values():
+                asyncio.run_coroutine_threadsafe(ch.close(), self._default_loop).result()
+            self._default_loop.call_soon_threadsafe(self._default_loop.stop)
+            self._default_loop_thread.join(timeout=1.0)
+        except ValueError:
+            ...
 
     async def close(self):
         """Close sync and async channels and stop the default loop."""

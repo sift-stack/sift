@@ -56,6 +56,7 @@ def extract_imports(path: pathlib.Path) -> list[str]:
 
 
 def format_annotation(ann):
+    # Handle multiple ways annotations are represented
     if ann is inspect._empty:
         return ""
     if isinstance(ann, str):
@@ -82,6 +83,7 @@ def generate_stub_for_module(path_arg: str):
     else:
         raise ValueError(f"{path_arg!r} is neither a file nor a directory")
 
+    # Find all python files in the directory
     for py in search_root.rglob("*.py"):
         if py.name.startswith("test_"):
             continue
@@ -91,7 +93,7 @@ def generate_stub_for_module(path_arg: str):
         module = importlib.import_module(module_name)
         new_module_imports = [
             FUTURE_IMPORTS
-        ]  # always use FUTURE_IMPORTS for backwards compatibility
+        ]  # always use FUTURE_IMPORTS for backwards compatibility (in case it was omitted)
 
         lines = []
 
@@ -104,6 +106,7 @@ def generate_stub_for_module(path_arg: str):
             )
             if len(matching_registered_classes) < 1:
                 continue
+
             async_class = matching_registered_classes[0].get("async_cls")
             if async_class is None:
                 warnings.warn(
@@ -134,19 +137,24 @@ def generate_stub_for_module(path_arg: str):
                 doc = "    ..."
 
             methods = []
-            orig_methods = inspect.getmembers(cls, inspect.isfunction)
 
+            # Method stub generation
+            orig_methods = inspect.getmembers(cls, inspect.isfunction)
             for meth_name, method in orig_methods:
                 methods.append(generate_method_stub(meth_name, method, module))
 
+            # Property stub generation
             orig_properties = inspect.getmembers(cls, lambda o: isinstance(o, property))
             for prop_name, prop in orig_properties:
+                # Getters
                 if prop.fget:
                     methods.append(generate_method_stub(prop_name, prop.fget, module, "@property"))
+                # Setters
                 if prop.fset:
                     methods.append(
                         generate_method_stub(prop_name, prop.fset, module, "@property.setter")
                     )
+                # Deleters
                 if prop.fdel:
                     methods.append(
                         generate_method_stub(prop_name, prop.fdel, module, "@property.deleter")
@@ -168,10 +176,6 @@ def generate_stub_for_module(path_arg: str):
 
 def generate_method_stub(name: str, f: Callable, module, decorator: str = "") -> str:
     sig = inspect.signature(f)
-    # try:
-    #     hints = get_type_hints(f, module.__dict__, module.__dict__)
-    # except NameError:
-    #     hints = {}
 
     # Parameters
     params = []
@@ -239,10 +243,6 @@ def generate_method_stub(name: str, f: Callable, module, decorator: str = "") ->
     params_txt = "".join(params)
 
     # Return annotation
-    # ret_ann = hints.get("return", sig.return_annotation)
-    # ret_txt = ""
-    # if ret_ann is not inspect._empty:
-    #     ret_txt = f" -> {format_annotation(ret_ann)}"
     ret_txt = f" -> {sig.return_annotation}" if sig.return_annotation is not inspect._empty else ""
 
     # Method docstring
