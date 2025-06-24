@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from sift.metadata.v1.metadata_pb2 import MetadataValue as MetadataProto
 
-from sift_client.types.base import BaseType, ModelUpdate
+from sift_client.types._base import BaseType, ModelUpdate
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient

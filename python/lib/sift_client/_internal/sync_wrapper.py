@@ -11,7 +11,7 @@ from typing import Any, Type, TypeVar
 
 from typing_extensions import TypedDict
 
-from sift_client.resources.base import ResourceBase
+from sift_client.resources._base import ResourceBase
 
 
 # registry of all classes decorated with @generate_sync_api

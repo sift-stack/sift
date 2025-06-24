@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
-from sift_client.resources.base import ResourceBase
+from sift_client.resources._base import ResourceBase
 from sift_client.types.asset import Asset, AssetUpdate
 from sift_client.util import cel_utils
 
@@ -60,7 +60,9 @@ class AssetsAPIAsync(ResourceBase):
             if len(assets) < 1:
                 raise ValueError(f"No asset found with name '{name}'")
             if len(assets) > 1:
-                raise ValueError(f"Multiple assets found with name '{name}'")  # should not happen
+                raise ValueError(
+                    f"Multiple ({len(assets)}) assets found with name '{name}'"
+                )  # should not happen
             asset = assets[0]
 
         else:

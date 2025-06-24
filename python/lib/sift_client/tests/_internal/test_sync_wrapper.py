@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 import pytest
 
 from sift_client._internal.sync_wrapper import generate_sync_api
-from sift_client.resources.base import ResourceBase
+from sift_client.resources._base import ResourceBase
 
 
 class MockClient:

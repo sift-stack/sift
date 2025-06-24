@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Type
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
-from sift_client.types.base import BaseType, ModelUpdate
+from sift_client.types._base import BaseType, ModelUpdate
 from sift_client.types.metadata import MetadataValue
 
 if TYPE_CHECKING:
