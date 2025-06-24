@@ -22,8 +22,8 @@ from datetime import datetime
 # Initialize with individual parameters
 client = SiftClient(
     api_key="your-api-key",
-    grpc_url="grpc.sift.com",
-    rest_url="api.sift.com"
+    grpc_url="your-sift-grpc-url",
+    rest_url="your-sift-rest-url"
 )
 
 # Or use a connection configuration
@@ -31,11 +31,13 @@ from sift_client.transport import SiftConnectionConfig
 
 config = SiftConnectionConfig(
     api_key="your-api-key",
-    grpc_url="grpc.sift.com",
-    rest_url="api.sift.com"
+    grpc_url="your-sift-grpc-url",
+    rest_url="your-sift-rest-url"
 )
 client = SiftClient(connection_config=config)
 ```
+
+The `SiftConnectionConfig` provides access to additional configuration options such as `use_ssl` and `cert_via_openssl`.
 
 ### Using Synchronous and Asynchronous APIs
 

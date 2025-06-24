@@ -19,6 +19,44 @@ class SiftClient(
     WithGrpcClient,
     WithRestClient,
 ):
+    """
+    SiftClient is a high-level client for interacting with Sift's APIs.
+
+    It provides both synchronous and asynchronous interfaces, strong type checking, and a Pythonic API design.
+
+    Example usage:
+        from sift_client import SiftClient
+        from datetime import datetime
+
+        # Initialize with individual parameters
+        client = SiftClient(
+            api_key="your-api-key",
+            grpc_url="your-sift-grpc-url",
+            rest_url="your-sift-rest-url")
+
+        # Or use a connection configuration to customize connection behavior
+        connection_config = SiftConnectionConfig(
+            grpc_config=GrpcConfig(),
+            rest_config=RestConfig())
+
+        sift = SiftClient(connection_config=connection_config)
+
+        # Use the client to make requests
+        response = sift.ping.ping()
+
+        # Or asynchronously
+        response = await sift.ping_async.ping()
+    """
+
+    """Instance of the Ping API for making synchronous requests."""
+    ping: PingAPI
+    """Instance of the Ping API for making asynchronous requests."""
+    ping_async: PingAPIAsync
+    """Instance of the Assets API for making synchronous requests."""
+    assets: AssetsAPI
+    """Instance of the Assets API for making asynchronous requests."""
+    assets_async: AssetsAPIAsync
+
     def __init__(
         self,
         api_key: str | None = None,
@@ -26,6 +64,16 @@ class SiftClient(
         rest_url: str | None = None,
         connection_config: SiftConnectionConfig | None = None,
     ):
+        """
+        Initialize the SiftClient with specific connection parameters or a connection_config.
+
+        Args:
+            api_key: The Sift API key for authentication.
+            grpc_url: The Sift gRPC API URL.
+            rest_url: The Sift REST API URL.
+            connection_config: A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
+        """
+
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
                 "Either api_key, grpc_uri and rest_uri or connection_config must be provided to establish a connection."
@@ -52,8 +100,10 @@ class SiftClient(
 
     @property
     def grpc_client(self) -> GrpcClient:
+        """The gRPC client used by the SiftClient for making gRPC API calls."""
         return self._grpc_client
 
     @property
     def rest_client(self) -> RestClient:
+        """The REST client used by the SiftClient for making REST API calls."""
         return self._rest_client

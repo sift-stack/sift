@@ -8,6 +8,10 @@ from sift_client.transport.rest_transport import RestClient, RestConfig
 
 
 class SiftConnectionConfig:
+    """
+    Configuration for Grpc and Rest cnnections.
+    """
+
     def __init__(
         self,
         grpc_url: str,
@@ -46,6 +50,13 @@ class WithGrpcClient(ABC):
         self._grpc_client = grpc_client
 
     def get_asyncio_loop(self) -> asyncio.AbstractEventLoop:
+        """
+        Gets the default asyncio loop used by the gRPC client.
+
+        Returns:
+            The default asyncio loop.
+
+        """
         return self._grpc_client.default_loop
 
 
