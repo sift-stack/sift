@@ -120,21 +120,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: ${{ github.workspace }}/artifacts
-      - name: Debug artifacts structure
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-          echo "Branch/Tag: ${{ github.ref }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Artifacts directory contents:"
-          ls -la ${{ github.workspace }}/artifacts/
-          echo "Individual artifact contents:"
-          for artifact_dir in ${{ github.workspace }}/artifacts/*/; do
-            if [ -d "$artifact_dir" ]; then
-              echo "Artifact: $(basename "$artifact_dir")"
-              ls -la "$artifact_dir"
-            fi
-          done
       - name: Extract artifacts
         run: |
           mkdir -p ${{ github.workspace }}/dist
@@ -145,10 +130,6 @@ jobs:
               cp -r "$artifact_dir"* ${{ github.workspace }}/dist/
             fi
           done
-      - name: Debug final dist contents
-        run: |
-          echo "Final dist directory contents:"
-          ls -la ${{ github.workspace }}/dist/
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
@@ -158,4 +139,3 @@ jobs:
         with:
           packages-dir: ${{ github.workspace }}/dist
           repository-url: https://test.pypi.org/legacy/
-          verbose: true
