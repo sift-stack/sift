@@ -130,7 +130,7 @@ class TestSyncWrapper:
         # Check class properties
         assert MockResource.__name__ == "MockResource"
         assert MockResource.__module__ == MockResourceAsync.__module__
-        assert "Sync counterpart to" in MockResource.__doc__
+        assert "Sync counterpart to" in MockResource.__doc__ if MockResource.__doc__ else False
 
         # Check that methods were properly wrapped
         assert hasattr(MockResource, "sync_method")

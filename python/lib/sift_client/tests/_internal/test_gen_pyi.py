@@ -30,7 +30,7 @@ def test_extract_imports(generated):
 
     assert "from __future__ import annotations" in import_section
     assert "from sift_client.types.asset import Asset" in import_section
-    assert "from sift_client.resources.base import ResourceBase" in import_section
+    assert "from sift_client.resources._base import ResourceBase" in import_section
 
 
 def test_generate_stubs(generated):
@@ -49,7 +49,7 @@ def test_generate_stubs(generated):
     assert "A string." in generated
 
     # sync_method
-    assert "def sync_method(self, param1: str, **kwargs) -> Asset" in generated
+    assert "def sync_method(self, param1: str, **kwargs) -> Asset | None:" in generated
     # correct sync def, not async
     assert "async def sync_method" not in generated
     # docstring

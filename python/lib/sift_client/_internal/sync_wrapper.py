@@ -25,7 +25,7 @@ _registered: list[SyncAPIRegistration] = []
 S = TypeVar("S")
 
 
-def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> Type[S]:
+def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
     """
     Generate a synchronous wrapper class for the given async API class.
 

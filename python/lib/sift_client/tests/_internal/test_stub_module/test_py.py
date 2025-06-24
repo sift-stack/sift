@@ -22,9 +22,9 @@ class MockClassAsync(ResourceBase):
         """
         return f"{param1}:{param2}"
 
-    def sync_method(self, param1: str, **kwargs) -> Asset:
+    def sync_method(self, param1: str, **kwargs) -> Asset | None:
         """Mock sync method docstring."""
-        pass
+        return None
 
     @property
     async def async_prop(self) -> str:
@@ -42,4 +42,4 @@ class SecondMockClass:
 
     def shouldnt_be_in_gen_stubs(self):
         """Shouldn't be in gen stubs since it isn't called by generator"""
-        pass
+        return
