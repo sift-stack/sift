@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0] - June 24, 2025
+### What's New
+#### AssetService and Metadata Support
+Support for attaching metadata to a run or asset has been introduced through the addition of the `AssetService` and updates to the `attach_run` method of the `IngestionService`. See `examples/assets` for an example of updating metadata for an asset.
+
+### Full Changelog
+- [Make ingestion client key optional](https://github.com/sift-stack/sift/pull/226)
+- [Add support for metadata definition through the python client](https://github.com/sift-stack/sift/pull/232)
+- [Add public method for creating new run](https://github.com/sift-stack/sift/pull/246)
+
 ## [v0.6.2] - June 9, 2025
 - [Fixes bug in rosbags where nested arrays are not properly prefixed.](https://github.com/sift-stack/sift/pull/227)
 
