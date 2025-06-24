@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [v0.7.0] - June 24, 2025
 ### What's New
 #### AssetService and Metadata Support
-Support for attaching metadata to a run or asset has been introduced through updates to the 'AssetService' and 'RunService'. See 'examples/assets' for an example of updating metadata for an asset.
+Support for attaching metadata to a run or asset has been introduced through the addition of the `AssetService` and updates to the `attach_run` method of the `IngestionService`. See `examples/assets` for an example of updating metadata for an asset.
 
 ### Full Changelog
 - [Make ingestion client key optional](https://github.com/sift-stack/sift/pull/226)
