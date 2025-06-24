@@ -78,11 +78,11 @@ def write_stub_files(stub_files: dict[pathlib.Path, str]):
         print(f"Writing stub: {pyi_file}")
         pyi_file.write_text(content)
 
-def generate_stub_for_class(classes: SyncAPIRegistration) -> str:
+
+# def generate_stub_for_class(classes: SyncAPIRegistration) -> str:
 
 
-
-def generate_stubs_for_module(path_arg: str) -> dict[pathlib.Path, str]:
+def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path, str]:
     cwd = pathlib.Path.cwd().resolve()
     candidate = pathlib.Path(path_arg)
     abs_path = (cwd / candidate).resolve()
@@ -128,7 +128,6 @@ def generate_stubs_for_module(path_arg: str) -> dict[pathlib.Path, str]:
                     f"Could not find async class for {cls_name}. Skipping stub generation."
                 )
                 continue
-
 
             # Read imports from the original async class module
             source_file = inspect.getsourcefile(async_class)
