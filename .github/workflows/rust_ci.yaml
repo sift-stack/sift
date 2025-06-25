@@ -55,4 +55,4 @@ jobs:
           source .venv/bin/activate
           pip install sift-stream-bindings --find-links dist --force-reinstall
           pip install pytest
-          pytest
+          pytest rust/crates/sift_stream_bindings/tests
