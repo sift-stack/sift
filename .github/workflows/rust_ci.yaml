@@ -46,3 +46,13 @@ jobs:
         with:
           command: test
           args: test --lib --manifest-path rust/Cargo.toml --all-features
+
+      - name: Run sift-stream-bindings tests
+        shell: bash
+        run: |
+          set -e
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install sift-stream-bindings --find-links dist --force-reinstall
+          pip install pytest
+          pytest
