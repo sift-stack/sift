@@ -8,16 +8,19 @@ pub mod time;
 use crate::stream::channel::ChannelValuePy;
 use crate::stream::time::TimeValuePy;
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use sift_stream::{Flow, IngestionConfigMode, SiftStream};
 use std::sync::Arc;
 use std::sync::Mutex;
 
 // Type Definitions
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct SiftStreamPy {
     inner: Arc<Mutex<Option<SiftStream<IngestionConfigMode>>>>,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct FlowPy {
@@ -52,6 +55,7 @@ impl From<FlowPy> for Flow {
 }
 
 // PyO3 Method Implementations
+#[gen_stub_pymethods]
 #[pymethods]
 impl SiftStreamPy {
     pub fn send(&mut self, py: Python, flow: FlowPy) -> PyResult<Py<PyAny>> {
@@ -149,6 +153,7 @@ impl SiftStreamPy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl FlowPy {
     #[new]

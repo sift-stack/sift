@@ -2,11 +2,13 @@ use crate::stream::SiftStreamPy;
 use crate::stream::config::{IngestionConfigFormPy, RunFormPy};
 use crate::stream::retry::{DurationPy, RecoveryStrategyPy};
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use sift_stream::{Credentials, SiftStreamBuilder};
 use std::sync::Arc;
 use std::sync::Mutex;
 
 // Type Definitions
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct SiftStreamBuilderPy {
     #[pyo3(get, set)]
@@ -28,6 +30,7 @@ pub struct SiftStreamBuilderPy {
 }
 
 // PyO3 Method Implementations
+#[gen_stub_pymethods]
 #[pymethods]
 impl SiftStreamBuilderPy {
     #[new]

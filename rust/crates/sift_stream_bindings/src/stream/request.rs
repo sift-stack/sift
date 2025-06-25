@@ -1,9 +1,11 @@
 use crate::stream::channel::{ChannelValuePy, ChannelValueTypePy};
 use crate::stream::time::TimeValuePy;
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use sift_rs::ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest};
 
 // Type Definitions
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct IngestWithConfigDataStreamRequestPy {
@@ -45,6 +47,7 @@ impl From<IngestWithConfigDataStreamRequestPy> for IngestWithConfigDataStreamReq
 }
 
 // PyO3 Method Implementations
+#[gen_stub_pymethods]
 #[pymethods]
 impl IngestWithConfigDataStreamRequestPy {
     #[new]

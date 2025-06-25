@@ -1,9 +1,11 @@
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelDataType, ChannelEnumType};
 use sift_rs::ingest::v1::ingest_with_config_data_channel_value::Type as ChannelValueType;
 use sift_stream::stream::channel::{ChannelValue, Value};
 
 // Type Definitions
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct ChannelBitFieldElementPy {
@@ -16,6 +18,7 @@ pub struct ChannelBitFieldElementPy {
     bit_count: u32,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct ChannelEnumTypePy {
@@ -26,6 +29,7 @@ pub struct ChannelEnumTypePy {
     key: u32,
 }
 
+#[gen_stub_pyclass_enum]
 #[pyclass]
 #[derive(Clone)]
 pub enum ChannelDataTypePy {
@@ -43,12 +47,14 @@ pub enum ChannelDataTypePy {
     Bytes,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct ChannelValuePy {
     pub inner: ChannelValue,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct ChannelValueTypePy {
@@ -136,6 +142,7 @@ impl From<ChannelValueTypePy> for ChannelValueType {
 }
 
 // PyO3 Method Implementations
+#[gen_stub_pymethods]
 #[pymethods]
 impl ChannelBitFieldElementPy {
     #[new]
@@ -153,6 +160,7 @@ impl ChannelBitFieldElementPy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl ChannelEnumTypePy {
     #[new]
@@ -168,6 +176,7 @@ impl ChannelEnumTypePy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl ChannelValuePy {
     #[staticmethod]
@@ -271,6 +280,7 @@ impl ChannelValuePy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl ChannelValueTypePy {
     #[staticmethod]

@@ -1,7 +1,9 @@
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use sift_stream::stream::time::TimeValue;
 
 // Type Definitions
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct TimeValuePy {
@@ -22,6 +24,7 @@ impl From<TimeValuePy> for TimeValue {
 }
 
 // PyO3 Method Implementations
+#[gen_stub_pymethods]
 #[pymethods]
 impl TimeValuePy {
     #[new]

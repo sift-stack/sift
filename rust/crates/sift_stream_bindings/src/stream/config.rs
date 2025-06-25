@@ -1,9 +1,11 @@
 use crate::stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy};
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
 use sift_stream::{IngestionConfigForm, RunForm};
 
 // Type Definitions
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct ChannelConfigPy {
@@ -22,6 +24,7 @@ pub struct ChannelConfigPy {
     bit_field_elements: Vec<ChannelBitFieldElementPy>,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct FlowConfigPy {
@@ -32,6 +35,7 @@ pub struct FlowConfigPy {
     channels: Vec<ChannelConfigPy>,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct IngestionConfigFormPy {
@@ -43,6 +47,7 @@ pub struct IngestionConfigFormPy {
     client_key: String,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct RunFormPy {
@@ -85,6 +90,7 @@ impl From<RunFormPy> for RunForm {
 }
 
 // PyO3 Method Implementations
+#[gen_stub_pymethods]
 #[pymethods]
 impl ChannelConfigPy {
     #[new]
@@ -117,6 +123,7 @@ impl ChannelConfigPy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl FlowConfigPy {
     #[new]
@@ -132,6 +139,7 @@ impl FlowConfigPy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl IngestionConfigFormPy {
     #[new]
@@ -144,6 +152,7 @@ impl IngestionConfigFormPy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl RunFormPy {
     #[new]
