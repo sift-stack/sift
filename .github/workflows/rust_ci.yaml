@@ -54,5 +54,5 @@ jobs:
           python3 -m venv .venv
           source .venv/bin/activate
           pip install sift-stream-bindings --find-links dist --force-reinstall
-          pip install pytest
+          pip install pytest pytest-asyncio
           pytest rust/crates/sift_stream_bindings/tests
