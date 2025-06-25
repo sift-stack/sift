@@ -165,7 +165,7 @@ impl SiftStream<IngestionConfigMode> {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            streaming_id = format!("{sift_stream_id}"),
+            sift_stream_id = sift_stream_id.to_string(),
             "Sift streaming successfully initialized"
         );
 
@@ -213,7 +213,7 @@ impl SiftStream<IngestionConfigMode> {
         ) else {
             #[cfg(feature = "tracing")]
             tracing::warn!(
-                sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
                 values = format!("{message:?}"),
                 "encountered a message whose channel values do not match any configured flows"
             );
@@ -255,7 +255,7 @@ impl SiftStream<IngestionConfigMode> {
         {
             #[cfg(feature = "tracing")]
             tracing::info!(
-                streaming_id = format!("{}", self.mode.sift_stream_id),
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
                 "backup size limit reached - forcing checkpoint"
             );
 
@@ -297,7 +297,7 @@ impl SiftStream<IngestionConfigMode> {
                     Ok(Err(err)) => {
                         #[cfg(feature = "tracing")]
                         tracing::warn!(
-                            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
                             error = format!("{err:?}"),
                             "encountered an error while streaming to Sift"
                         );
@@ -307,7 +307,7 @@ impl SiftStream<IngestionConfigMode> {
                     Err(err) => {
                         #[cfg(feature = "tracing")]
                         tracing::warn!(
-                            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
                             error = format!("{err:?}"),
                             "something went wrong while waiting for response from Sift"
                         );
@@ -339,7 +339,7 @@ impl SiftStream<IngestionConfigMode> {
                 .or_insert_with(|| vec![flow_config.clone()]);
 
             tracing::info!(
-                sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
                 flow = flow_config.name,
                 "successfully registered new flow"
             );
@@ -384,7 +384,7 @@ impl SiftStream<IngestionConfigMode> {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+            sift_stream_id = self.mode.sift_stream_id.to_string(),
             "stream failed - attempting retry with retry policy: {:?}",
             retry_policy
         );
@@ -394,7 +394,7 @@ impl SiftStream<IngestionConfigMode> {
         for i in 1..=retry_policy.max_attempts {
             #[cfg(feature = "tracing")]
             tracing::info!(
-                sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
                 retry_counter = i,
                 "attempting retry"
             );
@@ -410,7 +410,7 @@ impl SiftStream<IngestionConfigMode> {
                 Ok(_) => {
                     #[cfg(feature = "tracing")]
                     tracing::info!(
-                        sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
                         retry_counter = i,
                         "successful retry - re-establishing connection to Sift"
                     );
@@ -424,7 +424,7 @@ impl SiftStream<IngestionConfigMode> {
                     #[cfg(feature = "tracing")]
                     if i < retry_policy.max_attempts {
                         tracing::warn!(
-                            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
                             retry_counter = i,
                             error = format!("{e:?}"),
                             "retry attempt failed - backing off for {}ms",
@@ -432,7 +432,7 @@ impl SiftStream<IngestionConfigMode> {
                         );
                     } else {
                         tracing::warn!(
-                            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
                             retry_counter = i,
                             original_error = format!("{e:?}"),
                             recent_error = format!("{e:?}"),
@@ -475,7 +475,7 @@ impl SiftStream<IngestionConfigMode> {
                 if data_tx.send(StreamMessage::Request(req)).await.is_err() {
                     #[cfg(feature = "tracing")]
                     tracing::warn!(
-                        sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
                         "unexpected error while draining to new buffer which may result in dropped data - please notify Sift"
                     );
 
@@ -492,12 +492,12 @@ impl SiftStream<IngestionConfigMode> {
                 #[cfg(feature = "tracing")]
                 {
                     tracing::debug!(
-                        sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
                         error = format!("{err:?}"),
                         "not all backups were successfully processed"
                     );
                     tracing::warn!(
-                        sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                        sift_stream_id = self.mode.sift_stream_id.to_string(),
                         "not all backups were successfully processed due to unexpected stream termination - retrying"
                     );
                 }
@@ -513,7 +513,7 @@ impl SiftStream<IngestionConfigMode> {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+            sift_stream_id = self.mode.sift_stream_id.to_string(),
             "successfully initialized a new stream to Sift"
         );
 
@@ -527,7 +527,7 @@ impl SiftStream<IngestionConfigMode> {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+            sift_stream_id = self.mode.sift_stream_id.to_string(),
             "restarting backups manager"
         );
 
@@ -556,7 +556,7 @@ impl SiftStream<IngestionConfigMode> {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+            sift_stream_id = self.mode.sift_stream_id.to_string(),
             "successfully restarted backups manager"
         );
 
@@ -570,7 +570,7 @@ impl SiftStream<IngestionConfigMode> {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+            sift_stream_id = self.mode.sift_stream_id.to_string(),
             "processing backups"
         );
 
@@ -586,14 +586,14 @@ impl SiftStream<IngestionConfigMode> {
                             if err.kind() == ErrorKind::BackupIntegrityError {
                                 #[cfg(feature = "tracing")]
                                 tracing::warn!(
-                                    sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
                                     messages_recovered = data_points,
                                     error = format!("{err:?}"),
                                     "encountered mismatched checksums - backup may be corrupted and not all messages were recoverable"
                                 )
                             } else {
                                 tracing::warn!(
-                                    sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
                                     messages_recovered = data_points,
                                     error = format!("{err:?}"),
                                     "something went wrong while processing backups"
@@ -617,7 +617,7 @@ impl SiftStream<IngestionConfigMode> {
                     if start.elapsed() >= Duration::from_secs(10) {
                         #[cfg(feature = "tracing")]
                         tracing::info!(
-                            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
                             messages_recovered = data_points,
                             "processing backups"
                         );
@@ -647,7 +647,7 @@ impl SiftStream<IngestionConfigMode> {
                     if start.elapsed() >= Duration::from_secs(10) {
                         #[cfg(feature = "tracing")]
                         tracing::info!(
-                            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
                             messages_recovered = data_points,
                             "processing backups"
                         );
@@ -661,13 +661,13 @@ impl SiftStream<IngestionConfigMode> {
         if data_points == 0 {
             #[cfg(feature = "tracing")]
             tracing::info!(
-                sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
                 "no backups to reingest"
             );
         } else {
             #[cfg(feature = "tracing")]
             tracing::info!(
-                sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
                 data_points_recovered = data_points,
                 "successfully reingested data since last checkpoint"
             );
@@ -682,7 +682,7 @@ impl SiftStream<IngestionConfigMode> {
         if let Some(backup_manager) = self.mode.backups_manager {
             #[cfg(feature = "tracing")]
             tracing::info!(
-                sift_stream_id = format!("{}", self.mode.sift_stream_id),
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
                 "shutting down backups manager"
             );
 
@@ -731,7 +731,7 @@ impl SiftStream<IngestionConfigMode> {
 
         #[cfg(feature = "tracing")]
         tracing::info!(
-            sift_stream_id = format!("{}", self.mode.sift_stream_id),
+            sift_stream_id = self.mode.sift_stream_id.to_string(),
             asset_id = self.mode.ingestion_config.asset_id,
             ingestion_config_id = self.mode.ingestion_config.ingestion_config_id,
             run = self.mode.run.map(|r| r.name).unwrap_or_default(),
@@ -764,18 +764,18 @@ impl SiftStream<IngestionConfigMode> {
 
                 #[cfg(feature = "tracing")]
                 tracing::debug!(
-                    sift_stream_id = format!("{sift_stream_id}"),
+                    sift_stream_id = sift_stream_id.to_string(),
                     "received notification to start checkpoint timer"
                 );
 
                 tokio::select! {
                     _ = checkpoint_timer.tick() => {
                         #[cfg(feature = "tracing")]
-                        tracing::info!(sift_stream_id = format!("{sift_stream_id}"), "checkpoint timer elapsed - initiating checkpoint");
+                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "checkpoint timer elapsed - initiating checkpoint");
                     }
                     _ = shutdown_rx => {
                         #[cfg(feature = "tracing")]
-                        tracing::info!(sift_stream_id = format!("{sift_stream_id}"), "initiating final checkpoint");
+                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "initiating final checkpoint");
                     }
                 }
                 let _ = data_tx.send(StreamMessage::CheckpointSignal).await;
@@ -796,7 +796,7 @@ impl SiftStream<IngestionConfigMode> {
                 Ok(res) => {
                     #[cfg(feature = "tracing")]
                     tracing::info!(
-                        sift_stream_id = format!("{sift_stream_id}"),
+                        sift_stream_id = sift_stream_id.to_string(),
                         "checkpoint acknowledgement received from Sift"
                     );
 
@@ -872,7 +872,7 @@ impl DataStream {
         let heartbeat_task = tokio::spawn(async move {
             loop {
                 tracing::debug!(
-                    sift_stream_id = format!("{sift_stream_id}"),
+                    sift_stream_id = sift_stream_id.to_string(),
                     "SiftStream heartbeat - healthy"
                 );
                 tokio::time::sleep(Duration::from_secs(30)).await;
@@ -905,7 +905,7 @@ impl Stream for DataStream {
                 StreamMessage::CheckpointSignal => {
                     #[cfg(feature = "tracing")]
                     tracing::debug!(
-                        sift_stream_id = format!("{}", self.sift_stream_id),
+                        sift_stream_id = self.sift_stream_id.to_string(),
                         "stream checkpoint signal received"
                     );
 
@@ -917,7 +917,7 @@ impl Stream for DataStream {
                 // All senders dropped.. conclude stream
                 #[cfg(feature = "tracing")]
                 tracing::debug!(
-                    sift_stream_id = format!("{}", self.sift_stream_id),
+                    sift_stream_id = self.sift_stream_id.to_string(),
                     "received signal to conclude SiftStream"
                 );
 
@@ -943,7 +943,7 @@ impl Drop for DataStream {
             let byte_rate_pretty = bytesize::ByteSize::b(byte_rate).display().iec();
 
             tracing::info!(
-                sift_stream_id = format!("{}", self.sift_stream_id),
+                sift_stream_id = self.sift_stream_id.to_string(),
                 stream_duration = format!("{elapsed_secs}s"),
                 messages_processed = self.messages_processed,
                 message_rate = format!("{message_rate} messages/s"),
@@ -965,7 +965,7 @@ impl Drop for DataStream {
         #[cfg(feature = "tracing")]
         if remaining_data_in_buffer_count > 0 {
             tracing::debug!(
-                sift_stream_id = format!("{}", self.sift_stream_id),
+                sift_stream_id = self.sift_stream_id.to_string(),
                 num_messages = remaining_data_in_buffer_count,
                 "current stream concluded - transferred remaining data to new buffer to use in next stream",
             )
