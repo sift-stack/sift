@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.4.0] - June 25, 2025
+
+- [Include a unique ID for each SiftStream instance that gets emitted with each log for improved traceability](https://github.com/sift-stack/sift/pull/250)
+  - `SiftStream` also will log a heartbeat at a regular interval when `tracing` feature flag is enabled.
+
 ## [v0.3.0] - June 12, 2025
 
 - Users can now initialize `SiftStreamBuilder` from an existing instance of `SiftChannel`

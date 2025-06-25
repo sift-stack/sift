@@ -1395,7 +1395,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "sift-stream-bindings"
-version = "0.3.0"
+version = "0.1.0"
 dependencies = [
  "pyo3",
  "pyo3-async-runtimes",
@@ -1406,7 +1406,7 @@ dependencies = [
 
 [[package]]
 name = "sift_connect"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "dirs",
  "sift_error",
@@ -1417,14 +1417,14 @@ dependencies = [
 
 [[package]]
 name = "sift_error"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "indoc",
 ]
 
 [[package]]
 name = "sift_rs"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1443,7 +1443,7 @@ dependencies = [
 
 [[package]]
 name = "sift_stream"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "bytesize",
