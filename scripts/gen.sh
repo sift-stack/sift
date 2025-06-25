@@ -63,9 +63,9 @@ gen_python_modules() {
   done
 
   # copy over generated python code
-  for sub_dir in $(ls -l $python_gen_dir | grep "^d" | awk '{ print $9 }'); do
-    rm -rf $python_lib/$sub_dir # remove old
-    mv $python_gen_dir/$sub_dir $python_lib # copy in new
+  for sub_dir in $(find $python_gen_dir -type d -maxdepth 1); do
+    rm -rf $python_lib/$(basename $sub_dir) # remove old
+    mv $sub_dir $python_lib # copy in new
   done
 
   # This is necessary to split `google` module into separate directories: one generated from the googleapis buf plugin,
