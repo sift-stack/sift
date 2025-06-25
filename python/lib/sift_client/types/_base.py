@@ -38,13 +38,13 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     def _update(self, other: BaseType[ProtoT, SelfT]) -> BaseType[ProtoT, SelfT]:
         """Update this instance with the values from another instance"""
         # This bypasses the frozen status of the model
-        for key in other.model_fields.keys():
+        for key in other.__class__.model_fields.keys():
             if key in self.model_fields:
                 self.__dict__.update({key: getattr(other, key)})
         return self
 
 
-# TODO: how to handle nulling fields (undefined or something?)
+# TODO: how to handle nulling fields, needs to be default value for the type
 class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
     """Base class for Pydantic models that generate proto patches with field masks"""
 
@@ -66,8 +66,8 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
         proto_cls: Type[ProtoT] = self._get_proto_class()
         proto_msg = proto_cls()
 
-        # Get only explicitly set fields
-        data = self.model_dump(exclude_unset=True, exclude_none=True)
+        # Get only explicitly set fields, including Nones
+        data = self.model_dump(exclude_unset=True, exclude_none=False)
         paths = self._build_proto_and_paths(proto_msg, data)
 
         self._add_resource_id_to_proto(proto_msg)
