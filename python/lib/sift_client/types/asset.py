@@ -31,7 +31,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @property
     def is_archived(self):
         """Whether the asset is archived."""
-        # TODO: clean up this logic when gRPC returns a null
+        # TODO: clean up this logic when gRPC returns a null. Note this applies to calculated channels as well.
         return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
 
     @property

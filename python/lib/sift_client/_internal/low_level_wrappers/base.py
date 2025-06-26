@@ -8,6 +8,7 @@ class LowLevelClientBase(ABC):
     @staticmethod
     async def _handle_pagination(
         func: Callable,
+        kwargs: dict[str, Any] = {},
         page_size: int | None = None,
         page_token: str | None = None,
         query_filter: str | None = None,
@@ -25,6 +26,7 @@ class LowLevelClientBase(ABC):
                 page_token=page_token,
                 query_filter=query_filter,
                 order_by=order_by,
+                **kwargs,
             )
             results.extend(response)
             if page_token == "":
