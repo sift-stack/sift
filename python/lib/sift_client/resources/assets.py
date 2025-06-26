@@ -4,9 +4,12 @@ import re
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
+
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.types.asset import Asset, AssetUpdate
+from sift_client.types.channel import Channel
 from sift_client.util import cel_utils
 
 if TYPE_CHECKING:
@@ -199,3 +202,18 @@ class AssetsAPIAsync(ResourceBase):
             update = AssetUpdate.model_validate(update)
         update.resource_id = asset_id
         return await self._low_level_client.update_asset(update=update)
+
+    async def channels_data(
+        self,
+        channels: list[str | Channel],
+        run_id: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+    ) -> list[tuple[Channel, np.ndarray]]:
+        """
+        Get the data for a list of channels.
+        """
+        return await self.client.channels.get_data(
+            channels=channels, run_id=run_id, start_time=start_time, end_time=end_time, limit=limit
+        )

@@ -26,7 +26,7 @@ def to_timestamp_nanos(arg: Union[TimestampPb, pd.Timestamp, datetime, str, int]
         return cast(pd.Timestamp, pd.Timestamp(dt))
 
     else:
-        return cast(pd.Timestamp, pd.Timestamp(arg))
+        return cast(pd.Timestamp, pd.Timestamp(arg, tz=timezone.utc))
 
 
 def to_timestamp_pb(arg: Union[datetime, str, int]) -> TimestampPb:
