@@ -49,6 +49,6 @@ jobs:
           pytest
 
       - name: Sync Stubs Mypy
+        working-directory: python/lib
         run: |
-          cd lib
           stubtest sift_client.resources.sync_stubs
