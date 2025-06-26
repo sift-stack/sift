@@ -19,10 +19,12 @@ plugins:
             show_source: false
             allow_inspection: true
             find_stubs_package: true
-            show_if_no_docstring: false
+            show_if_no_docstring: true
             # TODO: custom griffe plugin instead
-            force_inspection: true # Needed for run-time generated sync_stubs
-            filters: [ "!^__", "!^_abc_", "!^_", "!TYPE_CHECKING" ]
+            #            force_inspection: true # Needed for run-time generated sync_stubs
+            #            filters: [ "!^__", "!^_abc_", "!^_", "!TYPE_CHECKING" ]
+            filters: "public"
+            show_submodules: false
             # Explicitly include stubs directory
             search_path: [ "../lib" ]
             # Styling
@@ -44,7 +46,7 @@ plugins:
   #                schema: true
 
   - api-autonav:
-      modules: [ lib/sift_client ] #, lib/sift_py, lib/sift ]
+      modules: [ lib/sift_client ] #, lib/sift ]
       exclude_private: true
       nav_item_prefix: ""
       module_options:
