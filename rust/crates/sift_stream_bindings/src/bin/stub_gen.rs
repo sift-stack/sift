@@ -16,8 +16,41 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+fn extract_exported_classes() -> Result<Vec<String>> {
+    // Read lib.rs to extract exported class names
+    let lib_content = fs::read_to_string("src/lib.rs")?;
+
+    let mut classes = Vec::new();
+
+    // Look for lines containing m.add_class::<...>
+    for line in lib_content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("m.add_class::<") && trimmed.ends_with(">()?;") {
+            // Extract the part between ::< and >
+            if let Some(start) = trimmed.find("::<") {
+                if let Some(end) = trimmed.find(">()?;") {
+                    let class_path = &trimmed[start + 3..end];
+                    // Get the last part after the final ::
+                    let class_name = class_path.split("::").last().unwrap_or(class_path);
+                    classes.push(class_name.to_string());
+                }
+            }
+        }
+    }
+
+    // Sort for consistent ordering
+    classes.sort();
+
+    if classes.is_empty() {
+        return Err("No exported classes found in lib.rs".into());
+    }
+
+    println!("Found {} exported classes: {:?}", classes.len(), classes);
+    Ok(classes)
+}
+
 fn post_process_stub_file() -> Result<()> {
-    // First, try to find the generated stub file - it might be named with hyphens
+    // Generated stub file is named with hyphens, but we want to use underscores
     let hyphenated_name = "sift-stream-bindings.pyi";
     let underscore_name = "sift_stream_bindings.pyi";
 
@@ -36,30 +69,30 @@ fn post_process_stub_file() -> Result<()> {
     // Read the generated stub file
     let content = fs::read_to_string(stub_file_path)?;
 
-    // List of all exported classes that need @final decorator
-    let classes_to_finalize = vec![
-        "SiftStreamPy",
-        "FlowPy",
-        "SiftStreamBuilderPy",
-        "IngestionConfigFormPy",
-        "FlowConfigPy",
-        "ChannelConfigPy",
-        "ChannelDataTypePy",
-        "ChannelEnumTypePy",
-        "ChannelBitFieldElementPy",
-        "DurationPy",
-        "RecoveryStrategyPy",
-        "RetryPolicyPy",
-        "RunFormPy",
-        "TimeValuePy",
-        "ChannelValuePy",
-        "ChannelValueTypePy",
-        "IngestWithConfigDataStreamRequestPy",
-    ];
+    // Extract leading comments and empty lines
+    let lines: Vec<&str> = content.lines().collect();
+    let mut leading_comments = Vec::new();
+    let mut content_start_index = 0;
+
+    for (i, line) in lines.iter().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with("#") {
+            leading_comments.push(line.to_string());
+            content_start_index = i + 1;
+        } else {
+            break;
+        }
+    }
+
+    // Get the content without leading comments
+    let content_without_comments = lines[content_start_index..].join("\n");
+
+    // Automatically extract exported classes from lib.rs
+    let classes_to_finalize = extract_exported_classes()?;
 
     // Generate __all__ declaration
     let all_declaration = format!(
-        "__all__ = [\n{}\n]\n\n",
+        "__all__ = [\n{}\n]",
         classes_to_finalize
             .iter()
             .map(|class| format!("    \"{}\",", class))
@@ -68,16 +101,7 @@ fn post_process_stub_file() -> Result<()> {
     );
 
     // Add @final decorators to classes
-    let mut processed_content = content;
-
-    // Add typing import at the top if not present
-    if !processed_content.contains("from typing") {
-        processed_content = format!("from typing import final\n\n{}", processed_content);
-    } else if !processed_content.contains("final") {
-        // Add final to existing typing import
-        processed_content =
-            processed_content.replace("from typing import", "from typing import final,");
-    }
+    let mut processed_content = content_without_comments;
 
     // Add @final decorator before each class
     for class_name in &classes_to_finalize {
@@ -86,37 +110,39 @@ fn post_process_stub_file() -> Result<()> {
 
         // Handle classes with inheritance
         if processed_content.contains(&class_pattern) {
-            processed_content = processed_content
-                .replace(&class_pattern, &format!("@final\nclass {}(", class_name));
+            processed_content = processed_content.replace(
+                &class_pattern,
+                &format!("@typing.final\nclass {}(", class_name),
+            );
         }
         // Handle classes without inheritance
         else if processed_content.contains(&class_pattern_no_inherit) {
             processed_content = processed_content.replace(
                 &class_pattern_no_inherit,
-                &format!("@final\nclass {}:", class_name),
+                &format!("@typing.final\nclass {}:", class_name),
             );
         }
     }
 
     // Add __all__ at the beginning after imports
-    let lines: Vec<&str> = processed_content.lines().collect();
+    let content_lines: Vec<&str> = processed_content.lines().collect();
     let mut result_lines = Vec::new();
     let mut added_all = false;
 
-    for (i, line) in lines.iter().enumerate() {
+    for (i, line) in content_lines.iter().enumerate() {
         result_lines.push(line.to_string());
 
         // Add __all__ after the last import statement
         if !added_all && (line.starts_with("from ") || line.starts_with("import ")) {
             // Check if next line is also an import
-            let is_last_import = i + 1 >= lines.len()
-                || (!lines[i + 1].starts_with("from ")
-                    && !lines[i + 1].starts_with("import ")
-                    && !lines[i + 1].trim().is_empty());
+            let is_last_import = i + 1 >= content_lines.len()
+                || (!content_lines[i + 1].starts_with("from ")
+                    && !content_lines[i + 1].starts_with("import ")
+                    && !content_lines[i + 1].trim().is_empty());
 
             if is_last_import {
                 result_lines.push("".to_string());
-                result_lines.push(all_declaration.trim_end().to_string());
+                result_lines.push(all_declaration.clone());
                 result_lines.push("".to_string());
                 added_all = true;
             }
@@ -125,14 +151,25 @@ fn post_process_stub_file() -> Result<()> {
 
     // If we didn't add __all__ yet (no imports found), add it at the beginning
     if !added_all {
-        let final_content = format!("{}\n{}", all_declaration, processed_content);
-        processed_content = final_content;
+        processed_content = format!("{}\n\n{}", all_declaration, processed_content);
     } else {
         processed_content = result_lines.join("\n");
     }
 
+    // Combine leading comments with processed content
+    let mut final_content = String::new();
+
+    // Add leading comments
+    if !leading_comments.is_empty() {
+        final_content.push_str(&leading_comments.join("\n"));
+        final_content.push_str("\n\n");
+    }
+
+    // Add processed content
+    final_content.push_str(&processed_content);
+
     // Write the processed content to the correct filename (with underscores)
-    fs::write(underscore_name, processed_content)?;
+    fs::write(underscore_name, final_content)?;
 
     // If we read from the hyphenated version, remove it
     if stub_file_path == hyphenated_name && Path::new(hyphenated_name).exists() {
@@ -144,6 +181,7 @@ fn post_process_stub_file() -> Result<()> {
     }
 
     println!("Successfully post-processed stub file: added __all__ and @final decorators");
+    println!("Processed {} classes", classes_to_finalize.len());
 
     Ok(())
 }
