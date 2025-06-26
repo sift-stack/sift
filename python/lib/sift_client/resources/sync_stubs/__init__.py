@@ -8,8 +8,3 @@ from sift_client.resources import AssetsAPIAsync, PingAPIAsync
 
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
 AssetsAPI = generate_sync_api(AssetsAPIAsync, "AssetsAPI")
-
-__all__ = [
-    "PingAPI",
-    "AssetsAPI",
-]
