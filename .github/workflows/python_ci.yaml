@@ -51,4 +51,6 @@ jobs:
       - name: Sync Stubs Mypy
         working-directory: python/lib
         run: |
-          stubtest sift_client.resources.sync_stubs
+          stubtest \
+          --mypy-config-file ../pyproject.toml \
+          sift_client.resources.sync_stubs
