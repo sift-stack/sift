@@ -19,6 +19,7 @@ Subcommands:
   mypy           Runs 'mypy lib' for static analysis
   pyright        Runs 'pyright lib' for type checking
   gen-stubs      Generates pyi stubs for sift_client synchronous wrappers
+  mypy-stubs     Runs stubtest (mypy) on the generated pyi stubs
   pip-install    Install project dependencies
   test           Execute tests
   update-dev     Copies changes to the dev script over to the venv bin
@@ -101,6 +102,12 @@ gen_stubs() {
   ruff check ./lib/sift_client/resources/sync_stubs/*.pyi --fix -q
 }
 
+mypy_stubs() {
+  source venv/bin/activate
+  cd lib
+  stubtest sift_client.resources.sync_stubs
+}
+
 shift "$((OPTIND - 1))"
 
 case "$1" in
@@ -143,6 +150,9 @@ case "$1" in
         ;;
     gen-stubs)
         gen_stubs
+        ;;
+    mypy-stubs)
+        mypy_stubs
         ;;
     update-dev)
         update_dev
