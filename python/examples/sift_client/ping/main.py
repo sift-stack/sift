@@ -6,7 +6,7 @@ from sift_client.client import SiftClient
 
 
 async def main(client):
-    print("Async in async loop:", await client.ping_async.ping())
+    print("Async in async loop:", await client.async_.ping.ping())
     print("Sync in async loop:", client.ping.ping())
 
 

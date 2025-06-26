@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from sift_client.errors import _sift_client_experimental_warning
 from sift_client.resources import AssetsAPI, AssetsAPIAsync, PingAPI, PingAPIAsync
 from sift_client.transport import (
@@ -13,6 +15,15 @@ from sift_client.transport import (
 )
 
 _sift_client_experimental_warning()
+
+
+class AsyncAPIs(NamedTuple):
+    """Simple accessor for the asynchronous APIs, still uses the SiftClient instance."""
+
+    """Instance of the Ping API for making asynchronous requests."""
+    ping: PingAPIAsync
+    """Instance of the Assets API for making asynchronous requests."""
+    assets: AssetsAPIAsync
 
 
 class SiftClient(
@@ -45,17 +56,13 @@ class SiftClient(
         response = sift.ping.ping()
 
         # Or asynchronously
-        response = await sift.ping_async.ping()
+        response = await sift.async_.ping.ping()
     """
 
     """Instance of the Ping API for making synchronous requests."""
     ping: PingAPI
-    """Instance of the Ping API for making asynchronous requests."""
-    ping_async: PingAPIAsync
     """Instance of the Assets API for making synchronous requests."""
     assets: AssetsAPI
-    """Instance of the Assets API for making asynchronous requests."""
-    assets_async: AssetsAPIAsync
 
     def __init__(
         self,
@@ -94,9 +101,13 @@ class SiftClient(
         WithRestClient.__init__(self, rest_client=rest_client)
 
         self.ping = PingAPI(self)
-        self.ping_async = PingAPIAsync(self)
         self.assets = AssetsAPI(self)
-        self.assets_async = AssetsAPIAsync(self)
+
+        # Accessor for the asynchronous APIs
+        self.async_ = AsyncAPIs(
+            ping=PingAPIAsync(self),
+            assets=AssetsAPIAsync(self),
+        )
 
     @property
     def grpc_client(self) -> GrpcClient:

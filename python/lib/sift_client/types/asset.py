@@ -45,6 +45,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @property
     def runs(self):
         # TODO: how to implement these efficiently without fetching all?
+        # Cached property?
         raise NotImplementedError
 
     @property
