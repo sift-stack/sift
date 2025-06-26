@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from sift_client.errors import _sift_client_experimental_warning
-from sift_client.resources import AssetsAPI, AssetsAPIAsync, PingAPI, PingAPIAsync
+from sift_client.resources import (
+    AssetsAPI,
+    AssetsAPIAsync,
+    CalculatedChannelsAPI,
+    CalculatedChannelsAPIAsync,
+    PingAPI,
+    PingAPIAsync,
+    RulesAPI,
+    RulesAPIAsync,
+)
 from sift_client.transport import (
     GrpcClient,
     GrpcConfig,
@@ -49,6 +58,10 @@ class SiftClient(
         self.ping_async = PingAPIAsync(self)
         self.assets = AssetsAPI(self)
         self.assets_async = AssetsAPIAsync(self)
+        self.calculated_channels = CalculatedChannelsAPI(self)
+        self.calculated_channels_async = CalculatedChannelsAPIAsync(self)
+        self.rules = RulesAPI(self)
+        self.rules_async = RulesAPIAsync(self)
 
     @property
     def grpc_client(self) -> GrpcClient:
