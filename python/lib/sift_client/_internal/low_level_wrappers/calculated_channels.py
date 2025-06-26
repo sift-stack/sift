@@ -23,7 +23,7 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
 from sift.calculated_channels.v2.calculated_channels_pb2_grpc import CalculatedChannelServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.transport.grpc_transport import GrpcClient
+from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelUpdate,
@@ -33,7 +33,7 @@ from sift_client.types.channel import ChannelReference
 logger = logging.getLogger(__name__)
 
 
-class CalculatedChannelsLowLevelClient(LowLevelClientBase):
+class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """
     Low-level client for the CalculatedChannelsAPI.
 
@@ -47,7 +47,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         Args:
             grpc_client: The gRPC client to use for making API calls.
         """
-        self._grpc_client = grpc_client
+        super().__init__(grpc_client)
 
     async def get_calculated_channel(
         self,

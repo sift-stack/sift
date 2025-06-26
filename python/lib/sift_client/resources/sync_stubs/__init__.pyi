@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, List
+from typing import Any, AsyncIterator, Dict, List
+
+import numpy as np
+from sift.ingest.v1.ingest_pb2 import IngestArbitraryProtobufDataStreamRequest
 
 from sift_client.client import SiftClient
 from sift_client.types.asset import Asset, AssetUpdate
 from sift_client.types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
-from sift_client.types.channel import ChannelReference
+from sift_client.types.channel import Channel, ChannelReference, Flow
+from sift_client.types.rule import Rule, RuleAction, RuleUpdate
 from sift_client.types.run import Run, RunUpdate
 
 class AssetsAPI:
@@ -49,6 +53,19 @@ class AssetsAPI:
 
          Returns:
              The archived Asset.
+        """
+        ...
+
+    def channels_data(
+        self,
+        channels: list[str | Channel],
+        run_id: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Get the data for a list of channels.
         """
         ...
 
@@ -361,6 +378,209 @@ class CalculatedChannelsAPI:
         """
         ...
 
+class ChannelsAPI:
+    """
+    Sync counterpart to `ChannelsAPIAsync`.
+
+
+    High-level API for interacting with channels.
+
+    This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+
+    All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
+    representation of a channel using standard Python data structures and types.
+    """
+
+    def __init__(self, sift_client: "SiftClient"):
+        """
+        Initialize the ChannelsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro):
+        """ """
+        ...
+
+    def find(self, **kwargs) -> Channel | None:
+        """
+        Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list`.
+
+        Returns:
+            The Channel found or None.
+        """
+        ...
+
+    def get(self, *, channel_id: str) -> Channel:
+        """
+        Get a Channel.
+
+        Args:
+            channel_id: The ID of the channel.
+
+        Returns:
+            The Channel.
+        """
+        ...
+
+    def get_data(
+        self,
+        *,
+        channels: List[str | Channel],
+        run_id: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Get data for one or more channels.
+
+        Args:
+            channels: The channels to get data for.
+            run_id: The run to get data for.
+            start_time: The start time to get data for.
+            end_time: The end time to get data for.
+            limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+        """
+        ...
+
+    def list(
+        self,
+        *,
+        asset_id: str | None = None,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        description: str | None = None,
+        description_contains: str | None = None,
+        active: bool | None = None,
+        run_id: str | None = None,
+        run_name: str | None = None,
+        client_key: str | None = None,
+        created_before: datetime | None = None,
+        created_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[Channel]:
+        """
+        List channels with optional filtering.
+
+        Args:
+            asset_id: The asset ID to get.
+            name: The name of the channel to get.
+            name_contains: The partial name of the channel to get.
+            name_regex: The regex name of the channel to get.
+            description: The description of the channel to get.
+            description_contains: The partial description of the channel to get.
+            active: Whether the channel is active.
+            run_id: The run ID to get.
+            run_name: The name of the run to get.
+            client_key: The client key of the run to get.
+            created_before: The created date of the channel to get.
+            created_after: The created date of the channel to get.
+            modified_before: The modified date of the channel to get.
+            modified_after: The modified date of the channel to get.
+            order_by: How to order the retrieved channels.
+            limit: How many channels to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of Channels that matches the filter.
+        """
+        ...
+
+class IngestionAPI:
+    """
+    Sync counterpart to `IngestionAPIAsync`.
+
+
+    High-level API for interacting with ingestion services.
+
+    This class provides a Pythonic, notebook-friendly interface for interacting with the IngestionAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+
+    All methods in this class use the Flow class from the types module, which is a user-friendly
+    representation of ingestion flows using standard Python data structures and types.
+    """
+
+    def __init__(self, sift_client: "SiftClient"):
+        """
+        Initialize the IngestionAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro):
+        """ """
+        ...
+
+    def create_ingestion_config(
+        self,
+        *,
+        asset_name: str,
+        flows: List[Flow],
+        client_key: str | None = None,
+        organization_id: str | None = None,
+    ) -> str:
+        """
+        Create an ingestion config.
+
+        Args:
+            asset_name: The name of the asset for this ingestion config.
+            flows: List of flow configurations.
+            client_key: Optional client key for identifying this config.
+            organization_id: The organization ID.
+
+        Returns:
+            The ingestion config ID.
+
+        Raises:
+            ValueError: If asset_name is not provided or flows is empty.
+        """
+        ...
+
+    def ingest(
+        self,
+        *,
+        flow: Flow | None = None,
+        flows: List[Flow] | None = None,
+        timestamp: datetime,
+        channel_values: dict[str, Any],
+    ):
+        """ """
+        ...
+
+    def ingest_arbitrary_protobuf_data_stream(
+        self, requests: AsyncIterator[IngestArbitraryProtobufDataStreamRequest]
+    ) -> None:
+        """
+        Stream arbitrary protobuf data for ingestion.
+
+        Args:
+            requests: Async iterator of arbitrary protobuf ingestion requests.
+        """
+        ...
+
+    def wait_for_ingestion_to_complete(self, timeout: float | None = None):
+        """
+        Wait for all ingestion to complete.
+
+        Args:
+            run_id: The id of the run to wait for.
+            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
+        """
+        ...
+
 class PingAPI:
     """
     Sync counterpart to `PingAPIAsync`.
@@ -388,6 +608,179 @@ class PingAPI:
 
         Returns:
             The response from the server.
+        """
+        ...
+
+class RulesAPI:
+    """
+    Sync counterpart to `RulesAPIAsync`.
+
+
+    High-level API for interacting with rules.
+
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+
+    All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
+    representation of a rule using standard Python data structures and types.
+    """
+
+    def __init__(self, sift_client: "SiftClient"):
+        """
+        Initialize the RulesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro):
+        """ """
+        ...
+
+    def batch_get(
+        self, *, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
+    ) -> List[Rule]:
+        """
+        Get multiple rules by rule IDs or client keys.
+
+        Args:
+            rule_ids: List of rule IDs to get.
+            client_keys: List of client keys to get.
+
+        Returns:
+            List of Rules.
+        """
+        ...
+
+    def batch_undelete(
+        self, *, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
+    ) -> None:
+        """
+        Batch undelete rules.
+
+        Args:
+            rule_ids: List of rule IDs to undelete.
+            client_keys: List of client keys to undelete.
+        """
+        ...
+
+    def create(
+        self,
+        name: str,
+        description: str,
+        expression: str,
+        channel_references: List[ChannelReference],
+        action: RuleAction,
+        organization_id: str | None = None,
+        client_key: str | None = None,
+        asset_ids: List[str] | None = None,
+        contextual_channels: List[str] | None = None,
+        is_external: bool = False,
+    ) -> Rule:
+        """
+        Create a new rule.
+        """
+        ...
+
+    def delete(
+        self,
+        *,
+        rule: str | Rule | None = None,
+        rules: List[Rule] | None = None,
+        rule_ids: List[str] | None = None,
+        client_keys: List[str] | None = None,
+    ) -> None:
+        """
+        Delete a rule or multiple.
+
+        Args:
+            rule: The Rule to delete.
+            rules: The Rules to delete.
+            rule_ids: The rule IDs to delete.
+            client_keys: The client keys to delete.
+        """
+        ...
+
+    def find(self, **kwargs) -> Rule | None:
+        """
+        Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list`.
+
+        Returns:
+            The Rule found or None.
+        """
+        ...
+
+    def get(self, *, rule_id: str | None = None, client_key: str | None = None) -> Rule:
+        """
+        Get a Rule.
+
+        Args:
+            rule_id: The ID of the rule.
+            client_key: The client key of the rule.
+
+        Returns:
+            The Rule.
+        """
+        ...
+
+    def list(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        include_deleted: bool = False,
+    ) -> list[Rule]:
+        """
+        List rules with optional filtering.
+
+        Args:
+            name: Exact name of the rule.
+            name_contains: Partial name of the rule.
+            name_regex: Regular expression string to filter rules by name.
+            order_by: How to order the retrieved rules.
+            limit: How many rules to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of Rules that matches the filter.
+        """
+        ...
+
+    def undelete(
+        self, rule: str | Rule, *, rule_id: str | None = None, client_key: str | None = None
+    ) -> Rule:
+        """
+        Undelete a rule.
+
+        Args:
+            rule: The Rule or rule ID to undelete.
+            rule_id: The rule ID to undelete (alternative to rule parameter).
+            client_key: The client key to undelete (alternative to rule parameter).
+
+        Returns:
+            The undeleted Rule.
+        """
+        ...
+
+    def update(
+        self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
+    ) -> Rule:
+        """
+        Update a Rule.
+
+        Args:
+            rule: The Rule or rule ID to update.
+            update: Updates to apply to the Rule.
+            version_notes: Notes to include in the rule version.
+        Returns:
+            The updated Rule.
         """
         ...
 

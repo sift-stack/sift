@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict
+
+import numpy as np
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.types.asset import Asset, AssetUpdate
+from sift_client.types.channel import Channel
 from sift_client.util import cel_utils
 
 if TYPE_CHECKING:
@@ -204,3 +207,18 @@ class AssetsAPIAsync(ResourceBase):
         update.resource_id = asset_id
         asset = await self._low_level_client.update_asset(update=update)
         return self._apply_client_to_instance(asset)
+
+    async def channels_data(
+        self,
+        channels: list[str | Channel],
+        run_id: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Get the data for a list of channels.
+        """
+        return await self.client.async_.channels.get_data(
+            channels=channels, run_id=run_id, start_time=start_time, end_time=end_time, limit=limit
+        )
