@@ -45,6 +45,12 @@ class Asset(BaseType[AssetProto, "Asset"]):
     def runs(self, limit: int | None = None):
         return self.client.runs.list(asset_id=self.id, limit=limit)
 
+    def channels(self, run_id: str | None = None, limit: int | None = None):
+        """
+        Return all channels for this asset.
+        """
+        return self.client.channels.list(asset_id=self.id, run_id=run_id, limit=limit)
+
     @property
     def rules(self):
         raise NotImplementedError

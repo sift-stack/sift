@@ -11,6 +11,8 @@ from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.types.asset import Asset
+    from sift_client.types.channel import Flow
 
 
 class RunUpdate(ModelUpdate[RunProto]):
@@ -137,6 +139,20 @@ class Run(BaseType[RunProto, "Run"]):
         if not self.asset_ids:
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
+
+    def add_flows(self, *, flows: List[Flow], asset: str):
+        """
+        Add flows to the run.
+        """
+        if not hasattr(self, "client") or self.client is None:
+            raise RuntimeError("Run is not bound to a client instance.")
+        if isinstance(asset, Asset):
+            asset = asset.name
+        # TODO: Cache asset:flows mapping
+        self.client.ingestion.create_ingestion_config(
+            asset_name=asset,
+            flows=flows,
+        )
 
     def stop(self):
         """
