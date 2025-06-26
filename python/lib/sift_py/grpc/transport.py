@@ -40,8 +40,12 @@ def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
 
         ssl_context = ssl.create_default_context()
         certs_der = ssl_context.get_ca_certs(binary_form=True)
-        certs_x509 = [crypto.load_certificate(crypto.FILETYPE_ASN1, x) for x in certs_der]
-        certs_pem = [crypto.dump_certificate(crypto.FILETYPE_PEM, x) for x in certs_x509]
+        certs_x509 = [
+            crypto.load_certificate(crypto.FILETYPE_ASN1, x) for x in certs_der
+        ]
+        certs_pem = [
+            crypto.dump_certificate(crypto.FILETYPE_PEM, x) for x in certs_x509
+        ]
         certs_bytes = b"".join(certs_pem)
 
         return grpc.ssl_channel_credentials(certs_bytes)
@@ -225,7 +229,10 @@ def _compute_keep_alive_channel_opts(config: KeepaliveConfig) -> List[Tuple[str,
         ("grpc.keepalive_time_ms", config["keepalive_time_ms"]),
         ("grpc.keepalive_timeout_ms", config["keepalive_timeout_ms"]),
         ("grpc.http2.max_pings_without_data", config["max_pings_without_data"]),
-        ("grpc.keepalive_permit_without_calls", config["keepalive_permit_without_calls"]),
+        (
+            "grpc.keepalive_permit_without_calls",
+            config["keepalive_permit_without_calls"],
+        ),
     ]
 
 

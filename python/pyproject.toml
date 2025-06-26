@@ -28,6 +28,7 @@ dependencies = [
     "pydantic_core~=2.3",
     "requests~=2.25",
     "requests-toolbelt~=1.0",
+    "sift-stream-bindings>=0.1",
     "alive-progress~=3.0",
     # May move these to optional dependencies in the future.
     "pandas-stubs~=2.0",
