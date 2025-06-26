@@ -107,7 +107,7 @@ class TestSiftStreamBuilder:
     async def test_build_stream_no_ingestion_config(self):
         """Test building a stream with no ingestion config."""
         builder = SiftStreamBuilderPy("https://api.example.com", "test-api-key")
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="ingestion_config is required"):
             await builder.build()
 
 
