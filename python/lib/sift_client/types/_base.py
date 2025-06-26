@@ -22,7 +22,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     @property
     def client(self) -> SiftClient:
         if self._client is None:
-            raise ValueError(
+            raise AttributeError(
                 "Sift client not set. Please retrieve with the SiftClient to use this method."
             )
         return self._client

@@ -10,6 +10,7 @@ from sift_client.client import SiftClient
 from sift_client.types.asset import Asset, AssetUpdate
 from sift_client.types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
 from sift_client.types.channel import ChannelReference
+from sift_client.types.run import Run, RunUpdate
 
 class AssetsAPI:
     """
@@ -387,5 +388,180 @@ class PingAPI:
 
         Returns:
             The response from the server.
+        """
+        ...
+
+class RunsAPI:
+    """
+    Sync counterpart to `RunsAPIAsync`.
+
+
+    High-level API for interacting with runs.
+
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+
+    All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
+    representation of a run using standard Python data structures and types.
+    """
+
+    def __init__(self, sift_client: "SiftClient"):
+        """
+        Initialize the RunsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro):
+        """ """
+        ...
+
+    def create(
+        self,
+        name: str,
+        description: str,
+        tags: List[str] | None = None,
+        start_time: datetime | None = None,
+        stop_time: datetime | None = None,
+        organization_id: str | None = None,
+        client_key: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+    ) -> Run:
+        """
+        Create a new run.
+
+        Args:
+            name: The name of the run.
+            description: The description of the run.
+            tags: Tags to associate with the run.
+            start_time: The start time of the run.
+            stop_time: The stop time of the run.
+            organization_id: The organization ID.
+            client_key: A unique client key for the run.
+            metadata: Metadata values for the run.
+
+        Returns:
+            The created Run.
+        """
+        ...
+
+    def create_automatic_association_for_assets(
+        self, run: str | Run, asset_names: List[str]
+    ) -> None:
+        """
+        Associate assets with a run for automatic data ingestion.
+
+        Args:
+            run: The Run or run ID.
+            asset_names: List of asset names to associate.
+        """
+        ...
+
+    def delete(self, *, run: str | Run) -> None:
+        """
+        Delete a run.
+
+        Args:
+            run: The Run or run ID to delete.
+        """
+        ...
+
+    def find(self, **kwargs) -> Run | None:
+        """
+        Find a single run matching the given query. Takes the same arguments as `list`. If more than one run is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list`.
+
+        Returns:
+            The Run found or None.
+        """
+        ...
+
+    def get(self, *, run_id: str) -> Run:
+        """
+        Get a Run.
+
+        Args:
+            run_id: The ID of the run.
+
+        Returns:
+            The Run.
+        """
+        ...
+
+    def list(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        description: str | None = None,
+        description_contains: str | None = None,
+        duration_seconds: int | None = None,
+        client_key: str | None = None,
+        asset_id: str | None = None,
+        asset_name: str | None = None,
+        created_by_user_id: str | None = None,
+        is_stopped: bool | None = None,
+        include_archived: bool = False,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> List[Run]:
+        """
+        List runs with optional filtering.
+
+        Args:
+            name: Exact name of the run.
+            name_contains: Partial name of the run.
+            name_regex: Regular expression string to filter runs by name.
+            description: Exact description of the run.
+            description_contains: Partial description of the run.
+            duration_seconds: Duration of the run in seconds.
+            client_key: Client key to filter by.
+            asset_id: Asset ID to filter by.
+            asset_name: Asset name to filter by.
+            created_by_user_id: User ID who created the run.
+            is_stopped: Whether the run is stopped.
+            include_archived: Whether to include archived runs.
+            order_by: How to order the retrieved runs.
+            limit: How many runs to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of Runs that matches the filter.
+        """
+        ...
+
+    def stop(self, *, run: str | Run) -> None:
+        """
+        Stop a run by setting its stop time to the current time.
+
+        Args:
+            run: The Run or run ID to stop.
+        """
+        ...
+
+    def stop_run(self, run: str | Run) -> None:
+        """
+        Stop a run by setting its stop time to the current time.
+
+        Args:
+            run: The Run or run ID to stop.
+        """
+        ...
+
+    def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
+        """
+        Update a Run.
+
+        Args:
+            run: The Run or run ID to update.
+            update: Updates to apply to the Run.
+
+        Returns:
+            The updated Run.
         """
         ...

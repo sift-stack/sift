@@ -10,6 +10,8 @@ from sift_client.resources import (
     CalculatedChannelsAPIAsync,
     PingAPI,
     PingAPIAsync,
+    RunsAPI,
+    RunsAPIAsync,
 )
 from sift_client.transport import (
     GrpcClient,
@@ -33,6 +35,8 @@ class AsyncAPIs(NamedTuple):
     assets: AssetsAPIAsync
     """Instance of the Calculated Channels API for making asynchronous requests."""
     calculated_channels: CalculatedChannelsAPIAsync
+    """Instance of the Runs API for making asynchronous requests."""
+    runs: RunsAPIAsync
 
 
 class SiftClient(
@@ -74,6 +78,8 @@ class SiftClient(
     assets: AssetsAPI
     """Instance of the Calculated Channels API for making synchronous requests."""
     calculated_channels: CalculatedChannelsAPI
+    """Instance of the Runs API for making synchronous requests."""
+    runs: RunsAPI
 
     def __init__(
         self,
@@ -114,12 +120,13 @@ class SiftClient(
         self.ping = PingAPI(self)
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
-
+        self.runs = RunsAPI(self)
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
             ping=PingAPIAsync(self),
             assets=AssetsAPIAsync(self),
             calculated_channels=CalculatedChannelsAPIAsync(self),
+            runs=RunsAPIAsync(self),
         )
 
     @property

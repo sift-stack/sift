@@ -8,8 +8,10 @@ from sift_client.resources import (
     AssetsAPIAsync,
     CalculatedChannelsAPIAsync,
     PingAPIAsync,
+    RunsAPIAsync,
 )
 
 PingAPI = generate_sync_api(PingAPIAsync, "PingAPI")
 AssetsAPI = generate_sync_api(AssetsAPIAsync, "AssetsAPI")
 CalculatedChannelsAPI = generate_sync_api(CalculatedChannelsAPIAsync, "CalculatedChannelsAPI")
+RunsAPI = generate_sync_api(RunsAPIAsync, "RunsAPI")
