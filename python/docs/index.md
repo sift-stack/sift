@@ -15,14 +15,3 @@ For full documentation visit [mkdocs.org](https://www.mkdocs.org).
     docs/
         index.md  # The documentation homepage.
         ...       # Other markdown pages, images and other files.
-
-# Reference
-
-## Client
-
-::: sift_client.client.SiftClient
-
-## Sync APIs
-
-::: sift_client.resources.AssetsAPI
-::: sift_client.resources.PingAPI

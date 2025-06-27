@@ -1,10 +1,30 @@
 site_name: Sift Python Client Library
 repo_url: https://github.com/sift-stack/sift/tree/main/python
+copyright: "Copyright 2025 Sift Stack, Inc."
 theme:
   name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: grey
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  logo: https://avatars.githubusercontent.com/u/105525178?s=200&v=4
   features:
     - navigation.tabs
     - navigation.sections
+    - toc.follow
+    - navigation.top
+    - search.suggest
 
 nav:
   - Home: index.md
@@ -23,7 +43,7 @@ plugins:
             find_stubs_package: true
             show_if_no_docstring: true
             # TODO: custom griffe plugin instead
-            #            force_inspection: true # Needed for run-time generated sync_stubs
+            force_inspection: true # Needed for run-time generated sync_stubs
             #            filters: [ "!^__", "!^_abc_", "!^_", "!TYPE_CHECKING" ]
             filters: "public"
             show_submodules: false
