@@ -160,7 +160,7 @@ class AssetsAPIAsync(ResourceBase):
         """
         assets = await self.list_(**kwargs)
         if len(assets) > 1:
-            raise ValueError("Multiple assets found for query")
+            raise ValueError(f"Multiple ({len(assets)}) assets found for query")
         elif len(assets) == 1:
             return assets[0]
         return None
