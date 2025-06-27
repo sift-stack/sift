@@ -161,7 +161,11 @@ fn post_process_stub_file() -> Result<()> {
 
     // Add leading comments
     if !leading_comments.is_empty() {
-        final_content.push_str(&leading_comments.join("\n"));
+        for line in leading_comments {
+            if !line.contains("noqa") {
+                final_content.push_str(&line);
+            }
+        }
         final_content.push_str("\n\n");
     }
 
@@ -169,7 +173,7 @@ fn post_process_stub_file() -> Result<()> {
     final_content.push_str(&processed_content);
 
     // Write the processed content to the correct filename (with underscores)
-    fs::write(underscore_name, final_content)?;
+    fs::write(underscore_name, &final_content)?;
 
     // If we read from the hyphenated version, remove it
     if stub_file_path == hyphenated_name && Path::new(hyphenated_name).exists() {
@@ -180,7 +184,7 @@ fn post_process_stub_file() -> Result<()> {
         );
     }
 
-    println!("Successfully post-processed stub file: added __all__ and @final decorators");
+    println!("Successfully post-processed stub files: added __all__ and @final decorators");
     println!("Processed {} classes", classes_to_finalize.len());
 
     Ok(())
