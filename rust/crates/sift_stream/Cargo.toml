@@ -18,7 +18,7 @@ sift_rs = { workspace = true }
 tracing = { version = "0.1.41", optional = true }
 bytesize = { version = "2", optional = true }
 pbjson-types = { workspace = true }
-tokio = { version = "1.43.0", features = ["rt", "sync", "time", "macros"] }
+tokio = { version = "1.44.2", features = ["rt", "sync", "time", "macros"] }
 chrono = { workspace = true }
 futures-core = "0.3.31"
 tokio-stream = "0.1.17"
@@ -39,5 +39,5 @@ tokio-stream = "0.1.17"
 tonic = { workspace = true }
 tower = { version = "0.5.2", features = ["util"] }
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
-tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread", "sync", "time"] }
 uuid = { version = "1.16.0", features = ["v4"] }
