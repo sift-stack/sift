@@ -1,7 +1,10 @@
 use pyo3::prelude::*;
+use pyo3_stub_gen::define_stub_info_gatherer;
 
 mod error;
 mod stream;
+
+define_stub_info_gatherer!(stub_info);
 
 #[pymodule]
 fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {

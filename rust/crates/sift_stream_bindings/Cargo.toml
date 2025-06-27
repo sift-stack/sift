@@ -12,10 +12,15 @@ readme = "README.md"
 
 [lib]
 name = "sift_stream_bindings"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "stub_gen"
+path = "src/bin/stub_gen.rs"
 
 [dependencies]
 pyo3 = { version = "0.25.0" }
+pyo3-stub-gen = { version = "0.10.0" }
 sift_rs = { workspace = true }
 sift_stream = { workspace = true }
 sift_error = { workspace = true }

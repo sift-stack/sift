@@ -1,8 +1,10 @@
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use sift_stream::{RecoveryStrategy, RetryPolicy};
 use std::path::PathBuf;
 
 // Type Definitions
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone, Copy)]
 pub struct DurationPy {
@@ -12,6 +14,7 @@ pub struct DurationPy {
     nanos: u32,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct RecoveryStrategyPy {
@@ -27,6 +30,7 @@ pub struct RecoveryStrategyPy {
     max_backups_file_size: Option<usize>,
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct RetryPolicyPy {
@@ -101,6 +105,7 @@ impl From<RetryPolicyPy> for RetryPolicy {
 }
 
 // PyO3 Method Implementations
+#[gen_stub_pymethods]
 #[pymethods]
 impl DurationPy {
     #[new]
@@ -109,6 +114,7 @@ impl DurationPy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl RecoveryStrategyPy {
     #[new]
@@ -184,6 +190,7 @@ impl RecoveryStrategyPy {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl RetryPolicyPy {
     #[new]
