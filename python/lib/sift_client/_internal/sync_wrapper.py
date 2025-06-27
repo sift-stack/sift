@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import sys
 from functools import wraps
 from typing import Any, Type, TypeVar
 
@@ -61,6 +62,7 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
         "__doc__": f"Sync counterpart to `{name}`.\n\n{cls.__doc__ or ''}",
         "__init__": __init__,
         "_run": _run,
+        "__qualname__": sync_name,  # Add __qualname__ to help static analyzers
     }
 
     # helper to wrap an async method and make into a sync method
@@ -134,7 +136,15 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
 
         namespace[name] = _wrap_sync(name)
 
+    # Create the sync class
     sync_class = type(sync_name, (object,), namespace)  # noqa
+
+    # Register the class in the module's globals
+    # This helps static analysis tools recognize it as a proper class
+    if module in sys.modules:
+        module_globals = sys.modules[module].__dict__
+        module_globals[sync_name] = sync_class
+
     _registered.append(SyncAPIRegistration(async_cls=cls, sync_cls=sync_class))
 
     return sync_class

@@ -1,0 +1,69 @@
+site_name: Sift Python Client Library
+repo_url: https://github.com/sift-stack/sift/tree/main/python
+copyright: "Copyright 2025 Sift Stack, Inc."
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: grey
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  logo: https://avatars.githubusercontent.com/u/105525178?s=200&v=4
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.follow
+    - navigation.top
+    - search.suggest
+
+nav:
+  - Home: index.md
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            load_external_modules: true
+            show_source: false
+            find_stubs_package: true
+            show_if_no_docstring: true
+            filters: "public"
+            show_submodules: false
+            # Styling
+            group_by_category: true
+            docstring_section_style: spacy
+            docstring_style: "google"
+            heading_level: 1
+            merge_init_into_class: true
+            separate_signature: true
+            show_root_heading: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            summary: true
+            # Custom Griffe extension to only inspect sync_stubs
+            extensions:
+              - griffe_extensions/sync_stubs_inspector.py:InspectSpecificObjects:
+                  paths:
+                    - sift_client.resources.sync_stubs
+
+
+  - api-autonav:
+      modules: [ lib/sift_client ] #, lib/sift ]
+      exclude_private: true
+      nav_item_prefix: ""
