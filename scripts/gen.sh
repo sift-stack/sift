@@ -62,16 +62,17 @@ gen_python_modules() {
     fi
   done
 
-  mv $sift_py $python_gen_dir
-  mv $sift_grafana $python_gen_dir
-  rm -rf $python_lib
-  mv $python_gen_dir $python_lib
+  # copy over generated python code
+  for sub_dir in $(ls -l $python_gen_dir | grep "^d" | awk '{ print $9 }'); do
+    rm -rf $python_lib/$sub_dir # remove old
+    mv $python_gen_dir/$sub_dir $python_lib # copy in new
+  done
 
   # This is necessary to split `google` module into separate directories: one generated from the googleapis buf plugin,
   # and the other coming from the `protobuf` PyPI package that gets installed as `google`.
   echo "__path__ = __import__('pkgutil').extend_path(__path__, __name__)" >> "$python_lib/google/__init__.py"
   
-  rm "${python_lib}/__init__.py"
+  rm -rf "${python_lib}/__init__.py"
 
   echo "ok"
 }

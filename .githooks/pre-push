@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# ensure generated python stubs are up-to-date
+
+# Store the root directory of the repository
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PYTHON_DIR="$REPO_ROOT/python"
+STUBS_DIR="$PYTHON_DIR/lib/sift_client/resources/sync_stubs"
+
+changed_files=($(git diff --name-only --diff-filter=ACM | grep '^python/lib/sift_client/'))
+
+if [[ -n "$changed_files" ]]; then
+    cd "$PYTHON_DIR"
+    if [[ ! -d "$PYTHON_DIR/venv" ]]; then
+        echo "Running bootstrap script..."
+        bash ./scripts/dev bootstrap
+    fi
+    echo "Generating stubs..."
+    bash ./scripts/dev gen-stubs
+
+    # Check if any files in the stubs directory have changed
+    CHANGED_FILES=$(git status --porcelain "$STUBS_DIR" | grep -E '\.pyi$' || true)
+
+    if [ -n "$CHANGED_FILES" ]; then
+        echo "ERROR: Generated python stubs are not up-to-date. Please commit the changed files:"
+        echo "$CHANGED_FILES"
+        exit 1
+    fi
+
+    echo "All sync stubs are up-to-date."
+fi
+
+exit 0

@@ -2,7 +2,7 @@ name: python-ci
 
 on:
   release:
-    types: [created]
+    types: [ created ]
   pull_request:
   push:
     branches:
@@ -27,12 +27,7 @@ jobs:
       - name: Pip install
         run: |
           python -m pip install --upgrade pip
-          pip install '.[development]'
-          pip install '.[openssl]'
-          pip install '.[tdms]'
-          pip install '.[rosbags]'
-          pip install .
-
+          pip install '.[development,openssl,tdms,rosbags]'
       - name: Lint
         run: |
           ruff check
@@ -52,3 +47,10 @@ jobs:
       - name: Pytest
         run: |
           pytest
+
+      - name: Sync Stubs Mypy
+        working-directory: python/lib
+        run: |
+          stubtest \
+          --mypy-config-file ../pyproject.toml \
+          sift_client.resources.sync_stubs
