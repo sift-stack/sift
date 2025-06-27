@@ -21,7 +21,30 @@ from sift_py.grpc._interceptors.metadata import Metadata, MetadataInterceptor
 from sift_py.grpc._retry import RetryPolicy
 from sift_py.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 
-SiftChannel: TypeAlias = grpc.Channel
+
+class SiftChannelWithConfig:
+    """
+    A wrapper around grpc.Channel that includes the configuration used to create it.
+    This allows access to the original config for debugging or other purposes.
+    """
+
+    def __init__(self, config: SiftChannelConfig, channel: grpc.Channel):
+        self._channel = channel
+        self.config = config
+
+    def __getattr__(self, name):
+        # Delegate all other attributes to the underlying channel
+        return getattr(self._channel, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Close the underlying channel
+        self._channel.close()
+
+
+SiftChannel: TypeAlias = SiftChannelWithConfig
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 
 
@@ -40,12 +63,8 @@ def get_ssl_credentials(cert_via_openssl: bool) -> grpc.ChannelCredentials:
 
         ssl_context = ssl.create_default_context()
         certs_der = ssl_context.get_ca_certs(binary_form=True)
-        certs_x509 = [
-            crypto.load_certificate(crypto.FILETYPE_ASN1, x) for x in certs_der
-        ]
-        certs_pem = [
-            crypto.dump_certificate(crypto.FILETYPE_PEM, x) for x in certs_x509
-        ]
+        certs_x509 = [crypto.load_certificate(crypto.FILETYPE_ASN1, x) for x in certs_der]
+        certs_pem = [crypto.dump_certificate(crypto.FILETYPE_PEM, x) for x in certs_x509]
         certs_bytes = b"".join(certs_pem)
 
         return grpc.ssl_channel_credentials(certs_bytes)
@@ -71,14 +90,16 @@ def use_sift_channel(
     cert_via_openssl = config.get("cert_via_openssl", False)
 
     if not use_ssl:
-        return _use_insecure_sift_channel(config, metadata)
+        channel = _use_insecure_sift_channel(config, metadata)
+        return SiftChannelWithConfig(config, channel)
 
     credentials = get_ssl_credentials(cert_via_openssl)
     options = _compute_channel_options(config)
     api_uri = _clean_uri(config["uri"], use_ssl)
     channel = grpc.secure_channel(api_uri, credentials, options)
     interceptors = _compute_sift_interceptors(config, metadata)
-    return grpc.intercept_channel(channel, *interceptors)
+    intercepted_channel = grpc.intercept_channel(channel, *interceptors)
+    return SiftChannelWithConfig(config, intercepted_channel)
 
 
 def use_sift_async_channel(
@@ -104,7 +125,7 @@ def use_sift_async_channel(
 
 def _use_insecure_sift_channel(
     config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
-) -> SiftChannel:
+) -> grpc.Channel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
     """
