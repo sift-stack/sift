@@ -215,6 +215,7 @@ def greater_than(field: str, value: int | float | datetime) -> str:
     return f"{field} > {as_string}"
 
 
+
 def less_than(field: str, value: int | float | datetime) -> str:
     """
     Generates a CEL expression that checks whether a numeric or datetime field is less than a given value.
