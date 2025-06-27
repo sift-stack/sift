@@ -39,16 +39,10 @@ plugins:
           options:
             load_external_modules: true
             show_source: false
-            allow_inspection: true
             find_stubs_package: true
             show_if_no_docstring: true
-            # TODO: custom griffe plugin instead
-            force_inspection: true # Needed for run-time generated sync_stubs
-            #            filters: [ "!^__", "!^_abc_", "!^_", "!TYPE_CHECKING" ]
             filters: "public"
             show_submodules: false
-            # Explicitly include stubs directory
-            search_path: [ "../lib" ]
             # Styling
             group_by_category: true
             docstring_section_style: spacy
@@ -62,18 +56,14 @@ plugins:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             summary: true
-            # Disabled until custom griffe plugin otherwise fails due to force_inspection
-  #            extensions:
-  #              - griffe_pydantic:
-  #                schema: true
+            # Custom Griffe extension to only inspect sync_stubs
+            extensions:
+              - griffe_extensions/sync_stubs_inspector.py:InspectSpecificObjects:
+                  paths:
+                    - sift_client.resources.sync_stubs
+
 
   - api-autonav:
       modules: [ lib/sift_client ] #, lib/sift ]
       exclude_private: true
       nav_item_prefix: ""
-      module_options:
-        # special filters to avoid rendering the async again
-        sift_client.resources.sync_stubs:
-          filters: [ "!Async$", "!^__", "!^_abc_", "!^generate" ]
-
-
