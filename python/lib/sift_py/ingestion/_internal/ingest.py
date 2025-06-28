@@ -15,6 +15,7 @@ from sift.ingest.v1.ingest_pb2 import (
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig
+from sift_stream_bindings import SiftStreamBuilderPy
 
 from sift_py.error import ProtobufMaxSizeExceededError
 from sift_py.grpc.transport import SiftChannel
@@ -114,6 +115,7 @@ class _IngestionServiceImpl:
                     rule.asset_names.append(config.asset_name)
             self.rule_service.create_or_update_rules(config.rules)
 
+        self.builder = SiftStreamBuilderPy(channel.config.get("uri"), channel.config.get("apikey"))
         self.rules = config.rules
         self.asset_name = config.asset_name
         self.transport_channel = channel
