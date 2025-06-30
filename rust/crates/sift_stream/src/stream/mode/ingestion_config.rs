@@ -212,9 +212,12 @@ impl SiftStream<IngestionConfigMode> {
         }
     }
 
-    /// The entry-point to send actual telemetry to Sift in the form of [Flow]s. This method will
-    /// return an error of kind [ErrorKind::UnknownFlow] if the `message` provided has a flow-name
-    /// that doesn't match any of the flow-configs specified in the ingestion config.
+    /// The entry-point to send actual telemetry to Sift in the form of [Flow]s. If a `message` is
+    /// sent that doesn't match any flows that [SiftStream] catches locally, the message will
+    /// still be transmitted and a warning log emitted. If users are certain that the message
+    /// corresponds to an unregistered flow then [SiftStream::add_new_flows] should be called first
+    /// to register the flow before calling [SiftStream::send]; otherwise users should monitor the
+    /// Sift DLQ either in the Sift UI or Sift API to ensure successful transmission.
     ///
     /// In the case where the underlying error was closed due to an error, this method will invoke
     /// the configured [RetryPolicy] to attempt to reconnect and resend data to Sift. If the amount
@@ -225,10 +228,18 @@ impl SiftStream<IngestionConfigMode> {
     /// Lastly, if the underlying stream was gracefully closed due to a checkpoint, this method
     /// will automatically establish a new connection.
     pub async fn send(&mut self, message: Flow) -> Result<()> {
+        let ingestion_config_id = &self.mode.ingestion_config.ingestion_config_id;
+        let run_id = self.mode.run.as_ref().map(|r| r.run_id.clone());
+
         let Some(flows) = self.mode.flows_by_name.get(&message.flow_name) else {
-            return Err(Error::new_msg(ErrorKind::UnknownFlow, "unknown flow name"))
-                .with_context(|| format!("unknown flow provided: {message:?}"))
-                .help("try adding this flow to your ingestion config");
+            #[cfg(feature = "tracing")]
+            tracing::warn!(
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
+                "flow '{}' not found in local flow cache - message will still be transmitted but will not show in Sift if the flow was not registered",
+                message.flow_name,
+            );
+            let req = Self::message_to_ingest_req_direct(&message, ingestion_config_id, run_id);
+            return self.send_impl(req).await;
         };
         let Some(req) = Self::message_to_ingest_req(
             &message,
@@ -240,12 +251,10 @@ impl SiftStream<IngestionConfigMode> {
             tracing::warn!(
                 sift_stream_id = self.mode.sift_stream_id.to_string(),
                 values = format!("{message:?}"),
-                "encountered a message whose channel values do not match any configured flows"
+                "encountered a message that doesn't match any cached flows - message will still be transmitted but will not show in Sift if the flow was not registered"
             );
-            return Err(Error::new_msg(
-                ErrorKind::StreamError,
-                "failed to turn provided flow into a valid ingestion request",
-            ));
+            let req = Self::message_to_ingest_req_direct(&message, ingestion_config_id, run_id);
+            return self.send_impl(req).await;
         };
         self.send_impl(req).await
     }
@@ -925,6 +934,30 @@ impl SiftStream<IngestionConfigMode> {
         };
 
         Some(request)
+    }
+
+    /// Creates an [IngestWithConfigDataStreamRequest] directly without consulting the flow cache.
+    pub(crate) fn message_to_ingest_req_direct(
+        message: &Flow,
+        ingestion_config_id: &str,
+        run_id: Option<String>,
+    ) -> IngestWithConfigDataStreamRequest {
+        let channel_values = message
+            .values
+            .iter()
+            .map(|val| IngestWithConfigDataChannelValue {
+                r#type: Some(val.pb_value()),
+            })
+            .collect::<Vec<_>>();
+
+        IngestWithConfigDataStreamRequest {
+            channel_values,
+            flow: message.flow_name.to_string(),
+            ingestion_config_id: ingestion_config_id.to_string(),
+            timestamp: Some(message.timestamp.0),
+            run_id: run_id.unwrap_or_default(),
+            ..Default::default()
+        }
     }
 }
 
