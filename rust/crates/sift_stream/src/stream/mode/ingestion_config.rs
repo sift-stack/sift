@@ -43,6 +43,26 @@ use uuid::Uuid;
 /// streams data to Sift.
 const DATA_BUFFER_CAPACITY: usize = 10_000;
 
+/// It's possible for a [SiftStream] checkpoint to silently fail causing [SiftStream] to buffer
+/// data for long periods until it can re-establish a connection. One scenario in which this is
+/// known to happen is when a new version of Sift is being deployed while there is an ongoing
+/// [SiftStream]. Calls to [SiftStream::send] will succeed, and data will make its way just fine to
+/// the underlying [IngestServiceClient] which is predicated on [tonic], but the consequence of
+/// this is that users will think that data is being sent successfully to Sift, when it actuality
+/// it's just being buffered until a new connection is established and is not available in the Sift
+/// UI.
+///
+/// To address this, [SiftStream] will check with every call to [SiftStream::send] to see if a
+/// checkpoint is overdue - a checkpoint is overdue when [SiftStream] hasn't received a checkpoint
+/// acknowledgement from Sift based on the user-specified checkpoint interval. If a checkpoint is
+/// overdue, [SiftStream] will forcefully reinitialize its internal state, establish a new
+/// connection, and reingest all the data since its last checkpoint before resuming.
+///
+/// As an example, if a user specified a 60 second checkpoint interval but 120 seconds have gone by
+/// without a checkpoint acknowledgement from Sift, we'll forcefully reconnect to Sift and reingest
+/// all data since the last checkpoint.
+const FORCE_CHECKPOINT_SEC: u64 = 60;
+
 /// Dependencies specifically for ingestion-config based streaming. Users shouldn't have to
 /// interact with this directly.
 pub struct IngestionConfigMode {
@@ -50,7 +70,7 @@ pub struct IngestionConfigMode {
     ingestion_config: IngestionConfig,
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
     checkpoint_interval: Duration,
-    streaming_task: Option<JoinHandle<Result<IngestWithConfigDataStreamResponse>>>,
+    streaming_task: Option<DataStreamTask>,
     retry_policy: Option<RetryPolicy>,
     data_tx: Option<BoundedSender<StreamMessage>>,
     shutdown_tx: Option<Sender<()>>,
@@ -98,6 +118,11 @@ struct DataStream {
     messages_processed: usize,
     bytes_processed: usize,
     started_at: Instant,
+}
+
+struct DataStreamTask {
+    join_handle: JoinHandle<Result<IngestWithConfigDataStreamResponse>>,
+    created_at: Instant,
 }
 
 impl Default for IngestionConfigModeBackupsManager {
@@ -248,7 +273,32 @@ impl SiftStream<IngestionConfigMode> {
     /// Concerned with sending the actual ingest request to [DataStream] which will then write it
     /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
     async fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
-        if self
+        if self.is_checkpoint_due() {
+            #[cfg(feature = "tracing")]
+            tracing::warn!(
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
+                "a checkpoint is overdue possibly due to a transient connection issue"
+            );
+            if let Some(shutdown_tx) = self.mode.shutdown_tx.take() {
+                let _ = shutdown_tx.send(());
+            }
+            if let Some(data_tx) = self.mode.data_tx.take() {
+                drop(data_tx);
+            }
+            if let Some(streaming_task) = self.mode.streaming_task.take() {
+                let _checkpoint_acknowledgement = streaming_task
+                    .join_handle
+                    .await
+                    .map_err(|e| Error::new(ErrorKind::StreamError, e))
+                    .context("failed to force a checkpoint")
+                    .help("please contact Sift")??;
+            }
+
+            // We are not sure when we lost connection to Sift so we'll reingest since last
+            // checkpoint.
+            self.restart_stream_and_backups_manager(true).await?;
+            self.backup_data(&req).await?;
+        } else if self
             .backup_data(&req)
             .await
             .is_err_and(|e| e.kind() == ErrorKind::BackupLimitReached)
@@ -258,13 +308,15 @@ impl SiftStream<IngestionConfigMode> {
                 sift_stream_id = self.mode.sift_stream_id.to_string(),
                 "backup size limit reached - forcing checkpoint"
             );
-
+            if let Some(shutdown_tx) = self.mode.shutdown_tx.take() {
+                let _ = shutdown_tx.send(());
+            }
             if let Some(data_tx) = self.mode.data_tx.take() {
                 drop(data_tx);
             }
-
             if let Some(streaming_task) = self.mode.streaming_task.take() {
                 let _checkpoint_acknowledgement = streaming_task
+                    .join_handle
                     .await
                     .map_err(|e| Error::new(ErrorKind::StreamError, e))
                     .context("failed to force a checkpoint due to backup limit")
@@ -289,7 +341,7 @@ impl SiftStream<IngestionConfigMode> {
                     Box::pin(self.send_impl(req)).await
                 }
 
-                Some(streaming_task) => match streaming_task.await {
+                Some(streaming_task) => match streaming_task.join_handle.await {
                     Ok(Ok(_)) => {
                         self.restart_stream_and_backups_manager(false).await?;
                         Box::pin(self.send_impl(req)).await
@@ -347,6 +399,7 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
+    /// Send a single data point to the backups manager to be backed up.
     async fn backup_data(&mut self, req: &IngestWithConfigDataStreamRequest) -> Result<()> {
         if let Some(backups_manager) = self.mode.backups_manager.as_mut() {
             match backups_manager {
@@ -485,7 +538,7 @@ impl SiftStream<IngestionConfigMode> {
         }
 
         if reingest_from_last_checkpoint {
-            // If we entered this branch this some really unxpected things happened. We're going to
+            // If we entered this branch this some really unexpected things happened. We're going to
             // give up on trying to rescue the backups here and just resume streaming until the
             // next checkpoint.
             if let Err(err) = self.process_backups(data_tx).await {
@@ -696,6 +749,7 @@ impl SiftStream<IngestionConfigMode> {
             drop(self.mode.data_tx);
 
             streaming_task
+                .join_handle
                 .await
                 .map_err(|e| Error::new(ErrorKind::StreamError, e))
                 .context("something went wrong while waiting for the final checkpoint")
@@ -741,6 +795,18 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
+    #[inline]
+    fn is_checkpoint_due(&self) -> bool {
+        self.mode
+            .streaming_task
+            .as_ref()
+            .map(|t| {
+                Instant::now().duration_since(t.created_at)
+                    >= Duration::from_secs(FORCE_CHECKPOINT_SEC)
+            })
+            .unwrap_or_default()
+    }
+
     fn init_streaming_task(
         grpc_channel: SiftChannel,
         sift_stream_id: Uuid,
@@ -749,14 +815,13 @@ impl SiftStream<IngestionConfigMode> {
         data_tx: BoundedSender<StreamMessage>,
         shutdown_rx: Receiver<()>,
         begin_checkpoint_notifier: Arc<Notify>,
-    ) -> JoinHandle<Result<IngestWithConfigDataStreamResponse>> {
+    ) -> DataStreamTask {
         tokio::spawn(async move {
             let mut client = IngestServiceClient::new(grpc_channel);
 
             let checkpoint_task = tokio::spawn(async move {
                 let mut checkpoint_timer = {
                     let mut timer = tokio::time::interval(checkpoint_interval);
-                    // Time goes off immediately
                     timer.tick().await;
                     timer
                 };
@@ -775,7 +840,7 @@ impl SiftStream<IngestionConfigMode> {
                     }
                     _ = shutdown_rx => {
                         #[cfg(feature = "tracing")]
-                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "initiating final checkpoint");
+                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "manually initiating checkpoint");
                     }
                 }
                 let _ = data_tx.send(StreamMessage::CheckpointSignal).await;
@@ -804,7 +869,7 @@ impl SiftStream<IngestionConfigMode> {
                 }
                 Err(err) => Err(err),
             }
-        })
+        }).into()
     }
 
     /// Flows passed into this function should have names match `flow_name`. The only case
@@ -970,6 +1035,15 @@ impl Drop for DataStream {
                 "current stream concluded - transferred remaining data to new buffer to use in next stream",
             )
         }
-        self.heartbeat_task.abort();
+        self.heartbeat_task.abort()
+    }
+}
+
+impl From<JoinHandle<Result<IngestWithConfigDataStreamResponse>>> for DataStreamTask {
+    fn from(join_handle: JoinHandle<Result<IngestWithConfigDataStreamResponse>>) -> Self {
+        Self {
+            join_handle,
+            created_at: Instant::now(),
+        }
     }
 }
