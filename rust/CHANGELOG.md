@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.4.1] - June 30, 2025
+
+- [SiftStream now forces a checkpoint if it detects that a checkpoint is overdue. If a checkpoint isn't acknowledge by Sift then SiftStream internal state is reinitialized and backups reingested](https://github.com/sift-stack/sift/pull/258).
+- [SiftStream::send now emits a warning if it encounters a message that doesn't match any locally cached flows and the data is transmitted regardless. Users will need to manually confirm that this data was transmitted](https://github.com/sift-stack/sift/pull/259).
+
 ## [v0.4.0] - June 25, 2025
 
 - [Include a unique ID for each SiftStream instance that gets emitted with each log for improved traceability](https://github.com/sift-stack/sift/pull/250)
