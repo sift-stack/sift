@@ -568,11 +568,13 @@ def test_hdf5_upload_string_timestamps(mocker: MockFixture, hdf5_config, rest_co
     mock_path_is_file.return_value = True
 
     data_dict = {
-        "/timestamps": np.array([
-            b"2024-10-07 17:00:09.982126",
-            b"2024-10-07 17:00:10.022126",
-            b"2024-10-07 17:00:10.062126"
-        ]),
+        "/timestamps": np.array(
+            [
+                b"2024-10-07 17:00:09.982126",
+                b"2024-10-07 17:00:10.022126",
+                b"2024-10-07 17:00:10.062126",
+            ]
+        ),
         "/DoubleChannel": np.array([0, 1, 2], dtype=np.int64),
     }
 
