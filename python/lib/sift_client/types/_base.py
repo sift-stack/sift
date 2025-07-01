@@ -135,6 +135,8 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                 )
                 paths.extend(sub_paths)
             elif isinstance(value, list):
+                print("proto_msg", type(proto_msg))
+                print("field_name", field_name)
                 repeated_field = getattr(proto_msg, field_name)
                 del repeated_field[:]  # Remove all existing items
                 try:

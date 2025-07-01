@@ -8,7 +8,6 @@ from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.types.channel import ChannelReference
 from sift_client.types.rule import Rule, RuleAction, RuleUpdate
-from sift_client.util import cel_utils
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -54,19 +53,12 @@ class RulesAPIAsync(ResourceBase):
         rule = await self._low_level_client.get_rule(rule_id=rule_id, client_key=client_key)
         return self._apply_client_to_instance(rule)
 
-    async def list_(
+    async def list(
         self,
         *,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        created_after: datetime | None = None,
-        created_before: datetime | None = None,
-        modified_after: datetime | None = None,
-        modified_before: datetime | None = None,
-        asset_ids: list[str] | None = None,
-        include_deleted: bool = False,
-        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Rule]:
@@ -77,65 +69,32 @@ class RulesAPIAsync(ResourceBase):
             name: Exact name of the rule.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
-            created_after: Created after this date.
-            created_before: Created before this date.
-            modified_after: Modified after this date.
-            modified_before: Modified before this date.
-            asset_ids: Rules associated with these assets.
-            include_deleted: Include deleted rules.
-            filter_query: Explicit CEL query to filter rules.
             order_by: How to order the retrieved rules.
             limit: How many rules to retrieve. If None, retrieves all matches.
 
         Returns:
             A list of Rules that matches the filter.
         """
-        if not filter_query:
-            filters = []
-            if name:
-                filters.append(cel_utils.equals("name", name))
-            if name_contains:
-                filters.append(cel_utils.contains("name", name_contains))
-            if name_regex:
-                filters.append(cel_utils.match("name", name_regex))
-            if created_after:
-                filters.append(cel_utils.greater_than("created_date", created_after))
-            if created_before:
-                filters.append(cel_utils.less_than("created_date", created_before))
-            if modified_after:
-                filters.append(cel_utils.greater_than("modified_date", modified_after))
-            if modified_before:
-                filters.append(cel_utils.less_than("modified_date", modified_before))
-            if asset_ids:
-                filters.append(cel_utils.in_("asset_configuration.asset_ids", asset_ids))
-            if not include_deleted:
-                filters.append(cel_utils.equals_null("deleted_date"))
-            filter_query = cel_utils.and_(*filters)
-
-        rules, _ = await self._low_level_client.search_rules(
-            name_matches=name,
-            case_sensitive=False,
-            regexp=bool(name_regex),
-            order_by=order_by,
-            asset_ids=asset_ids,
-            include_deleted=include_deleted,
-            limit=limit,
-            offset=0,
+        # TODO: Handle pagination
+        rules = await self._low_level_client.list_rules(
+            name=name,
+            name_contains=name_contains,
+            name_regex=name_regex,
         )
         return self._apply_client_to_instances(rules)
 
     async def find(self, **kwargs) -> Rule | None:
         """
-        Find a single rule matching the given query. Takes the same arguments as `list_`. If more than one rule is found,
+        Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
         raises an error.
 
         Args:
-            **kwargs: Keyword arguments to pass to `list_`.
+            **kwargs: Keyword arguments to pass to `list`.
 
         Returns:
             The Rule found or None.
         """
-        rules = await self.list_(**kwargs)
+        rules = await self.list(**kwargs)
         if len(rules) > 1:
             raise ValueError("Multiple rules found for query")
         elif len(rules) == 1:
@@ -149,8 +108,9 @@ class RulesAPIAsync(ResourceBase):
         expression: str,
         channel_references: list[ChannelReference],
         action: RuleAction,
-        rule_client_key: str | None = None,
-        asset_names: list[str] | None = None,
+        organization_id: str | None = None,
+        client_key: str | None = None,
+        asset_ids: list[str] | None = None,
         contextual_channels: list[str] | None = None,
         is_enabled: bool = True,
         is_external: bool = False,
@@ -158,31 +118,20 @@ class RulesAPIAsync(ResourceBase):
         """
         Create a new rule.
         """
-        rule = Rule(
+        created_rule = await self._low_level_client.create_rule(
             name=name,
             description=description,
             is_enabled=is_enabled,
+            organization_id=organization_id,
             expression=expression,
             action=action,
             channel_references=channel_references,
-            rule_client_key=rule_client_key,
-            asset_names=asset_names,
+            client_key=client_key,
+            asset_ids=asset_ids,
             contextual_channels=contextual_channels,
             is_external=is_external,
         )
-        return await self.create_from_model(rule)
-
-    async def create_from_model(self, rule: Rule) -> str:
-        """
-        Create a new rule.
-
-        Args:
-            rule: The rule to create.
-
-        Returns:
-            The rule ID of the created rule.
-        """
-        return await self._low_level_client.create_rule(rule)
+        return self._apply_client_to_instance(created_rule)
 
     async def update(self, rule: str | Rule, update: RuleUpdate | dict) -> Rule:
         """
@@ -195,13 +144,13 @@ class RulesAPIAsync(ResourceBase):
         Returns:
             The updated Rule.
         """
-        rule_id = rule.rule_id if isinstance(rule, Rule) else rule
-        rule_obj = await self.get(rule_id=rule_id)
+        if isinstance(rule, str):
+            rule = await self.get(rule_id=rule)
 
         if isinstance(update, dict):
             update = RuleUpdate.model_validate(update)
 
-        updated_rule = await self._low_level_client.update_rule(rule_obj, update)
+        updated_rule = await self._low_level_client.update_rule(rule, update)
         return self._apply_client_to_instance(updated_rule)
 
     async def delete(
@@ -311,12 +260,13 @@ class RulesAPIAsync(ResourceBase):
         self,
         *,
         name_matches: str | None = None,
-        case_sensitive: bool = False,
-        regexp: bool = False,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        asset_ids: list[str] | None = None,
         order_by: str | None = None,
         rule_ids: list[str] | None = None,
-        asset_ids: list[str] | None = None,
         include_deleted: bool = False,
+        case_sensitive: bool = False,
         limit: int | None = None,
         offset: int = 0,
     ) -> tuple[list[Rule], int]:
@@ -325,8 +275,9 @@ class RulesAPIAsync(ResourceBase):
 
         Args:
             name_matches: Name pattern to match.
+            name_contains: Partial name to match.
+            name_regex: Regular expression to match.
             case_sensitive: Whether the search is case sensitive.
-            regexp: Whether to use regex matching.
             order_by: Field to order by.
             rule_ids: List of rule IDs to filter by.
             asset_ids: List of asset IDs to filter by.
@@ -337,15 +288,27 @@ class RulesAPIAsync(ResourceBase):
         Returns:
             Tuple of (list of Rules, total count).
         """
+        if (
+            int(name_matches is not None)
+            + int(name_contains is not None)
+            + int(name_regex is not None)
+            > 1
+        ):
+            raise ValueError("Must use EITHER name_matches, name_contains, or name_regex, not multiple")
+        if name_contains:
+            name_regex = re.compile(f".*{name_contains}.*")  # TODO: Use a better regex?
+        if name_regex:
+            name_matches = name_regex.pattern
+
         rules, count = await self._low_level_client.search_rules(
             name_matches=name_matches,
             case_sensitive=case_sensitive,
-            regexp=regexp,
+            regexp=name_regex is not None,
+            asset_ids=asset_ids,
             order_by=order_by,
             rule_ids=rule_ids,
-            asset_ids=asset_ids,
             include_deleted=include_deleted,
             limit=limit,
             offset=offset,
         )
-        return self._apply_client_to_instances(rules), count
+        return self._apply_client_to_instances(rules)

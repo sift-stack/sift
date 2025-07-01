@@ -14,10 +14,6 @@ from sift_client.types.channel import (
 )
 from sift_client.types.metadata import MetadataUpdate, MetadataValue
 from sift_client.types.rule import (
-    ChannelConfig as RuleChannelConfig,
-)
-from sift_client.types.rule import (
-    ExpressionChannelReference,
     Rule,
     RuleAction,
     RuleActionType,

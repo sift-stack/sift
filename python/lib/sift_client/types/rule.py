@@ -11,6 +11,10 @@ from sift.rules.v1.rules_pb2 import (
     CalculatedChannelConfig,
     ContextualChannels,
     RuleAssetConfiguration,
+    RuleActionConfiguration,
+    AnnotationActionConfiguration,
+    NotificationActionConfiguration,
+    UpdateActionRequest,
 )
 from sift.rules.v1.rules_pb2 import (
     RuleCondition as RuleConditionProto,
@@ -28,10 +32,11 @@ from sift.rules.v1.rules_pb2 import (
 )
 
 from sift_client.types._base import BaseType, ModelUpdate
-from sift_client.types.channel import ChannelConfig
+MappingHelper = ModelUpdate.MappingHelper
+from sift_client.types.channel import ChannelReference
 
 if TYPE_CHECKING:
-    from sift_client.client import SiftClient
+    pass
 
 
 class Rule(BaseType[RuleProto, "Rule"]):
@@ -44,14 +49,15 @@ class Rule(BaseType[RuleProto, "Rule"]):
     name: str
     description: str
     is_enabled: bool = True
-    conditions: List[RuleCondition]  # TODO: Is this just versions?
+    conditions: List[RuleCondition] | None = None  # TODO: Is this just versions?
 
     # Fields for creation
     expression: str | None = None
     action: RuleAction | None = None
-    channel_references: List[ExpressionChannelReference] | None = None
+    channel_references: List[ChannelReference] | None = None
     rule_client_key: str | None = None
-    asset_names: List[str] | None = None
+    asset_ids: List[str] | None = None
+    tag_ids: List[str] | None = None
     contextual_channels: List[str] | None = None
 
     # Fields from proto
@@ -63,8 +69,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
     _organization_id: str | None = None
     rule_version: RuleVersion | None = None
     client_key: str | None = None
-    asset_configuration: RuleAssetConfiguration | None = None
-    contextual_channels_proto: ContextualChannels | None = None
+    contextual_channels: list[str] | None = None
     deleted_date: datetime | None = None
     is_external: bool | None = None
 
@@ -72,7 +77,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
     def is_deleted(self) -> bool:
         """Whether the rule is deleted."""
         return self.deleted_date is not None and self.deleted_date > datetime(1970, 1, 1)
-
 
     def update(self, update: RuleUpdate | dict) -> Rule:
         """
@@ -90,7 +94,9 @@ class Rule(BaseType[RuleProto, "Rule"]):
         self.client.rules.delete(rule=self)
 
     @classmethod
-    def _from_proto(cls, proto: RuleProto, sift_client: SiftClient | None = None) -> Rule:
+    def _from_proto(cls, proto: RuleProto) -> Rule:
+        conditions = [RuleCondition._from_proto(c) for c in proto.conditions]
+        expression = conditions[0].expression if conditions else None
         return cls(
             rule_id=proto.rule_id,
             name=proto.name,
@@ -101,16 +107,17 @@ class Rule(BaseType[RuleProto, "Rule"]):
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
-            conditions=[RuleCondition._from_proto(c) for c in proto.conditions],
+            expression=expression,
+            conditions=conditions,
             rule_version=(
                 RuleVersion._from_proto(proto.rule_version) if proto.rule_version else None
             ),
             client_key=proto.client_key if proto.client_key else None,
-            asset_configuration=proto.asset_configuration,
-            contextual_channels_proto=proto.contextual_channels,
+            asset_ids=proto.asset_configuration.asset_ids,
+            tag_ids=proto.asset_configuration.tag_ids,
+            contextual_channels=[c.name for c in proto.contextual_channels.channels],
             deleted_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
             is_external=proto.is_external,
-            _client=sift_client,
         )
 
 
@@ -123,13 +130,16 @@ class RuleUpdate(ModelUpdate[RuleProto]):
 
     name: str | None = None
     description: str | None = None
-    asset_id: str | None = None
+    expression: str | None = None
+    channel_references: List[ChannelReference] | None = None
+    action: RuleAction | None = None
+    asset_ids: List[str] | None = None
+    tag_ids: List[str] | None = None
     is_enabled: bool | None = None
     organization_id: str | None = None
     version_notes: str | None = None
     client_key: str | None = None
-    asset_configuration: RuleAssetConfiguration | None = None
-    contextual_channels: ContextualChannels | None = None
+    contextual_channels: List[str] | None = None
     is_external: bool | None = None
 
     def _get_proto_class(self) -> Type[RuleProto]:
@@ -149,7 +159,7 @@ class RuleCondition(BaseModel):
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     expression: str
-    channel_references: List[ExpressionChannelReference]
+    channel_references: List[ChannelReference]
     actions: List[RuleAction]
 
     rule_condition_id: str | None = None
@@ -162,11 +172,15 @@ class RuleCondition(BaseModel):
 
     @classmethod
     def _from_proto(cls, proto: RuleConditionProto) -> RuleCondition:
+        # TODO: Errors if not calculated channel
         return cls(
-            expression=proto.expression,
+            expression=proto.expression.calculated_channel.expression,
             channel_references=[
-                ExpressionChannelReference._from_proto(c)
-                for c in proto.calculated_channel.channel_references
+                ChannelReference(
+                    channel_reference=reference_key,
+                    channel_identifier=channel.name,
+                )
+                for reference_key, channel in proto.expression.calculated_channel.channel_references.items()
             ],
             actions=[RuleAction._from_proto(a) for a in proto.actions],
             rule_condition_id=proto.rule_condition_id,
@@ -218,13 +232,12 @@ class RuleAction(BaseModel):
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     action_type: RuleActionType
-    rule_action_id: str | None = None
-    rule_condition_id: str | None = None
+    condition_id: str | None = None
     created_date: datetime | None = None
     modified_date: datetime | None = None
     created_by_user_id: str | None = None
     modified_by_user_id: str | None = None
-    rule_action_version_id: str | None = None
+    version_id: str | None = None
     annotation_type: RuleAnnotationType | None = None
     notification_recipients: List[str] | None = None  # List of user IDs to notify
     tags: List[str] | None = None
@@ -264,13 +277,13 @@ class RuleAction(BaseModel):
     @classmethod
     def _from_proto(cls, proto: RuleActionProto) -> RuleAction:
         return cls(
-            rule_action_id=proto.rule_action_id,
-            rule_condition_id=proto.rule_condition_id,
+            _resource_id=proto.rule_action_id,
+            condition_id=proto.rule_condition_id,
             created_date=proto.created_date.ToDatetime(),
             modified_date=proto.modified_date.ToDatetime(),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
-            rule_action_version_id=proto.rule_action_version_id,
+            version_id=proto.rule_action_version_id,
             tags=(
                 list(proto.configuration.annotation.tag_ids)
                 if proto.configuration.annotation.tag_ids
@@ -282,6 +295,29 @@ class RuleAction(BaseModel):
                 else None
             ),
             action_type=RuleActionType.from_str(proto.action_type),
+        )
+
+    def to_update_proto(self) -> UpdateActionRequest:
+        return UpdateActionRequest(
+            action_type=self.action_type.value,
+            configuration=RuleActionConfiguration(
+                annotation=(
+                    AnnotationActionConfiguration(
+                        assigned_to_user_id=self.assignee,
+                        tag_ids=self.tags,
+                        annotation_type=self.annotation_type.value,
+                    )
+                    if self.action_type == RuleActionType.ANNOTATION
+                    else None
+                ),
+                notification=(
+                    NotificationActionConfiguration(
+                        notification_recipients=self.notification_recipients,
+                    )
+                    if self.action_type == RuleActionType.NOTIFICATION
+                    else None
+                ),
+            ),
         )
 
 
@@ -312,22 +348,4 @@ class RuleVersion(BaseModel):
             version_notes=proto.version_notes,
             generated_change_message=proto.generated_change_message,
             deleted_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
-        )
-
-
-class ExpressionChannelReference(BaseModel):
-    """
-    `channel_identifier`: The channel identifier (e.g. '$1') used in the expression.
-    `channel_name`: The channel name.
-    """
-
-    channel_identifier: str
-    channel_name: str | None = None
-    channel_config: ChannelConfig | None = None
-
-    @classmethod
-    def _from_proto(cls, proto: ChannelReferencesEntry) -> ExpressionChannelReference:
-        return cls(
-            channel_identifier=proto.key,
-            channel_name=proto.value.name,
         )

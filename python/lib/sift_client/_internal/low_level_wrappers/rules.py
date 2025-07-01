@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
+import re
 import logging
 from typing import Any, cast
+import inspect
 
 from sift.rules.v1.rules_pb2 import (
     BatchDeleteRulesRequest,
@@ -15,17 +18,32 @@ from sift.rules.v1.rules_pb2 import (
     DeleteRuleRequest,
     GetRuleRequest,
     GetRuleResponse,
+    UpdateConditionRequest,
     SearchRulesRequest,
     SearchRulesResponse,
     UndeleteRuleRequest,
     UpdateRuleRequest,
     UpdateRuleResponse,
+    RuleConditionExpression,
+    CalculatedChannelConfig,
+    ChannelReference as ChannelReferenceProto,
+    ContextualChannels,
+    ListRulesRequest,
 )
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
+from sift_client.util.cel_utils import *
+
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.transport.grpc_transport import GrpcClient
-from sift_client.types.rule import Rule, RuleUpdate
+from sift_client.types.rule import (
+    Rule,
+    RuleAction,
+    RuleAssetConfiguration,
+    RuleCondition,
+    RuleUpdate,
+)
+from sift_client.types.channel import ChannelReference
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -105,31 +123,120 @@ class RulesLowLevelClient(LowLevelClientBase):
         response = cast(BatchGetRulesResponse, response)
         return [Rule._from_proto(rule) for rule in response.rules]
 
-    async def create_rule(self, rule: Rule) -> str:
+    async def create_rule(
+        self,
+        *,
+        name: str,
+        description: str,
+        is_enabled: bool,
+        organization_id: str,
+        client_key: str,
+        asset_ids: list[str] | None = None,
+        tag_ids: list[str] | None = None,
+        contextual_channels: list[str] | None = None,
+        is_external: bool,
+        expression: str,
+        channel_references: list[ChannelReference],
+        action: RuleAction,
+    ) -> str:
         """
         Create a new rule.
 
         Args:
-            rule: The rule to create.
+            name: The name of the rule.
+            description: The description of the rule.
+            is_enabled: Whether the rule is enabled.
+            organization_id: The organization ID of the rule.
+            client_key: The client key of the rule.
+            asset_ids: The asset IDs of the rule.
+            contextual_channels: Optional contextual channels of the rule.
 
         Returns:
             The rule ID of the created rule.
         """
+        # TODO: Wrap these in reusable functions
         # Convert rule to UpdateRuleRequest
+        expression_proto = RuleConditionExpression(
+            calculated_channel=CalculatedChannelConfig(
+                expression=expression,
+                channel_references={
+                    c.channel_reference: ChannelReferenceProto(name=c.channel_identifier) for c in channel_references
+                },
+            )
+        )
+        conditions_request = [
+            UpdateConditionRequest(expression=expression_proto, actions=[action.to_update_proto()])
+        ]
         update_request = UpdateRuleRequest(
-            name=rule.name,
-            description=rule.description,
-            is_enabled=rule.is_enabled,
-            organization_id=rule.organization_id,
-            client_key=rule.client_key,
-            asset_configuration=rule.asset_configuration,
-            contextual_channels=rule.contextual_channels,
-            is_external=rule.is_external,
+            name=name,
+            description=description,
+            is_enabled=is_enabled,
+            organization_id=organization_id,
+            client_key=client_key,
+            is_external=is_external,
+            conditions=conditions_request,
+            asset_configuration=RuleAssetConfiguration(
+                asset_ids=asset_ids or [],
+                tag_ids=tag_ids or [],
+            ),
+            contextual_channels=ContextualChannels(channels=contextual_channels or []),
         )
 
         request = CreateRuleRequest(update=update_request)
-        response = await self._grpc_client.get_stub(RuleServiceStub).CreateRule(request)
-        return cast(CreateRuleResponse, response).rule_id
+        created_rule = cast(CreateRuleResponse, await self._grpc_client.get_stub(RuleServiceStub).CreateRule(request))
+        return await self.get_rule(rule_id=created_rule.rule_id, client_key=client_key)
+
+    def _update_rule_request_from_update(self, rule: Rule, update: RuleUpdate) -> UpdateRuleRequest:
+        """
+        Create an update request for a rule.
+        """
+        model_dump = update.model_dump(exclude_unset=True, exclude_none=False)
+        print("Model dump:", model_dump)
+        
+        print("Update rule: grpc:", {k: v for k, v in model_dump.items() if v is not None})
+        print("   src:", {k: v for k, v in rule.__dict__.items() if v is not None})
+        # The Rule update protos need a pattern that is less generic than the normal update + mask pattern of other types.
+        update_dict = {}
+        channel_request_fields = ["expression", "channel_references", "action"]
+        nontrivial_updates = channel_request_fields + ["contextual_channels", "asset_ids", "tag_ids"]
+        # Populate the non-trivial fields first.
+        for updated_field in model_dump.keys():
+            if updated_field not in nontrivial_updates:
+                update_dict[updated_field] = getattr(rule, updated_field)
+        # Special handling for the more complex fields.
+        if any(updated_field in model_dump.keys() for updated_field in channel_request_fields):
+            expression = model_dump.get("expression", rule.expression)
+            channel_references = model_dump.get("channel_references", rule.channel_references)
+            action = model_dump.get("action", rule.action)
+            expression_proto = RuleConditionExpression(
+                calculated_channel=CalculatedChannelConfig(
+                    expression=expression,
+                    channel_references={
+                        c.channel_reference: ChannelReferenceProto(name=c.channel_identifier) for c in channel_references
+                    },
+                )
+            )
+            conditions_request = [
+                UpdateConditionRequest(expression=expression_proto, actions=[action.to_update_proto()])
+            ]
+            update_dict["conditions"] = conditions_request
+        if "contextual_channels" in model_dump.keys():
+            update_dict["contextual_channels"] = ContextualChannels(channels=update.contextual_channels or [])
+        
+        # This always needs to be set, so handle the defaults.
+        update_dict["asset_configuration"] = RuleAssetConfiguration(
+            asset_ids=model_dump.get("asset_ids", rule.asset_ids) or [],
+            tag_ids=model_dump.get("tag_ids", rule.tag_ids) or [],
+        )
+
+        print("Update dict:", update_dict)
+
+        update_request = UpdateRuleRequest(
+            rule_id=rule.rule_id,
+            **update_dict,
+        )
+
+        return update_request
 
     async def update_rule(self, rule: Rule, update: RuleUpdate) -> Rule:
         """
@@ -143,13 +250,10 @@ class RulesLowLevelClient(LowLevelClientBase):
             The updated Rule.
         """
         update.resource_id = rule.rule_id
-        grpc_rule, update_mask = update.to_proto_with_mask()
-        request = UpdateRuleRequest(
-            rule_id=rule.rule_id,
-            update_mask=update_mask,
-            **{k: v for k, v in grpc_rule.__dict__.items() if v is not None},
-        )
-        response = await self._grpc_client.get_stub(RuleServiceStub).UpdateRule(request)
+        
+        update_request = self._update_rule_request_from_update(rule, update)
+
+        response = await self._grpc_client.get_stub(RuleServiceStub).UpdateRule(update_request)
         updated_grpc_rule = cast(UpdateRuleResponse, response)
         # Get the updated rule
         return await self.get_rule(rule_id=updated_grpc_rule.rule_id)
@@ -166,11 +270,9 @@ class RulesLowLevelClient(LowLevelClientBase):
         """
         update_requests = []
         for rule_update in rules:
-            grpc_rule, update_mask = rule_update.to_proto_with_mask()
-            request = UpdateRuleRequest(
-                update_mask=update_mask,
-                **{k: v for k, v in grpc_rule.__dict__.items() if v is not None},
-            )
+            rule = await self.get_rule(rule_id=rule_update.resource_id)
+            # TODO: Fix to_proto_with_mask for rules
+            request = self._update_rule_request_from_update(rule, rule_update)
             update_requests.append(request)
 
         request = BatchUpdateRulesRequest(rules=update_requests)
@@ -279,12 +381,41 @@ class RulesLowLevelClient(LowLevelClientBase):
 
         request = BatchUndeleteRulesRequest(**request_kwargs)
         await self._grpc_client.get_stub(RuleServiceStub).BatchUndeleteRules(request)
+    
+    async def list_rules(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+    ) -> list[Rule]:
+        """
+        List rules.
+        """
+        if int(name is not None) + int(name_contains is not None) + int(name_regex is not None) > 1:
+            raise ValueError("Must use EITHER name, name_contains, or name_regex, not multiple")
+        
+        # TODO: Handle pagination
+        # Available fields to filter by are `rule_id`, `client_key`, `name`, and `description`.
+        filters = []
+        if name:
+            filters.append(equals("name", name))
+        if name_contains:
+            filters.append(contains("name", name_contains))
+        if name_regex:
+            filters.append(match("name", name_regex))
+        filter_str = " && ".join(filters) if filters else None
+        request = ListRulesRequest(
+            filter=filter_str,
+        )
+        response = await self._grpc_client.get_stub(RuleServiceStub).ListRules(request)
+        return [Rule._from_proto(rule) for rule in response.rules]
 
     async def search_rules(
         self,
         name_matches: str | None = None,
         case_sensitive: bool = False,
-        regexp: bool = False,
+        regexp: re.Pattern | None = None,
         order_by: str | None = None,
         rule_ids: list[str] | None = None,
         asset_ids: list[str] | None = None,
@@ -317,7 +448,7 @@ class RulesLowLevelClient(LowLevelClientBase):
         if case_sensitive is not None:
             request_kwargs["case_sensitive"] = case_sensitive
         if regexp is not None:
-            request_kwargs["regexp"] = regexp
+            request_kwargs["regexp"] = True
         if order_by is not None:
             request_kwargs["order_by"] = order_by
         if rule_ids is not None:

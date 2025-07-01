@@ -76,6 +76,10 @@ class SiftClient(
     ping: PingAPI
     """Instance of the Assets API for making synchronous requests."""
     assets: AssetsAPI
+    """Instance of the Calculated Channels API for making synchronous requests."""
+    calculated_channels: CalculatedChannelsAPI
+    """Instance of the Rules API for making synchronous requests."""
+    rules: RulesAPI
 
     def __init__(
         self,
