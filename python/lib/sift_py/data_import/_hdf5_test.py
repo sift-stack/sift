@@ -2,7 +2,7 @@ from typing import Dict
 
 import h5py  # type: ignore
 import numpy as np
-import polars as pl
+import polars as pl  # type: ignore
 import pytest
 from pytest_mock import MockFixture
 

@@ -10,7 +10,7 @@ except ImportError as e:
     ) from e
 
 try:
-    import polars as pl
+    import polars as pl  # type: ignore
 except ImportError as e:
     raise RuntimeError(
         "The polars package is required to use the HDF5 upload service. "
