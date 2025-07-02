@@ -126,7 +126,6 @@ class RulesLowLevelClient(LowLevelClientBase):
         *,
         name: str,
         description: str,
-        is_enabled: bool,
         organization_id: str,
         client_key: str,
         asset_ids: list[str] | None = None,
@@ -143,7 +142,6 @@ class RulesLowLevelClient(LowLevelClientBase):
         Args:
             name: The name of the rule.
             description: The description of the rule.
-            is_enabled: Whether the rule is enabled.
             organization_id: The organization ID of the rule.
             client_key: The client key of the rule.
             asset_ids: The asset IDs of the rule.
@@ -169,7 +167,7 @@ class RulesLowLevelClient(LowLevelClientBase):
         update_request = UpdateRuleRequest(
             name=name,
             description=description,
-            is_enabled=is_enabled,
+            is_enabled=True,
             organization_id=organization_id,
             client_key=client_key,
             is_external=is_external,
@@ -188,7 +186,9 @@ class RulesLowLevelClient(LowLevelClientBase):
         )
         return await self.get_rule(rule_id=created_rule.rule_id, client_key=client_key)
 
-    def _update_rule_request_from_update(self, rule: Rule, update: RuleUpdate, version_notes: str | None = None) -> UpdateRuleRequest:
+    def _update_rule_request_from_update(
+        self, rule: Rule, update: RuleUpdate, version_notes: str | None = None
+    ) -> UpdateRuleRequest:
         """
         Create an update request from a rule and update.
 
@@ -216,7 +216,11 @@ class RulesLowLevelClient(LowLevelClientBase):
         # Special handling for the more complex fields.
         # Also, these must always be set.
         expression = model_dump.get("expression", rule.expression)
-        channel_references = update.channel_references if "channel_references" in model_dump else rule.channel_references
+        channel_references = (
+            update.channel_references
+            if "channel_references" in model_dump
+            else rule.channel_references
+        )
         action = update.action if "action" in model_dump else rule.action
         expression_proto = RuleConditionExpression(
             calculated_channel=CalculatedChannelConfig(
@@ -249,7 +253,9 @@ class RulesLowLevelClient(LowLevelClientBase):
 
         return update_request
 
-    async def update_rule(self, rule: Rule, update: RuleUpdate, version_notes: str | None = None) -> Rule:
+    async def update_rule(
+        self, rule: Rule, update: RuleUpdate, version_notes: str | None = None
+    ) -> Rule:
         """
         Update a rule.
 

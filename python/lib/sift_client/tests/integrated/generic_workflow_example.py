@@ -92,7 +92,9 @@ async def main():
                 description="Ratio of mainmotor velocity to voltage",
                 expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
                 channel_references=[
-                    ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
+                    ChannelReference(
+                        channel_reference="$1", channel_identifier="mainmotor.velocity"
+                    ),
                     ChannelReference(channel_reference="$2", channel_identifier="voltage"),
                 ],
                 units="velocity/voltage",

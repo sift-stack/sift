@@ -60,6 +60,7 @@ class RulesAPIAsync(ResourceBase):
         name_regex: str | re.Pattern | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        include_deleted: bool = False,
     ) -> list[Rule]:
         """
         List rules with optional filtering.
@@ -79,6 +80,7 @@ class RulesAPIAsync(ResourceBase):
             name=name,
             name_contains=name_contains,
             name_regex=name_regex,
+            include_deleted=include_deleted,
         )
         return self._apply_client_to_instances(rules)
 
@@ -111,7 +113,6 @@ class RulesAPIAsync(ResourceBase):
         client_key: str | None = None,
         asset_ids: list[str] | None = None,
         contextual_channels: list[str] | None = None,
-        is_enabled: bool = True,
         is_external: bool = False,
     ) -> Rule:
         """
@@ -120,7 +121,6 @@ class RulesAPIAsync(ResourceBase):
         created_rule = await self._low_level_client.create_rule(
             name=name,
             description=description,
-            is_enabled=is_enabled,
             organization_id=organization_id,
             expression=expression,
             action=action,
@@ -132,7 +132,9 @@ class RulesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(created_rule)
 
-    async def update(self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None) -> Rule:
+    async def update(
+        self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
+    ) -> Rule:
         """
         Update a Rule.
 

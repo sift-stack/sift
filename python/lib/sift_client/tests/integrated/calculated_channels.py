@@ -10,15 +10,7 @@ from sift_client.client import SiftClient
 from sift_client.types import (
     CalculatedChannelUpdate,
     ChannelReference,
-    RuleAction,
-    RuleAnnotationType,
-    RuleUpdate,
 )
-from sift_py.asset.service import AssetService
-
-# TODO: Eventually these should all use sift_client replacements
-from sift_py.data.service import DataService
-from sift_py.grpc.transport import SiftChannelConfig, use_sift_async_channel, use_sift_channel
 
 """
 Comprehensive test script for calculated channels with extensive update field exercises.
@@ -55,27 +47,20 @@ async def main():
     rest_url = "https://api.development.siftstack.com"
     grpc_url = "grpc-api.development.siftstack.com"
     organization_id = "org-1234567890"
-    channel_config: SiftChannelConfig = {
-        "apikey": api_key,
-        "uri": grpc_url,
-    }
-    channel_config["use_ssl"] = True
     client = SiftClient(grpc_url=grpc_url, api_key=api_key, rest_url=rest_url)
 
-    sift_sync_channel = use_sift_channel(channel_config)
-
-    asset_service = AssetService(sift_sync_channel)
-    
     # Find assets to work with
-    assets = asset_service.list_assets(names=["NostromoLV426"])
-    asset_id = assets[0].asset_id
-    print(f"Using asset: {assets[0].name} (ID: {asset_id})")
+    asset = client.assets.find(name="NostromoLV426")
+    asset_id = asset.asset_id
+    print(f"Using asset: {asset.name} (ID: {asset_id})")
 
     # Create example calculated channels that will be unique to this test run in case things don't cleanup.
     num_channels = 7
     unique_name_suffix = datetime.now().strftime("%Y%m%d%H%M%S")
-    print(f"\n=== Creating {num_channels} calculated channels with unique suffix: {unique_name_suffix} ===")
-    
+    print(
+        f"\n=== Creating {num_channels} calculated channels with unique suffix: {unique_name_suffix} ==="
+    )
+
     created_channels = []
     for i in range(num_channels):
         calculated_channel = client.calculated_channels.create(
@@ -91,7 +76,9 @@ async def main():
             user_notes=f"Created for testing update fields - channel {i}",
         )
         created_channels.append(calculated_channel)
-        print(f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.calculated_channel_id})")
+        print(
+            f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.calculated_channel_id})"
+        )
 
     # Find the channels we just created
     search_results = client.calculated_channels.list(
@@ -101,7 +88,7 @@ async def main():
     print(f"Found {len(search_results)} calculated channels: {[cc.name for cc in search_results]}")
 
     print(f"\n=== Testing comprehensive update scenarios ===")
-    
+
     # Test 1: Update expression and channel references together
     print("\n--- Test 1: Update expression and channel references ---")
     channel_1 = created_channels[0]
@@ -196,7 +183,9 @@ async def main():
             CalculatedChannelUpdate(
                 expression="invalid_expression",
                 expression_channel_references=[
-                    ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
+                    ChannelReference(
+                        channel_reference="$1", channel_identifier="mainmotor.velocity"
+                    ),
                 ],
             )
         )
@@ -216,28 +205,47 @@ async def main():
     print(f"\n=== Test Summary ===")
     print(f"Created: {len(created_channels)} channels")
     print(f"Archived: {archived_count} channels")
-    
+
     # Verify all channels were processed
-    assert len(created_channels) == num_channels, f"Expected {num_channels} created channels, got {len(created_channels)}"
-    assert archived_count == num_channels, f"Expected {num_channels} archived channels, got {archived_count}"
+    assert len(created_channels) == num_channels, (
+        f"Expected {num_channels} created channels, got {len(created_channels)}"
+    )
+    assert archived_count == num_channels, (
+        f"Expected {num_channels} archived channels, got {archived_count}"
+    )
 
     # Additional validation
     print(f"\n=== Validation Checks ===")
-    
+
     # Verify that updates actually changed the values
-    assert updated_channel_1.expression == "$1 / $2 * 100", f"Expression update failed: {updated_channel_1.expression}"
-    assert "more details" in updated_channel_2.description, f"Description update failed: {updated_channel_2.description}"
-    assert updated_channel_3.units == "percentage", f"Units update failed: {updated_channel_3.units}"
+    assert updated_channel_1.expression == "$1 / $2 * 100", (
+        f"Expression update failed: {updated_channel_1.expression}"
+    )
+    assert "more details" in updated_channel_2.description, (
+        f"Description update failed: {updated_channel_2.description}"
+    )
+    assert updated_channel_3.units == "percentage", (
+        f"Units update failed: {updated_channel_3.units}"
+    )
     assert updated_channel_4.name == new_name, f"Name update failed: {updated_channel_4.name}"
-    assert updated_channel_5.description == "Multi-field update test", f"Description update failed: {updated_channel_5.description}"
+    assert updated_channel_5.description == "Multi-field update test", (
+        f"Description update failed: {updated_channel_5.description}"
+    )
     assert updated_channel_5.units == "ratio", f"Units update failed: {updated_channel_5.units}"
-    assert updated_channel_5.user_notes == "Updated via multi-field update", f"User notes update failed: {updated_channel_5.user_notes}"
-    assert updated_channel_6.expression == "($1 / $2) * 100 + ($3 * 0.1)", f"Complex expression update failed: {updated_channel_6.expression}"
-    assert len(updated_channel_6.channel_references) == 3, f"Complex expression should have 3 references, got {len(updated_channel_6.channel_references)}"
+    assert updated_channel_5.user_notes == "Updated via multi-field update", (
+        f"User notes update failed: {updated_channel_5.user_notes}"
+    )
+    assert updated_channel_6.expression == "($1 / $2) * 100 + ($3 * 0.1)", (
+        f"Complex expression update failed: {updated_channel_6.expression}"
+    )
+    assert len(updated_channel_6.channel_references) == 3, (
+        f"Complex expression should have 3 references, got {len(updated_channel_6.channel_references)}"
+    )
     assert updated_channel_7.tag_ids == [], f"Tag IDs update failed: {updated_channel_7.tag_ids}"
-    
+
     print("All validation checks passed!")
     print(f"\n=== Test completed successfully ===")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -76,7 +76,9 @@ class Rule(BaseType[RuleProto, "Rule"]):
         Args:
             update: Either a RuleUpdate instance or a dictionary of key-value pairs to update.
         """
-        updated_rule = self.client.rules.update(rule=self, update=update, version_notes=version_notes)
+        updated_rule = self.client.rules.update(
+            rule=self, update=update, version_notes=version_notes
+        )
         self._update(updated_rule)
         return self
 
@@ -135,7 +137,6 @@ class RuleUpdate(ModelUpdate[RuleProto]):
     action: RuleAction | None = None
     asset_ids: List[str] | None = None
     tag_ids: List[str] | None = None
-    is_enabled: bool | None = None
     organization_id: str | None = None
     client_key: str | None = None
     contextual_channels: List[str] | None = None
@@ -216,7 +217,9 @@ class RuleAction(BaseModel):
         #     action_type=RuleActionType.NOTIFICATION,
         #     notification_recipients=notify_recipients,
         # )
-        raise NotImplementedError("Notification actions are not supported yet.") #TODO: Or are they deprecated?         debug_error_string = "UNKNOWN:Error received from peer  {grpc_status:13, grpc_message:"RuleId: 5d10d84e-3013-4a6a-9336-bbf72c2d4ad0, ClientKey: , Error: rule actions must be annotation or webhook actions (b54199f3-1b59-44cb-850c-0650a3d8f4f1)"}"
+        raise NotImplementedError(
+            "Notification actions are not supported yet."
+        )  # TODO: Or are they deprecated?         debug_error_string = "UNKNOWN:Error received from peer  {grpc_status:13, grpc_message:"RuleId: 5d10d84e-3013-4a6a-9336-bbf72c2d4ad0, ClientKey: , Error: rule actions must be annotation or webhook actions (b54199f3-1b59-44cb-850c-0650a3d8f4f1)"}"
 
     @classmethod
     def annotation(

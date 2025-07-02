@@ -15,11 +15,6 @@ from sift_client.types import (
     RuleAnnotationType,
     RuleUpdate,
 )
-from sift_py.asset.service import AssetService
-
-# TODO: Eventually these should all use sift_client replacements
-from sift_py.data.service import DataService
-from sift_py.grpc.transport import SiftChannelConfig, use_sift_async_channel, use_sift_channel
 
 """
 Comprehensive test script for rules with extensive update field exercises.
@@ -56,62 +51,44 @@ def main():
     rest_url = "https://api.development.siftstack.com"
     grpc_url = "grpc-api.development.siftstack.com"
     organization_id = "org-1234567890"
-    channel_config: SiftChannelConfig = {
-        "apikey": api_key,
-        "uri": grpc_url,
-    }
-    channel_config["use_ssl"] = True
     client = SiftClient(grpc_url=grpc_url, api_key=api_key, rest_url=rest_url)
 
-    sift_sync_channel = use_sift_channel(channel_config)
-
-    asset_service = AssetService(sift_sync_channel)
-    
-    assets = asset_service.list_assets(names=["NostromoLV426"])
-    if not assets:
-        print("No assets found with name 'NostromoLV426'. Trying to find any available assets...")
-        assets = asset_service.list_assets()
-        if not assets:
-            print("No assets found. Please ensure you have access to assets.")
-            return
-    asset_id = assets[0].asset_id
-    print(f"Using asset: {assets[0].name} (ID: {asset_id})")
+    asset = client.assets.find(name="NostromoLV426")
+    asset_id = asset.asset_id
+    print(f"Using asset: {asset.name} (ID: {asset_id})")
 
     unique_name_suffix = datetime.now().strftime("%Y%m%d%H%M%S")
     num_rules = 8
     print(f"\n=== Creating {num_rules} rules with unique suffix: {unique_name_suffix} ===")
     created_rules = []
     for i in range(num_rules):
-            rule = client.rules.create(
-                name=f"test_rule_{unique_name_suffix}_{i}",
-                description=f"Test rule {i} - initial description",
-                expression="$1 > 0.1",  # Simple threshold check
-                channel_references=[
-                    ChannelReference(
-                        channel_reference="$1", 
-                        channel_identifier="mainmotor.velocity"
-                    ),
-                ],
-                action=RuleAction.annotation(
-                    annotation_type=RuleAnnotationType.DATA_REVIEW,
-                    tags=["test", "initial"],
-                    assignee=None,
-                ),
-                asset_ids=[asset_id],
-            )
-            created_rules.append(rule)
-            print(f"Created rule: {rule.name} (ID: {rule.rule_id})")
+        rule = client.rules.create(
+            name=f"test_rule_{unique_name_suffix}_{i}",
+            description=f"Test rule {i} - initial description",
+            expression="$1 > 0.1",  # Simple threshold check
+            channel_references=[
+                ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
+            ],
+            action=RuleAction.annotation(
+                annotation_type=RuleAnnotationType.DATA_REVIEW,
+                tags=["test", "initial"],
+                assignee=None,
+            ),
+            asset_ids=[asset_id],
+        )
+        created_rules.append(rule)
+        print(f"Created rule: {rule.name} (ID: {rule.rule_id})")
 
-   
     # Find the rules we just created
     search_results = client.rules.list(
         name_regex=f"test_rule_{unique_name_suffix}.*",
     )
-    assert len(search_results) == num_rules, f"Expected {num_rules} created rules, got {len(search_results)}"
-
+    assert len(search_results) == num_rules, (
+        f"Expected {num_rules} created rules, got {len(search_results)}"
+    )
 
     print(f"\n=== Testing comprehensive update scenarios ===")
-    
+
     # Test 1: Update expression and channel references together
     print("\n--- Test 1: Update expression and channel references ---")
     rule_1 = created_rules[0]
@@ -119,10 +96,7 @@ def main():
         RuleUpdate(
             expression="$1 > 0.5",  # Higher threshold
             channel_references=[
-                ChannelReference(
-                    channel_reference="$1", 
-                    channel_identifier="mainmotor.velocity"
-                ),
+                ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
             ],
         )
     )
@@ -179,7 +153,9 @@ def main():
     print(f"Updated {updated_rule_5.name}:")
     print(f"  - description: {updated_rule_5.description}")
     print(f"  - is_enabled: {updated_rule_5.is_enabled}")
-    print(f"  - version_notes: {updated_rule_5.rule_version.version_notes if updated_rule_5.rule_version else None}")
+    print(
+        f"  - version_notes: {updated_rule_5.rule_version.version_notes if updated_rule_5.rule_version else None}"
+    )
 
     # Test 6: Update with complex expression
     print("\n--- Test 6: Update with complex expression ---")
@@ -188,10 +164,7 @@ def main():
         RuleUpdate(
             expression="$1 > 0.3 && $1 < 0.8",  # Range check
             channel_references=[
-                ChannelReference(
-                    channel_reference="$1", 
-                    channel_identifier="mainmotor.velocity"
-                ),
+                ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
             ],
         )
     )
@@ -217,14 +190,13 @@ def main():
     rule_8 = created_rules[7]
     updated_rule_8 = rule_8.update(
         RuleUpdate(
-            # tag_ids=["tag-123", "tag-456"],  # Example tag IDs # TODO: Where are these IDs supposed to come from? They're supposed to be uuids? {grpc_message:"invalid argument: invalid input syntax for type uuid: \"tag-123\"  
+            # tag_ids=["tag-123", "tag-456"],  # Example tag IDs # TODO: Where are these IDs supposed to come from? They're supposed to be uuids? {grpc_message:"invalid argument: invalid input syntax for type uuid: \"tag-123\"
             contextual_channels=["temperature", "pressure"],  # Example contextual channels
         )
     )
     print(f"Updated {updated_rule_8.name}:")
     print(f"  - tag_ids: {updated_rule_8.tag_ids}")
     print(f"  - contextual_channels: {updated_rule_8.contextual_channels}")
-
 
     # Test 8b: Edge case - Update with invalid expression (should fail gracefully)
     print("\n--- Test 8b: Edge case - Invalid expression test ---")
@@ -234,8 +206,7 @@ def main():
                 expression="invalid_expression",
                 channel_references=[
                     ChannelReference(
-                        channel_reference="$1", 
-                        channel_identifier="mainmotor.velocity"
+                        channel_reference="$1", channel_identifier="mainmotor.velocity"
                     ),
                 ],
             )
@@ -247,17 +218,23 @@ def main():
     # Test 9: Batch operations demonstration
     print("\n--- Test 9: Batch operations demonstration ---")
     all_updated_rules = [
-        updated_rule_1, updated_rule_2, updated_rule_3, updated_rule_4,
-        updated_rule_5, updated_rule_6, updated_rule_7, updated_rule_8
+        updated_rule_1,
+        updated_rule_2,
+        updated_rule_3,
+        updated_rule_4,
+        updated_rule_5,
+        updated_rule_6,
+        updated_rule_7,
+        updated_rule_8,
     ]
-    
+
     # Batch get the updated rules
     rule_ids = [rule.rule_id for rule in all_updated_rules]
     batch_rules = client.rules.batch_get(rule_ids=rule_ids)
     print(f"Batch retrieved {len(batch_rules)} rules:")
     for rule in batch_rules:
         print(f"  - {rule.name}: {rule.expression}")
-    
+
     # Test 10: Delete rules
     print("\n--- Test 10: Delete rules ---")
     client.rules.delete(rules=created_rules)
@@ -265,28 +242,44 @@ def main():
     print(f"\n=== Test Summary ===")
     print(f"Created: {len(created_rules)} rules")
     print(f"Updated: {len(all_updated_rules)} rules")
-    
+
     # Verify all rules were processed
-    assert len(created_rules) == num_rules, f"Expected {num_rules} created rules, got {len(created_rules)}"
-    assert len(all_updated_rules) == num_rules, f"Expected {num_rules} updated rules, got {len(all_updated_rules)}"
+    assert len(created_rules) == num_rules, (
+        f"Expected {num_rules} created rules, got {len(created_rules)}"
+    )
+    assert len(all_updated_rules) == num_rules, (
+        f"Expected {num_rules} updated rules, got {len(all_updated_rules)}"
+    )
 
     # Additional validation
     print(f"\n=== Validation Checks ===")
-    
+
     # Verify that updates actually changed the values
-    assert updated_rule_1.expression == "$1 > 0.5", f"Expression update failed: {updated_rule_1.expression}"
-    assert "more details" in updated_rule_2.description, f"Description update failed: {updated_rule_2.description}"
-    assert updated_rule_3.action.annotation_type == RuleAnnotationType.PHASE, f"Action update failed: {updated_rule_3.action.annotation_type}"
+    assert updated_rule_1.expression == "$1 > 0.5", (
+        f"Expression update failed: {updated_rule_1.expression}"
+    )
+    assert "more details" in updated_rule_2.description, (
+        f"Description update failed: {updated_rule_2.description}"
+    )
+    assert updated_rule_3.action.annotation_type == RuleAnnotationType.PHASE, (
+        f"Action update failed: {updated_rule_3.action.annotation_type}"
+    )
     assert updated_rule_4.name == new_name, f"Name update failed: {updated_rule_4.name}"
-    assert updated_rule_5.is_enabled == False, f"Enabled state update failed: {updated_rule_5.is_enabled}"
-    assert updated_rule_6.expression == "$1 > 0.3 && $1 < 0.8", f"Complex expression update failed: {updated_rule_6.expression}"
+    assert updated_rule_5.is_enabled == False, (
+        f"Enabled state update failed: {updated_rule_5.is_enabled}"
+    )
+    assert updated_rule_6.expression == "$1 > 0.3 && $1 < 0.8", (
+        f"Complex expression update failed: {updated_rule_6.expression}"
+    )
     # assert updated_rule_7.action.action_type == RuleActionType.NOTIFICATION, f"Action type update failed: {updated_rule_7.action.action_type}"
     # assert len(updated_rule_8.tag_ids) == 2, f"Tag IDs update failed: {updated_rule_8.tag_ids}"
-    assert len(updated_rule_8.contextual_channels) == 2, f"Contextual channels update failed: {updated_rule_8.contextual_channels}"
-    
+    assert len(updated_rule_8.contextual_channels) == 2, (
+        f"Contextual channels update failed: {updated_rule_8.contextual_channels}"
+    )
+
     print("All validation checks passed!")
     print(f"\n=== Test completed successfully ===")
 
 
 if __name__ == "__main__":
-    main()  
+    main()
