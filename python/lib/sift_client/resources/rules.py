@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
@@ -133,14 +132,14 @@ class RulesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(created_rule)
 
-    async def update(self, rule: str | Rule, update: RuleUpdate | dict) -> Rule:
+    async def update(self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None) -> Rule:
         """
         Update a Rule.
 
         Args:
             rule: The Rule or rule ID to update.
             update: Updates to apply to the Rule.
-
+            version_notes: Notes to include in the rule version.
         Returns:
             The updated Rule.
         """
@@ -150,7 +149,7 @@ class RulesAPIAsync(ResourceBase):
         if isinstance(update, dict):
             update = RuleUpdate.model_validate(update)
 
-        updated_rule = await self._low_level_client.update_rule(rule, update)
+        updated_rule = await self._low_level_client.update_rule(rule, update, version_notes)
         return self._apply_client_to_instance(updated_rule)
 
     async def delete(
@@ -253,62 +252,5 @@ class RulesAPIAsync(ResourceBase):
         """
         rules = await self._low_level_client.batch_get_rules(
             rule_ids=rule_ids, client_keys=client_keys
-        )
-        return self._apply_client_to_instances(rules)
-
-    async def search(
-        self,
-        *,
-        name_matches: str | None = None,
-        name_contains: str | None = None,
-        name_regex: str | re.Pattern | None = None,
-        asset_ids: list[str] | None = None,
-        order_by: str | None = None,
-        rule_ids: list[str] | None = None,
-        include_deleted: bool = False,
-        case_sensitive: bool = False,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> tuple[list[Rule], int]:
-        """
-        Search for rules.
-
-        Args:
-            name_matches: Name pattern to match.
-            name_contains: Partial name to match.
-            name_regex: Regular expression to match.
-            case_sensitive: Whether the search is case sensitive.
-            order_by: Field to order by.
-            rule_ids: List of rule IDs to filter by.
-            asset_ids: List of asset IDs to filter by.
-            include_deleted: Whether to include deleted rules.
-            limit: Maximum number of results to return.
-            offset: Number of results to skip.
-
-        Returns:
-            Tuple of (list of Rules, total count).
-        """
-        if (
-            int(name_matches is not None)
-            + int(name_contains is not None)
-            + int(name_regex is not None)
-            > 1
-        ):
-            raise ValueError("Must use EITHER name_matches, name_contains, or name_regex, not multiple")
-        if name_contains:
-            name_regex = re.compile(f".*{name_contains}.*")  # TODO: Use a better regex?
-        if name_regex:
-            name_matches = name_regex.pattern
-
-        rules, count = await self._low_level_client.search_rules(
-            name_matches=name_matches,
-            case_sensitive=case_sensitive,
-            regexp=name_regex is not None,
-            asset_ids=asset_ids,
-            order_by=order_by,
-            rule_ids=rule_ids,
-            include_deleted=include_deleted,
-            limit=limit,
-            offset=offset,
         )
         return self._apply_client_to_instances(rules)

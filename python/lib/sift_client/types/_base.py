@@ -135,14 +135,11 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                 )
                 paths.extend(sub_paths)
             elif isinstance(value, list):
-                print("proto_msg", type(proto_msg))
-                print("field_name", field_name)
                 repeated_field = getattr(proto_msg, field_name)
                 del repeated_field[:]  # Remove all existing items
                 try:
                     repeated_field.extend(value)  # Add all new values
                 except TypeError as e:
-                    print(proto_msg.__class__, repeated_field.__class__, value)
                     if field_name in self._to_proto_helpers:
                         if not self._to_proto_helpers[field_name].proto_class:
                             raise ValueError(

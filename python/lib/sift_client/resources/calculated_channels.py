@@ -285,6 +285,20 @@ class CalculatedChannelsAPIAsync(ResourceBase):
 
         return self._apply_client_to_instance(updated_calculated_channel)
 
+    async def archive(self, *, calculated_channel: str | CalculatedChannel) -> None:
+        """
+        Archive a Calculated Channel.
+        """
+        calculated_channel_id = (
+            calculated_channel.calculated_channel_id
+            if isinstance(calculated_channel, CalculatedChannel)
+            else calculated_channel
+        )
+        update = CalculatedChannelUpdate(
+            archived_date=datetime.now(),
+        )
+        await self.update(calculated_channel=calculated_channel_id, update=update)
+
     async def list_versions(
         self,
         calculated_channel_id: str | None = None,

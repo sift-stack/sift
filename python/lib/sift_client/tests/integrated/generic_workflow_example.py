@@ -1,6 +1,6 @@
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from dotenv import load_dotenv
 from sift_client.client import SiftClient
@@ -83,18 +83,17 @@ async def main():
                             expression_channel_references=cc.expression_channel_references,
                         )
                     )
-                    updated = True
-                print("Updated", calculated_channel)
+                print("Updated calculated channel", calculated_channel)
         else:
             # Create a calculated channel that divides mainmotor.velocity by voltage
             print("\nCreating calculated channel...")
-            calculated_channel = await client.calculated_channels.create(
+            calculated_channel = client.calculated_channels.create(
                 name="velocity_per_voltage",
                 description="Ratio of mainmotor velocity to voltage",
                 expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
-                expression_channel_references=[
-                    ChannelReference(reference_key="$1", channel_name="mainmotor.velocity"),
-                    ChannelReference(reference_key="$2", channel_name="voltage"),
+                channel_references=[
+                    ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
+                    ChannelReference(channel_reference="$2", channel_identifier="voltage"),
                 ],
                 units="velocity/voltage",
                 asset_ids=[asset_id],
@@ -111,11 +110,6 @@ async def main():
         rules = client.rules.list(
             name_contains=rule_search,
         )
-        # TODO: This doesn't work
-        # rules = client.rules.search(
-        #     name_contains=rule_search,
-        #     asset_ids=[asset_id],
-        # )
         if rules:
             print(f"Found rules: {[rule.name for rule in rules]}")
             # Example of batch get if you just had the rule ids:
@@ -124,7 +118,13 @@ async def main():
 
             rule = rules[0]
             print(f"Updating rule: {rule.name}")
-            rule = await client.rules.update(rule, RuleUpdate(description=f"Alert when velocity-to-voltage ratio exceeds 0.1 (Updated at {datetime.now().isoformat()})", asset_ids=[asset_id]))
+            rule = rule.update(
+                RuleUpdate(
+                    description=f"Alert when velocity-to-voltage ratio exceeds 0.1 (Updated at {datetime.now().isoformat()})",
+                    asset_ids=[asset_id],
+                )
+            )
+            updated = True
         else:
             print(f"No rules found for {rule_search}")
             rules = client.rules.search(
@@ -150,13 +150,9 @@ async def main():
             )
             print(f"Created rule: {rule.name} (ID: {rule.rule_id})")
 
-        # TODO: Update calculated channel
-        # TODO: Update rule
-
         if updated:
-            print("Second run through, deleting rule and calculated channel")
-            # await client.rules.delete(rule.rule_id)
-            await client.calculated_channels.delete(calculated_channel.calculated_channel_id)
+            print("Second run through, deleting rule")
+            rule.delete()
 
 
 if __name__ == "__main__":

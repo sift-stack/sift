@@ -8,16 +8,11 @@ from pydantic import BaseModel, ConfigDict
 from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
-    CalculatedChannelConfig,
-    ContextualChannels,
-    RuleAssetConfiguration,
-    RuleActionConfiguration,
     AnnotationActionConfiguration,
+    CalculatedChannelConfig,
     NotificationActionConfiguration,
+    RuleActionConfiguration,
     UpdateActionRequest,
-)
-from sift.rules.v1.rules_pb2 import (
-    RuleCondition as RuleConditionProto,
 )
 
 # Extract nested class.
@@ -32,6 +27,7 @@ from sift.rules.v1.rules_pb2 import (
 )
 
 from sift_client.types._base import BaseType, ModelUpdate
+
 MappingHelper = ModelUpdate.MappingHelper
 from sift_client.types.channel import ChannelReference
 
@@ -49,16 +45,13 @@ class Rule(BaseType[RuleProto, "Rule"]):
     name: str
     description: str
     is_enabled: bool = True
-    conditions: List[RuleCondition] | None = None  # TODO: Is this just versions?
-
-    # Fields for creation
     expression: str | None = None
-    action: RuleAction | None = None
     channel_references: List[ChannelReference] | None = None
-    rule_client_key: str | None = None
+    action: RuleAction | None = None
     asset_ids: List[str] | None = None
     tag_ids: List[str] | None = None
     contextual_channels: List[str] | None = None
+    client_key: str | None = None
 
     # Fields from proto
     rule_id: str | None = None
@@ -68,8 +61,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
     modified_by_user_id: str | None = None
     _organization_id: str | None = None
     rule_version: RuleVersion | None = None
-    client_key: str | None = None
-    contextual_channels: list[str] | None = None
     deleted_date: datetime | None = None
     is_external: bool | None = None
 
@@ -78,14 +69,14 @@ class Rule(BaseType[RuleProto, "Rule"]):
         """Whether the rule is deleted."""
         return self.deleted_date is not None and self.deleted_date > datetime(1970, 1, 1)
 
-    def update(self, update: RuleUpdate | dict) -> Rule:
+    def update(self, update: RuleUpdate | dict, version_notes: str | None = None) -> Rule:
         """
         Update the Rule.
 
         Args:
             update: Either a RuleUpdate instance or a dictionary of key-value pairs to update.
         """
-        updated_rule = self.client.rules.update(rule=self, update=update)
+        updated_rule = self.client.rules.update(rule=self, update=update, version_notes=version_notes)
         self._update(updated_rule)
         return self
 
@@ -95,20 +86,29 @@ class Rule(BaseType[RuleProto, "Rule"]):
 
     @classmethod
     def _from_proto(cls, proto: RuleProto) -> Rule:
-        conditions = [RuleCondition._from_proto(c) for c in proto.conditions]
-        expression = conditions[0].expression if conditions else None
+        expression = (
+            proto.conditions[0].expression.calculated_channel.expression
+            if proto.conditions
+            else None
+        )
         return cls(
             rule_id=proto.rule_id,
             name=proto.name,
             description=proto.description,
+            expression=expression,
+            channel_references=[
+                ChannelReference(channel_reference=ref, channel_identifier=c.name)
+                for ref, c in proto.conditions[
+                    0
+                ].expression.calculated_channel.channel_references.items()
+            ],
+            action=RuleAction._from_proto(proto.conditions[0].actions[0]),
             is_enabled=proto.is_enabled,
             created_date=proto.created_date.ToDatetime(),
             modified_date=proto.modified_date.ToDatetime(),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
-            expression=expression,
-            conditions=conditions,
             rule_version=(
                 RuleVersion._from_proto(proto.rule_version) if proto.rule_version else None
             ),
@@ -137,7 +137,6 @@ class RuleUpdate(ModelUpdate[RuleProto]):
     tag_ids: List[str] | None = None
     is_enabled: bool | None = None
     organization_id: str | None = None
-    version_notes: str | None = None
     client_key: str | None = None
     contextual_channels: List[str] | None = None
     is_external: bool | None = None
@@ -151,48 +150,6 @@ class RuleUpdate(ModelUpdate[RuleProto]):
         proto_msg.rule_id = self._resource_id
 
 
-class RuleCondition(BaseModel):
-    """
-    Model of a Rule Condition.
-    """
-
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
-
-    expression: str
-    channel_references: List[ChannelReference]
-    actions: List[RuleAction]
-
-    rule_condition_id: str | None = None
-    rule_id: str | None = None
-    created_date: datetime | None = None
-    modified_date: datetime | None = None
-    created_by_user_id: str | None = None
-    modified_by_user_id: str | None = None
-    rule_condition_version_id: str | None = None
-
-    @classmethod
-    def _from_proto(cls, proto: RuleConditionProto) -> RuleCondition:
-        # TODO: Errors if not calculated channel
-        return cls(
-            expression=proto.expression.calculated_channel.expression,
-            channel_references=[
-                ChannelReference(
-                    channel_reference=reference_key,
-                    channel_identifier=channel.name,
-                )
-                for reference_key, channel in proto.expression.calculated_channel.channel_references.items()
-            ],
-            actions=[RuleAction._from_proto(a) for a in proto.actions],
-            rule_condition_id=proto.rule_condition_id,
-            rule_id=proto.rule_id,
-            created_date=proto.created_date.ToDatetime(),
-            modified_date=proto.modified_date.ToDatetime(),
-            created_by_user_id=proto.created_by_user_id,
-            modified_by_user_id=proto.modified_by_user_id,
-            rule_condition_version_id=proto.rule_condition_version_id,
-        )
-
-
 class RuleActionType(Enum):
     """Enum for rule action kinds."""
 
@@ -203,10 +160,12 @@ class RuleActionType(Enum):
 
     @classmethod
     def from_str(cls, val: str) -> Optional["RuleActionType"]:
-        for item in cls:
-            if "ACTION_KIND_" + item.name == val:
-                return item
-        return cls.UNSPECIFIED
+        if isinstance(val, str) and val.startswith("ACTION_KIND_"):
+            for item in cls:
+                if "ACTION_KIND_" + item.name == val:
+                    return item
+        else:
+            return cls(int(val))
 
 
 class RuleAnnotationType(Enum):
@@ -218,10 +177,12 @@ class RuleAnnotationType(Enum):
 
     @classmethod
     def from_str(cls, val: str) -> Optional["RuleAnnotationType"]:
-        for item in cls:
-            if "ANNOTATION_TYPE_" + item.name == val:
-                return item
-        return cls.UNSPECIFIED
+        if isinstance(val, str) and val.startswith("ANNOTATION_TYPE_"):
+            for item in cls:
+                if "ANNOTATION_TYPE_" + item.name == val:
+                    return item
+        else:
+            return cls(int(val))
 
 
 class RuleAction(BaseModel):
@@ -251,10 +212,11 @@ class RuleAction(BaseModel):
         Args:
             notify_recipients: List of user IDs to notify.
         """
-        return cls(
-            action_type=RuleActionType.NOTIFICATION,
-            notification_recipients=notify_recipients,
-        )
+        # return cls(
+        #     action_type=RuleActionType.NOTIFICATION,
+        #     notification_recipients=notify_recipients,
+        # )
+        raise NotImplementedError("Notification actions are not supported yet.") #TODO: Or are they deprecated?         debug_error_string = "UNKNOWN:Error received from peer  {grpc_status:13, grpc_message:"RuleId: 5d10d84e-3013-4a6a-9336-bbf72c2d4ad0, ClientKey: , Error: rule actions must be annotation or webhook actions (b54199f3-1b59-44cb-850c-0650a3d8f4f1)"}"
 
     @classmethod
     def annotation(
@@ -276,6 +238,7 @@ class RuleAction(BaseModel):
 
     @classmethod
     def _from_proto(cls, proto: RuleActionProto) -> RuleAction:
+        action_type = RuleActionType.from_str(proto.action_type)
         return cls(
             _resource_id=proto.rule_action_id,
             condition_id=proto.rule_condition_id,
@@ -294,7 +257,12 @@ class RuleAction(BaseModel):
                 if proto.configuration.annotation.assigned_to_user_id
                 else None
             ),
-            action_type=RuleActionType.from_str(proto.action_type),
+            action_type=action_type,
+            annotation_type=RuleAnnotationType.from_str(
+                proto.configuration.annotation.annotation_type
+            )
+            if action_type == RuleActionType.ANNOTATION
+            else None,
         )
 
     def to_update_proto(self) -> UpdateActionRequest:
@@ -312,7 +280,7 @@ class RuleAction(BaseModel):
                 ),
                 notification=(
                     NotificationActionConfiguration(
-                        notification_recipients=self.notification_recipients,
+                        recipient_user_ids=self.notification_recipients,
                     )
                     if self.action_type == RuleActionType.NOTIFICATION
                     else None

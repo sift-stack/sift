@@ -135,8 +135,8 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
                         expression=expression,
                         expression_channel_references=[
                             CalculatedChannelAbstractChannelReference(
-                                channel_identifier=ref.channel_name,
-                                channel_reference=ref.reference_key,
+                                channel_identifier=ref.channel_identifier,
+                                channel_reference=ref.channel_reference,
                             )
                             for ref in channel_references
                         ],
@@ -248,20 +248,17 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
             A tuple of (updated CalculatedChannel, list of inapplicable assets).
         """
         grpc_calculated_channel, update_mask = update.to_proto_with_mask()
-        print(type(grpc_calculated_channel))
         request = UpdateCalculatedChannelRequest(
             calculated_channel=grpc_calculated_channel,
             update_mask=update_mask,
             user_notes=user_notes,
         )
-        print("request", request)
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).UpdateCalculatedChannel(request)
         response = cast(UpdateCalculatedChannelResponse, response)
 
         updated_calculated_channel = CalculatedChannel._from_proto(response.calculated_channel)
-        # TODO: Handle CalculatedChannelValidationResult in a friendlier way -- maybe break out the components and handle in the resource
         inapplicable_assets = cast(CalculatedChannelValidationResult, response.inapplicable_assets)
 
         return updated_calculated_channel, inapplicable_assets

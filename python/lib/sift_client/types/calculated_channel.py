@@ -25,13 +25,11 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     Model of the Sift Calculated Channel.
     """
 
-    # Key fields
     name: str
     description: str
     expression: str
-    expression_channel_references: list[ChannelReference]
+    channel_references: list[ChannelReference]
 
-    # Utility fields -- TODO: Make private and expose as properties?
     units: str | None
     asset_ids: list[str] | None
     tag_ids: list[str] | None
@@ -64,15 +62,13 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
 
     def archive(self) -> CalculatedChannel:
         """Archive the calculated channel."""
-        updated_calculated_channel = self.client.calculated_channels.archive(
-            calculated_channel=self
-        )
-        self._update(updated_calculated_channel)
+        self.client.calculated_channels.archive(calculated_channel=self)
         return self
 
     def update(
         self,
         update: CalculatedChannelUpdate | dict,
+        user_notes: str | None = None,
     ) -> CalculatedChannel:
         """
         Update the Calculated Channel.
@@ -85,11 +81,10 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             tag_ids (Optional): The tag ids to update the calculated channel with.
 
         """
-        print("CALLING UPDATE FROM TYPE")
         if isinstance(update, dict):
             update = CalculatedChannelUpdate.model_validate(update)
         updated_calculated_channel = self.client.calculated_channels.update(
-            calculated_channel=self, update=update
+            calculated_channel=self, update=update, user_notes=user_notes
         )
         self._update(updated_calculated_channel)
         return self
@@ -100,7 +95,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             name=proto.name,
             description=proto.description,
             expression=proto.calculated_channel_configuration.query_configuration.sel.expression,
-            expression_channel_references=[
+            channel_references=[
                 ChannelReference(
                     channel_reference=ref_proto.channel_reference,
                     channel_identifier=ref_proto.channel_identifier,
@@ -137,9 +132,10 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
     description: str | None = None
     units: str | None = None
     expression: str | None = None
+    # This is named expression_channel_references to match the protobuf field name for easier deserialization.
     expression_channel_references: list[ChannelReference] | None = None
-    asset_ids: list[str] | None = None
     tag_ids: list[str] | None = None
+    archived_date: datetime | None = None
 
     _to_proto_helpers = {
         "expression": MappingHelper(
@@ -150,6 +146,10 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
             proto_attr_path="calculated_channel_configuration.query_configuration.sel.expression_channel_references",
             update_field="query_configuration",
             proto_class=CalculatedChannelAbstractChannelReference,
+        ),
+        "tag_ids": MappingHelper(
+            proto_attr_path="calculated_channel_configuration.asset_configuration.selection.tag_ids",
+            update_field="asset_configuration",
         ),
     }
 
