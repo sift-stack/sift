@@ -52,6 +52,7 @@ message EvaluateRulesRequest {
   oneof time {
     sift.common.type.v1.ResourceIdentifier run = 1;
     AssetsTimeRange assets = 2;
+    RunTimeRange run_time_range = 9;
   }
   oneof mode {
     EvaluateRulesFromCurrentRuleVersions rules = 3;
@@ -65,6 +66,12 @@ message EvaluateRulesRequest {
 
   // If this request creates a report, this field will be used as the report name.
   optional string report_name = 8 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message RunTimeRange {
+  sift.common.type.v1.ResourceIdentifier run = 1;
+  optional google.protobuf.Timestamp start_time = 2 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Timestamp end_time = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message AssetsTimeRange {
@@ -93,7 +100,7 @@ message EvaluateRulesResponse {
   int32 created_annotation_count = 1 [(google.api.field_behavior) = REQUIRED];
 
   // A report will be generated if rules were evaluated against a run.
-  optional string report_id = 2 [(google.api.field_behavior) = REQUIRED];
+  optional string report_id = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // This will be set if the job has an extended run time and is being processed asynchronously.
   optional string job_id = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -102,6 +109,7 @@ message EvaluateRulesResponse {
 message EvaluateRulesPreviewRequest {
   oneof time {
     sift.common.type.v1.ResourceIdentifier run = 1;
+    RunTimeRange run_time_range = 8;
 
     // Previewing rules against assets is not yet supported
     // AssetsTimeRange assets = 2;
@@ -120,6 +128,7 @@ message EvaluateRulesPreviewRequest {
 message EvaluateRulesFromRuleConfigs {
   repeated sift.rules.v1.UpdateRuleRequest configs = 1 [(google.api.field_behavior) = REQUIRED];
 }
+
 
 message EvaluateRulesPreviewResponse {
   int32 created_annotation_count = 1 [(google.api.field_behavior) = REQUIRED];
