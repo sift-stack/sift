@@ -68,8 +68,8 @@ class AssetsLowLevelClient(LowLevelClientBase):
         """
         return await self._handle_pagination(
             self.list_assets,
+            kwargs={"query_filter": query_filter},
             page_size=page_size,
-            query_filter=query_filter,
             order_by=order_by,
             max_results=max_results,
         )
