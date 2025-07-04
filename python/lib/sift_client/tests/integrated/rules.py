@@ -8,10 +8,8 @@ from sift_client.client import SiftClient
 
 # Import sift_client types for calculated channels and rules
 from sift_client.types import (
-    CalculatedChannelUpdate,
     ChannelReference,
     RuleAction,
-    RuleActionType,
     RuleAnnotationType,
     RuleUpdate,
 )

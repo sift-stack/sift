@@ -183,9 +183,8 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         """
         return await self._handle_pagination(
             self.list_calculated_channels,
-            kwargs={"organization_id": organization_id},
+            kwargs={"organization_id": organization_id, "query_filter": query_filter},
             page_size=page_size,
-            query_filter=query_filter,
             order_by=order_by,
             max_results=max_results,
         )

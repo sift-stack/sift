@@ -17,7 +17,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     Model of the Sift Asset.
     """
 
-    asset_id: str
+    id: str
     name: str
     organization_id: str
     created_date: datetime
@@ -42,15 +42,20 @@ class Asset(BaseType[AssetProto, "Asset"]):
     def modified_by(self):
         raise NotImplementedError
 
-    @property
-    def runs(self):
+    def runs(self, limit: int | None = None):
         # TODO: how to implement these efficiently without fetching all?
         # Cached property?
-        raise NotImplementedError
+        if not hasattr(self, "client") or self.client is None:
+            raise RuntimeError("Asset is not bound to a client instance.")
+        return self.client.runs.list(asset_id=self.id, limit=limit)
 
-    @property
-    def channels(self):
-        raise NotImplementedError
+    def channels(self, run_id: str | None = None, limit: int | None = None):
+        """
+        Return all channels for this asset.
+        """
+        if not hasattr(self, "client") or self.client is None:
+            raise RuntimeError("Asset is not bound to a client instance.")
+        return self.client.channels.list(asset_id=self.id, run_id=run_id, limit=limit)
 
     @property
     def rules(self):
@@ -85,7 +90,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @classmethod
     def _from_proto(cls, proto: AssetProto, sift_client: SiftClient | None = None) -> Asset:
         return cls(
-            asset_id=proto.asset_id,
+            id=proto.asset_id,
             name=proto.name,
             organization_id=proto.organization_id,
             created_date=proto.created_date.ToDatetime(),

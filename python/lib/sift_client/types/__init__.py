@@ -4,8 +4,8 @@ from sift_client.types.calculated_channel import (
     CalculatedChannelUpdate,
 )
 from sift_client.types.channel import (
+    Channel,
     ChannelBitFieldElement,
-    ChannelConfig,
     ChannelDataType,
     ChannelEnumType,
     ChannelReference,
@@ -21,6 +21,7 @@ from sift_client.types.rule import (
     RuleUpdate,
     RuleVersion,
 )
+from sift_client.types.run import Run, RunUpdate
 
 __all__ = [
     "Asset",
@@ -35,7 +36,7 @@ __all__ = [
     "RuleVersion",
     "RuleActionType",
     "RuleAnnotationType",
-    "ChannelConfig",
+    "Channel",
     "ChannelBitFieldElement",
     "ChannelEnumType",
     "ChannelDataType",
@@ -43,4 +44,6 @@ __all__ = [
     "ChannelReference",
     "ChannelValue",
     "channel_fqn",
+    "Run",
+    "RunUpdate",
 ]

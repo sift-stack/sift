@@ -1,17 +1,32 @@
 from __future__ import annotations
 
+from datetime import datetime
 import warnings
 from enum import Enum
 from typing import Any, List, Optional, TypedDict, Union
 
 import pandas as pd
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
+from sift.data.v2.data_pb2 import (
+    DoubleValues,
+    FloatValues,
+    StringValues,
+    EnumValues,
+    BitFieldValues,
+    BoolValues,
+    Int32Values,
+    Int64Values,
+    Uint32Values,
+    Uint64Values,
+)
 from pydantic import BaseModel, ConfigDict
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
 )
 from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as ChannelEnumTypePb
-from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig as ChannelConfigProto
+from sift.channels.v3.channels_pb2 import Channel as ChannelProto
+from sift_client.types._base import BaseType
 
 
 # TypedDicts for channel values
@@ -47,6 +62,19 @@ class ChannelDataTypeStrRep(str, Enum):
         return None
 
 
+class ChannelTypeUrls(str, Enum):
+    DOUBLE = "sift.data.v2.DoubleValues"
+    FLOAT = "sift.data.v2.FloatValues"
+    STRING = "sift.data.v2.StringValues"
+    ENUM = "sift.data.v2.EnumValues"
+    BIT_FIELD = "sift.data.v2.BitFieldValues"
+    BOOL = "sift.data.v2.BoolValues"
+    INT_32 = "sift.data.v2.Int32Values"
+    INT_64 = "sift.data.v2.Int64Values"
+    UINT_32 = "sift.data.v2.Uint32Values"
+    UINT_64 = "sift.data.v2.Uint64Values"
+
+
 # Enum for channel data types (mimics protobuf values, but as int for now)
 class ChannelDataType(int, Enum):
     DOUBLE = channel_pb.CHANNEL_DATA_TYPE_DOUBLE
@@ -72,11 +100,46 @@ class ChannelDataType(int, Enum):
             raise Exception(
                 "Unreachable. ChannelDataTypeStrRep and ChannelDataType enum names are out of sync."
             )
+        elif raw.startswith("sift.data"):
+            val = ChannelTypeUrls(raw)
+            if val is None:
+                return None
+            for item in ChannelDataType:
+                if item.name == val.name:
+                    return item
+            raise Exception(
+                "Unreachable. ChannelTypeUrls and ChannelDataType enum names are out of sync."
+            )
         else:
             try:
                 val = ChannelDataTypeStrRep(raw)
             except ValueError:
                 return None
+
+    @staticmethod
+    def proto_data_class(data_type: ChannelDataType) -> Any:
+        if data_type == ChannelDataType.DOUBLE:
+            return DoubleValues
+        elif data_type == ChannelDataType.FLOAT:
+            return FloatValues
+        elif data_type == ChannelDataType.STRING:
+            return StringValues
+        elif data_type == ChannelDataType.ENUM:
+            return EnumValues
+        elif data_type == ChannelDataType.BIT_FIELD:
+            return BitFieldValues
+        elif data_type == ChannelDataType.BOOL:
+            return BoolValues
+        elif data_type == ChannelDataType.INT_32:
+            return Int32Values
+        elif data_type == ChannelDataType.INT_64:
+            return Int64Values
+        elif data_type == ChannelDataType.UINT_32:
+            return Uint32Values
+        elif data_type == ChannelDataType.UINT_64:
+            return Uint64Values
+        else:
+            raise ValueError(f"Unknown data type: {data_type}")
 
 
 # Bit field element model
@@ -111,9 +174,10 @@ class ChannelEnumType(BaseModel):
 
 # Channel config model
 # TODO: Make this a BaseType? with container of ChannelValue's
-class ChannelConfig(BaseModel):
+class Channel(BaseType[ChannelProto, "Channel"]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    id: str
     name: str
     data_type: ChannelDataType
     description: Optional[str] = None
@@ -121,29 +185,11 @@ class ChannelConfig(BaseModel):
     component: Optional[str] = None  # Deprecated
     bit_field_elements: List[ChannelBitFieldElement] | None = None
     enum_types: List[ChannelEnumType] | None = None
-    identifier: Optional[str] = None
+    asset_id: Optional[str] = None
 
-    def __init__(
-        self,
-        name: str,
-        data_type: ChannelDataType,
-        description: Optional[str] = None,
-        unit: Optional[str] = None,
-        component: Optional[str] = None,
-        bit_field_elements: Optional[List[ChannelBitFieldElement]] = None,
-        enum_types: Optional[List[ChannelEnumType]] = None,
-    ):
-        super().__init__(
-            name=name,
-            data_type=data_type,
-            description=description,
-            unit=unit,
-            component=component,
-            bit_field_elements=bit_field_elements or [],
-            enum_types=enum_types or [],
-            identifier=None,  # Will be set by fqn()
-        )
-        self.identifier = self.fqn()
+    @property
+    def identifier(self) -> str:
+        return self.fqn()
 
     def fqn(self) -> str:
         """
@@ -153,16 +199,46 @@ class ChannelConfig(BaseModel):
         return channel_fqn(self)
 
     @classmethod
-    def _from_proto(cls, message: ChannelConfigPb) -> ChannelConfig:
-        return cls(
-            name=message.name,
-            data_type=ChannelDataType(message.data_type),
-            description=message.description,
-            unit=message.unit,
-            bit_field_elements=[
-                ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
-            ],
-            enum_types=[ChannelEnumType._from_proto(etype) for etype in message.enum_types],
+    def _from_proto(cls, message: ChannelProto) -> Channel:
+        if isinstance(message, ChannelProto):  # ChannelProto from channels v3
+            return cls(
+                id=message.channel_id,
+                name=message.name,
+                data_type=ChannelDataType(message.data_type),
+                description=message.description,
+                unit=message.unit_id,
+                bit_field_elements=[
+                    ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
+                ],
+                enum_types=[ChannelEnumType._from_proto(etype) for etype in message.enum_types],
+                asset_id=message.asset_id,
+            )
+        else:
+            raise ValueError(f"Unknown channel type: {type(message)}")
+
+    def data(
+        self,
+        *,
+        run_id: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+    ):
+        """
+        Retrieve channel data for this channel during the specified run.
+
+        Args:
+            run_id: The run ID to get data for.
+            start_time: The start time to get data for.
+            end_time: The end time to get data for.
+            limit: The maximum number of data points to return.
+
+        Returns:
+            A ChannelTimeSeries object.
+        """
+        # TODO: Implement caching
+        return self.client.channels.get_data(
+            channels=[self.id], run_id=run_id, start_time=start_time, end_time=end_time, limit=limit
         )
 
 
@@ -202,13 +278,13 @@ class ChannelTimeSeries:
 # Utility function for fully qualified channel name
 def channel_fqn(
     channel: Union[
-        ChannelConfig,
-        ChannelValue,
-        _AbstractChannel,
+        Channel,
+        # ChannelValue,
+        # _AbstractChannel,
     ],
 ) -> str:
-    name = getattr(channel, "name", None) or channel.get("channel_name")
-    component = getattr(channel, "component", None) or channel.get("component")
+    name = channel.name
+    component = getattr(channel, "component", None)
     if component:
         warnings.warn(
             "`component` is deprecated. This function should only be used for compatibility with legacy code.",
