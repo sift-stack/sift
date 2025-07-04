@@ -21,6 +21,7 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
 
     RUN_FIELD_NUMBER: builtins.int
     ASSETS_FIELD_NUMBER: builtins.int
+    RUN_TIME_RANGE_FIELD_NUMBER: builtins.int
     RULES_FIELD_NUMBER: builtins.int
     RULE_VERSIONS_FIELD_NUMBER: builtins.int
     REPORT_TEMPLATE_FIELD_NUMBER: builtins.int
@@ -36,6 +37,8 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
     @property
     def assets(self) -> global___AssetsTimeRange: ...
     @property
+    def run_time_range(self) -> global___RunTimeRange: ...
+    @property
     def rules(self) -> global___EvaluateRulesFromCurrentRuleVersions: ...
     @property
     def rule_versions(self) -> global___EvaluateRulesFromRuleVersions: ...
@@ -48,6 +51,7 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
         *,
         run: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
         assets: global___AssetsTimeRange | None = ...,
+        run_time_range: global___RunTimeRange | None = ...,
         rules: global___EvaluateRulesFromCurrentRuleVersions | None = ...,
         rule_versions: global___EvaluateRulesFromRuleVersions | None = ...,
         report_template: global___EvaluateRulesFromReportTemplate | None = ...,
@@ -55,16 +59,45 @@ class EvaluateRulesRequest(google.protobuf.message.Message):
         organization_id: builtins.str = ...,
         report_name: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_report_name", b"_report_name", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "time", b"time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_report_name", b"_report_name", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "organization_id", b"organization_id", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "time", b"time"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_report_name", b"_report_name", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_report_name", b"_report_name", "annotation_options", b"annotation_options", "assets", b"assets", "mode", b"mode", "organization_id", b"organization_id", "report_name", b"report_name", "report_template", b"report_template", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_report_name", b"_report_name"]) -> typing.Literal["report_name"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["mode", b"mode"]) -> typing.Literal["rules", "rule_versions", "report_template"] | None: ...
     @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["time", b"time"]) -> typing.Literal["run", "assets"] | None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["time", b"time"]) -> typing.Literal["run", "assets", "run_time_range"] | None: ...
 
 global___EvaluateRulesRequest = EvaluateRulesRequest
+
+@typing.final
+class RunTimeRange(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RUN_FIELD_NUMBER: builtins.int
+    START_TIME_FIELD_NUMBER: builtins.int
+    END_TIME_FIELD_NUMBER: builtins.int
+    @property
+    def run(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier: ...
+    @property
+    def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def end_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        run: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
+        start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        end_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_end_time", b"_end_time", "_start_time", b"_start_time", "end_time", b"end_time", "run", b"run", "start_time", b"start_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_end_time", b"_end_time", "_start_time", b"_start_time", "end_time", b"end_time", "run", b"run", "start_time", b"start_time"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_end_time", b"_end_time"]) -> typing.Literal["end_time"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_start_time", b"_start_time"]) -> typing.Literal["start_time"] | None: ...
+
+global___RunTimeRange = RunTimeRange
 
 @typing.final
 class AssetsTimeRange(google.protobuf.message.Message):
@@ -191,6 +224,7 @@ class EvaluateRulesPreviewRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RUN_FIELD_NUMBER: builtins.int
+    RUN_TIME_RANGE_FIELD_NUMBER: builtins.int
     RULES_FIELD_NUMBER: builtins.int
     RULE_VERSIONS_FIELD_NUMBER: builtins.int
     REPORT_TEMPLATE_FIELD_NUMBER: builtins.int
@@ -200,6 +234,8 @@ class EvaluateRulesPreviewRequest(google.protobuf.message.Message):
     """Only required if your user belongs to multiple organizations"""
     @property
     def run(self) -> sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier: ...
+    @property
+    def run_time_range(self) -> global___RunTimeRange: ...
     @property
     def rules(self) -> global___EvaluateRulesFromCurrentRuleVersions: ...
     @property
@@ -212,18 +248,19 @@ class EvaluateRulesPreviewRequest(google.protobuf.message.Message):
         self,
         *,
         run: sift.common.type.v1.resource_identifier_pb2.ResourceIdentifier | None = ...,
+        run_time_range: global___RunTimeRange | None = ...,
         rules: global___EvaluateRulesFromCurrentRuleVersions | None = ...,
         rule_versions: global___EvaluateRulesFromRuleVersions | None = ...,
         report_template: global___EvaluateRulesFromReportTemplate | None = ...,
         rule_configs: global___EvaluateRulesFromRuleConfigs | None = ...,
         organization_id: builtins.str = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["mode", b"mode", "report_template", b"report_template", "rule_configs", b"rule_configs", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "time", b"time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["mode", b"mode", "organization_id", b"organization_id", "report_template", b"report_template", "rule_configs", b"rule_configs", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "time", b"time"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["mode", b"mode", "report_template", b"report_template", "rule_configs", b"rule_configs", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["mode", b"mode", "organization_id", b"organization_id", "report_template", b"report_template", "rule_configs", b"rule_configs", "rule_versions", b"rule_versions", "rules", b"rules", "run", b"run", "run_time_range", b"run_time_range", "time", b"time"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["mode", b"mode"]) -> typing.Literal["rules", "rule_versions", "report_template", "rule_configs"] | None: ...
     @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["time", b"time"]) -> typing.Literal["run"] | None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["time", b"time"]) -> typing.Literal["run", "run_time_range"] | None: ...
 
 global___EvaluateRulesPreviewRequest = EvaluateRulesPreviewRequest
 
