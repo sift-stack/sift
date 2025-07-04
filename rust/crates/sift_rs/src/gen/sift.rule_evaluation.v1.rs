@@ -9,7 +9,7 @@ pub struct EvaluateRulesRequest {
     pub organization_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="8")]
     pub report_name: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(oneof="evaluate_rules_request::Time", tags="1, 2")]
+    #[prost(oneof="evaluate_rules_request::Time", tags="1, 2, 9")]
     pub time: ::core::option::Option<evaluate_rules_request::Time>,
     #[prost(oneof="evaluate_rules_request::Mode", tags="3, 4, 5")]
     pub mode: ::core::option::Option<evaluate_rules_request::Mode>,
@@ -23,6 +23,8 @@ pub mod evaluate_rules_request {
         Run(super::super::super::common::r#type::v1::ResourceIdentifier),
         #[prost(message, tag="2")]
         Assets(super::AssetsTimeRange),
+        #[prost(message, tag="9")]
+        RunTimeRange(super::RunTimeRange),
     }
     #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Oneof)]
@@ -34,6 +36,16 @@ pub mod evaluate_rules_request {
         #[prost(message, tag="5")]
         ReportTemplate(super::EvaluateRulesFromReportTemplate),
     }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RunTimeRange {
+    #[prost(message, optional, tag="1")]
+    pub run: ::core::option::Option<super::super::common::r#type::v1::ResourceIdentifier>,
+    #[prost(message, optional, tag="2")]
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, optional, tag="3")]
+    pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -84,7 +96,7 @@ pub struct EvaluateRulesResponse {
 pub struct EvaluateRulesPreviewRequest {
     #[prost(string, tag="7")]
     pub organization_id: ::prost::alloc::string::String,
-    #[prost(oneof="evaluate_rules_preview_request::Time", tags="1")]
+    #[prost(oneof="evaluate_rules_preview_request::Time", tags="1, 8")]
     pub time: ::core::option::Option<evaluate_rules_preview_request::Time>,
     #[prost(oneof="evaluate_rules_preview_request::Mode", tags="3, 4, 5, 6")]
     pub mode: ::core::option::Option<evaluate_rules_preview_request::Mode>,
@@ -96,6 +108,8 @@ pub mod evaluate_rules_preview_request {
     pub enum Time {
         #[prost(message, tag="1")]
         Run(super::super::super::common::r#type::v1::ResourceIdentifier),
+        #[prost(message, tag="8")]
+        RunTimeRange(super::RunTimeRange),
     }
     #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Oneof)]

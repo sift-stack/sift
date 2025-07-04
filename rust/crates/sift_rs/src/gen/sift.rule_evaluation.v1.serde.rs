@@ -609,6 +609,9 @@ impl serde::Serialize for EvaluateRulesPreviewRequest {
                 evaluate_rules_preview_request::Time::Run(v) => {
                     struct_ser.serialize_field("run", v)?;
                 }
+                evaluate_rules_preview_request::Time::RunTimeRange(v) => {
+                    struct_ser.serialize_field("runTimeRange", v)?;
+                }
             }
         }
         if let Some(v) = self.mode.as_ref() {
@@ -640,6 +643,8 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
             "organization_id",
             "organizationId",
             "run",
+            "run_time_range",
+            "runTimeRange",
             "rules",
             "rule_versions",
             "ruleVersions",
@@ -653,6 +658,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
         enum GeneratedField {
             OrganizationId,
             Run,
+            RunTimeRange,
             Rules,
             RuleVersions,
             ReportTemplate,
@@ -680,6 +686,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
                         match value {
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "run" => Ok(GeneratedField::Run),
+                            "runTimeRange" | "run_time_range" => Ok(GeneratedField::RunTimeRange),
                             "rules" => Ok(GeneratedField::Rules),
                             "ruleVersions" | "rule_versions" => Ok(GeneratedField::RuleVersions),
                             "reportTemplate" | "report_template" => Ok(GeneratedField::ReportTemplate),
@@ -719,6 +726,13 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesPreviewRequest {
                                 return Err(serde::de::Error::duplicate_field("run"));
                             }
                             time__ = map_.next_value::<::std::option::Option<_>>()?.map(evaluate_rules_preview_request::Time::Run)
+;
+                        }
+                        GeneratedField::RunTimeRange => {
+                            if time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runTimeRange"));
+                            }
+                            time__ = map_.next_value::<::std::option::Option<_>>()?.map(evaluate_rules_preview_request::Time::RunTimeRange)
 ;
                         }
                         GeneratedField::Rules => {
@@ -914,6 +928,9 @@ impl serde::Serialize for EvaluateRulesRequest {
                 evaluate_rules_request::Time::Assets(v) => {
                     struct_ser.serialize_field("assets", v)?;
                 }
+                evaluate_rules_request::Time::RunTimeRange(v) => {
+                    struct_ser.serialize_field("runTimeRange", v)?;
+                }
             }
         }
         if let Some(v) = self.mode.as_ref() {
@@ -947,6 +964,8 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
             "reportName",
             "run",
             "assets",
+            "run_time_range",
+            "runTimeRange",
             "rules",
             "rule_versions",
             "ruleVersions",
@@ -961,6 +980,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
             ReportName,
             Run,
             Assets,
+            RunTimeRange,
             Rules,
             RuleVersions,
             ReportTemplate,
@@ -990,6 +1010,7 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                             "reportName" | "report_name" => Ok(GeneratedField::ReportName),
                             "run" => Ok(GeneratedField::Run),
                             "assets" => Ok(GeneratedField::Assets),
+                            "runTimeRange" | "run_time_range" => Ok(GeneratedField::RunTimeRange),
                             "rules" => Ok(GeneratedField::Rules),
                             "ruleVersions" | "rule_versions" => Ok(GeneratedField::RuleVersions),
                             "reportTemplate" | "report_template" => Ok(GeneratedField::ReportTemplate),
@@ -1049,6 +1070,13 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesRequest {
                                 return Err(serde::de::Error::duplicate_field("assets"));
                             }
                             time__ = map_.next_value::<::std::option::Option<_>>()?.map(evaluate_rules_request::Time::Assets)
+;
+                        }
+                        GeneratedField::RunTimeRange => {
+                            if time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runTimeRange"));
+                            }
+                            time__ = map_.next_value::<::std::option::Option<_>>()?.map(evaluate_rules_request::Time::RunTimeRange)
 ;
                         }
                         GeneratedField::Rules => {
@@ -1214,5 +1242,132 @@ impl<'de> serde::Deserialize<'de> for EvaluateRulesResponse {
             }
         }
         deserializer.deserialize_struct("sift.rule_evaluation.v1.EvaluateRulesResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for RunTimeRange {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.run.is_some() {
+            len += 1;
+        }
+        if self.start_time.is_some() {
+            len += 1;
+        }
+        if self.end_time.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.rule_evaluation.v1.RunTimeRange", len)?;
+        if let Some(v) = self.run.as_ref() {
+            struct_ser.serialize_field("run", v)?;
+        }
+        if let Some(v) = self.start_time.as_ref() {
+            struct_ser.serialize_field("startTime", v)?;
+        }
+        if let Some(v) = self.end_time.as_ref() {
+            struct_ser.serialize_field("endTime", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for RunTimeRange {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "run",
+            "start_time",
+            "startTime",
+            "end_time",
+            "endTime",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Run,
+            StartTime,
+            EndTime,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "run" => Ok(GeneratedField::Run),
+                            "startTime" | "start_time" => Ok(GeneratedField::StartTime),
+                            "endTime" | "end_time" => Ok(GeneratedField::EndTime),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = RunTimeRange;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.rule_evaluation.v1.RunTimeRange")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<RunTimeRange, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut run__ = None;
+                let mut start_time__ = None;
+                let mut end_time__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Run => {
+                            if run__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("run"));
+                            }
+                            run__ = map_.next_value()?;
+                        }
+                        GeneratedField::StartTime => {
+                            if start_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("startTime"));
+                            }
+                            start_time__ = map_.next_value()?;
+                        }
+                        GeneratedField::EndTime => {
+                            if end_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("endTime"));
+                            }
+                            end_time__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(RunTimeRange {
+                    run: run__,
+                    start_time: start_time__,
+                    end_time: end_time__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.rule_evaluation.v1.RunTimeRange", FIELDS, GeneratedVisitor)
     }
 }
