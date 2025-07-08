@@ -50,8 +50,8 @@ class RuleEvaluationService:
         run_id: str,
         rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]],
         report_name: str = "",
-        start_time: Optional[Union[datetime, str, int]] = None,
-        end_time: Optional[Union[datetime, str, int]] = None,
+        start_time: Optional[Union[datetime, str, int, float]] = None,
+        end_time: Optional[Union[datetime, str, int, float]] = None,
     ) -> ReportService:
         """Evaluate a set of rules against a run.
 
@@ -60,8 +60,8 @@ class RuleEvaluationService:
             rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
                 RuleIdentifiers (typically from `RuleService.create_external_rules`).
             report_name: Optional report name.
-            start_time: Optional start time to evaluate.
-            end_time: Optional end time to evaluate.
+            start_time: Optional start time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
+            end_time: Optional end time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
 
         Returns:
             A ReportService object that can be use to get the status of the executed report.
@@ -81,8 +81,8 @@ class RuleEvaluationService:
     def evaluate_against_assets(
         self,
         asset_names: List[str],
-        start_time: Union[datetime, str, int],
-        end_time: Union[datetime, str, int],
+        start_time: Union[datetime, str, int, float],
+        end_time: Union[datetime, str, int, float],
         rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]],
         report_name: str = "",
     ) -> ReportService:
@@ -90,8 +90,8 @@ class RuleEvaluationService:
 
         Args:
             asset_names: The list of assets to run against.
-            start_time: The start time to evaluate.
-            end_time: The end time to evaluate.
+            start_time: The start time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
+            end_time: The end time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
             rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
                 RuleIdentifiers (typically from `RuleService.create_external_rules`).
             report_name: Optional report name.
@@ -119,8 +119,8 @@ class RuleEvaluationService:
         self,
         run_id: str,
         rules: Union[ReportTemplateConfig, List[RuleConfig], List[RuleIdentifier]],
-        start_time: Optional[Union[datetime, str, int]] = None,
-        end_time: Optional[Union[datetime, str, int]] = None,
+        start_time: Optional[Union[datetime, str, int, float]] = None,
+        end_time: Optional[Union[datetime, str, int, float]] = None,
     ) -> EvaluateRulesPreviewResponse:
         """Preview the evaluation of a set of rules against a run.
 
@@ -128,8 +128,8 @@ class RuleEvaluationService:
             run_id: The Run ID to run against.
             rules: Either a ReportTemplateConfig, a list of RuleConfigs, or a list of
                 RuleIdentifiers (typically from `RuleService.create_external_rules`).
-            start_time: Optional start time to evaluate.
-            end_time: Optional end time to evaluate.
+            start_time: Optional start time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
+            end_time: Optional end time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
 
         Returns:
             The EvaluateRulesPreviewResponse object.
@@ -149,8 +149,8 @@ class RuleEvaluationService:
         run_id: str,
         rules: List[RuleConfig],
         report_name: str = "",
-        start_time: Optional[Union[datetime, str, int]] = None,
-        end_time: Optional[Union[datetime, str, int]] = None,
+        start_time: Optional[Union[datetime, str, int, float]] = None,
+        end_time: Optional[Union[datetime, str, int, float]] = None,
     ) -> ReportService:
         """Evaluate a set of external rules against a run.
 
@@ -158,8 +158,8 @@ class RuleEvaluationService:
             run_id: The Run ID to run against.
             rules: A list of RuleConfigs. These must be external rules.
             report_name: Optional report name.
-            start_time: Optional start time to evaluate.
-            end_time: Optional end time to evaluate.
+            start_time: Optional start time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
+            end_time: Optional end time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
 
         Returns:
             A Report object that can be use to get the status of the executed report.
@@ -173,8 +173,8 @@ class RuleEvaluationService:
         paths: List[Path],
         named_expressions: Optional[Dict[str, str]] = None,
         report_name: str = "",
-        start_time: Optional[Union[datetime, str, int]] = None,
-        end_time: Optional[Union[datetime, str, int]] = None,
+        start_time: Optional[Union[datetime, str, int, float]] = None,
+        end_time: Optional[Union[datetime, str, int, float]] = None,
     ) -> ReportService:
         """Evaluate a set of external rules from a YAML config against a run.
 
@@ -182,8 +182,8 @@ class RuleEvaluationService:
             run_id: The Run ID to run against.
             paths: The YAML paths to load rules from.
             report_name: Optional report name.
-            start_time: Optional start time to evaluate.
-            end_time: Optional end time to evaluate.
+            start_time: Optional start time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
+            end_time: Optional end time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
 
         Returns:
             A Report object that can be use to get the status of the executed report.
@@ -195,16 +195,16 @@ class RuleEvaluationService:
         self,
         run_id: str,
         rules: List[RuleConfig],
-        start_time: Optional[Union[datetime, str, int]] = None,
-        end_time: Optional[Union[datetime, str, int]] = None,
+        start_time: Optional[Union[datetime, str, int, float]] = None,
+        end_time: Optional[Union[datetime, str, int, float]] = None,
     ) -> EvaluateRulesPreviewResponse:
         """Preview the evaluation a set of external rules against a run.
 
         Args:
             run_id: The Run ID to run against.
             rules: A list of RuleConfigs. These must be external rules.
-            start_time: Optional start time to evaluate.
-            end_time: Optional end time to evaluate.
+            start_time: Optional start time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
+            end_time: Optional end time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
 
         Returns:
             The EvaluateRulesPreviewResponse object.
@@ -217,8 +217,8 @@ class RuleEvaluationService:
         run_id: str,
         paths: List[Path],
         named_expressions: Optional[Dict[str, str]] = None,
-        start_time: Optional[Union[datetime, str, int]] = None,
-        end_time: Optional[Union[datetime, str, int]] = None,
+        start_time: Optional[Union[datetime, str, int, float]] = None,
+        end_time: Optional[Union[datetime, str, int, float]] = None,
     ) -> EvaluateRulesPreviewResponse:
         """Preview the evaluation a set of external rules from a YAML config against a run.
 
@@ -226,8 +226,8 @@ class RuleEvaluationService:
             run_id: The Run ID to run against.
             paths: The YAML paths to load rules from.
             named_expressions: The named expressions to substitute in the rules.
-            start_time: Optional start time to evaluate.
-            end_time: Optional end time to evaluate.
+            start_time: Optional start time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
+            end_time: Optional end time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
 
         Returns:
             The EvaluateRulesPreviewResponse object.
@@ -290,15 +290,15 @@ class RuleEvaluationService:
     def _get_run_kwargs(
         self,
         run_id: str,
-        start_time: Optional[Union[datetime, str, int]] = None,
-        end_time: Optional[Union[datetime, str, int]] = None,
+        start_time: Optional[Union[datetime, str, int, float]] = None,
+        end_time: Optional[Union[datetime, str, int, float]] = None,
     ) -> dict:
         """Returns the Run specific keyword arguments for a EvalutateRules request based on the input type.
 
         Args:
             run_id: The Run ID to run against.
-            start_time: Optional start time to evaluate.
-            end_time: Optional end time to evaluate.
+            start_time: Optional start time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
+            end_time: Optional end time to evaluate (datetime, ISO 8601 formatted string, or POSIX timestamp).
 
         Returns:
             dict: The keyword arguments.
