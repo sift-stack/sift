@@ -29,7 +29,7 @@ def to_timestamp_nanos(arg: Union[TimestampPb, pd.Timestamp, datetime, str, int]
         return cast(pd.Timestamp, pd.Timestamp(arg))
 
 
-def to_timestamp_pb(arg: Union[datetime, str, int]) -> TimestampPb:
+def to_timestamp_pb(arg: Union[datetime, str, int, float]) -> TimestampPb:
     """
     Mainly used for testing at the moment. If using this for non-testing purposes
     should probably make this more robust and support nano-second precision.
@@ -40,7 +40,7 @@ def to_timestamp_pb(arg: Union[datetime, str, int]) -> TimestampPb:
     if isinstance(arg, datetime):
         ts.FromDatetime(arg)
         return ts
-    elif isinstance(arg, int):
+    elif isinstance(arg, (int, float)):
         ts.FromDatetime(datetime.fromtimestamp(arg))
         return ts
     else:
