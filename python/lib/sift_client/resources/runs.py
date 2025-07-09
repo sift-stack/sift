@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.metadata import MetadataValue
 from sift_client.types.run import Run, RunUpdate
-from sift_client.util import cel_utils as cel
+from sift_client.util.cel_utils import contains, equals, equals_null, match, not_
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -60,13 +59,13 @@ class RunsAPIAsync(ResourceBase):
         name_regex: str | re.Pattern | None = None,
         description: str | None = None,
         description_contains: str | None = None,
-        organization_id: str | None = None,
+        duration_seconds: int | None = None,
         client_key: str | None = None,
-        is_pinned: bool | None = None,
         asset_id: str | None = None,
         asset_name: str | None = None,
         created_by_user_id: str | None = None,
-        modified_by_user_id: str | None = None,
+        is_stopped: bool | None = None,
+        include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Run]:
@@ -79,13 +78,13 @@ class RunsAPIAsync(ResourceBase):
             name_regex: Regular expression string to filter runs by name.
             description: Exact description of the run.
             description_contains: Partial description of the run.
-            organization_id: Organization ID to filter by.
+            duration_seconds: Duration of the run in seconds.
             client_key: Client key to filter by.
-            is_pinned: Whether the run is pinned.
             asset_id: Asset ID to filter by.
             asset_name: Asset name to filter by.
             created_by_user_id: User ID who created the run.
-            modified_by_user_id: User ID who last modified the run.
+            is_stopped: Whether the run is stopped.
+            include_archived: Whether to include archived runs.
             order_by: How to order the retrieved runs.
             limit: How many runs to retrieve. If None, retrieves all matches.
 
@@ -96,39 +95,39 @@ class RunsAPIAsync(ResourceBase):
         filter_parts = []
 
         if name:
-            filter_parts.append(cel.equals("name", name))
+            filter_parts.append(equals("name", name))
         elif name_contains:
-            filter_parts.append(cel.contains("name", name_contains))
+            filter_parts.append(contains("name", name_contains))
         elif name_regex:
             if isinstance(name_regex, re.Pattern):
                 name_regex = name_regex.pattern
-            filter_parts.append(cel.match("name", name_regex))
+            filter_parts.append(match("name", name_regex))
 
         if description:
-            filter_parts.append(cel.equals("description", description))
+            filter_parts.append(equals("description", description))
         elif description_contains:
-            filter_parts.append(cel.contains("description", description_contains))
+            filter_parts.append(contains("description", description_contains))
 
-        if organization_id:
-            filter_parts.append(cel.equals("organization_id", organization_id))
+        if duration_seconds:
+            filter_parts.append(equals("duration", duration_seconds))
 
         if client_key:
-            filter_parts.append(cel.equals("client_key", client_key))
-
-        if is_pinned is not None:
-            filter_parts.append(cel.equals("is_pinned", is_pinned))
+            filter_parts.append(equals("client_key", client_key))
 
         if asset_id:
-            filter_parts.append(cel.equals("asset_id", asset_id))
+            filter_parts.append(equals("asset_id", asset_id))
 
         if asset_name:
-            filter_parts.append(cel.equals("asset_name", asset_name))
+            filter_parts.append(equals("asset_name", asset_name))
 
         if created_by_user_id:
-            filter_parts.append(cel.equals("created_by_user_id", created_by_user_id))
+            filter_parts.append(equals("created_by_user_id", created_by_user_id))
 
-        if modified_by_user_id:
-            filter_parts.append(cel.equals("modified_by_user_id", modified_by_user_id))
+        if is_stopped is not None:
+            filter_parts.append(not_(equals_null("stop_time")))
+
+        if not include_archived:
+            filter_parts.append(equals("archived_date", None))
 
         query_filter = " && ".join(filter_parts) if filter_parts else None
 
@@ -166,7 +165,7 @@ class RunsAPIAsync(ResourceBase):
         stop_time: datetime | None = None,
         organization_id: str | None = None,
         client_key: str | None = None,
-        metadata: list[MetadataValue] | None = None,
+        metadata: dict[str, Union[str, float, bool]] | None = None,
     ) -> Run:
         """
         Create a new run.
@@ -213,6 +212,7 @@ class RunsAPIAsync(ResourceBase):
         if isinstance(update, dict):
             update = RunUpdate.model_validate(update)
 
+        update.resource_id = run.id
         updated_run = await self._low_level_client.update_run(run, update)
         return self._apply_client_to_instance(updated_run)
 
@@ -227,7 +227,8 @@ class RunsAPIAsync(ResourceBase):
         Args:
             run: The Run or run ID to delete.
         """
-        run_id = run.run_id if isinstance(run, Run) else run
+        run_id = run.id if isinstance(run, Run) else run
+        assert isinstance(run_id, str), "run_id must be a string"
         await self._low_level_client.delete_run(run_id=run_id)
 
     async def stop(
@@ -241,7 +242,7 @@ class RunsAPIAsync(ResourceBase):
         Args:
             run: The Run or run ID to stop.
         """
-        run_id = run.run_id if isinstance(run, Run) else run
+        run_id = run.id if isinstance(run, Run) else run
         await self._low_level_client.stop_run(run_id=run_id)
 
     async def create_automatic_association_for_assets(
@@ -256,7 +257,7 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID.
             asset_names: List of asset names to associate.
         """
-        run_id = run.run_id if isinstance(run, Run) else run
+        run_id = run.id if isinstance(run, Run) else run
         await self._low_level_client.create_automatic_run_association_for_assets(
             run_id=run_id, asset_names=asset_names
         )

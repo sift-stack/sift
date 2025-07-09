@@ -164,7 +164,7 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
         return paths
 
     def _get_proto_class(self) -> Type[ProtoT]:
-        """Get the corresponding proto class - override in subclasses"""
+        """Get the corresponding proto class - override in subclasses since typing is not strict."""
         raise NotImplementedError("Subclasses must implement this")
 
     def _add_resource_id_to_proto(self, proto_msg: ProtoT):

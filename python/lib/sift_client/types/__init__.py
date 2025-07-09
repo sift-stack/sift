@@ -12,7 +12,6 @@ from sift_client.types.channel import (
     ChannelValue,
     channel_fqn,
 )
-from sift_client.types.metadata import MetadataUpdate, MetadataValue
 from sift_client.types.rule import (
     Rule,
     RuleAction,
@@ -26,8 +25,6 @@ from sift_client.types.run import Run, RunUpdate
 __all__ = [
     "Asset",
     "AssetUpdate",
-    "MetadataValue",
-    "MetadataUpdate",
     "CalculatedChannel",
     "CalculatedChannelUpdate",
     "Rule",

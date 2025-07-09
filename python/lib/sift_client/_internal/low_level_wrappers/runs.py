@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any, Union, cast
 
 from sift.runs.v2.runs_pb2 import (
     CreateAutomaticRunAssociationForAssetsRequest,
@@ -20,6 +20,7 @@ from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.transport.grpc_transport import GrpcClient
+from sift_client.types.metadata import metadata_dict_to_proto
 from sift_client.types.run import Run, RunUpdate
 
 # Configure logging
@@ -94,6 +95,7 @@ class RunsLowLevelClient(LowLevelClientBase):
             request_kwargs["order_by"] = order_by
 
         request = ListRunsRequest(**request_kwargs)
+        print(f"Request: {request}")
         response = await self._grpc_client.get_stub(RunServiceStub).ListRuns(request)
         response = cast(ListRunsResponse, response)
 
@@ -135,7 +137,7 @@ class RunsLowLevelClient(LowLevelClientBase):
         stop_time: Any | None = None,
         organization_id: str | None = None,
         client_key: str | None = None,
-        metadata: list[Any] | None = None,
+        metadata: dict[str, Union[str, float, bool]] | None = None,
     ) -> Run:
         """
         Create a new run.
@@ -169,7 +171,8 @@ class RunsLowLevelClient(LowLevelClientBase):
         if client_key is not None:
             request_kwargs["client_key"] = client_key
         if metadata is not None:
-            request_kwargs["metadata"] = metadata
+            metadata_proto = metadata_dict_to_proto(metadata)
+            request_kwargs["metadata"] = metadata_proto
 
         request = CreateRunRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RunServiceStub).CreateRun(request)
@@ -187,8 +190,7 @@ class RunsLowLevelClient(LowLevelClientBase):
         Returns:
             The updated Run.
         """
-        run_proto, field_mask = update.to_update_proto()
-        run_proto.run_id = run.run_id
+        run_proto, field_mask = update.to_proto_with_mask()
 
         request = UpdateRunRequest(run=run_proto, update_mask=field_mask)
         response = await self._grpc_client.get_stub(RunServiceStub).UpdateRun(request)

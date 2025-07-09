@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Type, Union
 
-from google.protobuf.field_mask_pb2 import FieldMask
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
-from sift_client.types._base import BaseType
-from sift_client.types.metadata import MetadataValue
+from sift_client.types._base import BaseType, ModelUpdate
+from sift_client.types.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 
-class RunUpdate(BaseModel):
+class RunUpdate(ModelUpdate[RunProto]):
     """
     Update model for Run.
     """
@@ -25,48 +24,15 @@ class RunUpdate(BaseModel):
     is_pinned: Optional[bool] = None
     client_key: Optional[str] = None
     tags: Optional[List[str]] = None
-    metadata: Optional[List[MetadataValue]] = None
+    metadata: Optional[dict[str, Union[str, float, bool]]] = None
 
-    def to_update_proto(self) -> tuple[RunProto, FieldMask]:
-        """
-        Convert to protobuf update request.
-        """
-        run_proto = RunProto()
-        field_mask = FieldMask()
+    def _get_proto_class(self) -> Type[RunProto]:
+        return RunProto
 
-        if self.name is not None:
-            run_proto.name = self.name
-            field_mask.paths.append("name")
-
-        if self.description is not None:
-            run_proto.description = self.description
-            field_mask.paths.append("description")
-
-        if self.start_time is not None:
-            run_proto.start_time.FromDatetime(self.start_time)
-            field_mask.paths.append("start_time")
-
-        if self.stop_time is not None:
-            run_proto.stop_time.FromDatetime(self.stop_time)
-            field_mask.paths.append("stop_time")
-
-        if self.is_pinned is not None:
-            run_proto.is_pinned = self.is_pinned
-            field_mask.paths.append("is_pinned")
-
-        if self.client_key is not None:
-            run_proto.client_key = self.client_key
-            field_mask.paths.append("client_key")
-
-        if self.tags is not None:
-            run_proto.tags.extend(self.tags)
-            field_mask.paths.append("tags")
-
-        if self.metadata is not None:
-            run_proto.metadata.extend([meta.to_proto() for meta in self.metadata])
-            field_mask.paths.append("metadata")
-
-        return run_proto, field_mask
+    def _add_resource_id_to_proto(self, proto_msg: RunProto):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
+        proto_msg.run_id = self._resource_id
 
 
 class Run(BaseType[RunProto, "Run"]):
@@ -90,7 +56,7 @@ class Run(BaseType[RunProto, "Run"]):
     tags: List[str]
     default_report_id: Optional[str] = None
     client_key: Optional[str] = None
-    metadata: List[MetadataValue]
+    metadata: dict[str, Union[str, float, bool]]
     asset_ids: List[str]
     archived_date: Optional[datetime] = None
 
@@ -111,7 +77,7 @@ class Run(BaseType[RunProto, "Run"]):
             tags=list(message.tags),
             default_report_id=message.default_report_id,
             client_key=message.client_key if message.HasField("client_key") else None,
-            metadata=[MetadataValue._from_proto(meta) for meta in message.metadata],
+            metadata=metadata_proto_to_dict(message.metadata),
             asset_ids=list(message.asset_ids),
             archived_date=message.archived_date.ToDatetime()
             if message.HasField("archived_date")
@@ -133,7 +99,7 @@ class Run(BaseType[RunProto, "Run"]):
             name=self.name,
             description=self.description,
             tags=self.tags,
-            metadata=[meta.to_proto() for meta in self.metadata],
+            metadata=metadata_dict_to_proto(self.metadata),
             asset_ids=self.asset_ids,
         )
 

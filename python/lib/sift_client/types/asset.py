@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, Type, Union
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
 from sift_client.types._base import BaseType, ModelUpdate
-from sift_client.types.metadata import MetadataValue
+from sift_client.types.metadata import metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -25,7 +25,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     modified_date: datetime
     modified_by_user_id: str
     tags: list[str]
-    metadata: list[MetadataValue]
+    metadata: dict[str, Union[str, float, bool]]
     archived_date: datetime | None
 
     @property
@@ -97,7 +97,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
             modified_by_user_id=proto.modified_by_user_id,
             tags=list(proto.tags) if proto.tags else [],
             archived_date=proto.archived_date.ToDatetime(),
-            metadata=[MetadataValue._from_proto(m) for m in proto.metadata],
+            metadata=metadata_proto_to_dict(proto.metadata),
             _client=sift_client,
         )
 

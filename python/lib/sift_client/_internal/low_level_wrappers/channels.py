@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from math import ceil
 import logging
 from datetime import datetime, timezone
+from math import ceil
 from typing import Any, cast
 
 import pandas as pd
@@ -327,7 +327,7 @@ class ChannelsLowLevelClient(LowLevelClientBase):
 
         tasks = []
         page_size = limit if limit and limit < 1000 else 1000
-        limit = ceil(limit/page_size) if limit else None
+        limit = ceil(limit / page_size) if limit else None
         # Queue up calls for non-cached channels in batches.
         batch_size = REQUEST_BATCH_SIZE
         for i in range(0, len(not_cached_channels), batch_size):
