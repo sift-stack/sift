@@ -1,5 +1,7 @@
+import pydantic_core
 import pytest
 
+from sift_py.data_import._config import ConfigDataModel, ConfigTimeModel
 from sift_py.data_import.config import CsvConfig, Hdf5Config
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.error import SiftAPIDeprecationWarning
@@ -388,3 +390,25 @@ def test_time_column_hdf5(hdf5_config_data: dict):
         "format": TimeFormatType.ABSOLUTE_DATETIME,
     }
     Hdf5Config(hdf5_config_data)
+
+def test_config_time_model_extra_field():
+    time_cfg = {
+        "format": "TIME_FORMAT_RELATIVE_SECONDS",
+        "relative_start_time": 123456789,
+        "extra_field": 0
+    }
+
+    with pytest.raises(pydantic_core._pydantic_core.ValidationError, match="Extra inputs are not permitted"):
+        ConfigTimeModel(**time_cfg)
+
+def test_config_data_model_extra_field():
+    data_cfg = {
+        "name": "testname",
+        "data_type": float,
+        "extra_field": 0
+    }
+
+    with pytest.raises(pydantic_core._pydantic_core.ValidationError, match="Extra inputs are not permitted"):
+        ConfigDataModel(**data_cfg)
+
+
