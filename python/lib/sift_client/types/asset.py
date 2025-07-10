@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Type, Union
+from typing import TYPE_CHECKING, Type
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
@@ -25,7 +25,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     modified_date: datetime
     modified_by_user_id: str
     tags: list[str]
-    metadata: dict[str, Union[str, float, bool]]
+    metadata: dict[str, str | float | bool]
     archived_date: datetime | None
 
     @property

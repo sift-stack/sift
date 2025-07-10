@@ -17,14 +17,14 @@ from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-from sift_client.transport.grpc_transport import GrpcClient
+from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.types.asset import Asset, AssetUpdate
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 
-class AssetsLowLevelClient(LowLevelClientBase):
+class AssetsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """
     Low-level client for the AssetsAPI.
 
@@ -38,7 +38,7 @@ class AssetsLowLevelClient(LowLevelClientBase):
         Args:
             grpc_client: The gRPC client to use for making API calls.
         """
-        self._grpc_client = grpc_client
+        super().__init__(grpc_client)
 
     async def get_asset(self, asset_id: str) -> Asset:
         request = GetAssetRequest(asset_id=asset_id)

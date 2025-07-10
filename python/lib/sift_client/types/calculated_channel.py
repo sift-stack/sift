@@ -145,7 +145,7 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
         "expression_channel_references": MappingHelper(
             proto_attr_path="calculated_channel_configuration.query_configuration.sel.expression_channel_references",
             update_field="query_configuration",
-            proto_class=CalculatedChannelAbstractChannelReference,
+            converter=CalculatedChannelAbstractChannelReference,
         ),
         "tag_ids": MappingHelper(
             proto_attr_path="calculated_channel_configuration.asset_configuration.selection.tag_ids",

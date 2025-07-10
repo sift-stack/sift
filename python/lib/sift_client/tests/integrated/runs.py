@@ -258,17 +258,26 @@ async def main():
     print(f"   Updating run: {run_to_update.name}")
 
     # Update the run
+    new_description = "Updated description via API"
+    new_metadata = {
+        "test_type": "ci",
+    }
+    new_tags = ["updated", "api-modified"]
     updated_run = client.runs.update(
         run=run_to_update,
         update={
-            "description": "Updated description via API",
-            "is_pinned": True,
-            "tags": ["updated", "api-modified"],
+            "description": new_description,
+            "tags": new_tags,
+            "metadata": new_metadata,
         },
     )
     print(f"   Updated run: {updated_run.name}")
     print(f"   New description: {updated_run.description}")
-    print(f"   Is pinned: {updated_run.is_pinned}")
+    print(f"   New tags: {updated_run.tags}")
+    print(f"   New metadata: {updated_run.metadata}")
+    assert updated_run.description == new_description
+    assert sorted(updated_run.tags) == sorted(new_tags)
+    assert updated_run.metadata == new_metadata
 
     # Example 6: Associate assets with a run
     print("\n6. Associating assets with a run...")
@@ -281,8 +290,6 @@ async def main():
             if run.stop_time is None:
                 print(f"   Stopping run: {run.name}")
                 client.runs.stop(run=run)
-            else:
-                print(f"   Run {run.name} is already stopped")
 
     # Get a run to associate assets with
     asset_names = ["asset1", "asset2"]  # Replace with actual asset names

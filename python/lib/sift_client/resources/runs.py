@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -165,7 +165,7 @@ class RunsAPIAsync(ResourceBase):
         stop_time: datetime | None = None,
         organization_id: str | None = None,
         client_key: str | None = None,
-        metadata: dict[str, Union[str, float, bool]] | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
     ) -> Run:
         """
         Create a new run.
@@ -261,3 +261,13 @@ class RunsAPIAsync(ResourceBase):
         await self._low_level_client.create_automatic_run_association_for_assets(
             run_id=run_id, asset_names=asset_names
         )
+
+    async def stop_run(self, run: str | Run) -> None:
+        """
+        Stop a run by setting its stop time to the current time.
+
+        Args:
+            run: The Run or run ID to stop.
+        """
+        run_id = run.id if isinstance(run, Run) else run
+        await self._low_level_client.stop_run(run_id=run_id)

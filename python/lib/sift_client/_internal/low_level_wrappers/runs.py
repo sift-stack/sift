@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Union, cast
+from typing import Any, cast
 
 from sift.runs.v2.runs_pb2 import (
     CreateAutomaticRunAssociationForAssetsRequest,
@@ -137,7 +137,7 @@ class RunsLowLevelClient(LowLevelClientBase):
         stop_time: Any | None = None,
         organization_id: str | None = None,
         client_key: str | None = None,
-        metadata: dict[str, Union[str, float, bool]] | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
     ) -> Run:
         """
         Create a new run.

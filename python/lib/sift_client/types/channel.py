@@ -3,9 +3,10 @@ from __future__ import annotations
 import warnings
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional, TypedDict, Union
+from typing import Any, List, Optional, TypedDict
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
+from google.protobuf.empty_pb2 import Empty
 from pydantic import BaseModel, ConfigDict
 from sift.channels.v3.channels_pb2 import Channel as ChannelProto
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
@@ -24,6 +25,8 @@ from sift.data.v2.data_pb2 import (
     Uint32Values,
     Uint64Values,
 )
+from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig, FlowConfig
 
 from sift_client.types._base import BaseType
 
@@ -32,7 +35,7 @@ from sift_client.types._base import BaseType
 class ChannelValue(TypedDict, total=False):
     channel_name: str
     component: Optional[str]  # Deprecated
-    value: Union[int, float, bool, str, None]
+    value: int | float | bool | str | None
 
 
 # Enum for string representation of channel data types
@@ -135,6 +138,13 @@ class ChannelDataType(int, Enum):
         else:
             raise ValueError(f"Unknown data type: {data_type}")
 
+    @staticmethod
+    def to_ingestion_value(type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
+        if value is None:
+            return IngestWithConfigDataChannelValue(empty=Empty())
+        ingestion_type_string = type.name.lower().replace("int_", "int")
+        return IngestWithConfigDataChannelValue(**{ingestion_type_string: value})
+
 
 # Bit field element model
 class ChannelBitFieldElement(BaseModel):
@@ -151,6 +161,13 @@ class ChannelBitFieldElement(BaseModel):
             bit_count=message.bit_count,
         )
 
+    def to_proto(self) -> ChannelBitFieldElementPb:
+        return ChannelBitFieldElementPb(
+            name=self.name,
+            index=self.index,
+            bit_count=self.bit_count,
+        )
+
 
 # Enum type model
 class ChannelEnumType(BaseModel):
@@ -165,21 +182,26 @@ class ChannelEnumType(BaseModel):
             key=message.key,
         )
 
+    def to_proto(self) -> ChannelEnumTypePb:
+        return ChannelEnumTypePb(
+            name=self.name,
+            key=self.key,
+        )
+
 
 # Channel config model
-# TODO: Make this a BaseType? with container of ChannelValue's
 class Channel(BaseType[ChannelProto, "Channel"]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    id: str
+    id: str | None = None
     name: str
     data_type: ChannelDataType
-    description: Optional[str] = None
-    unit: Optional[str] = None
-    component: Optional[str] = None  # Deprecated
+    description: str | None = None
+    unit: str | None = None
+    component: str | None = None  # Deprecated
     bit_field_elements: List[ChannelBitFieldElement] | None = None
-    enum_types: List[ChannelEnumType] | None = None
-    asset_id: Optional[str] = None
+    enum_types: List[ChannelEnumType] | None = None  # TODO: Dict?
+    asset_id: str | None = None
 
     @property
     def identifier(self) -> str:
@@ -193,22 +215,33 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return channel_fqn(self)
 
     @classmethod
-    def _from_proto(cls, message: ChannelProto) -> Channel:
-        if isinstance(message, ChannelProto):  # ChannelProto from channels v3
-            return cls(
-                id=message.channel_id,
-                name=message.name,
-                data_type=ChannelDataType(message.data_type),
-                description=message.description,
-                unit=message.unit_id,
-                bit_field_elements=[
-                    ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
-                ],
-                enum_types=[ChannelEnumType._from_proto(etype) for etype in message.enum_types],
-                asset_id=message.asset_id,
-            )
-        else:
-            raise ValueError(f"Unknown channel type: {type(message)}")
+    def _from_proto(cls, message: ChannelProto | ChannelConfig) -> Channel:
+        return cls(
+            id=message.channel_id,
+            name=message.name,
+            data_type=ChannelDataType(message.data_type),
+            description=message.description,
+            unit=message.unit_id,
+            bit_field_elements=[
+                ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
+            ],
+            enum_types=[ChannelEnumType._from_proto(etype) for etype in message.enum_types],
+            asset_id=message.asset_id if isinstance(message, ChannelProto) else None,
+        )
+
+    def to_config_proto(self) -> ChannelConfig:
+        return ChannelConfig(
+            name=self.name,
+            data_type=self.data_type,
+            description=self.description,
+            unit=self.unit,
+            bit_field_elements=[el.to_proto() for el in self.bit_field_elements]
+            if self.bit_field_elements
+            else None,
+            enum_types=[etype.to_proto() for etype in self.enum_types if etype is not None]
+            if self.enum_types
+            else None,
+        )
 
     def data(
         self,
@@ -239,7 +272,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
 
 # Utility function for fully qualified channel name
 def channel_fqn(
-    channel: Union[Channel,],
+    channel: Channel,
 ) -> str:
     name = channel.name
     component = getattr(channel, "component", None)
@@ -267,4 +300,40 @@ class ChannelReference(BaseModel):
         return cls(
             channel_reference=proto.channel_reference,
             channel_identifier=proto.channel_identifier,
+        )
+
+
+class Flow(BaseType[FlowConfig, "Flow"]):
+    model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True)
+    name: str
+    channels: List[Channel]
+    ingestion_config_id: str | None = None
+
+    @classmethod
+    def _from_proto(cls, proto) -> Flow:
+        return cls(
+            name=proto.name,
+            channels=[Channel._from_proto(channel) for channel in proto.channels],
+        )
+
+    def to_proto(self) -> FlowConfig:
+        return FlowConfig(
+            name=self.name,
+            channels=[channel.to_config_proto() for channel in self.channels],
+        )
+
+    def add_channel(self, channel: Channel):
+        if self.ingestion_config_id:
+            # TODO: Do we allow this or not?
+            raise ValueError("Cannot add a channel to a flow after creation")
+        self.channels.append(channel)
+
+    # TODO: Make this async
+    def ingest(self, *, time: datetime, channel_values: dict[str, Any]):
+        if self.ingestion_config_id is None:
+            raise ValueError("Ingestion config ID is not set.")
+        self.client.ingestion.ingest(
+            flow=self,
+            time=time,
+            channel_values=channel_values,
         )

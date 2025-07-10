@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional, Type, Union
+from typing import List, Type
 
 from pydantic import ConfigDict
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
 from sift_client.types._base import BaseType, ModelUpdate
+
+MappingHelper = ModelUpdate.MappingHelper
+from sift_client.types.asset import Asset
+from sift_client.types.channel import Flow
 from sift_client.types.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 
@@ -17,14 +21,20 @@ class RunUpdate(ModelUpdate[RunProto]):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    name: Optional[str] = None
-    description: Optional[str] = None
-    start_time: Optional[datetime] = None
-    stop_time: Optional[datetime] = None
-    is_pinned: Optional[bool] = None
-    client_key: Optional[str] = None
-    tags: Optional[List[str]] = None
-    metadata: Optional[dict[str, Union[str, float, bool]]] = None
+    name: str | None = None
+    description: str | None = None
+    start_time: datetime | None = None
+    stop_time: datetime | None = None
+    is_pinned: bool | None = None
+    client_key: str | None = None
+    tags: list[str] | None = None
+    metadata: dict[str, str | float | bool] | None = None
+
+    _to_proto_helpers = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
 
     def _get_proto_class(self) -> Type[RunProto]:
         return RunProto
@@ -43,22 +53,21 @@ class Run(BaseType[RunProto, "Run"]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id: str
+    name: str
+    description: str
     created_date: datetime
     modified_date: datetime
     created_by_user_id: str
     modified_by_user_id: str
     organization_id: str
-    start_time: Optional[datetime] = None
-    stop_time: Optional[datetime] = None
-    is_pinned: bool
-    name: str
-    description: str
-    tags: List[str]
-    default_report_id: Optional[str] = None
-    client_key: Optional[str] = None
-    metadata: dict[str, Union[str, float, bool]]
-    asset_ids: List[str]
-    archived_date: Optional[datetime] = None
+    start_time: datetime | None = None
+    stop_time: datetime | None = None
+    tags: list[str] | None = None
+    default_report_id: str | None = None
+    client_key: str | None = None
+    metadata: dict[str, str | float | bool]
+    asset_ids: list[str] | None = None
+    archived_date: datetime | None = None
 
     @classmethod
     def _from_proto(cls, message: RunProto) -> Run:
@@ -71,7 +80,6 @@ class Run(BaseType[RunProto, "Run"]):
             organization_id=message.organization_id,
             start_time=message.start_time.ToDatetime() if message.HasField("start_time") else None,
             stop_time=message.stop_time.ToDatetime() if message.HasField("stop_time") else None,
-            is_pinned=message.is_pinned,
             name=message.name,
             description=message.description,
             tags=list(message.tags),
@@ -95,7 +103,7 @@ class Run(BaseType[RunProto, "Run"]):
             created_by_user_id=self.created_by_user_id,
             modified_by_user_id=self.modified_by_user_id,
             organization_id=self.organization_id,
-            is_pinned=self.is_pinned,
+            is_pinned=False,
             name=self.name,
             description=self.description,
             tags=self.tags,
@@ -129,4 +137,26 @@ class Run(BaseType[RunProto, "Run"]):
         if not self.asset_ids:
             return []
         # If there are many asset_ids, this could be optimized with a batch_get if available
-        return [self.client.assets.get(asset_id=aid) for aid in self.asset_ids]
+        return self.client.assets.list_(asset_ids=self.asset_ids)
+
+    def add_flows(self, *, flows: List[Flow], asset: str):
+        """
+        Add flows to the run.
+        """
+        if not hasattr(self, "client") or self.client is None:
+            raise RuntimeError("Run is not bound to a client instance.")
+        if isinstance(asset, Asset):
+            asset = asset.name
+        # TODO: Cache asset:flows mapping
+        self.client.ingestion.create_ingestion_config(
+            asset_name=asset,
+            flows=flows,
+        )
+
+    def stop(self):
+        """
+        Stop the run.
+        """
+        if not hasattr(self, "client") or self.client is None:
+            raise RuntimeError("Run is not bound to a client instance.")
+        self.client.runs.stop_run(self.id)

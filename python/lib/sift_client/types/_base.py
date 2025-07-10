@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Generic, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Type, TypeVar
 
 from google.protobuf import field_mask_pb2, message
 from pydantic import BaseModel, ConfigDict, PrivateAttr
@@ -55,12 +55,12 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
         Args:
             proto_attr_path: The path to the proto attribute to update
             update_field: The optional field to set in the update mask
-            proto_class: The optional proto class to use for converting the value of associated field.
+            converter: The optional proto class or function to use for converting the value of associated field.
         """
 
         proto_attr_path: str
         update_field: str | None = None
-        proto_class: Type[Any] | None = None
+        converter: Type[Any] | Callable[[Any], Any] | None = None
 
     _resource_id: Optional[Any] = PrivateAttr(default=None)
     _to_proto_helpers: dict[str, MappingHelper] = PrivateAttr(default={})
@@ -124,16 +124,25 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                 if mapping_helper.update_field:
                     paths.append(mapping_helper.update_field)
             elif isinstance(value, dict):
-                # Get the submessage
-                sub_msg = getattr(proto_msg, field_name)
-                # Recursively process nested fields
-                sub_paths = self._build_proto_and_paths(
-                    sub_msg,
-                    value,
-                    path,
-                    already_setting_path_override=already_setting_path_override,
-                )
-                paths.extend(sub_paths)
+                if field_name in self._to_proto_helpers:
+                    sub_paths = self._build_proto_and_paths(
+                        proto_msg,
+                        {field_name: self._to_proto_helpers[field_name].converter(value)},
+                        "",
+                        already_setting_path_override=True,
+                    )
+                    paths.extend(sub_paths)
+                else:
+                    # Get the submessage
+                    sub_msg = getattr(proto_msg, field_name)
+                    # Recursively process nested fields
+                    sub_paths = self._build_proto_and_paths(
+                        sub_msg,
+                        value,
+                        path,
+                        already_setting_path_override=already_setting_path_override,
+                    )
+                    paths.extend(sub_paths)
             elif isinstance(value, list):
                 repeated_field = getattr(proto_msg, field_name)
                 del repeated_field[:]  # Remove all existing items
@@ -141,13 +150,13 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                     repeated_field.extend(value)  # Add all new values
                 except TypeError as e:
                     if field_name in self._to_proto_helpers:
-                        if not self._to_proto_helpers[field_name].proto_class:
+                        if not self._to_proto_helpers[field_name].converter:
                             raise ValueError(
                                 f"Need to define a proto class to use for complex field: {field_name}"
                             )
                         for item in value:
                             repeated_field.append(
-                                self._to_proto_helpers[field_name].proto_class(**item)
+                                self._to_proto_helpers[field_name].converter(**item)
                             )
                     else:
                         raise e

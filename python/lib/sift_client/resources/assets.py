@@ -79,6 +79,7 @@ class AssetsAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        asset_ids: list[str] | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
@@ -99,6 +100,7 @@ class AssetsAPIAsync(ResourceBase):
             name: Exact name of the asset.
             name_contains: Partial name of the asset.
             name_regex: Regular expression string to filter assets by name.
+            asset_ids: List of asset IDs to filter by.
             created_after: Created after this date.
             created_before: Created before this date.
             modified_after: Modified after this date.
@@ -123,6 +125,8 @@ class AssetsAPIAsync(ResourceBase):
                 filters.append(cel_utils.contains("name", name_contains))
             if name_regex:
                 filters.append(cel_utils.match("name", name_regex))
+            if asset_ids:
+                filters.append(cel_utils.in_("asset_id", asset_ids))
             if created_after:
                 filters.append(cel_utils.greater_than("created_date", created_after))
             if created_before:
@@ -214,6 +218,6 @@ class AssetsAPIAsync(ResourceBase):
         """
         Get the data for a list of channels.
         """
-        return await self.client.channels.get_data(
+        return await self.client.async_.channels.get_data(
             channels=channels, run_id=run_id, start_time=start_time, end_time=end_time, limit=limit
         )

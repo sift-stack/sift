@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING
 
 from sift.metadata.v1.metadata_pb2 import (
     MetadataKey,
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     pass
 
 
-def metadata_dict_to_proto(_metadata: Dict[str, Union[str, float, bool]]) -> List[MetadataProto]:
+def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[MetadataProto]:
     """
     Wraps metadata dictionary into a list of MetadataValue objects.
 
@@ -57,7 +57,7 @@ def metadata_dict_to_proto(_metadata: Dict[str, Union[str, float, bool]]) -> Lis
     return metadata
 
 
-def metadata_proto_to_dict(metadata: List[MetadataProto]) -> Dict[str, Union[str, float, bool]]:
+def metadata_proto_to_dict(metadata: list[MetadataProto]) -> dict[str, str | float | bool]:
     """
     Unwraps a list of MetadataValue objects into a dictionary.
 
@@ -67,7 +67,8 @@ def metadata_proto_to_dict(metadata: List[MetadataProto]) -> Dict[str, Union[str
     Returns:
         Dictionary of metadata key-value pairs.
     """
-    unwrapped_metadata: Dict[str, Union[str, float, bool]] = {}
+
+    unwrapped_metadata: dict[str, str | float | bool] = {}
     for md in metadata:
         if md.key.name in unwrapped_metadata:
             raise ValueError(f"Key already exists: {md.key.name}")
