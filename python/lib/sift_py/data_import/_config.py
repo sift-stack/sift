@@ -214,6 +214,7 @@ class TimeColumn(ConfigTimeModel):
     """
     Defines a time column entry in the CSV config.
     """
+
     column_number: int
 
 

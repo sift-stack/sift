@@ -391,24 +391,24 @@ def test_time_column_hdf5(hdf5_config_data: dict):
     }
     Hdf5Config(hdf5_config_data)
 
+
 def test_config_time_model_extra_field():
     time_cfg = {
         "format": "TIME_FORMAT_RELATIVE_SECONDS",
         "relative_start_time": 123456789,
-        "extra_field": 0
+        "extra_field": 0,
     }
 
-    with pytest.raises(pydantic_core._pydantic_core.ValidationError, match="Extra inputs are not permitted"):
+    with pytest.raises(
+        pydantic_core._pydantic_core.ValidationError, match="Extra inputs are not permitted"
+    ):
         ConfigTimeModel(**time_cfg)
 
+
 def test_config_data_model_extra_field():
-    data_cfg = {
-        "name": "testname",
-        "data_type": float,
-        "extra_field": 0
-    }
+    data_cfg = {"name": "testname", "data_type": float, "extra_field": 0}
 
-    with pytest.raises(pydantic_core._pydantic_core.ValidationError, match="Extra inputs are not permitted"):
+    with pytest.raises(
+        pydantic_core._pydantic_core.ValidationError, match="Extra inputs are not permitted"
+    ):
         ConfigDataModel(**data_cfg)
-
-

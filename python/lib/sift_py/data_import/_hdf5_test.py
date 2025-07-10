@@ -6,14 +6,12 @@ import polars as pl  # type: ignore
 import pytest
 from pytest_mock import MockFixture
 
-from sift_py.data_import._config import Hdf5DataCfg
 from sift_py.data_import.config import Hdf5Config
 from sift_py.data_import.hdf5 import (
     Hdf5UploadService,
     _convert_hdf5_to_dataframes,
     _create_csv_config,
     _extract_hdf5_data_to_dataframe,
-    _parse_hdf5_data_cfg,
     _split_hdf5_configs,
 )
 
@@ -250,26 +248,6 @@ def test_create_csv_config(hdf5_config):
     assert len(csv_cfg_dict["data_columns"]) == 12
 
 
-def test_parse_hdf5_data_cfg():
-    data_cfg = Hdf5DataCfg(
-        name="TestChannel",
-        time_dataset="/TestChannel",
-        value_dataset="/TestChannel",
-        data_type="CHANNEL_DATA_TYPE_DOUBLE",
-        units="m/s",
-        description="Test channel",
-        enum_types=[],
-        bit_field_elements=[],
-    )
-    parsed_cfg = _parse_hdf5_data_cfg(data_cfg)
-    assert parsed_cfg["name"] == "TestChannel"
-    assert parsed_cfg["data_type"] == "CHANNEL_DATA_TYPE_DOUBLE"
-    assert parsed_cfg["units"] == "m/s"
-    assert parsed_cfg["description"] == "Test channel"
-    assert not parsed_cfg["enum_types"]
-    assert not parsed_cfg["bit_field_elements"]
-
-
 def test_convert_hdf5_to_dataframes(mocker: MockFixture, hdf5_config, hdf5_data_dict):
     mocker.patch("h5py.File", return_value=MockHdf5File(hdf5_data_dict))
 
@@ -405,6 +383,120 @@ def test_string_conversion():
     for data_cfg in hdf5_config._hdf5_config.data:
         df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
         assert (np.array(df[data_cfg.name]) == np.array(["a", "b", "cat"])).all()
+
+
+def test_bitfield_conversion():
+    hdf5_config = Hdf5Config(
+        {
+            "asset_name": "TestAsset",
+            "time": {
+                "format": "TIME_FORMAT_RELATIVE_SECONDS",
+                "relative_start_time": "2025-01-01T01:00:00Z",
+            },
+            "data": [
+                {
+                    "name": "bitfield1",
+                    "time_dataset": "/bitChannel1",
+                    "value_dataset": "/bitChannel1",
+                    "time_column": 1,
+                    "value_column": 2,
+                    "data_type": "CHANNEL_DATA_TYPE_BIT_FIELD",
+                    "bit_field_elements": [
+                        {"index": 0, "name": "flag1", "bit_count": 4},
+                        {"index": 4, "name": "flag2", "bit_count": 4},
+                    ],
+                }
+            ],
+        }
+    )
+
+    data_dict = {
+        "/bitChannel1": np.array(
+            list(zip([0, 1, 2], [0, 2_147_483_647, 15])),
+            dtype=[("time", np.int64), ("value", np.int32)],
+        ),
+    }
+
+    mock_file = MockHdf5File(data_dict)
+
+    for data_cfg in hdf5_config._hdf5_config.data:
+        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
+        assert (np.array(df["timestamp"]) == np.array([0, 1, 2])).all()
+        assert (np.array(df[data_cfg.name]) == np.array([0, 2_147_483_647, 15])).all()
+
+
+def test_enum_conversion():
+    hdf5_config = Hdf5Config(
+        {
+            "asset_name": "TestAsset",
+            "time": {
+                "format": "TIME_FORMAT_RELATIVE_SECONDS",
+                "relative_start_time": "2025-01-01T01:00:00Z",
+            },
+            "data": [
+                {
+                    "name": "EnumChannel",
+                    "time_dataset": "/EnumChannel",
+                    "value_dataset": "/EnumChannel",
+                    "time_column": 1,
+                    "value_column": 2,
+                    "data_type": "CHANNEL_DATA_TYPE_ENUM",
+                    "enum_types": [
+                        {"key": 1, "name": "On"},
+                        {"key": 0, "name": "Off"},
+                        {"key": 2_147_483_647, "name": "Invalid"},
+                    ],
+                },
+            ],
+        }
+    )
+
+    data_dict = {
+        "/EnumChannel": np.array(
+            list(zip([0, 1, 2], [1, 0, 2_147_483_647])),
+            dtype=[("time", np.int64), ("value", np.int32)],
+        ),
+    }
+
+    mock_file = MockHdf5File(data_dict)
+
+    for data_cfg in hdf5_config._hdf5_config.data:
+        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
+        assert (np.array(df["timestamp"]) == np.array([0, 1, 2])).all()
+        assert (np.array(df[data_cfg.name]) == np.array([1, 0, 2_147_483_647])).all()
+
+
+def test_time_value_len_diff():
+    hdf5_config = Hdf5Config(
+        {
+            "asset_name": "TestAsset",
+            "time": {
+                "format": "TIME_FORMAT_RELATIVE_SECONDS",
+                "relative_start_time": "2025-01-01T01:00:00Z",
+            },
+            "data": [
+                {
+                    "name": "DoubleChannel",
+                    "time_dataset": "/time",
+                    "value_dataset": "/data",
+                    "time_column": 1,
+                    "value_column": 1,
+                    "data_type": "CHANNEL_DATA_TYPE_DOUBLE",
+                },
+            ],
+        }
+    )
+
+    data_dict = {
+        "/time": np.array([0, 1, 2], dtype=np.int64),
+        "/data": np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float64),
+    }
+
+    mock_file = MockHdf5File(data_dict)
+
+    for data_cfg in hdf5_config._hdf5_config.data:
+        with pytest.raises(Exception, match="time and value columns have different lengths"):
+            _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
 
 
 def test_hdf5_to_dataframe_conversion(mocker: MockFixture, hdf5_config, hdf5_data_dict):
