@@ -189,7 +189,7 @@ class ChannelsAPIAsync(ResourceBase):
             channel_ids.append(c.id if isinstance(c, Channel) else c)
 
         return await self._low_level_client.get_channel_data(
-            channel_ids=channel_ids, # type: ignore
+            channel_ids=channel_ids,  # type: ignore
             run_id=run_id,
             start_time=start_time,
             end_time=end_time,

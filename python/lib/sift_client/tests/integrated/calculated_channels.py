@@ -36,7 +36,6 @@ If we keep it as a test, we should ideally have a setup that populates data, and
 
 
 async def main():
-    load_dotenv()
     grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
     api_key = os.getenv("SIFT_API_KEY", "")
     rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")

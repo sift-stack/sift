@@ -97,7 +97,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
             modified_by_user_id=proto.modified_by_user_id,
             tags=list(proto.tags) if proto.tags else [],
             archived_date=proto.archived_date.ToDatetime(),
-            metadata=metadata_proto_to_dict(proto.metadata), # type: ignore
+            metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             _client=sift_client,
         )
 

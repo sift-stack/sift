@@ -180,7 +180,7 @@ class RulesAPIAsync(ResourceBase):
             if len(rules) == 1:
                 await self._low_level_client.delete_rule(rule_id=rules[0].rule_id)
             else:
-                await self._low_level_client.batch_delete_rules(rule_ids=[r.rule_id for r in rules]) # type: ignore # mypy doesn't realize we already checked rules exists and is nonempty
+                await self._low_level_client.batch_delete_rules(rule_ids=[r.rule_id for r in rules])  # type: ignore # mypy doesn't realize we already checked rules exists and is nonempty
         elif rule_ids:
             if len(rule_ids) == 1:
                 await self._low_level_client.delete_rule(rule_id=rule_ids[0])

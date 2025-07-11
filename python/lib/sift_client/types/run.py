@@ -88,7 +88,7 @@ class Run(BaseType[RunProto, "Run"]):
             tags=list(message.tags),
             default_report_id=message.default_report_id,
             client_key=message.client_key if message.HasField("client_key") else None,
-            metadata=metadata_proto_to_dict(message.metadata), # type: ignore
+            metadata=metadata_proto_to_dict(message.metadata),  # type: ignore
             asset_ids=list(message.asset_ids),
             archived_date=message.archived_date.ToDatetime()
             if message.HasField("archived_date")
@@ -102,8 +102,8 @@ class Run(BaseType[RunProto, "Run"]):
         """
         proto = RunProto(
             run_id=self.id,
-            created_date=self.created_date, # type: ignore
-            modified_date=self.modified_date, # type: ignore
+            created_date=self.created_date,  # type: ignore
+            modified_date=self.modified_date,  # type: ignore
             created_by_user_id=self.created_by_user_id,
             modified_by_user_id=self.modified_by_user_id,
             organization_id=self.organization_id,

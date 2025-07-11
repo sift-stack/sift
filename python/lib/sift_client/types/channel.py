@@ -101,7 +101,7 @@ class ChannelDataType(int, Enum):
                 "Unreachable. ChannelDataTypeStrRep and ChannelDataType enum names are out of sync."
             )
         elif raw.startswith("sift.data"):
-            val = ChannelTypeUrls(raw).value # type: ignore # mypy doesn't understand scope
+            val = ChannelTypeUrls(raw).value  # type: ignore # mypy doesn't understand scope
             if val is None:
                 return None
             for item in ChannelDataType:
@@ -219,20 +219,22 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return channel_fqn(self)
 
     @classmethod
-    def _from_proto(cls, message: ChannelProto | ChannelConfig, sift_client: SiftClient | None = None) -> Channel:
+    def _from_proto(
+        cls, message: ChannelProto | ChannelConfig, sift_client: SiftClient | None = None
+    ) -> Channel:
         if isinstance(message, ChannelProto):
             return cls(
-            id=message.channel_id,
-            name=message.name,
-            data_type=ChannelDataType(message.data_type),
-            description=message.description,
-            unit=message.unit_id,
-            bit_field_elements=[
-                ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
-            ],
-            enum_types=[ChannelEnumType._from_proto(etype) for etype in message.enum_types],
-            asset_id=message.asset_id,
-            _client=sift_client,
+                id=message.channel_id,
+                name=message.name,
+                data_type=ChannelDataType(message.data_type),
+                description=message.description,
+                unit=message.unit_id,
+                bit_field_elements=[
+                    ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
+                ],
+                enum_types=[ChannelEnumType._from_proto(etype) for etype in message.enum_types],
+                asset_id=message.asset_id,
+                _client=sift_client,
             )
         else:
             return cls(
@@ -246,8 +248,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return ChannelConfig(
             name=self.name,
             data_type=self.data_type.value,
-            description=self.description, # type: ignore
-            unit=self.unit, # type: ignore
+            description=self.description,  # type: ignore
+            unit=self.unit,  # type: ignore
             bit_field_elements=[el.to_proto() for el in self.bit_field_elements]
             if self.bit_field_elements
             else None,

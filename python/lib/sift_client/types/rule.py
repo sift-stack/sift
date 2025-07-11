@@ -115,8 +115,8 @@ class Rule(BaseType[RuleProto, "Rule"]):
                 RuleVersion._from_proto(proto.rule_version) if proto.rule_version else None
             ),
             client_key=proto.client_key if proto.client_key else None,
-            asset_ids=proto.asset_configuration.asset_ids, # type: ignore
-            tag_ids=proto.asset_configuration.tag_ids, # type: ignore
+            asset_ids=proto.asset_configuration.asset_ids,  # type: ignore
+            tag_ids=proto.asset_configuration.tag_ids,  # type: ignore
             contextual_channels=[c.name for c in proto.contextual_channels.channels],
             deleted_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
             is_external=proto.is_external,
@@ -166,7 +166,7 @@ class RuleActionType(Enum):
             for item in cls:
                 if "ACTION_KIND_" + item.name == val:
                     return item
-        
+
         return cls(int(val))
 
 
@@ -183,7 +183,7 @@ class RuleAnnotationType(Enum):
             for item in cls:
                 if "ANNOTATION_TYPE_" + item.name == val:
                     return item
-        
+
         return cls(int(val))
 
 
@@ -262,7 +262,7 @@ class RuleAction(BaseModel):
             ),
             action_type=action_type,
             annotation_type=RuleAnnotationType.from_str(
-                proto.configuration.annotation.annotation_type # type: ignore
+                proto.configuration.annotation.annotation_type  # type: ignore
             )
             if action_type == RuleActionType.ANNOTATION
             else None,
@@ -276,7 +276,7 @@ class RuleAction(BaseModel):
                     AnnotationActionConfiguration(
                         assigned_to_user_id=self.assignee,
                         tag_ids=self.tags,
-                        annotation_type=self.annotation_type.value, # type: ignore
+                        annotation_type=self.annotation_type.value,  # type: ignore
                     )
                     if self.action_type == RuleActionType.ANNOTATION
                     else None

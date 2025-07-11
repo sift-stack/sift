@@ -90,7 +90,9 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         return self
 
     @classmethod
-    def _from_proto(cls, proto: CalculatedChannelProto, sift_client: SiftClient | None = None) -> CalculatedChannel:
+    def _from_proto(
+        cls, proto: CalculatedChannelProto, sift_client: SiftClient | None = None
+    ) -> CalculatedChannel:
         return cls(
             name=proto.name,
             description=proto.description,
@@ -113,8 +115,8 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             change_message=proto.change_message,
             user_notes=proto.user_notes,
             units=proto.units,
-            asset_ids=proto.calculated_channel_configuration.asset_configuration.selection.asset_ids, # type: ignore
-            tag_ids=proto.calculated_channel_configuration.asset_configuration.selection.tag_ids, # type: ignore
+            asset_ids=proto.calculated_channel_configuration.asset_configuration.selection.asset_ids,  # type: ignore
+            tag_ids=proto.calculated_channel_configuration.asset_configuration.selection.tag_ids,  # type: ignore
             all_assets=proto.calculated_channel_configuration.asset_configuration.all_assets,
             created_date=proto.created_date.ToDatetime(),
             modified_date=proto.modified_date.ToDatetime(),

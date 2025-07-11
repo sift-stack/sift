@@ -179,7 +179,9 @@ class RulesLowLevelClient(LowLevelClientBase):
                 asset_ids=asset_ids or [],
                 tag_ids=tag_ids or [],
             ),
-            contextual_channels=ContextualChannels(channels=[ChannelReferenceProto(name=c) for c in contextual_channels or []]), # type: ignore 
+            contextual_channels=ContextualChannels(
+                channels=[ChannelReferenceProto(name=c) for c in contextual_channels or []]
+            ),  # type: ignore
         )
 
         request = CreateRuleRequest(update=update_request)
@@ -226,8 +228,10 @@ class RulesLowLevelClient(LowLevelClientBase):
         )
         action = update.action if "action" in model_dump else rule.action
         if bool(expression) != bool(channel_references):
-            raise ValueError("Expression and channel_references must both be provided or both be None")
-        assert channel_references is not None # make mypy happy
+            raise ValueError(
+                "Expression and channel_references must both be provided or both be None"
+            )
+        assert channel_references is not None  # make mypy happy
         expression_proto = RuleConditionExpression(
             calculated_channel=CalculatedChannelConfig(
                 expression=expression,
@@ -235,26 +239,30 @@ class RulesLowLevelClient(LowLevelClientBase):
                     c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
                     for c in channel_references
                 },
-            ) if expression else None
+            )
+            if expression
+            else None
         )
         conditions_request = [
-            UpdateConditionRequest(expression=expression_proto, actions=[action.to_update_proto()] if action else None)
+            UpdateConditionRequest(
+                expression=expression_proto, actions=[action.to_update_proto()] if action else None
+            )
         ]
-        update_dict["conditions"] = conditions_request # type: ignore 
+        update_dict["conditions"] = conditions_request  # type: ignore
         if "contextual_channels" in model_dump:
-            update_dict["contextual_channels"] = ContextualChannels( # type: ignore 
+            update_dict["contextual_channels"] = ContextualChannels(  # type: ignore
                 channels=[ChannelReferenceProto(name=c) for c in update.contextual_channels or []]
             )
 
         # This always needs to be set, so handle the defaults.
-        update_dict["asset_configuration"] = RuleAssetConfiguration( # type: ignore 
+        update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore
             asset_ids=update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or [],
             tag_ids=update.tag_ids if "tag_ids" in model_dump else rule.tag_ids or [],
         )
 
         update_request = UpdateRuleRequest(
             rule_id=rule.rule_id,
-            **update_dict, # type: ignore 
+            **update_dict,  # type: ignore
         )
 
         return update_request
@@ -298,7 +306,7 @@ class RulesLowLevelClient(LowLevelClientBase):
             request = self._update_rule_request_from_update(rule, rule_update)
             update_requests.append(request)
 
-        request = BatchUpdateRulesRequest(rules=update_requests) # type: ignore 
+        request = BatchUpdateRulesRequest(rules=update_requests)  # type: ignore
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchUpdateRules(request)
         return cast(BatchUpdateRulesResponse, response)
 

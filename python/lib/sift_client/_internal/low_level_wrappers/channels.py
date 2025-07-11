@@ -195,7 +195,7 @@ class ChannelsLowLevelClient(LowLevelClientBase):
         request = GetDataRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(DataServiceStub).GetData(request)
         response = cast(GetDataResponse, response)
-        return response.data, response.next_page_token # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
+        return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 
     def __filter_cached_channels(self, channel_ids: List[str]) -> Tuple[List[str], List[str]]:
         cached_channels = []
@@ -208,7 +208,12 @@ class ChannelsLowLevelClient(LowLevelClientBase):
         return cached_channels, not_cached_channels
 
     def __check_cache(
-        self, *, channel_id: str, start_time: datetime, end_time: datetime, run_id: str | None = None
+        self,
+        *,
+        channel_id: str,
+        start_time: datetime,
+        end_time: datetime,
+        run_id: str | None = None,
     ) -> Tuple[pd.DataFrame | None, datetime | None, datetime | None]:
         """
         Check if the data for a channel during a run is cached.
@@ -227,15 +232,15 @@ class ChannelsLowLevelClient(LowLevelClientBase):
             end_time_cached = cached_data["end_time"]
             ret_data = cached_data["data"]
             # Filter data to desiredtime range
-            ret_data = ret_data[start_time:end_time] # type: ignore # mypy doesn't understand pandas that well seemingly
+            ret_data = ret_data[start_time:end_time]  # type: ignore # mypy doesn't understand pandas that well seemingly
 
             if start_time_cached <= start_time:
                 # Cache data starts before the desired time range.
                 if start_time < end_time_cached:
                     if end_time <= end_time_cached:
                         # Cache data fully encompasses the desired time range.
-                        ret_start_time = None # type: ignore
-                        ret_end_time = None # type: ignore
+                        ret_start_time = None  # type: ignore
+                        ret_end_time = None  # type: ignore
                     else:
                         ret_start_time = end_time_cached
                         ret_end_time = end_time
@@ -389,7 +394,9 @@ class ChannelsLowLevelClient(LowLevelClientBase):
                     else:
                         ret_data[name] = pd.concat([ret_data[name], df]).groupby(level=0).last()
 
-        self.__update_cache(channel_data=ret_data, start_time=start_time, end_time=end_time, run_id=run_id)
+        self.__update_cache(
+            channel_data=ret_data, start_time=start_time, end_time=end_time, run_id=run_id
+        )
 
         return ret_data
 

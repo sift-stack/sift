@@ -252,7 +252,9 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         response = cast(UpdateCalculatedChannelResponse, response)
 
         updated_calculated_channel = CalculatedChannel._from_proto(response.calculated_channel)
-        inapplicable_assets = [cast(CalculatedChannelValidationResult, asset) for asset in response.inapplicable_assets]
+        inapplicable_assets = [
+            cast(CalculatedChannelValidationResult, asset) for asset in response.inapplicable_assets
+        ]
 
         return updated_calculated_channel, inapplicable_assets
 
@@ -302,7 +304,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         if organization_id is not None:
             request_kwargs["organization_id"] = organization_id
 
-        request = ListCalculatedChannelVersionsRequest(**request_kwargs) # type: ignore # mypy thinks we should pass an int
+        request = ListCalculatedChannelVersionsRequest(**request_kwargs)  # type: ignore # mypy thinks we should pass an int
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).ListCalculatedChannelVersions(request)
