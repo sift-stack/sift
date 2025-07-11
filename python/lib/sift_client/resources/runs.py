@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -68,7 +68,7 @@ class RunsAPIAsync(ResourceBase):
         include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> list[Run]:
+    ) -> List[Run]:
         """
         List runs with optional filtering.
 
@@ -160,7 +160,7 @@ class RunsAPIAsync(ResourceBase):
         self,
         name: str,
         description: str,
-        tags: list[str] | None = None,
+        tags: List[str] | None = None,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         organization_id: str | None = None,
@@ -228,7 +228,8 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID to delete.
         """
         run_id = run.id if isinstance(run, Run) else run
-        assert isinstance(run_id, str), "run_id must be a string"
+        if not isinstance(run_id, str):
+            raise ValueError("run_id must be a string")
         await self._low_level_client.delete_run(run_id=run_id)
 
     async def stop(
@@ -248,7 +249,7 @@ class RunsAPIAsync(ResourceBase):
     async def create_automatic_association_for_assets(
         self,
         run: str | Run,
-        asset_names: list[str],
+        asset_names: List[str],
     ) -> None:
         """
         Associate assets with a run for automatic data ingestion.

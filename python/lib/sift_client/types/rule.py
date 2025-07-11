@@ -32,7 +32,7 @@ MappingHelper = ModelUpdate.MappingHelper
 from sift_client.types.channel import ChannelReference
 
 if TYPE_CHECKING:
-    pass
+    from sift_client.client import SiftClient
 
 
 class Rule(BaseType[RuleProto, "Rule"]):
@@ -59,7 +59,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
     modified_date: datetime | None = None
     created_by_user_id: str | None = None
     modified_by_user_id: str | None = None
-    _organization_id: str | None = None
+    organization_id: str | None = None
     rule_version: RuleVersion | None = None
     deleted_date: datetime | None = None
     is_external: bool | None = None
@@ -87,7 +87,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
         self.client.rules.delete(rule=self)
 
     @classmethod
-    def _from_proto(cls, proto: RuleProto) -> Rule:
+    def _from_proto(cls, proto: RuleProto, sift_client: SiftClient | None = None) -> Rule:
         expression = (
             proto.conditions[0].expression.calculated_channel.expression
             if proto.conditions
@@ -115,11 +115,12 @@ class Rule(BaseType[RuleProto, "Rule"]):
                 RuleVersion._from_proto(proto.rule_version) if proto.rule_version else None
             ),
             client_key=proto.client_key if proto.client_key else None,
-            asset_ids=proto.asset_configuration.asset_ids,
-            tag_ids=proto.asset_configuration.tag_ids,
+            asset_ids=proto.asset_configuration.asset_ids, # type: ignore
+            tag_ids=proto.asset_configuration.tag_ids, # type: ignore
             contextual_channels=[c.name for c in proto.contextual_channels.channels],
             deleted_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
             is_external=proto.is_external,
+            _client=sift_client,
         )
 
 
@@ -165,8 +166,8 @@ class RuleActionType(Enum):
             for item in cls:
                 if "ACTION_KIND_" + item.name == val:
                     return item
-        else:
-            return cls(int(val))
+        
+        return cls(int(val))
 
 
 class RuleAnnotationType(Enum):
@@ -182,8 +183,8 @@ class RuleAnnotationType(Enum):
             for item in cls:
                 if "ANNOTATION_TYPE_" + item.name == val:
                     return item
-        else:
-            return cls(int(val))
+        
+        return cls(int(val))
 
 
 class RuleAction(BaseModel):
@@ -241,9 +242,8 @@ class RuleAction(BaseModel):
 
     @classmethod
     def _from_proto(cls, proto: RuleActionProto) -> RuleAction:
-        action_type = RuleActionType.from_str(proto.action_type)
+        action_type = RuleActionType(proto.action_type)
         return cls(
-            _resource_id=proto.rule_action_id,
             condition_id=proto.rule_condition_id,
             created_date=proto.created_date.ToDatetime(),
             modified_date=proto.modified_date.ToDatetime(),
@@ -262,7 +262,7 @@ class RuleAction(BaseModel):
             ),
             action_type=action_type,
             annotation_type=RuleAnnotationType.from_str(
-                proto.configuration.annotation.annotation_type
+                proto.configuration.annotation.annotation_type # type: ignore
             )
             if action_type == RuleActionType.ANNOTATION
             else None,
@@ -276,7 +276,7 @@ class RuleAction(BaseModel):
                     AnnotationActionConfiguration(
                         assigned_to_user_id=self.assignee,
                         tag_ids=self.tags,
-                        annotation_type=self.annotation_type.value,
+                        annotation_type=self.annotation_type.value, # type: ignore
                     )
                     if self.action_type == RuleActionType.ANNOTATION
                     else None

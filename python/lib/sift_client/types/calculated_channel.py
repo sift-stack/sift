@@ -17,7 +17,7 @@ MappingHelper = ModelUpdate.MappingHelper
 from sift_client.types.channel import ChannelReference
 
 if TYPE_CHECKING:
-    pass
+    from sift_client.client import SiftClient
 
 
 class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
@@ -90,7 +90,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         return self
 
     @classmethod
-    def _from_proto(cls, proto: CalculatedChannelProto) -> CalculatedChannel:
+    def _from_proto(cls, proto: CalculatedChannelProto, sift_client: SiftClient | None = None) -> CalculatedChannel:
         return cls(
             name=proto.name,
             description=proto.description,
@@ -113,13 +113,14 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             change_message=proto.change_message,
             user_notes=proto.user_notes,
             units=proto.units,
-            asset_ids=proto.calculated_channel_configuration.asset_configuration.selection.asset_ids,
-            tag_ids=proto.calculated_channel_configuration.asset_configuration.selection.tag_ids,
+            asset_ids=proto.calculated_channel_configuration.asset_configuration.selection.asset_ids, # type: ignore
+            tag_ids=proto.calculated_channel_configuration.asset_configuration.selection.tag_ids, # type: ignore
             all_assets=proto.calculated_channel_configuration.asset_configuration.all_assets,
             created_date=proto.created_date.ToDatetime(),
             modified_date=proto.modified_date.ToDatetime(),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
+            _client=sift_client,
         )
 
 

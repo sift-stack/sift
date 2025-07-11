@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, cast
+from typing import Any, List, cast
 
 from sift.rules.v1.rules_pb2 import (
     BatchDeleteRulesRequest,
@@ -129,16 +129,16 @@ class RulesLowLevelClient(LowLevelClientBase):
         *,
         name: str,
         description: str,
-        organization_id: str,
-        client_key: str,
+        organization_id: str | None = None,
+        client_key: str | None = None,
         asset_ids: list[str] | None = None,
         tag_ids: list[str] | None = None,
         contextual_channels: list[str] | None = None,
         is_external: bool,
         expression: str,
-        channel_references: list[ChannelReference],
+        channel_references: List[ChannelReference],
         action: RuleAction,
-    ) -> str:
+    ) -> Rule:
         """
         Create a new rule.
 
@@ -171,7 +171,7 @@ class RulesLowLevelClient(LowLevelClientBase):
             name=name,
             description=description,
             is_enabled=True,
-            organization_id=organization_id,
+            organization_id=organization_id or "",
             client_key=client_key,
             is_external=is_external,
             conditions=conditions_request,
@@ -179,7 +179,7 @@ class RulesLowLevelClient(LowLevelClientBase):
                 asset_ids=asset_ids or [],
                 tag_ids=tag_ids or [],
             ),
-            contextual_channels=ContextualChannels(channels=contextual_channels or []),
+            contextual_channels=ContextualChannels(channels=[ChannelReferenceProto(name=c) for c in contextual_channels or []]), # type: ignore 
         )
 
         request = CreateRuleRequest(update=update_request)
@@ -225,6 +225,9 @@ class RulesLowLevelClient(LowLevelClientBase):
             else rule.channel_references
         )
         action = update.action if "action" in model_dump else rule.action
+        if bool(expression) != bool(channel_references):
+            raise ValueError("Expression and channel_references must both be provided or both be None")
+        assert channel_references is not None # make mypy happy
         expression_proto = RuleConditionExpression(
             calculated_channel=CalculatedChannelConfig(
                 expression=expression,
@@ -232,26 +235,26 @@ class RulesLowLevelClient(LowLevelClientBase):
                     c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
                     for c in channel_references
                 },
-            )
+            ) if expression else None
         )
         conditions_request = [
-            UpdateConditionRequest(expression=expression_proto, actions=[action.to_update_proto()])
+            UpdateConditionRequest(expression=expression_proto, actions=[action.to_update_proto()] if action else None)
         ]
-        update_dict["conditions"] = conditions_request
+        update_dict["conditions"] = conditions_request # type: ignore 
         if "contextual_channels" in model_dump:
-            update_dict["contextual_channels"] = ContextualChannels(
+            update_dict["contextual_channels"] = ContextualChannels( # type: ignore 
                 channels=[ChannelReferenceProto(name=c) for c in update.contextual_channels or []]
             )
 
         # This always needs to be set, so handle the defaults.
-        update_dict["asset_configuration"] = RuleAssetConfiguration(
+        update_dict["asset_configuration"] = RuleAssetConfiguration( # type: ignore 
             asset_ids=update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or [],
             tag_ids=update.tag_ids if "tag_ids" in model_dump else rule.tag_ids or [],
         )
 
         update_request = UpdateRuleRequest(
             rule_id=rule.rule_id,
-            **update_dict,
+            **update_dict, # type: ignore 
         )
 
         return update_request
@@ -295,7 +298,7 @@ class RulesLowLevelClient(LowLevelClientBase):
             request = self._update_rule_request_from_update(rule, rule_update)
             update_requests.append(request)
 
-        request = BatchUpdateRulesRequest(rules=update_requests)
+        request = BatchUpdateRulesRequest(rules=update_requests) # type: ignore 
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchUpdateRules(request)
         return cast(BatchUpdateRulesResponse, response)
 
@@ -323,7 +326,7 @@ class RulesLowLevelClient(LowLevelClientBase):
         await self._grpc_client.get_stub(RuleServiceStub).DeleteRule(request)
 
     async def batch_delete_rules(
-        self, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
+        self, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
     ) -> None:
         """
         Batch delete rules.
@@ -378,7 +381,7 @@ class RulesLowLevelClient(LowLevelClientBase):
         return await self.get_rule(rule_id=rule_id, client_key=client_key)
 
     async def batch_undelete_rules(
-        self, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
+        self, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
     ) -> None:
         """
         Batch undelete rules.
@@ -409,7 +412,7 @@ class RulesLowLevelClient(LowLevelClientBase):
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         include_deleted: bool = False,
-    ) -> list[Rule]:
+    ) -> List[Rule]:
         """
         List rules.
         """
@@ -427,7 +430,7 @@ class RulesLowLevelClient(LowLevelClientBase):
             filters.append(match("name", name_regex))
         if not include_deleted:
             filters.append(equals_null("deleted_date"))
-        filter_str = " && ".join(filters) if filters else None
+        filter_str = " && ".join(filters) if filters else ""
         request = ListRulesRequest(
             filter=filter_str,
         )

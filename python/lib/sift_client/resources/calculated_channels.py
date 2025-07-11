@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List
 
 from sift_client._internal.low_level_wrappers.calculated_channels import (
     CalculatedChannelsLowLevelClient,
@@ -97,7 +97,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
         organization_id: str | None = None,
-    ) -> list[CalculatedChannel]:
+    ) -> List[CalculatedChannel]:
         """
         List calculated channels with optional filtering.
 
@@ -193,12 +193,12 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         *,
         name: str,
         expression: str,
-        channel_references: list[ChannelReference],
+        channel_references: List[ChannelReference],
         description: str = "",
         units: str | None = None,
         client_key: str | None = None,
-        asset_ids: list[str] | None = None,
-        tag_ids: list[str] | None = None,
+        asset_ids: List[str] | None = None,
+        tag_ids: List[str] | None = None,
         all_assets: bool = False,
         user_notes: str = "",
     ) -> CalculatedChannel:
@@ -289,15 +289,10 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         """
         Archive a Calculated Channel.
         """
-        calculated_channel_id = (
-            calculated_channel.calculated_channel_id
-            if isinstance(calculated_channel, CalculatedChannel)
-            else calculated_channel
-        )
         update = CalculatedChannelUpdate(
             archived_date=datetime.now(),
         )
-        await self.update(calculated_channel=calculated_channel_id, update=update)
+        await self.update(calculated_channel=calculated_channel, update=update)
 
     async def list_versions(
         self,
@@ -310,7 +305,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> list[CalculatedChannel]:
+    ) -> List[CalculatedChannel]:
         """
         List versions of a calculated channel.
 

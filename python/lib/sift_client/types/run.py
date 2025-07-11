@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Type
+from typing import TYPE_CHECKING, List, Type
 
 from pydantic import ConfigDict
 from sift.runs.v2.runs_pb2 import Run as RunProto
@@ -12,6 +12,9 @@ MappingHelper = ModelUpdate.MappingHelper
 from sift_client.types.asset import Asset
 from sift_client.types.channel import Flow
 from sift_client.types.metadata import metadata_dict_to_proto, metadata_proto_to_dict
+
+if TYPE_CHECKING:
+    from sift_client.client import SiftClient
 
 
 class RunUpdate(ModelUpdate[RunProto]):
@@ -27,7 +30,7 @@ class RunUpdate(ModelUpdate[RunProto]):
     stop_time: datetime | None = None
     is_pinned: bool | None = None
     client_key: str | None = None
-    tags: list[str] | None = None
+    tags: List[str] | None = None
     metadata: dict[str, str | float | bool] | None = None
 
     _to_proto_helpers = {
@@ -62,15 +65,15 @@ class Run(BaseType[RunProto, "Run"]):
     organization_id: str
     start_time: datetime | None = None
     stop_time: datetime | None = None
-    tags: list[str] | None = None
+    tags: List[str] | None = None
     default_report_id: str | None = None
     client_key: str | None = None
     metadata: dict[str, str | float | bool]
-    asset_ids: list[str] | None = None
+    asset_ids: List[str] | None = None
     archived_date: datetime | None = None
 
     @classmethod
-    def _from_proto(cls, message: RunProto) -> Run:
+    def _from_proto(cls, message: RunProto, sift_client: SiftClient | None = None) -> Run:
         return cls(
             id=message.run_id,
             created_date=message.created_date.ToDatetime(),
@@ -85,11 +88,12 @@ class Run(BaseType[RunProto, "Run"]):
             tags=list(message.tags),
             default_report_id=message.default_report_id,
             client_key=message.client_key if message.HasField("client_key") else None,
-            metadata=metadata_proto_to_dict(message.metadata),
+            metadata=metadata_proto_to_dict(message.metadata), # type: ignore
             asset_ids=list(message.asset_ids),
             archived_date=message.archived_date.ToDatetime()
             if message.HasField("archived_date")
             else None,
+            _client=sift_client,
         )
 
     def to_proto(self) -> RunProto:
@@ -98,8 +102,8 @@ class Run(BaseType[RunProto, "Run"]):
         """
         proto = RunProto(
             run_id=self.id,
-            created_date=self.created_date,
-            modified_date=self.modified_date,
+            created_date=self.created_date, # type: ignore
+            modified_date=self.modified_date, # type: ignore
             created_by_user_id=self.created_by_user_id,
             modified_by_user_id=self.modified_by_user_id,
             organization_id=self.organization_id,

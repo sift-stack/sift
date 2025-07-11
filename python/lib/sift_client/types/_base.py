@@ -125,9 +125,13 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                     paths.append(mapping_helper.update_field)
             elif isinstance(value, dict):
                 if field_name in self._to_proto_helpers:
+                    if not self._to_proto_helpers[field_name].converter:
+                            raise ValueError(
+                                f"Expecting to run a coverter given a helper was defined for: {field_name}"
+                            )
                     sub_paths = self._build_proto_and_paths(
                         proto_msg,
-                        {field_name: self._to_proto_helpers[field_name].converter(value)},
+                        {field_name: self._to_proto_helpers[field_name].converter(value)}, # type: ignore[misc]
                         "",
                         already_setting_path_override=True,
                     )
@@ -152,11 +156,11 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                     if field_name in self._to_proto_helpers:
                         if not self._to_proto_helpers[field_name].converter:
                             raise ValueError(
-                                f"Need to define a proto class to use for complex field: {field_name}"
+                                f"Expecting to run a coverter given a helper was defined for: {field_name}"
                             )
                         for item in value:
                             repeated_field.append(
-                                self._to_proto_helpers[field_name].converter(**item)
+                                self._to_proto_helpers[field_name].converter(**item) # type: ignore
                             )
                     else:
                         raise e

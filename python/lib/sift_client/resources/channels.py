@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, List
 
 import numpy as np
 
@@ -168,7 +168,7 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data(
         self,
         *,
-        channels: list[str | Channel],
+        channels: List[str | Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
@@ -189,7 +189,7 @@ class ChannelsAPIAsync(ResourceBase):
             channel_ids.append(c.id if isinstance(c, Channel) else c)
 
         return await self._low_level_client.get_channel_data(
-            channel_ids=channel_ids,
+            channel_ids=channel_ids, # type: ignore
             run_id=run_id,
             start_time=start_time,
             end_time=end_time,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any, List, cast
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     BatchResolveCalculatedChannelsRequest,
@@ -70,18 +70,12 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
 
         Returns:
             The CalculatedChannel.
-
-        Raises:
-            ValueError: If neither calculated_channel_id nor client_key is provided.
         """
-        if calculated_channel_id:
-            request = GetCalculatedChannelRequest(calculated_channel_id=calculated_channel_id)
-        elif client_key:
-            request = GetCalculatedChannelRequest(
-                client_key=client_key, organization_id=organization_id
-            )
-        else:
-            raise ValueError("Either calculated_channel_id or client_key must be provided")
+        request = GetCalculatedChannelRequest(
+            calculated_channel_id=calculated_channel_id or "",
+            client_key=client_key or "",
+            organization_id=organization_id or "",
+        )
 
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
@@ -235,7 +229,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
 
     async def update_calculated_channel(
         self, update: CalculatedChannelUpdate, user_notes: str | None = None
-    ) -> tuple[CalculatedChannel, list[Any]]:  # Returns (calculated_channel, inapplicable_assets)
+    ) -> tuple[CalculatedChannel, List[Any]]:  # Returns (calculated_channel, inapplicable_assets)
         """
         Update a calculated channel.
 
@@ -258,7 +252,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         response = cast(UpdateCalculatedChannelResponse, response)
 
         updated_calculated_channel = CalculatedChannel._from_proto(response.calculated_channel)
-        inapplicable_assets = cast(CalculatedChannelValidationResult, response.inapplicable_assets)
+        inapplicable_assets = [cast(CalculatedChannelValidationResult, asset) for asset in response.inapplicable_assets]
 
         return updated_calculated_channel, inapplicable_assets
 
@@ -293,20 +287,22 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         if calculated_channel_id:
             request_kwargs = {"calculated_channel_id": calculated_channel_id}
         elif client_key:
-            request_kwargs = {"client_key": client_key, "organization_id": organization_id}
+            request_kwargs = {"client_key": client_key}
         else:
             raise ValueError("Either calculated_channel_id or client_key must be provided")
 
         if page_size is not None:
-            request_kwargs["page_size"] = page_size
+            request_kwargs["page_size"] = str(page_size)
         if page_token is not None:
             request_kwargs["page_token"] = page_token
         if query_filter is not None:
             request_kwargs["filter"] = query_filter
         if order_by is not None:
             request_kwargs["order_by"] = order_by
+        if organization_id is not None:
+            request_kwargs["organization_id"] = organization_id
 
-        request = ListCalculatedChannelVersionsRequest(**request_kwargs)
+        request = ListCalculatedChannelVersionsRequest(**request_kwargs) # type: ignore # mypy thinks we should pass an int
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).ListCalculatedChannelVersions(request)

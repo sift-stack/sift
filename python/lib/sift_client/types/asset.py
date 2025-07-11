@@ -44,7 +44,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
 
     def runs(self, limit: int | None = None):
         if not hasattr(self, "client") or self.client is None:
-            raise RuntimeError("Asset is not bound to a client instance.")
+            raise RuntimeError("Asset was somehow created with no SiftClient. Cannot make calls.")
         return self.client.runs.list(asset_id=self.id, limit=limit)
 
     def channels(self, run_id: str | None = None, limit: int | None = None):
@@ -52,7 +52,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
         Return all channels for this asset.
         """
         if not hasattr(self, "client") or self.client is None:
-            raise RuntimeError("Asset is not bound to a client instance.")
+            raise RuntimeError("Asset was somehow created with no SiftClient. Cannot make calls.")
         return self.client.channels.list(asset_id=self.id, run_id=run_id, limit=limit)
 
     @property
@@ -97,7 +97,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
             modified_by_user_id=proto.modified_by_user_id,
             tags=list(proto.tags) if proto.tags else [],
             archived_date=proto.archived_date.ToDatetime(),
-            metadata=metadata_proto_to_dict(proto.metadata),
+            metadata=metadata_proto_to_dict(proto.metadata), # type: ignore
             _client=sift_client,
         )
 

@@ -2,7 +2,6 @@ import asyncio
 import os
 from datetime import datetime
 
-from dotenv import load_dotenv
 from sift_client.client import SiftClient
 
 # Import sift_client types for calculated channels and rules

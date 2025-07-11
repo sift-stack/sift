@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, List, Optional, TypedDict
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
@@ -29,6 +29,9 @@ from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig, FlowConfig
 
 from sift_client.types._base import BaseType
+
+if TYPE_CHECKING:
+    from sift_client.client import SiftClient
 
 
 # TypedDicts for channel values
@@ -98,7 +101,7 @@ class ChannelDataType(int, Enum):
                 "Unreachable. ChannelDataTypeStrRep and ChannelDataType enum names are out of sync."
             )
         elif raw.startswith("sift.data"):
-            val = ChannelTypeUrls(raw)
+            val = ChannelTypeUrls(raw).value # type: ignore # mypy doesn't understand scope
             if val is None:
                 return None
             for item in ChannelDataType:
@@ -112,6 +115,7 @@ class ChannelDataType(int, Enum):
                 val = ChannelDataTypeStrRep(raw)
             except ValueError:
                 return None
+        raise Exception(f"Unknown channel data type: {raw}")
 
     @staticmethod
     def proto_data_class(data_type: ChannelDataType) -> Any:
@@ -193,7 +197,7 @@ class ChannelEnumType(BaseModel):
 class Channel(BaseType[ChannelProto, "Channel"]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    id: str | None = None
+    id: str
     name: str
     data_type: ChannelDataType
     description: str | None = None
@@ -215,8 +219,9 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return channel_fqn(self)
 
     @classmethod
-    def _from_proto(cls, message: ChannelProto | ChannelConfig) -> Channel:
-        return cls(
+    def _from_proto(cls, message: ChannelProto | ChannelConfig, sift_client: SiftClient | None = None) -> Channel:
+        if isinstance(message, ChannelProto):
+            return cls(
             id=message.channel_id,
             name=message.name,
             data_type=ChannelDataType(message.data_type),
@@ -226,15 +231,23 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
             ],
             enum_types=[ChannelEnumType._from_proto(etype) for etype in message.enum_types],
-            asset_id=message.asset_id if isinstance(message, ChannelProto) else None,
-        )
+            asset_id=message.asset_id,
+            _client=sift_client,
+            )
+        else:
+            return cls(
+                id=message.name,
+                name=message.name,
+                data_type=ChannelDataType(message.data_type),
+                _client=sift_client,
+            )
 
     def to_config_proto(self) -> ChannelConfig:
         return ChannelConfig(
             name=self.name,
-            data_type=self.data_type,
-            description=self.description,
-            unit=self.unit,
+            data_type=self.data_type.value,
+            description=self.description, # type: ignore
+            unit=self.unit, # type: ignore
             bit_field_elements=[el.to_proto() for el in self.bit_field_elements]
             if self.bit_field_elements
             else None,
@@ -310,10 +323,11 @@ class Flow(BaseType[FlowConfig, "Flow"]):
     ingestion_config_id: str | None = None
 
     @classmethod
-    def _from_proto(cls, proto) -> Flow:
+    def _from_proto(cls, proto, sift_client: SiftClient | None = None) -> Flow:
         return cls(
             name=proto.name,
             channels=[Channel._from_proto(channel) for channel in proto.channels],
+            _client=sift_client,
         )
 
     def to_proto(self) -> FlowConfig:

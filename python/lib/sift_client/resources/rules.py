@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -107,12 +107,12 @@ class RulesAPIAsync(ResourceBase):
         name: str,
         description: str,
         expression: str,
-        channel_references: list[ChannelReference],
+        channel_references: List[ChannelReference],
         action: RuleAction,
         organization_id: str | None = None,
         client_key: str | None = None,
-        asset_ids: list[str] | None = None,
-        contextual_channels: list[str] | None = None,
+        asset_ids: List[str] | None = None,
+        contextual_channels: List[str] | None = None,
         is_external: bool = False,
     ) -> Rule:
         """
@@ -158,9 +158,9 @@ class RulesAPIAsync(ResourceBase):
         self,
         *,
         rule: str | Rule | None = None,
-        rules: list[Rule] | None = None,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
+        rules: List[Rule] | None = None,
+        rule_ids: List[str] | None = None,
+        client_keys: List[str] | None = None,
     ) -> None:
         """
         Delete a rule or multiple.
@@ -180,7 +180,7 @@ class RulesAPIAsync(ResourceBase):
             if len(rules) == 1:
                 await self._low_level_client.delete_rule(rule_id=rules[0].rule_id)
             else:
-                await self._low_level_client.batch_delete_rules(rule_ids=[r.rule_id for r in rules])
+                await self._low_level_client.batch_delete_rules(rule_ids=[r.rule_id for r in rules]) # type: ignore # mypy doesn't realize we already checked rules exists and is nonempty
         elif rule_ids:
             if len(rule_ids) == 1:
                 await self._low_level_client.delete_rule(rule_id=rule_ids[0])
@@ -222,8 +222,8 @@ class RulesAPIAsync(ResourceBase):
     async def batch_undelete(
         self,
         *,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
+        rule_ids: List[str] | None = None,
+        client_keys: List[str] | None = None,
     ) -> None:
         """
         Batch undelete rules.
@@ -239,9 +239,9 @@ class RulesAPIAsync(ResourceBase):
     async def batch_get(
         self,
         *,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> list[Rule]:
+        rule_ids: List[str] | None = None,
+        client_keys: List[str] | None = None,
+    ) -> List[Rule]:
         """
         Get multiple rules by rule IDs or client keys.
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict
 
 import numpy as np
 
@@ -183,7 +183,7 @@ class AssetsAPIAsync(ResourceBase):
          Returns:
              The archived Asset.
         """
-        asset_id = asset.asset_id if isinstance(asset, Asset) else asset
+        asset_id = asset.id if isinstance(asset, Asset) else asset
 
         await self._low_level_client.delete_asset(asset_id, archive_runs=archive_runs)
 
@@ -201,7 +201,7 @@ class AssetsAPIAsync(ResourceBase):
             The updated Asset.
 
         """
-        asset_id = asset.asset_id if isinstance(asset, Asset) else asset
+        asset_id = asset.id if isinstance(asset, Asset) else asset
         if isinstance(update, dict):
             update = AssetUpdate.model_validate(update)
         update.resource_id = asset_id
@@ -214,7 +214,7 @@ class AssetsAPIAsync(ResourceBase):
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> list[tuple[Channel, np.ndarray]]:
+    ) -> Dict[str, np.ndarray]:
         """
         Get the data for a list of channels.
         """
