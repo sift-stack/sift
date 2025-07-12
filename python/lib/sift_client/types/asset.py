@@ -42,19 +42,6 @@ class Asset(BaseType[AssetProto, "Asset"]):
     def modified_by(self):
         raise NotImplementedError
 
-    def runs(self, limit: int | None = None):
-        if not hasattr(self, "client") or self.client is None:
-            raise RuntimeError("Asset was somehow created with no SiftClient. Cannot make calls.")
-        return self.client.runs.list(asset_id=self.id, limit=limit)
-
-    def channels(self, run_id: str | None = None, limit: int | None = None):
-        """
-        Return all channels for this asset.
-        """
-        if not hasattr(self, "client") or self.client is None:
-            raise RuntimeError("Asset was somehow created with no SiftClient. Cannot make calls.")
-        return self.client.channels.list(asset_id=self.id, run_id=run_id, limit=limit)
-
     @property
     def rules(self):
         raise NotImplementedError

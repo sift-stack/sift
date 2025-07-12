@@ -4,17 +4,12 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List
-
-import numpy as np
-from sift.ingest.v1.ingest_pb2 import IngestArbitraryProtobufDataStreamRequest
+from typing import Any, List
 
 from sift_client.client import SiftClient
 from sift_client.types.asset import Asset, AssetUpdate
 from sift_client.types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
-from sift_client.types.channel import Channel, ChannelReference, Flow
-from sift_client.types.rule import Rule, RuleAction, RuleUpdate
-from sift_client.types.run import Run, RunUpdate
+from sift_client.types.channel import ChannelReference
 
 class AssetsAPI:
     """
@@ -53,19 +48,6 @@ class AssetsAPI:
 
          Returns:
              The archived Asset.
-        """
-        ...
-
-    def channels_data(
-        self,
-        channels: list[str | Channel],
-        run_id: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
-        limit: int | None = None,
-    ) -> Dict[str, np.ndarray]:
-        """
-        Get the data for a list of channels.
         """
         ...
 
@@ -225,8 +207,8 @@ class CalculatedChannelsAPI:
 
     def find(self, **kwargs) -> CalculatedChannel | None:
         """
-        Find a single calculated channel matching the given query. Takes the same arguments as `list`. If more than one calculated channel is found,
-        raises an error.
+        Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
+        Will raise an error if multiple calculated channels are found.
 
         Args:
             **kwargs: Keyword arguments to pass to `list`.
@@ -315,12 +297,19 @@ class CalculatedChannelsAPI:
 
     def list_versions(
         self,
+        *,
         calculated_channel_id: str | None = None,
         client_key: str | None = None,
         organization_id: str | None = None,
-        *,
-        page_size: int | None = None,
-        page_token: str | None = None,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        asset_id: str | None = None,
+        asset_name: str | None = None,
+        tag_id: str | None = None,
+        tag_name: str | None = None,
+        version: int | None = None,
+        include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
@@ -331,10 +320,16 @@ class CalculatedChannelsAPI:
         Args:
             calculated_channel_id: The ID of the calculated channel.
             client_key: The client key of the calculated channel.
-            organization_id: The organization ID.
-            page_size: The number of results to return per page.
-            page_token: The page token for pagination.
-            filter_query: The CEL query filter.
+            name: The name of the calculated channel.
+            name_contains: The name of the calculated channel.
+            name_regex: The name of the calculated channel.
+            asset_id: The asset ID of the calculated channel.
+            asset_name: The asset name of the calculated channel.
+            tag_id: The tag ID of the calculated channel.
+            tag_name: The tag name of the calculated channel.
+            version: The version of the calculated channel.
+            include_archived: Whether to include archived calculated channels.
+            organization_id: The organization ID. Required if your user belongs to multiple organizations.
             order_by: The field to order by.
             limit: How many versions to retrieve. If None, retrieves all matches.
 
@@ -357,224 +352,12 @@ class CalculatedChannelsAPI:
         Update a Calculated Channel.
 
         Args:
-            calculated_channel: The CalculatedChannel or calculated_channel_id to update.
+            calculated_channel: The CalculatedChannel or id of the CalculatedChannel to update.
             update: Updates to apply to the CalculatedChannel.
             user_notes: User notes for the update.
 
         Returns:
             The updated CalculatedChannel.
-        """
-        ...
-
-class ChannelsAPI:
-    """
-    Sync counterpart to `ChannelsAPIAsync`.
-
-
-    High-level API for interacting with channels.
-
-    This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-
-    All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
-    representation of a channel using standard Python data structures and types.
-    """
-
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the ChannelsAPI.
-
-        Args:
-            sift_client: The Sift client to use.
-        """
-        ...
-
-    def _run(self, coro):
-        """ """
-        ...
-
-    def find(self, **kwargs) -> Channel | None:
-        """
-        Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
-        raises an error.
-
-        Args:
-            **kwargs: Keyword arguments to pass to `list`.
-
-        Returns:
-            The Channel found or None.
-        """
-        ...
-
-    def get(self, *, channel_id: str) -> Channel:
-        """
-        Get a Channel.
-
-        Args:
-            channel_id: The ID of the channel.
-
-        Returns:
-            The Channel.
-        """
-        ...
-
-    def get_data(
-        self,
-        *,
-        channels: list[str | Channel],
-        run_id: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
-        limit: int | None = None,
-    ) -> Dict[str, np.ndarray]:
-        """
-        Get data for one or more channels.
-
-        Args:
-            channels: The channels to get data for.
-            run_id: The run to get data for.
-            start_time: The start time to get data for.
-            end_time: The end time to get data for.
-            limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
-        """
-        ...
-
-    def list(
-        self,
-        *,
-        asset_id: str | None = None,
-        name: str | None = None,
-        name_contains: str | None = None,
-        name_regex: str | re.Pattern | None = None,
-        description: str | None = None,
-        description_contains: str | None = None,
-        active: bool | None = None,
-        run_id: str | None = None,
-        run_name: str | None = None,
-        client_key: str | None = None,
-        created_before: datetime | None = None,
-        created_after: datetime | None = None,
-        modified_before: datetime | None = None,
-        modified_after: datetime | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-    ) -> list[Channel]:
-        """
-        List channels with optional filtering.
-
-        Args:
-            asset_id: The asset ID to get.
-            name: The name of the channel to get.
-            name_contains: The partial name of the channel to get.
-            name_regex: The regex name of the channel to get.
-            description: The description of the channel to get.
-            description_contains: The partial description of the channel to get.
-            active: Whether the channel is active.
-            run_id: The run ID to get.
-            run_name: The name of the run to get.
-            client_key: The client key of the run to get.
-            created_before: The created date of the channel to get.
-            created_after: The created date of the channel to get.
-            modified_before: The modified date of the channel to get.
-            modified_after: The modified date of the channel to get.
-            order_by: How to order the retrieved channels.
-            limit: How many channels to retrieve. If None, retrieves all matches.
-
-        Returns:
-            A list of Channels that matches the filter.
-        """
-        ...
-
-class IngestionAPI:
-    """
-    Sync counterpart to `IngestionAPIAsync`.
-
-
-    High-level API for interacting with ingestion services.
-
-    This class provides a Pythonic, notebook-friendly interface for interacting with the IngestionAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-
-    All methods in this class use the Flow class from the types module, which is a user-friendly
-    representation of ingestion flows using standard Python data structures and types.
-    """
-
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the IngestionAPI.
-
-        Args:
-            sift_client: The Sift client to use.
-        """
-        ...
-
-    def _run(self, coro):
-        """ """
-        ...
-
-    def create_ingestion_config(
-        self,
-        *,
-        asset_name: str,
-        flows: List[Flow],
-        client_key: str | None = None,
-        organization_id: str | None = None,
-    ) -> str:
-        """
-        Create an ingestion config.
-
-        Args:
-            asset_name: The name of the asset for this ingestion config.
-            flows: List of flow configurations.
-            client_key: Optional client key for identifying this config.
-            organization_id: The organization ID.
-
-        Returns:
-            The ingestion config ID.
-
-        Raises:
-            ValueError: If asset_name is not provided or flows is empty.
-        """
-        ...
-
-    def ingest(
-        self,
-        *,
-        flow: Flow | None = None,
-        flows: List[Flow] | None = None,
-        time: datetime,
-        channel_values: dict[str, Any],
-    ):
-        """ """
-        ...
-
-    def ingest_arbitrary_protobuf_data_stream(
-        self, requests: AsyncIterator[IngestArbitraryProtobufDataStreamRequest]
-    ) -> None:
-        """
-        Stream arbitrary protobuf data for ingestion.
-
-        Args:
-            requests: Async iterator of arbitrary protobuf ingestion requests.
-        """
-        ...
-
-    def ingest_with_config_data_stream(
-        self,
-        *,
-        ingestion_config_id: str,
-        flow: str,
-        run_id: str | None = None,
-        end_stream_on_validation_error: bool = False,
-        organization_id: str | None = None,
-        timestamp: datetime,
-        channel_values: list[int | float | bool | str | None],
-    ) -> None:
-        """
-        Stream ingestion data with configuration.
-
-        Args:
-            requests: Async iterator of ingestion requests.
         """
         ...
 
@@ -605,353 +388,5 @@ class PingAPI:
 
         Returns:
             The response from the server.
-        """
-        ...
-
-class RulesAPI:
-    """
-    Sync counterpart to `RulesAPIAsync`.
-
-
-    High-level API for interacting with rules.
-
-    This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-
-    All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
-    representation of a rule using standard Python data structures and types.
-    """
-
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the RulesAPI.
-
-        Args:
-            sift_client: The Sift client to use.
-        """
-        ...
-
-    def _run(self, coro):
-        """ """
-        ...
-
-    def batch_get(
-        self, *, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
-    ) -> List[Rule]:
-        """
-        Get multiple rules by rule IDs or client keys.
-
-        Args:
-            rule_ids: List of rule IDs to get.
-            client_keys: List of client keys to get.
-
-        Returns:
-            List of Rules.
-        """
-        ...
-
-    def batch_undelete(
-        self, *, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
-    ) -> None:
-        """
-        Batch undelete rules.
-
-        Args:
-            rule_ids: List of rule IDs to undelete.
-            client_keys: List of client keys to undelete.
-        """
-        ...
-
-    def create(
-        self,
-        name: str,
-        description: str,
-        expression: str,
-        channel_references: List[ChannelReference],
-        action: RuleAction,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        asset_ids: List[str] | None = None,
-        contextual_channels: List[str] | None = None,
-        is_external: bool = False,
-    ) -> Rule:
-        """
-        Create a new rule.
-        """
-        ...
-
-    def delete(
-        self,
-        *,
-        rule: str | Rule | None = None,
-        rules: List[Rule] | None = None,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
-    ) -> None:
-        """
-        Delete a rule or multiple.
-
-        Args:
-            rule: The Rule to delete.
-            rules: The Rules to delete.
-            rule_ids: The rule IDs to delete.
-            client_keys: The client keys to delete.
-        """
-        ...
-
-    def find(self, **kwargs) -> Rule | None:
-        """
-        Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
-        raises an error.
-
-        Args:
-            **kwargs: Keyword arguments to pass to `list`.
-
-        Returns:
-            The Rule found or None.
-        """
-        ...
-
-    def get(self, *, rule_id: str | None = None, client_key: str | None = None) -> Rule:
-        """
-        Get a Rule.
-
-        Args:
-            rule_id: The ID of the rule.
-            client_key: The client key of the rule.
-
-        Returns:
-            The Rule.
-        """
-        ...
-
-    def list(
-        self,
-        *,
-        name: str | None = None,
-        name_contains: str | None = None,
-        name_regex: str | re.Pattern | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-        include_deleted: bool = False,
-    ) -> list[Rule]:
-        """
-        List rules with optional filtering.
-
-        Args:
-            name: Exact name of the rule.
-            name_contains: Partial name of the rule.
-            name_regex: Regular expression string to filter rules by name.
-            order_by: How to order the retrieved rules.
-            limit: How many rules to retrieve. If None, retrieves all matches.
-
-        Returns:
-            A list of Rules that matches the filter.
-        """
-        ...
-
-    def undelete(
-        self, rule: str | Rule, *, rule_id: str | None = None, client_key: str | None = None
-    ) -> Rule:
-        """
-        Undelete a rule.
-
-        Args:
-            rule: The Rule or rule ID to undelete.
-            rule_id: The rule ID to undelete (alternative to rule parameter).
-            client_key: The client key to undelete (alternative to rule parameter).
-
-        Returns:
-            The undeleted Rule.
-        """
-        ...
-
-    def update(
-        self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
-    ) -> Rule:
-        """
-        Update a Rule.
-
-        Args:
-            rule: The Rule or rule ID to update.
-            update: Updates to apply to the Rule.
-            version_notes: Notes to include in the rule version.
-        Returns:
-            The updated Rule.
-        """
-        ...
-
-class RunsAPI:
-    """
-    Sync counterpart to `RunsAPIAsync`.
-
-
-    High-level API for interacting with runs.
-
-    This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-
-    All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
-    representation of a run using standard Python data structures and types.
-    """
-
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the RunsAPI.
-
-        Args:
-            sift_client: The Sift client to use.
-        """
-        ...
-
-    def _run(self, coro):
-        """ """
-        ...
-
-    def create(
-        self,
-        name: str,
-        description: str,
-        tags: List[str] | None = None,
-        start_time: datetime | None = None,
-        stop_time: datetime | None = None,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
-    ) -> Run:
-        """
-        Create a new run.
-
-        Args:
-            name: The name of the run.
-            description: The description of the run.
-            tags: Tags to associate with the run.
-            start_time: The start time of the run.
-            stop_time: The stop time of the run.
-            organization_id: The organization ID.
-            client_key: A unique client key for the run.
-            metadata: Metadata values for the run.
-
-        Returns:
-            The created Run.
-        """
-        ...
-
-    def create_automatic_association_for_assets(
-        self, run: str | Run, asset_names: List[str]
-    ) -> None:
-        """
-        Associate assets with a run for automatic data ingestion.
-
-        Args:
-            run: The Run or run ID.
-            asset_names: List of asset names to associate.
-        """
-        ...
-
-    def delete(self, *, run: str | Run) -> None:
-        """
-        Delete a run.
-
-        Args:
-            run: The Run or run ID to delete.
-        """
-        ...
-
-    def find(self, **kwargs) -> Run | None:
-        """
-        Find a single run matching the given query. Takes the same arguments as `list`. If more than one run is found,
-        raises an error.
-
-        Args:
-            **kwargs: Keyword arguments to pass to `list`.
-
-        Returns:
-            The Run found or None.
-        """
-        ...
-
-    def get(self, *, run_id: str) -> Run:
-        """
-        Get a Run.
-
-        Args:
-            run_id: The ID of the run.
-
-        Returns:
-            The Run.
-        """
-        ...
-
-    def list(
-        self,
-        *,
-        name: str | None = None,
-        name_contains: str | None = None,
-        name_regex: str | re.Pattern | None = None,
-        description: str | None = None,
-        description_contains: str | None = None,
-        duration_seconds: int | None = None,
-        client_key: str | None = None,
-        asset_id: str | None = None,
-        asset_name: str | None = None,
-        created_by_user_id: str | None = None,
-        is_stopped: bool | None = None,
-        include_archived: bool = False,
-        order_by: str | None = None,
-        limit: int | None = None,
-    ) -> List[Run]:
-        """
-        List runs with optional filtering.
-
-        Args:
-            name: Exact name of the run.
-            name_contains: Partial name of the run.
-            name_regex: Regular expression string to filter runs by name.
-            description: Exact description of the run.
-            description_contains: Partial description of the run.
-            duration_seconds: Duration of the run in seconds.
-            client_key: Client key to filter by.
-            asset_id: Asset ID to filter by.
-            asset_name: Asset name to filter by.
-            created_by_user_id: User ID who created the run.
-            is_stopped: Whether the run is stopped.
-            include_archived: Whether to include archived runs.
-            order_by: How to order the retrieved runs.
-            limit: How many runs to retrieve. If None, retrieves all matches.
-
-        Returns:
-            A list of Runs that matches the filter.
-        """
-        ...
-
-    def stop(self, *, run: str | Run) -> None:
-        """
-        Stop a run by setting its stop time to the current time.
-
-        Args:
-            run: The Run or run ID to stop.
-        """
-        ...
-
-    def stop_run(self, run: str | Run) -> None:
-        """
-        Stop a run by setting its stop time to the current time.
-
-        Args:
-            run: The Run or run ID to stop.
-        """
-        ...
-
-    def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
-        """
-        Update a Run.
-
-        Args:
-            run: The Run or run ID to update.
-            update: Updates to apply to the Run.
-
-        Returns:
-            The updated Run.
         """
         ...

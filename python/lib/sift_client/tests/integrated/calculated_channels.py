@@ -235,6 +235,12 @@ async def main():
     )
     assert updated_channel_7.tag_ids == [], f"Tag IDs update failed: {updated_channel_7.tag_ids}"
 
+    versions = client.calculated_channels.list_versions(
+        calculated_channel_id=channel_1.id,
+        limit=10,
+    )
+    print(f"Found {len(versions)} versions for {created_channels[0].name}")
+
     print("All validation checks passed!")
     print("\n=== Test completed successfully ===")
 

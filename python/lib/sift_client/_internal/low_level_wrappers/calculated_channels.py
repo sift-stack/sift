@@ -4,8 +4,6 @@ import logging
 from typing import Any, List, cast
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
-    BatchResolveCalculatedChannelsRequest,
-    BatchResolveCalculatedChannelsResponse,
     CalculatedChannelAbstractChannelReference,
     CalculatedChannelAssetConfiguration,
     CalculatedChannelConfiguration,
@@ -19,8 +17,6 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
     ListCalculatedChannelsResponse,
     ListCalculatedChannelVersionsRequest,
     ListCalculatedChannelVersionsResponse,
-    ResolveCalculatedChannelRequest,
-    ResolveCalculatedChannelResponse,
     UpdateCalculatedChannelRequest,
     UpdateCalculatedChannelResponse,
 )
@@ -34,7 +30,6 @@ from sift_client.types.calculated_channel import (
 )
 from sift_client.types.channel import ChannelReference
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
 
@@ -56,6 +51,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
 
     async def get_calculated_channel(
         self,
+        *,
         calculated_channel_id: str | None = None,
         client_key: str | None = None,
         organization_id: str | None = None,
@@ -85,6 +81,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
 
     async def create_calculated_channel(
         self,
+        *,
         name: str,
         all_assets: bool = False,
         asset_ids: list[str] | None = None,
@@ -95,13 +92,17 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         user_notes: str = "",
         units: str | None = None,
         client_key: str | None = None,
-    ) -> tuple[CalculatedChannel, list[Any]]:  # Returns (calculated_channel, inapplicable_assets)
+    ) -> tuple[CalculatedChannel, list[Any]]:
         """
         Create a calculated channel.
 
         Args:
             name: The name of the calculated channel.
-            calculated_channel_configuration: The configuration for the calculated channel.
+            all_assets: Whether to include all assets in the calculated channel.
+            asset_ids: The IDs of the assets to include in the calculated channel.
+            tag_ids: The IDs of the tags to include in the calculated channel.
+            expression: The CEL expression for the calculated channel.
+            channel_references: The channel references to include in the calculated channel.
             description: The description of the calculated channel.
             user_notes: User notes for the calculated channel.
             units: The units for the calculated channel.
@@ -110,7 +111,6 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         Returns:
             A tuple of (CalculatedChannel, list of inapplicable assets).
         """
-        # TODO: Try to use model_dump() to build the proto
         asset_config = CalculatedChannelAssetConfiguration(
             all_assets=all_assets,
             selection=CalculatedChannelAssetConfiguration.AssetSelection(
@@ -156,6 +156,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
 
     async def list_all_calculated_channels(
         self,
+        *,
         query_filter: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
@@ -185,6 +186,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
 
     async def list_calculated_channels(
         self,
+        *,
         page_size: int | None = None,
         page_token: str | None = None,
         query_filter: str | None = None,
@@ -228,8 +230,11 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         return calculated_channels, response.next_page_token
 
     async def update_calculated_channel(
-        self, update: CalculatedChannelUpdate, user_notes: str | None = None
-    ) -> tuple[CalculatedChannel, List[Any]]:  # Returns (calculated_channel, inapplicable_assets)
+        self,
+        *,
+        update: CalculatedChannelUpdate,
+        user_notes: str | None = None,
+    ) -> tuple[CalculatedChannel, List[Any]]:
         """
         Update a calculated channel.
 
@@ -260,6 +265,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
 
     async def list_calculated_channel_versions(
         self,
+        *,
         calculated_channel_id: str | None = None,
         client_key: str | None = None,
         organization_id: str | None = None,
@@ -274,7 +280,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         Args:
             calculated_channel_id: The ID of the calculated channel.
             client_key: The client key of the calculated channel.
-            organization_id: The organization ID.
+            organization_id: The organization ID. Required if your user belongs to multiple organizations.
             page_size: The number of results to return per page.
             page_token: The page token for pagination.
             query_filter: The CEL query filter.
@@ -286,6 +292,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         Raises:
             ValueError: If neither calculated_channel_id nor client_key is provided.
         """
+        request_kwargs = {}
         if calculated_channel_id:
             request_kwargs = {"calculated_channel_id": calculated_channel_id}
         elif client_key:
@@ -315,67 +322,27 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase):
         ]
         return versions, response.next_page_token
 
-    async def resolve_calculated_channel(
+    async def list_all_calculated_channel_versions(
         self,
-        identifier: Any | None = None,  # ResourceIdentifier from protobuf
-        calculated_channel_configuration: Any
-        | None = None,  # CalculatedChannelConfiguration from protobuf
+        *,
+        calculated_channel_id: str | None = None,
+        client_key: str | None = None,
         organization_id: str | None = None,
-        assets: Any | None = None,  # NamedResources from protobuf
-        run: Any | None = None,  # ResourceIdentifier from protobuf
-    ) -> ResolveCalculatedChannelResponse:
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[CalculatedChannel]:
         """
-        Resolve a calculated channel into an expression with references.
-
-        Args:
-            identifier: The resource identifier.
-            calculated_channel_configuration: The calculated channel configuration.
-            organization_id: The organization ID.
-            assets: The assets to resolve against.
-            run: The run to resolve against.
-
-        Returns:
-            The ResolveCalculatedChannelResponse.
-
-        Raises:
-            ValueError: If neither identifier nor calculated_channel_configuration is provided.
+        List all versions of a calculated channel.
         """
-        if identifier:
-            request_kwargs = {"identifier": identifier}
-        elif calculated_channel_configuration:
-            request_kwargs = {"calculated_channel_configuration": calculated_channel_configuration}
-        else:
-            raise ValueError(
-                "Either identifier or calculated_channel_configuration must be provided"
-            )
-
-        if organization_id is not None:
-            request_kwargs["organization_id"] = organization_id
-        if assets is not None:
-            request_kwargs["assets"] = assets
-        if run is not None:
-            request_kwargs["run"] = run
-
-        request = ResolveCalculatedChannelRequest(**request_kwargs)
-        response = await self._grpc_client.get_stub(
-            CalculatedChannelServiceStub
-        ).ResolveCalculatedChannel(request)
-        return cast(ResolveCalculatedChannelResponse, response)
-
-    async def batch_resolve_calculated_channels(
-        self, requests: list[ResolveCalculatedChannelRequest]
-    ) -> BatchResolveCalculatedChannelsResponse:
-        """
-        Resolve a batch of calculated channels into expressions with references.
-
-        Args:
-            requests: A list of ResolveCalculatedChannelRequest objects.
-
-        Returns:
-            The BatchResolveCalculatedChannelsResponse.
-        """
-        request = BatchResolveCalculatedChannelsRequest(requests=requests)
-        response = await self._grpc_client.get_stub(
-            CalculatedChannelServiceStub
-        ).BatchResolveCalculatedChannels(request)
-        return cast(BatchResolveCalculatedChannelsResponse, response)
+        return await self._handle_pagination(
+            self.list_calculated_channel_versions,
+            kwargs={
+                "organization_id": organization_id,
+                "calculated_channel_id": calculated_channel_id,
+                "client_key": client_key,
+                "query_filter": query_filter,
+            },
+            order_by=order_by,
+            max_results=limit,
+        )

@@ -8,16 +8,8 @@ from sift_client.resources import (
     AssetsAPIAsync,
     CalculatedChannelsAPI,
     CalculatedChannelsAPIAsync,
-    ChannelsAPI,
-    ChannelsAPIAsync,
-    IngestionAPI,
-    IngestionAPIAsync,
     PingAPI,
     PingAPIAsync,
-    RulesAPI,
-    RulesAPIAsync,
-    RunsAPI,
-    RunsAPIAsync,
 )
 from sift_client.transport import (
     GrpcClient,
@@ -41,14 +33,6 @@ class AsyncAPIs(NamedTuple):
     assets: AssetsAPIAsync
     """Instance of the Calculated Channels API for making asynchronous requests."""
     calculated_channels: CalculatedChannelsAPIAsync
-    """Instance of the Channels API for making asynchronous requests."""
-    channels: ChannelsAPIAsync
-    """Instance of the Ingestion API for making asynchronous requests."""
-    ingestion: IngestionAPIAsync
-    """Instance of the Rules API for making asynchronous requests."""
-    rules: RulesAPIAsync
-    """Instance of the Runs API for making asynchronous requests."""
-    runs: RunsAPIAsync
 
 
 class SiftClient(
@@ -90,14 +74,6 @@ class SiftClient(
     assets: AssetsAPI
     """Instance of the Calculated Channels API for making synchronous requests."""
     calculated_channels: CalculatedChannelsAPI
-    """Instance of the Channels API for making synchronous requests."""
-    channels: ChannelsAPI
-    """Instance of the Ingestion API for making synchronous requests."""
-    ingestion: IngestionAPI
-    """Instance of the Rules API for making synchronous requests."""
-    rules: RulesAPI
-    """Instance of the Runs API for making synchronous requests."""
-    runs: RunsAPI
 
     def __init__(
         self,
@@ -138,20 +114,12 @@ class SiftClient(
         self.ping = PingAPI(self)
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
-        self.channels = ChannelsAPI(self)
-        self.ingestion = IngestionAPI(self)
-        self.rules = RulesAPI(self)
-        self.runs = RunsAPI(self)
 
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
             ping=PingAPIAsync(self),
             assets=AssetsAPIAsync(self),
             calculated_channels=CalculatedChannelsAPIAsync(self),
-            channels=ChannelsAPIAsync(self),
-            ingestion=IngestionAPIAsync(self),
-            rules=RulesAPIAsync(self),
-            runs=RunsAPIAsync(self),
         )
 
     @property

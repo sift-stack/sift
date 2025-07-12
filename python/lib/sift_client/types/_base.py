@@ -89,7 +89,7 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
         proto_cls: Type[ProtoT] = self._get_proto_class()
         proto_msg = proto_cls()
 
-        # Get only explicitly set fields, including those set toNone
+        # Get only explicitly set fields, including those set to None
         data = self.model_dump(exclude_unset=True, exclude_none=False)
         paths = self._build_proto_and_paths(proto_msg, data)
 

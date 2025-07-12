@@ -13,7 +13,7 @@ from sift_client.types.calculated_channel import (
     CalculatedChannelUpdate,
 )
 from sift_client.types.channel import ChannelReference
-from sift_client.util import cel_utils
+from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -129,38 +129,38 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         if not filter_query:
             filters = []
             if name:
-                filters.append(cel_utils.equals("name", name))
+                filters.append(cel.equals("name", name))
             if name_contains:
-                filters.append(cel_utils.contains("name", name_contains))
+                filters.append(cel.contains("name", name_contains))
             if name_regex:
-                filters.append(cel_utils.match("name", name_regex))
+                filters.append(cel.match("name", name_regex))
             if created_after:
-                filters.append(cel_utils.greater_than("created_date", created_after))
+                filters.append(cel.greater_than("created_date", created_after))
             if created_before:
-                filters.append(cel_utils.less_than("created_date", created_before))
+                filters.append(cel.less_than("created_date", created_before))
             if modified_after:
-                filters.append(cel_utils.greater_than("modified_date", modified_after))
+                filters.append(cel.greater_than("modified_date", modified_after))
             if modified_before:
-                filters.append(cel_utils.less_than("modified_date", modified_before))
+                filters.append(cel.less_than("modified_date", modified_before))
             if created_by:
                 raise NotImplementedError
             if modified_by:
                 raise NotImplementedError
             if client_key:
-                filters.append(cel_utils.equals("client_key", client_key))
+                filters.append(cel.equals("client_key", client_key))
             if asset_id:
-                filters.append(cel_utils.equals("asset_id", asset_id))
+                filters.append(cel.equals("asset_id", asset_id))
             if asset_name:
-                filters.append(cel_utils.equals("asset_name", asset_name))
+                filters.append(cel.equals("asset_name", asset_name))
             if tag_id:
-                filters.append(cel_utils.equals("tag_id", tag_id))
+                filters.append(cel.equals("tag_id", tag_id))
             if tag_name:
-                filters.append(cel_utils.equals("tag_name", tag_name))
+                filters.append(cel.equals("tag_name", tag_name))
             if version:
-                filters.append(cel_utils.equals("version", version))
+                filters.append(cel.equals("version", version))
             if not include_archived:
-                filters.append(cel_utils.equals_null("archived_date"))
-            filter_query = cel_utils.and_(*filters)
+                filters.append(cel.equals_null("archived_date"))
+            filter_query = cel.and_(*filters)
 
         calculated_channels = await self._low_level_client.list_all_calculated_channels(
             query_filter=filter_query,
@@ -172,8 +172,8 @@ class CalculatedChannelsAPIAsync(ResourceBase):
 
     async def find(self, **kwargs) -> CalculatedChannel | None:
         """
-        Find a single calculated channel matching the given query. Takes the same arguments as `list`. If more than one calculated channel is found,
-        raises an error.
+        Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
+        Will raise an error if multiple calculated channels are found.
 
         Args:
             **kwargs: Keyword arguments to pass to `list`.
@@ -183,7 +183,10 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         """
         calculated_channels = await self.list(**kwargs)
         if len(calculated_channels) > 1:
-            raise ValueError("Multiple calculated channels found for query")
+            raise ValueError(
+                f"Multiple calculated channels found for query: {kwargs}. "
+                "Use `list` to handle all matching calculated channels."
+            )
         elif len(calculated_channels) == 1:
             return calculated_channels[0]
         return None
@@ -258,7 +261,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         Update a Calculated Channel.
 
         Args:
-            calculated_channel: The CalculatedChannel or calculated_channel_id to update.
+            calculated_channel: The CalculatedChannel or id of the CalculatedChannel to update.
             update: Updates to apply to the CalculatedChannel.
             user_notes: User notes for the update.
 
@@ -296,12 +299,19 @@ class CalculatedChannelsAPIAsync(ResourceBase):
 
     async def list_versions(
         self,
+        *,
         calculated_channel_id: str | None = None,
         client_key: str | None = None,
         organization_id: str | None = None,
-        *,
-        page_size: int | None = None,
-        page_token: str | None = None,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        asset_id: str | None = None,
+        asset_name: str | None = None,
+        tag_id: str | None = None,
+        tag_name: str | None = None,
+        version: int | None = None,
+        include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
@@ -312,10 +322,16 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         Args:
             calculated_channel_id: The ID of the calculated channel.
             client_key: The client key of the calculated channel.
-            organization_id: The organization ID.
-            page_size: The number of results to return per page.
-            page_token: The page token for pagination.
-            filter_query: The CEL query filter.
+            name: The name of the calculated channel.
+            name_contains: The name of the calculated channel.
+            name_regex: The name of the calculated channel.
+            asset_id: The asset ID of the calculated channel.
+            asset_name: The asset name of the calculated channel.
+            tag_id: The tag ID of the calculated channel.
+            tag_name: The tag name of the calculated channel.
+            version: The version of the calculated channel.
+            include_archived: Whether to include archived calculated channels.
+            organization_id: The organization ID. Required if your user belongs to multiple organizations.
             order_by: The field to order by.
             limit: How many versions to retrieve. If None, retrieves all matches.
 
@@ -325,34 +341,43 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         Raises:
             ValueError: If neither calculated_channel_id nor client_key is provided.
         """
-        if not calculated_channel_id and not client_key:
-            raise ValueError("Either calculated_channel_id or client_key must be provided")
+        if sum(bool(v) for v in [calculated_channel_id, name, name_contains, name_regex]) != 1:
+            raise ValueError(
+                "Exactly one of calculated_channel_id, name, name_contains, or name_regex must be provided"
+            )
+        if asset_id and asset_name:
+            raise ValueError("Cannot specify both asset_id and asset_name")
+        if tag_id and tag_name:
+            raise ValueError("Cannot specify both tag_id and tag_name")
 
-        versions, next_page_token = await self._low_level_client.list_calculated_channel_versions(
+        filter_query_parts = []
+        if name:
+            filter_query_parts.append(cel.equals("name", name))
+        if name_contains:
+            filter_query_parts.append(cel.contains("name", name_contains))
+        if name_regex:
+            filter_query_parts.append(cel.match("name", name_regex))
+        if asset_id:
+            filter_query_parts.append(cel.equals("asset_id", asset_id))
+        if asset_name:
+            filter_query_parts.append(cel.equals("asset_name", asset_name))
+        if tag_id:
+            filter_query_parts.append(cel.equals("tag_id", tag_id))
+        if tag_name:
+            filter_query_parts.append(cel.equals("tag_name", tag_name))
+        if version:
+            filter_query_parts.append(cel.equals("version", version))
+        if not include_archived:
+            filter_query_parts.append(cel.equals_null("archived_date"))
+        filter_query = cel.and_(*filter_query_parts)
+
+        versions = await self._low_level_client.list_all_calculated_channel_versions(
             calculated_channel_id=calculated_channel_id,
             client_key=client_key,
             organization_id=organization_id,
-            page_size=page_size,
-            page_token=page_token,
             query_filter=filter_query,
             order_by=order_by,
+            limit=limit,
         )
 
-        # Handle pagination if limit is specified
-        if limit and len(versions) < limit:
-            while next_page_token and len(versions) < limit:
-                (
-                    more_versions,
-                    next_page_token,
-                ) = await self._low_level_client.list_calculated_channel_versions(
-                    calculated_channel_id=calculated_channel_id,
-                    client_key=client_key,
-                    organization_id=organization_id,
-                    page_size=min(page_size or 50, limit - len(versions)),
-                    page_token=next_page_token,
-                    query_filter=filter_query,
-                    order_by=order_by,
-                )
-                versions.extend(more_versions)
-
-        return self._apply_client_to_instances(versions[:limit] if limit else versions)
+        return self._apply_client_to_instances(versions)
