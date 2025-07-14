@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING, Type
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
 from sift_client.types._base import BaseType, ModelUpdate
-from sift_client.types.metadata import metadata_proto_to_dict
+
+MappingHelper = ModelUpdate.MappingHelper
+from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -96,6 +98,13 @@ class AssetUpdate(ModelUpdate[AssetProto]):
 
     tags: list[str] | None = None
     archived_date: datetime | str | None = None
+    metadata: dict[str, str | float | bool] | None = None
+
+    _to_proto_helpers = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
 
     def _get_proto_class(self) -> Type[AssetProto]:
         return AssetProto

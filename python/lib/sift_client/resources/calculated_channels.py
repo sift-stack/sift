@@ -312,7 +312,6 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         tag_name: str | None = None,
         version: int | None = None,
         include_archived: bool = False,
-        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> List[CalculatedChannel]:
