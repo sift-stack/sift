@@ -316,10 +316,6 @@ class CalculatedChannelService:
         req = UpdateCalculatedChannelRequest(
             calculated_channel=channel_updater, update_mask=update_mask, user_notes=update_notes
         )
-        print("req", req)
-        print("update_mask", update_mask)
-        print("channel_updater", channel_updater)
-        raise Exception(req)
         resp = self._calculated_channel_service_stub.UpdateCalculatedChannel(req)
         return self._calculated_channel_to_config(
             cast(CalculatedChannel, resp.calculated_channel)

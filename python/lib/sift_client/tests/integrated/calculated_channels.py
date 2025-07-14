@@ -69,7 +69,7 @@ async def main():
         )
         created_channels.append(calculated_channel)
         print(
-            f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.calculated_channel_id})"
+            f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.id})"
         )
 
     # Find the channels we just created

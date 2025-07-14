@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[MetadataProto]:
     """
-    Wraps metadata dictionary into a list of MetadataValue objects.
+    Converts metadata dictionary into a list of MetadataValue objects.
 
     Args:
         _metadata: Dictionary of metadata key-value pairs.
@@ -59,7 +59,7 @@ def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[Met
 
 def metadata_proto_to_dict(metadata: list[MetadataProto]) -> dict[str, str | float | bool]:
     """
-    Unwraps a list of MetadataValue objects into a dictionary.
+    Converts a list of MetadataValue objects into a dictionary.
 
     Args:
         metadata: List of MetadataValue objects.

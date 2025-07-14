@@ -125,10 +125,9 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                     paths.append(mapping_helper.update_field)
             elif isinstance(value, dict):
                 if field_name in self._to_proto_helpers:
-                    if not self._to_proto_helpers[field_name].converter:
-                        raise ValueError(
-                            f"Expecting to run a coverter given a helper was defined for: {field_name}"
-                        )
+                    assert self._to_proto_helpers[field_name].converter, (
+                        f"Expecting to run a coverter given a helper was defined for: {field_name}"
+                    )
                     sub_paths = self._build_proto_and_paths(
                         proto_msg,
                         {field_name: self._to_proto_helpers[field_name].converter(value)},  # type: ignore[misc]
@@ -154,10 +153,9 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                     repeated_field.extend(value)  # Add all new values
                 except TypeError as e:
                     if field_name in self._to_proto_helpers:
-                        if not self._to_proto_helpers[field_name].converter:
-                            raise ValueError(
-                                f"Expecting to run a coverter given a helper was defined for: {field_name}"
-                            )
+                        assert self._to_proto_helpers[field_name].converter, (
+                            f"Expecting to run a coverter given a helper was defined for: {field_name}"
+                        )
                         for item in value:
                             repeated_field.append(
                                 self._to_proto_helpers[field_name].converter(**item)  # type: ignore

@@ -35,7 +35,6 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     asset_ids: list[str] | None
     tag_ids: list[str] | None
     all_assets: bool | None
-    calculated_channel_id: str | None
     organization_id: str | None
     client_key: str | None
     archived_date: datetime | None
@@ -75,15 +74,12 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         Update the Calculated Channel.
 
         Args:
-            expression (Optional): The expression to update the calculated channel with.
-            channel_references (Optional): The channel references to update the calculated channel with.
-            description (Optional): The description to update the calculated channel with.
-            units (Optional): The units to update the calculated channel with.
-            tag_ids (Optional): The tag ids to update the calculated channel with.
+            update: The update to apply to the calculated channel. See CalculatedChannelUpdate for more updatable fields.
+            user_notes: The user notes to apply to the calculated channel.
 
+        Returns:
+            The updated calculated channel.
         """
-        if isinstance(update, dict):
-            update = CalculatedChannelUpdate.model_validate(update)
         updated_calculated_channel = self.client.calculated_channels.update(
             calculated_channel=self, update=update, user_notes=user_notes
         )
@@ -106,7 +102,6 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
                 )
                 for ref_proto in proto.calculated_channel_configuration.query_configuration.sel.expression_channel_references
             ],
-            calculated_channel_id=proto.calculated_channel_id,
             organization_id=proto.organization_id,
             client_key=proto.client_key,
             archived_date=(
