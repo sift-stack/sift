@@ -43,6 +43,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
                 self.__dict__.update({key: getattr(other, key)})
         return self
 
+
 class MappingHelper(BaseModel):
     """Helper class for mapping fields to proto attributes and update fields
     Args:
@@ -55,12 +56,12 @@ class MappingHelper(BaseModel):
     update_field: str | None = None
     converter: Type[Any] | Callable[[Any], Any] | None = None
 
+
 # TODO: how to handle nulling fields, needs to be default value for the type
 class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
     """Base class for Pydantic models that generate proto patches with field masks"""
 
     model_config = ConfigDict(frozen=False)
-
 
     _resource_id: Optional[Any] = PrivateAttr(default=None)
     _to_proto_helpers: dict[str, MappingHelper] = PrivateAttr(default={})
