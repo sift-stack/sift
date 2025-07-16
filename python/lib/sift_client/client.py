@@ -3,7 +3,14 @@ from __future__ import annotations
 from typing import NamedTuple
 
 from sift_client.errors import _sift_client_experimental_warning
-from sift_client.resources import AssetsAPI, AssetsAPIAsync, PingAPI, PingAPIAsync
+from sift_client.resources import (
+    AssetsAPI,
+    AssetsAPIAsync,
+    CalculatedChannelsAPI,
+    CalculatedChannelsAPIAsync,
+    PingAPI,
+    PingAPIAsync,
+)
 from sift_client.transport import (
     GrpcClient,
     GrpcConfig,
@@ -24,6 +31,8 @@ class AsyncAPIs(NamedTuple):
     ping: PingAPIAsync
     """Instance of the Assets API for making asynchronous requests."""
     assets: AssetsAPIAsync
+    """Instance of the Calculated Channels API for making asynchronous requests."""
+    calculated_channels: CalculatedChannelsAPIAsync
 
 
 class SiftClient(
@@ -63,6 +72,8 @@ class SiftClient(
     ping: PingAPI
     """Instance of the Assets API for making synchronous requests."""
     assets: AssetsAPI
+    """Instance of the Calculated Channels API for making synchronous requests."""
+    calculated_channels: CalculatedChannelsAPI
 
     def __init__(
         self,
@@ -83,7 +94,7 @@ class SiftClient(
 
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
-                "Either api_key, grpc_uri and rest_uri or connection_config must be provided to establish a connection."
+                "Either api_key, grpc_url and rest_url or connection_config must be provided to establish a connection."
             )
 
         if connection_config:
@@ -102,11 +113,13 @@ class SiftClient(
 
         self.ping = PingAPI(self)
         self.assets = AssetsAPI(self)
+        self.calculated_channels = CalculatedChannelsAPI(self)
 
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
             ping=PingAPIAsync(self),
             assets=AssetsAPIAsync(self),
+            calculated_channels=CalculatedChannelsAPIAsync(self),
         )
 
     @property

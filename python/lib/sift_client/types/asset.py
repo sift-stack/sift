@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Type
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
-from sift_client.types._base import BaseType, ModelUpdate
-from sift_client.types.metadata import MetadataValue
+from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -17,7 +17,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     Model of the Sift Asset.
     """
 
-    asset_id: str
+    id: str
     name: str
     organization_id: str
     created_date: datetime
@@ -25,13 +25,13 @@ class Asset(BaseType[AssetProto, "Asset"]):
     modified_date: datetime
     modified_by_user_id: str
     tags: list[str]
-    metadata: list[MetadataValue]
+    metadata: dict[str, str | float | bool]
     archived_date: datetime | None
 
     @property
     def is_archived(self):
         """Whether the asset is archived."""
-        # TODO: clean up this logic when gRPC returns a null
+        # TODO: clean up this logic when gRPC returns a null. Note this applies to calculated channels as well.
         return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
 
     @property
@@ -40,16 +40,6 @@ class Asset(BaseType[AssetProto, "Asset"]):
 
     @property
     def modified_by(self):
-        raise NotImplementedError
-
-    @property
-    def runs(self):
-        # TODO: how to implement these efficiently without fetching all?
-        # Cached property?
-        raise NotImplementedError
-
-    @property
-    def channels(self):
         raise NotImplementedError
 
     @property
@@ -85,7 +75,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @classmethod
     def _from_proto(cls, proto: AssetProto, sift_client: SiftClient | None = None) -> Asset:
         return cls(
-            asset_id=proto.asset_id,
+            id=proto.asset_id,
             name=proto.name,
             organization_id=proto.organization_id,
             created_date=proto.created_date.ToDatetime(),
@@ -94,7 +84,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
             modified_by_user_id=proto.modified_by_user_id,
             tags=list(proto.tags) if proto.tags else [],
             archived_date=proto.archived_date.ToDatetime(),
-            metadata=[MetadataValue._from_proto(m) for m in proto.metadata],
+            metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             _client=sift_client,
         )
 
@@ -106,6 +96,13 @@ class AssetUpdate(ModelUpdate[AssetProto]):
 
     tags: list[str] | None = None
     archived_date: datetime | str | None = None
+    metadata: dict[str, str | float | bool] | None = None
+
+    _to_proto_helpers = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
 
     def _get_proto_class(self) -> Type[AssetProto]:
         return AssetProto
