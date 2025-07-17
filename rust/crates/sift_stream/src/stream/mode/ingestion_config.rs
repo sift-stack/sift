@@ -43,7 +43,7 @@ use uuid::Uuid;
 /// streams data to Sift.
 const DATA_BUFFER_CAPACITY: usize = 10_000;
 
-/// If Sift doesn't send back a cheeckpoint acknowledgement after this amount of time we will
+/// If Sift doesn't send back a checkpoint acknowledgement after this amount of time we will
 /// forcefully end the current stream.
 const FORCE_CHECKPOINT_THRESHOLD_SEC: u64 = 10;
 
