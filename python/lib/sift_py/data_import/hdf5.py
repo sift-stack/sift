@@ -73,7 +73,7 @@ class Hdf5UploadService:
             # First convert each csv file
             csv_items: List[Tuple[str, CsvConfig]] = []
             for config in split_configs:
-                temp_file = stack.enter_context(NamedTemporaryFile(mode="wt", suffix=".csv"))
+                temp_file = stack.enter_context(NamedTemporaryFile(mode="w", suffix=".csv"))
                 csv_config = _convert_to_csv_file(
                     path,
                     temp_file,
