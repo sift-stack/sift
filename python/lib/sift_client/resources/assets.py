@@ -202,4 +202,5 @@ class AssetsAPIAsync(ResourceBase):
         if isinstance(update, dict):
             update = AssetUpdate.model_validate(update)
         update.resource_id = asset_id
-        return await self._low_level_client.update_asset(update=update)
+        asset = await self._low_level_client.update_asset(update=update)
+        return self._apply_client_to_instance(asset)
