@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.4.1] - July 17, 2025
+
+- [Additional network hiccup resiliency for SiftStream](https://github.com/sift-stack/sift/pull/272)
+
+
 ## [v0.4.1] - June 30, 2025
 
 - [SiftStream now forces a checkpoint if it detects that a checkpoint is overdue. If a checkpoint isn't acknowledge by Sift then SiftStream internal state is reinitialized and backups reingested](https://github.com/sift-stack/sift/pull/258).

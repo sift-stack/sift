@@ -1538,7 +1538,7 @@ dependencies = [
 
 [[package]]
 name = "sift_connect"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "dirs",
  "sift_error",
@@ -1549,14 +1549,14 @@ dependencies = [
 
 [[package]]
 name = "sift_error"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "indoc",
 ]
 
 [[package]]
 name = "sift_rs"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1575,7 +1575,7 @@ dependencies = [
 
 [[package]]
 name = "sift_stream"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "async-trait",
  "bytesize",
