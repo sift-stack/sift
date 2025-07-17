@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.4.1] - July 17, 2025
+## [v0.4.2] - July 17, 2025
 
 - [Additional network hiccup resiliency for SiftStream](https://github.com/sift-stack/sift/pull/272)
 
