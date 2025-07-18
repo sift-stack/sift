@@ -82,7 +82,7 @@ class _IngestionServiceImpl:
                     rule.asset_names.append(config.asset_name)
             self.rule_service.create_or_update_rules(config.rules)
 
-        self.builder = get_builder(channel)
+        self.builder = get_builder(channel, config)
         self.rules = config.rules
         self.asset_name = config.asset_name
         self.transport_channel = channel
