@@ -13,7 +13,6 @@ from sift.ingest.v1.ingest_pb2 import (
 from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig
-from sift_stream_bindings import SiftStreamBuilderPy
 
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.error import IngestionValidationError
@@ -24,6 +23,7 @@ from sift_py.ingestion._internal.ingestion_config import (
     get_ingestion_config_flows,
 )
 from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
+from sift_py.ingestion._internal.stream import get_builder, get_run_form, stream_requests
 from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelValue,
@@ -82,7 +82,7 @@ class _IngestionServiceImpl:
                     rule.asset_names.append(config.asset_name)
             self.rule_service.create_or_update_rules(config.rules)
 
-        self.builder = SiftStreamBuilderPy(channel.config.get("uri"), channel.config.get("apikey"))
+        self.builder = get_builder(channel)
         self.rules = config.rules
         self.asset_name = config.asset_name
         self.transport_channel = channel
@@ -96,7 +96,7 @@ class _IngestionServiceImpl:
         """
         Perform data ingestion.
         """
-        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
+        stream_requests(self.builder, requests, self.run_id)
 
     def ingest_flows(self, *flows: FlowOrderedChannelValues):
         """
@@ -112,7 +112,7 @@ class _IngestionServiceImpl:
             req = self.create_ingestion_request(flow_name, timestamp, channel_values)
             requests.append(req)
 
-        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
+        stream_requests(self.builder, requests, self.run_id)
 
     def try_ingest_flows(self, *flows: Flow):
         """
@@ -128,7 +128,7 @@ class _IngestionServiceImpl:
             req = self.try_create_ingestion_request(flow_name, timestamp, channel_values)
             requests.append(req)
 
-        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
+        stream_requests(self.builder, requests, self.run_id)
 
     def attach_run(
         self,
@@ -161,12 +161,15 @@ class _IngestionServiceImpl:
             metadata=metadata,
         )
 
+        self.builder.run = get_run_form(run_name, description or "", tags or [])
+
     def detach_run(self):
         """
         Detach run from this period of ingestion. Subsequent data ingested won't be associated with
         the run being detached.
         """
         self.run_id = None
+        self.builder.run = None
 
     def try_create_ingestion_request_ordered_values(
         self,
