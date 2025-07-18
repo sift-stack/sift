@@ -111,7 +111,7 @@ class Hdf5UploadService:
 
         return import_services
 
-    def get_previous_upload_run_id(self) -> str | None:
+    def get_previous_upload_run_id(self) -> str:
         """Return the run_id used in the previous upload"""
         return self._prev_run_id
 
