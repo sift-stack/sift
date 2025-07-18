@@ -172,6 +172,7 @@ def _convert_to_csv_file(
 
     return csv_cfg
 
+
 def _convert_hdf5_to_dataframes(
     src_path: Union[str, Path], hdf5_config: Hdf5Config
 ) -> pl.DataFrame:
@@ -273,9 +274,7 @@ def _extract_hdf5_data_to_dataframe(
     time_idx = time_col - 1
 
     if df_time.shape[1] <= time_idx:
-        raise Exception(
-            f"{time_path}: time_column={time_col} out of range"
-        )
+        raise Exception(f"{time_path}: time_column={time_col} out of range")
     time_series = df_time[df_time.columns[time_idx]]
 
     # HDF5 string data may come in as binary, so convert
@@ -288,9 +287,13 @@ def _extract_hdf5_data_to_dataframe(
         if not hdf5_data_config.value_dataset in hdf5_file:
             raise Exception(f"HDF5 file does not contain dataset {hdf5_data_config.value_dataset}")
         if time_path != hdf5_data_config.time_dataset:
-            raise Exception(f"Working time dataset {time_path} does not match data cfg defined dataset {hdf5_data_config.time_dataset}")
+            raise Exception(
+                f"Working time dataset {time_path} does not match data cfg defined dataset {hdf5_data_config.time_dataset}"
+            )
         if time_col != hdf5_data_config.time_column:
-            raise Exception(f"Working time col {time_col} does not match data cfg defined col {hdf5_data_config.time_column}")
+            raise Exception(
+                f"Working time col {time_col} does not match data cfg defined col {hdf5_data_config.time_column}"
+            )
 
         value_dataset = cast(h5py.Dataset, hdf5_file[hdf5_data_config.value_dataset])
 
@@ -314,9 +317,7 @@ def _extract_hdf5_data_to_dataframe(
         if value_series.dtype == pl.Binary:
             value_series = value_series.cast(pl.String)
 
-        data_frame = data_frame.with_columns(
-            value_series.alias(hdf5_data_config.name)
-        )
+        data_frame = data_frame.with_columns(value_series.alias(hdf5_data_config.name))
 
     return data_frame
 
@@ -348,7 +349,9 @@ def _create_csv_config(hdf5_config: Hdf5Config, merged_df: pl.DataFrame) -> CsvC
     config_map = {d_cfg.name: d_cfg for d_cfg in hdf5_config._hdf5_config.data}
 
     if merged_df.columns[0] != "timestamp":
-        raise Exception(f"Unexpected merged DataFrame layout. Expected first column to be timestamp, not {merged_df.columns[0]}")
+        raise Exception(
+            f"Unexpected merged DataFrame layout. Expected first column to be timestamp, not {merged_df.columns[0]}"
+        )
 
     data_columns = {}
     for idx, channel_name in enumerate(merged_df.columns[1:]):
