@@ -70,7 +70,8 @@ class Hdf5UploadService:
         # Split up hdf5_config into separate configs. String data is split into separate configs. All other data is a single config
         split_configs = _split_hdf5_configs(hdf5_config)
 
-        # Ensures all temp files opened under stack.enter_context() will have __exit__ called as with a standard with statement
+        # NamedTemporaryFiles will delete upon exiting with block
+        # ExitStack used to ensures all temp files stay open through upload, than are closed upon existing block or if program exits early
         with ExitStack() as stack:
             # First convert each csv file
             csv_items: List[Tuple[str, CsvConfig]] = []
