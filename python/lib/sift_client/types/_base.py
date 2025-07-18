@@ -63,18 +63,6 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
 
     model_config = ConfigDict(frozen=False)
 
-    class MappingHelper(BaseModel):
-        """Helper class for mapping fields to proto attributes and update fields
-        Args:
-            proto_attr_path: The path to the proto attribute to update
-            update_field: The optional field to set in the update mask
-            converter: The optional proto class or function to use for converting the value of associated field.
-        """
-
-        proto_attr_path: str
-        update_field: str | None = None
-        converter: Type[Any] | Callable[[Any], Any] | None = None
-
     _resource_id: Optional[Any] = PrivateAttr(default=None)
     _to_proto_helpers: dict[str, MappingHelper] = PrivateAttr(default={})
 
