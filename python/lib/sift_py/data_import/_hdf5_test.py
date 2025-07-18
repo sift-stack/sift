@@ -12,6 +12,7 @@ from sift_py.data_import.hdf5 import (
     _convert_hdf5_to_dataframes,
     _create_csv_config,
     _extract_hdf5_data_to_dataframe,
+    _merge_ts_dataframes,
     _split_hdf5_configs,
 )
 
@@ -240,12 +241,20 @@ def test_split_hdf5_configs_splits_strings(hdf5_config):
     assert len(non_string_configs) == 1
 
 
-def test_create_csv_config(hdf5_config):
-    csv_cfg = _create_csv_config(hdf5_config)
+def test_create_csv_config(mocker: MockFixture, hdf5_config):
+    # Use a reverse list to make sure the order has changed
+    data_cols = [d_cfg.name for d_cfg in hdf5_config._hdf5_config.data][::-1]
+    columns = ["timestamp"] + data_cols
+    merged_df = pl.DataFrame({col: [] for col in columns})
+
+    csv_cfg = _create_csv_config(hdf5_config, merged_df)
     csv_cfg_dict = csv_cfg.to_dict()
     assert "time_column" in csv_cfg_dict
     assert "data_columns" in csv_cfg_dict
     assert len(csv_cfg_dict["data_columns"]) == 12
+
+    for csv_col, df_col in zip(csv_cfg_dict["data_columns"].values(), merged_df.columns[1:]):
+        assert(csv_col["name"] == df_col)
 
 
 def test_convert_hdf5_to_dataframes(mocker: MockFixture, hdf5_config, hdf5_data_dict):
@@ -291,7 +300,7 @@ def test_two_dataset_extraction():
     mock_file = MockHdf5File(data_dict)
 
     for data_cfg in hdf5_config._hdf5_config.data:
-        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
+        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg.time_dataset, data_cfg.time_column, [data_cfg])
         assert df.shape == (3, 2)
         assert df.columns[1] == data_cfg.name
         assert (np.array(df[df.columns[0]]) == data_dict["/Channel1_Time"]).all()
@@ -331,7 +340,7 @@ def test_multi_col_dataset_extraction():
     mock_file = MockHdf5File(data_dict)
 
     for data_cfg in hdf5_config._hdf5_config.data:
-        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
+        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg.time_dataset, data_cfg.time_column, [data_cfg])
         assert df.shape == (3, 2)
         assert df.columns[1] == data_cfg.name
         assert (np.array(df[df.columns[0]]) == data_dict["/Channel1"][3]).all()
@@ -381,7 +390,7 @@ def test_string_conversion():
     mock_file = MockHdf5File(data_dict)
 
     for data_cfg in hdf5_config._hdf5_config.data:
-        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
+        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg.time_dataset, data_cfg.time_column, [data_cfg])
         assert (np.array(df[data_cfg.name]) == np.array(["a", "b", "cat"])).all()
 
 
@@ -420,7 +429,7 @@ def test_bitfield_conversion():
     mock_file = MockHdf5File(data_dict)
 
     for data_cfg in hdf5_config._hdf5_config.data:
-        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
+        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg.time_dataset, data_cfg.time_column, [data_cfg])
         assert (np.array(df["timestamp"]) == np.array([0, 1, 2])).all()
         assert (np.array(df[data_cfg.name]) == np.array([0, 2_147_483_647, 15])).all()
 
@@ -461,7 +470,7 @@ def test_enum_conversion():
     mock_file = MockHdf5File(data_dict)
 
     for data_cfg in hdf5_config._hdf5_config.data:
-        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
+        df = _extract_hdf5_data_to_dataframe(mock_file, data_cfg.time_dataset, data_cfg.time_column, [data_cfg])
         assert (np.array(df["timestamp"]) == np.array([0, 1, 2])).all()
         assert (np.array(df[data_cfg.name]) == np.array([1, 0, 2_147_483_647])).all()
 
@@ -496,7 +505,7 @@ def test_time_value_len_diff():
 
     for data_cfg in hdf5_config._hdf5_config.data:
         with pytest.raises(Exception, match="time and value columns have different lengths"):
-            _extract_hdf5_data_to_dataframe(mock_file, data_cfg)
+            _extract_hdf5_data_to_dataframe(mock_file, data_cfg.time_dataset, data_cfg.time_column, [data_cfg])
 
 
 def test_hdf5_to_dataframe_conversion(mocker: MockFixture, hdf5_config, hdf5_data_dict):
@@ -700,3 +709,147 @@ def test_hdf5_upload_string_timestamps(mocker: MockFixture, hdf5_config, rest_co
     )
 
     mock_csv_upload.assert_called()
+
+
+def test_merge_ts_dataframes_no_duplicates():
+    """Test merging dataframes with no duplicate channels"""
+    df1 = pl.DataFrame({
+        "timestamp": [0, 1, 2],
+        "channel1": [1.0, 2.0, 3.0]
+    })
+    df2 = pl.DataFrame({
+        "timestamp": [1, 2, 3],
+        "channel2": [4.0, 5.0, 6.0]
+    })
+
+    result = _merge_ts_dataframes(df1, df2)
+
+    assert result.shape == (4, 3)
+    assert "timestamp" in result.columns
+    assert "channel1" in result.columns
+    assert "channel2" in result.columns
+    result = result.sort("timestamp")
+    assert result["timestamp"].to_list() == [0, 1, 2, 3]
+    assert result["channel1"].to_list() == [1.0, 2.0, 3.0, None]
+    assert result["channel2"].to_list() == [None, 4.0, 5.0, 6.0]
+
+
+def test_merge_ts_dataframes_with_duplicates():
+    """Test merging dataframes with duplicate channel names"""
+    df1 = pl.DataFrame({
+        "timestamp": [0, 1, 2],
+        "channel1": [1.0, 2.0, 3.0],
+        "common_channel": [10.0, 20.0, 30.0]
+    })
+    df2 = pl.DataFrame({
+        "timestamp": [1, 2, 3],
+        "channel2": [4.0, 5.0, 6.0],
+        "common_channel": [40.0, 50.0, 60.0]
+    })
+
+    result = _merge_ts_dataframes(df1, df2)
+
+    assert result.shape == (4, 4)
+    assert "timestamp" in result.columns
+    assert "channel1" in result.columns
+    assert "channel2" in result.columns
+    assert "common_channel" in result.columns
+
+    result = result.sort("timestamp")
+
+    # Check that values are coalesced properly
+    common_values = result["common_channel"].to_list()
+    assert common_values == [10.0, 20.0, 30.0, 60.0]
+
+
+def test_merge_ts_dataframes_with_nulls():
+    """Test merging dataframes where one has null values"""
+    df1 = pl.DataFrame({
+        "timestamp": [0, 1, 2],
+        "channel1": [1.0, None, 3.0],
+        "common_channel": [10.0, None, 30.0]
+    })
+    df2 = pl.DataFrame({
+        "timestamp": [1, 2, 3],
+        "channel2": [4.0, 5.0, 6.0],
+        "common_channel": [40.0, 50.0, 60.0]
+    })
+
+    result = _merge_ts_dataframes(df1, df2)
+
+    assert result.shape == (4, 4)
+
+    timestamps = result["timestamp"].to_list()
+    common_values = result["common_channel"].to_list()
+
+    # At timestamp 1: df1 has null, so should use df2 value (40.0)
+    assert common_values[timestamps.index(1)] == 40.0
+    # At timestamp 2: df1 has 30.0, so should use df1 value
+    assert common_values[timestamps.index(2)] == 30.0
+
+
+def test_merge_ts_dataframes_empty_dataframes():
+    """Test merging empty dataframes"""
+    df1 = pl.DataFrame({"timestamp": [], "channel1": []})
+    df2 = pl.DataFrame({"timestamp": [], "channel2": []})
+
+    result = _merge_ts_dataframes(df1, df2)
+
+    assert result.shape == (0, 3)
+    assert "timestamp" in result.columns
+    assert "channel1" in result.columns
+    assert "channel2" in result.columns
+
+
+def test_merge_ts_dataframes_multiple_duplicates():
+    """Test merging dataframes with multiple duplicate channel names"""
+    df1 = pl.DataFrame({
+        "timestamp": [0, 1, 2],
+        "channel1": [1.0, 2.0, 3.0],
+        "dup1": [10.0, 20.0, 30.0],
+        "dup2": [100.0, 200.0, 300.0]
+    })
+    df2 = pl.DataFrame({
+        "timestamp": [1, 2, 3],
+        "channel2": [4.0, 5.0, 6.0],
+        "dup1": [40.0, 50.0, 60.0],
+        "dup2": [400.0, 500.0, 600.0]
+    })
+
+    result = _merge_ts_dataframes(df1, df2)
+
+    assert result.shape == (4, 5)
+    expected_columns = {"timestamp", "channel1", "channel2", "dup1", "dup2"}
+    assert set(result.columns) == expected_columns
+
+    # At timestamp 0: should have df1 values only
+    assert result.filter(pl.col("timestamp") == 0)["dup1"].item() == 10.0
+    assert result.filter(pl.col("timestamp") == 0)["dup2"].item() == 100.0
+
+    # At timestamp 3: should have df2 values only
+    assert result.filter(pl.col("timestamp") == 3)["dup1"].item() == 60.0
+    assert result.filter(pl.col("timestamp") == 3)["dup2"].item() == 600.0
+
+
+def test_merge_ts_dataframes_different_dtypes():
+    """Test merging dataframes with different data types"""
+    df1 = pl.DataFrame({
+        "timestamp": [0, 1, 2],
+        "int_channel": [1, 2, 3],
+        "common_channel": [10.0, 20.0, 30.0]
+    })
+    df2 = pl.DataFrame({
+        "timestamp": [1, 2, 3],
+        "string_channel": ["a", "b", "c"],
+        "common_channel": [40.0, 50.0, 60.0]
+    })
+
+    result = _merge_ts_dataframes(df1, df2)
+
+    assert result.shape == (4, 4)
+    assert "int_channel" in result.columns
+    assert "string_channel" in result.columns
+    assert "common_channel" in result.columns
+    result = result.sort("timestamp")
+    assert result["string_channel"].to_list() == [None, "a", "b", "c"]
+    assert result["common_channel"].to_list() == [10.0, 20.0, 30.0, 60.0]

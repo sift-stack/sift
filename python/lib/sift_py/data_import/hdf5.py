@@ -1,7 +1,8 @@
 import json
+import uuid
 from contextlib import ExitStack
 from pathlib import Path
-from typing import List, TextIO, Tuple, Union, cast
+from typing import Dict, List, TextIO, Tuple, Union, cast
 from urllib.parse import urljoin
 
 try:
@@ -38,6 +39,7 @@ class Hdf5UploadService:
     def __init__(self, rest_conf: SiftRestConfig):
         self.RUN_PATH = "/api/v2/runs"
         self._csv_upload_service = CsvUploadService(rest_conf)
+        self._prev_run_id: str = ""
 
     def upload(
         self,
@@ -84,11 +86,18 @@ class Hdf5UploadService:
             # If a config defines a run_name and is split up, multiple runs will be created.
             # Instead, generate a run_id now, and use that instead of a run_name
             # Perform now instead of before the config split to avoid creating a run any problems arise before ready to upload
+            # Active run_id copied to _prev_run_id for user reference
             if hdf5_config._hdf5_config.run_name != "":
                 run_id = self._create_run(hdf5_config._hdf5_config.run_name)
                 for _, csv_config in csv_items:
                     csv_config._csv_config.run_name = ""
                     csv_config._csv_config.run_id = run_id
+
+                self._prev_run_id = run_id
+            elif hdf5_config._hdf5_config.run_id != "":
+                self._prev_run_id = hdf5_config._hdf5_config.run_id
+            else:
+                self._prev_run_id = ""
 
             # Upload each file
             import_services = []
@@ -100,6 +109,10 @@ class Hdf5UploadService:
                 )
 
         return import_services
+
+    def get_previous_upload_run_id(self) -> str | None:
+        """Return the run_id used in the previous upload"""
+        return self._prev_run_id
 
     def _create_run(self, run_name: str) -> str:
         """Create a new run using the REST service, and return a run_id"""
@@ -152,12 +165,11 @@ def _convert_to_csv_file(
         The CSV config for the import.
     """
 
-    csv_cfg = _create_csv_config(hdf5_config)
     merged_df = _convert_hdf5_to_dataframes(src_path, hdf5_config)
+    csv_cfg = _create_csv_config(hdf5_config, merged_df)
     merged_df.write_csv(dst_file)
 
     return csv_cfg
-
 
 def _convert_hdf5_to_dataframes(
     src_path: Union[str, Path], hdf5_config: Hdf5Config
@@ -171,85 +183,149 @@ def _convert_hdf5_to_dataframes(
     Returns:
         A polars DataFrame containing the data.
     """
+    # Group data configs by matching time arrays to optimize downstream data processing
+    data_cfg_ts_map: Dict[Tuple[str, int], List[Hdf5DataCfg]] = {}
+    for data_cfg in hdf5_config._hdf5_config.data:
+        map_tuple = (data_cfg.time_dataset, data_cfg.time_column)
+        if map_tuple not in data_cfg_ts_map:
+            data_cfg_ts_map[map_tuple] = []
+        data_cfg_ts_map[map_tuple].append(data_cfg)
+
     data_frames = []
     # Using swmr=True allows opening of HDF5 files written in SWMR mode which may have not been properly closed, but may be otherwise valid
     with h5py.File(src_path, "r", libver="latest", swmr=True) as h5f:
-        for data_cfg in hdf5_config._hdf5_config.data:
-            df = _extract_hdf5_data_to_dataframe(h5f, data_cfg)
+        for (time_path, time_col), data_cfgs in data_cfg_ts_map.items():
+            df = _extract_hdf5_data_to_dataframe(h5f, time_path, time_col, data_cfgs)
             data_frames.append(df)
 
-    # Merge polars dataframes, sort by timestamp, then write to a temp file
-    # Could write csv without headers, but keeping for debugging purposes
-    # If header removed, need to update 'first_data_row' in _create_csv_config to 1
-    # Using join instead of concat to avoid issue if all data columns share a name
-    merged_df = data_frames[0]
-    if len(merged_df) > 1:
-        for df in data_frames[1:]:
-            merged_df = merged_df.join(df, on="timestamp", how="full", coalesce=True)
-    merged_df = merged_df.sort("timestamp")
+    # Merge polars dataframes by joining pairs, then merging those pairs until one dataframe remains
+    # More optimized than joining one by one
+    # pl.concat(data_frames, how="align") in practice can lead to a fatal crash with larger files
+    # https://github.com/pola-rs/polars/issues/14591
+    while len(data_frames) > 1:
+        next_round = []
+        for i in range(0, len(data_frames), 2):
+            if i + 1 < len(data_frames):
+                df1 = data_frames[i]
+                df2 = data_frames[i + 1]
+                merged = _merge_ts_dataframes(df1, df2)
+                next_round.append(merged)
+            else:
+                next_round.append(data_frames[i])
+        data_frames = next_round
+    merged_df = data_frames[0].sort("timestamp")
+    return merged_df
+
+
+def _merge_ts_dataframes(df1: pl.DataFrame, df2: pl.DataFrame) -> pl.DataFrame:
+    """Merge two dataframes together. Handles duplicate channels"""
+
+    df1_channels = [col for col in df1.columns if col != "timestamp"]
+    df2_channels = [col for col in df2.columns if col != "timestamp"]
+    dup_channels = set(df1_channels) & set(df2_channels)
+
+    if dup_channels:
+        # Create a unique id to mark duplicate channels
+        uid = uuid.uuid4()
+
+        df2_renamed = df2.clone()
+        for col in dup_channels:
+            df2_renamed = df2_renamed.rename({col: f"{col}_{uid}"})
+
+        merged_df = df1.join(df2_renamed, on="timestamp", how="full", coalesce=True)
+
+        # Merge duplicate column data
+        for col in dup_channels:
+            temp_col_name = f"{col}_{uid}"
+            merged_df = merged_df.with_columns(
+                pl.coalesce([pl.col(col), pl.col(temp_col_name)]).alias(col)
+            ).drop(temp_col_name)
+
+    else:
+        merged_df = df1.join(df2, on="timestamp", how="full", coalesce=True)
+
     return merged_df
 
 
 def _extract_hdf5_data_to_dataframe(
     hdf5_file: h5py.File,
-    hdf5_data_config: Hdf5DataCfg,
+    time_path: str,
+    time_col: int,
+    hdf5_data_configs: List[Hdf5DataCfg],
 ) -> pl.DataFrame:
     """Extract data from an hdf5_file to a polars DataFrame.
 
     Args:
         hdf5_file: HDF5 File
+        time_path: HDF5 time array path
+        time_col: HDF5 time array col (1-indexed)
         hdf5_data_config: The HDF5 Data Config
 
     Returns:
-        A two-column polars DataFrame containing the timestamps and values
+        A multi-column polars DataFrame containing the timestamps and associated channels
     """
 
-    if not hdf5_data_config.time_dataset in hdf5_file:
-        raise Exception(f"HDF5 file does not contain dataset {hdf5_data_config.time_dataset}")
-    time_dataset = cast(h5py.Dataset, hdf5_file[hdf5_data_config.time_dataset])
-    if not hdf5_data_config.value_dataset in hdf5_file:
-        raise Exception(f"HDF5 file does not contain dataset {hdf5_data_config.value_dataset}")
-    value_dataset = cast(h5py.Dataset, hdf5_file[hdf5_data_config.value_dataset])
-
-    # Convert the full time and value dataset to a dataframe
-    # This will make it easier to work with any nested columns from a numpy structured array
+    if not time_path in hdf5_file:
+        raise Exception(f"HDF5 file does not contain dataset {time_path}")
+    time_dataset = cast(h5py.Dataset, hdf5_file[time_path])
     df_time = pl.DataFrame(time_dataset[:])
-    df_value = pl.DataFrame(value_dataset[:])
-    time_col = hdf5_data_config.time_column - 1
-    val_col = hdf5_data_config.value_column - 1
+    time_idx = time_col - 1
 
-    if df_time.shape[1] <= time_col:
+    if df_time.shape[1] <= time_idx:
         raise Exception(
-            f"{hdf5_data_config.name}: time_column={hdf5_data_config.time_column} out of range for {hdf5_data_config.time_dataset}"
+            f"{time_path}: time_column={time_col} out of range"
         )
-    if df_value.shape[1] <= val_col:
-        raise Exception(
-            f"{hdf5_data_config.name}: value_column={hdf5_data_config.value_column} out of range for {hdf5_data_config.value_dataset}"
-        )
-
-    time_series = df_time[df_time.columns[time_col]]
-    value_series = df_value[df_value.columns[val_col]]
-
-    if len(time_series) != len(value_series):
-        raise Exception(
-            f"{hdf5_data_config.name}: time and value columns have different lengths ({len(time_series)} vs {len(value_series)})"
-        )
+    time_series = df_time[df_time.columns[time_idx]]
 
     # HDF5 string data may come in as binary, so convert
     if time_series.dtype == pl.Binary:
         time_series = time_series.cast(pl.String)
-    if value_series.dtype == pl.Binary:
-        value_series = value_series.cast(pl.String)
 
-    return pl.DataFrame(data={"timestamp": time_series, hdf5_data_config.name: value_series})
+    data_frame = pl.DataFrame(data={"timestamp": time_series})
+
+    for hdf5_data_config in hdf5_data_configs:
+        if not hdf5_data_config.value_dataset in hdf5_file:
+            raise Exception(f"HDF5 file does not contain dataset {hdf5_data_config.value_dataset}")
+        if time_path != hdf5_data_config.time_dataset:
+            raise Exception(f"Working time dataset {time_path} does not match data cfg defined dataset {hdf5_data_config.time_dataset}")
+        if time_col != hdf5_data_config.time_column:
+            raise Exception(f"Working time col {time_col} does not match data cfg defined col {hdf5_data_config.time_column}")
+
+        value_dataset = cast(h5py.Dataset, hdf5_file[hdf5_data_config.value_dataset])
+
+        # Convert the full value dataset to a dataframe
+        # This will make it easier to work with any nested columns from a numpy structured array
+        df_value = pl.DataFrame(value_dataset[:])
+        val_idx = hdf5_data_config.value_column - 1
+
+        if df_value.shape[1] <= val_idx:
+            raise Exception(
+                f"{hdf5_data_config.name}: value_column={hdf5_data_config.value_column} out of range for {hdf5_data_config.value_dataset}"
+            )
+        value_series = df_value[df_value.columns[val_idx]]
+
+        if len(time_series) != len(value_series):
+            raise Exception(
+                f"{hdf5_data_config.name}: time and value columns have different lengths ({len(time_series)} vs {len(value_series)})"
+            )
+
+        # HDF5 string data may come in as binary, so convert
+        if value_series.dtype == pl.Binary:
+            value_series = value_series.cast(pl.String)
+
+        data_frame = data_frame.with_columns(
+            value_series.alias(hdf5_data_config.name)
+        )
+
+    return data_frame
 
 
-def _create_csv_config(hdf5_config: Hdf5Config) -> CsvConfig:
+def _create_csv_config(hdf5_config: Hdf5Config, merged_df: pl.DataFrame) -> CsvConfig:
     """Construct a CsvConfig from a Hdf5Config
 
     Args:
-        hdf5_path: Path to the HDF5 file
         hdf5_config: The HDF5 config
+        merged_df: The merged dataFrame of data
 
     Returns:
         The CSV config.
@@ -267,8 +343,15 @@ def _create_csv_config(hdf5_config: Hdf5Config) -> CsvConfig:
         },
     }
 
+    # Map each data config to its channel name
+    config_map = {d_cfg.name: d_cfg for d_cfg in hdf5_config._hdf5_config.data}
+
+    if merged_df.columns[0] != "timestamp":
+        raise Exception(f"Unexpected merged DataFrame layout. Expected first column to be timestamp, not {merged_df.columns[0]}")
+
     data_columns = {}
-    for idx, data_cfg in enumerate(hdf5_config._hdf5_config.data):
+    for idx, channel_name in enumerate(merged_df.columns[1:]):
+        data_cfg = config_map[channel_name]
         col_num = idx + 2  # 1-indexed and col 1 is time col
         data_columns[col_num] = {
             "name": data_cfg.name,
