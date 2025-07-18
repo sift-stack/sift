@@ -1,5 +1,5 @@
+import asyncio
 from typing import List
-from urllib.parse import urlparse, urlunparse
 
 from sift_stream_bindings import (
     ChannelBitFieldElementPy,
@@ -11,12 +11,12 @@ from sift_stream_bindings import (
     IngestionConfigFormPy,
     IngestWithConfigDataStreamRequestPy,
     RunFormPy,
+    SiftStreamBuilderPy,
     TimeValuePy,
 )
 
-from sift_py.ingestion.channel import SiftChannel
+from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.config.telemetry import TelemetryConfig
-from sift_py.ingestion.stream.builder import SiftStreamBuilderPy
 
 """
 TODO:
@@ -45,21 +45,36 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
     if not uri or not apikey:
         raise ValueError(f"Channel config is missing uri or apikey: {channel.config}")
 
-    parsed = urlparse(uri)
-    # If no scheme is provided, default to https
-    if not parsed.scheme:
-        # Reconstruct URL with https scheme
-        parsed = parsed._replace(scheme="https")
-        uri = urlunparse(parsed)
-    # If scheme is http, upgrade to https for security
-    elif parsed.scheme == "http":
-        parsed = parsed._replace(scheme="https")
-        uri = urlunparse(parsed)
+    if not uri.startswith("https://"):
+        uri = f"https://{uri}"
+    print(f"Using URI: {uri}")
 
     builder = SiftStreamBuilderPy(uri, apikey)
     builder.ingestion_config = telemetry_config_to_ingestion_config_py(ingestion_config)
     builder.enable_tls = channel.config.get("use_ssl", True)
     return builder
+
+
+async def stream_requests_async(
+    builder: SiftStreamBuilderPy,
+    requests: List,
+    run_id: str = "",
+) -> None:
+    """
+    Stream requests using the stream bindings asynchronously.
+
+    Args:
+        builder: The SiftStreamBuilderPy to use for streaming
+        requests: List of IngestWithConfigDataStreamRequest protobuf objects
+        run_id: Optional run ID to associate with the requests
+    """
+    # Convert protobuf requests to Python binding requests
+    py_requests = [ingest_request_to_ingest_request_py(request, run_id) for request in requests]
+
+    # Create stream and send requests
+    sift_stream = await builder.build()
+    sift_stream = await sift_stream.send_requests(py_requests)
+    await sift_stream.finish()
 
 
 def stream_requests(
@@ -68,21 +83,15 @@ def stream_requests(
     run_id: str = "",
 ) -> None:
     """
-    Stream requests using the stream bindings.
+    Stream requests using the stream bindings synchronously.
 
     Args:
-        channel: The SiftChannel to use for streaming
-        ingestion_config: The TelemetryConfig for the ingestion
+        builder: The SiftStreamBuilderPy to use for streaming
         requests: List of IngestWithConfigDataStreamRequest protobuf objects
         run_id: Optional run ID to associate with the requests
     """
-    # Convert protobuf requests to Python binding requests
-    py_requests = [ingest_request_to_ingest_request_py(request, run_id) for request in requests]
-
-    # Create stream and send requests
-    sift_stream = builder.build()
-    sift_stream.send_requests(iter(py_requests))
-    sift_stream.finish()
+    # Run the async function in a new event loop
+    asyncio.run(stream_requests_async(builder, requests, run_id))
 
 
 def telemetry_config_to_ingestion_config_py(
@@ -220,7 +229,7 @@ def get_run_form(run_name: str, run_description: str, run_tags: List[str]) -> Ru
 
 def ingest_request_to_ingest_request_py(
     request,
-    run_id,
+    run_id: str = "",
 ) -> IngestWithConfigDataStreamRequestPy:
     """
     Convert an IngestWithConfigDataStreamRequest to IngestWithConfigDataStreamRequestPy.
@@ -248,7 +257,7 @@ def ingest_request_to_ingest_request_py(
         flow=request.flow,
         timestamp=timestamp_py,
         channel_values=channel_values_py,
-        run_id=run_id,
+        run_id=run_id or "",
         end_stream_on_validation_error=request.end_stream_on_validation_error,
         organization_id=request.organization_id,
     )
