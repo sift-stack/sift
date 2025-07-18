@@ -7,12 +7,12 @@ from pydantic import ConfigDict
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
 from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.types.asset import Asset
+from sift_client.types.channel import Flow
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.types.asset import Asset
-    from sift_client.types.channel import Flow
 
 
 class RunUpdate(ModelUpdate[RunProto]):
@@ -140,7 +140,7 @@ class Run(BaseType[RunProto, "Run"]):
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
 
-    def add_flows(self, *, flows: List[Flow], asset: str):
+    async def add_flows(self, *, flows: List[Flow], asset: str):
         """
         Add flows to the run.
         """
@@ -149,14 +149,24 @@ class Run(BaseType[RunProto, "Run"]):
         if isinstance(asset, Asset):
             asset = asset.name
         # TODO: Cache asset:flows mapping
-        self.client.ingestion.create_ingestion_config(
+        await self.client.async_.ingestion.create_ingestion_config(
             asset_name=asset,
             flows=flows,
         )
+        for flow in flows:
+            flow.run_id = self.id
+
+    def wait_for_ingestion_to_complete(self):
+        """
+        Wait for all ingestion to complete.
+        """
+        if not hasattr(self, "client") or self.client is None:
+            raise RuntimeError("Run is not bound to a client instance.")
+        self.client.ingestion.wait_for_ingestion_to_complete(self.id)
 
     def stop(self):
         """
-        Stop the run.
+        Stop the run. Run is stopped automatically if you are ingesting w/ a run ID.
         """
         if not hasattr(self, "client") or self.client is None:
             raise RuntimeError("Run is not bound to a client instance.")

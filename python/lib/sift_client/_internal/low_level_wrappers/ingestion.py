@@ -10,8 +10,10 @@ It provides an asynchronous client for the IngestionAPI.
 from __future__ import annotations
 
 import asyncio
+import atexit
 import hashlib
 import logging
+import sys
 import threading
 from datetime import datetime
 from queue import Queue
@@ -36,7 +38,6 @@ from sift_stream_bindings import (
     FlowConfigPy,
     IngestionConfigFormPy,
     IngestWithConfigDataStreamRequestPy,
-    TimeValuePy,
 )
 
 from sift_client._internal.low_level_wrappers.base import (
@@ -45,8 +46,71 @@ from sift_client._internal.low_level_wrappers.base import (
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.types.channel import ChannelDataType, Flow
 from sift_client.util import cel_utils as cel
+from sift_client.util.timestamp import to_rust_py_timestamp
 
 logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+
+class IngestionThread(threading.Thread):
+    def __init__(self, sift_stream: sift_stream_bindings.SiftStreamPy, data_queue: Queue):
+        super().__init__(daemon=True)
+        self.sift_stream = sift_stream
+        self.data_queue = data_queue
+        self._stop = threading.Event()
+
+    def stop(self):
+        self._stop.set()
+
+    async def _run(self):
+        backup_queue = []
+        logger.debug("Ingestion thread started")
+
+        while True:
+            try:
+                # Process all items in the queue
+                count = 0
+                while not self.data_queue.empty():
+                    item = self.data_queue.get()
+                    # None signals the main thread is done
+                    if item is None:
+                        self._stop.set()
+                        logger.info("Main thread completed.")
+                        await self.sift_stream.finish()
+                        return
+                    # Store each item in a backup queue in case we lose the connection
+                    backup_queue.append(item)
+                    result = await self.sift_stream.send_requests(item)
+                    self.sift_stream = result
+                    count += 1
+                    if count % 100 == 0:
+                        logger.debug(
+                            f"Ingestion thread sent {count} requests, remaining: {self.data_queue.qsize()}"
+                        )
+
+                # If we get here, the queue is empty
+                if self._stop.is_set():
+                    return
+
+            except Exception as e:
+                logger.warning(f"{type(e)}: Error in ingestion thread: {e}")
+                print(f"{type(e)}: Error in ingestion thread: {e}", flush=True)
+                # Add the data back to the queue so that we can stream it again
+                for item in backup_queue:
+                    self.data_queue.put(item)
+                backup_queue.clear()
+
+    def run(self):
+        """This thread will handle sending data to Sift."""
+        # Even thought this is a thread, we need to run this async task to await send_requests otherwise we get sift_stream consumed errors.
+        asyncio.run(self._run())
 
 
 class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -58,7 +122,9 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """
 
     sift_stream_builder: sift_stream_bindings.SiftStreamBuilderPy
-    sift_stream: sift_stream_bindings.SiftStreamPy
+    # TODO: Any reason to add a context manager somewhere or register atexit for stopping all tasks?
+    # TODO: Wrap this in a class?
+    stream_cache: dict[str, tuple[sift_stream_bindings.SiftStreamPy, Queue, threading.Thread]] = {}
 
     def __init__(self, grpc_client: GrpcClient):
         """
@@ -68,11 +134,35 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             grpc_client: The gRPC client to use for making API calls.
         """
         super().__init__(grpc_client=grpc_client)
+        # TODO: Better way?
+        # Rust GRPC client expects URI to have http(s):// prefix.
+        uri = grpc_client._config.uri
+        if not uri.startswith("http"):
+            uri = f"https://{uri}" if grpc_client._config.use_ssl else f"http://{uri}"
         self.sift_stream_builder = sift_stream_bindings.SiftStreamBuilderPy(
-            uri=grpc_client._config.uri,
+            uri=uri,
             apikey=grpc_client._config.api_key,
         )
         self.sift_stream_builder.enable_tls = grpc_client._config.use_ssl
+        self.sift_stream_builder.recovery_strategy = (
+            sift_stream_bindings.RecoveryStrategyPy.retry_with_in_memory_backups(
+                sift_stream_bindings.RetryPolicyPy(
+                    max_attempts=5,
+                    initial_backoff=sift_stream_bindings.DurationPy(secs=0, nanos=50_000_000),
+                    max_backoff=sift_stream_bindings.DurationPy(secs=5, nanos=0),
+                    backoff_multiplier=5,
+                ),
+                max_buffer_size=None,
+            )
+        )
+
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        for _, (sift_stream, data_queue, thread) in self.stream_cache.items():
+            data_queue.put(None)
+            thread.join()
+            thread.stop()
 
     async def get_ingestion_config_flows(self, ingestion_config_id: str) -> List[Flow]:
         """
@@ -90,7 +180,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         List ingestion configs.
         """
         res = await self._grpc_client.get_stub(IngestionConfigServiceStub).ListIngestionConfigs(
-            ListIngestionConfigsRequest(filter_query=filter_query)
+            ListIngestionConfigsRequest(filter=filter_query)
         )
         res = cast(ListIngestionConfigsResponse, res)
         return res.ingestion_configs
@@ -101,45 +191,28 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         filter_query = cel.equals("client_key", client_key)
         ingestion_configs = await self.list_ingestion_configs(filter_query)
-        if len(ingestion_configs) != 1:
+        if not ingestion_configs:
+            return None
+        if len(ingestion_configs) > 1:
             raise ValueError(
                 f"Expected 1 ingestion config for client key {client_key}, got {len(ingestion_configs)}"
             )
         return ingestion_configs[0].ingestion_config_id
 
-    async def _ingestion_thread(self, data_queue: Queue):
-        """This thread will handle sending data to Sift."""
-        stop = threading.Event()
-        backup_queue = []
-        if not self.sift_stream:
-            raise ValueError("Sift stream not initialized")
-
-        while True:
-            try:
-                # Process all items in the queue
-                while not data_queue.empty():
-                    item = data_queue.get()
-                    # None signals the main thread is done
-                    if item is None:
-                        stop.set()
-                        logger.info("Main thread completed.")
-                        await self.sift_stream.finish()
-                        return
-                    # Store each item in a backup queue in case we lose the connection
-                    backup_queue.append(item)
-                    result = await self.sift_stream.send_requests(item)
-                    self.sift_stream = result
-
-                # If we get here, the queue is empty
-                if stop.is_set():
-                    return
-
-            except Exception as e:
-                logger.warning(f"Error in ingestion thread: {e}")
-                # Add the data back to the queue so that we can stream it again
-                for item in backup_queue:
-                    data_queue.put(item)
-                backup_queue.clear()
+    def _new_ingestion_thread(
+        self, ingestion_config_id: str, sift_stream: sift_stream_bindings.SiftStreamPy
+    ):
+        """Start a new ingestion thread."""
+        data_queue = Queue()
+        if ingestion_config_id in self.stream_cache:
+            raise ValueError(
+                f"Ingestion config {ingestion_config_id} already exists. This should not happen."
+            )
+        print(f"Starting new ingestion thread for ingestion config {ingestion_config_id}")
+        # TODO: Should we have single thread and we add tasks to?
+        thread = IngestionThread(sift_stream, data_queue)
+        thread.start()
+        self.stream_cache[ingestion_config_id] = (sift_stream, data_queue, thread)
 
     async def create_ingestion_config(
         self,
@@ -152,10 +225,15 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         Create an ingestion config.
         """
+        ingestion_config_id = None
         if client_key:
             # TODO: Add note about making client key management more ergonomic.
             # TODO: Cache
-            existing_flows = await self.get_ingestion_config_flows(client_key)
+            print(f"Getting ingestion config id for client key {client_key}")
+            ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
+            print(f"Getting ingestion config flows for ingestion config id {ingestion_config_id}")
+            # Perform validation that the flows are valid for the ingestion config.
+            existing_flows = await self.get_ingestion_config_flows(ingestion_config_id)
             for flow in flows:
                 if flow.name in {existing_flow.name for existing_flow in existing_flows}:
                     raise ValueError(
@@ -163,70 +241,101 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     )
         else:
             client_key = self.hash(asset_name, flows)
-        # req = CreateIngestionConfigRequest(
-        #     asset_name=asset_name,
-        #     flows=[flow.to_proto() for flow in flows],
-        #     organization_id=organization_id or "",
-        #     client_key=client_key,
-        # )
-        # res = await self._grpc_client.get_stub(IngestionConfigServiceStub).CreateIngestionConfig(
-        #     req
-        # )
-        # res = cast(CreateIngestionConfigResponse, res)
-        # ingestion_config_id = res.ingestion_config.ingestion_config_id
-        # for flow in flows:
-        #     flow.ingestion_config_id = ingestion_config_id
-
-        # TODO: make converter functions
-        ingestion_config = IngestionConfigFormPy(
-            asset_name=asset_name,
-            flows=[
-                FlowConfigPy(
-                    name=flow.name,
-                    channels=[
-                        ChannelConfigPy(
-                            name=channel.name,
-                            data_type=channel.data_type.as_human_str(api_format=True),
-                            description=channel.description,
-                            component=channel.component,
-                            unit=channel.unit,
-                            bit_field_elements=[
-                                ChannelBitFieldElementPy(
-                                    name=bfe.name, index=bfe.index, bit_count=bfe.bit_count
-                                )
-                                for bfe in channel.bit_field_elements
-                            ],
-                            enum_types=[
-                                ChannelEnumTypePy(key=enum.key, name=enum.name)
-                                for enum in channel.enum_types
-                            ],
-                        )
-                        for channel in flow.channels
-                    ],
+            try:
+                print(f"Getting ingestion config id from generated client key {client_key}")
+                ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
+            except ValueError:
+                logging.debug(
+                    f"No ingestion config found for client key {client_key}. Creating new one."
                 )
-                for flow in flows
-            ],
-            client_key=client_key,
+                pass
+
+        sift_stream, data_queue, ingestion_task = self.stream_cache.get(
+            ingestion_config_id, (None, None, None)
         )
-        if self.sift_stream_builder.ingest_config:
-            raise ValueError("Ingestion config already set. Not sure how to handle this yet.")
-        self.sift_stream_builder.ingest_config = ingestion_config
-        self.sift_stream = self.sift_stream_builder.build()
-        ingestion_config_id = self.get_ingestion_config_id_from_client_key(client_key)
+        if sift_stream is None:
+            # TODO: Message case where ingestion config already exists but is not in the cache.
+            if ingestion_config_id:
+                print(
+                    f"Ingestion config {ingestion_config_id} already exists but is not in the cache. This should not happen."
+                )
+            # TODO: make converter functions
+            flow_configs = []
+            for flow in flows:
+                flow_configs.append(
+                    FlowConfigPy(
+                        name=flow.name,
+                        channels=[
+                            ChannelConfigPy(
+                                name=channel.name,
+                                data_type=channel.data_type.to_rust_type(),
+                                description=channel.description or "",
+                                unit=channel.unit or "",
+                                bit_field_elements=[
+                                    ChannelBitFieldElementPy(
+                                        name=bfe.name, index=bfe.index, bit_count=bfe.bit_count
+                                    )
+                                    for bfe in channel.bit_field_elements or []
+                                ],
+                                enum_types=[
+                                    ChannelEnumTypePy(key=enum.key, name=enum.name)
+                                    for enum in channel.enum_types or []
+                                ],
+                            )
+                            for channel in flow.channels
+                        ],
+                    )
+                )
+            ingestion_config = IngestionConfigFormPy(
+                asset_name=asset_name,
+                flows=flow_configs,
+                client_key=client_key,
+            )
+            self.sift_stream_builder.ingestion_config = ingestion_config
+            print(
+                f"Builder: {self.sift_stream_builder.apikey}, {self.sift_stream_builder.uri}, {self.sift_stream_builder.enable_tls}"
+            )
+            sift_stream = await self.sift_stream_builder.build()
+
+            ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
+            print(f"Built new stream for ingestion config {ingestion_config_id}")
+            self._new_ingestion_thread(ingestion_config_id, sift_stream)
+
         for flow in flows:
             flow.ingestion_config_id = ingestion_config_id
 
         return ingestion_config_id
 
-    async def ingest_flow(self, *, flow: Flow, time: datetime, channel_values: dict[str, Any]):
+    def ingest_flow(
+        self,
+        *,
+        flow: Flow,
+        timestamp: datetime,
+        channel_values: dict[str, Any],
+        organization_id: str | None = None,
+    ):
         """
         Ingest a flow.
         """
+
+        if not flow.ingestion_config_id:
+            raise ValueError(
+                "Flow has no ingestion config id -- have you created an ingestion config for this flow?"
+            )
+        sift_stream, data_queue, ingestion_task = self.stream_cache.get(
+            flow.ingestion_config_id, (None, None, None)
+        )
+        if sift_stream is None:
+            raise ValueError(
+                f"Ingestion config {flow.ingestion_config_id} not found. Have you created an ingestion config for this flow?"
+            )
         # proto_channel_values = []
         rust_channel_values = []
         # Iterate through all expected channels for flow and convert to ingestion types (missing channels use a special empty type)
         for channel in flow.channels:
             val = channel_values.get(channel.name)
+            if val is None:
+                raise ValueError(f"Channel {channel.name} has no value")
             if channel.data_type == ChannelDataType.ENUM and isinstance(val, str):
                 for enum_type in channel.enum_types or []:
                     if enum_type.name == val:
@@ -236,34 +345,20 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 # TODO: Handle bit field values correctly
                 val = None
             # proto_channel_values.append(ChannelDataType.to_ingestion_value(channel.data_type, val))
-            rust_channel_values.append(ChannelDataType.to_rust_value(channel.data_type, val))
-
-        print(
-            f"Ingesting flow {flow.name} with config id {flow.ingestion_config_id} at {time} with values {rust_channel_values}"
-        )
-        if not flow.ingestion_config_id:
-            raise ValueError(
-                "Flow has no ingestion config id -- have you created an ingestion config for this flow?"
+            rust_channel_values.append(
+                ChannelDataType.to_rust_value(channel.data_type, channel.name, val)
             )
-
-        # TODO: Add util function for this.
-        ts = time.timestamp()
-        secs = int(ts)
-        nsecs = int((ts - secs) * 1_000_000_000)
         req = IngestWithConfigDataStreamRequestPy(
             ingestion_config_id=flow.ingestion_config_id,
+            run_id=flow.run_id,
             flow=flow.name,
-            timestamp=TimeValuePy.from_timestamp(secs, nsecs),
+            timestamp=to_rust_py_timestamp(timestamp),
             channel_values=rust_channel_values,
+            end_stream_on_validation_error=False,
+            organization_id=organization_id
+            or "",  # This will be filled in by the server # TODO: Confirm w/ Ailin
         )
-
-        data_queue = Queue()
-        data_queue.put(req)
-        ingestion_task = asyncio.create_task(self._ingestion_thread(data_queue))
-        # None value signals thread to stop.
-        # TODO: Make thread task simpler or make queue global. If we make global, do we support multiple sift_streams per-wrapper? Do we manage context in the resource or register a method to put None into the queue atexit?
-        data_queue.put(None)
-        await ingestion_task
+        data_queue.put([req])
 
     async def ingest_arbitrary_protobuf_data_stream(
         self,
@@ -291,12 +386,20 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 # Deprecated.
                 m.update((channel.component or "").encode())
                 m.update((channel.unit or "").encode())
-                for bfe in sorted(channel.bit_field_elements, key=lambda bfe: bfe.index):
-                    m.update(bfe.name.encode())
-                    m.update(str(bfe.index).encode())
-                    m.update(str(bfe.bit_count).encode())
-                for enum in sorted(channel.enum_types, key=lambda et: et.key):
-                    m.update(str(enum.key).encode())
-                    m.update(enum.name.encode())
+                if channel.bit_field_elements:
+                    for bfe in sorted(channel.bit_field_elements, key=lambda bfe: bfe.index):
+                        m.update(bfe.name.encode())
+                        m.update(str(bfe.index).encode())
+                        m.update(str(bfe.bit_count).encode())
+                if channel.enum_types:
+                    for enum in sorted(channel.enum_types, key=lambda et: et.key):
+                        m.update(str(enum.key).encode())
+                        m.update(enum.name.encode())
 
         return m.hexdigest()
+
+    def wait_for_ingestion_to_complete(self, run_id: str):
+        """
+        Wait for all ingestion to complete.
+        """
+        self.cleanup()

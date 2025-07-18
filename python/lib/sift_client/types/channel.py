@@ -29,6 +29,7 @@ from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig, FlowConfig
 from sift_stream_bindings import (
     ChannelBitFieldElementPy,
+    ChannelDataTypePy,
     ChannelEnumTypePy,
     ChannelValuePy,
 )
@@ -106,9 +107,7 @@ class ChannelDataType(int, Enum):
                 "Unreachable. ChannelDataTypeStrRep and ChannelDataType enum names are out of sync."
             )
         elif raw.startswith("sift.data"):
-            val = ChannelTypeUrls(raw).value  # type: ignore # mypy doesn't understand scope
-            if val is None:
-                return None
+            val = ChannelTypeUrls(raw)  # type: ignore # mypy doesn't understand scope
             for item in ChannelDataType:
                 if item.name == val.name:
                     return item
@@ -147,6 +146,39 @@ class ChannelDataType(int, Enum):
         else:
             raise ValueError(f"Unknown data type: {data_type}")
 
+    # TODO: Can we get rid of this? Is hashing the same between clients that likely to ever actually discover a conflict?
+    def as_human_str(self, api_format: bool = False) -> str:
+        if self == ChannelDataType.DOUBLE:
+            return "CHANNEL_DATA_TYPE_DOUBLE" if api_format else ChannelDataTypeStrRep.DOUBLE.value
+        elif self == ChannelDataType.STRING:
+            return "CHANNEL_DATA_TYPE_STRING" if api_format else ChannelDataTypeStrRep.STRING.value
+        elif self == ChannelDataType.ENUM:
+            return "CHANNEL_DATA_TYPE_ENUM" if api_format else ChannelDataTypeStrRep.ENUM.value
+        elif self == ChannelDataType.BIT_FIELD:
+            return (
+                "CHANNEL_DATA_TYPE_BIT_FIELD"
+                if api_format
+                else ChannelDataTypeStrRep.BIT_FIELD.value
+            )
+        elif self == ChannelDataType.BOOL:
+            return "CHANNEL_DATA_TYPE_BOOL" if api_format else ChannelDataTypeStrRep.BOOL.value
+        elif self == ChannelDataType.FLOAT:
+            return "CHANNEL_DATA_TYPE_FLOAT" if api_format else ChannelDataTypeStrRep.FLOAT.value
+        elif self == ChannelDataType.INT_32:
+            return "CHANNEL_DATA_TYPE_INT_32" if api_format else ChannelDataTypeStrRep.INT_32.value
+        elif self == ChannelDataType.INT_64:
+            return "CHANNEL_DATA_TYPE_INT_64" if api_format else ChannelDataTypeStrRep.INT_64.value
+        elif self == ChannelDataType.UINT_32:
+            return (
+                "CHANNEL_DATA_TYPE_UINT_32" if api_format else ChannelDataTypeStrRep.UINT_32.value
+            )
+        elif self == ChannelDataType.UINT_64:
+            return (
+                "CHANNEL_DATA_TYPE_UINT_64" if api_format else ChannelDataTypeStrRep.UINT_64.value
+            )
+        else:
+            raise Exception("Unreachable.")
+
     @staticmethod
     def to_ingestion_value(type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
         if value is None:
@@ -154,36 +186,57 @@ class ChannelDataType(int, Enum):
         ingestion_type_string = type.name.lower().replace("int_", "int")
         return IngestWithConfigDataChannelValue(**{ingestion_type_string: value})
 
+    def to_rust_type(self) -> ChannelDataTypePy:
+        # TODO: Make more elegant?
+        if self == ChannelDataType.DOUBLE:
+            return ChannelDataTypePy.Double
+        elif self == ChannelDataType.FLOAT:
+            return ChannelDataTypePy.Float
+        elif self == ChannelDataType.STRING:
+            return ChannelDataTypePy.String
+        elif self == ChannelDataType.ENUM:
+            return ChannelDataTypePy.Enum
+        elif self == ChannelDataType.BIT_FIELD:
+            return ChannelDataTypePy.BitField
+        elif self == ChannelDataType.BOOL:
+            return ChannelDataTypePy.Bool
+        elif self == ChannelDataType.INT_32:
+            return ChannelDataTypePy.Int32
+        elif self == ChannelDataType.INT_64:
+            return ChannelDataTypePy.Int64
+        elif self == ChannelDataType.UINT_32:
+            return ChannelDataTypePy.Uint32
+        elif self == ChannelDataType.UINT_64:
+            return ChannelDataTypePy.Uint64
+
     @staticmethod
-    def to_rust_value(type: ChannelDataType, value: Any) -> ChannelValuePy:
-        if value is None:
-            return ChannelValuePy.empty()
+    def to_rust_value(type: ChannelDataType, name: str, value: Any) -> ChannelValuePy:
         # TODO: Make more elegant?
         if type == ChannelDataType.DOUBLE:
-            return ChannelValuePy.double(value)
+            return ChannelValuePy.double(name, value)
         elif type == ChannelDataType.FLOAT:
-            return ChannelValuePy.float(value)
+            return ChannelValuePy.float(name, value)
         elif type == ChannelDataType.STRING:
-            return ChannelValuePy.string(value)
+            return ChannelValuePy.string(name, value)
         elif type == ChannelDataType.ENUM:
             return ChannelValuePy.enum_value(
                 type.name, ChannelEnumTypePy(f"{type.value}", type.value)
             )
         elif type == ChannelDataType.BIT_FIELD:
             # TODO: fix
-            return ChannelValuePy.bit_field(
-                "bitfield type", ChannelBitFieldElementPy(name=type.name, index=0, bit_count=1)
+            return ChannelValuePy.bitfield(
+                name, [ChannelBitFieldElementPy(name=type.name, index=0, bit_count=1)]
             )
         elif type == ChannelDataType.BOOL:
-            return ChannelValuePy.bool(value)
+            return ChannelValuePy.bool(name, value)
         elif type == ChannelDataType.INT_32:
-            return ChannelValuePy.int32(value)
+            return ChannelValuePy.int32(name, value)
         elif type == ChannelDataType.INT_64:
-            return ChannelValuePy.int64(value)
+            return ChannelValuePy.int64(name, value)
         elif type == ChannelDataType.UINT_32:
-            return ChannelValuePy.uint32(value)
+            return ChannelValuePy.uint32(name, value)
         elif type == ChannelDataType.UINT_64:
-            return ChannelValuePy.uint64(value)
+            return ChannelValuePy.uint64(name, value)
 
 
 # Bit field element model
@@ -233,7 +286,7 @@ class ChannelEnumType(BaseModel):
 class Channel(BaseType[ChannelProto, "Channel"]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    id: str
+    id: str | None = None
     name: str
     data_type: ChannelDataType
     description: str | None = None
@@ -357,6 +410,7 @@ class Flow(BaseType[FlowConfig, "Flow"]):
     name: str
     channels: List[Channel]
     ingestion_config_id: str | None = None
+    run_id: str | None = None
 
     @classmethod
     def _from_proto(cls, proto, sift_client: SiftClient | None = None) -> Flow:
@@ -379,11 +433,11 @@ class Flow(BaseType[FlowConfig, "Flow"]):
         self.channels.append(channel)
 
     # TODO: Make this async
-    def ingest(self, *, time: datetime, channel_values: dict[str, Any]):
+    def ingest(self, *, timestamp: datetime, channel_values: dict[str, Any]):
         if self.ingestion_config_id is None:
             raise ValueError("Ingestion config ID is not set.")
         self.client.ingestion.ingest(
             flow=self,
-            time=time,
+            timestamp=timestamp,
             channel_values=channel_values,
         )

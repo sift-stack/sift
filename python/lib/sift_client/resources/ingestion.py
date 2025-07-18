@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import asyncio
+import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, AsyncIterator, List
 
@@ -14,6 +14,8 @@ from sift_client.types.channel import Flow
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+
+logger = logging.getLogger(__name__)
 
 
 class IngestionAPIAsync(ResourceBase):
@@ -37,6 +39,7 @@ class IngestionAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = IngestionLowLevelClient(grpc_client=self.client.grpc_client)
 
+    # TODO: How to flag this can't be called from the sync API?
     async def create_ingestion_config(
         self,
         *,
@@ -79,12 +82,12 @@ class IngestionAPIAsync(ResourceBase):
 
         return ingestion_config_id
 
-    async def ingest(
+    def ingest(
         self,
         *,
         flow: Flow | None = None,
         flows: List[Flow] | None = None,
-        time: datetime,
+        timestamp: datetime,
         channel_values: dict[str, Any],
     ):
         if flow is None and flows is None:
@@ -94,18 +97,12 @@ class IngestionAPIAsync(ResourceBase):
 
         flows = [flow] if flow is not None else flows or []
 
-        tasks = []
         for flow in flows:
-            task = asyncio.create_task(
-                self._low_level_client.ingest_flow(
-                    flow=flow,
-                    time=time,
-                    channel_values=channel_values,
-                )
+            self._low_level_client.ingest_flow(
+                flow=flow,
+                timestamp=timestamp,
+                channel_values=channel_values,
             )
-            tasks.append(task)
-        _ = await asyncio.gather(*tasks)
-        return
 
     async def ingest_arbitrary_protobuf_data_stream(
         self,
@@ -118,3 +115,11 @@ class IngestionAPIAsync(ResourceBase):
             requests: Async iterator of arbitrary protobuf ingestion requests.
         """
         raise NotImplementedError("Not implemented")
+
+    def wait_for_ingestion_to_complete(self, run_id: str):
+        """
+        Wait for all ingestion to complete.
+        """
+        logger.info(f"Waiting for ingestion to complete for run {run_id}")
+        print(f"Waiting for ingestion to complete for run {run_id}")
+        self._low_level_client.wait_for_ingestion_to_complete(run_id)
