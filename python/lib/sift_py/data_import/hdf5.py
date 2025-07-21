@@ -1,5 +1,6 @@
 import json
 import uuid
+from collections import defaultdict
 from contextlib import ExitStack
 from pathlib import Path
 from typing import Dict, List, TextIO, Tuple, Union, cast
@@ -34,12 +35,13 @@ class Hdf5UploadService:
     Service to upload HDF5 files.
     """
 
+    _RUN_PATH = "/api/v2/runs"
     _csv_upload_service: CsvUploadService
+    _prev_run_id: str
 
     def __init__(self, rest_conf: SiftRestConfig):
-        self.RUN_PATH = "/api/v2/runs"
         self._csv_upload_service = CsvUploadService(rest_conf)
-        self._prev_run_id: str = ""
+        self._prev_run_id = ""
 
     def upload(
         self,
@@ -117,7 +119,7 @@ class Hdf5UploadService:
 
     def _create_run(self, run_name: str) -> str:
         """Create a new run using the REST service, and return a run_id"""
-        run_uri = urljoin(self._csv_upload_service._base_uri, self.RUN_PATH)
+        run_uri = urljoin(self._csv_upload_service._base_uri, self._RUN_PATH)
 
         # Since CSVUploadService is already a RestService, we can utilize that
         response = self._csv_upload_service._session.post(
@@ -186,11 +188,9 @@ def _convert_hdf5_to_dataframes(
         A polars DataFrame containing the data.
     """
     # Group data configs by matching time arrays to optimize downstream data processing
-    data_cfg_ts_map: Dict[Tuple[str, int], List[Hdf5DataCfg]] = {}
+    data_cfg_ts_map: Dict[Tuple[str, int], List[Hdf5DataCfg]] = defaultdict(list)
     for data_cfg in hdf5_config._hdf5_config.data:
         map_tuple = (data_cfg.time_dataset, data_cfg.time_column)
-        if map_tuple not in data_cfg_ts_map:
-            data_cfg_ts_map[map_tuple] = []
         data_cfg_ts_map[map_tuple].append(data_cfg)
 
     data_frames = []
@@ -210,7 +210,7 @@ def _convert_hdf5_to_dataframes(
             if i + 1 < len(data_frames):
                 df1 = data_frames[i]
                 df2 = data_frames[i + 1]
-                merged = _merge_ts_dataframes(df1, df2)
+                merged = _merge_timeseries_dataframes(df1, df2)
                 next_round.append(merged)
             else:
                 next_round.append(data_frames[i])
@@ -219,8 +219,8 @@ def _convert_hdf5_to_dataframes(
     return merged_df
 
 
-def _merge_ts_dataframes(df1: pl.DataFrame, df2: pl.DataFrame) -> pl.DataFrame:
-    """Merge two dataframes together. Handles duplicate channels"""
+def _merge_timeseries_dataframes(df1: pl.DataFrame, df2: pl.DataFrame) -> pl.DataFrame:
+    """Merge two timeseries dataframes together. Handles duplicate channels"""
 
     df1_channels = [col for col in df1.columns if col != "timestamp"]
     df2_channels = [col for col in df2.columns if col != "timestamp"]
@@ -286,14 +286,14 @@ def _extract_hdf5_data_to_dataframe(
     for hdf5_data_config in hdf5_data_configs:
         if not hdf5_data_config.value_dataset in hdf5_file:
             raise Exception(f"HDF5 file does not contain dataset {hdf5_data_config.value_dataset}")
-        if time_path != hdf5_data_config.time_dataset:
-            raise Exception(
-                f"Working time dataset {time_path} does not match data cfg defined dataset {hdf5_data_config.time_dataset}"
-            )
-        if time_col != hdf5_data_config.time_column:
-            raise Exception(
-                f"Working time col {time_col} does not match data cfg defined col {hdf5_data_config.time_column}"
-            )
+
+        # Should always be true due to calling code
+        assert time_path == hdf5_data_config.time_dataset, (
+            f"Working time dataset {time_path} does not match data cfg defined dataset {hdf5_data_config.time_dataset}"
+        )
+        assert time_col == hdf5_data_config.time_column, (
+            f"Working time col {time_col} does not match data cfg defined col {hdf5_data_config.time_column}"
+        )
 
         value_dataset = cast(h5py.Dataset, hdf5_file[hdf5_data_config.value_dataset])
 
@@ -348,10 +348,9 @@ def _create_csv_config(hdf5_config: Hdf5Config, merged_df: pl.DataFrame) -> CsvC
     # Map each data config to its channel name
     config_map = {d_cfg.name: d_cfg for d_cfg in hdf5_config._hdf5_config.data}
 
-    if merged_df.columns[0] != "timestamp":
-        raise Exception(
-            f"Unexpected merged DataFrame layout. Expected first column to be timestamp, not {merged_df.columns[0]}"
-        )
+    assert merged_df.columns[0] == "timestamp", (
+        f"Unexpected merged DataFrame layout. Expected first column to be timestamp, not {merged_df.columns[0]}"
+    )
 
     data_columns = {}
     for idx, channel_name in enumerate(merged_df.columns[1:]):

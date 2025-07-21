@@ -12,7 +12,7 @@ from sift_py.data_import.hdf5 import (
     _convert_hdf5_to_dataframes,
     _create_csv_config,
     _extract_hdf5_data_to_dataframe,
-    _merge_ts_dataframes,
+    _merge_timeseries_dataframes,
     _split_hdf5_configs,
 )
 
@@ -723,12 +723,12 @@ def test_hdf5_upload_string_timestamps(mocker: MockFixture, hdf5_config, rest_co
     mock_csv_upload.assert_called()
 
 
-def test_merge_ts_dataframes_no_duplicates():
+def test_merge_timeseries_dataframes_no_duplicates():
     """Test merging dataframes with no duplicate channels"""
     df1 = pl.DataFrame({"timestamp": [0, 1, 2], "channel1": [1.0, 2.0, 3.0]})
     df2 = pl.DataFrame({"timestamp": [1, 2, 3], "channel2": [4.0, 5.0, 6.0]})
 
-    result = _merge_ts_dataframes(df1, df2)
+    result = _merge_timeseries_dataframes(df1, df2)
 
     assert result.shape == (4, 3)
     assert "timestamp" in result.columns
@@ -740,7 +740,7 @@ def test_merge_ts_dataframes_no_duplicates():
     assert result["channel2"].to_list() == [None, 4.0, 5.0, 6.0]
 
 
-def test_merge_ts_dataframes_with_duplicates():
+def test_merge_timeseries_dataframes_with_duplicates():
     """Test merging dataframes with duplicate channel names"""
     df1 = pl.DataFrame(
         {"timestamp": [0, 1, 2], "channel1": [1.0, 2.0, 3.0], "common_channel": [10.0, 20.0, 30.0]}
@@ -749,7 +749,7 @@ def test_merge_ts_dataframes_with_duplicates():
         {"timestamp": [1, 2, 3], "channel2": [4.0, 5.0, 6.0], "common_channel": [40.0, 50.0, 60.0]}
     )
 
-    result = _merge_ts_dataframes(df1, df2)
+    result = _merge_timeseries_dataframes(df1, df2)
 
     assert result.shape == (4, 4)
     assert "timestamp" in result.columns
@@ -764,7 +764,7 @@ def test_merge_ts_dataframes_with_duplicates():
     assert common_values == [10.0, 20.0, 30.0, 60.0]
 
 
-def test_merge_ts_dataframes_with_nulls():
+def test_merge_timeseries_dataframes_with_nulls():
     """Test merging dataframes where one has null values"""
     df1 = pl.DataFrame(
         {"timestamp": [0, 1, 2], "channel1": [1.0, None, 3.0], "common_channel": [10.0, None, 30.0]}
@@ -773,7 +773,7 @@ def test_merge_ts_dataframes_with_nulls():
         {"timestamp": [1, 2, 3], "channel2": [4.0, 5.0, 6.0], "common_channel": [40.0, 50.0, 60.0]}
     )
 
-    result = _merge_ts_dataframes(df1, df2)
+    result = _merge_timeseries_dataframes(df1, df2)
 
     assert result.shape == (4, 4)
 
@@ -786,12 +786,12 @@ def test_merge_ts_dataframes_with_nulls():
     assert common_values[timestamps.index(2)] == 30.0
 
 
-def test_merge_ts_dataframes_empty_dataframes():
+def test_merge_timeseries_dataframes_empty_dataframes():
     """Test merging empty dataframes"""
     df1 = pl.DataFrame({"timestamp": [], "channel1": []})
     df2 = pl.DataFrame({"timestamp": [], "channel2": []})
 
-    result = _merge_ts_dataframes(df1, df2)
+    result = _merge_timeseries_dataframes(df1, df2)
 
     assert result.shape == (0, 3)
     assert "timestamp" in result.columns
@@ -799,7 +799,7 @@ def test_merge_ts_dataframes_empty_dataframes():
     assert "channel2" in result.columns
 
 
-def test_merge_ts_dataframes_multiple_duplicates():
+def test_merge_timeseries_dataframes_multiple_duplicates():
     """Test merging dataframes with multiple duplicate channel names"""
     df1 = pl.DataFrame(
         {
@@ -818,7 +818,7 @@ def test_merge_ts_dataframes_multiple_duplicates():
         }
     )
 
-    result = _merge_ts_dataframes(df1, df2)
+    result = _merge_timeseries_dataframes(df1, df2)
 
     assert result.shape == (4, 5)
     expected_columns = {"timestamp", "channel1", "channel2", "dup1", "dup2"}
@@ -833,7 +833,7 @@ def test_merge_ts_dataframes_multiple_duplicates():
     assert result.filter(pl.col("timestamp") == 3)["dup2"].item() == 600.0
 
 
-def test_merge_ts_dataframes_different_dtypes():
+def test_merge_timeseries_dataframes_different_dtypes():
     """Test merging dataframes with different data types"""
     df1 = pl.DataFrame(
         {"timestamp": [0, 1, 2], "int_channel": [1, 2, 3], "common_channel": [10.0, 20.0, 30.0]}
@@ -846,7 +846,7 @@ def test_merge_ts_dataframes_different_dtypes():
         }
     )
 
-    result = _merge_ts_dataframes(df1, df2)
+    result = _merge_timeseries_dataframes(df1, df2)
 
     assert result.shape == (4, 4)
     assert "int_channel" in result.columns
