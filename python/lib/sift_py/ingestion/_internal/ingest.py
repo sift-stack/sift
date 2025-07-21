@@ -179,6 +179,7 @@ class _IngestionServiceImpl:
         self,
         channel: SiftChannel,
         run_name: str,
+        client_key: Optional[str] = None,
         description: Optional[str] = None,
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
@@ -200,13 +201,14 @@ class _IngestionServiceImpl:
         self.run_id = create_run(
             channel=channel,
             run_name=run_name,
+            run_client_key=client_key or "",
             description=description or "",
             organization_id=organization_id or "",
             tags=tags or [],
             metadata=metadata,
         )
 
-        self.builder.run = get_run_form(run_name, description or "", tags or [])
+        self.builder.run = get_run_form(run_name, description or "", client_key or "", tags or [])
 
     def detach_run(self):
         """
