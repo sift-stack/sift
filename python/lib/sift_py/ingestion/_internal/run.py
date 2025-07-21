@@ -32,6 +32,7 @@ def get_run_id_by_name(
 def create_run(
     channel: SiftChannel,
     run_name: str,
+    run_client_key: str,
     description: str,
     organization_id: str,
     tags: List[str],
@@ -43,6 +44,7 @@ def create_run(
 
     req = CreateRunRequest(
         name=run_name,
+        client_key=run_client_key,
         description=description,
         organization_id=organization_id,
         tags=tags,

@@ -1,4 +1,5 @@
 import asyncio
+import re
 from typing import List
 
 from sift_stream_bindings import (
@@ -26,6 +27,48 @@ TODO:
     - create_ingestion_request helper, IngestWithConfigDataStreamRequestPy?
     - helper to convert List of IngestWithConfigDataChannelValue to IngestWithConfigDataStreamRequestPy?
 """
+
+
+def _sanitize_client_key(client_key: str) -> str:
+    """
+    Validate and sanitize a client key to meet Sift constraints.
+
+    Client key must be 3-128 characters, start and end with alphanumeric,
+    and contain only [a-zA-Z0-9_~.-]
+
+    Args:
+        client_key: The client key to validate
+
+    Returns:
+        str: A valid client key
+
+    Raises:
+        ValueError: If the client key cannot be made valid
+    """
+    # TODO: Test
+    if not client_key:
+        raise ValueError("Client key cannot be empty")
+
+    # Remove any characters that don't match the allowed pattern
+    sanitized = re.sub(r"[^a-zA-Z0-9_~.-]", "_", client_key)
+
+    # Ensure it starts with alphanumeric
+    if sanitized and not sanitized[0].isalnum():
+        sanitized = "a" + sanitized
+
+    # Ensure it ends with alphanumeric
+    if sanitized and not sanitized[-1].isalnum():
+        sanitized = sanitized + "0"
+
+    # Check length constraints
+    if len(sanitized) < 3:
+        # Pad with alphanumeric characters to meet minimum length
+        sanitized = sanitized + "00"[: 3 - len(sanitized)]
+    elif len(sanitized) > 128:
+        # Truncate to 128 characters, ensuring it ends with alphanumeric
+        sanitized = sanitized[:126] + "0"
+
+    return sanitized
 
 
 def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> SiftStreamBuilderPy:
@@ -207,22 +250,29 @@ def convert_channel_data_type(data_type) -> ChannelDataTypePy:
         return ChannelDataTypePy.Unspecified
 
 
-def get_run_form(run_name: str, run_description: str, run_tags: List[str]) -> RunFormPy:
+def get_run_form(
+    run_name: str, run_description: str, client_key: str, run_tags: List[str]
+) -> RunFormPy:
     """
     Get a run form.
 
     Args:
         run_name: The name of the run
         run_description: The description of the run
+        client_key: The client key to use (if empty, run_name will be used and validated)
         run_tags: The tags of the run
 
     Returns:
         RunFormPy: The run form
     """
+    # Use provided client_key or sanitize run_name as fallback
+    if not client_key:
+        client_key = _sanitize_client_key(run_name)
+
     return RunFormPy(
         name=run_name,
         description=run_description,
-        client_key=run_name,
+        client_key=client_key,
         tags=run_tags,
     )
 

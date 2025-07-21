@@ -63,6 +63,7 @@ class IngestionService(_IngestionServiceImpl):
         self,
         channel: SiftChannel,
         run_name: str,
+        client_key: Optional[str] = None,
         description: Optional[str] = None,
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
@@ -75,7 +76,7 @@ class IngestionService(_IngestionServiceImpl):
         Include `force_new=True` to force the creation of a new run, which will allow creation of a new run using an existing name.
         """
         super().attach_run(
-            channel, run_name, description, organization_id, tags, metadata, force_new
+            channel, run_name, client_key, description, organization_id, tags, metadata, force_new
         )
 
     def detach_run(self):
