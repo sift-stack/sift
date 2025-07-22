@@ -161,7 +161,7 @@ class BufferedIngestionService(Generic[T]):
 
     def _flush(self):
         if len(self._buffer) > 0:
-            self._ingestion_service.ingest(*self._buffer)
+            self._ingestion_service.ingest_async(*self._buffer)
             self._buffer.clear()
 
     def _start_flush_timer(self):
