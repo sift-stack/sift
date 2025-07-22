@@ -133,7 +133,23 @@ class _IngestionServiceImpl:
         if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
-        stream_requests(self.builder, requests, self.run_id)
+        stream_requests(self.builder, *requests, self.run_id)
+
+    def ingest_async(self, *requests: IngestWithConfigDataStreamRequest):
+        """
+        Perform data ingestion asynchronously in a background thread.
+        This allows multiple ingest calls to run in parallel.
+        """
+        import threading
+
+        thread = threading.Thread(
+            target=stream_requests,
+            args=(self.builder, *requests),
+            kwargs={"run_id": self.run_id or ""},
+            daemon=True,
+        )
+        thread.start()
+        return thread
 
     def ingest_flows(self, *flows: FlowOrderedChannelValues):
         """
