@@ -1,7 +1,9 @@
 import asyncio
 import re
+from queue import Queue
 from typing import List
 
+from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
 from sift_stream_bindings import (
     ChannelBitFieldElementPy,
     ChannelConfigPy,
@@ -22,10 +24,6 @@ from sift_py.ingestion.config.telemetry import TelemetryConfig
 """
 TODO:
     - helper to fetch ingestion config id via client key
-    - stream helper: build, send, finish
-    - helper to convert FlowOrderedChannelValues to IngestWithConfigDataStreamRequestPy
-    - create_ingestion_request helper, IngestWithConfigDataStreamRequestPy?
-    - helper to convert List of IngestWithConfigDataChannelValue to IngestWithConfigDataStreamRequestPy?
 """
 
 
@@ -89,7 +87,7 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
         raise ValueError(f"Channel config is missing uri or apikey: {channel.config}")
 
     if not uri.startswith("https://"):
-        uri = f"https://{uri}"
+        uri = f"http://{uri}"
     print(f"Using URI: {uri}")
 
     builder = SiftStreamBuilderPy(uri, apikey)
@@ -99,42 +97,58 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
 
 
 async def stream_requests_async(
-    builder: SiftStreamBuilderPy,
-    requests: List,
-    run_id: str = "",
-) -> None:
-    """
-    Stream requests using the stream bindings asynchronously.
+    builder: SiftStreamBuilderPy, run_id: str, *requests: IngestWithConfigDataStreamRequest
+):
+    async def ingestion_thread():
+        # Create stream and send requests
+        sift_stream = await builder.build()
+        try:
+            while not data_queue.empty():
+                item = data_queue.get()
+                sift_stream = await sift_stream.send_requests(item)
+            await sift_stream.finish()
+        except Exception as e:
+            # Ensure stream is finished even if there's an error
+            try:
+                await sift_stream.finish()
+            except:
+                pass
+            raise e
 
-    Args:
-        builder: The SiftStreamBuilderPy to use for streaming
-        requests: List of IngestWithConfigDataStreamRequest protobuf objects
-        run_id: Optional run ID to associate with the requests
-    """
-    # Convert protobuf requests to Python binding requests
-    py_requests = [ingest_request_to_ingest_request_py(request, run_id) for request in requests]
+    # Create a dedicated queue for this batch of requests
+    data_queue = Queue()
 
-    # Create stream and send requests
-    sift_stream = await builder.build()
-    sift_stream = await sift_stream.send_requests(py_requests)
-    await sift_stream.finish()
+    # Put each request individually into the queue, filtering out None values
+    processed_requests = []
+    for request in requests:
+        processed_request = ingest_request_to_ingest_request_py(request, run_id)
+        if processed_request is not None:
+            processed_requests.append(processed_request)
+    data_queue.put(processed_requests)
+
+    print(f"Processing {len(requests)} requests in queue")
+
+    # Process this batch
+    await ingestion_thread()
 
 
 def stream_requests(
     builder: SiftStreamBuilderPy,
-    requests: List,
+    *requests: IngestWithConfigDataStreamRequest,
     run_id: str = "",
 ) -> None:
     """
     Stream requests using the stream bindings synchronously.
+    Each call to this function creates its own queue and stream, allowing multiple
+    batches to be processed concurrently when called from different threads.
 
     Args:
         builder: The SiftStreamBuilderPy to use for streaming
         requests: List of IngestWithConfigDataStreamRequest protobuf objects
         run_id: Optional run ID to associate with the requests
     """
-    # Run the async function in a new event loop
-    asyncio.run(stream_requests_async(builder, requests, run_id))
+    print(f"Starting stream requests for {len(requests)} requests")
+    asyncio.run(stream_requests_async(builder, run_id, *requests))
 
 
 def telemetry_config_to_ingestion_config_py(
@@ -291,6 +305,9 @@ def ingest_request_to_ingest_request_py(
     Returns:
         IngestWithConfigDataStreamRequestPy: The converted request
     """
+    if request is None:
+        return None
+
     timestamp_py = None
     if request.HasField("timestamp"):
         timestamp_py = TimeValuePy.from_timestamp(
