@@ -26,8 +26,7 @@ from sift.rules.v1.rules_pb2 import (
     RuleAction as RuleActionProto,
 )
 
-from sift_client.types._base import BaseType, ModelUpdate, MappingHelper
-
+from sift_client.types._base import BaseType, ModelUpdate
 from sift_client.types.channel import ChannelReference
 
 if TYPE_CHECKING:

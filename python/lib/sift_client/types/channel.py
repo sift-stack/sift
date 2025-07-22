@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, List, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from google.protobuf.empty_pb2 import Empty
@@ -209,39 +209,9 @@ class ChannelDataType(int, Enum):
         elif self == ChannelDataType.UINT_64:
             return ChannelDataTypePy.Uint64
 
-    @staticmethod
-    def to_rust_value(type: ChannelDataType, name: str, value: Any) -> ChannelValuePy:
-        # TODO: Make more elegant?
-        if type == ChannelDataType.DOUBLE:
-            return ChannelValuePy.double(name, value)
-        elif type == ChannelDataType.FLOAT:
-            return ChannelValuePy.float(name, value)
-        elif type == ChannelDataType.STRING:
-            return ChannelValuePy.string(name, value)
-        elif type == ChannelDataType.ENUM:
-            return ChannelValuePy.enum_value(
-                type.name, ChannelEnumTypePy(f"{type.value}", type.value)
-            )
-        elif type == ChannelDataType.BIT_FIELD:
-            # TODO: fix
-            return ChannelValuePy.bitfield(
-                name, [ChannelBitFieldElementPy(name=type.name, index=0, bit_count=1)]
-            )
-        elif type == ChannelDataType.BOOL:
-            return ChannelValuePy.bool(name, value)
-        elif type == ChannelDataType.INT_32:
-            return ChannelValuePy.int32(name, value)
-        elif type == ChannelDataType.INT_64:
-            return ChannelValuePy.int64(name, value)
-        elif type == ChannelDataType.UINT_32:
-            return ChannelValuePy.uint32(name, value)
-        elif type == ChannelDataType.UINT_64:
-            return ChannelValuePy.uint64(name, value)
-
 
 # Bit field element model
 class ChannelBitFieldElement(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
     name: str
     index: int
     bit_count: int
@@ -262,30 +232,8 @@ class ChannelBitFieldElement(BaseModel):
         )
 
 
-# Enum type model
-class ChannelEnumType(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    name: str
-    key: int
-
-    @classmethod
-    def _from_proto(cls, message: ChannelEnumTypePb) -> ChannelEnumType:
-        return cls(
-            name=message.name,
-            key=message.key,
-        )
-
-    def to_proto(self) -> ChannelEnumTypePb:
-        return ChannelEnumTypePb(
-            name=self.name,
-            key=self.key,
-        )
-
-
 # Channel config model
 class Channel(BaseType[ChannelProto, "Channel"]):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     id: str | None = None
     name: str
     data_type: ChannelDataType
@@ -293,7 +241,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     unit: str | None = None
     component: str | None = None  # Deprecated
     bit_field_elements: List[ChannelBitFieldElement] | None = None
-    enum_types: List[ChannelEnumType] | None = None  # TODO: Dict?
+    enum_types: Dict[str, int] = {}
     asset_id: str | None = None
 
     @property
@@ -306,6 +254,16 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         fully qualified name of a channel called 'temperature' of component 'motor' is a `motor.temperature'.
         """
         return channel_fqn(self)
+
+    @staticmethod
+    def _enum_types_to_proto_list(enum_types: Dict[str, int]) -> List[ChannelEnumTypePb]:
+        """Convert a dictionary of enum types to a list of ChannelEnumTypePb objects."""
+        return [ChannelEnumTypePb(name=name, key=key) for name, key in enum_types.items()]
+
+    @staticmethod
+    def _proto_list_to_dict(enum_types: List[ChannelEnumTypePb]) -> Dict[str, int]:
+        """Convert a list of ChannelEnumTypePb objects to a dictionary of enum types."""
+        return {enum.name: enum.key for enum in enum_types}
 
     @classmethod
     def _from_proto(
@@ -321,7 +279,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 bit_field_elements=[
                     ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
                 ],
-                enum_types=[ChannelEnumType._from_proto(etype) for etype in message.enum_types],
+                enum_types=cls._proto_list_to_dict(message.enum_types),
                 asset_id=message.asset_id,
                 _client=sift_client,
             )
@@ -342,10 +300,66 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             bit_field_elements=[el.to_proto() for el in self.bit_field_elements]
             if self.bit_field_elements
             else None,
-            enum_types=[etype.to_proto() for etype in self.enum_types if etype is not None]
-            if self.enum_types
-            else None,
+            enum_types=self._enum_types_to_proto_list(self.enum_types),
         )
+
+    def to_rust_value(self, value: Any) -> ChannelValuePy:
+        if value is None:
+            raise ValueError(
+                "Sift rust bindings does not support None values. Expected all channels in flow to have a data point at same time."
+            )
+        if self.data_type == ChannelDataType.ENUM:
+            enum_val = self.enum_types.get(value)
+            if enum_val is None:
+                # Try to find the enum value by value instead of string.
+                for enum_name, enum_key in self.enum_types.items() if self.enum_types else []:
+                    if enum_key == value:
+                        enum_val = enum_name
+                        break
+            if enum_val is None:
+                raise ValueError(
+                    f"Could not find enum value: {value} in enum options: {self.enum_types}"
+                )
+            return ChannelValuePy.enum_value(self.name, ChannelEnumTypePy(enum_val, value))
+        elif self.data_type == ChannelDataType.BIT_FIELD:
+            if isinstance(value, int):
+                return ChannelValuePy.bitfield(
+                    self.name,
+                    [
+                        ChannelBitFieldElementPy(field.name, field.index, field.bit_count)
+                        for field in self.bit_field_elements
+                    ]
+                    if self.bit_field_elements
+                    else [],
+                )
+            elif isinstance(value, list):
+                return ChannelValuePy.bitfield(
+                    self.name,
+                    [
+                        ChannelBitFieldElementPy(field.name, field.index, field.bit_count)
+                        for field in self.bit_field_elements
+                    ]
+                    if self.bit_field_elements
+                    else [],
+                )
+            else:
+                raise ValueError(f"Invalid bit field value: {value}")
+        elif self.data_type == ChannelDataType.BOOL:
+            return ChannelValuePy.bool(self.name, value)
+        elif self.data_type == ChannelDataType.FLOAT:
+            return ChannelValuePy.float(self.name, value)
+        elif self.data_type == ChannelDataType.DOUBLE:
+            return ChannelValuePy.double(self.name, value)
+        elif self.data_type == ChannelDataType.INT_32:
+            return ChannelValuePy.int32(self.name, value)
+        elif self.data_type == ChannelDataType.INT_64:
+            return ChannelValuePy.int64(self.name, value)
+        elif self.data_type == ChannelDataType.UINT_32:
+            return ChannelValuePy.uint32(self.name, value)
+        elif self.data_type == ChannelDataType.UINT_64:
+            return ChannelValuePy.uint64(self.name, value)
+        else:
+            raise ValueError(f"Invalid data type: {self.data_type}")
 
     def data(
         self,
@@ -367,7 +381,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         Returns:
             A ChannelTimeSeries object.
         """
-        # TODO: Implement caching
+        # TODO: Implement caching at channel level?
         data = self.client.channels.get_data(
             channels=[self.id], run_id=run_id, start_time=start_time, end_time=end_time, limit=limit
         )
@@ -406,7 +420,7 @@ class ChannelReference(BaseModel):
 
 
 class Flow(BaseType[FlowConfig, "Flow"]):
-    model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True)
+    model_config = ConfigDict(frozen=False)
     name: str
     channels: List[Channel]
     ingestion_config_id: str | None = None

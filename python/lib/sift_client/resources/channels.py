@@ -116,7 +116,7 @@ class ChannelsAPIAsync(ResourceBase):
         elif name_regex:
             if isinstance(name_regex, re.Pattern):
                 name_regex = name_regex.pattern
-            filter_parts.append(cel.match("name", name_regex))
+            filter_parts.append(cel.match("name", name_regex))  # type: ignore
         if description:
             filter_parts.append(cel.equals("description", description))
         elif description_contains:

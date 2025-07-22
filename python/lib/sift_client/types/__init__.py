@@ -7,11 +7,11 @@ from sift_client.types.channel import (
     Channel,
     ChannelBitFieldElement,
     ChannelDataType,
-    ChannelEnumType,
     ChannelReference,
     ChannelValue,
     channel_fqn,
 )
+from sift_client.types.ingestion import IngestionConfig
 from sift_client.types.rule import (
     Rule,
     RuleAction,
@@ -35,7 +35,6 @@ __all__ = [
     "RuleAnnotationType",
     "Channel",
     "ChannelBitFieldElement",
-    "ChannelEnumType",
     "ChannelDataType",
     "ChannelDataTypeStrRep",
     "ChannelReference",
@@ -43,4 +42,5 @@ __all__ = [
     "channel_fqn",
     "Run",
     "RunUpdate",
+    "IngestionConfig",
 ]

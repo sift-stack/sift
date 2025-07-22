@@ -15,9 +15,10 @@ import hashlib
 import logging
 import sys
 import threading
+from collections import namedtuple
 from datetime import datetime
 from queue import Queue
-from typing import Any, List, cast
+from typing import Any, Dict, List, cast
 
 import sift_stream_bindings
 from sift.ingest.v1.ingest_pb2 import (
@@ -29,7 +30,6 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
 )
-from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig as IngestionConfigProto
 from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import IngestionConfigServiceStub
 from sift_stream_bindings import (
     ChannelBitFieldElementPy,
@@ -44,7 +44,8 @@ from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
 from sift_client.transport import GrpcClient, WithGrpcClient
-from sift_client.types.channel import ChannelDataType, Flow
+from sift_client.types.channel import Flow
+from sift_client.types.ingestion import IngestionConfig
 from sift_client.util import cel_utils as cel
 from sift_client.util.timestamp import to_rust_py_timestamp
 
@@ -60,7 +61,18 @@ logger.addHandler(handler)
 
 
 class IngestionThread(threading.Thread):
+    """
+    Manages ingestion for a single ingestion config.
+    """
+
     def __init__(self, sift_stream: sift_stream_bindings.SiftStreamPy, data_queue: Queue):
+        """
+        Initialize the IngestionThread.
+
+        Args:
+            sift_stream: The sift stream to use for ingestion.
+            data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
+        """
         super().__init__(daemon=True)
         self.sift_stream = sift_stream
         self.data_queue = data_queue
@@ -82,7 +94,7 @@ class IngestionThread(threading.Thread):
                     # None signals the main thread is done
                     if item is None:
                         self._stop.set()
-                        logger.info("Main thread completed.")
+                        logger.info("Ingestion thread finishing.")
                         await self.sift_stream.finish()
                         return
                     # Store each item in a backup queue in case we lose the connection
@@ -121,10 +133,10 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     It handles common concerns like error handling and retries.
     """
 
+    CacheEntry = namedtuple("CacheEntry", ["sift_stream", "data_queue", "thread"])
+
     sift_stream_builder: sift_stream_bindings.SiftStreamBuilderPy
-    # TODO: Any reason to add a context manager somewhere or register atexit for stopping all tasks?
-    # TODO: Wrap this in a class?
-    stream_cache: dict[str, tuple[sift_stream_bindings.SiftStreamPy, Queue, threading.Thread]] = {}
+    stream_cache: Dict[str, "CacheEntry"] = {}
 
     def __init__(self, grpc_client: GrpcClient):
         """
@@ -134,7 +146,6 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             grpc_client: The gRPC client to use for making API calls.
         """
         super().__init__(grpc_client=grpc_client)
-        # TODO: Better way?
         # Rust GRPC client expects URI to have http(s):// prefix.
         uri = grpc_client._config.uri
         if not uri.startswith("http"):
@@ -156,13 +167,26 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
         )
 
-        atexit.register(self.cleanup)
+        atexit.register(self.cleanup, timeout=0.1)
 
-    def cleanup(self):
-        for _, (sift_stream, data_queue, thread) in self.stream_cache.items():
+    def cleanup(self, timeout: float | None = None):
+        """
+        Cleanup the ingestion threads.
+
+        Args:
+            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
+        """
+        for _, cache_entry in self.stream_cache.items():
+            sift_stream, data_queue, thread = cache_entry
+            # "None" value on the queue signals its loop to terminate.
             data_queue.put(None)
-            thread.join()
-            thread.stop()
+            # Block for timeout to ensure the thread has time to finish and force it to stop if not.
+            thread.join(timeout=timeout)
+            if thread.is_alive():
+                logger.error(
+                    f"Ingestion thread did not finish after {timeout} seconds. Forcing stop."
+                )
+                thread.stop()
 
     async def get_ingestion_config_flows(self, ingestion_config_id: str) -> List[Flow]:
         """
@@ -172,10 +196,9 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             GetIngestionConfigRequest(ingestion_config_id=ingestion_config_id)
         )
         res = cast(ListIngestionConfigFlowsResponse, res)
-        return [Flow._from_proto(flow, self._grpc_client) for flow in res.flows]
+        return [Flow._from_proto(flow) for flow in res.flows]
 
-    # TODO: Change to not return proto objects.
-    async def list_ingestion_configs(self, filter_query: str) -> List[IngestionConfigProto]:
+    async def list_ingestion_configs(self, filter_query: str) -> List[IngestionConfig]:
         """
         List ingestion configs.
         """
@@ -183,9 +206,9 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             ListIngestionConfigsRequest(filter=filter_query)
         )
         res = cast(ListIngestionConfigsResponse, res)
-        return res.ingestion_configs
+        return [IngestionConfig._from_proto(config) for config in res.ingestion_configs]
 
-    async def get_ingestion_config_id_from_client_key(self, client_key: str) -> str:
+    async def get_ingestion_config_id_from_client_key(self, client_key: str) -> str | None:
         """
         Get the ingestion config id.
         """
@@ -197,22 +220,60 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             raise ValueError(
                 f"Expected 1 ingestion config for client key {client_key}, got {len(ingestion_configs)}"
             )
-        return ingestion_configs[0].ingestion_config_id
+        return ingestion_configs[0].id
 
     def _new_ingestion_thread(
         self, ingestion_config_id: str, sift_stream: sift_stream_bindings.SiftStreamPy
     ):
-        """Start a new ingestion thread."""
-        data_queue = Queue()
+        """Start a new ingestion thread.
+        This allows ingestion to happen in the background regardless of if the user is using the sync or async client
+        and without them having to set up threading themselves. We are using a thread vs asyncio since our
+        sync wrapper will block on incomlete tasks.
+
+        Args:
+            ingestion_config_id: The id of the ingestion config for the flows this stream will ingest. Used to cache the stream.
+            sift_stream: The sift stream to use for ingestion.
+        """
+        data_queue: Queue[List[IngestWithConfigDataStreamRequestPy]] = Queue()
         if ingestion_config_id in self.stream_cache:
             raise ValueError(
                 f"Ingestion config {ingestion_config_id} already exists. This should not happen."
             )
-        print(f"Starting new ingestion thread for ingestion config {ingestion_config_id}")
-        # TODO: Should we have single thread and we add tasks to?
         thread = IngestionThread(sift_stream, data_queue)
         thread.start()
-        self.stream_cache[ingestion_config_id] = (sift_stream, data_queue, thread)
+        self.stream_cache[ingestion_config_id] = (sift_stream, data_queue, thread)  # type: ignore
+
+    def _hash_flows(self, asset_name: str, flows: List[Flow]) -> str:
+        """
+        Generate a client key that should be unique but deterministic for the given asset and flow configuration.
+        """
+        # TODO:  Taken from sift_py/ingestion/config/telemetry.py. Confirm intent from Marc.
+        m = hashlib.sha256()
+        m.update(asset_name.encode())
+        for flow in sorted(flows, key=lambda f: f.name):
+            m.update(flow.name.encode())
+            # Do not sort channels in alphabetical order since order matters.
+            for channel in flow.channels:
+                m.update(channel.name.encode())
+                # Use api_format for data type since that should be consistent between languages.
+                m.update(channel.data_type.as_human_str(api_format=True).encode())
+                m.update((channel.description or "").encode())
+                # Deprecated.
+                m.update((channel.component or "").encode())
+                m.update((channel.unit or "").encode())
+                if channel.bit_field_elements:
+                    for bfe in sorted(channel.bit_field_elements, key=lambda bfe: bfe.index):
+                        m.update(bfe.name.encode())
+                        m.update(str(bfe.index).encode())
+                        m.update(str(bfe.bit_count).encode())
+                if channel.enum_types:
+                    for enum_name, enum_key in sorted(
+                        channel.enum_types.items(), key=lambda it: it[1]
+                    ):
+                        m.update(str(enum_key).encode())
+                        m.update(enum_name.encode())
+
+        return m.hexdigest()
 
     async def create_ingestion_config(
         self,
@@ -224,11 +285,18 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     ) -> str:
         """
         Create an ingestion config.
+
+        Args:
+            asset_name: The name of the asset to ingest to.
+            flows: The flows to ingest.
+            client_key: The client key to use for ingestion. If not provided, a new one will be generated.
+            organization_id: The organization id to use for ingestion. Only needed if the user is part of several organizations.
+
+        Returns:
+            The id of the new or found ingestion config.
         """
         ingestion_config_id = None
         if client_key:
-            # TODO: Add note about making client key management more ergonomic.
-            # TODO: Cache
             print(f"Getting ingestion config id for client key {client_key}")
             ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
             print(f"Getting ingestion config flows for ingestion config id {ingestion_config_id}")
@@ -240,9 +308,9 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                         f"Flow {flow.name} already exists for ingestion client {client_key}"
                     )
         else:
-            client_key = self.hash(asset_name, flows)
+            client_key = self._hash_flows(asset_name, flows)
             try:
-                print(f"Getting ingestion config id from generated client key {client_key}")
+                logger.debug(f"Getting ingestion config id from generated client key {client_key}")
                 ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
             except ValueError:
                 logging.debug(
@@ -250,14 +318,16 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 )
                 pass
 
-        sift_stream, data_queue, ingestion_task = self.stream_cache.get(
-            ingestion_config_id, (None, None, None)
+        sift_stream, data_queue, ingestion_task = (
+            self.stream_cache.get(ingestion_config_id, (None, None, None))
+            if ingestion_config_id
+            else (None, None, None)
         )
         if sift_stream is None:
-            # TODO: Message case where ingestion config already exists but is not in the cache.
             if ingestion_config_id:
-                print(
-                    f"Ingestion config {ingestion_config_id} already exists but is not in the cache. This should not happen."
+                # This happens nominally if the ingestion config was created previously (i.e. specific client key or starting new run w/ same flow definitions).
+                logger.debug(
+                    f"Ingestion config {ingestion_config_id} already exists but is not yet in the cache."
                 )
             # TODO: make converter functions
             flow_configs = []
@@ -278,9 +348,11 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                                     for bfe in channel.bit_field_elements or []
                                 ],
                                 enum_types=[
-                                    ChannelEnumTypePy(key=enum.key, name=enum.name)
-                                    for enum in channel.enum_types or []
-                                ],
+                                    ChannelEnumTypePy(key=enum_key, name=enum_name)
+                                    for enum_name, enum_key in channel.enum_types.items()
+                                ]
+                                if channel.enum_types
+                                else [],
                             )
                             for channel in flow.channels
                         ],
@@ -298,13 +370,27 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             sift_stream = await self.sift_stream_builder.build()
 
             ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
+            assert ingestion_config_id is not None, (
+                "No ingestion config id found after building new stream. Likely server error."
+            )
             print(f"Built new stream for ingestion config {ingestion_config_id}")
             self._new_ingestion_thread(ingestion_config_id, sift_stream)
 
         for flow in flows:
             flow.ingestion_config_id = ingestion_config_id
 
+        if not ingestion_config_id:
+            raise ValueError("No ingestion config id found")
         return ingestion_config_id
+
+    def wait_for_ingestion_to_complete(self, timeout: float | None = None):
+        """
+        Blocks until all ingestion to complete.
+
+        Args:
+            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
+        """
+        self.cleanup(timeout)
 
     def ingest_flow(
         self,
@@ -315,7 +401,13 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         organization_id: str | None = None,
     ):
         """
-        Ingest a flow.
+        Ingest a flow. This is a synchronous call that queues an ingestion request that will be processed asynchronously on a background thread.
+
+        Args:
+            flow: The flow to ingest.
+            timestamp: The timestamp of the flow.
+            channel_values: The channel values to ingest.
+            organization_id: The organization id to use for ingestion. Only relevant if the user is part of several organizations.
         """
 
         if not flow.ingestion_config_id:
@@ -329,25 +421,11 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             raise ValueError(
                 f"Ingestion config {flow.ingestion_config_id} not found. Have you created an ingestion config for this flow?"
             )
-        # proto_channel_values = []
         rust_channel_values = []
         # Iterate through all expected channels for flow and convert to ingestion types (missing channels use a special empty type)
         for channel in flow.channels:
             val = channel_values.get(channel.name)
-            if val is None:
-                raise ValueError(f"Channel {channel.name} has no value")
-            if channel.data_type == ChannelDataType.ENUM and isinstance(val, str):
-                for enum_type in channel.enum_types or []:
-                    if enum_type.name == val:
-                        val = enum_type.key
-                        break
-            elif channel.data_type == ChannelDataType.BIT_FIELD:
-                # TODO: Handle bit field values correctly
-                val = None
-            # proto_channel_values.append(ChannelDataType.to_ingestion_value(channel.data_type, val))
-            rust_channel_values.append(
-                ChannelDataType.to_rust_value(channel.data_type, channel.name, val)
-            )
+            rust_channel_values.append(channel.to_rust_value(val))
         req = IngestWithConfigDataStreamRequestPy(
             ingestion_config_id=flow.ingestion_config_id,
             run_id=flow.run_id,
@@ -355,9 +433,9 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             timestamp=to_rust_py_timestamp(timestamp),
             channel_values=rust_channel_values,
             end_stream_on_validation_error=False,
-            organization_id=organization_id
-            or "",  # This will be filled in by the server # TODO: Confirm w/ Ailin
+            organization_id=organization_id or "",  # This will be filled in by the server
         )
+        assert data_queue is not None
         data_queue.put([req])
 
     async def ingest_arbitrary_protobuf_data_stream(
@@ -370,36 +448,3 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The ingestion response.
         """
         raise NotImplementedError("Not implemented")
-
-    def hash(self, asset_name: str, flows: List[Flow]) -> str:
-        # TODO:  Taken from sift_py/ingestion/config/telemetry.py. Confirm intent.
-        m = hashlib.sha256()
-        m.update(asset_name.encode())
-        for flow in sorted(flows, key=lambda f: f.name):
-            m.update(flow.name.encode())
-            # Do not sort channels in alphabetical order since order matters.
-            for channel in flow.channels:
-                m.update(channel.name.encode())
-                # Use api_format for data type since that should be consistent between languages.
-                m.update(channel.data_type.as_human_str(api_format=True).encode())
-                m.update((channel.description or "").encode())
-                # Deprecated.
-                m.update((channel.component or "").encode())
-                m.update((channel.unit or "").encode())
-                if channel.bit_field_elements:
-                    for bfe in sorted(channel.bit_field_elements, key=lambda bfe: bfe.index):
-                        m.update(bfe.name.encode())
-                        m.update(str(bfe.index).encode())
-                        m.update(str(bfe.bit_count).encode())
-                if channel.enum_types:
-                    for enum in sorted(channel.enum_types, key=lambda et: et.key):
-                        m.update(str(enum.key).encode())
-                        m.update(enum.name.encode())
-
-        return m.hexdigest()
-
-    def wait_for_ingestion_to_complete(self, run_id: str):
-        """
-        Wait for all ingestion to complete.
-        """
-        self.cleanup()

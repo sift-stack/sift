@@ -116,10 +116,13 @@ class IngestionAPIAsync(ResourceBase):
         """
         raise NotImplementedError("Not implemented")
 
-    def wait_for_ingestion_to_complete(self, run_id: str):
+    def wait_for_ingestion_to_complete(self, timeout: float | None = None):
         """
         Wait for all ingestion to complete.
+
+        Args:
+            run_id: The id of the run to wait for.
+            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
         """
-        logger.info(f"Waiting for ingestion to complete for run {run_id}")
-        print(f"Waiting for ingestion to complete for run {run_id}")
-        self._low_level_client.wait_for_ingestion_to_complete(run_id)
+        logger.info("Waiting for ingestion to complete")
+        self._low_level_client.wait_for_ingestion_to_complete(timeout)

@@ -554,7 +554,7 @@ class IngestionAPI:
         *,
         flow: Flow | None = None,
         flows: List[Flow] | None = None,
-        time: datetime,
+        timestamp: datetime,
         channel_values: dict[str, Any],
     ):
         """ """
@@ -568,6 +568,16 @@ class IngestionAPI:
 
         Args:
             requests: Async iterator of arbitrary protobuf ingestion requests.
+        """
+        ...
+
+    def wait_for_ingestion_to_complete(self, timeout: float | None = None):
+        """
+        Wait for all ingestion to complete.
+
+        Args:
+            run_id: The id of the run to wait for.
+            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
         """
         ...
 

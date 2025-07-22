@@ -156,13 +156,16 @@ class Run(BaseType[RunProto, "Run"]):
         for flow in flows:
             flow.run_id = self.id
 
-    def wait_for_ingestion_to_complete(self):
+    def wait_for_ingestion_to_complete(self, timeout: float | None = None):
         """
         Wait for all ingestion to complete.
+
+        Args:
+            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
         """
         if not hasattr(self, "client") or self.client is None:
             raise RuntimeError("Run is not bound to a client instance.")
-        self.client.ingestion.wait_for_ingestion_to_complete(self.id)
+        self.client.ingestion.wait_for_ingestion_to_complete(timeout)
 
     def stop(self):
         """

@@ -41,14 +41,11 @@ async def main():
         name="test-flow",
         channels=[
             Channel(name="test-channel", data_type=ChannelDataType.DOUBLE),
-            # Channel(
-            #     name="test-enum-channel",
-            #     data_type=ChannelDataType.ENUM,
-            #     enum_types=[
-            #         ChannelEnumType(name="enum1", key=1),
-            #         ChannelEnumType(name="enum2", key=2),
-            #     ],
-            # ),
+            Channel(
+                name="test-enum-channel",
+                data_type=ChannelDataType.ENUM,
+                enum_types={"enum1": 1, "enum2": 2},
+            ),
         ],
     )
     # regular_flow.add_channel(
@@ -96,7 +93,7 @@ async def main():
             timestamp=now,
             channel_values={
                 "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * i + 0),
-                # "test-enum-channel": "enum2",
+                "test-enum-channel": i % 2 + 1,
                 # "test-bit-field-channel": 0b10,
             },
         )
@@ -110,11 +107,14 @@ async def main():
             client.ingestion.ingest(
                 flow=highspeed_flow, timestamp=timestamp, channel_values=channel_values
             )
+
+    # TODO: Test ingestion of a flow with a channel that has no value
+    # TODO: Test ingestion of a bad enum value (string and int)
     # TODO: Check assert adding a channel after data has been ingested causes an error?
     # TODO: Add rule
-    run.wait_for_ingestion_to_complete()
+    run.wait_for_ingestion_to_complete(timeout=61)
     client.runs.delete(run=run.id)
-    
+
     num_datapoints = fake_hs_rate * len(
         highspeed_flow.channels
     ) * simulated_duration + simulated_duration * len(regular_flow.channels)
