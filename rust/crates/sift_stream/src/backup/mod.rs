@@ -2,10 +2,10 @@ use prost::Message as PbMessage;
 use sift_error::prelude::*;
 
 pub mod disk;
-pub use disk::DiskBackupsManager;
+pub(crate) use disk::DiskBackupsManager;
 
 pub mod memory;
-pub use memory::InMemoryBackupsManager;
+pub(crate) use memory::InMemoryBackupsManager;
 
 #[cfg(test)]
 mod test;
@@ -20,8 +20,16 @@ where
     /// Use for graceful termination. This will clean up the backup file.
     async fn finish(self) -> Result<()>;
 
-    /// Retrieve the backup data as an [Iterator].
-    async fn get_backup_data(&mut self) -> Result<impl Iterator<Item = Result<T>>>;
+    async fn transmit_backups(&self);
+}
+
+pub(crate) trait BackupsTransmitter<T, I>
+where
+    T: PbMessage + Default + 'static,
+    I: IntoIterator<Item = T>,
+    <I as IntoIterator>::IntoIter: Send,
+{
+    async fn transmit(&mut self, stream: I) -> Result<()>;
 }
 
 #[derive(Debug, Clone)]

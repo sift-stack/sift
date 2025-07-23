@@ -1,7 +1,10 @@
 use super::{
-    RetryPolicy, SiftStream, SiftStreamMode, flow::validate_flows,
-    mode::ingestion_config::IngestionConfigMode,
-    mode::ingestion_config::IngestionConfigModeBackupsManager,
+    RetryPolicy, SiftStream, SiftStreamMode,
+    backups::ingestion_config::BackupsTransmitterDisk,
+    flow::validate_flows,
+    mode::ingestion_config::{
+        BackupWorker, IngestionConfigMode, IngestionConfigModeBackupsManager,
+    },
 };
 use crate::backup::{DiskBackupsManager, InMemoryBackupsManager};
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
@@ -338,15 +341,21 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             return Err(Error::new_arg_error("ingestion_config is required"));
         };
 
-        let channel = match grpc_channel {
-            Some(ch) => ch,
+        let (main_channel, backups_channel) = match grpc_channel {
+            Some(ch) => (ch.clone(), ch),
             None if credentials.is_some() => {
-                let mut sift_channel_builder = SiftChannelBuilder::new(credentials.unwrap());
+                let creds = credentials.unwrap();
+                let mut main_channel_builder = SiftChannelBuilder::new(creds.clone());
+                let mut backups_channel_builder = SiftChannelBuilder::new(creds);
 
                 if enable_tls {
-                    sift_channel_builder = sift_channel_builder.use_tls(true);
+                    main_channel_builder = main_channel_builder.use_tls(true);
+                    backups_channel_builder = backups_channel_builder.use_tls(true);
                 }
-                sift_channel_builder.build()?
+                (
+                    main_channel_builder.build()?,
+                    backups_channel_builder.build()?,
+                )
             }
             None => {
                 return Err(Error::new_arg_error(
@@ -357,26 +366,26 @@ impl SiftStreamBuilder<IngestionConfigMode> {
 
         // Since the gRPC connection is lazy, we'll connect right away and ensure the connection is
         // valid.
-        PingServiceClient::new(channel.clone()).ping(PingRequest::default())
+        PingServiceClient::new(main_channel.clone()).ping(PingRequest::default())
             .await
             .map_err(|e| Error::new(ErrorKind::GrpcConnectError, e))
             .context("failed to connect to Sift")
             .help("ensure that your API key and Sift gRPC API URL is correct and TLS is configured properly")?;
 
         let (ingestion_config, flows) =
-            Self::load_ingestion_config(channel.clone(), ingestion_config).await?;
+            Self::load_ingestion_config(main_channel.clone(), ingestion_config).await?;
 
         let run = {
             if let Some(run_id) = run_id.as_ref() {
-                Some(Self::load_run_by_id(channel.clone(), run_id).await?)
+                Some(Self::load_run_by_id(main_channel.clone(), run_id).await?)
             } else if let Some(selector) = run {
-                Some(Self::load_run_by_form(channel.clone(), selector).await?)
+                Some(Self::load_run_by_form(main_channel.clone(), selector).await?)
             } else {
                 None
             }
         };
 
-        let mut backups_manager = None;
+        let mut backup_worker = None;
         let mut policy = None;
 
         if let Some(strategy) = recovery_strategy {
@@ -392,8 +401,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     let manager = IngestionConfigModeBackupsManager::InMemory(
                         InMemoryBackupsManager::new(max_buffer_size),
                     );
-
-                    backups_manager = Some(manager);
+                    backup_worker = Some(BackupWorker::new(manager));
                 }
                 RecoveryStrategy::RetryWithDiskBackups {
                     retry_policy,
@@ -401,28 +409,31 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     max_backups_file_size,
                 } => {
                     policy = Some(retry_policy);
+                    let transmitter = BackupsTransmitterDisk::new(backups_channel);
+
                     let manager = DiskBackupsManager::new(
                         backups_dir,
                         &ingestion_config.asset_id,
                         &ingestion_config.ingestion_config_id,
                         max_backups_file_size,
+                        transmitter,
                     )
                     .map(IngestionConfigModeBackupsManager::Disk)
                     .context("failed to build backups manager")?;
 
-                    backups_manager = Some(manager);
+                    backup_worker = Some(BackupWorker::new(manager));
                 }
             }
         }
 
         Ok(SiftStream::<IngestionConfigMode>::new(
-            channel,
+            main_channel,
             ingestion_config,
             flows,
             run,
             checkpoint_interval,
             policy,
-            backups_manager,
+            backup_worker,
         ))
     }
 

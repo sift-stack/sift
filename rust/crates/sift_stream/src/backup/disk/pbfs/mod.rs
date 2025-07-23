@@ -7,6 +7,7 @@ use std::{
 
 pub(crate) mod chunk;
 pub(crate) use chunk::{BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, PbfsChunk, PbfsMessageIter};
+pub mod stream;
 
 #[cfg(test)]
 mod test;

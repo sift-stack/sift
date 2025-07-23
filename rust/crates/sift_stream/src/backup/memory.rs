@@ -144,17 +144,8 @@ where
         Ok(())
     }
 
-    async fn get_backup_data(&mut self) -> Result<impl Iterator<Item = Result<T>>> {
+    async fn transmit_backups(&self) {
         let _ = self.data_tx.send(Message::Flush).await;
         self.flush_notification.notified().await;
-
-        let messages = self
-            .buffer
-            .lock()
-            .ok()
-            .and_then(|mut l| l.take())
-            .unwrap_or_default();
-
-        Ok(messages.into_iter().map(Ok))
     }
 }

@@ -1,71 +1,60 @@
-use super::{BackupsManager, Message};
-use bytesize::ByteSize;
+use super::{BackupsManager, BackupsTransmitter, Message};
 use chrono::Utc;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
 use std::{
     fs::{self, File},
-    io::{BufReader, Error as IoError, ErrorKind as IoErrorKind, Write},
+    io::{Error as IoError, ErrorKind as IoErrorKind, Write},
+    marker::PhantomData,
     path::{Path, PathBuf},
-    sync::Arc,
 };
 use tokio::{
-    sync::{
-        Notify,
-        mpsc::{Receiver, Sender, channel},
-    },
+    sync::mpsc::{Receiver, Sender, channel},
     task::JoinHandle,
 };
 
 /// Concerned with writing/reading protobuf from disk.
-mod pbfs;
-use pbfs::{
-    BackupsDecoder,
-    chunk::{BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN, PbfsChunk},
-};
+pub(crate) mod pbfs;
+use pbfs::chunk::{BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN, PbfsChunk};
+pub use pbfs::stream::BackupsIter;
+
+/// For manual user decoding of backups.
+pub use pbfs::stream::decode_backup;
 
 /// Default maximum backup file size - 100 MiB.
 pub const DEFAULT_MAX_BACKUP_SIZE: usize = 100 * 2_usize.pow(20);
+
+pub const DEFAULT_BACKUP_ROOT: &str = "sift_stream_backups";
+
+/// 1 GiB
+pub const BACKUP_FILE_MAX_SIZE: usize = 1073741824;
 
 /// The buffer size used for the channel that sends and receives data to the backup task as well as
 /// the in-memory message buffer that gets flushed when full.
 const CHANNEL_BUFFER_SIZE: usize = 10_000;
 
-/// Takes in a path to a backup file and returns an instance of [BackupsDecoder] which is an
-/// iterator over the protobuf messages found in the backup file. The iterator will terminate when
-/// reaching an EOF or it hits a corrupt message; in this case the error returned by the item will
-/// be an `Err` whose kind if [ErrorKind::BackupIntegrityError].
-pub fn decode_backup<P, M>(path: P) -> Result<BackupsDecoder<M, BufReader<File>>>
-where
-    P: AsRef<Path>,
-    M: PbMessage + Default + 'static,
-{
-    File::open(path.as_ref())
-        .map(BufReader::new)
-        .map(BackupsDecoder::new)
-        .map_err(|e| Error::new(ErrorKind::IoError, e))
-        .context("failed to open backup")
-        .help("contact Sift")
-}
-
 /// Disk-based backup strategy implementation.
 #[derive(Debug)]
-pub struct DiskBackupsManager<T> {
+pub struct DiskBackupsManager<T, U, V> {
     pub(crate) backups_root: PathBuf,
     pub(crate) new_dir_name: String,
     pub(crate) backup_prefix: String,
     /// Max allowed backup size in bytes.
     pub(crate) max_backup_size: usize,
 
-    pub(crate) backup_file: PathBuf,
     backup_task: Option<JoinHandle<Result<()>>>,
-    flush_and_sync_notification: Arc<Notify>,
     data_tx: Sender<Message<T>>,
+
+    transmitter: PhantomData<U>,
+    backups_stream: PhantomData<V>,
 }
 
-impl<T> DiskBackupsManager<T>
+impl<T, U, V> DiskBackupsManager<T, U, V>
 where
     T: PbMessage + Default + 'static,
+    U: BackupsTransmitter<T, V>,
+    V: IntoIterator<Item = T>,
+    <V as IntoIterator>::IntoIter: Send,
 {
     /// Users shouldn't have to call interact with [DiskBackupsManager::new] directly.
     ///
@@ -77,15 +66,21 @@ where
         new_dir_name: &str,
         backup_prefix: &str,
         max_backup_size: Option<usize>,
+        transmitter: U,
     ) -> Result<Self> {
         let (data_tx, data_rx) = channel::<Message<T>>(CHANNEL_BUFFER_SIZE);
 
-        let Some(backups_root) = backups_root.or_else(dirs::data_dir) else {
+        let Some(backups_root) = backups_root
+            .or_else(Self::default_backup_dir)
+            .map(|r| r.join(new_dir_name))
+        else {
             return Err(
                 IoError::new(IoErrorKind::NotFound, "user data directory not found").into(),
             );
         };
-        let backups_dir = backups_root.join(new_dir_name);
+        let backups_dir = backups_root
+            .join(new_dir_name)
+            .join(format!("{}", Utc::now().timestamp_millis()));
 
         match fs::create_dir_all(&backups_dir) {
             Err(err) if err.kind() != IoErrorKind::AlreadyExists => {
@@ -96,67 +91,61 @@ where
             _ => ()
         }
 
-        let backup_file =
-            backups_dir.join(format!("{backup_prefix}-{}", Utc::now().timestamp_millis()));
-
         let max_backup_size = max_backup_size.unwrap_or(DEFAULT_MAX_BACKUP_SIZE);
 
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            backup_file = format!("{}", backup_file.display()),
-            max_backup_size = format!("{}", ByteSize::b(max_backup_size as u64)),
-            "backup file initialized"
-        );
-
-        let backup = File::create(&backup_file)
-            .map_err(|e| Error::new(ErrorKind::BackupsError, e))
-            .context("failed generate backup file")
-            .help("please contact Sift")?;
-
-        let flush_and_sync_notification = Arc::new(Notify::new());
-
-        let backup_task = Self::init_backup_task(
-            data_rx,
-            max_backup_size,
-            backup,
-            flush_and_sync_notification.clone(),
-        )
-        .context("failed to start backup task")?;
+        let backup_task = Self::init_backup_task(data_rx, max_backup_size, backups_dir)
+            .context("failed to start backup task")?;
 
         Ok(Self {
             backups_root,
             new_dir_name: new_dir_name.into(),
             backup_prefix: backup_prefix.into(),
             backup_task: Some(backup_task),
-            backup_file,
             data_tx,
             max_backup_size,
-            flush_and_sync_notification,
+            transmitter: PhantomData,
+            backups_stream: PhantomData,
         })
     }
 
     fn init_backup_task(
         mut data_rx: Receiver<Message<T>>,
         max_backup_size: usize,
-        mut backup: File,
-        flush_and_sync_notifier: Arc<Notify>,
+        backups_dir: PathBuf,
     ) -> Result<JoinHandle<Result<()>>> {
+        let mut current_index = 0;
+        let backup_path = backups_dir.join(format!("{current_index}"));
+        let mut current_backup = Self::new_backup_file(&backup_path)?;
+
         let join_handle = tokio::task::spawn_blocking(move || -> Result<()> {
             let mut message_buffer = Vec::with_capacity(CHANNEL_BUFFER_SIZE);
+            let mut backups = vec![backup_path];
+            let mut current_file_bytes = 0;
             let mut bytes_processed = 0;
 
             while let Some(message) = data_rx.blocking_recv() {
                 match message {
                     Message::Data(val) => {
-                        bytes_processed += val.encoded_len() + MESSAGE_LENGTH_PREFIX_LEN;
+                        let message_len = val.encoded_len() + MESSAGE_LENGTH_PREFIX_LEN;
+                        bytes_processed += message_len;
+                        current_file_bytes += message_len;
                         message_buffer.push(val);
+
+                        if current_file_bytes >= BACKUP_FILE_MAX_SIZE {
+                            current_file_bytes = 0;
+                            current_index += 1;
+
+                            let new_backup_path = backups_dir.join(format!("{current_index}"));
+                            current_backup = Self::new_backup_file(&new_backup_path)?;
+                            backups.push(new_backup_path);
+                        }
 
                         if bytes_processed >= max_backup_size
                             || message_buffer.len() >= CHANNEL_BUFFER_SIZE
                         {
                             let chunk = PbfsChunk::new(&message_buffer)?;
-                            backup.write_all(&chunk)?;
-                            backup.sync_all()?;
+                            current_backup.write_all(&chunk)?;
+                            current_backup.sync_all()?;
                             bytes_processed += CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN;
                             message_buffer.clear();
 
@@ -164,8 +153,7 @@ where
                                 #[cfg(feature = "tracing")]
                                 tracing::debug!("backup size exceeded max configured");
 
-                                flush_and_sync_notifier.notify_one();
-                                break;
+                                todo!()
                             }
                         }
                     }
@@ -175,11 +163,11 @@ where
 
                         if !message_buffer.is_empty() {
                             let chunk = PbfsChunk::new(&message_buffer)?;
-                            backup.write_all(&chunk)?;
-                            backup.sync_all()?;
+                            current_backup.write_all(&chunk)?;
+                            current_backup.sync_all()?;
                         }
-                        flush_and_sync_notifier.notify_one();
-                        break;
+
+                        todo!();
                     }
                     Message::Complete => {
                         #[cfg(feature = "tracing")]
@@ -193,11 +181,25 @@ where
         });
         Ok(join_handle)
     }
+
+    fn default_backup_dir() -> Option<PathBuf> {
+        dirs::data_dir().map(|d| d.join(DEFAULT_BACKUP_ROOT))
+    }
+
+    fn new_backup_file(p: &Path) -> Result<File> {
+        File::create(p)
+            .map_err(|e| Error::new(ErrorKind::BackupsError, e))
+            .context("failed generate backup file")
+            .help("please contact Sift")
+    }
 }
 
-impl<T> BackupsManager<T> for DiskBackupsManager<T>
+impl<T, U, V> BackupsManager<T> for DiskBackupsManager<T, U, V>
 where
     T: PbMessage + Default + 'static,
+    U: BackupsTransmitter<T, V>,
+    V: IntoIterator<Item = T>,
+    <V as IntoIterator>::IntoIter: Send,
 {
     /// Send data point to be backed up.
     async fn send(&mut self, msg: T) -> Result<()> {
@@ -241,20 +243,7 @@ where
         Ok(())
     }
 
-    /// Sends the a message to the backup task to flush and sync if there's any buffered data
-    /// before creating an iterator over the backup's contents.
-    async fn get_backup_data(&mut self) -> Result<impl Iterator<Item = Result<T>>> {
+    async fn transmit_backups(&self) {
         let _ = self.data_tx.send(Message::Flush).await;
-        self.flush_and_sync_notification.notified().await;
-
-        let backups_decoder = decode_backup(&self.backup_file)?;
-
-        Ok(backups_decoder.into_iter())
-    }
-}
-
-impl<T> Drop for DiskBackupsManager<T> {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.backup_file);
     }
 }

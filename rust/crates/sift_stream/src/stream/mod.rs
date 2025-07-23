@@ -1,6 +1,8 @@
 use sift_connect::SiftChannel;
 use sift_rs::runs::v2::Run;
 
+pub(crate) mod backups;
+
 /// Concerned with building and configuring and instance of [SiftStream].
 pub mod builder;
 
