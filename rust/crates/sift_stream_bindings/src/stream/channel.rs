@@ -349,7 +349,7 @@ impl ChannelValueTypePy {
     #[staticmethod]
     pub fn bitfield(value: Vec<u8>) -> Self {
         Self {
-            inner: ChannelValueType::BitField(value.to_vec()),
+            inner: ChannelValueType::BitField(value),
         }
     }
 
