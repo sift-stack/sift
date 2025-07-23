@@ -179,17 +179,19 @@ class ChannelBitFieldElement(AsProtobuf):
 class ChannelEnumType(AsProtobuf):
     name: str
     key: int
+    is_signed: Optional[bool] = None
 
-    def __init__(self, name: str, key: int):
+    def __init__(self, name: str, key: int, is_signed: Optional[bool] = None):
         self.name = name
         self.key = key
+        self.is_signed = is_signed
 
     def as_pb(self, klass: Type[ChannelEnumTypePb]) -> ChannelEnumTypePb:
-        return klass(name=self.name, key=self.key)
+        return klass(name=self.name, key=self.key, is_signed=self.is_signed or False)
 
     @classmethod
     def from_pb(cls, message: ChannelEnumTypePb) -> Self:
-        return cls(name=message.name, key=message.key)
+        return cls(name=message.name, key=message.key, is_signed=message.is_signed)
 
 
 class ChannelDataTypeStrRep(Enum):

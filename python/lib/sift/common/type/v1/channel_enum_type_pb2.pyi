@@ -16,14 +16,17 @@ class ChannelEnumType(google.protobuf.message.Message):
 
     NAME_FIELD_NUMBER: builtins.int
     KEY_FIELD_NUMBER: builtins.int
+    IS_SIGNED_FIELD_NUMBER: builtins.int
     name: builtins.str
     key: builtins.int
+    is_signed: builtins.bool
     def __init__(
         self,
         *,
         name: builtins.str = ...,
         key: builtins.int = ...,
+        is_signed: builtins.bool = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["key", b"key", "name", b"name"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["is_signed", b"is_signed", "key", b"key", "name", b"name"]) -> None: ...
 
 global___ChannelEnumType = ChannelEnumType

@@ -9,4 +9,5 @@ import "google/api/field_behavior.proto";
 message ChannelEnumType {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
   uint32 key = 2 [(google.api.field_behavior) = REQUIRED];
+  bool is_signed = 3 [(google.api.field_behavior) = OPTIONAL];
 }
