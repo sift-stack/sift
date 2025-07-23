@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Union, cast
@@ -26,7 +28,11 @@ from sift_py.ingestion._internal.ingestion_config import (
     get_ingestion_config_flows,
 )
 from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
-from sift_py.ingestion._internal.stream import get_builder, get_run_form, stream_requests
+from sift_py.ingestion._internal.stream import (
+    get_builder,
+    get_run_form,
+    stream_requests,
+)
 from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelValue,
@@ -57,6 +63,8 @@ class _IngestionServiceImpl:
 
     ingest_service_stub: IngestServiceStub
     rule_service: RuleService
+    _async_threads: List[threading.Thread]
+    _threads_lock: threading.Lock
 
     def __init__(
         self,
@@ -125,6 +133,10 @@ class _IngestionServiceImpl:
         self.ingest_service_stub = IngestServiceStub(channel)
         self.config = config
 
+        # Thread tracking for async ingestion
+        self._async_threads = []
+        self._threads_lock = threading.Lock()
+
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
         Perform data ingestion.
@@ -133,23 +145,78 @@ class _IngestionServiceImpl:
         if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
-        stream_requests(self.builder, *requests, self.run_id)
+        self._ingest_async(*requests)
 
-    def ingest_async(self, *requests: IngestWithConfigDataStreamRequest):
+    def _ingest_async(self, *requests: IngestWithConfigDataStreamRequest):
         """
         Perform data ingestion asynchronously in a background thread.
         This allows multiple ingest calls to run in parallel.
         """
-        import threading
+
+        def _ingest_and_cleanup():
+            try:
+                stream_requests(self.builder, *requests, self.run_id)
+            finally:
+                # Remove this thread from tracking when it completes
+                with self._threads_lock:
+                    if threading.current_thread() in self._async_threads:
+                        self._async_threads.remove(threading.current_thread())
 
         thread = threading.Thread(
-            target=stream_requests,
-            args=(self.builder, *requests),
-            kwargs={"run_id": self.run_id or ""},
+            target=_ingest_and_cleanup,
             daemon=True,
         )
+
+        # Track the thread
+        with self._threads_lock:
+            self._async_threads.append(thread)
+
         thread.start()
         return thread
+
+    def wait_for_async_ingestion(self, timeout: Optional[float] = None) -> bool:
+        """
+        Wait for all async ingestion threads to complete.
+
+        Args:
+            timeout: Maximum time to wait in seconds. If None, wait indefinitely.
+
+        Returns:
+            bool: True if all threads completed within timeout, False otherwise.
+        """
+        with self._threads_lock:
+            threads_to_wait = self._async_threads.copy()
+
+        if not threads_to_wait:
+            return True
+
+        # Wait for each thread with the remaining timeout
+        start_time = time.time() if timeout is not None else None
+
+        for thread in threads_to_wait:
+            if timeout is not None:
+                remaining_timeout = timeout - (time.time() - start_time)
+                if remaining_timeout <= 0:
+                    return False
+                thread.join(timeout=remaining_timeout)
+                if thread.is_alive():
+                    return False
+            else:
+                thread.join()
+
+        return True
+
+    def get_async_thread_count(self) -> int:
+        """
+        Get the number of currently running async ingestion threads.
+
+        Returns:
+            int: Number of active async threads.
+        """
+        with self._threads_lock:
+            # Clean up any completed threads
+            self._async_threads = [t for t in self._async_threads if t.is_alive()]
+            return len(self._async_threads)
 
     def ingest_flows(self, *flows: FlowOrderedChannelValues):
         """
@@ -169,7 +236,7 @@ class _IngestionServiceImpl:
         if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
-        stream_requests(self.builder, requests, self.run_id)
+        self._ingest_async(*requests)
 
     def try_ingest_flows(self, *flows: Flow):
         """
@@ -189,7 +256,7 @@ class _IngestionServiceImpl:
         if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
-        stream_requests(self.builder, requests, self.run_id)
+        self._ingest_async(*requests)
 
     def attach_run(
         self,
