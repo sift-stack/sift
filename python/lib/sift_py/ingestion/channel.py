@@ -187,7 +187,7 @@ class ChannelEnumType(AsProtobuf):
         self.is_signed = is_signed
 
     def as_pb(self, klass: Type[ChannelEnumTypePb]) -> ChannelEnumTypePb:
-        return klass(name=self.name, key=self.key, is_signed=self.is_signed or False)
+        return klass(name=self.name, key=self.key, is_signed=False if self.is_signed is None else self.is_signed)
 
     @classmethod
     def from_pb(cls, message: ChannelEnumTypePb) -> Self:
