@@ -261,3 +261,52 @@ class IngestionService(_IngestionServiceImpl):
         See `try_create_flows`.
         """
         super().try_create_flow(*flow_configs)
+
+    def wait_for_async_ingestion(self, timeout: Optional[float] = None) -> bool:
+        """
+        Wait for all async ingestion threads to complete.
+
+        This method is useful for ensuring all data has been sent before shutting down
+        or when you need to guarantee that all async ingestion operations have finished.
+
+        Args:
+            timeout: Maximum time to wait in seconds. If None, wait indefinitely.
+
+        Returns:
+            bool: True if all threads completed within timeout, False otherwise.
+
+        Example:
+            ```python
+            # Start some async ingestion
+            ingestion_service.ingest_async(request1, request2)
+            ingestion_service.ingest_async(request3, request4)
+
+            # Wait for all to complete (with 30 second timeout)
+            if not ingestion_service.wait_for_async_ingestion(timeout=30.0):
+                print("Some ingestion threads did not complete in time")
+            ```
+        """
+        return super().wait_for_async_ingestion(timeout)
+
+    def get_async_thread_count(self) -> int:
+        """
+        Get the number of currently running async ingestion threads.
+
+        This method is useful for monitoring the state of async ingestion operations
+        and can help with debugging or understanding the current load.
+
+        Returns:
+            int: Number of active async threads.
+
+        Example:
+            ```python
+            # Start some async ingestion
+            ingestion_service.ingest_async(request1, request2)
+            ingestion_service.ingest_async(request3, request4)
+
+            # Check how many threads are still running
+            active_threads = ingestion_service.get_async_thread_count()
+            print(f"Currently {active_threads} async ingestion threads running")
+            ```
+        """
+        return super().get_async_thread_count()
