@@ -180,13 +180,14 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             sift_stream, data_queue, thread = cache_entry
             # "None" value on the queue signals its loop to terminate.
             data_queue.put(None)
-            # Block for timeout to ensure the thread has time to finish and force it to stop if not.
-            thread.join(timeout=timeout)
-            if thread.is_alive():
-                logger.error(
-                    f"Ingestion thread did not finish after {timeout} seconds. Forcing stop."
-                )
-                thread.stop()
+            if thread:
+                # Block for timeout to ensure the thread has time to finish and force it to stop if not.
+                thread.join(timeout=timeout)
+                if thread.is_alive():
+                    logger.error(
+                        f"Ingestion thread did not finish after {timeout} seconds. Forcing stop."
+                    )
+                    thread.stop()
 
     async def get_ingestion_config_flows(self, ingestion_config_id: str) -> List[Flow]:
         """
@@ -241,7 +242,10 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
         thread = IngestionThread(sift_stream, data_queue)
         thread.start()
-        self.stream_cache[ingestion_config_id] = (sift_stream, data_queue, thread)  # type: ignore
+        # Keep queue and stream in cache so they stay in scope and we can add data.
+        # Letting the thread go out of scope and attempt to stop signals the rust stream to process quicker.
+        # TODO: Remove thread from cache./ follow up w/ Benji on behavior.
+        self.stream_cache[ingestion_config_id] = (sift_stream, data_queue, None)  # type: ignore
 
     def _hash_flows(self, asset_name: str, flows: List[Flow]) -> str:
         """
@@ -297,16 +301,16 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         ingestion_config_id = None
         if client_key:
-            print(f"Getting ingestion config id for client key {client_key}")
+            logger.debug(f"Getting ingestion config id for client key {client_key}")
             ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
-            print(f"Getting ingestion config flows for ingestion config id {ingestion_config_id}")
-            # Perform validation that the flows are valid for the ingestion config.
-            existing_flows = await self.get_ingestion_config_flows(ingestion_config_id)
-            for flow in flows:
-                if flow.name in {existing_flow.name for existing_flow in existing_flows}:
-                    raise ValueError(
-                        f"Flow {flow.name} already exists for ingestion client {client_key}"
-                    )
+            if ingestion_config_id:
+                # Perform validation that the flows are valid for the ingestion config.
+                existing_flows = await self.get_ingestion_config_flows(ingestion_config_id)
+                for flow in flows:
+                    if flow.name in {existing_flow.name for existing_flow in existing_flows}:
+                        raise ValueError(
+                            f"Flow {flow.name} already exists for ingestion client {client_key}"
+                        )
         else:
             client_key = self._hash_flows(asset_name, flows)
             try:
@@ -364,16 +368,13 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 client_key=client_key,
             )
             self.sift_stream_builder.ingestion_config = ingestion_config
-            print(
-                f"Builder: {self.sift_stream_builder.apikey}, {self.sift_stream_builder.uri}, {self.sift_stream_builder.enable_tls}"
-            )
             sift_stream = await self.sift_stream_builder.build()
 
             ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
             assert ingestion_config_id is not None, (
                 "No ingestion config id found after building new stream. Likely server error."
             )
-            print(f"Built new stream for ingestion config {ingestion_config_id}")
+            logger.debug(f"Built new stream for ingestion config {ingestion_config_id}")
             self._new_ingestion_thread(ingestion_config_id, sift_stream)
 
         for flow in flows:

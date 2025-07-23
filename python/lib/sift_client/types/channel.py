@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from collections import deque
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict
@@ -109,7 +110,7 @@ class ChannelDataType(int, Enum):
         elif raw.startswith("sift.data"):
             val = ChannelTypeUrls(raw)  # type: ignore # mypy doesn't understand scope
             for item in ChannelDataType:
-                if item.name == val.name:
+                if item.name == val.name:  # type: ignore
                     return item
             raise Exception(
                 "Unreachable. ChannelTypeUrls and ChannelDataType enum names are out of sync."
@@ -279,7 +280,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 bit_field_elements=[
                     ChannelBitFieldElement._from_proto(el) for el in message.bit_field_elements
                 ],
-                enum_types=cls._proto_list_to_dict(message.enum_types),
+                enum_types=cls._proto_list_to_dict(message.enum_types),  # type: ignore
                 asset_id=message.asset_id,
                 _client=sift_client,
             )
@@ -322,28 +323,30 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 )
             return ChannelValuePy.enum_value(self.name, ChannelEnumTypePy(enum_val, value))
         elif self.data_type == ChannelDataType.BIT_FIELD:
-            if isinstance(value, int):
-                return ChannelValuePy.bitfield(
-                    self.name,
-                    [
-                        ChannelBitFieldElementPy(field.name, field.index, field.bit_count)
-                        for field in self.bit_field_elements
-                    ]
-                    if self.bit_field_elements
-                    else [],
-                )
-            elif isinstance(value, list):
-                return ChannelValuePy.bitfield(
-                    self.name,
-                    [
-                        ChannelBitFieldElementPy(field.name, field.index, field.bit_count)
-                        for field in self.bit_field_elements
-                    ]
-                    if self.bit_field_elements
-                    else [],
-                )
-            else:
-                raise ValueError(f"Invalid bit field value: {value}")
+            list_value = value
+            # Convert to a list of values per bit_field_element
+            if isinstance(value, dict):
+                list_value = [value[field.name] for field in self.bit_field_elements]
+            elif isinstance(value, bytes) or isinstance(value, int):
+                val = int.from_bytes(list_value) if isinstance(list_value, bytes) else value
+                list_value = deque()
+                # Shift and mask to get variable number of bits per field.
+                # Do this in reverse to handle alignment between front bit_count and resolved bit_length of int in the case of leading zeros.
+                for field in reversed(self.bit_field_elements):
+                    mask = (1 << field.bit_count) - 1
+                    list_value.appendleft((val & mask))
+                    val >>= field.bit_count
+                list_value = list(list_value)
+
+            return ChannelValuePy.bitfield(
+                self.name,
+                [
+                    ChannelBitFieldElementPy(field.name, list_value[i], field.bit_count)
+                    for i, field in enumerate(self.bit_field_elements)
+                ]
+                if self.bit_field_elements
+                else [],
+            )
         elif self.data_type == ChannelDataType.BOOL:
             return ChannelValuePy.bool(self.name, value)
         elif self.data_type == ChannelDataType.FLOAT:

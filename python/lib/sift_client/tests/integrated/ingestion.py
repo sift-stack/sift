@@ -1,11 +1,13 @@
 import asyncio
 import math
 import os
+import random
 from datetime import datetime, timedelta
 
 from sift_client.client import SiftClient
 from sift_client.types.channel import (
     Channel,
+    ChannelBitFieldElement,
     ChannelDataType,
     Flow,
 )
@@ -18,7 +20,6 @@ async def main():
         rest_url=os.getenv("SIFT_REST_URI", "localhost:8080"),
     )
 
-    # asset = client.assets.get(name="NostromoLV426")
     asset = "ian-test-asset"
 
     # TODO:Get user id from current user
@@ -48,16 +49,18 @@ async def main():
             ),
         ],
     )
-    # regular_flow.add_channel(
-    #     Channel(
-    #         name="test-bit-field-channel",
-    #         data_type=ChannelDataType.BIT_FIELD,
-    #         bit_field_elements=[
-    #             ChannelBitFieldElement(name="field1", index=0, bit_count=1),
-    #             ChannelBitFieldElement(name="field2", index=1, bit_count=1),
-    #         ],
-    #     )
-    # )
+    regular_flow.add_channel(
+        Channel(
+            name="test-bit-field-channel",
+            data_type=ChannelDataType.BIT_FIELD,
+            bit_field_elements=[
+                ChannelBitFieldElement(name="12v", index=0, bit_count=4),
+                ChannelBitFieldElement(name="charge", index=4, bit_count=2),
+                ChannelBitFieldElement(name="led", index=6, bit_count=1),
+                ChannelBitFieldElement(name="heater", index=7, bit_count=1),
+            ],
+        )
+    )
 
     highspeed_flow = Flow(
         name="highspeed-flow",
@@ -69,7 +72,12 @@ async def main():
     #     asset_name=asset,
     #     flows=[regular_flow, highspeed_flow],
     # )
+    # This seals the flow and ingestion config
     await run.add_flows(flows=[regular_flow, highspeed_flow], asset=asset)
+    try:
+        regular_flow.add_channel(Channel(name="test-channel", data_type=ChannelDataType.DOUBLE))
+    except ValueError as e:
+        assert repr(e) == "ValueError('Cannot add a channel to a flow after creation')"
 
     await run.add_flows(
         flows=[
@@ -94,7 +102,12 @@ async def main():
             channel_values={
                 "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * i + 0),
                 "test-enum-channel": i % 2 + 1,
-                # "test-bit-field-channel": 0b10,
+                "test-bit-field-channel": {
+                    "12v": random.randint(3, 13),
+                    "charge": random.randint(0, 3),
+                    "led": random.choice([0, 1]),
+                    "heater": random.randint(2, 5),
+                },
             },
         )
         for j in range(fake_hs_rate):
@@ -108,11 +121,57 @@ async def main():
                 flow=highspeed_flow, timestamp=timestamp, channel_values=channel_values
             )
 
-    # TODO: Test ingestion of a flow with a channel that has no value
-    # TODO: Test ingestion of a bad enum value (string and int)
-    # TODO: Check assert adding a channel after data has been ingested causes an error?
-    # TODO: Add rule
-    run.wait_for_ingestion_to_complete(timeout=61)
+    # Test ingesting bit field values as bytes
+    regular_flow.ingest(
+        timestamp=start + timedelta(seconds=simulated_duration),
+        channel_values={
+            "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * simulated_duration + 0),
+            "test-enum-channel": 2,
+            "test-bit-field-channel": bytes([0b01010101]),
+        },
+    )
+
+    # Test ingestion of a flow without all channels specified
+    try:
+        regular_flow.ingest(
+            timestamp=start + timedelta(seconds=simulated_duration),
+            channel_values={
+                "test-channel": 0,
+                "test-enum-channel": 2,
+                # "test-bit-field-channel": bytes([0b01010101]),
+            },
+        )
+    except ValueError as e:
+        assert "Expected all channels in flow to have a data point at same time." in repr(e)
+
+    # Test ingestion of a bad enum value (string and int)
+    try:
+        regular_flow.ingest(
+            timestamp=start + timedelta(seconds=simulated_duration),
+            channel_values={
+                "test-channel": 0,
+                "test-enum-channel": -3,
+                "test-bit-field-channel": bytes([0b01010101]),
+            },
+        )
+    except ValueError as e:
+        assert "Could not find enum value: -3 in enum options: {'enum1': 1, 'enum2': 2}" in repr(e)
+    try:
+        regular_flow.ingest(
+            timestamp=start + timedelta(seconds=simulated_duration),
+            channel_values={
+                "test-channel": 0,
+                "test-enum-channel": "nonexistent-enum",
+                "test-bit-field-channel": bytes([0b01010101]),
+            },
+        )
+    except ValueError as e:
+        assert (
+            "Could not find enum value: nonexistent-enum in enum options: {'enum1': 1, 'enum2': 2}"
+            in repr(e)
+        )
+
+    run.wait_for_ingestion_to_complete(timeout=1)
     client.runs.delete(run=run.id)
 
     num_datapoints = fake_hs_rate * len(
