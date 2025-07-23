@@ -151,6 +151,29 @@ def stream_requests(
     asyncio.run(stream_requests_async(builder, run_id, *requests))
 
 
+def stream_requests_test(
+    builder: SiftStreamBuilderPy,
+    *requests: IngestWithConfigDataStreamRequest,
+    run_id: str = "",
+) -> None:
+    """
+    Stream requests using the stream bindings synchronously.
+    """
+
+    async def ingestion_test():
+        sift_stream = await builder.build()
+        for request in processed_requests:
+            sift_stream = await sift_stream.send_requests(request)
+        await sift_stream.finish()
+
+    print(f"Starting stream requests test for {len(requests)} requests")
+    processed_requests = []
+    for request in requests:
+        processed_request = ingest_request_to_ingest_request_py(request, run_id)
+        if processed_request is not None:
+            processed_requests.append(processed_request)
+
+
 def telemetry_config_to_ingestion_config_py(
     telemetry_config: TelemetryConfig,
 ) -> IngestionConfigFormPy:
