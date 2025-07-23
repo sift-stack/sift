@@ -270,11 +270,11 @@ impl ChannelValuePy {
     }
 
     #[staticmethod]
-    pub fn bitfield(name: &str, value: Vec<ChannelBitFieldElementPy>) -> Self {
+    pub fn bitfield(name: &str, value: Vec<u8>) -> Self {
         Self {
             inner: ChannelValue {
                 name: name.to_string(),
-                value: Value::BitField(value.into_iter().map(|e| e.index as u8).collect()),
+                value: Value::BitField(value),
             },
         }
     }
@@ -349,7 +349,7 @@ impl ChannelValueTypePy {
     #[staticmethod]
     pub fn bitfield(value: Vec<u8>) -> Self {
         Self {
-            inner: ChannelValueType::BitField(value),
+            inner: ChannelValueType::BitField(value.to_vec()),
         }
     }
 
