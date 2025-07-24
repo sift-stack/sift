@@ -1,7 +1,6 @@
 import asyncio
-import re
 from queue import Queue
-from typing import List
+from typing import List, Optional
 
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
 from sift_stream_bindings import (
@@ -21,53 +20,6 @@ from sift_stream_bindings import (
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 
-"""
-TODO:
-    - helper to fetch ingestion config id via client key
-"""
-
-
-def _sanitize_client_key(client_key: str) -> str:
-    """
-    Validate and sanitize a client key to meet Sift constraints.
-
-    Client key must be 3-128 characters, start and end with alphanumeric,
-    and contain only [a-zA-Z0-9_~.-]
-
-    Args:
-        client_key: The client key to validate
-
-    Returns:
-        str: A valid client key
-
-    Raises:
-        ValueError: If the client key cannot be made valid
-    """
-    # TODO: Test
-    if not client_key:
-        raise ValueError("Client key cannot be empty")
-
-    # Remove any characters that don't match the allowed pattern
-    sanitized = re.sub(r"[^a-zA-Z0-9_~.-]", "_", client_key)
-
-    # Ensure it starts with alphanumeric
-    if sanitized and not sanitized[0].isalnum():
-        sanitized = "a" + sanitized
-
-    # Ensure it ends with alphanumeric
-    if sanitized and not sanitized[-1].isalnum():
-        sanitized = sanitized + "0"
-
-    # Check length constraints
-    if len(sanitized) < 3:
-        # Pad with alphanumeric characters to meet minimum length
-        sanitized = sanitized + "00"[: 3 - len(sanitized)]
-    elif len(sanitized) > 128:
-        # Truncate to 128 characters, ensuring it ends with alphanumeric
-        sanitized = sanitized[:126] + "0"
-
-    return sanitized
-
 
 def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> SiftStreamBuilderPy:
     """
@@ -86,9 +38,11 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
     if not uri or not apikey:
         raise ValueError(f"Channel config is missing uri or apikey: {channel.config}")
 
-    if not uri.startswith("https://"):
-        uri = f"http://{uri}"
-    print(f"Using URI: {uri}")
+    if not uri.startswith("http"):
+        if "localhost" in uri:
+            uri = f"http://{uri}"
+        else:
+            uri = f"https://{uri}"
 
     builder = SiftStreamBuilderPy(uri, apikey)
     builder.ingestion_config = telemetry_config_to_ingestion_config_py(ingestion_config)
@@ -265,7 +219,7 @@ def convert_channel_data_type(data_type) -> ChannelDataTypePy:
 
 
 def get_run_form(
-    run_name: str, run_description: str, client_key: str, run_tags: List[str]
+    run_name: str, run_description: str, client_key: Optional[str] = None, run_tags: List[str] = []
 ) -> RunFormPy:
     """
     Get a run form.
@@ -279,14 +233,10 @@ def get_run_form(
     Returns:
         RunFormPy: The run form
     """
-    # Use provided client_key or sanitize run_name as fallback
-    if not client_key:
-        client_key = _sanitize_client_key(run_name)
-
     return RunFormPy(
         name=run_name,
         description=run_description,
-        client_key=client_key,
+        client_key=client_key or "",
         tags=run_tags,
     )
 
@@ -346,47 +296,34 @@ def convert_channel_value_to_channel_value_py(channel_value) -> ChannelValuePy:
     if not isinstance(channel_value, IngestWithConfigDataChannelValue):
         raise ValueError(f"Expected IngestWithConfigDataChannelValue, got {type(channel_value)}")
 
-    # Extract the value from the oneof field
-    # Note: We need a channel name, but the protobuf doesn't contain it
-    # This is a limitation - we'll use a placeholder name
-    channel_name = "unknown_channel"  # This is a limitation of the conversion
-
     if channel_value.HasField("string"):
-        return ChannelValuePy.string(channel_name, channel_value.string)
+        return ChannelValuePy.string("", channel_value.string)
     elif channel_value.HasField("double"):
-        return ChannelValuePy.double(channel_name, channel_value.double)
+        return ChannelValuePy.double("", channel_value.double)
     elif channel_value.HasField("float"):
-        return ChannelValuePy.float(channel_name, channel_value.float)
+        return ChannelValuePy.float("", channel_value.float)
     elif channel_value.HasField("bool"):
-        return ChannelValuePy.bool(channel_name, channel_value.bool)
+        return ChannelValuePy.bool("", channel_value.bool)
     elif channel_value.HasField("int32"):
-        return ChannelValuePy.int32(channel_name, channel_value.int32)
+        return ChannelValuePy.int32("", channel_value.int32)
     elif channel_value.HasField("uint32"):
-        return ChannelValuePy.uint32(channel_name, channel_value.uint32)
+        return ChannelValuePy.uint32("", channel_value.uint32)
     elif channel_value.HasField("int64"):
-        return ChannelValuePy.int64(channel_name, channel_value.int64)
+        return ChannelValuePy.int64("", channel_value.int64)
     elif channel_value.HasField("uint64"):
-        return ChannelValuePy.uint64(channel_name, channel_value.uint64)
+        return ChannelValuePy.uint64("", channel_value.uint64)
     elif channel_value.HasField("enum"):
         # For enum values, we need to create a ChannelEnumTypePy
         enum_type = ChannelEnumTypePy(name=f"enum_{channel_value.enum}", key=channel_value.enum)
-        return ChannelValuePy.enum_value(channel_name, enum_type)
+        return ChannelValuePy.enum_value("", enum_type)
     elif channel_value.HasField("bit_field"):
-        # For bit field values, we need to create ChannelBitFieldElementPy list
-        # This is a simplified conversion - in practice you'd need the actual bit field definition
-        bit_field_elements = []
-        for i, byte in enumerate(channel_value.bit_field):
-            if byte != 0:
-                bit_field_elements.append(
-                    ChannelBitFieldElementPy(name=f"bit_{i}", index=i, bit_count=1)
-                )
-        return ChannelValuePy.bitfield(channel_name, bit_field_elements)
+        return ChannelValuePy.bitfield("", channel_value.bitfield)
     elif channel_value.HasField("bytes"):
         # For bytes values, we'll convert to a string representation
-        return ChannelValuePy.string(channel_name, str(channel_value.bytes))
+        return ChannelValuePy.string("", str(channel_value.bytes))
     elif channel_value.HasField("empty"):
         # For empty values, we'll return a default value
-        return ChannelValuePy.string(channel_name, "")
+        return ChannelValuePy.string("", "")
     else:
         # No field set, return empty string
-        return ChannelValuePy.string(channel_name, "")
+        return ChannelValuePy.string("", "")
