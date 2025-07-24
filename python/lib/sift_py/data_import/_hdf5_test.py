@@ -667,13 +667,12 @@ def test_hdf5_upload(mocker: MockFixture, hdf5_config, hdf5_data_dict, rest_conf
     mock_csv_upload = mocker.patch("sift_py.data_import.csv.CsvUploadService.upload")
 
     svc = Hdf5UploadService(rest_config)
-    import_services = svc.upload(
+    svc.upload(
         "mock.h5",
         hdf5_config,
     )
 
-    mock_csv_upload.assert_called()
-    assert len(import_services) == 3
+    assert mock_csv_upload.call_count == 3
 
 
 def test_hdf5_upload_string_timestamps(mocker: MockFixture, hdf5_config, rest_config):

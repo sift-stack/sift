@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union
+from typing import Generator, List, Optional, Union
 from urllib.parse import urljoin
 
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -65,34 +65,48 @@ class DataImportService(_RestService):
     """
 
     STATUS_PATH = "/api/v1/data-imports"
-    _data_import_id: str
+    _data_import_ids: List[str]
+    _status_uri: str
 
     # TODO: rename restconf to rest_conf for consistency between services
     def __init__(self, restconf: SiftRestConfig, data_import_id: str):
         super().__init__(rest_conf=restconf)
-        self._data_import_id = data_import_id
+        self._data_import_ids = [data_import_id]
         self._status_uri = urljoin(self._base_uri, self.STATUS_PATH)
 
-    def get_data_import(self) -> DataImport:
+    def extend(self, other: Self):
         """
-        Returns information about the data import.
+        Add an existing data import service to track a batch data import
+        """
+        self._data_import_ids.extend(other._data_import_ids)
+
+    def get_data_import(self, idx: int = 0) -> DataImport:
+        """
+        Returns information about the data import. Provides the first data import if multiple provided through `add_data_import_id` and `idx` not passed
+
+        - `idx`: Optional idx of the desired DataImport to access
         """
         response = self._session.get(
-            url=f"{self._status_uri}/{self._data_import_id}",
+            url=f"{self._status_uri}/{self._data_import_ids[idx]}",
         )
         response.raise_for_status()
         data = response.json().get("dataImport")
         data_import = DataImport(**data)
         return data_import
 
-    def wait_until_complete(self) -> DataImport:
+    def get_data_imports(self) -> Generator[DataImport, None, None]:
+        for idx in range(len(self._data_import_ids)):
+            yield self.get_data_import(idx=idx)
+
+    def wait_until_complete(self, idx: int = 0) -> DataImport:
         """
         Blocks until the data import is completed. Check the status to determine
         if the import was successful or not.
+        Waits on only the first data import if multiple provided through `add_data_import_id` and `idx` not passed
         """
         polling_interval = 1
         while True:
-            data_import = self.get_data_import()
+            data_import = self.get_data_import(idx=idx)
             status: DataImportStatusType = data_import.status  # type: ignore
             if status in [
                 DataImportStatusType.SUCCEEDED,
@@ -108,3 +122,9 @@ class DataImportService(_RestService):
                 raise Exception(f"Unknown status: {status}")
             time.sleep(polling_interval)
             polling_interval = min(polling_interval * 2, 60)
+
+    def wait_until_all_complete(self) -> List[DataImport]:
+        """
+        Blocks until all data imports are complete.
+        """
+        return [self.wait_until_complete(idx=idx) for idx in range(len(self._data_import_ids))]

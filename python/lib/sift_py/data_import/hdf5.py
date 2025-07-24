@@ -3,7 +3,7 @@ import uuid
 from collections import defaultdict
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Dict, List, TextIO, Tuple, Union, cast
+from typing import Dict, List, Optional, TextIO, Tuple, Union, cast
 from urllib.parse import urljoin
 
 try:
@@ -48,7 +48,7 @@ class Hdf5UploadService:
         path: Union[str, Path],
         hdf5_config: Hdf5Config,
         show_progress: bool = True,
-    ) -> List[DataImportService]:
+    ) -> Optional[DataImportService]:
         """
         Uploads the HDF5 file pointed to by `path` using a custom HDF5 config.
 
@@ -58,7 +58,7 @@ class Hdf5UploadService:
             show_progress: Whether to show the status bar or not.
 
         Returns:
-            A list of DataImportServices used to get the status of the import.
+            DataImportService used to get the status of the import.
         """
 
         posix_path = Path(path) if isinstance(path, str) else path
@@ -103,15 +103,17 @@ class Hdf5UploadService:
                 self._prev_run_id = ""
 
             # Upload each file
-            import_services = []
+            import_service = None
             for filename, csv_config in csv_items:
-                import_services.append(
-                    self._csv_upload_service.upload(
-                        filename, csv_config, show_progress=show_progress
-                    )
+                new_import_service = self._csv_upload_service.upload(
+                    filename, csv_config, show_progress=show_progress
                 )
+                if import_service is None:
+                    import_service = new_import_service
+                else:
+                    import_service.extend(new_import_service)
 
-        return import_services
+        return import_service
 
     def get_previous_upload_run_id(self) -> str:
         """Return the run_id used in the previous upload"""
