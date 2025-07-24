@@ -56,14 +56,14 @@ if __name__ == "__main__":
     }
 
     hdf5_upload_service = Hdf5UploadService(rest_config)
-    import_services = hdf5_upload_service.upload(
+    import_service = hdf5_upload_service.upload(
         "sample_data.h5",
         hdf5_config,
     )
 
     # Wait until the data import is completed.
     # The hdf5 upload service may split the upload into multiple parts
-    data_imports = [import_svc.wait_until_complete() for import_svc in import_services]
+    data_imports = import_service.wait_until_all_complete()
 
     # Print the data import details and final status.
     for data_import in data_imports:

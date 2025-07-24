@@ -82,7 +82,7 @@ class DataImportService(_RestService):
 
     def get_data_import(self, idx: int = 0) -> DataImport:
         """
-        Returns information about the data import. Provides the first data import if multiple provided through `add_data_import_id` and `idx` not passed
+        Returns information about the data import. Provides the first data import if multiple provided through `extend` and `idx` not passed
 
         - `idx`: Optional idx of the desired DataImport to access
         """

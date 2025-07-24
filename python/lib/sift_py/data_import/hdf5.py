@@ -58,7 +58,7 @@ class Hdf5UploadService:
             show_progress: Whether to show the status bar or not.
 
         Returns:
-            DataImportService used to get the status of the import.
+            DataImportService used to get the status of the import or None if no data uploaded due to lack of data in file matching any config definitions.
         """
 
         posix_path = Path(path) if isinstance(path, str) else path
