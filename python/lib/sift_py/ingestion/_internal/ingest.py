@@ -145,9 +145,9 @@ class _IngestionServiceImpl:
         if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
-        self._ingest_async(*requests)
+        self.ingest_async(*requests)
 
-    def _ingest_async(self, *requests: IngestWithConfigDataStreamRequest):
+    def ingest_async(self, *requests: IngestWithConfigDataStreamRequest):
         """
         Perform data ingestion asynchronously in a background thread.
         This allows multiple ingest calls to run in parallel.
@@ -236,7 +236,7 @@ class _IngestionServiceImpl:
         if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
-        self._ingest_async(*requests)
+        self.ingest_async(*requests)
 
     def try_ingest_flows(self, *flows: Flow):
         """
@@ -256,18 +256,18 @@ class _IngestionServiceImpl:
         if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
-        self._ingest_async(*requests)
+        self.ingest_async(*requests)
 
     def attach_run(
         self,
         channel: SiftChannel,
         run_name: str,
-        client_key: Optional[str] = None,
         description: Optional[str] = None,
         organization_id: Optional[str] = None,
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
         force_new: bool = False,
+        client_key: Optional[str] = None,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
@@ -284,14 +284,19 @@ class _IngestionServiceImpl:
         self.run_id = create_run(
             channel=channel,
             run_name=run_name,
-            run_client_key=client_key or "",
+            run_client_key=client_key,
             description=description or "",
             organization_id=organization_id or "",
             tags=tags or [],
             metadata=metadata,
         )
 
-        self.builder.run = get_run_form(run_name, description or "", client_key or "", tags or [])
+        self.builder.run = get_run_form(
+            run_name=run_name,
+            run_description=description or "",
+            client_key=client_key,
+            run_tags=tags,
+        )
 
     def detach_run(self):
         """
