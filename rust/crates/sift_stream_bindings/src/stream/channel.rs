@@ -1,3 +1,4 @@
+use pbjson_types::Empty;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelDataType, ChannelEnumType};
@@ -357,6 +358,13 @@ impl ChannelValueTypePy {
     pub fn bytes(value: Vec<u8>) -> Self {
         Self {
             inner: ChannelValueType::Bytes(value),
+        }
+    }
+
+    #[staticmethod]
+    pub fn empty() -> Self {
+        Self {
+            inner: ChannelValueType::Empty(Empty {}),
         }
     }
 }

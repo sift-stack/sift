@@ -1528,6 +1528,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 name = "sift-stream-bindings"
 version = "0.1.1"
 dependencies = [
+ "pbjson-types",
  "pyo3",
  "pyo3-async-runtimes",
  "pyo3-stub-gen",

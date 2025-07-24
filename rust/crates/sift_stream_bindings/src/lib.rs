@@ -25,5 +25,6 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::channel::ChannelValuePy>()?;
     m.add_class::<stream::channel::ChannelValueTypePy>()?;
     m.add_class::<stream::request::IngestWithConfigDataStreamRequestPy>()?;
+    m.add_class::<stream::request::IngestWithConfigDataChannelValuePy>()?;
     Ok(())
 }
