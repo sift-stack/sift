@@ -32,23 +32,28 @@ def get_run_id_by_name(
 def create_run(
     channel: SiftChannel,
     run_name: str,
-    run_client_key: str,
     description: str,
     organization_id: str,
     tags: List[str],
     metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
+    run_client_key: Optional[str] = None,
 ) -> str:
     svc = RunServiceStub(channel)
 
     _metadata = metadata_dict_to_pb(metadata) if metadata else None
 
-    req = CreateRunRequest(
-        name=run_name,
-        client_key=run_client_key,
-        description=description,
-        organization_id=organization_id,
-        tags=tags,
-        metadata=_metadata,
-    )
+    kwargs = {
+        "name": run_name,
+        "description": description,
+        "organization_id": organization_id,
+        "tags": tags,
+        "metadata": _metadata,
+    }
+    if run_client_key:
+        kwargs["client_key"] = run_client_key
+
+    print(f"Creating run with kwargs: {kwargs}")
+
+    req = CreateRunRequest(**kwargs)
     res = cast(CreateRunResponse, svc.CreateRun(req))
     return res.run.run_id
