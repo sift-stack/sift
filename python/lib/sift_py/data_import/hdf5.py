@@ -3,7 +3,7 @@ import uuid
 from collections import defaultdict
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Dict, List, Optional, TextIO, Tuple, Union, cast
+from typing import Dict, List, TextIO, Tuple, Union, cast
 from urllib.parse import urljoin
 
 import numpy as np
@@ -50,7 +50,7 @@ class Hdf5UploadService:
         path: Union[str, Path],
         hdf5_config: Hdf5Config,
         show_progress: bool = True,
-    ) -> Optional[DataImportService]:
+    ) -> DataImportService:
         """
         Uploads the HDF5 file pointed to by `path` using a custom HDF5 config.
 
@@ -60,7 +60,7 @@ class Hdf5UploadService:
             show_progress: Whether to show the status bar or not.
 
         Returns:
-            DataImportService used to get the status of the import or None if no data uploaded due to lack of data in file matching any config definitions.
+            DataImportService used to get the status of the import
         """
 
         posix_path = Path(path) if isinstance(path, str) else path
@@ -87,6 +87,9 @@ class Hdf5UploadService:
                     config,
                 )
                 csv_items.append((temp_file.name, csv_config))
+
+            if not csv_items:
+                raise Exception("No data found for upload during processing of file")
 
             # If a config defines a run_name and is split up, multiple runs will be created.
             # Instead, generate a run_id now, and use that instead of a run_name
