@@ -1,4 +1,5 @@
 import asyncio
+import random
 from queue import Queue
 from typing import List, Optional
 
@@ -8,9 +9,9 @@ from sift_stream_bindings import (
     ChannelConfigPy,
     ChannelDataTypePy,
     ChannelEnumTypePy,
-    ChannelValuePy,
     FlowConfigPy,
     IngestionConfigFormPy,
+    IngestWithConfigDataChannelValuePy,
     IngestWithConfigDataStreamRequestPy,
     RunFormPy,
     SiftStreamBuilderPy,
@@ -75,6 +76,9 @@ async def stream_requests_async(
     # Put each request individually into the queue, filtering out None values
     processed_requests = []
     for request in requests:
+        if not isinstance(request, IngestWithConfigDataStreamRequest):
+            print(f"Skipping request: {request} of type {type(request)}")
+            continue
         processed_request = ingest_request_to_ingest_request_py(request, run_id)
         if processed_request is not None:
             processed_requests.append(processed_request)
@@ -236,7 +240,7 @@ def get_run_form(
     return RunFormPy(
         name=run_name,
         description=run_description,
-        client_key=client_key or "",
+        client_key=client_key or f"random_key_{str(random.randint(1000, 9999))}",
         tags=run_tags,
     )
 
@@ -255,6 +259,8 @@ def ingest_request_to_ingest_request_py(
     Returns:
         IngestWithConfigDataStreamRequestPy: The converted request
     """
+    if isinstance(request, str):
+        print(f"Converting request: {request} of type {type(request)}")
     if request is None:
         return None
 
@@ -280,50 +286,43 @@ def ingest_request_to_ingest_request_py(
     )
 
 
-def convert_channel_value_to_channel_value_py(channel_value) -> ChannelValuePy:
+def convert_channel_value_to_channel_value_py(channel_value) -> IngestWithConfigDataChannelValuePy:
     """
-    Convert an IngestWithConfigDataChannelValue to ChannelValuePy.
+    Convert an IngestWithConfigDataChannelValue to IngestWithConfigDataChannelValuePy.
 
     Args:
         channel_value: The IngestWithConfigDataChannelValue to convert
 
     Returns:
-        ChannelValuePy: The converted channel value
+        IngestWithConfigDataChannelValuePy: The converted channel value
     """
-    # Import here to avoid circular imports
-    from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
-
-    if not isinstance(channel_value, IngestWithConfigDataChannelValue):
-        raise ValueError(f"Expected IngestWithConfigDataChannelValue, got {type(channel_value)}")
-
     if channel_value.HasField("string"):
-        return ChannelValuePy.string("", channel_value.string)
+        return IngestWithConfigDataChannelValuePy.string(channel_value.string)
     elif channel_value.HasField("double"):
-        return ChannelValuePy.double("", channel_value.double)
+        return IngestWithConfigDataChannelValuePy.double(channel_value.double)
     elif channel_value.HasField("float"):
-        return ChannelValuePy.float("", channel_value.float)
+        return IngestWithConfigDataChannelValuePy.float(channel_value.float)
     elif channel_value.HasField("bool"):
-        return ChannelValuePy.bool("", channel_value.bool)
+        return IngestWithConfigDataChannelValuePy.bool(channel_value.bool)
     elif channel_value.HasField("int32"):
-        return ChannelValuePy.int32("", channel_value.int32)
+        return IngestWithConfigDataChannelValuePy.int32(channel_value.int32)
     elif channel_value.HasField("uint32"):
-        return ChannelValuePy.uint32("", channel_value.uint32)
+        return IngestWithConfigDataChannelValuePy.uint32(channel_value.uint32)
     elif channel_value.HasField("int64"):
-        return ChannelValuePy.int64("", channel_value.int64)
+        return IngestWithConfigDataChannelValuePy.int64(channel_value.int64)
     elif channel_value.HasField("uint64"):
-        return ChannelValuePy.uint64("", channel_value.uint64)
+        return IngestWithConfigDataChannelValuePy.uint64(channel_value.uint64)
     elif channel_value.HasField("enum"):
         # For enum values, we need to create a ChannelEnumTypePy
-        enum_type = ChannelEnumTypePy(name=f"enum_{channel_value.enum}", key=channel_value.enum)
-        return ChannelValuePy.enum_value("", enum_type)
+        return IngestWithConfigDataChannelValuePy.enum_value(channel_value.enum)
     elif channel_value.HasField("bit_field"):
-        return ChannelValuePy.bitfield("", channel_value.bitfield)
+        return IngestWithConfigDataChannelValuePy.bitfield(channel_value.bit_field)
     elif channel_value.HasField("bytes"):
         # For bytes values, we'll convert to a string representation
-        return ChannelValuePy.string("", str(channel_value.bytes))
+        return IngestWithConfigDataChannelValuePy.string(str(channel_value.bytes))
     elif channel_value.HasField("empty"):
         # For empty values, we'll return a default value
-        return ChannelValuePy.string("", "")
+        return IngestWithConfigDataChannelValuePy.empty()
     else:
-        # No field set, return empty string
-        return ChannelValuePy.string("", "")
+        # No field set, return empty value
+        return IngestWithConfigDataChannelValuePy.empty()
