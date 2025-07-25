@@ -173,6 +173,8 @@ async def main():
             in repr(e)
         )
 
+    print("Waiting before wait")
+    time.sleep(10)
     run.wait_for_ingestion_to_complete(timeout=1)
     end = datetime.now()
     # Test ingesting more data after letting a thread finish.
@@ -185,7 +187,7 @@ async def main():
             "test-bit-field-channel": bytes([0b11111111]),
         },
     )
-    print("Last ingestion")
+    print("Restarting ingestion")
     run.wait_for_ingestion_to_complete(timeout=1)
     client.runs.delete(run=run.id)
 

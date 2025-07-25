@@ -410,6 +410,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        as_arrow: bool = False,
     ):
         """
         Retrieve channel data for this channel during the specified run.
@@ -423,13 +424,22 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         Returns:
             A ChannelTimeSeries object.
         """
-        data = self.client.channels.get_data(
-            channels=[self.id],  # type: ignore
-            run_id=run_id,
-            start_time=start_time,
-            end_time=end_time,
-            limit=limit,  # type: ignore
-        )
+        if as_arrow:
+            data = self.client.channels.get_data_as_arrow(
+                channels=[self.id],  # type: ignore
+                run_id=run_id,
+                start_time=start_time,
+                end_time=end_time,
+                limit=limit,  # type: ignore
+            )
+        else:
+            data = self.client.channels.get_data(
+                channels=[self.id],  # type: ignore
+                run_id=run_id,
+                start_time=start_time,
+                end_time=end_time,
+                limit=limit,  # type: ignore
+            )
         return data
 
 

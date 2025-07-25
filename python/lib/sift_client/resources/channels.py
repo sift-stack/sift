@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List
 
 import numpy as np
+import pyarrow as pa
 
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -195,3 +196,24 @@ class ChannelsAPIAsync(ResourceBase):
             end_time=end_time,
             limit=limit,
         )
+
+    async def get_data_as_arrow(
+        self,
+        *,
+        channels: List[str | Channel],
+        run_id: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+    ) -> Dict[str, pa.Table]:
+        """
+        Get data for one or more channels as pyarrow tables.
+        """
+        data = await self.get_data(
+            channels=channels,
+            run_id=run_id,
+            start_time=start_time,
+            end_time=end_time,
+            limit=limit,
+        )
+        return {k: pa.Table.from_pandas(v) for k, v in data.items()}

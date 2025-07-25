@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, AsyncIterator, Dict, List
 
 import numpy as np
+import pyarrow as pa
 from sift.ingest.v1.ingest_pb2 import IngestArbitraryProtobufDataStreamRequest
 
 from sift_client.client import SiftClient
@@ -448,6 +449,20 @@ class ChannelsAPI:
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+        """
+        ...
+
+    def get_data_as_arrow(
+        self,
+        *,
+        channels: List[str | Channel],
+        run_id: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        limit: int | None = None,
+    ) -> Dict[str, pa.Table]:
+        """
+        Get data for one or more channels as pyarrow tables.
         """
         ...
 
