@@ -6,10 +6,12 @@ import polars as pl  # type: ignore
 import pytest
 from pytest_mock import MockFixture
 
+from sift_py.data_import._config import EnumType, Hdf5DataCfg
 from sift_py.data_import.config import Hdf5Config
 from sift_py.data_import.hdf5 import (
     Hdf5UploadService,
     _convert_hdf5_to_dataframes,
+    _convert_signed_enums,
     _create_csv_config,
     _extract_hdf5_data_to_dataframe,
     _merge_timeseries_dataframes,
@@ -854,3 +856,160 @@ def test_merge_timeseries_dataframes_different_dtypes():
     result = result.sort("timestamp")
     assert result["string_channel"].to_list() == [None, "a", "b", "c"]
     assert result["common_channel"].to_list() == [10.0, 20.0, 30.0, 60.0]
+
+
+def test_convert_signed_enums():
+    data_cfg = Hdf5DataCfg(
+        name="TestEnum",
+        time_dataset="/time",
+        value_dataset="/values",
+        data_type="CHANNEL_DATA_TYPE_ENUM",
+        enum_types=[
+            EnumType(name="Off", key=-1, is_signed=True),
+            EnumType(name="On", key=1, is_signed=True),
+        ],
+    )
+
+    # Create test data with signed enum values
+    test_data = pl.Series("test", [-1, 1, -1])
+
+    result = _convert_signed_enums(data_cfg, test_data)
+
+    # Check that the signed enum key was converted: -1 + 2^32 = 4294967295
+    assert data_cfg.enum_types[0].key == 4294967295
+    assert data_cfg.enum_types[1].key == 1  # Positive key unchanged
+
+    # Check that the data was converted to uint32
+    assert result.dtype == pl.UInt32
+    expected_values = np.array([4294967295, 1, 4294967295], dtype=np.uint32)
+    assert np.array_equal(result.to_numpy(), expected_values)
+
+
+def test_convert_signed_enums_no_signed_keys():
+    """Test _convert_signed_enums with no signed enum keys"""
+
+    data_cfg = Hdf5DataCfg(
+        name="TestEnum",
+        time_dataset="/time",
+        value_dataset="/values",
+        data_type="CHANNEL_DATA_TYPE_ENUM",
+        enum_types=[
+            EnumType(name="Off", key=0, is_signed=True),
+            EnumType(name="On", key=1, is_signed=True),
+        ],
+    )
+
+    test_data = pl.Series("test", [0, 1, 0])
+
+    result = _convert_signed_enums(data_cfg, test_data)
+
+    # Keys should remain unchanged
+    assert data_cfg.enum_types[0].key == 0
+    assert data_cfg.enum_types[1].key == 1
+
+    assert result.dtype == pl.UInt32
+    assert np.array_equal(result.to_numpy(), test_data.to_numpy())
+
+
+def test_convert_signed_enums_collision_error():
+    """Test _convert_signed_enums raises error when conversion would cause collision"""
+
+    # Create a scenario where converting -1 to unsigned (4294967295) would collide
+    data_cfg = Hdf5DataCfg(
+        name="TestEnum",
+        time_dataset="/time",
+        value_dataset="/values",
+        data_type="CHANNEL_DATA_TYPE_ENUM",
+        enum_types=[
+            EnumType(name="Negative", key=-1, is_signed=True),
+            EnumType(name="Collision", key=4294967295, is_signed=True),  # This would collide
+        ],
+    )
+
+    test_data = pl.Series("test", [-1, 4294967295])
+
+    with pytest.raises(
+        Exception, match="Converting key -1 to unsigned int collides with existing key 4294967295"
+    ):
+        _convert_signed_enums(data_cfg, test_data)
+
+
+def test_convert_signed_enums_multiple_negative_keys():
+    """Test _convert_signed_enums with multiple negative signed enum keys"""
+
+    data_cfg = Hdf5DataCfg(
+        name="TestEnum",
+        time_dataset="/time",
+        value_dataset="/values",
+        data_type="CHANNEL_DATA_TYPE_ENUM",
+        enum_types=[
+            EnumType(name="NegOne", key=-1, is_signed=True),
+            EnumType(name="NegTwo", key=-2, is_signed=True),
+            EnumType(name="Zero", key=0, is_signed=True),
+            EnumType(name="PosOne", key=1, is_signed=True),
+        ],
+    )
+
+    test_data = pl.Series("test", [-1, -2, 0, 1])
+
+    result = _convert_signed_enums(data_cfg, test_data)
+
+    # Check conversions: -1 -> 4294967295, -2 -> 4294967294
+    assert data_cfg.enum_types[0].key == 4294967295
+    assert data_cfg.enum_types[1].key == 4294967294
+    assert data_cfg.enum_types[2].key == 0  # Unchanged
+    assert data_cfg.enum_types[3].key == 1  # Unchanged
+
+    # Data should be converted to uint32
+    assert result.dtype == pl.UInt32
+    expected_values = np.array([4294967295, 4294967294, 0, 1])
+    assert np.array_equal(result.to_numpy(), expected_values)
+
+
+def test_convert_signed_enums_edge_case_min_int32():
+    """Test _convert_signed_enums with minimum int32 value"""
+
+    min_int32 = -2147483648
+
+    data_cfg = Hdf5DataCfg(
+        name="TestEnum",
+        time_dataset="/time",
+        value_dataset="/values",
+        data_type="CHANNEL_DATA_TYPE_ENUM",
+        enum_types=[
+            EnumType(name="MinInt32", key=min_int32, is_signed=True),
+        ],
+    )
+
+    test_data = pl.Series("test", [min_int32])
+
+    result = _convert_signed_enums(data_cfg, test_data)
+
+    # min_int32 + 2^32 = -2147483648 + 4294967296 = 2147483648
+    expected_unsigned_key = min_int32 + (1 << 32)
+    assert data_cfg.enum_types[0].key == expected_unsigned_key
+
+    # Data should be converted to uint32
+    assert result.dtype == pl.UInt32
+    expected_values = np.array([expected_unsigned_key])
+    assert np.array_equal(result.to_numpy(), expected_values)
+
+
+def test_convert_signed_enums_overflow():
+    data_cfg = Hdf5DataCfg(
+        name="TestEnum",
+        time_dataset="/time",
+        value_dataset="/values",
+        data_type="CHANNEL_DATA_TYPE_ENUM",
+        enum_types=[
+            # Min int32 is -2_147_483_648
+            EnumType(name="Off", key=-2_147_483_649, is_signed=True),
+            EnumType(name="On", key=1, is_signed=True),
+        ],
+    )
+
+    # Create test data with signed enum values
+    test_data = pl.Series("test", [-2_147_483_649, 1, -2_147_483_649])
+
+    with pytest.raises(Exception, match="below valid int32 range"):
+        _convert_signed_enums(data_cfg, test_data)

@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, TextIO, Tuple, Union, cast
 from urllib.parse import urljoin
 
+import numpy as np
+
 try:
     import h5py  # type: ignore
 except ImportError as e:
@@ -263,7 +265,7 @@ def _extract_hdf5_data_to_dataframe(
         hdf5_file: HDF5 File
         time_path: HDF5 time array path
         time_col: HDF5 time array col (1-indexed)
-        hdf5_data_config: The HDF5 Data Config
+        hdf5_data_config: List of HDF5 Data Configs being extracted
 
     Returns:
         A multi-column polars DataFrame containing the timestamps and associated channels
@@ -319,9 +321,43 @@ def _extract_hdf5_data_to_dataframe(
         if value_series.dtype == pl.Binary:
             value_series = value_series.cast(pl.String)
 
+        # Handle signed enums
+        # TODO: Remove once properly handled upon ingestion
+        if hdf5_data_config.data_type == "CHANNEL_DATA_TYPE_ENUM" and any(
+            [enum_type.is_signed for enum_type in hdf5_data_config.enum_types]
+        ):
+            value_series = _convert_signed_enums(hdf5_data_config, value_series)
+
         data_frame = data_frame.with_columns(value_series.alias(hdf5_data_config.name))
 
     return data_frame
+
+
+def _convert_signed_enums(data_cfg: Hdf5DataCfg, data: pl.Series) -> pl.Series:
+    """
+    Convert signed enums to unsigned ints for ingestion
+    Ignores keys >= 0, such as those which may have been converted previously by the user
+    Will raise an exception if casting will cause a collision with an existing key
+    Or otherwise cannot cast signed negative int to a uint32
+    """
+    cur_enum_keys = set([enum_type.key for enum_type in data_cfg.enum_types])
+
+    for enum_type in data_cfg.enum_types:
+        if not enum_type.is_signed or enum_type.key >= 0:
+            continue
+        if enum_type.key < -2_147_483_648:
+            raise Exception(
+                f"{data_cfg.name}: Cannot convert key {enum_type.key} to uint32 due to being below valid int32 range"
+            )
+        unsigned_key = enum_type.key + (1 << 32)
+        if unsigned_key in cur_enum_keys:
+            raise Exception(
+                f"{data_cfg.name}: Converting key {enum_type.key} to unsigned int collides with existing key {unsigned_key}"
+            )
+        enum_type.key = unsigned_key
+
+    # Numpy astype will wrap negative values
+    return pl.Series(data.to_numpy().astype(np.uint32))
 
 
 def _create_csv_config(hdf5_config: Hdf5Config, merged_df: pl.DataFrame) -> CsvConfig:
