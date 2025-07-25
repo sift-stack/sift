@@ -6,7 +6,7 @@ import polars as pl  # type: ignore
 import pytest
 from pytest_mock import MockFixture
 
-from sift_py.data_import._config import EnumType, Hdf5DataCfg
+from sift_py.data_import._config import Hdf5DataCfg
 from sift_py.data_import.config import Hdf5Config
 from sift_py.data_import.hdf5 import (
     Hdf5UploadService,
@@ -865,8 +865,8 @@ def test_convert_signed_enums():
         value_dataset="/values",
         data_type="CHANNEL_DATA_TYPE_ENUM",
         enum_types=[
-            EnumType(name="Off", key=-1, is_signed=True),
-            EnumType(name="On", key=1, is_signed=True),
+            {"name": "Off", "key": -1, "is_signed": True},
+            {"name": "On", "key": 1, "is_signed": True},
         ],
     )
 
@@ -894,8 +894,8 @@ def test_convert_signed_enums_no_signed_keys():
         value_dataset="/values",
         data_type="CHANNEL_DATA_TYPE_ENUM",
         enum_types=[
-            EnumType(name="Off", key=0, is_signed=True),
-            EnumType(name="On", key=1, is_signed=True),
+            {"name": "Off", "key": 0, "is_signed": True},
+            {"name": "On", "key": 1, "is_signed": True},
         ],
     )
 
@@ -921,8 +921,8 @@ def test_convert_signed_enums_collision_error():
         value_dataset="/values",
         data_type="CHANNEL_DATA_TYPE_ENUM",
         enum_types=[
-            EnumType(name="Negative", key=-1, is_signed=True),
-            EnumType(name="Collision", key=4294967295, is_signed=True),  # This would collide
+            {"name": "Negative", "key": -1, "is_signed": True},
+            {"name": "Collision", "key": 4294967295, "is_signed": True},  # This would collide
         ],
     )
 
@@ -943,10 +943,10 @@ def test_convert_signed_enums_multiple_negative_keys():
         value_dataset="/values",
         data_type="CHANNEL_DATA_TYPE_ENUM",
         enum_types=[
-            EnumType(name="NegOne", key=-1, is_signed=True),
-            EnumType(name="NegTwo", key=-2, is_signed=True),
-            EnumType(name="Zero", key=0, is_signed=True),
-            EnumType(name="PosOne", key=1, is_signed=True),
+            {"name": "NegOne", "key": -1, "is_signed": True},
+            {"name": "NegTwo", "key": -2, "is_signed": True},
+            {"name": "Zero", "key": 0, "is_signed": True},
+            {"name": "PosOne", "key": 1, "is_signed": True},
         ],
     )
 
@@ -977,7 +977,7 @@ def test_convert_signed_enums_edge_case_min_int32():
         value_dataset="/values",
         data_type="CHANNEL_DATA_TYPE_ENUM",
         enum_types=[
-            EnumType(name="MinInt32", key=min_int32, is_signed=True),
+            {"name": "MinInt32", "key": min_int32, "is_signed": True},
         ],
     )
 
@@ -1003,8 +1003,8 @@ def test_convert_signed_enums_overflow():
         data_type="CHANNEL_DATA_TYPE_ENUM",
         enum_types=[
             # Min int32 is -2_147_483_648
-            EnumType(name="Off", key=-2_147_483_649, is_signed=True),
-            EnumType(name="On", key=1, is_signed=True),
+            {"name": "Off", "key": -2_147_483_649, "is_signed": True},
+            {"name": "On", "key": 1, "is_signed": True},
         ],
     )
 
