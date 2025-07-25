@@ -118,7 +118,10 @@ class Hdf5UploadService:
                 else:
                     import_service.extend(new_import_service)
 
-        return import_service
+        if import_service is not None:
+            return import_service
+        else:
+            raise Exception("No data uploaded by service")
 
     def get_previous_upload_run_id(self) -> str:
         """Return the run_id used in the previous upload"""
