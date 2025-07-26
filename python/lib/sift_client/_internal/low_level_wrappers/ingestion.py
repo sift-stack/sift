@@ -15,6 +15,7 @@ import hashlib
 import logging
 import sys
 import threading
+import time
 from collections import namedtuple
 from datetime import datetime, timedelta
 from queue import Queue
@@ -66,6 +67,8 @@ class IngestionThread(threading.Thread):
         sift_stream_builder: sift_stream_bindings.SiftStreamBuilderPy,
         data_queue: Queue,
         ingestion_config: IngestionConfigFormPy,
+        no_data_timeout: int = 1,
+        metric_interval: float = 0.5,
     ):
         """
         Initialize the IngestionThread.
@@ -74,54 +77,72 @@ class IngestionThread(threading.Thread):
             sift_stream_builder: The sift stream builder to build a new stream.
             data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
             ingestion_config: The ingestion config to use for ingestion.
+            no_data_timeout: The number of (whole number) seconds to wait for data before stopping the thread (Saves minorly on startup resources. Ingesting new data will always restart the thread if it is stopped).
+            metric_interval: Time (seconds) to wait between logging metrics.
         """
         super().__init__(daemon=True)
         self.data_queue = data_queue
         self._stop = threading.Event()
         self.sift_stream_builder = sift_stream_builder
         self.ingestion_config = ingestion_config
+        self.no_data_timeout = timedelta(seconds=no_data_timeout)
+        self.metric_interval = timedelta(seconds=metric_interval)
 
     def stop(self):
         self._stop.set()
+        # Give a brief chance to finish the stream (should take < 50ms).
+        time.sleep(0.16)
+        self.task.cancel()
 
-    async def _run(self):
-        backup_queue = []
+    async def main(self):
         logger.debug("Ingestion thread started")
         self.sift_stream_builder.ingestion_config = self.ingestion_config
         sift_stream = await self.sift_stream_builder.build()
         time_since_last_metric = datetime.now() - timedelta(seconds=1)
+        time_since_last_data = datetime.now()
         count = 0
-        while True:
-            try:
+        try:
+            while True:
                 while not self.data_queue.empty():
-                    item = self.data_queue.get()
-                    if item is None:
-                        # 'None' signals the end of stream
-                        self._stop.set()
+                    if self._stop.is_set():
+                        # Being forced to stop. Try to finish the stream.
                         logger.info(
-                            f"Ingestion thread finishing. {self.data_queue.qsize()} requests remaining."
+                            f"Ingestion thread received stop signal. Exiting. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
                         )
                         await sift_stream.finish()
                         return
-                    # Store each item in a backup queue in case we lose the connection
-                    backup_queue.append(item)
+                    time_since_last_data = datetime.now()
+                    item = self.data_queue.get()
                     sift_stream = await sift_stream.send_requests(item)
                     count += 1
-                    if datetime.now() - time_since_last_metric > timedelta(seconds=1):
+                    if datetime.now() - time_since_last_metric > self.metric_interval:
                         logger.debug(
                             f"Ingestion thread sent {count} requests, remaining: {self.data_queue.qsize()}"
                         )
                         time_since_last_metric = datetime.now()
-                # If we get here, the queue is empty
-                if self._stop.is_set():
-                    return
 
-            except Exception as e:
-                logger.warning(f"{type(e)}: Error in ingestion thread: {e}")
-                # Add the data back to the queue so that we can stream it again
-                for item in backup_queue:
-                    self.data_queue.put(item)
-                backup_queue.clear()
+                if (
+                    self._stop.is_set()
+                    or datetime.now() - time_since_last_data > self.no_data_timeout
+                ):
+                    logger.debug(
+                        f"No more requests. Stopping. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
+                    )
+                    await sift_stream.finish()
+                    return
+                else:
+                    time.sleep(0.1)
+
+        except asyncio.CancelledError:
+            # It's possible the thread was joined while sleeping waiting for data. Only note error if we have data left.
+            if self.data_queue.qsize() > 0:
+                logger.error(
+                    f"Ingestion thread cancelled without finishing stream. {self.data_queue.qsize()} requests were not sent."
+                )
+
+    async def _run(self):
+        self.task = asyncio.create_task(self.main())
+        await self.task
 
     def run(self):
         """This thread will handle sending data to Sift."""
@@ -183,7 +204,6 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         for _, cache_entry in self.stream_cache.items():
             data_queue, ingestion_config, thread = cache_entry
             # "None" value on the queue signals its loop to terminate.
-            data_queue.put(None)
             if thread:
                 thread.join(timeout=timeout)
                 if thread.is_alive():
@@ -245,16 +265,18 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             if existing_thread.is_alive():
                 return existing_thread
             else:
-                # Re-use existing queue and start a new thread.
-                data_queue = existing_data_queue
+                assert ingestion_config is None, (
+                    "Ingestion config only expected to be provided for new ingestion configs. But we already have an entry for this ingestion config ID."
+                )
                 ingestion_config = existing_ingestion_config
-        assert ingestion_config is not None
+                # Re-use existing queue since ingest_flow has already put data on it.
+                data_queue = existing_data_queue
+        assert ingestion_config is not None  # Appease mypy.
         thread = IngestionThread(self.sift_stream_builder, data_queue, ingestion_config)
         thread.start()
-        # Keep queue and stream in cache so they stay in scope and we can add data.
-        # Letting the thread go out of scope and attempt to stop signals the rust stream to process quicker.
-        # TODO: Remove thread from cache./ follow up w/ Benji on behavior.
-        self.stream_cache[ingestion_config_id] = (data_queue, ingestion_config, thread)  # type: ignore
+        self.stream_cache[ingestion_config_id] = self.CacheEntry(
+            data_queue, ingestion_config, thread
+        )
         return thread
 
     def _hash_flows(self, asset_name: str, flows: List[Flow]) -> str:
@@ -416,11 +438,12 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             organization_id=organization_id or "",  # This will be filled in by the server
         )
         data_queue, ingestion_config, thread = cache_entry
-        if not (thread and thread.is_alive()):
-            # We previously had a thread for this ingestion config but it closed (i.e. we waited for it to complete before this call to ingest)
-            thread = self._new_ingestion_thread(flow.ingestion_config_id, ingestion_config)
         assert data_queue is not None
+        # Put data on queue before potentially starting a new thread so it doesn't initially sleep waiting for data.
         data_queue.put([req])
+        if not (thread and thread.is_alive()):
+            # We previously had a thread for this ingestion config but it finished ingestion so create a new one.
+            thread = self._new_ingestion_thread(flow.ingestion_config_id, ingestion_config)
 
     async def ingest_arbitrary_protobuf_data_stream(
         self,

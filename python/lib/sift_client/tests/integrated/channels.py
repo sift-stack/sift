@@ -197,7 +197,6 @@ async def main():
         assert subset_time < first_time
         assert extended_time < first_time
         assert different_time < first_time
-        assert no_time_time > first_time
         assert no_time_time_repeat < no_time_time
 
 

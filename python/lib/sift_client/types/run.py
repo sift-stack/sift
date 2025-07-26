@@ -140,7 +140,7 @@ class Run(BaseType[RunProto, "Run"]):
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
 
-    async def add_flows(self, *, flows: List[Flow], asset: str):
+    async def add_flows(self, *, flows: List[Flow], asset: str) -> List[Flow]:
         """
         Add flows to the run.
         """
@@ -148,13 +148,14 @@ class Run(BaseType[RunProto, "Run"]):
             raise RuntimeError("Run is not bound to a client instance.")
         if isinstance(asset, Asset):
             asset = asset.name
-        # TODO: Cache asset:flows mapping
         await self.client.async_.ingestion.create_ingestion_config(
             asset_name=asset,
             flows=flows,
         )
         for flow in flows:
             flow.run_id = self.id
+
+        return flows
 
     def wait_for_ingestion_to_complete(self, timeout: float | None = None):
         """

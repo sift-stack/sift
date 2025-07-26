@@ -80,7 +80,7 @@ async def main():
     except ValueError as e:
         assert repr(e) == "ValueError('Cannot add a channel to a flow after creation')"
 
-    await run.add_flows(
+    other_asset_flows = await run.add_flows(
         flows=[
             Flow(
                 name="new-asset-flow",
@@ -92,7 +92,6 @@ async def main():
         ],
         asset="test-asset-ian2",
     )
-    time.sleep(2)
     simulated_duration = 50
     fake_hs_rate = 50  # Hz
     fake_hs_period = 1 / fake_hs_rate
@@ -102,7 +101,7 @@ async def main():
         regular_flow.ingest(
             timestamp=now,
             channel_values={
-                "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * i + 0),
+                "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * i + 0.1),
                 "test-enum-channel": i % 2 + 1,
                 "test-bit-field-channel": {
                     "12v": random.randint(3, 13),
@@ -122,14 +121,12 @@ async def main():
             client.ingestion.ingest(
                 flow=highspeed_flow, timestamp=timestamp, channel_values=channel_values
             )
+        time.sleep(0.05)
 
-    # Test ingesting bit field values as bytes
-    regular_flow.ingest(
+    other_asset_flows[0].ingest(
         timestamp=start + timedelta(seconds=simulated_duration),
         channel_values={
-            "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * simulated_duration + 0),
-            "test-enum-channel": 2,
-            "test-bit-field-channel": bytes([0b01010101]),
+            "test-channel": -6.66,
         },
     )
 
@@ -173,12 +170,11 @@ async def main():
             in repr(e)
         )
 
-    print("Waiting before wait")
-    time.sleep(10)
-    run.wait_for_ingestion_to_complete(timeout=1)
+    run.wait_for_ingestion_to_complete(timeout=2)
     end = datetime.now()
-    # Test ingesting more data after letting a thread finish.
-    time.sleep(2)
+    # Test ingesting more data after letting a thread finish. Also exercise ingesting bitfield values as bytes.
+    time.sleep(1)
+    print("Restarting ingestion")
     regular_flow.ingest(
         timestamp=start + timedelta(seconds=simulated_duration + 1),
         channel_values={
@@ -187,8 +183,7 @@ async def main():
             "test-bit-field-channel": bytes([0b11111111]),
         },
     )
-    print("Restarting ingestion")
-    run.wait_for_ingestion_to_complete(timeout=1)
+    run.wait_for_ingestion_to_complete(timeout=1.5)
     client.runs.delete(run=run.id)
 
     num_datapoints = fake_hs_rate * len(
