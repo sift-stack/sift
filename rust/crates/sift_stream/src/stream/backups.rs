@@ -10,6 +10,7 @@ pub mod ingestion_config {
         },
     };
 
+    #[derive(Clone)]
     pub struct BackupsTransmitterDisk {
         sift_channel: SiftChannel,
     }
@@ -33,6 +34,7 @@ pub mod ingestion_config {
         }
     }
 
+    #[derive(Clone)]
     pub struct BackupsTransmitterInMemory {
         sift_channel: SiftChannel,
     }

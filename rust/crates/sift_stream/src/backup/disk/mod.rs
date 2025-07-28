@@ -1,3 +1,5 @@
+use crate::backup::BACKUPS_TRANSMISSION_MAX_RETRIES;
+
 use super::{BackupsManager, BackupsTransmitter, Message};
 use chrono::Utc;
 use prost::Message as PbMessage;
@@ -7,16 +9,30 @@ use std::{
     io::{Error as IoError, ErrorKind as IoErrorKind, Write},
     marker::PhantomData,
     path::{Path, PathBuf},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread::sleep,
+    time::Duration,
 };
 use tokio::{
-    sync::mpsc::{Receiver, Sender, channel},
+    fs::remove_file,
+    runtime::Handle,
+    sync::{
+        Notify,
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
+    },
     task::JoinHandle,
 };
 
 /// Concerned with writing/reading protobuf from disk.
 pub(crate) mod pbfs;
-use pbfs::chunk::{BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN, PbfsChunk};
 pub use pbfs::stream::BackupsIter;
+use pbfs::{
+    chunk::{BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN, PbfsChunk},
+    stream::BackupsStream,
+};
 
 /// For manual user decoding of backups.
 pub use pbfs::stream::decode_backup;
@@ -35,26 +51,19 @@ const CHANNEL_BUFFER_SIZE: usize = 10_000;
 
 /// Disk-based backup strategy implementation.
 #[derive(Debug)]
-pub struct DiskBackupsManager<T, U, V> {
-    pub(crate) backups_root: PathBuf,
-    pub(crate) new_dir_name: String,
-    pub(crate) backup_prefix: String,
-    /// Max allowed backup size in bytes.
-    pub(crate) max_backup_size: usize,
-
+pub struct DiskBackupsManager<T, U> {
+    backups_full: Arc<AtomicBool>,
+    clear_done: Arc<Notify>,
     backup_task: Option<JoinHandle<Result<()>>>,
-    data_tx: Sender<Message<T>>,
+    data_tx: UnboundedSender<Message<T>>,
 
     transmitter: PhantomData<U>,
-    backups_stream: PhantomData<V>,
 }
 
-impl<T, U, V> DiskBackupsManager<T, U, V>
+impl<T, U> DiskBackupsManager<T, U>
 where
     T: PbMessage + Default + 'static,
-    U: BackupsTransmitter<T, V>,
-    V: IntoIterator<Item = T>,
-    <V as IntoIterator>::IntoIter: Send,
+    U: BackupsTransmitter<T, BackupsStream<T>> + 'static + Send,
 {
     /// Users shouldn't have to call interact with [DiskBackupsManager::new] directly.
     ///
@@ -64,11 +73,10 @@ where
     pub fn new(
         backups_root: Option<PathBuf>,
         new_dir_name: &str,
-        backup_prefix: &str,
         max_backup_size: Option<usize>,
         transmitter: U,
     ) -> Result<Self> {
-        let (data_tx, data_rx) = channel::<Message<T>>(CHANNEL_BUFFER_SIZE);
+        let (data_tx, data_rx) = unbounded_channel::<Message<T>>();
 
         let Some(backups_root) = backups_root
             .or_else(Self::default_backup_dir)
@@ -91,27 +99,36 @@ where
             _ => ()
         }
 
+        let backups_full = Arc::new(AtomicBool::default());
         let max_backup_size = max_backup_size.unwrap_or(DEFAULT_MAX_BACKUP_SIZE);
+        let clear_done = Arc::new(Notify::new());
 
-        let backup_task = Self::init_backup_task(data_rx, max_backup_size, backups_dir)
-            .context("failed to start backup task")?;
+        let backup_task = Self::init_backup_task(
+            data_rx,
+            backups_full.clone(),
+            max_backup_size,
+            backups_dir,
+            clear_done.clone(),
+            transmitter,
+        )
+        .context("failed to start backup task")?;
 
         Ok(Self {
-            backups_root,
-            new_dir_name: new_dir_name.into(),
-            backup_prefix: backup_prefix.into(),
-            backup_task: Some(backup_task),
             data_tx,
-            max_backup_size,
+            clear_done,
+            backups_full,
+            backup_task: Some(backup_task),
             transmitter: PhantomData,
-            backups_stream: PhantomData,
         })
     }
 
     fn init_backup_task(
-        mut data_rx: Receiver<Message<T>>,
+        mut data_rx: UnboundedReceiver<Message<T>>,
+        backups_full: Arc<AtomicBool>,
         max_backup_size: usize,
         backups_dir: PathBuf,
+        clear_done: Arc<Notify>,
+        transmitter: U,
     ) -> Result<JoinHandle<Result<()>>> {
         let mut current_index = 0;
         let backup_path = backups_dir.join(format!("{current_index}"));
@@ -121,7 +138,25 @@ where
             let mut message_buffer = Vec::with_capacity(CHANNEL_BUFFER_SIZE);
             let mut backups = vec![backup_path];
             let mut current_file_bytes = 0;
+
+            // Represents the total amount of bytes between transmissions.
             let mut bytes_processed = 0;
+
+            macro_rules! clear_current_backups {
+                () => {
+                    for backup in &backups {
+                        let _ = remove_file(backup);
+                    }
+                    backups.clear();
+                    current_file_bytes = 0;
+                    bytes_processed = 0;
+                    current_index += 1;
+
+                    let new_backup_path = backups_dir.join(format!("{current_index}"));
+                    current_backup = Self::new_backup_file(&new_backup_path)?;
+                    backups.push(new_backup_path);
+                };
+            }
 
             while let Some(message) = data_rx.blocking_recv() {
                 match message {
@@ -150,16 +185,15 @@ where
                             message_buffer.clear();
 
                             if bytes_processed >= max_backup_size {
-                                #[cfg(feature = "tracing")]
-                                tracing::debug!("backup size exceeded max configured");
-
-                                todo!()
+                                backups_full.store(true, Ordering::Relaxed);
                             }
                         }
                     }
-                    Message::Flush => {
+                    Message::Transmit => {
                         #[cfg(feature = "tracing")]
-                        tracing::debug!("backup task received flush and sync signal");
+                        tracing::debug!(
+                            "backups manager received signal to transmit backups to Sift"
+                        );
 
                         if !message_buffer.is_empty() {
                             let chunk = PbfsChunk::new(&message_buffer)?;
@@ -167,7 +201,33 @@ where
                             current_backup.sync_all()?;
                         }
 
-                        todo!();
+                        let mut backoff = Duration::from_millis(100);
+
+                        for i in 1..=BACKUPS_TRANSMISSION_MAX_RETRIES {
+                            let backups_stream = BackupsStream::new(&backups);
+                            let mut tx = transmitter.clone();
+
+                            if let Err(err) = Handle::current()
+                                .block_on(async move { tx.transmit(backups_stream).await })
+                            {
+                                #[cfg(feature = "tracing")]
+                                tracing::warn!(
+                                    retry_counter = i,
+                                    error = format!("{err:?}"),
+                                    "error while transmitting backups - retrying"
+                                );
+                                sleep(backoff);
+                                backoff *= 2;
+                                continue;
+                            }
+                            break;
+                        }
+                        clear_current_backups!();
+                    }
+                    Message::Clear => {
+                        clear_current_backups!();
+                        clear_done.notify_one();
+                        backups_full.store(false, Ordering::Relaxed);
                     }
                     Message::Complete => {
                         #[cfg(feature = "tracing")]
@@ -194,44 +254,27 @@ where
     }
 }
 
-impl<T, U, V> BackupsManager<T> for DiskBackupsManager<T, U, V>
+impl<T, U> BackupsManager<T> for DiskBackupsManager<T, U>
 where
     T: PbMessage + Default + 'static,
-    U: BackupsTransmitter<T, V>,
-    V: IntoIterator<Item = T>,
-    <V as IntoIterator>::IntoIter: Send,
+    U: BackupsTransmitter<T, BackupsStream<T>>,
 {
     /// Send data point to be backed up.
     async fn send(&mut self, msg: T) -> Result<()> {
-        match self.data_tx.send(Message::Data(msg)).await {
-            Ok(_) => Ok(()),
-
-            // Backup task has shutdown due to max bytes being reached.
-            Err(_) => {
-                let Some(backup_task) = self.backup_task.take() else {
-                    return Ok(());
-                };
-                match backup_task.await {
-                    Ok(res) => match res {
-                        Ok(_) => Err(Error::new_msg(
-                            ErrorKind::BackupLimitReached,
-                            "backup limit reached",
-                        )),
-                        Err(err) => Err(Error::new(ErrorKind::BackupsError, err))
-                            .context("backup task encountered an error")
-                            .help("please notify Sift"),
-                    },
-                    Err(err) => Err(Error::new(ErrorKind::BackupsError, err))
-                        .context("error waiting for backup task to finish")
-                        .help("please notify Sift"),
-                }
-            }
+        if self.backups_full.load(Ordering::Relaxed) {
+            return Err(Error::new_msg(
+                ErrorKind::BackupLimitReached,
+                "backup limit reached",
+            ));
         }
+        self.data_tx
+            .send(Message::Data(msg))
+            .map_err(|e| Error::new(ErrorKind::BackupsError, e))
     }
 
     /// Use for graceful termination. This will clean up the backup file.
     async fn finish(mut self) -> Result<()> {
-        let _ = self.data_tx.send(Message::Complete).await;
+        let _ = self.data_tx.send(Message::Complete);
 
         if let Some(backup_task) = self.backup_task.take() {
             backup_task
@@ -243,7 +286,20 @@ where
         Ok(())
     }
 
-    async fn transmit_backups(&self) {
-        let _ = self.data_tx.send(Message::Flush).await;
+    async fn transmit_backups(&self) -> Result<()> {
+        self.data_tx
+            .send(Message::Transmit)
+            .map_err(|e| Error::new(ErrorKind::BackupsError, e))
+    }
+
+    async fn clear(&mut self) -> Result<()> {
+        self.data_tx
+            .send(Message::Clear)
+            .map_err(|e| Error::new(ErrorKind::BackupsError, e))?;
+
+        // Wait for current backups to be cleared
+        self.clear_done.notified().await;
+
+        Ok(())
     }
 }

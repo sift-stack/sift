@@ -1,10 +1,8 @@
 use super::{
     RetryPolicy, SiftStream, SiftStreamMode,
-    backups::ingestion_config::BackupsTransmitterDisk,
+    backups::ingestion_config::{BackupsTransmitterDisk, BackupsTransmitterInMemory},
     flow::validate_flows,
-    mode::ingestion_config::{
-        BackupWorker, IngestionConfigMode, IngestionConfigModeBackupsManager,
-    },
+    mode::ingestion_config::{IngestionConfigMode, IngestionConfigModeBackupsManager},
 };
 use crate::backup::{DiskBackupsManager, InMemoryBackupsManager};
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
@@ -398,10 +396,12 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     max_buffer_size,
                 } => {
                     policy = Some(retry_policy);
+                    let transmitter = BackupsTransmitterInMemory::new(backups_channel);
+
                     let manager = IngestionConfigModeBackupsManager::InMemory(
-                        InMemoryBackupsManager::new(max_buffer_size),
+                        InMemoryBackupsManager::new(max_buffer_size, transmitter),
                     );
-                    backup_worker = Some(BackupWorker::new(manager));
+                    backup_worker = Some(manager);
                 }
                 RecoveryStrategy::RetryWithDiskBackups {
                     retry_policy,
@@ -413,7 +413,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
 
                     let manager = DiskBackupsManager::new(
                         backups_dir,
-                        &ingestion_config.asset_id,
                         &ingestion_config.ingestion_config_id,
                         max_backups_file_size,
                         transmitter,
@@ -421,7 +420,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     .map(IngestionConfigModeBackupsManager::Disk)
                     .context("failed to build backups manager")?;
 
-                    backup_worker = Some(BackupWorker::new(manager));
+                    backup_worker = Some(manager);
                 }
             }
         }

@@ -1,3 +1,5 @@
+#![allow(async_fn_in_trait)]
+
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
 
@@ -10,6 +12,8 @@ pub(crate) use memory::InMemoryBackupsManager;
 #[cfg(test)]
 mod test;
 
+const BACKUPS_TRANSMISSION_MAX_RETRIES: usize = 10;
+
 pub(crate) trait BackupsManager<T>
 where
     T: PbMessage + Default + 'static,
@@ -20,10 +24,15 @@ where
     /// Use for graceful termination. This will clean up the backup file.
     async fn finish(self) -> Result<()>;
 
-    async fn transmit_backups(&self);
+    /// Clear current set of backups either in disk or in memory.
+    async fn clear(&mut self) -> Result<()>;
+
+    /// Notify the backups manager to transmit backups to Sift.
+    async fn transmit_backups(&self) -> Result<()>;
 }
 
-pub(crate) trait BackupsTransmitter<T, I>
+/// Not intended to be used directly by users.
+pub trait BackupsTransmitter<T, I>: Clone
 where
     T: PbMessage + Default + 'static,
     I: IntoIterator<Item = T>,
@@ -38,6 +47,8 @@ enum Message<T> {
     Data(T),
     /// Graceful termination; cleans up the backup file.
     Complete,
-    /// Force the backup task to flush its contents to the target data container.
-    Flush,
+    /// Notify the backup manager to transmit backups to Sift.
+    Transmit,
+    /// Clear current set of backup files.
+    Clear,
 }
