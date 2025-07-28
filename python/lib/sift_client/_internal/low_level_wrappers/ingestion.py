@@ -265,9 +265,6 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             if existing_thread.is_alive():
                 return existing_thread
             else:
-                assert ingestion_config is None, (
-                    "Ingestion config only expected to be provided for new ingestion configs. But we already have an entry for this ingestion config ID."
-                )
                 ingestion_config = existing_ingestion_config
                 # Re-use existing queue since ingest_flow has already put data on it.
                 data_queue = existing_data_queue

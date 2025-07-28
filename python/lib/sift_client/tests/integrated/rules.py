@@ -21,7 +21,6 @@ This test demonstrates all available update fields for rules:
 - channel_references: Update channel references (must be updated with expression)
 - action: Update the rule action (annotation, notification, webhook)
 - tag_ids: Update associated tags (TBD)
-- is_enabled: Enable/disable the rule
 - contextual_channels: Update contextual channels
 - version_notes: Update version notes
 
@@ -135,13 +134,11 @@ def main():
     updated_rule_5 = rule_5.update(
         RuleUpdate(
             description="Multi-field update test",
-            is_enabled=False,  # Disable the rule
         ),
         version_notes="Updated via multi-field update",
     )
     print(f"Updated {updated_rule_5.name}:")
     print(f"  - description: {updated_rule_5.description}")
-    print(f"  - is_enabled: {updated_rule_5.is_enabled}")
     print(
         f"  - version_notes: {updated_rule_5.rule_version.version_notes if updated_rule_5.rule_version else None}"
     )
@@ -255,10 +252,6 @@ def main():
     )
     assert updated_rule_4.name == new_name, f"Name update failed: {updated_rule_4.name}"
 
-    # TODO: This currently doesn't work. Ticket
-    # assert updated_rule_5.is_enabled == False, (
-    #     f"Enabled state update failed: {updated_rule_5.is_enabled}"
-    # )
     assert updated_rule_6.expression == "$1 > 0.3 && $1 < 0.8", (
         f"Complex expression update failed: {updated_rule_6.expression}"
     )

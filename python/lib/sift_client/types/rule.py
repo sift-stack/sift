@@ -10,7 +10,6 @@ from sift.rules.v1.rules_pb2 import (
     ActionKind,
     AnnotationActionConfiguration,
     CalculatedChannelConfig,
-    NotificationActionConfiguration,
     RuleActionConfiguration,
     UpdateActionRequest,
 )
@@ -130,7 +129,6 @@ class RuleUpdate(ModelUpdate[RuleProto]):
     expression: str | None = None
     channel_references: List[ChannelReference] | None = None
     action: RuleAction | None = None
-    is_enabled: bool | None = None
     asset_ids: List[str] | None = None
     tag_ids: List[str] | None = None
     organization_id: str | None = None
@@ -151,9 +149,8 @@ class RuleActionType(Enum):
     """Enum for rule action kinds."""
 
     UNSPECIFIED = ActionKind.ACTION_KIND_UNSPECIFIED  # 0
-    NOTIFICATION = ActionKind.NOTIFICATION  # 1
-    ANNOTATION = ActionKind.ANNOTATION  # 2
-    WEBHOOK = ActionKind.WEBHOOK  # 3
+    ANNOTATION = ActionKind.ANNOTATION  # 1
+    WEBHOOK = ActionKind.WEBHOOK  # 2
 
     @classmethod
     def from_str(cls, val: str) -> Optional["RuleActionType"]:
@@ -197,25 +194,8 @@ class RuleAction(BaseModel):
     modified_by_user_id: str | None = None
     version_id: str | None = None
     annotation_type: RuleAnnotationType | None = None
-    notification_recipients: List[str] | None = None  # List of user IDs to notify
     tags: List[str] | None = None
     assignee: str | None = None
-
-    # TODO: move to top level Rule
-    @classmethod
-    def notification(cls, notify_recipients: List[str]) -> RuleAction:
-        """Create a notification action.
-
-        Args:
-            notify_recipients: List of user IDs to notify.
-        """
-        # return cls(
-        #     action_type=RuleActionType.NOTIFICATION,
-        #     notification_recipients=notify_recipients,
-        # )
-        raise NotImplementedError(
-            "Notification actions are not supported yet."
-        )  # TODO: Or are they deprecated?         debug_error_string = "UNKNOWN:Error received from peer  {grpc_status:13, grpc_message:"RuleId: 5d10d84e-3013-4a6a-9336-bbf72c2d4ad0, ClientKey: , Error: rule actions must be annotation or webhook actions (b54199f3-1b59-44cb-850c-0650a3d8f4f1)"}"
 
     @classmethod
     def annotation(
@@ -274,13 +254,6 @@ class RuleAction(BaseModel):
                         annotation_type=self.annotation_type.value,  # type: ignore
                     )
                     if self.action_type == RuleActionType.ANNOTATION
-                    else None
-                ),
-                notification=(
-                    NotificationActionConfiguration(
-                        recipient_user_ids=self.notification_recipients,
-                    )
-                    if self.action_type == RuleActionType.NOTIFICATION
                     else None
                 ),
             ),

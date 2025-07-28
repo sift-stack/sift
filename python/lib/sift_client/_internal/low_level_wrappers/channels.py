@@ -208,7 +208,7 @@ class ChannelsLowLevelClient(LowLevelClientBase):
         response = cast(GetDataResponse, response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 
-    def __filter_cached_channels(self, channel_ids: List[str]) -> Tuple[List[str], List[str]]:
+    def _filter_cached_channels(self, channel_ids: List[str]) -> Tuple[List[str], List[str]]:
         cached_channels = []
         not_cached_channels = []
         for id in channel_ids:
@@ -218,7 +218,7 @@ class ChannelsLowLevelClient(LowLevelClientBase):
                 not_cached_channels.append(id)
         return cached_channels, not_cached_channels
 
-    def __check_cache(
+    def _check_cache(
         self,
         *,
         channel_id: str,
@@ -278,7 +278,7 @@ class ChannelsLowLevelClient(LowLevelClientBase):
 
         return (ret_data, ret_start_time, ret_end_time)
 
-    def __update_cache(
+    def _update_cache(
         self,
         *,
         channel_data: dict[str, pd.DataFrame],
@@ -349,7 +349,7 @@ class ChannelsLowLevelClient(LowLevelClientBase):
         end_time = end_time or datetime.now(timezone.utc)
 
         cached_channels, not_cached_channels = (
-            ([], channel_ids) if ignore_cache else self.__filter_cached_channels(channel_ids)
+            ([], channel_ids) if ignore_cache else self._filter_cached_channels(channel_ids)
         )
 
         tasks = []
@@ -377,7 +377,7 @@ class ChannelsLowLevelClient(LowLevelClientBase):
 
         # Handling cached channels 1 by 1 instead of in batches to account for channels that may have been cached from calls with different start/end times.
         for channel_id in cached_channels:
-            cached_data, new_start_time, new_end_time = self.__check_cache(
+            cached_data, new_start_time, new_end_time = self._check_cache(
                 channel_id=channel_id,
                 start_time=start_time,
                 end_time=end_time,
@@ -416,7 +416,7 @@ class ChannelsLowLevelClient(LowLevelClientBase):
                     else:
                         ret_data[name] = pd.concat([ret_data[name], df]).groupby(level=0).last()
 
-        self.__update_cache(
+        self._update_cache(
             channel_data=ret_data, start_time=start_time, end_time=end_time, run_id=run_id
         )
 

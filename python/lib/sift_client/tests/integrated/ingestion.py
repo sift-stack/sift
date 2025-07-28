@@ -69,10 +69,6 @@ async def main():
             Channel(name="highspeed-channel", data_type=ChannelDataType.DOUBLE),
         ],
     )
-    # ingestion_config_id = await client.async_.ingestion.create_ingestion_config(
-    #     asset_name=asset,
-    #     flows=[regular_flow, highspeed_flow],
-    # )
     # This seals the flow and ingestion config
     await run.add_flows(flows=[regular_flow, highspeed_flow], asset=asset)
     try:
@@ -92,6 +88,7 @@ async def main():
         ],
         asset="test-asset-ian2",
     )
+    sleep_time = 0.05  # Time between outer loop iterations to simulate real-time latency between ingestion calls.
     simulated_duration = 50
     fake_hs_rate = 50  # Hz
     fake_hs_period = 1 / fake_hs_rate
@@ -101,7 +98,7 @@ async def main():
         regular_flow.ingest(
             timestamp=now,
             channel_values={
-                "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * i + 0.1),
+                "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * i + 0.05),
                 "test-enum-channel": i % 2 + 1,
                 "test-bit-field-channel": {
                     "12v": random.randint(3, 13),
@@ -121,7 +118,7 @@ async def main():
             client.ingestion.ingest(
                 flow=highspeed_flow, timestamp=timestamp, channel_values=channel_values
             )
-        time.sleep(0.05)
+        time.sleep(sleep_time)
 
     other_asset_flows[0].ingest(
         timestamp=start + timedelta(seconds=simulated_duration),
@@ -191,7 +188,8 @@ async def main():
     ) * simulated_duration + simulated_duration * len(regular_flow.channels)
     print(f"Ingestion time: {end - start} seconds")
     print(f"Ingested {num_datapoints} datapoints")
-    print(f"Ingestion rate: {num_datapoints / (end - start).total_seconds():.2f} datapoints/second")
+    total_time = (end - start).total_seconds()
+    print(f"Ingestion rate: {num_datapoints / total_time:.2f} datapoints/second")
 
 
 if __name__ == "__main__":
