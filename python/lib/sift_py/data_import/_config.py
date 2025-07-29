@@ -20,94 +20,9 @@ class ConfigBaseModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class CsvConfigImpl(ConfigBaseModel):
+class ConfigDataModel(ConfigBaseModel):
     """
-    Defines the CSV config spec.
-    """
-
-    asset_name: str
-    run_name: str = ""
-    run_id: str = ""
-    first_data_row: int
-    time_column: TimeColumn
-    data_columns: Dict[int, DataColumn]
-
-    @model_validator(mode="after")
-    def validate_config(self) -> Self:
-        if not self.data_columns:
-            raise PydanticCustomError("invalid_config_error", "Empty 'data_columns'")
-
-        if self.run_name and self.run_id:
-            raise PydanticCustomError(
-                "invalid_config_error", "Only specify run_name or run_id, not both."
-            )
-
-        return self
-
-
-class EnumType(ConfigBaseModel, ChannelEnumType):
-    """
-    Defines an enum entry in the CSV config.
-    """
-
-
-class BitFieldElement(ConfigBaseModel, ChannelBitFieldElement):
-    """
-    Defines a bit field element entry in the CSV config.
-    """
-
-
-class TimeColumn(ConfigBaseModel):
-    """
-    Defines a time column entry in the CSV config.
-    """
-
-    format: Union[str, TimeFormatType]
-    column_number: int
-    relative_start_time: Optional[str] = None
-
-    @field_validator("format", mode="before")
-    @classmethod
-    def convert_format(cls, raw: Union[str, TimeFormatType]) -> str:
-        """
-        Converts the provided format value to a string.
-        """
-        if isinstance(raw, TimeFormatType):
-            return raw.as_human_str()
-        elif isinstance(raw, str):
-            value = TimeFormatType.from_str(raw)
-            if value is not None:
-                return value.as_human_str()
-
-        raise PydanticCustomError("invalid_config_error", f"Invalid time format: {raw}.")
-
-    @model_validator(mode="after")
-    def validate_time(self) -> Self:
-        """
-        Validates the provided time format.
-        """
-        format = TimeFormatType.from_str(self.format)  # type: ignore
-        if format is None:
-            raise PydanticCustomError(
-                "invalid_config_error", f"Invalid time format: {self.format}."
-            )
-
-        if format.is_relative():
-            if self.relative_start_time is None:
-                raise PydanticCustomError("invalid_config_error", "Missing 'relative_start_time'")
-        else:
-            if self.relative_start_time is not None:
-                raise PydanticCustomError(
-                    "invalid_config_error",
-                    "'relative_start_time' specified for non relative time format.",
-                )
-
-        return self
-
-
-class DataColumn(ConfigBaseModel):
-    """
-    Defines a data column entry in the CSV config.
+    Base DataModel with common functionality
     """
 
     name: str
@@ -185,3 +100,142 @@ class DataColumn(ConfigBaseModel):
                 )
 
         return self
+
+
+class ConfigTimeModel(ConfigBaseModel):
+    """
+    Base TimeModel with common functionality
+    """
+
+    format: Union[str, TimeFormatType]
+    relative_start_time: Optional[str] = None
+
+    @field_validator("format", mode="before")
+    @classmethod
+    def convert_format(cls, raw: Union[str, TimeFormatType]) -> str:
+        """
+        Converts the provided format value to a string.
+        """
+        if isinstance(raw, TimeFormatType):
+            return raw.as_human_str()
+        elif isinstance(raw, str):
+            value = TimeFormatType.from_str(raw)
+            if value is not None:
+                return value.as_human_str()
+
+        raise PydanticCustomError("invalid_config_error", f"Invalid time format: {raw}.")
+
+    @model_validator(mode="after")
+    def validate_time(self) -> Self:
+        """
+        Validates the provided time format.
+        """
+        format = TimeFormatType.from_str(self.format)  # type: ignore
+        if format is None:
+            raise PydanticCustomError(
+                "invalid_config_error", f"Invalid time format: {self.format}."
+            )
+
+        if format.is_relative():
+            if self.relative_start_time is None:
+                raise PydanticCustomError("invalid_config_error", "Missing 'relative_start_time'")
+        else:
+            if self.relative_start_time is not None:
+                raise PydanticCustomError(
+                    "invalid_config_error",
+                    "'relative_start_time' specified for non relative time format.",
+                )
+
+        return self
+
+
+class CsvConfigImpl(ConfigBaseModel):
+    """
+    Defines the CSV config spec.
+    """
+
+    asset_name: str
+    run_name: str = ""
+    run_id: str = ""
+    first_data_row: int
+    time_column: TimeColumn
+    data_columns: Dict[int, DataColumn]
+
+    @model_validator(mode="after")
+    def validate_config(self) -> Self:
+        if not self.data_columns:
+            raise PydanticCustomError("invalid_config_error", "Empty 'data_columns'")
+
+        if self.run_name and self.run_id:
+            raise PydanticCustomError(
+                "invalid_config_error", "Only specify run_name or run_id, not both."
+            )
+
+        return self
+
+
+class Hdf5ConfigImpl(ConfigBaseModel):
+    """
+    Defines the HDF5 config spec
+    """
+
+    asset_name: str
+    run_name: str = ""
+    run_id: str = ""
+    time: TimeCfg
+    data: List[Hdf5DataCfg]
+
+    @model_validator(mode="after")
+    def validate_config(self) -> Self:
+        if not self.data:
+            raise PydanticCustomError("invalid_config_error", "Empty 'data'")
+
+        if self.run_name and self.run_id:
+            raise PydanticCustomError(
+                "invalid_config_error", "Only specify run_name or run_id, not both."
+            )
+
+        return self
+
+
+class EnumType(ConfigBaseModel, ChannelEnumType):
+    """
+    Defines an enum entry in the CSV config.
+    """
+
+
+class BitFieldElement(ConfigBaseModel, ChannelBitFieldElement):
+    """
+    Defines a bit field element entry in the CSV config.
+    """
+
+
+class TimeColumn(ConfigTimeModel):
+    """
+    Defines a time column entry in the CSV config.
+    """
+
+    column_number: int
+
+
+class DataColumn(ConfigDataModel):
+    """
+    Defines a data column entry in the CSV config.
+    """
+
+
+class TimeCfg(ConfigTimeModel):
+    """
+    Defines a time entry in the generic file config.
+    """
+
+
+class Hdf5DataCfg(ConfigDataModel):
+    """
+    Defines a data entry in the HDF5 config.
+    """
+
+    time_dataset: str
+    time_column: int = 1
+    value_dataset: str
+    value_column: int = 1
