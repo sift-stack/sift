@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.8.0] - July 29, 2025
+### What's New
+#### HDF5 Upload Service
+Adds support for uploading HDF5 files to Sift for ingestion through the addition of the `Hdf5UploadService` and `Hdf5Config`. See `examples/data_import/hdf5` for an example of how to upload HDF5 files.
+
+### Full Changelog
+- [Add HDF5 upload service](https://github.com/sift-stack/sift/pull/261)
+
 ## [v0.7.0] - June 24, 2025
 ### What's New
 #### AssetService and Metadata Support
