@@ -125,7 +125,7 @@ def use_sift_async_channel(
 
 def _use_insecure_sift_channel(
     config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
-) -> grpc.Channel:
+) -> SiftChannel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
     """
