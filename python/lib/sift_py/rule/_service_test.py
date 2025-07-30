@@ -184,7 +184,12 @@ def test_rule_service_attach_asset():
         asset_names=["abc"],
     )
     asset = Asset(name="asset", asset_id="asset-id", organization_id="org-id")
-    with mock.patch("sift_py.rule.service.RuleServiceStub", return_value=mock.MagicMock()):
+    with mock.patch(
+        "sift_py.rule.service.RuleServiceStub", return_value=mock.MagicMock()
+    ) as mock_stub:
+        # Need to return a rule_id string when calling get_rule
+        mock_instance = mock_stub.return_value
+        mock_instance.GetRule.return_value.rule.rule_id = ""
         rule_service = RuleService(MockChannel())
         with mock.patch.object(RuleService, "_get_assets", return_value=[asset]):
             returned_config = rule_service.attach_asset(rule_config, ["asset"])
@@ -203,7 +208,12 @@ def test_rule_service_detach_asset():
     )
     asset_abc = Asset(name="abc", asset_id="abc-id", organization_id="org-id")
     asset_def = Asset(name="def", asset_id="def-id", organization_id="org-id")
-    with mock.patch("sift_py.rule.service.RuleServiceStub", return_value=mock.MagicMock()):
+    with mock.patch(
+        "sift_py.rule.service.RuleServiceStub", return_value=mock.MagicMock()
+    ) as mock_stub:
+        # Need to return a rule_id string when calling get_rule
+        mock_instance = mock_stub.return_value
+        mock_instance.GetRule.return_value.rule.rule_id = ""
         rule_service = RuleService(MockChannel())
         with mock.patch.object(RuleService, "_get_assets", return_value=[asset_abc, asset_def]):
             returned_config = rule_service.detach_asset(rule_config, ["abc"])

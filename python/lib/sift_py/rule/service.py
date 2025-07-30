@@ -267,6 +267,11 @@ class RuleService:
 
         if isinstance(rule, str):
             rule = cast(RuleConfig, self.get_rule(rule))
+        elif not rule._rule_id and rule.rule_client_key:
+            # Return provided rule with its rule_id
+            # Needed to fix bug with updating an existing rule without an id
+            existing_rule = cast(RuleConfig, self.get_rule(cast(str, rule.rule_client_key)))
+            rule._rule_id = existing_rule._rule_id
 
         if attach:
             if not rule.asset_names:
@@ -469,8 +474,15 @@ class RuleService:
             ident = channel_reference_from_fqn(channel)
             contextual_channel_names.append(ident)
 
+        # Pass rule_id from config if retrived from existing rule
+        # Will be overwritten by rule if passed to function
+        # Fixes bug with missing rule_id in UpdateRuleRequest for existing rules
+        if config._rule_id:
+            rule_id = config._rule_id
+        else:
+            rule_id = ""
+
         organization_id = ""
-        rule_id = ""
         if rule:
             rule_id = rule.rule_id
             organization_id = rule.organization_id
@@ -558,6 +570,9 @@ class RuleService:
             action=action,
             expression=expression,
         )
+
+        # rule_id currently required for an existing rule
+        rule_config._rule_id = rule_pb.rule_id if rule_pb.rule_id else None
 
         return rule_config
 
