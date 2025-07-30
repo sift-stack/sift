@@ -38,6 +38,7 @@ class RuleConfig(AsJson):
     asset_names: List[str]
     contextual_channels: List[str]
     is_external: bool
+    _rule_id: Optional[str]  # Allow passing of rule_id when existing config retrieved from API
 
     def __init__(
         self,
@@ -65,6 +66,7 @@ class RuleConfig(AsJson):
         self.description = description
         self.expression = self.__class__.interpolate_sub_expressions(expression, sub_expressions)
         self.is_external = is_external
+        self._rule_id = None
 
     def as_json(self) -> Any:
         """
