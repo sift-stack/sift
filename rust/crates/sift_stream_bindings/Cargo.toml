@@ -1,6 +1,6 @@
 [package]
 name = "sift-stream-bindings"
-version = "0.1.1"
+version = "0.1.2"
 edition = { workspace = true }
 authors = { workspace = true }
 homepage = { workspace = true }
@@ -25,3 +25,4 @@ sift_rs = { workspace = true }
 sift_stream = { workspace = true }
 sift_error = { workspace = true }
 pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
+pbjson-types = { workspace = true }
