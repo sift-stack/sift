@@ -10,6 +10,7 @@ Adds support for uploading HDF5 files to Sift for ingestion through the addition
 
 ### Full Changelog
 - [Add HDF5 upload service](https://github.com/sift-stack/sift/pull/261)
+- [Fixes bug when updating rules where the rule_id is not always passed to Sift](https://github.com/sift-stack/sift/pull/281)
 
 ## [v0.7.0] - June 24, 2025
 ### What's New
