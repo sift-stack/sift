@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.8.1] - July 31, 2025
+- [Catch PermissionError when removing temp files](https://github.com/sift-stack/sift/pull/282)
+- [Add support for start and end times to rule evaluation](https://github.com/sift-stack/sift/pull/268)
+
 ## [v0.8.0] - July 29, 2025
 ### What's New
 #### HDF5 Upload Service
