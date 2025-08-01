@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.8.2] - August 1, 2025
+- [Use name only in ChannelReference creation](https://github.com/sift-stack/sift/pull/284)
+
 ## [v0.8.1] - July 31, 2025
 - [Catch PermissionError when removing temp files](https://github.com/sift-stack/sift/pull/282)
 - [Add support for start and end times to rule evaluation](https://github.com/sift-stack/sift/pull/268)
