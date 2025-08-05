@@ -74,6 +74,17 @@ class Rule(BaseType[RuleProto, "Rule"]):
         updated_rule = self.client.rules.update(
             rule=self, update=update, version_notes=version_notes
         )
+        print(
+            f"Updated rule: {updated_rule.name}:"
+            f" deleted_date: {updated_rule.deleted_date},"
+            f" description: {updated_rule.description},"
+            f" expression: {updated_rule.expression},"
+            f" channel_references: {updated_rule.channel_references},"
+            f" action: {updated_rule.action},"
+            f" asset_ids: {updated_rule.asset_ids},"
+            f" tag_ids: {updated_rule.tag_ids},"
+            f" contextual_channels: {updated_rule.contextual_channels},"
+        )
         self._update(updated_rule)
         return self
 

@@ -62,6 +62,10 @@ class IngestionThread(threading.Thread):
     Manages ingestion for a single ingestion config.
     """
 
+    OUTER_LOOP_PERIOD = 0.1  # Time of intervals loop will sleep while waiting for data.
+    SIFT_STREAM_FINISH_TIMEOUT = 0.06  # Measured ~0.05s to finish stream.
+    CLEANUP_TIMEOUT = OUTER_LOOP_PERIOD + SIFT_STREAM_FINISH_TIMEOUT
+
     def __init__(
         self,
         sift_stream_builder: sift_stream_bindings.SiftStreamBuilderPy,
@@ -91,7 +95,7 @@ class IngestionThread(threading.Thread):
     def stop(self):
         self._stop.set()
         # Give a brief chance to finish the stream (should take < 50ms).
-        time.sleep(0.16)
+        time.sleep(self.CLEANUP_TIMEOUT)
         self.task.cancel()
 
     async def main(self):
@@ -131,7 +135,7 @@ class IngestionThread(threading.Thread):
                     await sift_stream.finish()
                     return
                 else:
-                    time.sleep(0.1)
+                    time.sleep(self.OUTER_LOOP_PERIOD)
 
         except asyncio.CancelledError:
             # It's possible the thread was joined while sleeping waiting for data. Only note error if we have data left.

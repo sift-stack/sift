@@ -80,6 +80,7 @@ def main():
     # Test 1: Update expression and channel references together
     print("\n--- Test 1: Update expression and channel references ---")
     rule_1 = created_rules[0]
+    rule_1_model_dump = rule_1.model_dump()
     updated_rule_1 = rule_1.update(
         RuleUpdate(
             expression="$1 > 0.5",  # Higher threshold
@@ -88,6 +89,7 @@ def main():
             ],
         )
     )
+    updated_rule_1_model_dump = updated_rule_1.model_dump()
     print(f"Updated {updated_rule_1.name}: expression = {updated_rule_1.expression}")
 
     # Test 2: Update description
@@ -244,6 +246,24 @@ def main():
     assert updated_rule_1.expression == "$1 > 0.5", (
         f"Expression update failed: {updated_rule_1.expression}"
     )
+    # For update 1, also verify that the fields that were not updated are not reset.
+    assert updated_rule_1_model_dump["description"] == rule_1_model_dump["description"], (
+        f"Expected no description change, got {rule_1_model_dump['description']} -> {updated_rule_1.description}"
+    )
+    assert (
+        updated_rule_1_model_dump["channel_references"] == rule_1_model_dump["channel_references"]
+    ), (
+        f"Expected no channel references change, got {rule_1_model_dump['channel_references']} -> {updated_rule_1.channel_references}"
+    )
+    assert updated_rule_1_model_dump["asset_ids"] == rule_1_model_dump["asset_ids"], (
+        f"Expected no asset IDs change, got {rule_1_model_dump['asset_ids']} -> {updated_rule_1.asset_ids}"
+    )
+    assert updated_rule_1_model_dump["tag_ids"] == rule_1_model_dump["tag_ids"], (
+        f"Expected no tag IDs change, got {rule_1_model_dump['tag_ids']} -> {updated_rule_1.tag_ids}"
+    )
+    assert (
+        updated_rule_1_model_dump["contextual_channels"] == rule_1_model_dump["contextual_channels"]
+    ), f"Contextual channels update failed: {updated_rule_1.contextual_channels}"
     assert "more details" in updated_rule_2.description, (
         f"Description update failed: {updated_rule_2.description}"
     )

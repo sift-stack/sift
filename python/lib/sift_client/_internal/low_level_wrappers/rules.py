@@ -204,11 +204,19 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "asset_ids",
             "tag_ids",
         ]
+        # Need to manually copy fields that will be reset even if not provided in update dict.
+        copy_unset_fields = [
+            "description",
+        ]
 
-        # Populate the non-trivial fields first.
+        # Populate the trivial fields first.
         for updated_field, value in model_dump.items():
             if updated_field not in nontrivial_updates:
                 update_dict[updated_field] = value
+        # Populate the fields that weren't updated but will be reset if not provided in request.
+        for field in copy_unset_fields:
+            if field not in model_dump:
+                update_dict[field] = getattr(rule, field)
 
         # Special handling for the more complex fields.
         # Also, these must always be set.
