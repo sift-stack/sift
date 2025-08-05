@@ -1,7 +1,10 @@
 use super::super::{
     RetryPolicy, SiftStream, SiftStreamMode, channel::ChannelValue, time::TimeValue,
 };
-use crate::backup::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager};
+use crate::{
+    backup::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager},
+    stream::run::{RunSelector, load_run_by_form, load_run_by_id},
+};
 use futures_core::Stream;
 use prost::Message;
 use sift_connect::SiftChannel;
@@ -701,6 +704,19 @@ impl SiftStream<IngestionConfigMode> {
                 "successfully reingested data since last checkpoint"
             );
         }
+        Ok(())
+    }
+
+    pub async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()> {
+        let run = match run_selector {
+            RunSelector::ById(run_id) => load_run_by_id(self.grpc_channel.clone(), &run_id).await?,
+            RunSelector::ByForm(run_form) => {
+                load_run_by_form(self.grpc_channel.clone(), run_form).await?
+            }
+        };
+
+        self.mode.run = Some(run);
+
         Ok(())
     }
 
