@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, List, Type
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
 from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.types.channel import Channel
+from sift_client.types.run import Run
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
@@ -42,10 +44,11 @@ class Asset(BaseType[AssetProto, "Asset"]):
     def modified_by(self):
         raise NotImplementedError
 
-    def runs(self, limit: int | None = None):
-        return self.client.runs.list(asset_id=self.id, limit=limit)
+    @property
+    def runs(self) -> List[Run]:
+        return self.client.runs.list(asset_id=self.id)
 
-    def channels(self, run_id: str | None = None, limit: int | None = None):
+    def channels(self, run_id: str | None = None, limit: int | None = None) -> List[Channel]:
         """
         Return all channels for this asset.
         """

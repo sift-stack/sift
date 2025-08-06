@@ -105,7 +105,7 @@ async def main():
             action=RuleAction.annotation(
                 annotation_type=RuleAnnotationType.DATA_REVIEW,
                 tags=["high_ratio", "alert"],
-                assignee=None,  # You can set a user ID here if needed
+                default_assignee_user_id=None,  # You can set a user ID here if needed
             ),
         )
         print(f"Created rule: {rule.name} (ID: {rule.rule_id})")

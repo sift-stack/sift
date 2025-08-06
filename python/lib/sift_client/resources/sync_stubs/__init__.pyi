@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List
+from typing import Any, Dict, List
 
 import numpy as np
 import pyarrow as pa
-from sift.ingest.v1.ingest_pb2 import IngestArbitraryProtobufDataStreamRequest
 
 from sift_client.client import SiftClient
 from sift_client.types.asset import Asset, AssetUpdate
 from sift_client.types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
-from sift_client.types.channel import Channel, ChannelReference, Flow
+from sift_client.types.channel import Channel, ChannelReference
+from sift_client.types.ingestion import Flow
 from sift_client.types.rule import Rule, RuleAction, RuleUpdate
 from sift_client.types.run import Run, RunUpdate
 
@@ -57,19 +57,6 @@ class AssetsAPI:
         """
         ...
 
-    def channels_data(
-        self,
-        channels: list[str | Channel],
-        run_id: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
-        limit: int | None = None,
-    ) -> Dict[str, np.ndarray]:
-        """
-        Get the data for a list of channels.
-        """
-        ...
-
     def find(self, **kwargs) -> Asset | None:
         """
         Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
@@ -110,6 +97,7 @@ class AssetsAPI:
         created_by: Any | None = None,
         modified_by: Any | None = None,
         tags: list[str] | None = None,
+        tag_ids: list[str] | None = None,
         metadata: list[Any] | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
@@ -120,6 +108,7 @@ class AssetsAPI:
         List assets with optional filtering.
 
         Args:
+            asset_ids: List of asset IDs to filter by.
             name: Exact name of the asset.
             name_contains: Partial name of the asset.
             name_regex: Regular expression string to filter assets by name.
@@ -131,6 +120,7 @@ class AssetsAPI:
             created_by: Assets created by this user.
             modified_by: Assets last modified by this user.
             tags: Assets with these tags.
+            tag_ids: List of asset tag IDs to filter by.
             include_archived: Include archived assets.
             filter_query: Explicit CEL query to filter assets.
             order_by: How to order the retrieved assets. # TODO: tooling for this?
@@ -434,7 +424,7 @@ class ChannelsAPI:
     def get_data(
         self,
         *,
-        channels: List[str | Channel],
+        channels: List[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
@@ -455,7 +445,7 @@ class ChannelsAPI:
     def get_data_as_arrow(
         self,
         *,
-        channels: List[str | Channel],
+        channels: List[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
@@ -543,6 +533,7 @@ class IngestionAPI:
         self,
         *,
         asset_name: str,
+        run_id: str | None = None,
         flows: List[Flow],
         client_key: str | None = None,
         organization_id: str | None = None,
@@ -552,6 +543,7 @@ class IngestionAPI:
 
         Args:
             asset_name: The name of the asset for this ingestion config.
+            run_id: Optionally provide a run ID to create a run for the given asset.
             flows: List of flow configurations.
             client_key: Optional client key for identifying this config.
             organization_id: The organization ID.
@@ -573,17 +565,6 @@ class IngestionAPI:
         channel_values: dict[str, Any],
     ):
         """ """
-        ...
-
-    def ingest_arbitrary_protobuf_data_stream(
-        self, requests: AsyncIterator[IngestArbitraryProtobufDataStreamRequest]
-    ) -> None:
-        """
-        Stream arbitrary protobuf data for ingestion.
-
-        Args:
-            requests: Async iterator of arbitrary protobuf ingestion requests.
-        """
         ...
 
     def wait_for_ingestion_to_complete(self, timeout: float | None = None):
@@ -653,6 +634,25 @@ class RulesAPI:
         """ """
         ...
 
+    def archive(
+        self,
+        *,
+        rule: str | Rule | None = None,
+        rules: List[Rule] | None = None,
+        rule_ids: List[str] | None = None,
+        client_keys: List[str] | None = None,
+    ) -> None:
+        """
+        Archive a rule or multiple.
+
+        Args:
+            rule: The Rule to archive.
+            rules: The Rules to archive.
+            rule_ids: The rule IDs to archive.
+            client_keys: The client keys to archive.
+        """
+        ...
+
     def batch_get(
         self, *, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
     ) -> List[Rule]:
@@ -695,25 +695,6 @@ class RulesAPI:
     ) -> Rule:
         """
         Create a new rule.
-        """
-        ...
-
-    def delete(
-        self,
-        *,
-        rule: str | Rule | None = None,
-        rules: List[Rule] | None = None,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
-    ) -> None:
-        """
-        Delete a rule or multiple.
-
-        Args:
-            rule: The Rule to delete.
-            rules: The Rules to delete.
-            rule_ids: The rule IDs to delete.
-            client_keys: The client keys to delete.
         """
         ...
 
@@ -826,6 +807,15 @@ class RunsAPI:
         """ """
         ...
 
+    def archive(self, *, run: str | Run) -> None:
+        """
+        Archive a run.
+
+        Args:
+            run: The Run or run ID to archive.
+        """
+        ...
+
     def create(
         self,
         name: str,
@@ -864,15 +854,6 @@ class RunsAPI:
         Args:
             run: The Run or run ID.
             asset_names: List of asset names to associate.
-        """
-        ...
-
-    def delete(self, *, run: str | Run) -> None:
-        """
-        Delete a run.
-
-        Args:
-            run: The Run or run ID to delete.
         """
         ...
 

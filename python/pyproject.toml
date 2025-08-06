@@ -60,7 +60,7 @@ build = ["pdoc==14.5.0", "build==1.2.1"]
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
-
+sift-stream = ["sift-stream-bindings>=0.1.1"]
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"

@@ -157,7 +157,9 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
         )
         conditions_request = [
-            UpdateConditionRequest(expression=expression_proto, actions=[action.to_update_proto()])
+            UpdateConditionRequest(
+                expression=expression_proto, actions=[action._to_update_request()]
+            )
         ]
         update_request = UpdateRuleRequest(
             name=name,
@@ -202,7 +204,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "action",
             "contextual_channels",
             "asset_ids",
-            "tag_ids",
+            "asset_tag_ids",
         ]
         # Need to manually copy fields that will be reset even if not provided in update dict.
         copy_unset_fields = [
@@ -245,7 +247,8 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
         conditions_request = [
             UpdateConditionRequest(
-                expression=expression_proto, actions=[action.to_update_proto()] if action else None
+                expression=expression_proto,
+                actions=[action._to_update_request()] if action else None,
             )
         ]
         update_dict["conditions"] = conditions_request  # type: ignore
@@ -257,7 +260,9 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # This always needs to be set, so handle the defaults.
         update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore
             asset_ids=update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or [],
-            tag_ids=update.tag_ids if "tag_ids" in model_dump else rule.tag_ids or [],
+            tag_ids=update.asset_tag_ids
+            if "asset_tag_ids" in model_dump
+            else rule.asset_tag_ids or [],
         )
 
         update_request = UpdateRuleRequest(
@@ -309,13 +314,13 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchUpdateRules(request)
         return cast(BatchUpdateRulesResponse, response)
 
-    async def delete_rule(self, rule_id: str | None = None, client_key: str | None = None) -> None:
+    async def archive_rule(self, rule_id: str | None = None, client_key: str | None = None) -> None:
         """
-        Delete a rule.
+        Archive a rule.
 
         Args:
-            rule_id: The rule ID to delete.
-            client_key: The client key to delete.
+            rule_id: The rule ID to archive.
+            client_key: The client key to archive.
 
         Raises:
             ValueError: If neither rule_id nor client_key is provided.
@@ -330,16 +335,16 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request_kwargs["client_key"] = client_key
 
         request = DeleteRuleRequest(**request_kwargs)
-        await self._grpc_client.get_stub(RuleServiceStub).DeleteRule(request)
+        await self._grpc_client.get_stub(RuleServiceStub).ArchiveRule(request)
 
-    async def batch_delete_rules(
+    async def batch_archive_rules(
         self, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
     ) -> None:
         """
-        Batch delete rules.
+        Batch archive rules.
 
         Args:
-            rule_ids: List of rule IDs to delete.
+            rule_ids: List of rule IDs to archive.
             client_keys: List of client keys to delete. If both are provided, rule_ids will be used.
 
         Raises:

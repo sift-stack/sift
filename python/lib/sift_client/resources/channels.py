@@ -8,6 +8,7 @@ import numpy as np
 import pyarrow as pa
 
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
+from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.types.channel import Channel
 from sift_client.util import cel_utils as cel
@@ -36,6 +37,7 @@ class ChannelsAPIAsync(ResourceBase):
         """
         super().__init__(sift_client)
         self._low_level_client = ChannelsLowLevelClient(grpc_client=self.client.grpc_client)
+        self._data_low_level_client = DataLowLevelClient(grpc_client=self.client.grpc_client)
 
     async def get(
         self,
@@ -169,7 +171,7 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data(
         self,
         *,
-        channels: List[str | Channel],
+        channels: List[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
@@ -185,12 +187,8 @@ class ChannelsAPIAsync(ResourceBase):
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
         """
-        channel_ids = []
-        for c in channels:
-            channel_ids.append(c.id if isinstance(c, Channel) else c)
-
-        return await self._low_level_client.get_channel_data(
-            channel_ids=channel_ids,  # type: ignore
+        return await self._data_low_level_client.get_channel_data(
+            channels=channels,
             run_id=run_id,
             start_time=start_time,
             end_time=end_time,
@@ -200,7 +198,7 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data_as_arrow(
         self,
         *,
-        channels: List[str | Channel],
+        channels: List[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,

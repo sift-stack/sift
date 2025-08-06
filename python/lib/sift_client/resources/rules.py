@@ -167,7 +167,7 @@ class RulesAPIAsync(ResourceBase):
         updated_rule = await self._low_level_client.update_rule(rule, update, version_notes)
         return self._apply_client_to_instance(updated_rule)
 
-    async def delete(
+    async def archive(
         self,
         *,
         rule: str | Rule | None = None,
@@ -176,31 +176,33 @@ class RulesAPIAsync(ResourceBase):
         client_keys: List[str] | None = None,
     ) -> None:
         """
-        Delete a rule or multiple.
+        Archive a rule or multiple.
 
         Args:
-            rule: The Rule to delete.
-            rules: The Rules to delete.
-            rule_ids: The rule IDs to delete.
-            client_keys: The client keys to delete.
+            rule: The Rule to archive.
+            rules: The Rules to archive.
+            rule_ids: The rule IDs to archive.
+            client_keys: The client keys to archive.
         """
         if rule:
             if isinstance(rule, Rule):
-                await self._low_level_client.delete_rule(rule_id=rule.rule_id)
+                await self._low_level_client.archive_rule(rule_id=rule.rule_id)
             else:
-                await self._low_level_client.delete_rule(rule_id=rule)
+                await self._low_level_client.archive_rule(rule_id=rule)
         elif rules:
             if len(rules) == 1:
-                await self._low_level_client.delete_rule(rule_id=rules[0].rule_id)
+                await self._low_level_client.archive_rule(rule_id=rules[0].rule_id)
             else:
-                await self._low_level_client.batch_delete_rules(rule_ids=[r.rule_id for r in rules])  # type: ignore # mypy doesn't realize we already checked rules exists and is nonempty
+                await self._low_level_client.batch_archive_rules(
+                    rule_ids=[r.rule_id for r in rules],  # type: ignore
+                )
         elif rule_ids:
             if len(rule_ids) == 1:
-                await self._low_level_client.delete_rule(rule_id=rule_ids[0])
+                await self._low_level_client.archive_rule(rule_id=rule_ids[0])
             else:
-                await self._low_level_client.batch_delete_rules(rule_ids=rule_ids)
+                await self._low_level_client.batch_archive_rules(rule_ids=rule_ids)
         elif client_keys:
-            await self._low_level_client.batch_delete_rules(client_keys=client_keys)
+            await self._low_level_client.batch_archive_rules(client_keys=client_keys)
         else:
             raise ValueError("Either rules, rule_ids, or client_keys must be provided")
 

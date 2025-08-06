@@ -28,7 +28,7 @@ The test also includes:
 - Edge case testing (invalid expressions)
 - Batch operations demonstration
 - Comprehensive validation
-- Delete operations
+- Archive operations
 
 
 If we keep it as a test, we should ideally have a setup that populates data, and then ensure we teardown all the test assets/channels/rules etc.
@@ -60,7 +60,7 @@ def main():
             action=RuleAction.annotation(
                 annotation_type=RuleAnnotationType.DATA_REVIEW,
                 tags=["test", "initial"],
-                assignee=None,
+                default_assignee_user_id=None,
             ),
             asset_ids=[asset_id],
         )
@@ -110,14 +110,14 @@ def main():
             action=RuleAction.annotation(
                 annotation_type=RuleAnnotationType.PHASE,
                 tags=["updated", "phase", "alert"],
-                assignee=rule_3.created_by_user_id,
+                default_assignee_user_id=rule_3.created_by_user_id,
             ),
         )
     )
     print(f"Updated {updated_rule_3.name}: action type = {updated_rule_3.action.action_type}")
     print(f"  - annotation type: {updated_rule_3.action.annotation_type}")
     print(f"  - tags: {updated_rule_3.action.tags}")
-    print(f"  - assignee: {updated_rule_3.action.assignee}")
+    print(f"  - assignee: {updated_rule_3.action.default_assignee_user_id}")
 
     # Test 4: Update name
     print("\n--- Test 4: Update name ---")
@@ -183,7 +183,7 @@ def main():
         )
     )
     print(f"Updated {updated_rule_8.name}:")
-    print(f"  - tag_ids: {updated_rule_8.tag_ids}")
+    print(f"  - asset_tag_ids: {updated_rule_8.asset_tag_ids}")
     print(f"  - contextual_channels: {updated_rule_8.contextual_channels}")
 
     # Test 8b: Edge case - Update with invalid expression (should fail gracefully)
@@ -223,9 +223,9 @@ def main():
     for rule in batch_rules:
         print(f"  - {rule.name}: {rule.expression}")
 
-    # Test 10: Delete rules
-    print("\n--- Test 10: Delete rules ---")
-    client.rules.delete(rules=created_rules)
+    # Test 10: Archive rules
+    print("\n--- Test 10: Archive rules ---")
+    client.rules.archive(rules=created_rules)
 
     print("\n=== Test Summary ===")
     print(f"Created: {len(created_rules)} rules")
@@ -258,8 +258,8 @@ def main():
     assert updated_rule_1_model_dump["asset_ids"] == rule_1_model_dump["asset_ids"], (
         f"Expected no asset IDs change, got {rule_1_model_dump['asset_ids']} -> {updated_rule_1.asset_ids}"
     )
-    assert updated_rule_1_model_dump["tag_ids"] == rule_1_model_dump["tag_ids"], (
-        f"Expected no tag IDs change, got {rule_1_model_dump['tag_ids']} -> {updated_rule_1.tag_ids}"
+    assert updated_rule_1_model_dump["asset_tag_ids"] == rule_1_model_dump["asset_tag_ids"], (
+        f"Expected no tag IDs change, got {rule_1_model_dump['asset_tag_ids']} -> {updated_rule_1.asset_tag_ids}"
     )
     assert (
         updated_rule_1_model_dump["contextual_channels"] == rule_1_model_dump["contextual_channels"]

@@ -216,21 +216,21 @@ class RunsAPIAsync(ResourceBase):
         updated_run = await self._low_level_client.update_run(run, update)
         return self._apply_client_to_instance(updated_run)
 
-    async def delete(
+    async def archive(
         self,
         *,
         run: str | Run,
     ) -> None:
         """
-        Delete a run.
+        Archive a run.
 
         Args:
-            run: The Run or run ID to delete.
+            run: The Run or run ID to archive.
         """
         run_id = run.id if isinstance(run, Run) else run
         if not isinstance(run_id, str):
             raise TypeError(f"run_id must be a string not {type(run_id)}")
-        await self._low_level_client.delete_run(run_id=run_id)
+        await self._low_level_client.archive_run(run_id=run_id)
 
     async def stop(
         self,

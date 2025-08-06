@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, AsyncIterator, List
-
-from sift.ingest.v1.ingest_pb2 import (
-    IngestArbitraryProtobufDataStreamRequest,
-)
+from typing import TYPE_CHECKING, Any, List
 
 from sift_client._internal.low_level_wrappers.ingestion import IngestionLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.channel import Flow
+from sift_client.types.ingestion import Flow
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -44,6 +40,7 @@ class IngestionAPIAsync(ResourceBase):
         self,
         *,
         asset_name: str,
+        run_id: str | None = None,
         flows: List[Flow],
         client_key: str | None = None,
         organization_id: str | None = None,
@@ -53,6 +50,7 @@ class IngestionAPIAsync(ResourceBase):
 
         Args:
             asset_name: The name of the asset for this ingestion config.
+            run_id: Optionally provide a run ID to create a run for the given asset.
             flows: List of flow configurations.
             client_key: Optional client key for identifying this config.
             organization_id: The organization ID.
@@ -76,9 +74,8 @@ class IngestionAPIAsync(ResourceBase):
         )
         for flow in flows:
             flow._apply_client_to_instance(self.client)
-            print(
-                f"Flow {flow.name} ingestion config id: {flow.ingestion_config_id}, asset: {asset_name}"
-            )
+            if run_id:
+                flow.run_id = run_id
 
         return ingestion_config_id
 
@@ -103,18 +100,6 @@ class IngestionAPIAsync(ResourceBase):
                 timestamp=timestamp,
                 channel_values=channel_values,
             )
-
-    async def ingest_arbitrary_protobuf_data_stream(
-        self,
-        requests: AsyncIterator[IngestArbitraryProtobufDataStreamRequest],
-    ) -> None:
-        """
-        Stream arbitrary protobuf data for ingestion.
-
-        Args:
-            requests: Async iterator of arbitrary protobuf ingestion requests.
-        """
-        raise NotImplementedError("Not implemented")
 
     def wait_for_ingestion_to_complete(self, timeout: float | None = None):
         """

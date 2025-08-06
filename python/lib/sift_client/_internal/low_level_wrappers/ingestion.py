@@ -13,7 +13,6 @@ import asyncio
 import atexit
 import hashlib
 import logging
-import sys
 import threading
 import time
 from collections import namedtuple
@@ -22,9 +21,6 @@ from queue import Queue
 from typing import Any, Dict, List, cast
 
 import sift_stream_bindings
-from sift.ingest.v1.ingest_pb2 import (
-    IngestArbitraryProtobufDataStreamResponse,
-)
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     GetIngestionConfigRequest,
     ListIngestionConfigFlowsResponse,
@@ -41,20 +37,11 @@ from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
 from sift_client.transport import GrpcClient, WithGrpcClient
-from sift_client.types.channel import Flow
-from sift_client.types.ingestion import IngestionConfig
+from sift_client.types.ingestion import Flow, IngestionConfig, _to_rust_value
 from sift_client.util import cel_utils as cel
 from sift_client.util.timestamp import to_rust_py_timestamp
 
 logger = logging.getLogger(__name__)
-
-logger.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 class IngestionThread(threading.Thread):
@@ -293,10 +280,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             for channel in flow.channels:
                 m.update(channel.name.encode())
                 # Use api_format for data type since that should be consistent between languages.
-                m.update(channel.data_type.as_human_str(api_format=True).encode())
+                m.update(channel.data_type.hash_str(api_format=True).encode())
                 m.update((channel.description or "").encode())
-                # Deprecated.
-                m.update((channel.component or "").encode())
                 m.update((channel.unit or "").encode())
                 if channel.bit_field_elements:
                     for bfe in sorted(channel.bit_field_elements, key=lambda bfe: bfe.index):
@@ -368,7 +353,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 )
             ingestion_config = IngestionConfigFormPy(
                 asset_name=asset_name,
-                flows=[flow.to_rust_config() for flow in flows],
+                flows=[flow._to_rust_config() for flow in flows],
                 client_key=client_key,
             )
 
@@ -428,7 +413,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # Iterate through all expected channels for flow and convert to ingestion types (missing channels use a special empty type)
         for channel in flow.channels:
             val = channel_values.get(channel.name)
-            rust_channel_values.append(channel.to_rust_value(val))
+            rust_channel_values.append(_to_rust_value(channel, val))
         req = IngestWithConfigDataStreamRequestPy(
             ingestion_config_id=flow.ingestion_config_id,
             run_id=flow.run_id or "",
@@ -445,14 +430,3 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if not (thread and thread.is_alive()):
             # We previously had a thread for this ingestion config but it finished ingestion so create a new one.
             thread = self._new_ingestion_thread(flow.ingestion_config_id, ingestion_config)
-
-    async def ingest_arbitrary_protobuf_data_stream(
-        self,
-    ) -> IngestArbitraryProtobufDataStreamResponse:
-        """
-        Stream arbitrary protobuf data for ingestion.
-
-        Returns:
-            The ingestion response.
-        """
-        raise NotImplementedError("Not implemented")

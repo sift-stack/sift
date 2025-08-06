@@ -2,14 +2,11 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict
-
-import numpy as np
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.types.asset import Asset, AssetUpdate
-from sift_client.types.channel import Channel
 from sift_client.util import cel_utils
 
 if TYPE_CHECKING:
@@ -87,6 +84,7 @@ class AssetsAPIAsync(ResourceBase):
         created_by: Any | None = None,
         modified_by: Any | None = None,
         tags: list[str] | None = None,
+        tag_ids: list[str] | None = None,
         metadata: list[Any] | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
@@ -97,6 +95,7 @@ class AssetsAPIAsync(ResourceBase):
         List assets with optional filtering.
 
         Args:
+            asset_ids: List of asset IDs to filter by.
             name: Exact name of the asset.
             name_contains: Partial name of the asset.
             name_regex: Regular expression string to filter assets by name.
@@ -108,6 +107,7 @@ class AssetsAPIAsync(ResourceBase):
             created_by: Assets created by this user.
             modified_by: Assets last modified by this user.
             tags: Assets with these tags.
+            tag_ids: List of asset tag IDs to filter by.
             include_archived: Include archived assets.
             filter_query: Explicit CEL query to filter assets.
             order_by: How to order the retrieved assets. # TODO: tooling for this?
@@ -140,7 +140,9 @@ class AssetsAPIAsync(ResourceBase):
             if modified_by:
                 raise NotImplementedError
             if tags:
-                raise NotImplementedError
+                filters.append(cel_utils.in_("tag_name", tags))
+            if tag_ids:
+                filters.append(cel_utils.in_("tag_ids", tag_ids))
             if metadata:
                 raise NotImplementedError
             if not include_archived:
@@ -207,18 +209,3 @@ class AssetsAPIAsync(ResourceBase):
         update.resource_id = asset_id
         asset = await self._low_level_client.update_asset(update=update)
         return self._apply_client_to_instance(asset)
-
-    async def channels_data(
-        self,
-        channels: list[str | Channel],
-        run_id: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
-        limit: int | None = None,
-    ) -> Dict[str, np.ndarray]:
-        """
-        Get the data for a list of channels.
-        """
-        return await self.client.async_.channels.get_data(
-            channels=channels, run_id=run_id, start_time=start_time, end_time=end_time, limit=limit
-        )

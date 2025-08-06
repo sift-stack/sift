@@ -10,8 +10,8 @@ from sift_client.types.channel import (
     Channel,
     ChannelBitFieldElement,
     ChannelDataType,
-    Flow,
 )
+from sift_client.types.ingestion import Flow
 
 
 async def main():
@@ -31,7 +31,7 @@ async def main():
         print(f"   Deleting previously created runs: {previously_created_runs}")
         for run in previously_created_runs:
             print(f"   Deleting run: {run.name}")
-            client.runs.delete(run=run)
+            client.runs.archive(run=run)
 
     run = client.runs.create(
         name=f"test-run-{datetime.now().timestamp()}",
@@ -70,23 +70,29 @@ async def main():
         ],
     )
     # This seals the flow and ingestion config
-    await run.add_flows(flows=[regular_flow, highspeed_flow], asset=asset)
+    await client.async_.ingestion.create_ingestion_config(
+        asset_name=asset,
+        run_id=run.id,
+        flows=[regular_flow, highspeed_flow],
+    )
     try:
         regular_flow.add_channel(Channel(name="test-channel", data_type=ChannelDataType.DOUBLE))
     except ValueError as e:
         assert repr(e) == "ValueError('Cannot add a channel to a flow after creation')"
 
-    other_asset_flows = await run.add_flows(
-        flows=[
-            Flow(
-                name="new-asset-flow",
-                channels=[
-                    # Same channel name as the regular flow, but on a different asset.
-                    Channel(name="test-channel", data_type=ChannelDataType.DOUBLE),
-                ],
-            )
-        ],
-        asset="test-asset-ian2",
+    other_asset_flows = [
+        Flow(
+            name="new-asset-flow",
+            channels=[
+                # Same channel name as the regular flow, but on a different asset.
+                Channel(name="test-channel", data_type=ChannelDataType.DOUBLE),
+            ],
+        )
+    ]
+    await client.async_.ingestion.create_ingestion_config(
+        asset_name="test-asset-ian2",
+        run_id=run.id,
+        flows=other_asset_flows,
     )
     sleep_time = 0.05  # Time between outer loop iterations to simulate real-time latency between ingestion calls.
     simulated_duration = 50
@@ -167,7 +173,7 @@ async def main():
             in repr(e)
         )
 
-    run.wait_for_ingestion_to_complete(timeout=2)
+    client.async_.ingestion.wait_for_ingestion_to_complete(timeout=2)
     end = datetime.now()
     # Test ingesting more data after letting a thread finish. Also exercise ingesting bitfield values as bytes.
     time.sleep(1)
@@ -180,8 +186,8 @@ async def main():
             "test-bit-field-channel": bytes([0b11111111]),
         },
     )
-    run.wait_for_ingestion_to_complete(timeout=1.5)
-    client.runs.delete(run=run.id)
+    client.async_.ingestion.wait_for_ingestion_to_complete(timeout=1.5)
+    client.runs.archive(run=run.id)
 
     num_datapoints = fake_hs_rate * len(
         highspeed_flow.channels

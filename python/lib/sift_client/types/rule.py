@@ -26,6 +26,7 @@ from sift.rules.v1.rules_pb2 import (
 )
 
 from sift_client.types._base import BaseType, ModelUpdate
+from sift_client.types.asset import Asset
 from sift_client.types.channel import ChannelReference
 
 if TYPE_CHECKING:
@@ -44,7 +45,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
     channel_references: List[ChannelReference] | None = None
     action: RuleAction | None = None
     asset_ids: List[str] | None = None
-    tag_ids: List[str] | None = None
+    asset_tag_ids: List[str] | None = None
     contextual_channels: List[str] | None = None
     client_key: str | None = None
 
@@ -56,13 +57,18 @@ class Rule(BaseType[RuleProto, "Rule"]):
     modified_by_user_id: str | None = None
     organization_id: str | None = None
     rule_version: RuleVersion | None = None
-    deleted_date: datetime | None = None
+    archived_date: datetime | None = None
     is_external: bool | None = None
 
     @property
-    def is_deleted(self) -> bool:
-        """Whether the rule is deleted."""
-        return self.deleted_date is not None and self.deleted_date > datetime(1970, 1, 1)
+    def is_archived(self) -> bool:
+        """Whether the rule is archived."""
+        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
+
+    @property
+    def assets(self) -> List[Asset]:
+        """Get the assets that this rule applies to."""
+        return self.client.assets.list_(asset_ids=self.asset_ids, tag_ids=self.asset_tag_ids)
 
     def update(self, update: RuleUpdate | dict, version_notes: str | None = None) -> Rule:
         """
@@ -74,23 +80,12 @@ class Rule(BaseType[RuleProto, "Rule"]):
         updated_rule = self.client.rules.update(
             rule=self, update=update, version_notes=version_notes
         )
-        print(
-            f"Updated rule: {updated_rule.name}:"
-            f" deleted_date: {updated_rule.deleted_date},"
-            f" description: {updated_rule.description},"
-            f" expression: {updated_rule.expression},"
-            f" channel_references: {updated_rule.channel_references},"
-            f" action: {updated_rule.action},"
-            f" asset_ids: {updated_rule.asset_ids},"
-            f" tag_ids: {updated_rule.tag_ids},"
-            f" contextual_channels: {updated_rule.contextual_channels},"
-        )
         self._update(updated_rule)
         return self
 
-    def delete(self) -> None:
-        """Delete the rule."""
-        self.client.rules.delete(rule=self)
+    def archive(self) -> None:
+        """Archive the rule."""
+        self.client.rules.archive(rule=self)
 
     @classmethod
     def _from_proto(cls, proto: RuleProto, sift_client: SiftClient | None = None) -> Rule:
@@ -122,9 +117,9 @@ class Rule(BaseType[RuleProto, "Rule"]):
             ),
             client_key=proto.client_key if proto.client_key else None,
             asset_ids=proto.asset_configuration.asset_ids,  # type: ignore
-            tag_ids=proto.asset_configuration.tag_ids,  # type: ignore
+            asset_tag_ids=proto.asset_configuration.tag_ids,  # type: ignore
             contextual_channels=[c.name for c in proto.contextual_channels.channels],
-            deleted_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
+            archived_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
             is_external=proto.is_external,
             _client=sift_client,
         )
@@ -133,6 +128,10 @@ class Rule(BaseType[RuleProto, "Rule"]):
 class RuleUpdate(ModelUpdate[RuleProto]):
     """
     Model of the Rule fields that can be updated.
+
+    Note:
+        - asset_ids applies this rule to those assets.
+        - asset_tag_ids applies this rule to assets with those tags.
     """
 
     name: str | None = None
@@ -141,11 +140,8 @@ class RuleUpdate(ModelUpdate[RuleProto]):
     channel_references: List[ChannelReference] | None = None
     action: RuleAction | None = None
     asset_ids: List[str] | None = None
-    tag_ids: List[str] | None = None
-    organization_id: str | None = None
-    client_key: str | None = None
+    asset_tag_ids: List[str] | None = None
     contextual_channels: List[str] | None = None
-    is_external: bool | None = None
 
     def _get_proto_class(self) -> Type[RuleProto]:
         return RuleProto
@@ -195,7 +191,7 @@ class RuleAction(BaseModel):
     Model of a Rule Action.
     """
 
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+    model_config = ConfigDict(frozen=True)
 
     action_type: RuleActionType
     condition_id: str | None = None
@@ -206,24 +202,27 @@ class RuleAction(BaseModel):
     version_id: str | None = None
     annotation_type: RuleAnnotationType | None = None
     tags: List[str] | None = None
-    assignee: str | None = None
+    default_assignee_user_id: str | None = None
 
     @classmethod
     def annotation(
-        cls, annotation_type: RuleAnnotationType, tags: List[str] = [], assignee: str | None = None
+        cls,
+        annotation_type: RuleAnnotationType,
+        tags: List[str] = [],
+        default_assignee_user_id: str | None = None,
     ) -> RuleAction:
         """Create an annotation action.
 
         Args:
             annotation_type: Type of annotation to create.
-            assignee: User ID to assign the annotation to.
+            default_assignee_user_id: User ID to assign the annotation to.
             tags: List of tag IDs to add to the annotation.
         """
         return cls(
             action_type=RuleActionType.ANNOTATION,
             annotation_type=annotation_type,
             tags=tags,
-            assignee=assignee,
+            default_assignee_user_id=default_assignee_user_id,
         )
 
     @classmethod
@@ -241,7 +240,7 @@ class RuleAction(BaseModel):
                 if proto.configuration.annotation.tag_ids
                 else None
             ),
-            assignee=(
+            default_assignee_user_id=(
                 proto.configuration.annotation.assigned_to_user_id
                 if proto.configuration.annotation.assigned_to_user_id
                 else None
@@ -254,13 +253,13 @@ class RuleAction(BaseModel):
             else None,
         )
 
-    def to_update_proto(self) -> UpdateActionRequest:
+    def _to_update_request(self) -> UpdateActionRequest:
         return UpdateActionRequest(
             action_type=self.action_type.value,
             configuration=RuleActionConfiguration(
                 annotation=(
                     AnnotationActionConfiguration(
-                        assigned_to_user_id=self.assignee,
+                        assigned_to_user_id=self.default_assignee_user_id,
                         tag_ids=self.tags,
                         annotation_type=self.annotation_type.value,  # type: ignore
                     )
