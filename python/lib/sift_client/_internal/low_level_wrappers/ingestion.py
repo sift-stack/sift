@@ -171,15 +171,10 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             apikey=grpc_client._config.api_key,
         )
         self.sift_stream_builder.enable_tls = grpc_client._config.use_ssl
+        # FD-177: Expose configuration for recovery strategy.
         self.sift_stream_builder.recovery_strategy = (
-            sift_stream_bindings.RecoveryStrategyPy.retry_with_in_memory_backups(
-                sift_stream_bindings.RetryPolicyPy(
-                    max_attempts=5,
-                    initial_backoff=sift_stream_bindings.DurationPy(secs=0, nanos=50_000_000),
-                    max_backoff=sift_stream_bindings.DurationPy(secs=5, nanos=0),
-                    backoff_multiplier=5,
-                ),
-                max_buffer_size=None,
+            sift_stream_bindings.RecoveryStrategyPy.retry_only(
+                sift_stream_bindings.RetryPolicyPy.default()
             )
         )
 
