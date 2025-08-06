@@ -35,5 +35,5 @@ class NamedTemporaryFile:
         try:
             os.remove(self.name)
             os.rmdir(self.temp_dir)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             pass

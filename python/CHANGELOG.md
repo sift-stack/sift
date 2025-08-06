@@ -3,6 +3,22 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.8.2] - August 1, 2025
+- [Use name only in ChannelReference creation](https://github.com/sift-stack/sift/pull/284)
+
+## [v0.8.1] - July 31, 2025
+- [Catch PermissionError when removing temp files](https://github.com/sift-stack/sift/pull/282)
+- [Add support for start and end times to rule evaluation](https://github.com/sift-stack/sift/pull/268)
+
+## [v0.8.0] - July 29, 2025
+### What's New
+#### HDF5 Upload Service
+Adds support for uploading HDF5 files to Sift for ingestion through the addition of the `Hdf5UploadService` and `Hdf5Config`. See `examples/data_import/hdf5` for an example of how to upload HDF5 files.
+
+### Full Changelog
+- [Add HDF5 upload service](https://github.com/sift-stack/sift/pull/261)
+- [Fixes bug when updating rules where the rule_id is not always passed to Sift](https://github.com/sift-stack/sift/pull/281)
+
 ## [v0.7.0] - June 24, 2025
 ### What's New
 #### AssetService and Metadata Support

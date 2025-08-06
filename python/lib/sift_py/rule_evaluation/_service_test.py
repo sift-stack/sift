@@ -45,12 +45,16 @@ def test_evaluate_and_preview_rule_identifiers_against_run(rule_evaluation_servi
     assert request.run.id == run_id
     assert request.rules.rules.ids.ids[0] == rule_identifiers[0].rule_id
     assert request.rules.rules.ids.ids[1] == rule_identifiers[1].rule_id
+    assert request.run_time_range.start_time.seconds == 0
+    assert request.run_time_range.end_time.seconds == 0
 
     rule_evaluation_service.preview_against_run(run_id, rule_identifiers)
     request = mock_stub.mock_calls[1].args[0]
     assert request.run.id == run_id
     assert request.rules.rules.ids.ids[0] == rule_identifiers[0].rule_id
     assert request.rules.rules.ids.ids[1] == rule_identifiers[1].rule_id
+    assert request.run_time_range.start_time.seconds == 0
+    assert request.run_time_range.end_time.seconds == 0
 
 
 def test_evaluate_and_preview_report_template_against_run(rule_evaluation_service):
@@ -68,11 +72,51 @@ def test_evaluate_and_preview_report_template_against_run(rule_evaluation_servic
     assert request.report_name == report_name
     assert request.run.id == run_id
     assert request.report_template.report_template.id == report_template.template_id
+    assert request.run_time_range.start_time.seconds == 0
+    assert request.run_time_range.end_time.seconds == 0
 
     rule_evaluation_service.preview_against_run(run_id, report_template)
     request = mock_stub.mock_calls[1].args[0]
     assert request.run.id == run_id
     assert request.report_template.report_template.id == report_template.template_id
+    assert request.run_time_range.start_time.seconds == 0
+    assert request.run_time_range.end_time.seconds == 0
+
+
+def test_evaluate_and_preview_report_template_against_run_with_start_end_times(
+    rule_evaluation_service,
+):
+    mock_stub = MagicMock()
+    rule_evaluation_service._rule_evaluation_stub = mock_stub
+    mock_stub.EvaluateRules.return_value = EvaluateRulesResponse(report_id="test_report_id")
+
+    run_id = "test_run_id"
+    report_name = "test_report"
+    report_template = ReportTemplateConfig(name=report_name, template_id="template-id")
+    start_time = datetime(2025, 1, 1, 1, 1, 1, tzinfo=timezone.utc)
+    end_time = datetime(2025, 1, 2, 1, 1, 59, tzinfo=timezone.utc)
+
+    report = rule_evaluation_service.evaluate_against_run(
+        run_id,
+        report_template,
+        report_name,
+        start_time=start_time,
+        end_time=end_time,
+    )
+    request = mock_stub.mock_calls[0].args[0]
+    assert report.report_id == "test_report_id"
+    assert request.report_name == report_name
+    assert request.run_time_range.run.id == run_id
+    assert request.run_time_range.start_time.seconds == int(start_time.timestamp())
+    assert request.run_time_range.end_time.seconds == int(end_time.timestamp())
+    assert request.report_template.report_template.id == report_template.template_id
+
+    rule_evaluation_service.preview_against_run(run_id, report_template, start_time, end_time)
+    request = mock_stub.mock_calls[1].args[0]
+    assert request.report_template.report_template.id == report_template.template_id
+    assert request.run_time_range.run.id == run_id
+    assert request.run_time_range.start_time.seconds == int(start_time.timestamp())
+    assert request.run_time_range.end_time.seconds == int(end_time.timestamp())
 
 
 def test_evaluate_and_preview_rule_configs_against_run(rule_evaluation_service):
@@ -106,12 +150,65 @@ def test_evaluate_and_preview_rule_configs_against_run(rule_evaluation_service):
     assert request.run.id == run_id
     assert request.rules.rules.client_keys.client_keys[0] == rule_configs[0].rule_client_key
     assert request.rules.rules.client_keys.client_keys[1] == rule_configs[1].rule_client_key
+    assert request.run_time_range.start_time.seconds == 0
+    assert request.run_time_range.end_time.seconds == 0
 
     rule_evaluation_service.preview_against_run(run_id, rule_configs)
     request = mock_stub.mock_calls[1].args[0]
     assert request.run.id == run_id
     assert request.rules.rules.client_keys.client_keys[0] == rule_configs[0].rule_client_key
     assert request.rules.rules.client_keys.client_keys[1] == rule_configs[1].rule_client_key
+    assert request.run_time_range.start_time.seconds == 0
+    assert request.run_time_range.end_time.seconds == 0
+
+
+def test_evaluate_and_preview_rule_configs_against_run_with_start_end_times(
+    rule_evaluation_service,
+):
+    mock_stub = MagicMock()
+    rule_evaluation_service._rule_evaluation_stub = mock_stub
+    mock_stub.EvaluateRules.return_value = EvaluateRulesResponse(report_id="test_report_id")
+
+    run_id = "test_run_id"
+    report_name = "test_report"
+    rule_configs = [
+        RuleConfig(
+            name="rule1",
+            rule_client_key="key1",
+            channel_references=[],
+            expression="$1 == 1",
+            action=RuleActionCreateDataReviewAnnotation(),
+        ),
+        RuleConfig(
+            name="rule2",
+            rule_client_key="key2",
+            channel_references=[],
+            expression="$2 == 2",
+            action=RuleActionCreateDataReviewAnnotation(),
+        ),
+    ]
+    start_time = datetime(2025, 1, 1, 1, 1, 1, tzinfo=timezone.utc)
+    end_time = datetime(2025, 1, 2, 1, 1, 59, tzinfo=timezone.utc)
+
+    report = rule_evaluation_service.evaluate_against_run(
+        run_id, rule_configs, report_name, start_time, end_time
+    )
+    request = mock_stub.mock_calls[0].args[0]
+    assert report.report_id == "test_report_id"
+    assert request.report_name == report_name
+    assert request.rules.rules.client_keys.client_keys[0] == rule_configs[0].rule_client_key
+    assert request.rules.rules.client_keys.client_keys[1] == rule_configs[1].rule_client_key
+    assert request.run_time_range.run.id == run_id
+    assert request.run_time_range.start_time.seconds == int(start_time.timestamp())
+    assert request.run_time_range.end_time.seconds == int(end_time.timestamp())
+
+    rule_evaluation_service.preview_against_run(run_id, rule_configs, start_time, end_time)
+    request = mock_stub.mock_calls[1].args[0]
+    assert request.rules.rules.client_keys.client_keys[0] == rule_configs[0].rule_client_key
+    assert request.rules.rules.client_keys.client_keys[1] == rule_configs[1].rule_client_key
+    assert request.run_time_range.run.id == run_id
+    assert request.run_time_range.start_time.seconds == int(start_time.timestamp())
+    assert request.run_time_range.end_time.seconds == int(end_time.timestamp())
 
 
 def test_evaluate_rules_against_assets(rule_evaluation_service):

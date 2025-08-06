@@ -1,6 +1,6 @@
 [project]
 name = "sift_stack_py"
-version = "0.7.0"
+version = "0.8.2"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -61,6 +61,7 @@ openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
 sift-stream = ["sift-stream-bindings>=0.1.1"]
+hdf5 = ["h5py~=3.11", "polars~=1.8"]
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
