@@ -824,8 +824,15 @@ impl SiftStream<IngestionConfigMode> {
                         tracing::info!(sift_stream_id = sift_stream_id.to_string(), "manually initiating checkpoint");
                     }
                 }
+                tracing::debug!(
+                    sift_stream_id = sift_stream_id.to_string(),
+                    "sending checkpoint signal"
+                );
                 let _ = data_tx.send(StreamMessage::CheckpointSignal).await;
-
+                tracing::debug!(
+                    sift_stream_id = sift_stream_id.to_string(),
+                    "spawning force_checkpoint_timer"
+                );
                 tokio::spawn(async move {
                     let mut force_checkpoint_timer =
                         tokio::time::interval(Duration::from_secs(FORCE_CHECKPOINT_THRESHOLD_SEC));
