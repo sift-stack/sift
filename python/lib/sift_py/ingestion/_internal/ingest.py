@@ -190,8 +190,10 @@ class _IngestionServiceImpl:
         Include `force_new=True` to force the creation of a new run, which will allow creation of a new run using an existing name.
         """
         if self._ingestion_thread.is_alive():
-            raise IngestionValidationError("Cannot attach run while ingestion thread is running. Invoke before ingesting.")
-        
+            raise IngestionValidationError(
+                "Cannot attach run while ingestion thread is running. Invoke before ingesting."
+            )
+
         if not force_new:
             run_id = get_run_id_by_name(channel, run_name)
 
