@@ -1033,6 +1033,7 @@ impl SiftStream<IngestionConfigMode> {
                                 error = format!("{:?}", err),
                                 "DataStreamTask failed with gRPC error"
                             );
+                            drop(client);
                             Err(err)
                         },
                     }
