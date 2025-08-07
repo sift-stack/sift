@@ -1,5 +1,9 @@
 import asyncio
+import logging
 import random
+import time
+import threading
+from datetime import datetime, timedelta
 from queue import Queue
 from typing import List, Optional
 
@@ -13,6 +17,8 @@ from sift_stream_bindings import (
     IngestionConfigFormPy,
     IngestWithConfigDataChannelValuePy,
     IngestWithConfigDataStreamRequestPy,
+    RecoveryStrategyPy,
+    RetryPolicyPy,
     RunFormPy,
     SiftStreamBuilderPy,
     TimeValuePy,
@@ -21,6 +27,95 @@ from sift_stream_bindings import (
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 
+logger = logging.getLogger(__name__)
+
+class IngestionThread(threading.Thread):
+    """
+    Manages ingestion for a single ingestion config.
+    """
+
+    OUTER_LOOP_PERIOD = 0.1  # Time of intervals loop will sleep while waiting for data.
+    SIFT_STREAM_FINISH_TIMEOUT = 0.06  # Measured ~0.05s to finish stream.
+    CLEANUP_TIMEOUT = OUTER_LOOP_PERIOD + SIFT_STREAM_FINISH_TIMEOUT
+
+    def __init__(
+        self,
+        sift_stream_builder: SiftStreamBuilderPy,
+        data_queue: Queue,
+        metric_interval: float = 0.5,
+    ):
+        """
+        Initialize the IngestionThread.
+
+        Args:
+            sift_stream_builder: The sift stream builder to build a new stream.
+            data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
+            ingestion_config: The ingestion config to use for ingestion.
+            metric_interval: Time (seconds) to wait between logging metrics.
+        """
+        super().__init__(daemon=True)
+        self.data_queue = data_queue
+        self._stop = threading.Event()
+        self.sift_stream_builder = sift_stream_builder
+        self.metric_interval = timedelta(seconds=metric_interval)
+
+    def stop(self):
+        self._stop.set()
+        # Give a brief chance to finish the stream (should take < 50ms).
+        time.sleep(self.CLEANUP_TIMEOUT)
+        self.task.cancel()
+
+    async def main(self):
+        logger.debug("Ingestion thread started")
+        sift_stream = await self.sift_stream_builder.build()
+        time_since_last_metric = datetime.now() - timedelta(seconds=1)
+        count = 0
+        try:
+            while True:
+                while not self.data_queue.empty():
+                    if self._stop.is_set():
+                        # Being forced to stop. Try to finish the stream.
+                        logger.info(
+                            f"Ingestion thread received stop signal. Exiting. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
+                        )
+                        await sift_stream.finish()
+                        return
+                    item = self.data_queue.get()
+                    if item is None:
+                        self._stop.set()
+                        continue
+                    sift_stream = await sift_stream.send_requests(item)
+                    count += 1
+                    if datetime.now() - time_since_last_metric > self.metric_interval:
+                        logger.debug(
+                            f"Ingestion thread sent {count} requests, remaining: {self.data_queue.qsize()}"
+                        )
+                        time_since_last_metric = datetime.now()
+
+                if self._stop.is_set():
+                    logger.debug(
+                        f"No more requests. Stopping. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
+                    )
+                    await sift_stream.finish()
+                    return
+                else:
+                    time.sleep(self.OUTER_LOOP_PERIOD)
+
+        except asyncio.CancelledError:
+            # It's possible the thread was joined while sleeping waiting for data. Only note error if we have data left.
+            if self.data_queue.qsize() > 0:
+                logger.error(
+                    f"Ingestion thread cancelled without finishing stream. {self.data_queue.qsize()} requests were not sent."
+                )
+
+    async def _run(self):
+        self.task = asyncio.create_task(self.main())
+        await self.task
+
+    def run(self):
+        """This thread will handle sending data to Sift."""
+        # Even thought this is a thread, we need to run this async task to await send_requests otherwise we get sift_stream consumed errors.
+        asyncio.run(self._run())
 
 def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> SiftStreamBuilderPy:
     """
@@ -47,66 +142,59 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
 
     builder = SiftStreamBuilderPy(uri, apikey)
     builder.ingestion_config = telemetry_config_to_ingestion_config_py(ingestion_config)
+    print(f"builder.ingestion_config: {builder.ingestion_config.client_key}, {builder.ingestion_config.asset_name}")
     builder.enable_tls = channel.config.get("use_ssl", True)
+    # FD-177: Expose configuration for recovery strategy.
+    builder.recovery_strategy = (
+        RecoveryStrategyPy.retry_only(
+            RetryPolicyPy.default()
+        )
+    )
+
     return builder
 
 
 async def stream_requests_async(
-    builder: SiftStreamBuilderPy, run_id: str, *requests: IngestWithConfigDataStreamRequest
+    data_queue: Queue, run_id: str, *requests: IngestWithConfigDataStreamRequest
 ):
-    async def ingestion_thread():
-        # Create stream and send requests
-        sift_stream = await builder.build()
-        try:
-            while not data_queue.empty():
-                item = data_queue.get()
-                sift_stream = await sift_stream.send_requests(item)
-            await sift_stream.finish()
-        except Exception as e:
-            # Ensure stream is finished even if there's an error
-            try:
-                await sift_stream.finish()
-            except:
-                pass
-            raise e
+    """
+    Non-blocking: Convert requests for rust bindings and put them into a queue.
 
-    # Create a dedicated queue for this batch of requests
-    data_queue = Queue()
+    Args:
+        data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
+        run_id: Optional run ID to associate with the requests
+        requests: List of IngestWithConfigDataStreamRequest protobuf objects
+    """
 
     # Put each request individually into the queue, filtering out None values
     processed_requests = []
     for request in requests:
         if not isinstance(request, IngestWithConfigDataStreamRequest):
-            print(f"Skipping request: {request} of type {type(request)}")
+            if isinstance(request, str):
+                print(f"Skipping request: {request} of type {type(request)}")
+            else:
+                raise ValueError(f"Received unexpected request: {request} of type {type(request)}")
             continue
         processed_request = ingest_request_to_ingest_request_py(request, run_id)
         if processed_request is not None:
             processed_requests.append(processed_request)
     data_queue.put(processed_requests)
 
-    print(f"Processing {len(requests)} requests in queue")
-
-    # Process this batch
-    await ingestion_thread()
-
 
 def stream_requests(
-    builder: SiftStreamBuilderPy,
+    data_queue: Queue,
     *requests: IngestWithConfigDataStreamRequest,
     run_id: str = "",
 ) -> None:
     """
-    Stream requests using the stream bindings synchronously.
-    Each call to this function creates its own queue and stream, allowing multiple
-    batches to be processed concurrently when called from different threads.
+    Blocking: Convert requests for rust bindings and put them into a queue.
 
     Args:
-        builder: The SiftStreamBuilderPy to use for streaming
+        data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
         requests: List of IngestWithConfigDataStreamRequest protobuf objects
         run_id: Optional run ID to associate with the requests
     """
-    print(f"Starting stream requests for {len(requests)} requests")
-    asyncio.run(stream_requests_async(builder, run_id, *requests))
+    asyncio.run(stream_requests_async(data_queue, run_id, *requests))
 
 
 def telemetry_config_to_ingestion_config_py(

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import atexit
+from queue import Queue
 import threading
 import time
 from collections.abc import Callable
@@ -26,6 +28,7 @@ from sift_py.ingestion._internal.ingestion_config import (
 )
 from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
 from sift_py.ingestion._internal.stream import (
+    IngestionThread,
     get_builder,
     get_run_form,
     stream_requests,
@@ -43,7 +46,7 @@ from sift_py.ingestion.rule.config import RuleConfig
 from sift_py.rule.service import RuleService
 
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.DEBUG)
 
 class _IngestionServiceImpl:
     transport_channel: SiftChannel
@@ -58,8 +61,8 @@ class _IngestionServiceImpl:
 
     ingest_service_stub: IngestServiceStub
     rule_service: RuleService
-    _async_threads: List[threading.Thread]
-    _threads_lock: threading.Lock
+    _request_queue: Queue
+    _ingestion_thread: IngestionThread
 
     def __init__(
         self,
@@ -101,8 +104,10 @@ class _IngestionServiceImpl:
         self.config = config
 
         # Thread tracking for async ingestion
-        self._async_threads = []
-        self._threads_lock = threading.Lock()
+        self._request_queue = Queue()
+        self._ingestion_thread = IngestionThread(self.builder, self._request_queue)
+        self._ingestion_thread.start()
+        atexit.register(self.wait_for_async_ingestion, timeout=0.1)
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
@@ -115,27 +120,8 @@ class _IngestionServiceImpl:
         Perform data ingestion asynchronously in a background thread.
         This allows multiple ingest calls to run in parallel.
         """
-
-        def _ingest_and_cleanup():
-            try:
-                stream_requests(self.builder, *requests, self.run_id)
-            finally:
-                # Remove this thread from tracking when it completes
-                with self._threads_lock:
-                    if threading.current_thread() in self._async_threads:
-                        self._async_threads.remove(threading.current_thread())
-
-        thread = threading.Thread(
-            target=_ingest_and_cleanup,
-            daemon=True,
-        )
-
-        # Track the thread
-        with self._threads_lock:
-            self._async_threads.append(thread)
-
-        thread.start()
-        return thread
+        # TODO: Create a thread pool and add to whichever queue is smallest
+        stream_requests(self._request_queue, *requests, self.run_id)
 
     def wait_for_async_ingestion(self, timeout: Optional[float] = None) -> bool:
         """
@@ -147,27 +133,16 @@ class _IngestionServiceImpl:
         Returns:
             bool: True if all threads completed within timeout, False otherwise.
         """
-        with self._threads_lock:
-            threads_to_wait = self._async_threads.copy()
-
-        if not threads_to_wait:
-            return True
-
-        # Wait for each thread with the remaining timeout
-        start_time = time.time() if timeout is not None else None
-
-        for thread in threads_to_wait:
-            if timeout is not None:
-                remaining_timeout = timeout - (time.time() - start_time)
-                if remaining_timeout <= 0:
-                    return False
-                thread.join(timeout=remaining_timeout)
-                if thread.is_alive():
-                    return False
-            else:
-                thread.join()
-
+        self._request_queue.put(None)
+        self._ingestion_thread.join(timeout=timeout)
+        if self._ingestion_thread.is_alive():
+            logger.error(
+                f"Ingestion thread did not finish after {timeout} seconds. Forcing stop."
+            )
+            self._ingestion_thread.stop()
+            return False
         return True
+
 
     def get_async_thread_count(self) -> int:
         """
