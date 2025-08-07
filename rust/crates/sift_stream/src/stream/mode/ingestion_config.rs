@@ -317,39 +317,59 @@ impl SiftStream<IngestionConfigMode> {
         match data_tx.send(StreamMessage::Request(req.clone())).await {
             Ok(_) => Ok(()),
 
-            Err(SendError(_)) => match self.mode.streaming_task.take() {
-                None => {
-                    self.restart_stream_and_backups_manager(false).await?;
-                    Box::pin(self.send_impl(req)).await
-                }
-
-                Some(streaming_task) => match streaming_task.await {
-                    Ok(Ok(_)) => {
+            Err(SendError(_)) =>{
+                tracing::debug!(
+                    sift_stream_id = self.mode.sift_stream_id.to_string(),
+                    "Returned Err(SendError) during data_tx.send()"
+                );
+                match self.mode.streaming_task.take() {
+                    None => {
+                        tracing::debug!(
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
+                            "No streaming task was taken. Awaiting restart_stream_and_backups_manager()"
+                        );
                         self.restart_stream_and_backups_manager(false).await?;
                         Box::pin(self.send_impl(req)).await
                     }
-                    Ok(Err(err)) => {
-                        #[cfg(feature = "tracing")]
-                        tracing::warn!(
-                            sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            error = format!("{err:?}"),
-                            "encountered an error while streaming to Sift"
-                        );
 
-                        self.retry(req, err).await
-                    }
-                    Err(err) => {
-                        #[cfg(feature = "tracing")]
-                        tracing::warn!(
+                    Some(streaming_task) => {
+                        tracing::debug!(
                             sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            error = format!("{err:?}"),
-                            "something went wrong while waiting for response from Sift"
+                            "Awaiting streaming_task"
                         );
+                        match streaming_task.await {
+                            Ok(Ok(_)) => {
+                                tracing::debug!(
+                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
+                                    "Streaming_task returned Ok(). Awaiting restart_stream_and_backups_manager()"
+                                );
+                                self.restart_stream_and_backups_manager(false).await?;
+                                Box::pin(self.send_impl(req)).await
+                            }
+                            Ok(Err(err)) => {
+                                #[cfg(feature = "tracing")]
+                                tracing::warn!(
+                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
+                                    error = format!("{err:?}"),
+                                    "encountered an error while streaming to Sift"
+                                );
 
-                        self.retry(req, Error::new(ErrorKind::StreamError, err))
-                            .await
-                    }
-                },
+                                self.retry(req, err).await
+                            }
+                            Err(err) => {
+                                #[cfg(feature = "tracing")]
+                                tracing::warn!(
+                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
+                                    error = format!("{err:?}"),
+                                    "something went wrong while waiting for response from Sift"
+                                );
+
+                                self.retry(req, Error::new(ErrorKind::StreamError, err))
+                                    .await
+                            }
+                        }
+                    },
+                }
             },
         }
     }
