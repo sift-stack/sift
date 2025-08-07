@@ -22,8 +22,6 @@ if __name__ == "__main__":
         raise Exception("Missing 'SIFT_API_KEY' environment variable.")
 
     base_uri = os.getenv("BASE_URI")
-    if not base_uri.startswith("http"):
-        base_uri = f"http://localhost:50051"
 
     if base_uri is None:
         raise Exception("Missing 'BASE_URI' environment variable.")
@@ -33,9 +31,6 @@ if __name__ == "__main__":
 
     # Create a gRPC transport channel configured specifically for the Sift API
     sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
-    sift_channel_config["use_ssl"] = False
-    # sift_channel_config["cert_via_openssl"] = False
-    print(f"sift_channel_config: {sift_channel_config}")
 
     with use_sift_channel(sift_channel_config) as channel:
         # Create ingestion service using the telemetry config we loaded in

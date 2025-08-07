@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import logging
 import atexit
-from queue import Queue
-import threading
-import time
+import logging
 from collections.abc import Callable
 from datetime import datetime
+from queue import Queue
 from typing import Any, Dict, List, Optional, Set, Union, cast
 
 import grpc
@@ -33,7 +31,6 @@ from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
 from sift_py.ingestion._internal.stream import (
     IngestionThread,
     get_builder,
-    get_run_form,
     stream_requests,
 )
 from sift_py.ingestion.channel import (
@@ -49,7 +46,7 @@ from sift_py.ingestion.rule.config import RuleConfig
 from sift_py.rule.service import RuleService
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+
 
 class _IngestionServiceImpl:
     transport_channel: SiftChannel
@@ -138,8 +135,8 @@ class _IngestionServiceImpl:
 
         # Thread tracking for async ingestion
         self._request_queue = Queue()
+        # Don't start thread here since user may attach a run after creating the ingestion service
         self._ingestion_thread = IngestionThread(self.builder, self._request_queue)
-        self._ingestion_thread.start()
         atexit.register(self.wait_for_async_ingestion, timeout=0.1)
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
@@ -158,7 +155,10 @@ class _IngestionServiceImpl:
         This allows multiple ingest calls to run in parallel.
         """
         # TODO: Create a thread pool and add to whichever queue is smallest
-        stream_requests(self._request_queue, *requests, self.run_id)
+        # Start thread on first ingest on the assumption all modifications to the ingestion config have concluded.
+        if not self._ingestion_thread.is_alive():
+            self._ingestion_thread.start()
+        stream_requests(self._request_queue, *requests, run_id=str(self.run_id))
 
     def wait_for_async_ingestion(self, timeout: Optional[float] = None) -> bool:
         """
@@ -173,25 +173,10 @@ class _IngestionServiceImpl:
         self._request_queue.put(None)
         self._ingestion_thread.join(timeout=timeout)
         if self._ingestion_thread.is_alive():
-            logger.error(
-                f"Ingestion thread did not finish after {timeout} seconds. Forcing stop."
-            )
+            logger.error(f"Ingestion thread did not finish after {timeout} seconds. Forcing stop.")
             self._ingestion_thread.stop()
             return False
         return True
-
-
-    def get_async_thread_count(self) -> int:
-        """
-        Get the number of currently running async ingestion threads.
-
-        Returns:
-            int: Number of active async threads.
-        """
-        with self._threads_lock:
-            # Clean up any completed threads
-            self._async_threads = [t for t in self._async_threads if t.is_alive()]
-            return len(self._async_threads)
 
     def ingest_flows(self, *flows: FlowOrderedChannelValues):
         """
@@ -249,6 +234,9 @@ class _IngestionServiceImpl:
 
         Include `force_new=True` to force the creation of a new run, which will allow creation of a new run using an existing name.
         """
+        if self._ingestion_thread.is_alive():
+            raise IngestionValidationError("Cannot attach run while ingestion thread is running. Invoke before ingesting.")
+        
         if not force_new:
             run_id = get_run_id_by_name(channel, run_name)
 
@@ -265,13 +253,7 @@ class _IngestionServiceImpl:
             tags=tags or [],
             metadata=metadata,
         )
-
-        self.builder.run = get_run_form(
-            run_name=run_name,
-            run_description=description or "",
-            client_key=client_key,
-            run_tags=tags,
-        )
+        self.builder.run_id = self.run_id
 
     def detach_run(self):
         """
