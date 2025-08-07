@@ -117,7 +117,7 @@ class _IngestionServiceImpl:
         Perform data ingestion asynchronously in a background thread.
         This allows multiple ingest calls to run in parallel.
         """
-        # TODO: Create a thread pool and add to whichever queue is smallest
+        # FD-179: Create a thread pool and add to whichever queue is smallest
         # Start thread on first ingest on the assumption all modifications to the ingestion config have concluded.
         if not self._ingestion_thread.is_alive():
             self._ingestion_thread.start()
