@@ -60,7 +60,7 @@ pub struct IngestionConfigMode {
     ingestion_config: IngestionConfig,
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
     checkpoint_interval: Duration,
-    streaming_task: Option<DataStreamTask>,
+    streaming_task: Option<TrackedDataStreamTask>,
     retry_policy: Option<RetryPolicy>,
     data_tx: Option<BoundedSender<StreamMessage>>,
     shutdown_tx: Option<Sender<()>>,
@@ -112,6 +112,101 @@ struct DataStream {
 
 type DataStreamTask = JoinHandle<Result<IngestWithConfigDataStreamResponse>>;
 
+/// Wrapper around DataStreamTask that provides tracing when dropped
+struct TrackedDataStreamTask {
+    task: Option<DataStreamTask>,
+    sift_stream_id: Uuid,
+    created_at: Instant,
+}
+
+impl TrackedDataStreamTask {
+    fn new(task: DataStreamTask, sift_stream_id: Uuid) -> Self {
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            sift_stream_id = sift_stream_id.to_string(),
+            "DataStreamTask created"
+        );
+        Self {
+            task: Some(task),
+            sift_stream_id,
+            created_at: Instant::now(),
+        }
+    }
+
+    async fn await_completion(mut self) -> std::result::Result<Result<IngestWithConfigDataStreamResponse>, tokio::task::JoinError> {
+        #[cfg(feature = "tracing")]
+        tracing::debug!(
+            sift_stream_id = self.sift_stream_id.to_string(),
+            "Awaiting DataStreamTask completion"
+        );
+        
+        let task = self.task.take().expect("Task already consumed");
+        let result = task.await;
+        
+        match &result {
+            Ok(Ok(_)) => {
+                #[cfg(feature = "tracing")]
+                tracing::info!(
+                    sift_stream_id = self.sift_stream_id.to_string(),
+                    duration_ms = self.created_at.elapsed().as_millis(),
+                    "DataStreamTask completed successfully"
+                );
+            }
+            Ok(Err(e)) => {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    sift_stream_id = self.sift_stream_id.to_string(),
+                    duration_ms = self.created_at.elapsed().as_millis(),
+                    error = format!("{:?}", e),
+                    "DataStreamTask completed with error"
+                );
+            }
+            Err(e) => {
+                #[cfg(feature = "tracing")]
+                tracing::error!(
+                    sift_stream_id = self.sift_stream_id.to_string(),
+                    duration_ms = self.created_at.elapsed().as_millis(),
+                    error = format!("{:?}", e),
+                    "DataStreamTask join failed (task was likely cancelled)"
+                );
+            }
+        }
+        
+        result
+    }
+}
+
+impl Drop for TrackedDataStreamTask {
+    fn drop(&mut self) {
+        let duration = self.created_at.elapsed();
+        if let Some(task) = &mut self.task {
+            if !task.is_finished() {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    sift_stream_id = self.sift_stream_id.to_string(),
+                    duration_ms = duration.as_millis(),
+                    "DataStreamTask dropped without completion - task will be cancelled"
+                );
+                task.abort();
+            } else {
+                #[cfg(feature = "tracing")]
+                tracing::debug!(
+                    sift_stream_id = self.sift_stream_id.to_string(),
+                    duration_ms = duration.as_millis(),
+                    "DataStreamTask dropped after completion"
+                );
+            }
+        } else {
+            #[cfg(feature = "tracing")]
+            tracing::debug!(
+                sift_stream_id = self.sift_stream_id.to_string(),
+                duration_ms = duration.as_millis(),
+                "TrackedDataStreamTask dropped after task was consumed"
+            );
+        }
+    }
+}
+
 impl Default for IngestionConfigModeBackupsManager {
     /// The default backups manager flavor if backups are enabled.
     fn default() -> Self {
@@ -162,14 +257,17 @@ impl SiftStream<IngestionConfigMode> {
 
         let data_stream = DataStream::new(sift_stream_id, data_rx, drain_tx);
 
-        let streaming_task = Self::init_streaming_task(
-            grpc_channel.clone(),
+        let streaming_task = TrackedDataStreamTask::new(
+            Self::init_streaming_task(
+                grpc_channel.clone(),
+                sift_stream_id,
+                data_stream,
+                checkpoint_interval,
+                data_tx.clone(),
+                shutdown_rx,
+                begin_checkpoint_notifier.clone(),
+            ),
             sift_stream_id,
-            data_stream,
-            checkpoint_interval,
-            data_tx.clone(),
-            shutdown_rx,
-            begin_checkpoint_notifier.clone(),
         );
 
         // Begin checkpoint immediately upon starting
@@ -286,7 +384,13 @@ impl SiftStream<IngestionConfigMode> {
                 drop(data_tx);
             }
             if let Some(streaming_task) = self.mode.streaming_task.take() {
+                #[cfg(feature = "tracing")]
+                tracing::debug!(
+                    sift_stream_id = self.mode.sift_stream_id.to_string(),
+                    "Forcing checkpoint due to backup limit - awaiting streaming task"
+                );
                 let checkpoint_acknowledgement = streaming_task
+                    .await_completion()
                     .await
                     .map_err(|e| Error::new(ErrorKind::StreamError, e))
                     .context("failed to force a checkpoint due to backup limit")
@@ -335,9 +439,9 @@ impl SiftStream<IngestionConfigMode> {
                     Some(streaming_task) => {
                         tracing::debug!(
                             sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            "Awaiting streaming_task"
+                            "Awaiting streaming_task after SendError"
                         );
-                        match streaming_task.await {
+                        match streaming_task.await_completion().await {
                             Ok(Ok(_)) => {
                                 tracing::debug!(
                                     sift_stream_id = self.mode.sift_stream_id.to_string(),
@@ -514,14 +618,17 @@ impl SiftStream<IngestionConfigMode> {
         self.mode.data_tx = Some(data_tx.clone());
         self.mode.shutdown_tx = Some(shutdown_tx);
 
-        let streaming_task = Self::init_streaming_task(
-            self.grpc_channel.clone(),
+        let streaming_task = TrackedDataStreamTask::new(
+            Self::init_streaming_task(
+                self.grpc_channel.clone(),
+                self.mode.sift_stream_id,
+                data_stream,
+                self.mode.checkpoint_interval,
+                data_tx.clone(),
+                shutdown_rx,
+                begin_checkpoint_notifier.clone(),
+            ),
             self.mode.sift_stream_id,
-            data_stream,
-            self.mode.checkpoint_interval,
-            data_tx.clone(),
-            shutdown_rx,
-            begin_checkpoint_notifier.clone(),
         );
         self.mode.streaming_task = Some(streaming_task);
 
@@ -771,7 +878,14 @@ impl SiftStream<IngestionConfigMode> {
             }
             drop(self.mode.data_tx);
 
+            #[cfg(feature = "tracing")]
+            tracing::info!(
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
+                "Finishing stream - awaiting final streaming task completion"
+            );
+
             streaming_task
+                .await_completion()
                 .await
                 .map_err(|e| Error::new(ErrorKind::StreamError, e))
                 .context("something went wrong while waiting for the final checkpoint")
@@ -827,6 +941,11 @@ impl SiftStream<IngestionConfigMode> {
         begin_checkpoint_notifier: Arc<Notify>,
     ) -> DataStreamTask {
         tokio::spawn(async move {
+            #[cfg(feature = "tracing")]
+            tracing::info!(
+                sift_stream_id = sift_stream_id.to_string(),
+                "Starting DataStreamTask execution"
+            );
             let mut client = IngestServiceClient::new(grpc_channel);
             let force_checkpoint = Arc::new(Notify::new());
             let force_checkpoint_c = force_checkpoint.clone();
@@ -907,10 +1026,25 @@ impl SiftStream<IngestionConfigMode> {
                             );
                             Ok(res)
                         }
-                        Err(err) => Err(err),
+                        Err(err) => {
+                            #[cfg(feature = "tracing")]
+                            tracing::error!(
+                                sift_stream_id = sift_stream_id.to_string(),
+                                error = format!("{:?}", err),
+                                "DataStreamTask failed with gRPC error"
+                            );
+                            Err(err)
+                        },
                     }
                 }
                 _ = force_checkpoint.notified() => {
+                    #[cfg(feature = "tracing")]
+                    tracing::warn!(
+                        sift_stream_id = sift_stream_id.to_string(),
+                        "DataStreamTask force-closed due to checkpoint timeout"
+                    );
+                    checkpoint_task.abort_handle().abort();
+                    let _ = checkpoint_task.await;
                     Err(
                         Error::new_msg(ErrorKind::StreamError, "Sift took too long to give a checkpoint acknowledgement"),
                     )
