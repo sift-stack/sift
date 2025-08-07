@@ -71,9 +71,13 @@ class BufferedIngestionService(Generic[T]):
             else:
                 self.flush()
 
+            # Wait for async ingestion threads to complete before re-raising
+            self._ingestion_service.wait_for_async_ingestion(timeout=30.0)
             raise exc_val
         else:
             self.flush()
+            # Wait for async ingestion threads to complete before exiting
+            self._ingestion_service.wait_for_async_ingestion(timeout=30.0)
 
         return True
 
