@@ -42,6 +42,9 @@ use tokio::{
 };
 use uuid::Uuid;
 
+use futures_util::future::FutureExt;
+
+
 /// The size of the channel buffer that connects [SiftStream::send] with the task that actually
 /// streams data to Sift.
 const DATA_BUFFER_CAPACITY: usize = 10_000;
@@ -536,8 +539,16 @@ impl SiftStream<IngestionConfigMode> {
 
                 return Box::pin(self.restart_stream_and_backups_manager(false)).await;
             }
+            tracing::debug!(
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
+                "call begin_checkpoint_notifier.notify_one() after processing backups"
+            );
             begin_checkpoint_notifier.notify_one();
         } else {
+            tracing::debug!(
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
+                "call begin_checkpoint_notifier.notify_one()"
+            );
             begin_checkpoint_notifier.notify_one();
         }
 
@@ -814,14 +825,28 @@ impl SiftStream<IngestionConfigMode> {
                     "received notification to start checkpoint timer"
                 );
 
-                tokio::select! {
-                    _ = checkpoint_timer.tick() => {
-                        #[cfg(feature = "tracing")]
-                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "checkpoint timer elapsed - initiating checkpoint");
-                    }
-                    _ = shutdown_rx => {
-                        #[cfg(feature = "tracing")]
-                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "manually initiating checkpoint");
+                let mut checkpoint_heartbeat = tokio::time::interval(Duration::from_secs(10));
+                checkpoint_heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+                let mut shutdown_rx = shutdown_rx.fuse();
+                let mut shutdown_rx = Pin::new(&mut shutdown_rx);
+                
+                loop {
+                    tokio::select! {
+                        _ = checkpoint_timer.tick() => {
+                            #[cfg(feature = "tracing")]
+                            tracing::info!(sift_stream_id = sift_stream_id.to_string(), "checkpoint timer elapsed - initiating checkpoint");
+                            break
+                        }
+                        _ = &mut shutdown_rx => {
+                            #[cfg(feature = "tracing")]
+                            tracing::info!(sift_stream_id = sift_stream_id.to_string(), "manually initiating checkpoint");
+                            break
+                        }
+                        _ = checkpoint_heartbeat.tick() => {
+                            #[cfg(feature = "tracing")]
+                            tracing::debug!(sift_stream_id = sift_stream_id.to_string(), "10s checkpoint heartbeat");
+                        }
                     }
                 }
                 tracing::debug!(
