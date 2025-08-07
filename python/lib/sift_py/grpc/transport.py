@@ -91,7 +91,6 @@ def use_sift_channel(
 
     if not use_ssl:
         channel = _use_insecure_sift_channel(config, metadata)
-        print("insecure channel")
         return SiftChannelWithConfig(config, channel)
 
     credentials = get_ssl_credentials(cert_via_openssl)
@@ -126,7 +125,7 @@ def use_sift_async_channel(
 
 def _use_insecure_sift_channel(
     config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
-) -> SiftChannel:
+) -> grpc.Channel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
     """

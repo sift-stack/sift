@@ -1,8 +1,8 @@
 import asyncio
 import logging
 import random
-import time
 import threading
+import time
 from datetime import datetime, timedelta
 from queue import Queue
 from typing import List, Optional
@@ -28,6 +28,7 @@ from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.config.telemetry import TelemetryConfig
 
 logger = logging.getLogger(__name__)
+
 
 class IngestionThread(threading.Thread):
     """
@@ -117,6 +118,7 @@ class IngestionThread(threading.Thread):
         # Even thought this is a thread, we need to run this async task to await send_requests otherwise we get sift_stream consumed errors.
         asyncio.run(self._run())
 
+
 def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> SiftStreamBuilderPy:
     """
     Get a builder for a stream.
@@ -142,39 +144,30 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
 
     builder = SiftStreamBuilderPy(uri, apikey)
     builder.ingestion_config = telemetry_config_to_ingestion_config_py(ingestion_config)
-    print(f"builder.ingestion_config: {builder.ingestion_config.client_key}, {builder.ingestion_config.asset_name}")
     builder.enable_tls = channel.config.get("use_ssl", True)
     # FD-177: Expose configuration for recovery strategy.
-    builder.recovery_strategy = (
-        RecoveryStrategyPy.retry_only(
-            RetryPolicyPy.default()
-        )
-    )
+    builder.recovery_strategy = RecoveryStrategyPy.retry_only(RetryPolicyPy.default())
 
     return builder
 
 
 async def stream_requests_async(
-    data_queue: Queue, run_id: str, *requests: IngestWithConfigDataStreamRequest
+    data_queue: Queue, *requests: IngestWithConfigDataStreamRequest, run_id: str = ""
 ):
     """
     Non-blocking: Convert requests for rust bindings and put them into a queue.
 
     Args:
         data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
-        run_id: Optional run ID to associate with the requests
         requests: List of IngestWithConfigDataStreamRequest protobuf objects
+        run_id: Optional run ID to associate with the requests
     """
 
     # Put each request individually into the queue, filtering out None values
     processed_requests = []
     for request in requests:
         if not isinstance(request, IngestWithConfigDataStreamRequest):
-            if isinstance(request, str):
-                print(f"Skipping request: {request} of type {type(request)}")
-            else:
-                raise ValueError(f"Received unexpected request: {request} of type {type(request)}")
-            continue
+            raise ValueError(f"Received unexpected request: {request} of type {type(request)}")
         processed_request = ingest_request_to_ingest_request_py(request, run_id)
         if processed_request is not None:
             processed_requests.append(processed_request)
@@ -194,7 +187,7 @@ def stream_requests(
         requests: List of IngestWithConfigDataStreamRequest protobuf objects
         run_id: Optional run ID to associate with the requests
     """
-    asyncio.run(stream_requests_async(data_queue, run_id, *requests))
+    asyncio.run(stream_requests_async(data_queue, *requests, run_id=run_id))
 
 
 def telemetry_config_to_ingestion_config_py(
@@ -260,7 +253,6 @@ def telemetry_config_to_ingestion_config_py(
         )
 
         flow_configs_py.append(flow_config_py)
-
     # Create ingestion config
     ingestion_config_py = IngestionConfigFormPy(
         asset_name=telemetry_config.asset_name,
@@ -347,11 +339,6 @@ def ingest_request_to_ingest_request_py(
     Returns:
         IngestWithConfigDataStreamRequestPy: The converted request
     """
-    if isinstance(request, str):
-        print(f"Converting request: {request} of type {type(request)}")
-    if request is None:
-        return None
-
     timestamp_py = None
     if request.HasField("timestamp"):
         timestamp_py = TimeValuePy.from_timestamp(
