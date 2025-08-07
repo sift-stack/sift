@@ -31,7 +31,6 @@ def get_ingestion_config_by_client_key(
     Returns `None` if no ingestion config can be matched with the provided `client_key`
     """
 
-    print(f"channel.config: {channel.config}")
     svc = IngestionConfigServiceStub(channel)
     req = ListIngestionConfigsRequest(
         filter=f'client_key=="{client_key}"',
