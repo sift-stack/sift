@@ -1584,6 +1584,7 @@ dependencies = [
  "crc32fast",
  "dirs",
  "futures-core",
+ "futures-util",
  "hyper-util",
  "pbjson-types",
  "prost",
