@@ -11,6 +11,7 @@ from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.types.asset import Asset
 
 
 class RunUpdate(ModelUpdate[RunProto]):
@@ -92,7 +93,7 @@ class Run(BaseType[RunProto, "Run"]):
             _client=sift_client,
         )
 
-    def to_proto(self) -> RunProto:
+    def _to_proto(self) -> RunProto:
         """
         Convert to protobuf message.
         """
@@ -128,7 +129,8 @@ class Run(BaseType[RunProto, "Run"]):
 
         return proto
 
-    def assets(self):
+    @property
+    def assets(self) -> List[Asset]:
         """
         Return all assets associated with this run.
         """
@@ -137,11 +139,3 @@ class Run(BaseType[RunProto, "Run"]):
         if not self.asset_ids:
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
-
-    def stop(self):
-        """
-        Stop the run.
-        """
-        if not hasattr(self, "client") or self.client is None:
-            raise RuntimeError("Run is not bound to a client instance.")
-        self.client.runs.stop_run(self.id)

@@ -30,11 +30,13 @@ dependencies = [
     "requests-toolbelt~=1.0",
     "alive-progress~=3.0",
     # May move these to optional dependencies in the future.
+    "pyarrow>=17.0.0", # sift_client, older version to support py3.8
     "pandas-stubs~=2.0",
     "types-PyYAML~=6.0",
     "types-protobuf>=4.0",
     "typing-extensions~=4.6",
     "types-requests~=2.25",
+    "sift_stream_bindings>=0.1.1", # sift_client
 ]
 
 [project.urls]
@@ -58,8 +60,8 @@ build = ["pdoc==14.5.0", "build==1.2.1"]
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
+sift-stream = ["sift-stream-bindings>=0.1.1"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]
-
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
@@ -120,6 +122,11 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "grpc.aio"
+ignore_missing_imports = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "pyarrow"
 ignore_missing_imports = true
 ignore_errors = true
 

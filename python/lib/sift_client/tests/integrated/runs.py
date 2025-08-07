@@ -36,7 +36,7 @@ async def main():
     print(f"Using asset: {asset.name} (ID: {asset_id})")
 
     # List runs for this asset
-    runs = asset.runs()
+    runs = asset.runs
     print(
         f"Found {len(runs)} run(s): {[run.name for run in runs]} for asset {asset.name} (ID: {asset_id})"
     )
@@ -47,7 +47,7 @@ async def main():
     print(f"Using run: {run.name} (ID: {run_id})")
 
     # List other assets for this run.
-    all_assets = run.assets()
+    all_assets = run.assets
     other_assets = [asset for asset in all_assets if asset.id != asset_id]
     print(
         f"Found {len(other_assets)} other asset(s): {other_assets} for run {run.name} (ID: {run_id})"

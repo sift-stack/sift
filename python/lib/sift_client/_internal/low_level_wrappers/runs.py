@@ -197,12 +197,12 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         grpc_run = cast(UpdateRunResponse, response).run
         return Run._from_proto(grpc_run)
 
-    async def delete_run(self, run_id: str) -> None:
+    async def archive_run(self, run_id: str) -> None:
         """
-        Delete a run.
+        Archive a run.
 
         Args:
-            run_id: The ID of the run to delete.
+            run_id: The ID of the run to archive.
 
         Raises:
             ValueError: If run_id is not provided.

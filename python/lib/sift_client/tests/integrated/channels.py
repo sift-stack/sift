@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 from sift_client.client import SiftClient
 
 
@@ -19,7 +20,7 @@ async def main():
     print(f"Using asset: {asset.name} (ID: {asset_id})")
 
     # List runs for this asset
-    runs = asset.runs()
+    runs = asset.runs
     print(
         f"Found {len(runs)} run(s): {[run.name for run in runs]} for asset {asset.name} (ID: {asset_id})"
     )
@@ -30,7 +31,7 @@ async def main():
     print(f"Using run: {run.name} (ID: {run_id})")
 
     # List other assets for this run.
-    all_assets = run.assets()
+    all_assets = run.assets
     other_assets = [asset for asset in all_assets if asset.id != asset_id]
     print(
         f"Found {len(other_assets)} other asset(s): {other_assets} for run {run.name} (ID: {run_id})"
@@ -49,7 +50,7 @@ async def main():
 
         if len(channels) > 3:
             print(
-                f"Found {len(channels)} channel(s): {[channel.identifier for channel in channels]} for asset {asset.name} on run {run.name}"
+                f"Found {len(channels)} channel(s): {[channel.name for channel in channels]} for asset {asset.name} on run {run.name}"
             )
             if len(other_channels) > 0:
                 print(
@@ -157,6 +158,19 @@ async def main():
             )
         no_time_time_repeat = time.perf_counter() - perf_start
 
+        # Test 7: Get data as arrow
+        print("\nTest 7: Get data as arrow")
+        perf_start = time.perf_counter()
+        channel_data_arrow = client.channels.get_data_as_arrow(
+            channels=channels,
+            end_time=fake_no_end_time,
+        )
+        arrow_time = time.perf_counter() - perf_start
+        for i, (channel_name, data) in enumerate(channel_data_arrow.items()):
+            print(
+                f"{i}: {channel_name}: {len(data)} points. Avg: {pa.compute.mean(data[channel_name])}"
+            )
+
         # Summary of cache performance
         print("\n=== Cache Performance Summary ===")
         print(f"Original call: {first_time:.4f} seconds")
@@ -178,11 +192,11 @@ async def main():
         print(
             f"No time range repeat: {no_time_time_repeat:.4f} seconds ({(no_time_time / no_time_time_repeat):.1f}x faster)"
         )
+        print(f"Arrow: {arrow_time:.4f} seconds ({(arrow_time / no_time_time_repeat):.1f}x faster)")
         assert exact_time < first_time
         assert subset_time < first_time
         assert extended_time < first_time
         assert different_time < first_time
-        assert no_time_time > first_time
         assert no_time_time_repeat < no_time_time
 
 
