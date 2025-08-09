@@ -3,7 +3,7 @@ import uuid
 from collections import defaultdict
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Dict, List, TextIO, Tuple, Union, cast
+from typing import Dict, List, Tuple, Union, cast
 from urllib.parse import urljoin
 
 import numpy as np
@@ -83,7 +83,7 @@ class Hdf5UploadService:
                 temp_file = stack.enter_context(NamedTemporaryFile(mode="w", suffix=".csv"))
                 csv_config = _convert_to_csv_file(
                     path,
-                    temp_file,
+                    temp_file.name,
                     config,
                 )
                 csv_items.append((temp_file.name, csv_config))
@@ -164,14 +164,14 @@ class Hdf5UploadService:
 
 def _convert_to_csv_file(
     src_path: Union[str, Path],
-    dst_file: TextIO,
+    dst_file: str,
     hdf5_config: Hdf5Config,
 ) -> CsvConfig:
     """Converts the HDF5 file to a temporary CSV on disk that we will upload.
 
     Args:
         src_path: The source path to the HDF5 file.
-        dst_file: The output CSV file.
+        dst_file: The output CSV file path.
         hdf5_config: The HDF5 config.
 
     Returns:
@@ -180,6 +180,7 @@ def _convert_to_csv_file(
 
     merged_df = _convert_hdf5_to_dataframes(src_path, hdf5_config)
     csv_cfg = _create_csv_config(hdf5_config, merged_df)
+    # polars write_csv requires a path, not a TextIO to work in windows
     merged_df.write_csv(dst_file)
 
     return csv_cfg
