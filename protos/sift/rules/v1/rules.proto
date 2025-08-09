@@ -656,6 +656,7 @@ message RuleConditionExpression {
   oneof expression {
     SingleChannelComparisonExpression single_channel_comparison = 1 [deprecated = true];
     CalculatedChannelConfig calculated_channel = 2;
+    PythonCode python_code = 3;
   }
 }
 
@@ -692,6 +693,15 @@ message ChannelReference {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
   // Deprecated - use name instead. If provided, name will be joined with the component as `component.name`
   string component = 2 [(google.api.field_behavior) = REQUIRED];
+}
+message PythonChannelReference {
+  string reference = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+}
+message PythonCode {
+  repeated PythonChannelReference channel_references = 1 [(google.api.field_behavior) = REQUIRED];
+  string code = 2 [(google.api.field_behavior) = REQUIRED];
+  string dependencies = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message RuleActionConfiguration {
