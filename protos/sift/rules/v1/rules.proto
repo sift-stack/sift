@@ -656,6 +656,7 @@ message RuleConditionExpression {
   oneof expression {
     SingleChannelComparisonExpression single_channel_comparison = 1 [deprecated = true];
     CalculatedChannelConfig calculated_channel = 2;
+    // Experimental - not currently enabled
     PythonCode python_code = 3;
   }
 }

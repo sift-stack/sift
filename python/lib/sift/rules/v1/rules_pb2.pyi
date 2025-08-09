@@ -1340,7 +1340,9 @@ class RuleConditionExpression(google.protobuf.message.Message):
     @property
     def calculated_channel(self) -> global___CalculatedChannelConfig: ...
     @property
-    def python_code(self) -> global___PythonCode: ...
+    def python_code(self) -> global___PythonCode:
+        """Experimental - not currently enabled"""
+
     def __init__(
         self,
         *,
