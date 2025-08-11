@@ -63,18 +63,18 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_channels(
         self,
         *,
-        query_filter: str | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
+        query_filter: str | None = None,
         order_by: str | None = None,
     ) -> tuple[list[Channel], str]:
         """
         List channels with optional filtering and pagination.
 
         Args:
-            query_filter: A CEL filter string.
             page_size: The maximum number of channels to return.
             page_token: A page token for pagination.
+            query_filter: A CEL filter string.
             order_by: How to order the retrieved channels.
 
         Returns:

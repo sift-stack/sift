@@ -25,7 +25,7 @@ async def main():
     client = SiftClient(grpc_url=grpc_url, api_key=api_key, rest_url=rest_url)
 
     asset = client.assets.find(name="NostromoLV426")
-    asset_id = asset.id
+    asset_id = asset.id_
     print("Found asset", asset.name)
 
     calculated_channels = client.calculated_channels.list(

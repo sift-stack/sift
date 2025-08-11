@@ -19,7 +19,6 @@ class Asset(BaseType[AssetProto, "Asset"]):
     Model of the Sift Asset.
     """
 
-    id: str
     name: str
     organization_id: str
     created_date: datetime
@@ -46,13 +45,13 @@ class Asset(BaseType[AssetProto, "Asset"]):
 
     @property
     def runs(self) -> List[Run]:
-        return self.client.runs.list(asset_id=self.id)
+        return self.client.runs.list(asset_id=self.id_)
 
     def channels(self, run_id: str | None = None, limit: int | None = None) -> List[Channel]:
         """
         Return all channels for this asset.
         """
-        return self.client.channels.list(asset_id=self.id, run_id=run_id, limit=limit)
+        return self.client.channels.list(asset_id=self.id_, run_id=run_id, limit=limit)
 
     @property
     def rules(self):
@@ -87,7 +86,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @classmethod
     def _from_proto(cls, proto: AssetProto, sift_client: SiftClient | None = None) -> Asset:
         return cls(
-            id=proto.asset_id,
+            id_=proto.asset_id,
             name=proto.name,
             organization_id=proto.organization_id,
             created_date=proto.created_date.ToDatetime(),

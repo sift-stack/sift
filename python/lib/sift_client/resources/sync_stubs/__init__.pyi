@@ -668,14 +668,14 @@ class RulesAPI:
         """
         ...
 
-    def batch_undelete(
+    def batch_restore(
         self, *, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
     ) -> None:
         """
-        Batch undelete rules.
+        Batch restore rules.
 
         Args:
-            rule_ids: List of rule IDs to undelete.
+            rule_ids: List of rule IDs to restore.
             client_keys: List of client keys to undelete.
         """
         ...
@@ -749,19 +749,19 @@ class RulesAPI:
         """
         ...
 
-    def undelete(
-        self, rule: str | Rule, *, rule_id: str | None = None, client_key: str | None = None
+    def restore(
+        self, *, rule: str | Rule, rule_id: str | None = None, client_key: str | None = None
     ) -> Rule:
         """
-        Undelete a rule.
+        Restore a rule.
 
         Args:
-            rule: The Rule or rule ID to undelete.
-            rule_id: The rule ID to undelete (alternative to rule parameter).
-            client_key: The client key to undelete (alternative to rule parameter).
+            rule: The Rule or rule ID to restore.
+            rule_id: The rule ID to restore (alternative to rule parameter).
+            client_key: The client key to restore (alternative to rule parameter).
 
         Returns:
-            The undeleted Rule.
+            The restored Rule.
         """
         ...
 

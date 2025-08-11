@@ -166,7 +166,6 @@ class ChannelBitFieldElement(BaseModel):
 
 # Channel config model
 class Channel(BaseType[ChannelProto, "Channel"]):
-    id: str | None = None
     name: str
     data_type: ChannelDataType
     description: str | None = None
@@ -195,7 +194,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     ) -> Channel:
         if isinstance(proto, ChannelProto):
             return cls(
-                id=proto.channel_id,
+                id_=proto.channel_id,
                 name=proto.name,
                 data_type=ChannelDataType(proto.data_type),
                 description=proto.description,
@@ -213,7 +212,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             )
         elif isinstance(proto, ChannelConfig):
             return cls(
-                id=proto.name,
+                id_=proto.name,
                 name=proto.name,
                 data_type=ChannelDataType(proto.data_type),
                 _client=sift_client,

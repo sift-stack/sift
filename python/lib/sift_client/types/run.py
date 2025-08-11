@@ -52,7 +52,6 @@ class Run(BaseType[RunProto, "Run"]):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    id: str
     name: str
     description: str
     created_date: datetime
@@ -72,7 +71,7 @@ class Run(BaseType[RunProto, "Run"]):
     @classmethod
     def _from_proto(cls, proto: RunProto, sift_client: SiftClient | None = None) -> Run:
         return cls(
-            id=proto.run_id,
+            id_=proto.run_id,
             created_date=proto.created_date.ToDatetime(),
             modified_date=proto.modified_date.ToDatetime(),
             created_by_user_id=proto.created_by_user_id,
@@ -98,7 +97,7 @@ class Run(BaseType[RunProto, "Run"]):
         Convert to protobuf message.
         """
         proto = RunProto(
-            run_id=self.id,
+            run_id=self.id_ or "",
             created_date=self.created_date,  # type: ignore
             modified_date=self.modified_date,  # type: ignore
             created_by_user_id=self.created_by_user_id,

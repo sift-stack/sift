@@ -50,7 +50,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
     client_key: str | None = None
 
     # Fields from proto
-    rule_id: str | None = None
     created_date: datetime | None = None
     modified_date: datetime | None = None
     created_by_user_id: str | None = None
@@ -95,7 +94,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
             else None
         )
         return cls(
-            rule_id=proto.rule_id,
+            id_=proto.rule_id,
             name=proto.name,
             description=proto.description,
             expression=expression,

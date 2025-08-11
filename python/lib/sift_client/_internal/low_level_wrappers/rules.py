@@ -266,7 +266,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
 
         update_request = UpdateRuleRequest(
-            rule_id=rule.rule_id,
+            rule_id=rule.id_,
             **update_dict,  # type: ignore
         )
 
@@ -285,7 +285,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated Rule.
         """
-        update.resource_id = rule.rule_id
+        update.resource_id = rule.id_
 
         update_request = self._update_rule_request_from_update(rule, update, version_notes)
 
@@ -362,18 +362,16 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = BatchDeleteRulesRequest(**request_kwargs)
         await self._grpc_client.get_stub(RuleServiceStub).BatchDeleteRules(request)
 
-    async def undelete_rule(
-        self, rule_id: str | None = None, client_key: str | None = None
-    ) -> Rule:
+    async def restore_rule(self, rule_id: str | None = None, client_key: str | None = None) -> Rule:
         """
-        Undelete a rule.
+        Restore a rule.
 
         Args:
-            rule_id: The rule ID to undelete.
-            client_key: The client key to undelete.
+            rule_id: The rule ID to restore.
+            client_key: The client key to restore.
 
         Returns:
-            The undeleted Rule.
+            The restored Rule.
 
         Raises:
             ValueError: If neither rule_id nor client_key is provided.
@@ -389,18 +387,18 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = UndeleteRuleRequest(**request_kwargs)
         await self._grpc_client.get_stub(RuleServiceStub).UndeleteRule(request)
-        # Get the undeleted rule
+        # Get the restored rule
         return await self.get_rule(rule_id=rule_id, client_key=client_key)
 
-    async def batch_undelete_rules(
+    async def batch_restore_rules(
         self, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
     ) -> None:
         """
-        Batch undelete rules.
+        Batch restore rules.
 
         Args:
-            rule_ids: List of rule IDs to undelete.
-            client_keys: List of client keys to undelete.
+            rule_ids: List of rule IDs to restore.
+            client_keys: List of client keys to restore.
 
         Raises:
             ValueError: If neither rule_ids nor client_keys is provided.

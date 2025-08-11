@@ -18,8 +18,8 @@ from sift_stream_bindings import (
     ChannelConfigPy,
     ChannelDataTypePy,
     ChannelEnumTypePy,
-    ChannelValuePy,
     FlowConfigPy,
+    IngestWithConfigDataChannelValuePy,
 )
 
 from sift_client.types._base import BaseType
@@ -113,7 +113,9 @@ def _channel_to_rust_config(channel: Channel) -> ChannelConfigPy:
     )
 
 
-def _rust_channel_value_from_bitfield(channel: Channel, value: Any) -> ChannelValuePy:
+def _rust_channel_value_from_bitfield(
+    channel: Channel, value: Any
+) -> IngestWithConfigDataChannelValuePy:
     """Helper function to convert a bitfield value to a ChannelValuePy object.
 
     Args:
@@ -128,10 +130,7 @@ def _rust_channel_value_from_bitfield(channel: Channel, value: Any) -> ChannelVa
     # We expect individual ints or bytes to represent full bitfield values.
     if isinstance(value, bytes) or isinstance(value, int):
         cast_value = [value] if isinstance(value, int) else value
-        return ChannelValuePy.bitfield(
-            channel.name,
-            cast_value,
-        )
+        return IngestWithConfigDataChannelValuePy.bitfield(cast_value)
 
     # We expect a dict or list of ints to represent individual bitfield elements.
     list_value = value
@@ -147,17 +146,12 @@ def _rust_channel_value_from_bitfield(channel: Channel, value: Any) -> ChannelVa
     for i, field in enumerate(channel.bit_field_elements):
         packed |= list_value[i] << field.bit_count
     byte_array = packed.to_bytes(math.ceil(packed.bit_length() / 8), "little")
-    return ChannelValuePy.bitfield(
-        channel.name,
-        byte_array,
-    )
+    return IngestWithConfigDataChannelValuePy.bitfield(byte_array)
 
 
-def _to_rust_value(channel: Channel, value: Any) -> ChannelValuePy:
+def _to_rust_value(channel: Channel, value: Any) -> IngestWithConfigDataChannelValuePy:
     if value is None:
-        raise ValueError(
-            "Sift rust bindings does not support None values. Expected all channels in flow to have a data point at same time."
-        )
+        return IngestWithConfigDataChannelValuePy.empty()
     if channel.data_type == ChannelDataType.ENUM:
         enum_name = value
         enum_val = channel.enum_types.get(enum_name)
@@ -172,23 +166,23 @@ def _to_rust_value(channel: Channel, value: Any) -> ChannelValuePy:
             raise ValueError(
                 f"Could not find enum value: {value} in enum options: {channel.enum_types}"
             )
-        return ChannelValuePy.enum_value(channel.name, ChannelEnumTypePy(enum_name, enum_val))
+        return IngestWithConfigDataChannelValuePy.enum_value(enum_val)
     elif channel.data_type == ChannelDataType.BIT_FIELD:
         return _rust_channel_value_from_bitfield(channel, value)
     elif channel.data_type == ChannelDataType.BOOL:
-        return ChannelValuePy.bool(channel.name, value)
+        return IngestWithConfigDataChannelValuePy.bool(value)
     elif channel.data_type == ChannelDataType.FLOAT:
-        return ChannelValuePy.float(channel.name, value)
+        return IngestWithConfigDataChannelValuePy.float(value)
     elif channel.data_type == ChannelDataType.DOUBLE:
-        return ChannelValuePy.double(channel.name, value)
+        return IngestWithConfigDataChannelValuePy.double(value)
     elif channel.data_type == ChannelDataType.INT_32:
-        return ChannelValuePy.int32(channel.name, value)
+        return IngestWithConfigDataChannelValuePy.int32(value)
     elif channel.data_type == ChannelDataType.INT_64:
-        return ChannelValuePy.int64(channel.name, value)
+        return IngestWithConfigDataChannelValuePy.int64(value)
     elif channel.data_type == ChannelDataType.UINT_32:
-        return ChannelValuePy.uint32(channel.name, value)
+        return IngestWithConfigDataChannelValuePy.uint32(value)
     elif channel.data_type == ChannelDataType.UINT_64:
-        return ChannelValuePy.uint64(channel.name, value)
+        return IngestWithConfigDataChannelValuePy.uint64(value)
     else:
         raise ValueError(f"Invalid data type: {channel.data_type}")
 

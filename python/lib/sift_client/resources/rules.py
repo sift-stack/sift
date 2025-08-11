@@ -186,15 +186,15 @@ class RulesAPIAsync(ResourceBase):
         """
         if rule:
             if isinstance(rule, Rule):
-                await self._low_level_client.archive_rule(rule_id=rule.rule_id)
+                await self._low_level_client.archive_rule(rule_id=rule.id_)
             else:
                 await self._low_level_client.archive_rule(rule_id=rule)
         elif rules:
             if len(rules) == 1:
-                await self._low_level_client.archive_rule(rule_id=rules[0].rule_id)
+                await self._low_level_client.archive_rule(rule_id=rules[0].id_)
             else:
                 await self._low_level_client.batch_archive_rules(
-                    rule_ids=[r.rule_id for r in rules],  # type: ignore
+                    rule_ids=[r.id_ for r in rules],  # type: ignore
                 )
         elif rule_ids:
             if len(rule_ids) == 1:
@@ -206,50 +206,48 @@ class RulesAPIAsync(ResourceBase):
         else:
             raise ValueError("Either rules, rule_ids, or client_keys must be provided")
 
-    async def undelete(
+    async def restore(
         self,
-        rule: str | Rule,
         *,
+        rule: str | Rule,
         rule_id: str | None = None,
         client_key: str | None = None,
     ) -> Rule:
         """
-        Undelete a rule.
+        Restore a rule.
 
         Args:
-            rule: The Rule or rule ID to undelete.
-            rule_id: The rule ID to undelete (alternative to rule parameter).
-            client_key: The client key to undelete (alternative to rule parameter).
+            rule: The Rule or rule ID to restore.
+            rule_id: The rule ID to restore (alternative to rule parameter).
+            client_key: The client key to restore (alternative to rule parameter).
 
         Returns:
-            The undeleted Rule.
+            The restored Rule.
         """
         if rule_id or client_key:
-            undeleted_rule = await self._low_level_client.undelete_rule(
+            restored_rule = await self._low_level_client.restore_rule(
                 rule_id=rule_id, client_key=client_key
             )
         else:
-            rule_id = rule.rule_id if isinstance(rule, Rule) else rule
-            undeleted_rule = await self._low_level_client.undelete_rule(rule_id=rule_id)
+            rule_id = rule.id_ if isinstance(rule, Rule) else rule
+            restored_rule = await self._low_level_client.restore_rule(rule_id=rule_id)
 
-        return self._apply_client_to_instance(undeleted_rule)
+        return self._apply_client_to_instance(restored_rule)
 
-    async def batch_undelete(
+    async def batch_restore(
         self,
         *,
         rule_ids: List[str] | None = None,
         client_keys: List[str] | None = None,
     ) -> None:
         """
-        Batch undelete rules.
+        Batch restore rules.
 
         Args:
-            rule_ids: List of rule IDs to undelete.
+            rule_ids: List of rule IDs to restore.
             client_keys: List of client keys to undelete.
         """
-        await self._low_level_client.batch_undelete_rules(
-            rule_ids=rule_ids, client_keys=client_keys
-        )
+        await self._low_level_client.batch_restore_rules(rule_ids=rule_ids, client_keys=client_keys)
 
     async def batch_get(
         self,

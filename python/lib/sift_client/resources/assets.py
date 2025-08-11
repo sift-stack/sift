@@ -185,9 +185,9 @@ class AssetsAPIAsync(ResourceBase):
          Returns:
              The archived Asset.
         """
-        asset_id = asset.id if isinstance(asset, Asset) else asset
+        asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
 
-        await self._low_level_client.delete_asset(asset_id, archive_runs=archive_runs)
+        await self._low_level_client.delete_asset(asset_id or "", archive_runs=archive_runs)
 
         return await self.get(asset_id=asset_id)
 
@@ -203,7 +203,7 @@ class AssetsAPIAsync(ResourceBase):
             The updated Asset.
 
         """
-        asset_id = asset.id if isinstance(asset, Asset) else asset
+        asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
         if isinstance(update, dict):
             update = AssetUpdate.model_validate(update)
         update.resource_id = asset_id

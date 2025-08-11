@@ -42,7 +42,7 @@ def main():
     client = SiftClient(grpc_url=grpc_url, api_key=api_key, rest_url=rest_url)
 
     asset = client.assets.find(name="NostromoLV426")
-    asset_id = asset.id
+    asset_id = asset.id_
     print(f"Using asset: {asset.name} (ID: {asset_id})")
 
     unique_name_suffix = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -65,7 +65,7 @@ def main():
             asset_ids=[asset_id],
         )
         created_rules.append(rule)
-        print(f"Created rule: {rule.name} (ID: {rule.rule_id})")
+        print(f"Created rule: {rule.name} (ID: {rule.id_})")
 
     # Find the rules we just created
     search_results = client.rules.list(
@@ -217,7 +217,7 @@ def main():
     ]
 
     # Batch get the updated rules
-    rule_ids = [rule.rule_id for rule in all_updated_rules]
+    rule_ids = [rule.id_ for rule in all_updated_rules]
     batch_rules = client.rules.batch_get(rule_ids=rule_ids)
     print(f"Batch retrieved {len(batch_rules)} rules:")
     for rule in batch_rules:

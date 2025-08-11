@@ -72,9 +72,9 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             if channel.bit_field_elements:
                 for bit_field_element in channel.bit_field_elements:
                     self.channel_cache.name_id_map[channel.name + "." + bit_field_element.name] = (
-                        str(channel.id)
+                        str(channel.id_)
                     )
-            self.channel_cache.name_id_map[channel.name] = str(channel.id)
+            self.channel_cache.name_id_map[channel.name] = str(channel.id_)
 
     # TODO: Cache calls. Only read cache if end_time is more than 30 min in the past.
     #       Also, consider manually caching full channel data and evaluating start/end times while ignoring pagination. Do this ful caching at a higher  level though to handle case where pagination fails.
@@ -250,7 +250,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         end_time = end_time or datetime.now(timezone.utc)
 
         self._update_name_id_map(channels)
-        channel_ids = [c.id for c in channels]
+        channel_ids = [c.id_ for c in channels]
         cached_channels, not_cached_channels = (
             ([], channel_ids) if ignore_cache else self._filter_cached_channels(channel_ids)  # type: ignore
         )

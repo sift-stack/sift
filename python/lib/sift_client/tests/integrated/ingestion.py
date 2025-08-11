@@ -72,7 +72,7 @@ async def main():
     # This seals the flow and ingestion config
     await client.async_.ingestion.create_ingestion_config(
         asset_name=asset,
-        run_id=run.id,
+        run_id=run.id_,
         flows=[regular_flow, highspeed_flow],
     )
     try:
@@ -91,7 +91,7 @@ async def main():
     ]
     await client.async_.ingestion.create_ingestion_config(
         asset_name="test-asset-ian2",
-        run_id=run.id,
+        run_id=run.id_,
         flows=other_asset_flows,
     )
     sleep_time = 0.05  # Time between outer loop iterations to simulate real-time latency between ingestion calls.
@@ -187,7 +187,7 @@ async def main():
         },
     )
     client.async_.ingestion.wait_for_ingestion_to_complete(timeout=1.5)
-    client.runs.archive(run=run.id)
+    client.runs.archive(run=run.id_)
 
     num_datapoints = fake_hs_rate * len(
         highspeed_flow.channels

@@ -16,7 +16,7 @@ async def main():
     client = SiftClient(grpc_url=grpc_url, api_key=api_key, rest_url=rest_url)
 
     asset = client.assets.find(name="NostromoLV426")
-    asset_id = asset.id
+    asset_id = asset.id_
     print(f"Using asset: {asset.name} (ID: {asset_id})")
 
     # List runs for this asset
@@ -27,12 +27,12 @@ async def main():
 
     # Pick one.
     run = runs[0]
-    run_id = run.id
+    run_id = run.id_
     print(f"Using run: {run.name} (ID: {run_id})")
 
     # List other assets for this run.
     all_assets = run.assets
-    other_assets = [asset for asset in all_assets if asset.id != asset_id]
+    other_assets = [asset for asset in all_assets if asset.id_ != asset_id]
     print(
         f"Found {len(other_assets)} other asset(s): {other_assets} for run {run.name} (ID: {run_id})"
     )
@@ -40,7 +40,7 @@ async def main():
     # List channels for this asset (find a run w/ data)
     channels = []
     for run in runs:
-        asset_channels = asset.channels(run_id=run.id, limit=10)
+        asset_channels = asset.channels(run_id=run.id_, limit=10)
         other_channels = []
         for c in asset_channels:
             if c.name in {"voltage", "gpio", "temperature", "mainmotor.velocity"}:
