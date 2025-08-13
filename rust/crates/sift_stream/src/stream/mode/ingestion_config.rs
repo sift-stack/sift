@@ -356,22 +356,20 @@ impl SiftStream<IngestionConfigMode> {
                                     "encountered an error while streaming to Sift"
                                 );
 
-                                self.retry(req, err).await
-                            }
-                            Err(err) => {
-                                #[cfg(feature = "tracing")]
-                                tracing::warn!(
-                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
-                                    error = format!("{err:?}"),
-                                    "something went wrong while waiting for response from Sift"
-                                );
+                        self.retry(req, err).await
+                    }
+                    Err(err) => {
+                        #[cfg(feature = "tracing")]
+                        tracing::warn!(
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
+                            error = format!("{err:?}"),
+                            "something went wrong while waiting for response from Sift"
+                        );
 
-                                self.retry(req, Error::new(ErrorKind::StreamError, err))
-                                    .await
-                            }
-                        }
-                    },
-                }
+                        self.retry(req, Error::new(ErrorKind::StreamError, err))
+                            .await
+                    }
+                },
             },
         }
     }
