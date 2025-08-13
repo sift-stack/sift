@@ -707,6 +707,8 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
+    /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
+    /// of this function will be associated with the run.
     pub async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()> {
         let run = match run_selector {
             RunSelector::ById(run_id) => load_run_by_id(self.grpc_channel.clone(), &run_id).await?,
@@ -718,6 +720,12 @@ impl SiftStream<IngestionConfigMode> {
         self.mode.run = Some(run);
 
         Ok(())
+    }
+
+    /// Detach the run, if any, associated with the stream. Any data provided through [SiftStream::send] after
+    /// this function is called will not be associated with a run.
+    pub fn detach_run(&mut self) {
+        self.mode.run = None;
     }
 
     /// This will conclude the stream and return when Sift has sent its final response. It is
