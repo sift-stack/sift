@@ -15,6 +15,9 @@ use mode::ingestion_config::IngestionConfigMode;
 pub mod retry;
 pub use retry::RetryPolicy;
 
+/// Concerned with accessing or creating runs for [SiftStream]
+pub mod run;
+
 /// Concerned with constructing values of time that make up the time-series sent ot Sift.
 pub mod time;
 
