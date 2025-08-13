@@ -42,9 +42,6 @@ use tokio::{
 };
 use uuid::Uuid;
 
-use futures_util::future::FutureExt;
-
-
 /// The size of the channel buffer that connects [SiftStream::send] with the task that actually
 /// streams data to Sift.
 const DATA_BUFFER_CAPACITY: usize = 10_000;
@@ -317,59 +314,39 @@ impl SiftStream<IngestionConfigMode> {
         match data_tx.send(StreamMessage::Request(req.clone())).await {
             Ok(_) => Ok(()),
 
-            Err(SendError(_)) =>{
-                tracing::debug!(
-                    sift_stream_id = self.mode.sift_stream_id.to_string(),
-                    "Returned Err(SendError) during data_tx.send()"
-                );
-                match self.mode.streaming_task.take() {
-                    None => {
-                        tracing::debug!(
-                            sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            "No streaming task was taken. Awaiting restart_stream_and_backups_manager()"
-                        );
+            Err(SendError(_)) => match self.mode.streaming_task.take() {
+                None => {
+                    self.restart_stream_and_backups_manager(false).await?;
+                    Box::pin(self.send_impl(req)).await
+                }
+
+                Some(streaming_task) => match streaming_task.await {
+                    Ok(Ok(_)) => {
                         self.restart_stream_and_backups_manager(false).await?;
                         Box::pin(self.send_impl(req)).await
                     }
-
-                    Some(streaming_task) => {
-                        tracing::debug!(
+                    Ok(Err(err)) => {
+                        #[cfg(feature = "tracing")]
+                        tracing::warn!(
                             sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            "Awaiting streaming_task"
+                            error = format!("{err:?}"),
+                            "encountered an error while streaming to Sift"
                         );
-                        match streaming_task.await {
-                            Ok(Ok(_)) => {
-                                tracing::debug!(
-                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
-                                    "Streaming_task returned Ok(). Awaiting restart_stream_and_backups_manager()"
-                                );
-                                self.restart_stream_and_backups_manager(false).await?;
-                                Box::pin(self.send_impl(req)).await
-                            }
-                            Ok(Err(err)) => {
-                                #[cfg(feature = "tracing")]
-                                tracing::warn!(
-                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
-                                    error = format!("{err:?}"),
-                                    "encountered an error while streaming to Sift"
-                                );
 
-                                self.retry(req, err).await
-                            }
-                            Err(err) => {
-                                #[cfg(feature = "tracing")]
-                                tracing::warn!(
-                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
-                                    error = format!("{err:?}"),
-                                    "something went wrong while waiting for response from Sift"
-                                );
+                        self.retry(req, err).await
+                    }
+                    Err(err) => {
+                        #[cfg(feature = "tracing")]
+                        tracing::warn!(
+                            sift_stream_id = self.mode.sift_stream_id.to_string(),
+                            error = format!("{err:?}"),
+                            "something went wrong while waiting for response from Sift"
+                        );
 
-                                self.retry(req, Error::new(ErrorKind::StreamError, err))
-                                    .await
-                            }
-                        }
-                    },
-                }
+                        self.retry(req, Error::new(ErrorKind::StreamError, err))
+                            .await
+                    }
+                },
             },
         }
     }
@@ -559,16 +536,8 @@ impl SiftStream<IngestionConfigMode> {
 
                 return Box::pin(self.restart_stream_and_backups_manager(false)).await;
             }
-            tracing::debug!(
-                sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "call begin_checkpoint_notifier.notify_one() after processing backups"
-            );
             begin_checkpoint_notifier.notify_one();
         } else {
-            tracing::debug!(
-                sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "call begin_checkpoint_notifier.notify_one()"
-            );
             begin_checkpoint_notifier.notify_one();
         }
 
@@ -845,39 +814,18 @@ impl SiftStream<IngestionConfigMode> {
                     "received notification to start checkpoint timer"
                 );
 
-                let mut checkpoint_heartbeat = tokio::time::interval(Duration::from_secs(10));
-                checkpoint_heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-                let mut shutdown_rx = shutdown_rx.fuse();
-                let mut shutdown_rx = Pin::new(&mut shutdown_rx);
-                
-                loop {
-                    tokio::select! {
-                        _ = checkpoint_timer.tick() => {
-                            #[cfg(feature = "tracing")]
-                            tracing::info!(sift_stream_id = sift_stream_id.to_string(), "checkpoint timer elapsed - initiating checkpoint");
-                            break
-                        }
-                        _ = &mut shutdown_rx => {
-                            #[cfg(feature = "tracing")]
-                            tracing::info!(sift_stream_id = sift_stream_id.to_string(), "manually initiating checkpoint");
-                            break
-                        }
-                        _ = checkpoint_heartbeat.tick() => {
-                            #[cfg(feature = "tracing")]
-                            tracing::debug!(sift_stream_id = sift_stream_id.to_string(), "10s checkpoint heartbeat");
-                        }
+                tokio::select! {
+                    _ = checkpoint_timer.tick() => {
+                        #[cfg(feature = "tracing")]
+                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "checkpoint timer elapsed - initiating checkpoint");
+                    }
+                    _ = shutdown_rx => {
+                        #[cfg(feature = "tracing")]
+                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "manually initiating checkpoint");
                     }
                 }
-                tracing::debug!(
-                    sift_stream_id = sift_stream_id.to_string(),
-                    "sending checkpoint signal"
-                );
                 let _ = data_tx.send(StreamMessage::CheckpointSignal).await;
-                tracing::debug!(
-                    sift_stream_id = sift_stream_id.to_string(),
-                    "spawning force_checkpoint_timer"
-                );
+
                 tokio::spawn(async move {
                     let mut force_checkpoint_timer =
                         tokio::time::interval(Duration::from_secs(FORCE_CHECKPOINT_THRESHOLD_SEC));
