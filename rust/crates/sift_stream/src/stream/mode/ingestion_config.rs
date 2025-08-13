@@ -316,7 +316,7 @@ impl SiftStream<IngestionConfigMode> {
                 #[cfg(feature = "tracing")]
                 tracing::debug!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
-                    "Returned Err(SendError) during data_tx.send()"
+                    "returned Err(SendError) during data_tx.send()"
                 );
                 match self.mode.streaming_task.take() {
                     None => {
