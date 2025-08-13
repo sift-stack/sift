@@ -115,6 +115,7 @@ class IncompatibleProtobufField(google.protobuf.message.Message):
     FIELD_NUMBER_FIELD_NUMBER: builtins.int
     REASON_FIELD_NUMBER: builtins.int
     DETAILS_FIELD_NUMBER: builtins.int
+    FIELD_KIND_FIELD_NUMBER: builtins.int
     protobuf_descriptor_id: builtins.str
     message_full_name: builtins.str
     desired_field_name: builtins.str
@@ -122,6 +123,7 @@ class IncompatibleProtobufField(google.protobuf.message.Message):
     field_number: builtins.str
     reason: builtins.str
     details: builtins.str
+    field_kind: builtins.str
     def __init__(
         self,
         *,
@@ -132,8 +134,9 @@ class IncompatibleProtobufField(google.protobuf.message.Message):
         field_number: builtins.str = ...,
         reason: builtins.str = ...,
         details: builtins.str = ...,
+        field_kind: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["current_field_name", b"current_field_name", "desired_field_name", b"desired_field_name", "details", b"details", "field_number", b"field_number", "message_full_name", b"message_full_name", "protobuf_descriptor_id", b"protobuf_descriptor_id", "reason", b"reason"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["current_field_name", b"current_field_name", "desired_field_name", b"desired_field_name", "details", b"details", "field_kind", b"field_kind", "field_number", b"field_number", "message_full_name", b"message_full_name", "protobuf_descriptor_id", b"protobuf_descriptor_id", "reason", b"reason"]) -> None: ...
 
 global___IncompatibleProtobufField = IncompatibleProtobufField
 
