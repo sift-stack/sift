@@ -3,7 +3,6 @@ import logging
 import random
 import threading
 import time
-from datetime import datetime, timedelta
 from queue import Queue
 from typing import List, Optional
 
@@ -35,9 +34,9 @@ class IngestionThread(threading.Thread):
     Manages ingestion for a single ingestion config.
     """
 
-    OUTER_LOOP_PERIOD = 0.1  # Time of intervals loop will sleep while waiting for data.
+    IDLE_LOOP_PERIOD = 0.1  # Time of intervals loop will sleep while waiting for data.
     SIFT_STREAM_FINISH_TIMEOUT = 0.06  # Measured ~0.05s to finish stream.
-    CLEANUP_TIMEOUT = OUTER_LOOP_PERIOD + SIFT_STREAM_FINISH_TIMEOUT
+    CLEANUP_TIMEOUT = IDLE_LOOP_PERIOD + SIFT_STREAM_FINISH_TIMEOUT
 
     def __init__(
         self,
@@ -58,7 +57,7 @@ class IngestionThread(threading.Thread):
         self.data_queue = data_queue
         self._stop = threading.Event()
         self.sift_stream_builder = sift_stream_builder
-        self.metric_interval = timedelta(seconds=metric_interval)
+        self.metric_interval = metric_interval
 
     def stop(self):
         self._stop.set()
@@ -69,7 +68,7 @@ class IngestionThread(threading.Thread):
     async def main(self):
         logger.debug("Ingestion thread started")
         sift_stream = await self.sift_stream_builder.build()
-        time_since_last_metric = datetime.now() - timedelta(seconds=1)
+        time_since_last_metric = time.time() - 1
         count = 0
         try:
             while True:
@@ -87,11 +86,11 @@ class IngestionThread(threading.Thread):
                         continue
                     sift_stream = await sift_stream.send_requests(item)
                     count += 1
-                    if datetime.now() - time_since_last_metric > self.metric_interval:
+                    if time.time() - time_since_last_metric > self.metric_interval:
                         logger.debug(
                             f"Ingestion thread sent {count} requests, remaining: {self.data_queue.qsize()}"
                         )
-                        time_since_last_metric = datetime.now()
+                        time_since_last_metric = time.time()
 
                 if self._stop.is_set():
                     logger.debug(
@@ -100,7 +99,7 @@ class IngestionThread(threading.Thread):
                     await sift_stream.finish()
                     return
                 else:
-                    time.sleep(self.OUTER_LOOP_PERIOD)
+                    time.sleep(self.IDLE_LOOP_PERIOD)
 
         except asyncio.CancelledError:
             # It's possible the thread was joined while sleeping waiting for data. Only note error if we have data left.
@@ -136,6 +135,7 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
     if not uri or not apikey:
         raise ValueError(f"Channel config is missing uri or apikey: {channel.config}")
 
+    # SiftStreamBuilder needs URI to start with http or https
     if not uri.startswith("http"):
         if "localhost" in uri:
             uri = f"http://{uri}"
@@ -152,7 +152,7 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
 
 
 async def stream_requests_async(
-    data_queue: Queue, *requests: IngestWithConfigDataStreamRequest, run_id: str = ""
+    data_queue: Queue, *requests: IngestWithConfigDataStreamRequest
 ):
     """
     Non-blocking: Convert requests for rust bindings and put them into a queue.
@@ -160,24 +160,20 @@ async def stream_requests_async(
     Args:
         data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
         requests: List of IngestWithConfigDataStreamRequest protobuf objects
-        run_id: Optional run ID to associate with the requests
     """
 
     # Put each request individually into the queue, filtering out None values
     processed_requests = []
     for request in requests:
         if not isinstance(request, IngestWithConfigDataStreamRequest):
-            raise ValueError(f"Received unexpected request: {request} of type {type(request)}")
-        processed_request = ingest_request_to_ingest_request_py(request, run_id)
-        if processed_request is not None:
-            processed_requests.append(processed_request)
+            raise ValueError(f"Received unexpected request: {request} of type {type(request)}")        
+        processed_requests.append(ingest_request_to_ingest_request_py(request))
     data_queue.put(processed_requests)
 
 
 def stream_requests(
     data_queue: Queue,
     *requests: IngestWithConfigDataStreamRequest,
-    run_id: str = "",
 ) -> None:
     """
     Blocking: Convert requests for rust bindings and put them into a queue.
@@ -185,9 +181,8 @@ def stream_requests(
     Args:
         data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
         requests: List of IngestWithConfigDataStreamRequest protobuf objects
-        run_id: Optional run ID to associate with the requests
     """
-    asyncio.run(stream_requests_async(data_queue, *requests, run_id=run_id))
+    asyncio.run(stream_requests_async(data_queue, *requests))
 
 
 def telemetry_config_to_ingestion_config_py(
@@ -327,7 +322,6 @@ def get_run_form(
 
 def ingest_request_to_ingest_request_py(
     request,
-    run_id: str = "",
 ) -> IngestWithConfigDataStreamRequestPy:
     """
     Convert an IngestWithConfigDataStreamRequest to IngestWithConfigDataStreamRequestPy.
@@ -355,7 +349,7 @@ def ingest_request_to_ingest_request_py(
         flow=request.flow,
         timestamp=timestamp_py,
         channel_values=channel_values_py,
-        run_id=run_id or "",
+        run_id=request.run_id or "",
         end_stream_on_validation_error=request.end_stream_on_validation_error,
         organization_id=request.organization_id,
     )
@@ -388,7 +382,6 @@ def convert_channel_value_to_channel_value_py(channel_value) -> IngestWithConfig
     elif channel_value.HasField("uint64"):
         return IngestWithConfigDataChannelValuePy.uint64(channel_value.uint64)
     elif channel_value.HasField("enum"):
-        # For enum values, we need to create a ChannelEnumTypePy
         return IngestWithConfigDataChannelValuePy.enum_value(channel_value.enum)
     elif channel_value.HasField("bit_field"):
         return IngestWithConfigDataChannelValuePy.bitfield(channel_value.bit_field)

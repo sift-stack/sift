@@ -16,7 +16,6 @@ if __name__ == "__main__":
     load_dotenv()
 
     apikey = os.getenv("SIFT_API_KEY")
-    apikey = "aA5ZGxfVIhc1DjNKs47HOhrlptC8QLBp3ms20NPp"
 
     if apikey is None:
         raise Exception("Missing 'SIFT_API_KEY' environment variable.")

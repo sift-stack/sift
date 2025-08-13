@@ -121,7 +121,7 @@ class _IngestionServiceImpl:
         # Start thread on first ingest on the assumption all modifications to the ingestion config have concluded.
         if not self._ingestion_thread.is_alive():
             self._ingestion_thread.start()
-        stream_requests(self._request_queue, *requests, run_id=str(self.run_id))
+        stream_requests(self._request_queue, *requests)
 
     def wait_for_async_ingestion(self, timeout: Optional[float] = None) -> bool:
         """
