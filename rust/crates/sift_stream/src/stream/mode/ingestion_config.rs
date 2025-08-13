@@ -79,7 +79,7 @@ pub enum IngestionConfigModeBackupsManager {
 enum StreamMessage {
     Request(IngestWithConfigDataStreamRequest),
     CheckpointSignal,
-    ErrorSignal
+    ErrorSignal,
 }
 
 impl SiftStreamMode for IngestionConfigMode {}
@@ -367,9 +367,9 @@ impl SiftStream<IngestionConfigMode> {
                                     .await
                             }
                         }
-                    },
+                    }
                 }
-            },
+            }
         }
     }
 
