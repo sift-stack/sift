@@ -151,9 +151,7 @@ def get_builder(channel: SiftChannel, ingestion_config: TelemetryConfig) -> Sift
     return builder
 
 
-async def stream_requests_async(
-    data_queue: Queue, *requests: IngestWithConfigDataStreamRequest
-):
+async def stream_requests_async(data_queue: Queue, *requests: IngestWithConfigDataStreamRequest):
     """
     Non-blocking: Convert requests for rust bindings and put them into a queue.
 
@@ -166,7 +164,7 @@ async def stream_requests_async(
     processed_requests = []
     for request in requests:
         if not isinstance(request, IngestWithConfigDataStreamRequest):
-            raise ValueError(f"Received unexpected request: {request} of type {type(request)}")        
+            raise ValueError(f"Received unexpected request: {request} of type {type(request)}")
         processed_requests.append(ingest_request_to_ingest_request_py(request))
     data_queue.put(processed_requests)
 
