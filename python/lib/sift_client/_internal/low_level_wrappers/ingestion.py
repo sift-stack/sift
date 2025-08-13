@@ -16,7 +16,7 @@ import logging
 import threading
 import time
 from collections import namedtuple
-from datetime import datetime, timedelta
+from datetime import datetime
 from queue import Queue
 from typing import Any, Dict, List, cast
 
@@ -49,9 +49,9 @@ class IngestionThread(threading.Thread):
     Manages ingestion for a single ingestion config.
     """
 
-    OUTER_LOOP_PERIOD = 0.1  # Time of intervals loop will sleep while waiting for data.
+    IDLE_LOOP_PERIOD = 0.1  # Time of intervals loop will sleep while waiting for data.
     SIFT_STREAM_FINISH_TIMEOUT = 0.06  # Measured ~0.05s to finish stream.
-    CLEANUP_TIMEOUT = OUTER_LOOP_PERIOD + SIFT_STREAM_FINISH_TIMEOUT
+    CLEANUP_TIMEOUT = IDLE_LOOP_PERIOD + SIFT_STREAM_FINISH_TIMEOUT
 
     def __init__(
         self,
@@ -76,8 +76,8 @@ class IngestionThread(threading.Thread):
         self._stop = threading.Event()
         self.sift_stream_builder = sift_stream_builder
         self.ingestion_config = ingestion_config
-        self.no_data_timeout = timedelta(seconds=no_data_timeout)
-        self.metric_interval = timedelta(seconds=metric_interval)
+        self.no_data_timeout = no_data_timeout
+        self.metric_interval = metric_interval
 
     def stop(self):
         self._stop.set()
@@ -89,8 +89,8 @@ class IngestionThread(threading.Thread):
         logger.debug("Ingestion thread started")
         self.sift_stream_builder.ingestion_config = self.ingestion_config
         sift_stream = await self.sift_stream_builder.build()
-        time_since_last_metric = datetime.now() - timedelta(seconds=1)
-        time_since_last_data = datetime.now()
+        time_since_last_metric = time.time() - 1
+        time_since_last_data = time.time()
         count = 0
         try:
             while True:
@@ -102,19 +102,19 @@ class IngestionThread(threading.Thread):
                         )
                         await sift_stream.finish()
                         return
-                    time_since_last_data = datetime.now()
+                    time_since_last_data = time.time()
                     item = self.data_queue.get()
                     sift_stream = await sift_stream.send_requests(item)
                     count += 1
-                    if datetime.now() - time_since_last_metric > self.metric_interval:
+                    if time.time() - time_since_last_metric > self.metric_interval:
                         logger.debug(
                             f"Ingestion thread sent {count} requests, remaining: {self.data_queue.qsize()}"
                         )
-                        time_since_last_metric = datetime.now()
+                        time_since_last_metric = time.time()
 
                 if (
                     self._stop.is_set()
-                    or datetime.now() - time_since_last_data > self.no_data_timeout
+                    or time.time() - time_since_last_data > self.no_data_timeout
                 ):
                     logger.debug(
                         f"No more requests. Stopping. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
@@ -122,7 +122,7 @@ class IngestionThread(threading.Thread):
                     await sift_stream.finish()
                     return
                 else:
-                    time.sleep(self.OUTER_LOOP_PERIOD)
+                    time.sleep(self.IDLE_LOOP_PERIOD)
 
         except asyncio.CancelledError:
             # It's possible the thread was joined while sleeping waiting for data. Only note error if we have data left.

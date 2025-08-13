@@ -118,7 +118,7 @@ def _use_insecure_sift_async_channel(
     FOR DEVELOPMENT PURPOSES ONLY
     """
     return grpc_aio.insecure_channel(
-        target=config["uri"],
+        target=_clean_uri(config["uri"], False),
         options=_compute_channel_options(config),
         interceptors=_compute_sift_async_interceptors(config, metadata),
     )
