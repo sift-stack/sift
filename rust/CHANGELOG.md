@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.5.0] - August 14, 2025
+
+- [Add ability to attach and detach runs to SiftStream](https://github.com/sift-stack/sift/pull/293)
+- [Add better stream error handling to SiftStream to avoid checkpoint misses](https://github.com/sift-stack/sift/pull/292)
+
 ## [v0.4.2] - July 17, 2025
 
 - [Additional network hiccup resiliency for SiftStream](https://github.com/sift-stack/sift/pull/272)
