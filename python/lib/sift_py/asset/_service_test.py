@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from unittest import TestCase
 from unittest.mock import MagicMock
 
+import grpc
 from sift.assets.v1.assets_pb2 import (
     Asset,
     GetAssetResponse,
@@ -12,7 +13,6 @@ from sift.assets.v1.assets_pb2 import (
 from sift_py._internal.metadata import metadata_dict_to_pb
 from sift_py.asset.config import AssetConfig
 from sift_py.asset.service import AssetService
-from sift_py.grpc.transport import SiftChannel
 
 
 class TestAssetService(TestCase):
@@ -23,7 +23,7 @@ class TestAssetService(TestCase):
     """
 
     def setUp(self):
-        self.channel = MagicMock(spec=SiftChannel)
+        self.channel = MagicMock(spec=grpc.Channel)
         self.service = AssetService(self.channel)
         self.asset_service_stub = self.service._asset_service_stub
 
