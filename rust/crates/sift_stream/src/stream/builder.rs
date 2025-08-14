@@ -97,7 +97,7 @@ pub enum RecoveryStrategy {
 /// expected to be unique across the user's organization; it's used to uniquely identify a
 /// particular ingestion config which defines the schema of an asset's telemetry. See the
 /// [top-level documentation](crate#ingestion-configs) for further details.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IngestionConfigForm {
     pub asset_name: String,
     pub client_key: String,
@@ -108,7 +108,7 @@ pub struct IngestionConfigForm {
 /// is used in [SiftStreamBuilder::attach_run]. Note that if there is an existing run with the
 /// given `client_key`, any other fields that are updated in this [RunForm] will be updated in
 /// Sift, with the exception of `Option` fields that are `None`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RunForm {
     pub name: String,
     pub client_key: String,
