@@ -36,7 +36,6 @@ dependencies = [
     "types-protobuf>=4.0",
     "typing-extensions~=4.6",
     "types-requests~=2.25",
-    "sift_stream_bindings>=0.1.1", # sift_client
 ]
 
 [project.urls]
@@ -55,6 +54,7 @@ development = [
     "pytest-benchmark==4.0.0",
     "pytest-mock==3.14.0",
     "ruff",
+    "sift_stream_bindings>=0.1.2", # sift_client
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]

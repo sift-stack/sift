@@ -13,7 +13,6 @@ from sift_client.client import SiftClient
 from sift_client.types.asset import Asset, AssetUpdate
 from sift_client.types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
 from sift_client.types.channel import Channel, ChannelReference
-from sift_client.types.ingestion import Flow
 from sift_client.types.rule import Rule, RuleAction, RuleUpdate
 from sift_client.types.run import Run, RunUpdate
 
@@ -499,81 +498,6 @@ class ChannelsAPI:
 
         Returns:
             A list of Channels that matches the filter.
-        """
-        ...
-
-class IngestionAPI:
-    """
-    Sync counterpart to `IngestionAPIAsync`.
-
-
-    High-level API for interacting with ingestion services.
-
-    This class provides a Pythonic, notebook-friendly interface for interacting with the IngestionAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
-
-    All methods in this class use the Flow class from the types module, which is a user-friendly
-    representation of ingestion flows using standard Python data structures and types.
-    """
-
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the IngestionAPI.
-
-        Args:
-            sift_client: The Sift client to use.
-        """
-        ...
-
-    def _run(self, coro):
-        """ """
-        ...
-
-    def create_ingestion_config(
-        self,
-        *,
-        asset_name: str,
-        run_id: str | None = None,
-        flows: List[Flow],
-        client_key: str | None = None,
-        organization_id: str | None = None,
-    ) -> str:
-        """
-        Create an ingestion config.
-
-        Args:
-            asset_name: The name of the asset for this ingestion config.
-            run_id: Optionally provide a run ID to create a run for the given asset.
-            flows: List of flow configurations.
-            client_key: Optional client key for identifying this config.
-            organization_id: The organization ID.
-
-        Returns:
-            The ingestion config ID.
-
-        Raises:
-            ValueError: If asset_name is not provided or flows is empty.
-        """
-        ...
-
-    def ingest(
-        self,
-        *,
-        flow: Flow | None = None,
-        flows: List[Flow] | None = None,
-        timestamp: datetime,
-        channel_values: dict[str, Any],
-    ):
-        """ """
-        ...
-
-    def wait_for_ingestion_to_complete(self, timeout: float | None = None):
-        """
-        Wait for all ingestion to complete.
-
-        Args:
-            run_id: The id of the run to wait for.
-            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
         """
         ...
 

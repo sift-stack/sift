@@ -35,7 +35,6 @@ class IngestionAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = IngestionLowLevelClient(grpc_client=self.client.grpc_client)
 
-    # TODO: How to flag this can't be called from the sync API?
     async def create_ingestion_config(
         self,
         *,
@@ -83,23 +82,17 @@ class IngestionAPIAsync(ResourceBase):
         self,
         *,
         flow: Flow | None = None,
-        flows: List[Flow] | None = None,
         timestamp: datetime,
         channel_values: dict[str, Any],
     ):
-        if flow is None and flows is None:
+        if flow is None:
             raise ValueError("Either flow or flows must be provided")
-        if flow is not None and flows is not None:
-            raise ValueError("Only one of flow or flows can be provided")
 
-        flows = [flow] if flow is not None else flows or []
-
-        for flow in flows:
-            self._low_level_client.ingest_flow(
-                flow=flow,
-                timestamp=timestamp,
-                channel_values=channel_values,
-            )
+        self._low_level_client.ingest_flow(
+            flow=flow,
+            timestamp=timestamp,
+            channel_values=channel_values,
+        )
 
     def wait_for_ingestion_to_complete(self, timeout: float | None = None):
         """

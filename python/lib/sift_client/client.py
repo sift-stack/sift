@@ -10,7 +10,6 @@ from sift_client.resources import (
     CalculatedChannelsAPIAsync,
     ChannelsAPI,
     ChannelsAPIAsync,
-    IngestionAPI,
     IngestionAPIAsync,
     PingAPI,
     PingAPIAsync,
@@ -92,8 +91,8 @@ class SiftClient(
     calculated_channels: CalculatedChannelsAPI
     """Instance of the Channels API for making synchronous requests."""
     channels: ChannelsAPI
-    """Instance of the Ingestion API for making synchronous requests."""
-    ingestion: IngestionAPI
+    """Instance of the Ingestion Async API for making synchronous requests."""
+    ingestion: IngestionAPIAsync
     """Instance of the Rules API for making synchronous requests."""
     rules: RulesAPI
     """Instance of the Runs API for making synchronous requests."""
@@ -139,7 +138,7 @@ class SiftClient(
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
         self.channels = ChannelsAPI(self)
-        self.ingestion = IngestionAPI(self)
+        self.ingestion = IngestionAPIAsync(self)
         self.rules = RulesAPI(self)
         self.runs = RunsAPI(self)
 

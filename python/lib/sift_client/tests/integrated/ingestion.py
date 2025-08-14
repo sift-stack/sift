@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 
 from sift_client.client import SiftClient
+from sift_client.transport import SiftConnectionConfig
 from sift_client.types.channel import (
     Channel,
     ChannelBitFieldElement,
@@ -16,9 +17,13 @@ from sift_client.types.ingestion import Flow
 
 async def main():
     client = SiftClient(
-        grpc_url=os.getenv("SIFT_GRPC_URI", "localhost:50051"),
-        api_key=os.getenv("SIFT_API_KEY", ""),
-        rest_url=os.getenv("SIFT_REST_URI", "localhost:8080"),
+        connection_config=SiftConnectionConfig(
+            grpc_url=os.getenv("SIFT_GRPC_URI", "localhost:50051"),
+            api_key=os.getenv("SIFT_API_KEY", ""),
+            rest_url=os.getenv("SIFT_REST_URI", "localhost:8080"),
+            use_ssl=False,
+            cert_via_openssl=False,
+        )
     )
 
     asset = "ian-test-asset"
@@ -70,11 +75,12 @@ async def main():
         ],
     )
     # This seals the flow and ingestion config
-    await client.async_.ingestion.create_ingestion_config(
+    config_id = await client.async_.ingestion.create_ingestion_config(
         asset_name=asset,
         run_id=run.id_,
         flows=[regular_flow, highspeed_flow],
     )
+    print(f"config_id: {config_id}")
     try:
         regular_flow.add_channel(Channel(name="test-channel", data_type=ChannelDataType.DOUBLE))
     except ValueError as e:

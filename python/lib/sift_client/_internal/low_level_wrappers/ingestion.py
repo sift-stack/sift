@@ -78,12 +78,17 @@ class IngestionThread(threading.Thread):
         self.ingestion_config = ingestion_config
         self.no_data_timeout = no_data_timeout
         self.metric_interval = metric_interval
+        self.initialized = False
 
     def stop(self):
         self._stop.set()
         # Give a brief chance to finish the stream (should take < 50ms).
         time.sleep(self.CLEANUP_TIMEOUT)
         self.task.cancel()
+
+    async def await_stream_build(self):
+        while not self.initialized:
+            await asyncio.sleep(0.01)
 
     async def main(self):
         logger.debug("Ingestion thread started")
@@ -92,6 +97,7 @@ class IngestionThread(threading.Thread):
         time_since_last_metric = time.time() - 1
         time_since_last_data = time.time()
         count = 0
+        self.initialized = True
         try:
             while True:
                 while not self.data_queue.empty():
@@ -112,10 +118,7 @@ class IngestionThread(threading.Thread):
                         )
                         time_since_last_metric = time.time()
 
-                if (
-                    self._stop.is_set()
-                    or time.time() - time_since_last_data > self.no_data_timeout
-                ):
+                if self._stop.is_set() or time.time() - time_since_last_data > self.no_data_timeout:
                     logger.debug(
                         f"No more requests. Stopping. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
                     )
@@ -257,10 +260,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         assert ingestion_config is not None  # Appease mypy.
         thread = IngestionThread(self.sift_stream_builder, data_queue, ingestion_config)
         thread.start()
-        self.stream_cache[ingestion_config_id] = self.CacheEntry(
-            data_queue, ingestion_config, thread
-        )
-        return thread
+
+        return self.CacheEntry(data_queue, ingestion_config, thread)
 
     def _hash_flows(self, asset_name: str, flows: List[Flow]) -> str:
         """
@@ -341,24 +342,22 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             else (None, None, None)
         )
         if not (thread and thread.is_alive()):
-            if ingestion_config_id:
-                # This happens nominally if the ingestion config was created previously (i.e. specific client key or starting new run w/ same flow definitions).
-                logger.debug(
-                    f"Ingestion config {ingestion_config_id} already exists but is not yet in the cache."
-                )
             ingestion_config = IngestionConfigFormPy(
                 asset_name=asset_name,
                 flows=[flow._to_rust_config() for flow in flows],
                 client_key=client_key,
             )
 
-            # Sift stream does not have ingestion config ID but should create it. So fetch it ourselves to create ingestion requests later.
-            ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
-            assert ingestion_config_id is not None, (
-                "No ingestion config id found after building new stream. Likely server error."
-            )
-            logger.debug(f"Built new stream for ingestion config {ingestion_config_id}")
-            thread = self._new_ingestion_thread(ingestion_config_id, ingestion_config)
+            cache_entry = self._new_ingestion_thread(ingestion_config_id or "", ingestion_config)
+            if not ingestion_config_id:
+                # No ingestion config ID exists for client key but stream builder in ingestion thread should create it.
+                await cache_entry.thread.await_stream_build()
+                ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
+                assert ingestion_config_id is not None, (
+                    "No ingestion config id found after building new stream. Likely server error."
+                )
+                logger.debug(f"Built new stream for ingestion config {ingestion_config_id}")
+            self.stream_cache[ingestion_config_id] = cache_entry
 
         for flow in flows:
             flow.ingestion_config_id = ingestion_config_id
@@ -424,4 +423,6 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         data_queue.put([req])
         if not (thread and thread.is_alive()):
             # We previously had a thread for this ingestion config but it finished ingestion so create a new one.
-            thread = self._new_ingestion_thread(flow.ingestion_config_id, ingestion_config)
+            self.stream_cache[flow.ingestion_config_id] = self._new_ingestion_thread(
+                flow.ingestion_config_id, ingestion_config
+            )
