@@ -6,7 +6,10 @@ import time
 from queue import Queue
 from typing import List, Optional
 
-from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataStreamRequest
+from sift.ingest.v1.ingest_pb2 import (
+    IngestWithConfigDataChannelValue,
+    IngestWithConfigDataStreamRequest,
+)
 from sift_stream_bindings import (
     ChannelBitFieldElementPy,
     ChannelConfigPy,
@@ -319,7 +322,7 @@ def get_run_form(
 
 
 def ingest_request_to_ingest_request_py(
-    request,
+    request: IngestWithConfigDataStreamRequest,
 ) -> IngestWithConfigDataStreamRequestPy:
     """
     Convert an IngestWithConfigDataStreamRequest to IngestWithConfigDataStreamRequestPy.
@@ -353,7 +356,9 @@ def ingest_request_to_ingest_request_py(
     )
 
 
-def convert_channel_value_to_channel_value_py(channel_value) -> IngestWithConfigDataChannelValuePy:
+def convert_channel_value_to_channel_value_py(
+    channel_value: IngestWithConfigDataChannelValue,
+) -> IngestWithConfigDataChannelValuePy:
     """
     Convert an IngestWithConfigDataChannelValue to IngestWithConfigDataChannelValuePy.
 
@@ -390,5 +395,4 @@ def convert_channel_value_to_channel_value_py(channel_value) -> IngestWithConfig
         # For empty values, we'll return a default value
         return IngestWithConfigDataChannelValuePy.empty()
     else:
-        # No field set, return empty value
-        return IngestWithConfigDataChannelValuePy.empty()
+        raise ValueError(f"{channel_value} missing type field.")

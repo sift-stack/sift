@@ -22,7 +22,7 @@ from sift_py.grpc._retry import RetryPolicy
 from sift_py.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 
 
-class SiftChannelWithConfig:
+class SiftChannel:
     """
     A wrapper around grpc.Channel that includes the configuration used to create it.
     This allows access to the original config for debugging or other purposes.
@@ -44,7 +44,6 @@ class SiftChannelWithConfig:
         self._channel.close()
 
 
-SiftChannel: TypeAlias = SiftChannelWithConfig
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 
 
@@ -91,7 +90,7 @@ def use_sift_channel(
 
     if not use_ssl:
         channel = _use_insecure_sift_channel(config, metadata)
-        return SiftChannelWithConfig(config, channel)
+        return SiftChannel(config, channel)
 
     credentials = get_ssl_credentials(cert_via_openssl)
     options = _compute_channel_options(config)
@@ -99,7 +98,7 @@ def use_sift_channel(
     channel = grpc.secure_channel(api_uri, credentials, options)
     interceptors = _compute_sift_interceptors(config, metadata)
     intercepted_channel = grpc.intercept_channel(channel, *interceptors)
-    return SiftChannelWithConfig(config, intercepted_channel)
+    return SiftChannel(config, intercepted_channel)
 
 
 def use_sift_async_channel(
