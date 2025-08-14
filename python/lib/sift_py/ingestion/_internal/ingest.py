@@ -171,7 +171,8 @@ class _IngestionServiceImpl:
             bool: True if all threads completed within timeout, False otherwise.
         """
         self._request_queue.put(None)
-        self._ingestion_thread.join(timeout=timeout)
+        if self._ingestion_thread.is_alive():
+            self._ingestion_thread.join(timeout=timeout)
         if self._ingestion_thread.is_alive():
             logger.error(f"Ingestion thread did not finish after {timeout} seconds. Forcing stop.")
             self._ingestion_thread.stop()
