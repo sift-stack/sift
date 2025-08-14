@@ -22,7 +22,6 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     Model of the Sift Calculated Channel.
     """
 
-    id: str
     name: str
     description: str
     expression: str
@@ -88,7 +87,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         cls, proto: CalculatedChannelProto, sift_client: SiftClient | None = None
     ) -> CalculatedChannel:
         return cls(
-            id=proto.calculated_channel_id,
+            id_=proto.calculated_channel_id,
             name=proto.name,
             description=proto.description,
             expression=proto.calculated_channel_configuration.query_configuration.sel.expression,

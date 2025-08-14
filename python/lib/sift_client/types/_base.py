@@ -17,6 +17,7 @@ SelfT = TypeVar("SelfT", bound="BaseType")
 class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     model_config = ConfigDict(frozen=True)
 
+    id_: str | None = None
     _client: SiftClient | None = None
 
     @property

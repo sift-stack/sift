@@ -43,7 +43,7 @@ async def main():
 
     # Find assets to work with
     asset = client.assets.find(name="NostromoLV426")
-    asset_id = asset.id
+    asset_id = asset.id_
     print(f"Using asset: {asset.name} (ID: {asset_id})")
 
     # Create example calculated channels that will be unique to this test run in case things don't cleanup.
@@ -69,7 +69,7 @@ async def main():
         )
         created_channels.append(calculated_channel)
         print(
-            f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.id})"
+            f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.id_})"
         )
 
     # Find the channels we just created
@@ -236,7 +236,7 @@ async def main():
     assert updated_channel_7.tag_ids == [], f"Tag IDs update failed: {updated_channel_7.tag_ids}"
 
     versions = client.calculated_channels.list_versions(
-        calculated_channel_id=channel_1.id,
+        calculated_channel_id=channel_1.id_,
         limit=10,
     )
     print(f"Found {len(versions)} versions for {created_channels[0].name}")

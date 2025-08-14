@@ -84,6 +84,7 @@ class AssetsAPIAsync(ResourceBase):
         created_by: Any | None = None,
         modified_by: Any | None = None,
         tags: list[str] | None = None,
+        tag_ids: list[str] | None = None,
         metadata: list[Any] | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
@@ -94,6 +95,7 @@ class AssetsAPIAsync(ResourceBase):
         List assets with optional filtering.
 
         Args:
+            asset_ids: List of asset IDs to filter by.
             name: Exact name of the asset.
             name_contains: Partial name of the asset.
             name_regex: Regular expression string to filter assets by name.
@@ -105,6 +107,7 @@ class AssetsAPIAsync(ResourceBase):
             created_by: Assets created by this user.
             modified_by: Assets last modified by this user.
             tags: Assets with these tags.
+            tag_ids: List of asset tag IDs to filter by.
             include_archived: Include archived assets.
             filter_query: Explicit CEL query to filter assets.
             order_by: How to order the retrieved assets. # TODO: tooling for this?
@@ -137,7 +140,9 @@ class AssetsAPIAsync(ResourceBase):
             if modified_by:
                 raise NotImplementedError
             if tags:
-                raise NotImplementedError
+                filters.append(cel_utils.in_("tag_name", tags))
+            if tag_ids:
+                filters.append(cel_utils.in_("tag_ids", tag_ids))
             if metadata:
                 raise NotImplementedError
             if not include_archived:
@@ -180,9 +185,9 @@ class AssetsAPIAsync(ResourceBase):
          Returns:
              The archived Asset.
         """
-        asset_id = asset.id if isinstance(asset, Asset) else asset
+        asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
 
-        await self._low_level_client.delete_asset(asset_id, archive_runs=archive_runs)
+        await self._low_level_client.delete_asset(asset_id or "", archive_runs=archive_runs)
 
         return await self.get(asset_id=asset_id)
 
@@ -198,7 +203,7 @@ class AssetsAPIAsync(ResourceBase):
             The updated Asset.
 
         """
-        asset_id = asset.id if isinstance(asset, Asset) else asset
+        asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
         if isinstance(update, dict):
             update = AssetUpdate.model_validate(update)
         update.resource_id = asset_id

@@ -212,25 +212,25 @@ class RunsAPIAsync(ResourceBase):
         if isinstance(update, dict):
             update = RunUpdate.model_validate(update)
 
-        update.resource_id = run.id
+        update.resource_id = run.id_
         updated_run = await self._low_level_client.update_run(run, update)
         return self._apply_client_to_instance(updated_run)
 
-    async def delete(
+    async def archive(
         self,
         *,
         run: str | Run,
     ) -> None:
         """
-        Delete a run.
+        Archive a run.
 
         Args:
-            run: The Run or run ID to delete.
+            run: The Run or run ID to archive.
         """
-        run_id = run.id if isinstance(run, Run) else run
+        run_id = run.id_ if isinstance(run, Run) else run
         if not isinstance(run_id, str):
             raise TypeError(f"run_id must be a string not {type(run_id)}")
-        await self._low_level_client.delete_run(run_id=run_id)
+        await self._low_level_client.archive_run(run_id=run_id)
 
     async def stop(
         self,
@@ -243,8 +243,8 @@ class RunsAPIAsync(ResourceBase):
         Args:
             run: The Run or run ID to stop.
         """
-        run_id = run.id if isinstance(run, Run) else run
-        await self._low_level_client.stop_run(run_id=run_id)
+        run_id = run.id_ if isinstance(run, Run) else run
+        await self._low_level_client.stop_run(run_id=run_id or "")
 
     async def create_automatic_association_for_assets(
         self,
@@ -258,7 +258,7 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID.
             asset_names: List of asset names to associate.
         """
-        run_id = run.id if isinstance(run, Run) else run
+        run_id = run.id_ or "" if isinstance(run, Run) else run
         await self._low_level_client.create_automatic_run_association_for_assets(
             run_id=run_id, asset_names=asset_names
         )
@@ -270,5 +270,5 @@ class RunsAPIAsync(ResourceBase):
         Args:
             run: The Run or run ID to stop.
         """
-        run_id = run.id if isinstance(run, Run) else run
-        await self._low_level_client.stop_run(run_id=run_id)
+        run_id = run.id_ or "" if isinstance(run, Run) else run
+        await self._low_level_client.stop_run(run_id=run_id or "")

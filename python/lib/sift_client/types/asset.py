@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, List, Type
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
 from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.types.channel import Channel
+from sift_client.types.run import Run
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
@@ -17,7 +19,6 @@ class Asset(BaseType[AssetProto, "Asset"]):
     Model of the Sift Asset.
     """
 
-    id: str
     name: str
     organization_id: str
     created_date: datetime
@@ -42,8 +43,15 @@ class Asset(BaseType[AssetProto, "Asset"]):
     def modified_by(self):
         raise NotImplementedError
 
-    def runs(self, limit: int | None = None):
-        return self.client.runs.list(asset_id=self.id, limit=limit)
+    @property
+    def runs(self) -> List[Run]:
+        return self.client.runs.list(asset_id=self.id_)
+
+    def channels(self, run_id: str | None = None, limit: int | None = None) -> List[Channel]:
+        """
+        Return all channels for this asset.
+        """
+        return self.client.channels.list(asset_id=self.id_, run_id=run_id, limit=limit)
 
     @property
     def rules(self):
@@ -78,7 +86,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @classmethod
     def _from_proto(cls, proto: AssetProto, sift_client: SiftClient | None = None) -> Asset:
         return cls(
-            id=proto.asset_id,
+            id_=proto.asset_id,
             name=proto.name,
             organization_id=proto.organization_id,
             created_date=proto.created_date.ToDatetime(),
