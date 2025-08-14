@@ -52,6 +52,6 @@ def create_run(
     if run_client_key:
         kwargs["client_key"] = run_client_key
 
-    req = CreateRunRequest(**kwargs)
+    req = CreateRunRequest(**kwargs)  # type: ignore
     res = cast(CreateRunResponse, svc.CreateRun(req))
     return res.run.run_id

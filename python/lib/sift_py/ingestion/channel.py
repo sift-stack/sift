@@ -451,3 +451,6 @@ def is_data_type(val: IngestWithConfigDataChannelValue, target_type: ChannelData
         return val.HasField("uint32")
     elif target_type == ChannelDataType.UINT_64:
         return val.HasField("uint64")
+    elif target_type == ChannelDataType.BYTES:
+        return val.HasField("bytes")
+    raise ValueError(f"Unknown channel data type '{target_type}'.")
