@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import atexit
 import logging
 from collections.abc import Callable
 from datetime import datetime
+from queue import Queue
 from typing import Any, Dict, List, Optional, Union, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -23,6 +25,11 @@ from sift_py.ingestion._internal.ingestion_config import (
     get_ingestion_config_flows,
 )
 from sift_py.ingestion._internal.run import create_run, get_run_id_by_name
+from sift_py.ingestion._internal.stream import (
+    IngestionThread,
+    get_builder,
+    stream_requests,
+)
 from sift_py.ingestion.channel import (
     ChannelConfig,
     ChannelValue,
@@ -51,6 +58,8 @@ class _IngestionServiceImpl:
 
     ingest_service_stub: IngestServiceStub
     rule_service: RuleService
+    _request_queue: Queue
+    _ingestion_thread: IngestionThread
 
     def __init__(
         self,
@@ -81,6 +90,7 @@ class _IngestionServiceImpl:
                     rule.asset_names.append(config.asset_name)
             self.rule_service.create_or_update_rules(config.rules)
 
+        self.builder = get_builder(channel, config)
         self.rules = config.rules
         self.asset_name = config.asset_name
         self.transport_channel = channel
@@ -90,11 +100,47 @@ class _IngestionServiceImpl:
         self.ingest_service_stub = IngestServiceStub(channel)
         self.config = config
 
+        # Thread tracking for async ingestion
+        self._request_queue = Queue()
+        # Don't start thread here since user may attach a run after creating the ingestion service
+        self._ingestion_thread = IngestionThread(self.builder, self._request_queue)
+        atexit.register(self.wait_for_async_ingestion, timeout=0.1)
+
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
         """
         Perform data ingestion.
         """
-        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
+        self.ingest_async(*requests)
+
+    def ingest_async(self, *requests: IngestWithConfigDataStreamRequest):
+        """
+        Perform data ingestion asynchronously in a background thread.
+        This allows multiple ingest calls to run in parallel.
+        """
+        # FD-179: Create a thread pool and add to whichever queue is smallest
+        # Start thread on first ingest on the assumption all modifications to the ingestion config have concluded.
+        if not self._ingestion_thread.is_alive():
+            self._ingestion_thread.start()
+        stream_requests(self._request_queue, *requests)
+
+    def wait_for_async_ingestion(self, timeout: Optional[float] = None) -> bool:
+        """
+        Wait for all async ingestion threads to complete.
+
+        Args:
+            timeout: Maximum time to wait in seconds. If None, wait indefinitely.
+
+        Returns:
+            bool: True if all threads completed within timeout, False otherwise.
+        """
+        self._request_queue.put(None)
+        if self._ingestion_thread.is_alive():
+            self._ingestion_thread.join(timeout=timeout)
+        if self._ingestion_thread.is_alive():
+            logger.error(f"Ingestion thread did not finish after {timeout} seconds. Forcing stop.")
+            self._ingestion_thread.stop()
+            return False
+        return True
 
     def ingest_flows(self, *flows: FlowOrderedChannelValues):
         """
@@ -110,7 +156,7 @@ class _IngestionServiceImpl:
             req = self.create_ingestion_request(flow_name, timestamp, channel_values)
             requests.append(req)
 
-        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
+        self.ingest_async(*requests)
 
     def try_ingest_flows(self, *flows: Flow):
         """
@@ -126,7 +172,7 @@ class _IngestionServiceImpl:
             req = self.try_create_ingestion_request(flow_name, timestamp, channel_values)
             requests.append(req)
 
-        self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
+        self.ingest_async(*requests)
 
     def attach_run(
         self,
@@ -137,12 +183,18 @@ class _IngestionServiceImpl:
         tags: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
         force_new: bool = False,
+        client_key: Optional[str] = None,
     ):
         """
         Retrieve an existing run or create one to use during this period of ingestion.
 
         Include `force_new=True` to force the creation of a new run, which will allow creation of a new run using an existing name.
         """
+        if self._ingestion_thread.is_alive():
+            raise IngestionValidationError(
+                "Cannot attach run while ingestion thread is running. Invoke before ingesting."
+            )
+
         if not force_new:
             run_id = get_run_id_by_name(channel, run_name)
 
@@ -153,11 +205,13 @@ class _IngestionServiceImpl:
         self.run_id = create_run(
             channel=channel,
             run_name=run_name,
+            run_client_key=client_key,
             description=description or "",
             organization_id=organization_id or "",
             tags=tags or [],
             metadata=metadata,
         )
+        self.builder.run_id = self.run_id
 
     def detach_run(self):
         """
@@ -165,6 +219,7 @@ class _IngestionServiceImpl:
         the run being detached.
         """
         self.run_id = None
+        self.builder.run = None
 
     def try_create_ingestion_request_ordered_values(
         self,

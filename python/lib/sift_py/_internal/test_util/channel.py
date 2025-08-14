@@ -6,6 +6,8 @@ import grpc.aio as grpc_aio
 from grpc.aio import Channel as AsyncChannel
 from grpc_testing import Channel
 
+from sift_py.grpc.transport import SiftChannelConfig
+
 SerializingFunction = Callable[[Any], bytes]
 DeserializingFunction = Callable[[bytes], Any]
 DoneCallbackType = Callable[[Any], None]
@@ -17,6 +19,8 @@ class MockChannel(Channel):
     """
     Used as a mock gRPC channel
     """
+
+    config = SiftChannelConfig(uri="localhost:50051", apikey="fake-api-key", use_ssl=False)
 
     def take_unary_unary(self, method_descriptor):
         pass
