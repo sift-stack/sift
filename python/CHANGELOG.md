@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.8.4] - August 18, 2025
+- [Add experimental protos for development](https://github.com/sift-stack/sift/pull/291)
+
 ## [v0.8.3] - August 11, 2025
 - [Fix windows utf-8 encoding bug with Hdf5UploadService](https://github.com/sift-stack/sift/pull/289)
 
