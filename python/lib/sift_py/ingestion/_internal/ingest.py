@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Set, Union, cast
 
+import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
+from grpc import StatusCode
 from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataChannelValue,
     IngestWithConfigDataStreamRequest,
@@ -14,6 +16,7 @@ from sift.ingest.v1.ingest_pb2_grpc import IngestServiceStub
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig as ChannelConfigPb
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig
 
+from sift_py.error import ProtobufMaxSizeExceededError
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingestion_config import (
@@ -43,11 +46,13 @@ class _IngestionServiceImpl:
     ingestion_config: IngestionConfig
     asset_name: str
     flow_configs_by_name: Dict[str, FlowConfig]
+    flow_configs_created: Set[str]
     rules: List[RuleConfig]
     run_id: Optional[str]
     organization_id: Optional[str]
     end_stream_on_error: bool
     config: TelemetryConfig
+    lazy_flow_creation: bool
 
     ingest_service_stub: IngestServiceStub
     rule_service: RuleService
@@ -58,21 +63,47 @@ class _IngestionServiceImpl:
         config: TelemetryConfig,
         run_id: Optional[str] = None,
         end_stream_on_error: bool = False,
+        force_lazy_flow_ingestion: bool = False,
     ):
-        ingestion_config = self.__class__._get_or_create_ingestion_config(channel, config)
+        ingestion_config = None
+        if not force_lazy_flow_ingestion:
+            try:
+                ingestion_config = self.__class__._get_or_create_ingestion_config(
+                    channel, config, lazy_flows=False
+                )
+            except ProtobufMaxSizeExceededError:
+                pass
+            else:
+                self.lazy_flow_creation = False
+
+        if not ingestion_config:
+            ingestion_config = self.__class__._get_or_create_ingestion_config(
+                channel, config, lazy_flows=True
+            )
+            self.lazy_flow_creation = True
+
         self.ingestion_config = ingestion_config
 
-        if config._ingestion_client_key_is_generated:
-            # If this is a generated key, use the local telemetry config since it is static.
+        if config._ingestion_client_key_is_generated and not self.lazy_flow_creation:
+            # If this is a generated key, use the local telemetry config since it is static
+            # All flows have also already been created
             self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
+            self.flow_configs_created = {flow.name for flow in config.flows}
         else:
             # If the user specified a client key, use the configuration from Sift since it
             # may have been updated.
+            # We also need a list of flows that have previously been created if using lazy flow creation
             flows = [
                 FlowConfig.from_pb(f)
                 for f in get_ingestion_config_flows(channel, ingestion_config.ingestion_config_id)
             ]
-            self.flow_configs_by_name = {flow.name: flow for flow in flows}
+            # `flow_configs_by_name` will include all flows in the config, and anything already created
+            # `flow_configs_created` only includes those which are already registered
+            self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
+            self.flow_configs_by_name.update({flow.name: flow for flow in flows})
+            self.flow_configs_created = {flow.name for flow in flows}
+            # if self.lazy_flow_creation:
+            #    print(f"Already created flows: {[name for name in self.flow_configs_created]}")
 
         self.rule_service = RuleService(channel)
         if config.rules:
@@ -94,6 +125,10 @@ class _IngestionServiceImpl:
         """
         Perform data ingestion.
         """
+        # Perform lazy flow registration if needed
+        if self.lazy_flow_creation:
+            self._lazy_flow_creation(*requests)
+
         self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
 
     def ingest_flows(self, *flows: FlowOrderedChannelValues):
@@ -110,6 +145,10 @@ class _IngestionServiceImpl:
             req = self.create_ingestion_request(flow_name, timestamp, channel_values)
             requests.append(req)
 
+        # Perform lazy flow registration if needed
+        if self.lazy_flow_creation:
+            self._lazy_flow_creation(*requests)
+
         self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
 
     def try_ingest_flows(self, *flows: Flow):
@@ -125,6 +164,10 @@ class _IngestionServiceImpl:
             channel_values = flow["channel_values"]
             req = self.try_create_ingestion_request(flow_name, timestamp, channel_values)
             requests.append(req)
+
+        # Perform lazy flow registration if needed
+        if self.lazy_flow_creation:
+            self._lazy_flow_creation(*requests)
 
         self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
 
@@ -374,6 +417,7 @@ class _IngestionServiceImpl:
 
         for fc in flow_config:
             self.flow_configs_by_name[fc.name] = fc
+            self.flow_configs_created.add(fc.name)
 
     def try_create_flows(self, *flow_configs: FlowConfig):
         """
@@ -399,12 +443,60 @@ class _IngestionServiceImpl:
         )
         for fc in flow_config:
             self.flow_configs_by_name[fc.name] = fc
+            self.flow_configs_created.add(fc.name)
 
     def create_flows(self, *flow_configs: FlowConfig):
         """
         See `create_flow`.
         """
         return self.create_flow(*flow_configs)
+
+    def _lazy_flow_creation(self, *requests: IngestWithConfigDataStreamRequest):
+        """
+        Used for lazy flow creation, which registers flows with sift as they are seen, instead of during
+        the service initialization
+        """
+        missing_flow_config_names: Set[str] = set()
+        for request in requests:
+            # Skip creation if already registered or an unknown flow name
+            if (
+                request.flow not in self.flow_configs_created
+                and request.flow in self.flow_configs_by_name
+            ):
+                missing_flow_config_names.add(request.flow)
+
+        flow_configs_to_create = [
+            self.flow_configs_by_name[flow_config_name]
+            for flow_config_name in missing_flow_config_names
+        ]
+
+        if flow_configs_to_create:
+            # print(f"Lazily create flows: {[item.name for item in flow_configs_to_create]}")
+            try:
+                create_flow_configs(
+                    self.transport_channel,
+                    self.ingestion_config.ingestion_config_id,
+                    flow_configs_to_create,
+                )
+            except (ProtobufMaxSizeExceededError, grpc.RpcError) as e:
+                # Re-raise gRPC errors unless it just an ALREADY_EXISTS error
+                if isinstance(e, grpc.RpcError):
+                    if e.code() != StatusCode.ALREADY_EXISTS:
+                        raise
+
+                # Try creating them individually instead
+                for flow_config in flow_configs_to_create:
+                    try:
+                        create_flow_configs(
+                            self.transport_channel,
+                            self.ingestion_config.ingestion_config_id,
+                            [flow_config],
+                        )
+                    except grpc.RpcError as e:
+                        if e.code() != StatusCode.ALREADY_EXISTS:
+                            raise
+            for flow_config in flow_configs_to_create:
+                self.flow_configs_created.add(flow_config.name)
 
     @staticmethod
     def _update_flow_configs(
@@ -464,27 +556,33 @@ class _IngestionServiceImpl:
 
     @classmethod
     def _get_or_create_ingestion_config(
-        cls, channel: SiftChannel, config: TelemetryConfig
+        cls, channel: SiftChannel, config: TelemetryConfig, lazy_flows: bool = False
     ) -> IngestionConfig:
         """
         Retrieves an existing ingestion config or creates a new one. If an existing ingestion config is fetched,
         then flows may be updated to reflect any changes that may have occured in the telemetry config.
+        May raise `ProtobufMaxSizeExceeded` if a large number of flows needing updates or creation are passed
         """
 
         ingestion_config = get_ingestion_config_by_client_key(channel, config.ingestion_client_key)
 
         # Exiting ingestion config.. update flows if necessary
         if ingestion_config is not None:
-            if config._ingestion_client_key_is_generated:
+            if config._ingestion_client_key_is_generated or lazy_flows:
                 return ingestion_config
             else:
                 cls._update_flow_configs(channel, ingestion_config.ingestion_config_id, config)
                 return ingestion_config
 
+        if lazy_flows:
+            config_flows = []
+        else:
+            config_flows = config.flows
+
         ingestion_config = create_ingestion_config(
             channel,
             config.asset_name,
-            config.flows,
+            config_flows,
             config.ingestion_client_key,
             config.organization_id,
         )
