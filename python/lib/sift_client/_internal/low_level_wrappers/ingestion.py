@@ -73,7 +73,7 @@ class IngestionThread(threading.Thread):
         """
         super().__init__(daemon=True)
         self.data_queue = data_queue
-        self._stop = threading.Event()
+        self._stop_event = threading.Event()
         self.sift_stream_builder = sift_stream_builder
         self.ingestion_config = ingestion_config
         self.no_data_timeout = no_data_timeout
@@ -81,7 +81,7 @@ class IngestionThread(threading.Thread):
         self.initialized = False
 
     def stop(self):
-        self._stop.set()
+        self._stop_event.set()
         # Give a brief chance to finish the stream (should take < 50ms).
         time.sleep(self.CLEANUP_TIMEOUT)
         self.task.cancel()
@@ -101,7 +101,7 @@ class IngestionThread(threading.Thread):
         try:
             while True:
                 while not self.data_queue.empty():
-                    if self._stop.is_set():
+                    if self._stop_event.is_set():
                         # Being forced to stop. Try to finish the stream.
                         logger.info(
                             f"Ingestion thread received stop signal. Exiting. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
@@ -118,7 +118,7 @@ class IngestionThread(threading.Thread):
                         )
                         time_since_last_metric = time.time()
 
-                if self._stop.is_set() or time.time() - time_since_last_data > self.no_data_timeout:
+                if self._stop_event.is_set() or time.time() - time_since_last_data > self.no_data_timeout:
                     logger.debug(
                         f"No more requests. Stopping. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
                     )
