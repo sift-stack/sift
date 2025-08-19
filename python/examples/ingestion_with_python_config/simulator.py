@@ -68,7 +68,7 @@ class Simulator:
         logs_interval_s = 1 / LOGS_FREQUENCY_HZ
         partial_readings_with_log_interval_s = 1 / PARTIAL_READINGS_WITH_LOG_FREQUENCY_HZ
 
-        with self.ingestion_service.buffered_ingestion(buffer_size=10) as buffered_ingestion:
+        with self.ingestion_service.buffered_ingestion() as buffered_ingestion:
             while time.time() < end_time:
                 current_time = time.time()
 
