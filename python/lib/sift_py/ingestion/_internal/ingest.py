@@ -52,7 +52,7 @@ class _IngestionServiceImpl:
     organization_id: Optional[str]
     end_stream_on_error: bool
     config: TelemetryConfig
-    lazy_flow_creation: bool
+    use_lazy_flow_creation: bool
 
     ingest_service_stub: IngestServiceStub
     rule_service: RuleService
@@ -63,10 +63,10 @@ class _IngestionServiceImpl:
         config: TelemetryConfig,
         run_id: Optional[str] = None,
         end_stream_on_error: bool = False,
-        force_lazy_flow_ingestion: bool = False,
+        force_lazy_flow_creation: bool = False,
     ):
         ingestion_config = None
-        if not force_lazy_flow_ingestion:
+        if not force_lazy_flow_creation:
             try:
                 ingestion_config = self.__class__._get_or_create_ingestion_config(
                     channel, config, lazy_flows=False
@@ -74,17 +74,17 @@ class _IngestionServiceImpl:
             except ProtobufMaxSizeExceededError:
                 pass
             else:
-                self.lazy_flow_creation = False
+                self.use_lazy_flow_creation = False
 
         if not ingestion_config:
             ingestion_config = self.__class__._get_or_create_ingestion_config(
                 channel, config, lazy_flows=True
             )
-            self.lazy_flow_creation = True
+            self.use_lazy_flow_creation = True
 
         self.ingestion_config = ingestion_config
 
-        if config._ingestion_client_key_is_generated and not self.lazy_flow_creation:
+        if config._ingestion_client_key_is_generated and not self.use_lazy_flow_creation:
             # If this is a generated key, use the local telemetry config since it is static
             # All flows have also already been created
             self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
@@ -95,7 +95,7 @@ class _IngestionServiceImpl:
             # If using lazy flow creation, assume the list of flows is large enough that
             # `get_ingestion_config_flows` will be very slow. Instead lazily check for
             # flow existance during streaming
-            if self.lazy_flow_creation:
+            if self.use_lazy_flow_creation:
                 flows = []
             else:
                 flows = [
@@ -132,7 +132,7 @@ class _IngestionServiceImpl:
         Perform data ingestion.
         """
         # Perform lazy flow registration if needed
-        if self.lazy_flow_creation:
+        if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
         self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
@@ -152,7 +152,7 @@ class _IngestionServiceImpl:
             requests.append(req)
 
         # Perform lazy flow registration if needed
-        if self.lazy_flow_creation:
+        if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
         self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))
@@ -172,7 +172,7 @@ class _IngestionServiceImpl:
             requests.append(req)
 
         # Perform lazy flow registration if needed
-        if self.lazy_flow_creation:
+        if self.use_lazy_flow_creation:
             self._lazy_flow_creation(*requests)
 
         self.ingest_service_stub.IngestWithConfigDataStream(iter(requests))

@@ -32,11 +32,11 @@ class IngestionService(_IngestionServiceImpl):
         won't be interrupted. The errors produced are surfaced on the user errors page. Setting this field to `True`
         will ensure that any errors that occur during ingestion is returned immediately, terminating the stream. This
         is useful for debugging purposes.
-    - `lazy_flow_ingestion`:
+    - `lazy_flow_creation`:
         By default, the entire telemetry config is processed when the service is initialized, and if needed, the config and all flow info
         is sent to Sift. In the event a sufficiently large telemetry config is provided which is too large to send in one single
         gRPC message, the ingestion service will instead use a lazy flow ingestion method, which sets this boolean to True. This method
-        registers individual flows the first time they are ingested. Initializing with `force_lazy_flow_ingestion` will force this behavior
+        registers individual flows the first time they are ingested. Initializing with `force_lazy_flow_creation` will force this behavior
         for any telemetry flow size. If a sufficently large telemetry config is being sent, and lazy flow ingestion behavior is not desired,
         the list of flows must be broken up beforehand and sent through the service's create flow methods.
     """
@@ -56,14 +56,14 @@ class IngestionService(_IngestionServiceImpl):
         config: TelemetryConfig,
         run_id: Optional[str] = None,
         end_stream_on_error: bool = False,
-        force_lazy_flow_ingestion: bool = False,
+        force_lazy_flow_creation: bool = False,
     ):
         super().__init__(
             channel=channel,
             config=config,
             run_id=run_id,
             end_stream_on_error=end_stream_on_error,
-            force_lazy_flow_ingestion=force_lazy_flow_ingestion,
+            force_lazy_flow_creation=force_lazy_flow_creation,
         )
 
     def ingest(self, *requests: IngestWithConfigDataStreamRequest):
