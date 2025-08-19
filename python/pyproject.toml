@@ -1,6 +1,6 @@
 [project]
 name = "sift_stack_py"
-version = "0.8.4rc"
+version = "0.8.4-rc.1"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
