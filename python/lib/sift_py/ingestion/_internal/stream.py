@@ -1,8 +1,8 @@
 import asyncio
 import logging
-import random
 import threading
 import time
+import uuid
 from queue import Queue
 from typing import List, Optional
 
@@ -316,7 +316,7 @@ def get_run_form(
     return RunFormPy(
         name=run_name,
         description=run_description,
-        client_key=client_key or f"random_key_{str(random.randint(1000, 9999))}",
+        client_key=client_key or str(uuid.uuid4()),
         tags=run_tags,
     )
 
