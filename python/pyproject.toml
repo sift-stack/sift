@@ -30,7 +30,6 @@ dependencies = [
     "requests-toolbelt~=1.0",
     "alive-progress~=3.0",
     # May move these to optional dependencies in the future.
-    "pyarrow>=17.0.0", # sift_client, older version to support py3.8
     "pandas-stubs~=2.0",
     "types-PyYAML~=6.0",
     "types-protobuf>=4.0",
@@ -48,19 +47,19 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 development = [
     "grpcio-testing~=1.13",
     "mypy==1.10.0",
+    "pyarrow>=17.0.0", # sift_client, older version to support py3.8
     "pyright==1.1.386",
     "pytest==8.2.2",
     "pytest-asyncio==0.23.7",
     "pytest-benchmark==4.0.0",
     "pytest-mock==3.14.0",
     "ruff",
-    "sift_stream_bindings>=0.1.2", # sift_client
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
-sift-stream = ["sift-stream-bindings>=0.1.1"]
+sift-stream = ["sift-stream-bindings>=0.1.2"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]
 [build-system]
 requires = ["setuptools"]

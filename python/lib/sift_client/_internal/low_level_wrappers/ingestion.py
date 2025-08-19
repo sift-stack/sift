@@ -118,7 +118,10 @@ class IngestionThread(threading.Thread):
                         )
                         time_since_last_metric = time.time()
 
-                if self._stop_event.is_set() or time.time() - time_since_last_data > self.no_data_timeout:
+                if (
+                    self._stop_event.is_set()
+                    or time.time() - time_since_last_data > self.no_data_timeout
+                ):
                     logger.debug(
                         f"No more requests. Stopping. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
                     )
