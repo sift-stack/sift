@@ -92,18 +92,24 @@ class _IngestionServiceImpl:
         else:
             # If the user specified a client key, use the configuration from Sift since it
             # may have been updated.
-            # We also need a list of flows that have previously been created if using lazy flow creation
-            flows = [
-                FlowConfig.from_pb(f)
-                for f in get_ingestion_config_flows(channel, ingestion_config.ingestion_config_id)
-            ]
+            # If using lazy flow creation, assume the list of flows is large enough that
+            # `get_ingestion_config_flows` will be very slow. Instead lazily check for
+            # flow existance during streaming
+            if self.lazy_flow_creation:
+                flows = []
+            else:
+                flows = [
+                    FlowConfig.from_pb(f)
+                    for f in get_ingestion_config_flows(
+                        channel,
+                        ingestion_config.ingestion_config_id,
+                    )
+                ]
             # `flow_configs_by_name` will include all flows in the config, and anything already created
             # `flow_configs_created` only includes those which are already registered
             self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
             self.flow_configs_by_name.update({flow.name: flow for flow in flows})
             self.flow_configs_created = {flow.name for flow in flows}
-            # if self.lazy_flow_creation:
-            #    print(f"Already created flows: {[name for name in self.flow_configs_created]}")
 
         self.rule_service = RuleService(channel)
         if config.rules:
