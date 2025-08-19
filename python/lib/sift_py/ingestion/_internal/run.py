@@ -36,17 +36,22 @@ def create_run(
     organization_id: str,
     tags: List[str],
     metadata: Optional[Dict[str, Union[str, float, bool]]] = None,
+    run_client_key: Optional[str] = None,
 ) -> str:
     svc = RunServiceStub(channel)
 
     _metadata = metadata_dict_to_pb(metadata) if metadata else None
 
-    req = CreateRunRequest(
-        name=run_name,
-        description=description,
-        organization_id=organization_id,
-        tags=tags,
-        metadata=_metadata,
-    )
+    kwargs = {
+        "name": run_name,
+        "description": description,
+        "organization_id": organization_id,
+        "tags": tags,
+        "metadata": _metadata,
+    }
+    if run_client_key:
+        kwargs["client_key"] = run_client_key
+
+    req = CreateRunRequest(**kwargs)  # type: ignore
     res = cast(CreateRunResponse, svc.CreateRun(req))
     return res.run.run_id

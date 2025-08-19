@@ -209,6 +209,7 @@ class ChannelDataTypeStrRep(Enum):
     INT_64 = "int64"
     UINT_32 = "uint32"
     UINT_64 = "uint64"
+    BYTES = "bytes"
 
     @staticmethod
     def from_api_format(val: str) -> Optional["ChannelDataTypeStrRep"]:
@@ -224,6 +225,7 @@ class ChannelDataTypeStrRep(Enum):
                 "CHANNEL_DATA_TYPE_INT_64": ChannelDataTypeStrRep.INT_64,
                 "CHANNEL_DATA_TYPE_UINT_32": ChannelDataTypeStrRep.UINT_32,
                 "CHANNEL_DATA_TYPE_UINT_64": ChannelDataTypeStrRep.UINT_64,
+                "CHANNEL_DATA_TYPE_BYTES": ChannelDataTypeStrRep.BYTES,
             }[val]
         except KeyError:
             return None
@@ -244,6 +246,7 @@ class ChannelDataType(Enum):
     INT_64 = channel_pb.CHANNEL_DATA_TYPE_INT_64
     UINT_32 = channel_pb.CHANNEL_DATA_TYPE_UINT_32
     UINT_64 = channel_pb.CHANNEL_DATA_TYPE_UINT_64
+    BYTES = channel_pb.CHANNEL_DATA_TYPE_BYTES
 
     @classmethod
     def from_pb(cls, val: channel_pb.ChannelDataType.ValueType) -> "ChannelDataType":
@@ -267,6 +270,8 @@ class ChannelDataType(Enum):
             return cls.UINT_32
         elif val == cls.UINT_64.value:
             return cls.UINT_64
+        elif val == cls.BYTES.value:
+            return cls.BYTES
         else:
             raise ValueError(f"Unknown channel data type '{val}'.")
 
@@ -302,6 +307,8 @@ class ChannelDataType(Enum):
             return cls.UINT_32
         elif val == ChannelDataTypeStrRep.UINT_64:
             return cls.UINT_64
+        elif val == ChannelDataTypeStrRep.BYTES:
+            return cls.BYTES
         else:
             raise Exception("Unreachable")
 
@@ -334,6 +341,8 @@ class ChannelDataType(Enum):
             return (
                 "CHANNEL_DATA_TYPE_UINT_64" if api_format else ChannelDataTypeStrRep.UINT_64.value
             )
+        elif self == ChannelDataType.BYTES:
+            return "CHANNEL_DATA_TYPE_BYTES" if api_format else ChannelDataTypeStrRep.BYTES.value
         else:
             raise Exception("Unreachable.")
 
@@ -442,3 +451,6 @@ def is_data_type(val: IngestWithConfigDataChannelValue, target_type: ChannelData
         return val.HasField("uint32")
     elif target_type == ChannelDataType.UINT_64:
         return val.HasField("uint64")
+    elif target_type == ChannelDataType.BYTES:
+        return val.HasField("bytes")
+    raise ValueError(f"Unknown channel data type '{target_type}'.")

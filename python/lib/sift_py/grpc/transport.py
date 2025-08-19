@@ -21,7 +21,29 @@ from sift_py.grpc._interceptors.metadata import Metadata, MetadataInterceptor
 from sift_py.grpc._retry import RetryPolicy
 from sift_py.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
 
-SiftChannel: TypeAlias = grpc.Channel
+
+class SiftChannel:
+    """
+    A wrapper around grpc.Channel that includes the configuration used to create it.
+    This allows access to the original config for debugging or other purposes.
+    """
+
+    def __init__(self, config: SiftChannelConfig, channel: grpc.Channel):
+        self._channel = channel
+        self.config = config
+
+    def __getattr__(self, name):
+        # Delegate all other attributes to the underlying channel
+        return getattr(self._channel, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Close the underlying channel
+        self._channel.close()
+
+
 SiftAsyncChannel: TypeAlias = grpc_aio.Channel
 
 
@@ -67,14 +89,16 @@ def use_sift_channel(
     cert_via_openssl = config.get("cert_via_openssl", False)
 
     if not use_ssl:
-        return _use_insecure_sift_channel(config, metadata)
+        channel = _use_insecure_sift_channel(config, metadata)
+        return SiftChannel(config, channel)
 
     credentials = get_ssl_credentials(cert_via_openssl)
     options = _compute_channel_options(config)
     api_uri = _clean_uri(config["uri"], use_ssl)
     channel = grpc.secure_channel(api_uri, credentials, options)
     interceptors = _compute_sift_interceptors(config, metadata)
-    return grpc.intercept_channel(channel, *interceptors)
+    intercepted_channel = grpc.intercept_channel(channel, *interceptors)
+    return SiftChannel(config, intercepted_channel)
 
 
 def use_sift_async_channel(
@@ -100,7 +124,7 @@ def use_sift_async_channel(
 
 def _use_insecure_sift_channel(
     config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
-) -> SiftChannel:
+) -> grpc.Channel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
     """
@@ -225,7 +249,10 @@ def _compute_keep_alive_channel_opts(config: KeepaliveConfig) -> List[Tuple[str,
         ("grpc.keepalive_time_ms", config["keepalive_time_ms"]),
         ("grpc.keepalive_timeout_ms", config["keepalive_timeout_ms"]),
         ("grpc.http2.max_pings_without_data", config["max_pings_without_data"]),
-        ("grpc.keepalive_permit_without_calls", config["keepalive_permit_without_calls"]),
+        (
+            "grpc.keepalive_permit_without_calls",
+            config["keepalive_permit_without_calls"],
+        ),
     ]
 
 
