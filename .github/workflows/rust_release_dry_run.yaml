@@ -16,16 +16,12 @@ jobs:
     environment:
       name: crates.io (dry run)
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          path: './rust/crates/sift_rs'
-          dry-run: true
+      - uses: actions/checkout@v4
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Publish crate (dry run)
+        run: cargo publish --dry-run
+        working-directory: './rust/crates/sift_rs'
 
   publish-to-crates-io-dry-run-sift_error:
     runs-on: ubuntu-latest
@@ -34,16 +30,12 @@ jobs:
     environment:
       name: crates.io (dry run)
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          path: './rust/crates/sift_error'
-          dry-run: true
+      - uses: actions/checkout@v4
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Publish crate (dry run)
+        run: cargo publish --dry-run
+        working-directory: './rust/crates/sift_error'
 
   publish-to-crates-io-dry-run-sift_connect:
     runs-on: ubuntu-latest
@@ -52,16 +44,12 @@ jobs:
     environment:
       name: crates.io (dry run)
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          path: './rust/crates/sift_connect'
-          dry-run: true
+      - uses: actions/checkout@v4
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Publish crate (dry run)
+        run: cargo publish --dry-run
+        working-directory: './rust/crates/sift_connect'
 
   publish-to-crates-io-dry-run-sift_stream:
     runs-on: ubuntu-latest
@@ -70,13 +58,10 @@ jobs:
     environment:
       name: crates.io (dry run)
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          path: './rust/crates/sift_stream'
-          dry-run: true
+      - uses: actions/checkout@v4
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Publish crate (dry run)
+        run: cargo publish --dry-run
+        working-directory: './rust/crates/sift_stream'
+
