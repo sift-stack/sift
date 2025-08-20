@@ -36,7 +36,10 @@ plugins:
       default_handler: python
       handlers:
         python:
+          import:
+            - https://docs.python.org/3/objects.inv
           options:
+            show_docstring_examples: false
             load_external_modules: true
             show_source: false
             find_stubs_package: true
@@ -56,7 +59,7 @@ plugins:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             summary: true
-            # Custom Griffe extension to only inspect sync_stubs
+            # Custom Griffe extension to inspect the sync stubs and generate their signatures
             extensions:
               - griffe_extensions/sync_stubs_inspector.py:InspectSpecificObjects:
                   paths:

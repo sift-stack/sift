@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import NamedTuple
-
 from sift_client.errors import _sift_client_experimental_warning
 from sift_client.resources import (
     AssetsAPI,
@@ -22,21 +20,9 @@ from sift_client.transport import (
     WithGrpcClient,
     WithRestClient,
 )
+from sift_client.util.util import AsyncAPIs
 
 _sift_client_experimental_warning()
-
-
-class AsyncAPIs(NamedTuple):
-    """Simple accessor for the asynchronous APIs, still uses the SiftClient instance."""
-
-    """Instance of the Ping API for making asynchronous requests."""
-    ping: PingAPIAsync
-    """Instance of the Assets API for making asynchronous requests."""
-    assets: AssetsAPIAsync
-    """Instance of the Calculated Channels API for making asynchronous requests."""
-    calculated_channels: CalculatedChannelsAPIAsync
-    """Instance of the Runs API for making asynchronous requests."""
-    runs: RunsAPIAsync
 
 
 class SiftClient(
@@ -48,7 +34,7 @@ class SiftClient(
 
     It provides both synchronous and asynchronous interfaces, strong type checking, and a Pythonic API design.
 
-    Example usage:
+    Examples:
         from sift_client import SiftClient
         from datetime import datetime
 
@@ -72,14 +58,21 @@ class SiftClient(
         response = await sift.async_.ping.ping()
     """
 
-    """Instance of the Ping API for making synchronous requests."""
+
     ping: PingAPI
-    """Instance of the Assets API for making synchronous requests."""
+    """Instance of the Ping API for making synchronous requests."""
+
     assets: AssetsAPI
-    """Instance of the Calculated Channels API for making synchronous requests."""
+    """Instance of the Assets API for making synchronous requests."""
+
     calculated_channels: CalculatedChannelsAPI
-    """Instance of the Runs API for making synchronous requests."""
+    """Instance of the Calculated Channels API for making synchronous requests."""
+
     runs: RunsAPI
+    """Instance of the Runs API for making synchronous requests."""
+
+    async_: AsyncAPIs
+    """Accessor for the asynchronous APIs. All asynchronous APIs are available as attributes on this accessor."""
 
     def __init__(
         self,
