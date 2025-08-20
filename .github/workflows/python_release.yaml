@@ -87,4 +87,45 @@ jobs:
             echo "Uploading archive: $archive"
             gh release upload "$TAG_NAME" "$archive" --clobber
           done
-          
+
+  deploy-docs:
+    name: Deploy Documentation
+    needs: publish-to-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for mike
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd python
+          pip install -e .[docs]
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Extract version from tag (everything after 'python/')
+          VERSION=${GITHUB_REF#refs/tags/python/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy docs with mike
+        run: |
+          cd python
+          mike deploy ${{ steps.version.outputs.version }} latest --push --update-aliases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

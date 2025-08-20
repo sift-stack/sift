@@ -1,0 +1,109 @@
+name: Build and Deploy Python Docs (Dev)
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+    paths:
+      - 'python/docs/**'
+      - 'python/lib/**'
+      - 'python/mkdocs.yml'
+      - 'python/pyproject.toml'
+  workflow_dispatch:
+    inputs:
+      deploy_to_dev:
+        description: 'Deploy to dev alias using commit hash as version'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  build_docs:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for mike
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd python
+          pip install -e .[docs]
+
+      - name: Extract version
+        id: version
+        run: |
+          # Use commit hash as version for dev deployments
+          VERSION=$(git rev-parse --short HEAD)
+          
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Use PR number as alias for PR deployments
+            ALIAS="pr-${{ github.event.number }}"
+          else
+            # Use 'dev' for manual workflow dispatch
+            ALIAS="dev"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "alias=$ALIAS" >> $GITHUB_OUTPUT
+          echo "Dev deployment - Version: $VERSION, Alias: $ALIAS"
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy docs with mike
+        run: |
+          cd python
+          mike deploy ${{ steps.version.outputs.version }} ${{ steps.version.outputs.alias }} --push --update-aliases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup_docs:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for mike
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd python
+          pip install -e .[docs]
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Delete PR docs
+        run: |
+          cd python
+          PR_ALIAS="pr-${{ github.event.number }}"
+          echo "Deleting docs for: $PR_ALIAS"
+          
+          # Check if the PR docs exist before trying to delete
+          if mike list | grep -q "$PR_ALIAS"; then
+            mike delete "$PR_ALIAS" --push
+            echo "Successfully deleted docs for $PR_ALIAS"
+          else
+            echo "No docs found for $PR_ALIAS, nothing to delete"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
