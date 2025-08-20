@@ -62,7 +62,8 @@ jobs:
       - name: Deploy docs with mike
         run: |
           cd python
-          mike deploy ${{ steps.version.outputs.version }} ${{ steps.version.outputs.alias }} --push --update-aliases
+          # Deploy dev/PR docs with hidden property to hide from version dropdown
+          mike deploy ${{ steps.version.outputs.version }} ${{ steps.version.outputs.alias }} --push --update-aliases --prop-set hidden=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
