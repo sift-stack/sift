@@ -110,13 +110,42 @@ jobs:
           cd python
           pip install -e .[docs]
 
-      - name: Extract version from tag
+      - name: Extract version and check if stable
         id: version
         run: |
           # Extract version from tag (everything after 'python/')
-          VERSION=${GITHUB_REF#refs/tags/python/}
+          FULL_VERSION=${GITHUB_REF#refs/tags/python/}
+          echo "Full version from tag: $FULL_VERSION"
+          
+          # Extract major.minor from version (drop patch)
+          if [[ "$FULL_VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.[0-9]+(.*)?$ ]]; then
+            MAJOR=${BASH_REMATCH[1]}
+            MINOR=${BASH_REMATCH[2]}
+            SUFFIX=${BASH_REMATCH[3]}
+            VERSION="v${MAJOR}.${MINOR}"
+            
+            # Check if this is a stable release (no suffix like -alpha, -beta, -rc)
+            if [[ -z "$SUFFIX" ]]; then
+              # Stable release - use 'latest' alias and make visible
+              ALIAS="latest"
+              HIDDEN="false"
+              echo "Stable release detected: $FULL_VERSION -> $VERSION"
+            else
+              # Pre-release (alpha, beta, rc) - no 'latest' alias and hide from dropdown
+              VERSION="${VERSION}${SUFFIX}"
+              ALIAS=""
+              HIDDEN="true"
+              echo "Pre-release detected: $FULL_VERSION -> $VERSION"
+            fi
+          else
+            echo "Error: Could not parse version format: $FULL_VERSION"
+            exit 1
+          fi
+          
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Extracted version: $VERSION"
+          echo "alias=$ALIAS" >> $GITHUB_OUTPUT
+          echo "hidden=$HIDDEN" >> $GITHUB_OUTPUT
+          echo "Final - Version: $VERSION, Alias: $ALIAS, Hidden: $HIDDEN"
 
       - name: Configure Git
         run: |
@@ -126,6 +155,18 @@ jobs:
       - name: Deploy docs with mike
         run: |
           cd python
-          mike deploy ${{ steps.version.outputs.version }} latest --push --update-aliases
+          VERSION="${{ steps.version.outputs.version }}"
+          ALIAS="${{ steps.version.outputs.alias }}"
+          HIDDEN="${{ steps.version.outputs.hidden }}"
+          
+          # Always deploy the full version first, but hide it
+          echo "Deploying full version $FULL_VERSION (hidden)"
+          mike deploy "$FULL_VERSION" --push --prop-set hidden=true
+          
+          if [[ "$HIDDEN" == "false" ]]; then
+            # Stable release: deploy abbreviated version with latest alias, visible in dropdown
+            echo "Deploying stable release $VERSION with $ALIAS alias"
+            mike deploy "$VERSION" "$ALIAS" --push --update-aliases
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
