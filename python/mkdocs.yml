@@ -26,12 +26,19 @@ theme:
     - navigation.top
     - search.suggest
 
+extra:
+  version:
+    provider: mike
+    alias: true
+
 nav:
   - Home: index.md
 
 plugins:
   - search
   - autorefs
+  - mike: # For docs versioning
+      deploy_prefix: 'python' # In case we want to use doc sites for other client libs too
   - mkdocstrings:
       default_handler: python
       handlers:
