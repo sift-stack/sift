@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1">
-  <POU Name="FB_PingService" Id="{a13159b6-966f-46c1-9f92-0c4e093cdf17}" SpecialFunc="None">
-    <Declaration><![CDATA[FUNCTION_BLOCK FB_PingService
+  <POU Name="FB_AuthenticateService" Id="{c708e00d-d6d9-42cd-81fa-2f8fc40f4f67}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_AuthenticateService
 VAR_INPUT
 	hSiftClient : T_SiftClient;
 	bExecute : BOOL;
@@ -16,9 +16,12 @@ VAR_OUTPUT
 END_VAR
 
 VAR
+END_VAR
+
+VAR
 	eState : (IDLE, SEND_MESSAGE, WAIT_FOR_RESPONSE, SUCCESS, FAILURE) := IDLE;
 	fbSendSiftMessage : _FB_SendSiftMessage;
-	stPingReq : _ST_SiftMessage;
+	stAuthReq : _ST_SiftMessage;
 	fbJson : FB_JsonDomParser;
 	sResponse : STRING(GVL_SIFT.MAX_JSON_RESPONSE_SIZE);
 	jsonDoc : SJsonValue;
@@ -35,13 +38,17 @@ END_VAR
 		bBusy := TRUE;
 		bError := FALSE;
 		
-		stSiftError := _F_CreatePingMessage(stMsg:=stPingReq);
+		stSiftError := _F_CreateAuthenticateMessage(sApiKey:=hSiftClient.sApiKey, 
+			                                        sGrpcUri:=hSiftClient.sGrpcUri, 
+													pJsonBuffer := hSiftClient.pJsonBuffer,
+													nLength := hSiftClient.pJbLength,
+                                                    stMsg:=stAuthReq);
 		IF stSiftError.bError THEN
 			nErrId := stSiftError.nErrId;
 			eState := FAILURE;
 		END_IF
 		
-		fbSendSiftMessage(hSiftClient:=hSiftClient, stMsg:=stPingReq, bExecute:=TRUE);
+		fbSendSiftMessage(hSiftClient:=hSiftClient, stMsg:=stAuthReq, bExecute:=TRUE);
 		eState := WAIT_FOR_RESPONSE;
 
 	WAIT_FOR_RESPONSE:

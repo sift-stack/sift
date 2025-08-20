@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="_F_CreateAuthenticateMessage" Id="{dd4d7952-500a-4fd0-8881-910bf8f45f2c}" SpecialFunc="None">
+    <Declaration><![CDATA[// Creates a Sift Proxy Protocol "authenticate" Endpoint Message.
+FUNCTION _F_CreateAuthenticateMessage
+VAR_INPUT
+	sApiKey : STRING(255);
+	sGrpcUri : STRING(255);
+	stMsg : REFERENCE TO _ST_SiftMessage;
+	pJsonBuffer : POINTER TO BYTE;
+	nLength : UDINT;
+END_VAR
+
+VAR
+	fbJson : FB_JsonSaxWriter;
+	i : UDINT;
+	nBytes : UDINT;
+	pJsonString: POINTER TO STRING;
+END_VAR
+
+VAR_OUTPUT
+	stErr : ST_SiftError;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF pJsonBuffer = 0 THEN
+	stErr.bError := TRUE;
+	stErr.nErrId := GVL_SIFT.NULL_JSON_POINTER;
+	stErr.sReason := 'The JSON buffer is null';
+	RETURN;
+END_IF
+
+fbJson.StartObject();
+
+fbJson.AddKey('api_key');
+fbJson.AddString(sApiKey);
+
+fbJson.AddKey('grpc_uri');
+fbJson.AddString(sGrpcUri);
+
+fbJson.EndObject();
+
+pJsonString := pJsonBuffer;
+nBytes := fbJson.CopyDocument(pJsonString^, nLength);
+IF nBytes = 0 THEN
+	stErr.nErrId := GVL_SIFT.JSON_CAPACITY_REACHED;
+	stErr.bError := TRUE;
+	stErr.sReason := CONCAT(
+		CONCAT('JSON msg too large: ', UDINT_TO_STRING(fbJson.GetDocumentLength())),
+		' endpoint=authenticate',
+	);
+	RETURN;
+END_IF
+
+stErr := _F_CreateEndpointMessage(sEndpoint:='authenticate', 
+								  pData:=pJsonString, 
+								  nLength:=nBytes-1, 
+                                  nBufferLength := nLength, 
+                                  stMsg:=stMsg);]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

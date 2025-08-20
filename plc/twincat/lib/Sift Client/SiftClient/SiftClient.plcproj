@@ -81,6 +81,9 @@
     <Compile Include="POUs\Private\_FB_BufferWriter.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\Private\_F_CreateAuthenticateMessage.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Private\_F_CreateDataMessage.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -112,6 +115,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Services\FB_RunService.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Services\Private\FB_AuthenticateService.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Util\GetCurrentTime.TcPOU">
@@ -155,6 +161,7 @@
     <Folder Include="DUTs" />
     <Folder Include="DUTs\Private" />
     <Folder Include="GVLs" />
+    <Folder Include="POUs\Services\Private" />
     <Folder Include="Tests" />
     <Folder Include="POUs\Private" />
     <Folder Include="POUs\Services" />

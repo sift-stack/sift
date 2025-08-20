@@ -4,10 +4,10 @@
     <Declaration><![CDATA[{attribute 'qualified_only'}
 VAR_GLOBAL CONSTANT
 	//Defaults
-	SIFT_PROXY_CMD_ARGS : STRING(255) := '--stream_metrics --storage_path %s --listen_port=%d --grpc_uri=%s --api_key=%s tcp sift_proxy --little_endian --end_stream_on_error';
+	SIFT_PROXY_CMD_ARGS : STRING(255) := '--stream_metrics --storage_path %s --listen_port=%d --grpc_uri=%s --api_key=%s tcp sift_proxy --little_endian --end_stream_on_error --verbose';
 	SIFT_PROXY_DEFAULT_HOST : T_IPv4Addr := '127.0.0.1';
 	SIFT_PROXY_DEFAULT_LISTEN_PORT : UINT := 10010;
-	SIFT_PROXY_START_DELAY : TIME := T#30S;
+	SIFT_PROXY_START_DELAY : TIME := T#5S;
 	
 	SYNC_WORD : UDINT := 16#ABCDEF00;
 	HEADER_LENGTH : UDINT := 9;
@@ -30,6 +30,7 @@ VAR_GLOBAL CONSTANT
 	INGEST_RING_BUFFER_REMOVE_ERROR : UDINT := 16#5000_0003; // Error removing data from ingest ring buffer.
 	MEMCPY_ERROR : UDINT := 16#5000_0004; // Error calling MEMCPY
 	BAD_PARAMETERS : UDINT := 16#5000_0005; // User has configured the parameters incorrectly.
+	UNABLE_TO_PARSE_JSON : UDINT := 16#5000_0005; // Internal JSON could not be parsed.
 	
 	SIFT_PROXY_NO_RESPONSE : UDINT := 16#5000_1000; // No response from Sift Proxy
 	SIFT_PROXY_FAILED_TO_START : UDINT := 16#5000_1001;  // Failed to start Sift Proxy

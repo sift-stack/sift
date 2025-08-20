@@ -25,10 +25,11 @@ VAR_OUTPUT
 	bBusy : BOOL;
 	bError : BOOL;
 	nErrId : UDINT;
+	nErrMsg : STRING(255);
 END_VAR
 
 VAR
-	fbPing : FB_PingService;
+    fbAuth : FB_AuthenticateService;	
 	fbStartSiftProxy : NT_StartProcess;
 	fbFormat : FB_FormatString;
 	nAttempts : UINT;
@@ -42,7 +43,9 @@ VAR
 		CONNECT_WAIT, 
 		START_SIFT_PROXY, 
 		START_SIFT_PROXY_DELAY,
-		START_SIFT_PROXY_WAIT,  
+		START_SIFT_PROXY_WAIT,
+		AUTHENTICATE,
+		AUTHENTICATE_WAIT,
 		SUCCESS, 
 		FAILURE,
 		STOP,
@@ -76,6 +79,7 @@ END_VAR
 		ELSIF hSiftClient.fbCloseAll.bError THEN
 			nErrId := hSiftClient.fbCloseAll.nErrId;
 			eState := FAILURE;
+			nErrMsg := 'Failed to call FB_CloseAll';
 			RETURN;
 		END_IF
 		eState := CONNECT;
@@ -85,6 +89,8 @@ END_VAR
 		bError := FALSE;
 		hSiftClient.sHost := sSiftProxyHost;
 		hSiftClient.nPort := nSiftProxyPort;
+		hSiftClient.sApiKey := sApiKey;
+		hSiftClient.sGrpcUri := sGrpcUri;
 		
 		IF pJsonBuffer = 0 THEN
 			nErrId := GVL_SIFT.NULL_JSON_POINTER;
@@ -102,6 +108,7 @@ END_VAR
 		nAttempts := nAttempts + 1;
 		IF nAttempts >= 3 THEN
 			nErrId := GVL_SIFT.SIFT_PROXY_FAILED_TO_START;
+			nErrMsg := 'Failed to connect to sift-proxy';
 			eState := FAILURE;
 			RETURN;
 		END_IF
@@ -120,23 +127,26 @@ END_VAR
 			eState := START_SIFT_PROXY;
 			RETURN;
 		END_IF
-		eState := SUCCESS;
+		eState := AUTHENTICATE;
 
 	START_SIFT_PROXY:
 		bBusy := TRUE;
 		bError := FALSE;
 		IF sGrpcUri = '' THEN
 			nErrId := GVL_SIFT.INVALID_GRPC_URI;
+			nErrMsg := 'GRPC URI not set';
 			eState := FAILURE;
 			RETURN;
 		END_IF
 		IF sApiKey = '' THEN
 			nErrId := GVL_SIFT.INVALID_API_KEY;
+			nErrMsg := 'API Key not set';
 			eState := FAILURE;
 			RETURN;
 		END_IF
 		IF sLogDir = '' THEN
 			nErrId := GVL_SIFT.INVALID_LOG_DIR;
+			nErrMsg := 'Log directory not set';
 			eState := FAILURE;
 			RETURN;
 		END_IF
@@ -150,6 +160,7 @@ END_VAR
 		);
 		IF fbFormat.bError THEN
 			nErrId := fbFormat.nErrId;
+			nErrMsg := 'Failed to create sift-proxy command';
 			eState := FAILURE;
 		END_IF
 		
@@ -170,6 +181,7 @@ END_VAR
 			RETURN;
 		ELSIF fbStartSiftProxy.ERR THEN
 			nErrId := fbStartSiftProxy.ERRID;
+			nErrMsg := 'Failed to start sift-proxy';
 			eState := FAILURE;
 			RETURN;
 		END_IF
@@ -189,6 +201,27 @@ END_VAR
 		END_IF
 		
 		eState := CONNECT;
+		
+	AUTHENTICATE:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbAuth(hSiftClient:=hSiftClient, bExecute:=TRUE);
+		eState := AUTHENTICATE_WAIT;
+		
+	AUTHENTICATE_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbAuth(bExecute:=FALSE);
+		
+		IF fbAuth.bBusy THEN
+			RETURN;
+		ELSIF fbAuth.bError THEN
+			nErrId := fbAuth.nErrId;
+			nErrMsg := 'Failed to authenticate';
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		eState := SUCCESS;
 		
 	SUCCESS:
 		bBusy := FALSE;
@@ -215,6 +248,7 @@ END_VAR
 			RETURN;
 		ELSIF hSiftClient.fbCloseAll.bError THEN
 			nErrId := hSiftClient.fbCloseAll.nErrId;
+			nErrMsg := 'Failed to call FB_CloseAll';
 			eState := FAILURE;
 			RETURN;
 		END_IF

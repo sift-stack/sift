@@ -79,6 +79,10 @@ END_VAR
 		END_IF
 		
 		jsonDoc := fbJson.ParseDocument(sResponse);
+		IF jsonDoc = 0 THEN
+			eState := FAILURE;
+			nErrId := GVL_SIFT.UNABLE_TO_PARSE_JSON;
+		END_IF
 		
 		IF _F_IsSuccessfulResponse(jsonDoc) THEN
 			IF NOT fbJson.HasMember(jsonDoc, 'data') THEN
@@ -88,13 +92,22 @@ END_VAR
 			END_IF
 			jsonDoc := fbJson.FindMember(jsonDoc, 'data');
 			
-			IF NOT fbJson.HasMember(jsonDoc, 'run_id') THEN
+			IF NOT fbJson.HasMember(jsonDoc, 'run') THEN
 				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
 				eState := FAILURE;
 				RETURN;
 			END_IF
-			jsonDoc := fbJson.FindMember(jsonDoc, 'run_id');
+			
+			jsonDoc := fbJson.FindMember(jsonDoc, 'run');
+			IF NOT fbJson.HasMember(jsonDoc, 'runId') THEN
+				nErrId := GVL_SIFT.SIFT_PROXY_INVALID_RESPONSE;
+				eState := FAILURE;
+				RETURN;
+			END_IF
+			
+			jsonDoc := fbJson.FindMember(jsonDoc, 'runId');
 			sId := fbJson.GetString(jsonDoc);
+			
 			eState := SUCCESS;
 		ELSE
 			IF NOT _F_SetSiftError(jsonDoc, stSiftError) THEN
