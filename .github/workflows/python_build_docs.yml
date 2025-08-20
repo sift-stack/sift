@@ -20,6 +20,8 @@ jobs:
   build_docs:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,7 +65,7 @@ jobs:
         run: |
           cd python
           # Deploy dev/PR docs with hidden property to hide from version dropdown
-          mike deploy ${{ steps.version.outputs.version }} ${{ steps.version.outputs.alias }} --push --update-aliases --prop-set hidden=true
+          mike deploy ${{ steps.version.outputs.alias }} --push --update-aliases --prop-set hidden=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
