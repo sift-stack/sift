@@ -53,6 +53,18 @@ service RunService {
     };
   }
 
+  // Create adhoc run, this is used to create a run after the data has been ingested
+  rpc CreateAdhocRun(CreateAdhocRunRequest) returns (CreateAdhocRunResponse) {
+    option (google.api.http) = {
+      post: "/api/v2/runs:adhoc"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateAdhocRun"
+      description: "Create an adhoc run."
+    };
+  }
+
   // Updates an existing run using using the list of fields specified in `update_mask`.
   rpc UpdateRun(UpdateRunRequest) returns (UpdateRunResponse) {
     option (google.api.http) = {
@@ -118,6 +130,7 @@ message Run {
   repeated sift.metadata.v1.MetadataValue metadata = 15 [(google.api.field_behavior) = REQUIRED];
   repeated string asset_ids = 16 [(google.api.field_behavior) = REQUIRED];
   optional google.protobuf.Timestamp archived_date = 17 [(google.api.field_behavior) = OPTIONAL];
+  bool is_adhoc = 18 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `RunService_GetRun` to retrieve run.
@@ -148,8 +161,8 @@ message ListRunsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `run_id`, `organization_id`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
-  // `created_date`, `modified_date`, `start_time`, `stop_time`, `client_key`, `is_pinned`, `asset_id`, `asset_name`, `archived_date`,
+  // Available fields to filter by are `run_id` `organization_id`, `asset_id`, `asset_name`, `client_key`, `name`, `description`, `created_by_user_id`, `modified_by_user_id`,
+  // `created_date`, `modified_date`, `start_time`, `stop_time`, `tag_id`, `asset_tag_id`, `duration`, `annotation_comments_count`, `annotation_state`, `archived_date`,
   // and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/runs#run). Optional.
@@ -203,10 +216,38 @@ message CreateRunRequest {
   repeated sift.metadata.v1.MetadataValue metadata = 9 [(google.api.field_behavior) = OPTIONAL];
 }
 
-// The response of a call to `RunService_CreateRuns` containing the newly created run.
 message CreateRunResponse {
   Run run = 1 [(google.api.field_behavior) = REQUIRED];
 }
+
+// The request for a call to `RunService_CreateAdhocRun` to create an adhoc run.
+message CreateAdhocRunRequest {
+  // The name that will be assigned to the new run.
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  // A description about the new run.
+  string description = 2 [(google.api.field_behavior) = REQUIRED];
+  // The time at which data ingestion began for this new run. It must be before the `stop_time`
+  google.protobuf.Timestamp start_time = 3 [(google.api.field_behavior) = REQUIRED];
+  // The time at which data ingestion concluded for this new run.
+  google.protobuf.Timestamp stop_time = 4 [(google.api.field_behavior) = REQUIRED];
+  // A list of asset IDs to associate with the new run.
+  repeated string asset_ids = 5 [(google.api.field_behavior) = REQUIRED];
+  // Tags to associate with the new run.
+  repeated string tags = 6 [(google.api.field_behavior) = OPTIONAL];
+  // The metadata values associated with this run.
+  repeated sift.metadata.v1.MetadataValue metadata = 7 [(google.api.field_behavior) = OPTIONAL];
+  // An arbitrary user-chosen key that uniquely identifies this run. Optional, though it is recommended to provide.
+  optional string client_key = 8 [
+    (google.api.field_behavior) = OPTIONAL
+  ];
+}
+
+
+// The response of a call to `RunService_CreateAdhocRun` containing the newly created adhoc run.
+message CreateAdhocRunResponse {
+  Run run = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
 
 // The request for a call to `RunService_UpdateRun` to update an existing run.
 message UpdateRunRequest {
