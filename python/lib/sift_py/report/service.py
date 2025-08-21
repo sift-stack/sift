@@ -4,7 +4,6 @@ from typing import Optional, cast
 from sift.reports.v1.reports_pb2 import GetReportRequest, GetReportResponse, ReportRuleStatus
 from sift.reports.v1.reports_pb2 import Report as Report_pb2
 from sift.reports.v1.reports_pb2_grpc import ReportServiceStub
-
 from sift_py.grpc.transport import SiftChannel
 
 NOT_RUNNING_STATUS = [

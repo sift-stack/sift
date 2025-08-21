@@ -6,7 +6,6 @@ from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
     EvaluateRulesResponse,
 )
 from sift.rules.v1.rules_pb2 import BatchUpdateRulesResponse
-
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py.report_templates.config import ReportTemplateConfig
 from sift_py.rule.config import (
