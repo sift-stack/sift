@@ -52,7 +52,7 @@ development = [
     "pytest-asyncio==0.23.7",
     "pytest-benchmark==4.0.0",
     "pytest-mock==3.14.0",
-    "ruff",
+    "ruff~=0.12.10",
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdocs-include-markdown-plugin", "mkdocs-api-autonav", "mike"]
