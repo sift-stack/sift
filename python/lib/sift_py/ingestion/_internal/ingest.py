@@ -157,6 +157,7 @@ class _IngestionServiceImpl:
         # FD-179: Create a thread pool and add to whichever queue is smallest
         # Start thread on first ingest on the assumption all modifications to the ingestion config have concluded.
         if not self._ingestion_thread.is_alive():
+            self._ingestion_thread = IngestionThread(self.builder, self._request_queue)
             self._ingestion_thread.start()
         stream_requests(self._request_queue, *requests)
 
