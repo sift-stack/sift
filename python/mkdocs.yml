@@ -1,8 +1,10 @@
 site_name: Sift Python Client Library
+site_url: https://sift-stack.github.io/sift/python/
 repo_url: https://github.com/sift-stack/sift/tree/main/python
 copyright: "Copyright 2025 Sift Stack, Inc."
 theme:
   name: material
+  custom_dir: docs/overrides
   palette:
     # Palette toggle for light mode
     - scheme: default
@@ -72,8 +74,26 @@ plugins:
                   paths:
                     - sift_client.resources.sync_stubs
 
-
   - api-autonav:
-      modules: [ lib/sift_client ] #, lib/sift ]
+      nav_section_title: Sift Py API
+      modules: [ lib/sift_py ]
       exclude_private: true
       nav_item_prefix: ""
+
+  - api-autonav:
+      nav_section_title: Sift Client API (New)
+      modules: [ lib/sift_client ]
+      exclude_private: true
+      nav_item_prefix: ""
+
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
