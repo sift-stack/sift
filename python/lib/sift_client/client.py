@@ -61,7 +61,6 @@ class SiftClient(
         response = await sift.async_.ping.ping()
     """
 
-
     ping: PingAPI
     """Instance of the Ping API for making synchronous requests."""
 

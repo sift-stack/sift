@@ -2,6 +2,7 @@ from typing import List, Optional, cast
 
 from sift.assets.v1.assets_pb2 import Asset, ListAssetsRequest, ListAssetsResponse
 from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
+
 from sift_py._internal.cel import cel_in
 
 

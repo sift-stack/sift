@@ -1,4 +1,3 @@
-
 """
 !!! warning
     The Sift Client is experimental and is subject to change.
@@ -204,6 +203,10 @@ recent_assets = client.assets.list_(
 
 """
 
-
 from sift_client.client import SiftClient
 from sift_client.transport import SiftConnectionConfig
+
+__all__ = [
+    "SiftClient",
+    "SiftConnectionConfig",
+]

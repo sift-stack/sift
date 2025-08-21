@@ -7,6 +7,7 @@ from sift.reports.v1.reports_pb2 import (
     ReportRuleStatus,
     ReportRuleSummary,
 )
+
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py.report.service import ReportService
 

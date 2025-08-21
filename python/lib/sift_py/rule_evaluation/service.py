@@ -23,6 +23,7 @@ from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
     RunTimeRange,
 )
 from sift.rule_evaluation.v1.rule_evaluation_pb2_grpc import RuleEvaluationServiceStub
+
 from sift_py._internal.time import to_timestamp_pb
 from sift_py.grpc.transport import SiftChannel
 from sift_py.report.service import ReportService
