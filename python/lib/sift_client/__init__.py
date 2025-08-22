@@ -17,6 +17,3 @@ logging.basicConfig(
 
 handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(handler)
-
-# TODO: Remove
-logger.setLevel(logging.DEBUG)

@@ -128,7 +128,7 @@ class IngestionThread(threading.Thread):
                     await sift_stream.finish()
                     return
                 else:
-                    time.sleep(self.IDLE_LOOP_PERIOD)
+                    await asyncio.sleep(self.IDLE_LOOP_PERIOD)
 
         except asyncio.CancelledError:
             # It's possible the thread was joined while sleeping waiting for data. Only note error if we have data left.

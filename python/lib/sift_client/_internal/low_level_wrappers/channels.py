@@ -51,8 +51,6 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Raises:
             ValueError: If channel_id is not provided.
         """
-        if not channel_id:
-            raise ValueError("channel_id must be provided")
 
         request = GetChannelRequest(channel_id=channel_id)
         response = await self._grpc_client.get_stub(ChannelServiceStub).GetChannel(request)

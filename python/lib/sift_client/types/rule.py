@@ -5,7 +5,6 @@ from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Type
 
 from pydantic import BaseModel, ConfigDict
-from sift.annotations.v1.annotations_pb2 import AnnotationType
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
     AnnotationActionConfiguration,
@@ -171,9 +170,9 @@ class RuleActionType(Enum):
 class RuleAnnotationType(Enum):
     """Enum for rule annotation types."""
 
-    UNSPECIFIED = AnnotationType.ANNOTATION_TYPE_UNSPECIFIED  # 0
-    DATA_REVIEW = AnnotationType.ANNOTATION_TYPE_DATA_REVIEW  # 1
-    PHASE = AnnotationType.ANNOTATION_TYPE_PHASE  # 2
+    UNSPECIFIED = 0
+    DATA_REVIEW = 1
+    PHASE = 2
 
     @classmethod
     def from_str(cls, val: str) -> Optional["RuleAnnotationType"]:
@@ -207,7 +206,7 @@ class RuleAction(BaseModel):
     def annotation(
         cls,
         annotation_type: RuleAnnotationType,
-        tags: List[str] = [],
+        tags: List[str],
         default_assignee_user_id: str | None = None,
     ) -> RuleAction:
         """Create an annotation action.
