@@ -58,6 +58,7 @@ message EvaluateRulesRequest {
     EvaluateRulesFromCurrentRuleVersions rules = 3;
     EvaluateRulesFromRuleVersions rule_versions = 4;
     EvaluateRulesFromReportTemplate report_template = 5;
+    bool all_applicable_rules = 10;
   }
   EvaluateRulesAnnotationOptions annotation_options = 6;
 
