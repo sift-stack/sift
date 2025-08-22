@@ -108,7 +108,7 @@ pub struct IngestionConfigForm {
 /// is used in [SiftStreamBuilder::attach_run]. Note that if there is an existing run with the
 /// given `client_key`, any other fields that are updated in this [RunForm] will be updated in
 /// Sift, with the exception of `Option` fields that are `None`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RunForm {
     pub name: String,
     pub client_key: String,
