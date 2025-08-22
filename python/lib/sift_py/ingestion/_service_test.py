@@ -13,7 +13,7 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import IngestionConfig as I
 import sift_py.ingestion._internal.ingest
 from sift_py._internal.test_util.channel import MockChannel
 from sift_py._internal.test_util.fn import _mock_path as _mock_path_imp
-from sift_py.error import SiftAPIDeprecationWarning
+from sift_py.error import ProtobufMaxSizeExceededError, SiftAPIDeprecationWarning
 from sift_py.ingestion._internal.error import IngestionValidationError
 from sift_py.ingestion._internal.ingestion_config import (
     create_flow_configs,
@@ -540,3 +540,312 @@ def test_ingestion_service_telemetry_config_without_ingestion_client_key(mocker:
     )
     with pytest.raises(IngestionValidationError, match="can not be updated at runtime"):
         ingestion_service.create_flow()
+
+
+def test_ingestion_service_lazy_flow_creation_flag_set_when_forced(mocker: MockFixture):
+    """
+    Tests that use_lazy_flow_creation flag is set to True when force_lazy_flow_creation=True.
+    And that flow_configs_by_name and flow_configs_created are set correctly
+    """
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[
+            ChannelConfig(
+                name="channel_a",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        ingestion_client_key="my-client-key",
+        flows=[flow_a],
+    )
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="ingestion-config-id",
+        asset_id="asset-id",
+        client_key="my-client-key",
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = mock_ingestion_config
+
+    mock_channel = MockChannel()
+
+    svc = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+        force_lazy_flow_creation=True,
+    )
+
+    assert svc.use_lazy_flow_creation is True
+    assert svc.flow_configs_by_name == {"flow_a": flow_a}
+    assert svc.flow_configs_created == set()
+
+
+def test_ingestion_service_lazy_flow_creation_flag_set_when_protobuf_max_size_exceeded(
+    mocker: MockFixture,
+):
+    """
+    Tests that use_lazy_flow_creation flag is set to True when ProtobufMaxSizeExceededError is raised.
+    And that flow_configs_by_name and flow_configs_created are set correctly
+    """
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[
+            ChannelConfig(
+                name="channel_a",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        ingestion_client_key="my-client-key",
+        flows=[flow_a],
+    )
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="ingestion-config-id",
+        asset_id="asset-id",
+        client_key="my-client-key",
+    )
+
+    mock_get_or_create_ingestion_config = mocker.patch.object(
+        IngestionService, "_get_or_create_ingestion_config"
+    )
+    mock_get_or_create_ingestion_config.side_effect = [
+        ProtobufMaxSizeExceededError("Message too large"),
+        mock_ingestion_config,
+    ]
+
+    mock_channel = MockChannel()
+
+    svc = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+    )
+
+    assert svc.use_lazy_flow_creation is True
+    assert svc.flow_configs_by_name == {"flow_a": flow_a}
+    assert svc.flow_configs_created == set()
+
+
+def test_ingestion_service_lazy_flow_creation_flag_false_by_default(mocker: MockFixture):
+    """
+    Tests that use_lazy_flow_creation flag is False by default.
+    And that flow_configs_by_name and flow_configs_created are set correctly
+    """
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[
+            ChannelConfig(
+                name="channel_a",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        ingestion_client_key="my-client-key",
+        flows=[flow_a],
+    )
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="ingestion-config-id",
+        asset_id="asset-id",
+        client_key="my-client-key",
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = mock_ingestion_config
+
+    mock_get_ingestion_config_flows = mocker.patch(_mock_path(get_ingestion_config_flows))
+    mock_get_ingestion_config_flows.return_value = [flow_a.as_pb(FlowConfigPb)]
+
+    mock_channel = MockChannel()
+
+    svc = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+    )
+
+    assert svc.use_lazy_flow_creation is False
+    assert list(svc.flow_configs_by_name.keys()) == ["flow_a"]
+    assert svc.flow_configs_created == {"flow_a"}
+
+
+def test_ingestion_service_generated_client_key_with_lazy_flows(mocker: MockFixture):
+    """
+    Tests flow_configs_by_name and flow_configs_created population when using generated client key
+    with lazy flow creation disabled. And that flow_configs_by_name and flow_configs_created are set correctly
+    """
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[
+            ChannelConfig(
+                name="channel_a",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
+    flow_b = FlowConfig(
+        name="flow_b",
+        channels=[
+            ChannelConfig(
+                name="channel_b",
+                data_type=ChannelDataType.STRING,
+            ),
+        ],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        flows=[flow_a, flow_b],
+    )
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="ingestion-config-id",
+        asset_id="asset-id",
+        client_key=telemetry_config.hash(),
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = None
+
+    mock_create_ingestion_config = mocker.patch(_mock_path(create_ingestion_config))
+    mock_create_ingestion_config.return_value = mock_ingestion_config
+
+    mock_channel = MockChannel()
+
+    svc = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+    )
+
+    assert svc.use_lazy_flow_creation is False
+    assert svc.flow_configs_by_name == {"flow_a": flow_a, "flow_b": flow_b}
+    assert svc.flow_configs_created == {"flow_a", "flow_b"}
+
+
+def test_ingestion_service_generated_client_key_with_lazy_flows_enabled(mocker: MockFixture):
+    """
+    Tests flow_configs_by_name and flow_configs_created population when using generated client key
+    with lazy flow creation enabled.
+    """
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[
+            ChannelConfig(
+                name="channel_a",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
+    flow_b = FlowConfig(
+        name="flow_b",
+        channels=[
+            ChannelConfig(
+                name="channel_b",
+                data_type=ChannelDataType.STRING,
+            ),
+        ],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        flows=[flow_a, flow_b],
+    )
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="ingestion-config-id",
+        asset_id="asset-id",
+        client_key=telemetry_config.hash(),
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = None
+
+    mock_create_ingestion_config = mocker.patch(_mock_path(create_ingestion_config))
+    mock_create_ingestion_config.return_value = mock_ingestion_config
+
+    mock_channel = MockChannel()
+
+    svc = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+        force_lazy_flow_creation=True,
+    )
+
+    assert svc.use_lazy_flow_creation is True
+    assert svc.flow_configs_by_name == {"flow_a": flow_a, "flow_b": flow_b}
+    assert svc.flow_configs_created == set()
+
+
+def test_ingestion_service_custom_client_key_with_lazy_flows_enabled(mocker: MockFixture):
+    """
+    Tests flow_configs_by_name and flow_configs_created population when using custom client key
+    with lazy flow creation enabled.
+    """
+    flow_a = FlowConfig(
+        name="flow_a",
+        channels=[
+            ChannelConfig(
+                name="channel_a",
+                data_type=ChannelDataType.DOUBLE,
+            ),
+        ],
+    )
+
+    flow_b = FlowConfig(
+        name="flow_b",
+        channels=[
+            ChannelConfig(
+                name="channel_b",
+                data_type=ChannelDataType.STRING,
+            ),
+        ],
+    )
+
+    telemetry_config = TelemetryConfig(
+        asset_name="my-asset",
+        ingestion_client_key="custom-key",
+        flows=[flow_a, flow_b],
+    )
+
+    mock_ingestion_config = IngestionConfigPb(
+        ingestion_config_id="ingestion-config-id",
+        asset_id="asset-id",
+        client_key="custom-key",
+    )
+
+    mock_get_ingestion_config_by_client_key = mocker.patch(
+        _mock_path(get_ingestion_config_by_client_key)
+    )
+    mock_get_ingestion_config_by_client_key.return_value = mock_ingestion_config
+
+    mock_channel = MockChannel()
+
+    svc = IngestionService(
+        channel=mock_channel,
+        config=telemetry_config,
+        force_lazy_flow_creation=True,
+    )
+
+    assert svc.use_lazy_flow_creation is True
+    assert svc.flow_configs_by_name == {"flow_a": flow_a, "flow_b": flow_b}
+    assert svc.flow_configs_created == set()
