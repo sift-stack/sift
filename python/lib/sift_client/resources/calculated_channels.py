@@ -269,7 +269,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             The updated CalculatedChannel.
         """
         calculated_channel_id = (
-            calculated_channel.id
+            calculated_channel.id_
             if isinstance(calculated_channel, CalculatedChannel)
             else calculated_channel
         )

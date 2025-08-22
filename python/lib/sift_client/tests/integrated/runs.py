@@ -32,23 +32,23 @@ async def main():
 
     # Use a known asset to fetch a run.
     asset = client.assets.find(name="NostromoLV426")
-    asset_id = asset.id
+    asset_id = asset.id_
     print(f"Using asset: {asset.name} (ID: {asset_id})")
 
     # List runs for this asset
-    runs = asset.runs()
+    runs = asset.runs
     print(
         f"Found {len(runs)} run(s): {[run.name for run in runs]} for asset {asset.name} (ID: {asset_id})"
     )
 
     # Pick one.
     run = runs[0]
-    run_id = run.id
+    run_id = run.id_
     print(f"Using run: {run.name} (ID: {run_id})")
 
     # List other assets for this run.
-    all_assets = run.assets()
-    other_assets = [asset for asset in all_assets if asset.id != asset_id]
+    all_assets = run.assets
+    other_assets = [asset for asset in all_assets if asset.id_ != asset_id]
     print(
         f"Found {len(other_assets)} other asset(s): {other_assets} for run {run.name} (ID: {run_id})"
     )
@@ -58,7 +58,7 @@ async def main():
     runs = client.runs.list(limit=5)
     print(f"   Found {len(runs)} runs:")
     for run in runs:
-        print(f"   - {run.name} (ID: {run.id}), Organization ID: {run.organization_id}")
+        print(f"   - {run.name} (ID: {run.id_}), Organization ID: {run.organization_id}")
 
     # Example 2: Test different filter options
     print("\n2. Testing different filter options...")
@@ -77,7 +77,7 @@ async def main():
     runs = client.runs.list(name=run_name, limit=5)
     print(f"   Found {len(runs)} runs with exact name '{run_name}':")
     for run in runs:
-        print(f"   - {run.name} (ID: {run.id})")
+        print(f"   - {run.name} (ID: {run.id_})")
 
     # 2b: Filter by name containing text
     print("\n   2b. Filter by name containing text...")
@@ -214,7 +214,7 @@ async def main():
         print(f"   Deleting previously created runs: {previously_created_runs}")
         for run in previously_created_runs:
             print(f"   Deleting run: {run.name}")
-            client.runs.delete(run=run)
+            client.runs.archive(run=run)
 
     new_run = client.runs.create(
         name=f"Example Test Run {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
@@ -226,7 +226,7 @@ async def main():
         client_key=f"example-run-key-{datetime.now().timestamp()}",
         metadata=metadata,
     )
-    print(f"   Created run: {new_run.name} (ID: {new_run.id})")
+    print(f"   Created run: {new_run.name} (ID: {new_run.id_})")
     print(f"   Client key: {new_run.client_key}")
     print(f"   Tags: {new_run.tags}")
 
@@ -281,8 +281,8 @@ async def main():
     print("\n7. Deleting a run")
     run_to_delete = new_run
     print(f"   Deleting run: {run_to_delete.name}")
-    client.runs.delete(run=run_to_delete)
-    print(f"   Successfully deleted run: {run_to_delete.name}")
+    client.runs.archive(run=run_to_delete)
+    print(f"   Successfully archived run: {run_to_delete.name}")
 
 
 if __name__ == "__main__":
