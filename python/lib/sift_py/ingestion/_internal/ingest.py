@@ -65,38 +65,37 @@ class _IngestionServiceImpl:
         end_stream_on_error: bool = False,
         force_lazy_flow_creation: bool = False,
     ):
-        ingestion_config = None
-        if not force_lazy_flow_creation:
-            try:
-                ingestion_config = self.__class__._get_or_create_ingestion_config(
-                    channel, config, lazy_flows=False
-                )
-            except ProtobufMaxSizeExceededError:
-                pass
-            else:
-                self.use_lazy_flow_creation = False
-
-        if not ingestion_config:
+        try:
+            ingestion_config = self.__class__._get_or_create_ingestion_config(
+                channel, config, lazy_flows=force_lazy_flow_creation
+            )
+        except ProtobufMaxSizeExceededError:
             ingestion_config = self.__class__._get_or_create_ingestion_config(
                 channel, config, lazy_flows=True
             )
             self.use_lazy_flow_creation = True
+        else:
+            self.use_lazy_flow_creation = force_lazy_flow_creation
 
         self.ingestion_config = ingestion_config
 
+        # `flow_configs_by_name` will include all flows in the config, and anything already created
+        # `flow_configs_created` only includes those which are already registered
         if config._ingestion_client_key_is_generated and not self.use_lazy_flow_creation:
             # If this is a generated key, use the local telemetry config since it is static
-            # All flows have also already been created
+            # All flows have also already been created since we aren't lazy
             self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
             self.flow_configs_created = {flow.name for flow in config.flows}
         else:
-            # If the user specified a client key, use the configuration from Sift since it
-            # may have been updated.
             # If using lazy flow creation, assume the list of flows is large enough that
             # `get_ingestion_config_flows` will be very slow. Instead lazily check for
             # flow existance during streaming
+            # Otherwise, since the user specified a client key, use the configuration from Sift since it
+            # may have been updated, and we've already registered any new flows
+
             if self.use_lazy_flow_creation:
-                flows = []
+                self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
+                self.flow_configs_created: Set[str] = set()
             else:
                 flows = [
                     FlowConfig.from_pb(f)
@@ -105,11 +104,8 @@ class _IngestionServiceImpl:
                         ingestion_config.ingestion_config_id,
                     )
                 ]
-            # `flow_configs_by_name` will include all flows in the config, and anything already created
-            # `flow_configs_created` only includes those which are already registered
-            self.flow_configs_by_name = {flow.name: flow for flow in config.flows}
-            self.flow_configs_by_name.update({flow.name: flow for flow in flows})
-            self.flow_configs_created = {flow.name for flow in flows}
+                self.flow_configs_by_name = {flow.name: flow for flow in flows}
+                self.flow_configs_created = {flow.name for flow in flows}
 
         self.rule_service = RuleService(channel)
         if config.rules:
@@ -477,7 +473,6 @@ class _IngestionServiceImpl:
         ]
 
         if flow_configs_to_create:
-            # print(f"Lazily create flows: {[item.name for item in flow_configs_to_create]}")
             try:
                 create_flow_configs(
                     self.transport_channel,
