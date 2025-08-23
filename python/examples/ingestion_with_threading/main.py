@@ -16,7 +16,7 @@ def ingestion_thread(data_queue: Queue):
     it to Sift.
     """
     # Can tune ingestion performance with buffer_size and flush_interval_sec
-    with ingestion_service.buffered_ingestion() as buffered_ingestion:
+    with ingestion_service.buffered_ingestion(buffer_size=200, flush_interval_sec=1) as buffered_ingestion:
         while True:
             try:
                 item = data_queue.get(timeout=1)

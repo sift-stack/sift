@@ -102,7 +102,7 @@ class IngestionThread(threading.Thread):
                     await sift_stream.finish()
                     return
                 else:
-                    time.sleep(self.IDLE_LOOP_PERIOD)
+                    await asyncio.sleep(self.IDLE_LOOP_PERIOD)
 
         except asyncio.CancelledError:
             # It's possible the thread was joined while sleeping waiting for data. Only note error if we have data left.
@@ -183,7 +183,12 @@ def stream_requests(
         data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
         requests: List of IngestWithConfigDataStreamRequest protobuf objects
     """
-    asyncio.run(stream_requests_async(data_queue, *requests))
+    try:
+        loop = asyncio.get_running_loop()
+        loop.run_until_complete(stream_requests_async(data_queue, *requests))
+    except RuntimeError:
+        # No running loop, start new loop
+        asyncio.run(stream_requests_async(data_queue, *requests))
 
 
 def telemetry_config_to_ingestion_config_py(
