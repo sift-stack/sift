@@ -56,7 +56,7 @@ pub struct IngestionConfigMode {
     pub(crate) run: Option<Run>,
     ingestion_config: IngestionConfig,
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
-    ingested_flows: HashSet<String>,
+    flows_seen: HashSet<String>,
     checkpoint_interval: Duration,
     streaming_task: Option<DataStreamTask>,
     retry_policy: Option<RetryPolicy>,
@@ -185,7 +185,7 @@ impl SiftStream<IngestionConfigMode> {
             mode: IngestionConfigMode {
                 ingestion_config,
                 flows_by_name,
-                ingested_flows: HashSet::new(),
+                flows_seen: HashSet::new(),
                 sift_stream_id,
                 run,
                 streaming_task: Some(streaming_task),
@@ -271,8 +271,8 @@ impl SiftStream<IngestionConfigMode> {
     async fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
         #[cfg(feature = "tracing")]
         {
-            if !self.mode.ingested_flows.contains(&req.flow) {
-                self.mode.ingested_flows.insert(req.flow.clone());
+            if !self.mode.flows_seen.contains(&req.flow) {
+                self.mode.flows_seen.insert(req.flow.clone());
                 tracing::info!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
                     "flow '{}' being ingested for the first time",
