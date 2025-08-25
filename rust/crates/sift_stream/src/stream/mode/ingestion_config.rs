@@ -19,7 +19,7 @@ use sift_rs::{
     wrappers::ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
 };
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     ops::Drop,
     pin::Pin,
     sync::{
@@ -56,6 +56,7 @@ pub struct IngestionConfigMode {
     pub(crate) run: Option<Run>,
     ingestion_config: IngestionConfig,
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
+    ingested_flows: HashSet<String>,
     checkpoint_interval: Duration,
     streaming_task: Option<DataStreamTask>,
     retry_policy: Option<RetryPolicy>,
@@ -184,6 +185,7 @@ impl SiftStream<IngestionConfigMode> {
             mode: IngestionConfigMode {
                 ingestion_config,
                 flows_by_name,
+                ingested_flows: HashSet::new(),
                 sift_stream_id,
                 run,
                 streaming_task: Some(streaming_task),
@@ -267,6 +269,18 @@ impl SiftStream<IngestionConfigMode> {
     /// Concerned with sending the actual ingest request to [DataStream] which will then write it
     /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
     async fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
+        #[cfg(feature = "tracing")]
+        {
+            if !self.mode.ingested_flows.contains(&req.flow) {
+                self.mode.ingested_flows.insert(req.flow.clone());
+                tracing::info!(
+                    sift_stream_id = self.mode.sift_stream_id.to_string(),
+                    "flow '{}' being ingested for the first time",
+                    &req.flow,
+                );
+            }
+        }
+
         if self
             .backup_data(&req)
             .await
