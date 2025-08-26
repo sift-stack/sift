@@ -20,7 +20,8 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-  logo: https://avatars.githubusercontent.com/u/105525178?s=200&v=4
+  logo_light_mode: sift_logo_dark.svg
+  logo_dark_mode: sift_logo_light.svg
   font:
     text: IBM Plex Sans
     code: IBM Plex Mono
