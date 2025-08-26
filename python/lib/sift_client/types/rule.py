@@ -244,7 +244,9 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
         )
 
     @classmethod
-    def _from_proto(cls, proto: RuleActionProto, sift_client: SiftClient | None = None) -> RuleAction:
+    def _from_proto(
+        cls, proto: RuleActionProto, sift_client: SiftClient | None = None
+    ) -> RuleAction:
         action_type = RuleActionType(proto.action_type)
         return cls(
             condition_id=proto.rule_condition_id,
@@ -304,7 +306,9 @@ class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
     deleted_date: datetime | None = None
 
     @classmethod
-    def _from_proto(cls, proto: RuleVersionProto, sift_client: SiftClient | None = None) -> RuleVersion:
+    def _from_proto(
+        cls, proto: RuleVersionProto, sift_client: SiftClient | None = None
+    ) -> RuleVersion:
         return cls(
             rule_id=proto.rule_id,
             rule_version_id=proto.rule_version_id,
