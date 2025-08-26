@@ -1,0 +1,202 @@
+/* MkDocs Material Dark Theme Overrides - Fumadocs Style */
+
+/*.dark {*/
+/*    --fd-background: 0 0% 8.04%;*/
+/*    --fd-foreground: 0 0% 92%;*/
+/*    --fd-muted: 0 0% 12.9%;*/
+/*    --fd-muted-foreground: 0 0% 60.9%;*/
+/*    --fd-popover: 0 0% 9.8%;*/
+/*    --fd-popover-foreground: 0 0% 88%;*/
+/*    --fd-card: 0 0% 9.8%;*/
+/*    --fd-card-foreground: 0 0% 98%;*/
+/*    --fd-border: 0 0% 14%;*/
+/*    --fd-primary: 0 0% 98%;*/
+/*    --fd-primary-foreground: 0 0% 9%;*/
+/*    --fd-secondary: 0 0% 12.9%;*/
+/*    --fd-secondary-foreground: 0 0% 98%;*/
+/*    --fd-accent: 0 0% 16.9%;*/
+/*    --fd-accent-foreground: 0 0% 90%;*/
+/*    --fd-ring: 0 0% 14.9%;*/
+/*}*/
+
+/*.light {*/
+/*    --fd-background: 0 0% 96%;*/
+/*    --fd-foreground: 0 0% 3.9%;*/
+/*    --fd-muted: 0 0% 96.1%;*/
+/*    --fd-muted-foreground: 0 0% 45.1%;*/
+/*    --fd-popover: 0 0% 98%;*/
+/*    --fd-popover-foreground: 0 0% 15.1%;*/
+/*    --fd-card: 0 0% 94.7%;*/
+/*    --fd-card-foreground: 0 0% 3.9%;*/
+/*    --fd-border: 0 0% 89.8%;*/
+/*    --fd-primary: 0 0% 9%;*/
+/*    --fd-primary-foreground: 0 0% 98%;*/
+/*    --fd-secondary: 0 0% 93.1%;*/
+/*    --fd-secondary-foreground: 0 0% 9%;*/
+/*    --fd-accent: 0 0% 90.1%;*/
+/*    --fd-accent-foreground: 0 0% 9%;*/
+/*    --fd-ring: 0 0% 63.9%;*/
+/*}*/
+
+/* Brand Colors */
+:root {
+    --brand-color: #ee4220;
+}
+
+/* Dark theme - define fd variables and map to md variables */
+[data-md-color-scheme="slate"] {
+    /* Define your color variables */
+    /* Map to MkDocs Material variables */
+    --md-default-bg-color: rgb(0, 0, 0);
+    --md-typeset-a-color: var(--brand-color) !important;
+    --font-foreground-color: rgb(255, 255, 255);
+    --border-color: rgb(36, 36, 36);
+    --code-box-background-color: rgb(18, 18, 18);
+    /*--md-default-fg-color: var(--fd-muted-foreground);*/
+    /*--md-typeset-color: var(--fd-muted-foreground);*/
+    /*--md-default-fg-color--light: hsl(var(--fd-foreground));*/
+    /*--md-default-fg-color--lighter: hsl(var(--fd-foreground) / 0.5);*/
+    /*--md-default-fg-color--lightest: hsl(var(--fd-foreground) / 0.07);*/
+    /*--md-code-bg-color: hsl(var(--fd-muted));*/
+    /*--md-code-fg-color: hsl(var(--fd-foreground));*/
+    /*--md-accent-fg-color: hsl(var(--fd-accent-foreground));*/
+    /*--md-accent-bg-color: hsl(var(--fd-accent));*/
+    /*--md-primary-fg-color: hsl(var(--fd-primary));*/
+    /*--md-primary-bg-color: hsl(var(--fd-foreground));*/
+
+    /* monokai */
+    /*--md-code-fg-color: #f8f8f2; !* Default text *!*/
+    /*--md-code-bg-color: #272822; !* Background *!*/
+    /*--md-code-hl-color: #49483e; !* Highlighted line background *!*/
+
+    /*--md-code-hl-number-color: #ae81ff; !* Number *!*/
+    /*--md-code-hl-special-color: #ff4689; !* Special (tags, deleted, prompt) *!*/
+    /*--md-code-hl-function-color: #a6e22e; !* Function, class, decorator, etc. *!*/
+    /*--md-code-hl-constant-color: #66d9ef; !* Constants, attributes *!*/
+    /*--md-code-hl-keyword-color: #66d9ef; !* Keywords *!*/
+    /*--md-code-hl-string-color: #e6db74; !* Strings *!*/
+    /*--md-code-hl-name-color: #f8f8f2; !* Generic names *!*/
+    /*--md-code-hl-operator-color: #ff4689; !* Operators *!*/
+    /*--md-code-hl-punctuation-color: #f8f8f2; !* Punctuation *!*/
+    /*--md-code-hl-comment-color: #959077; !* Comments *!*/
+    /*--md-code-hl-generic-color: #a6e22e; !* Inserted / green accents *!*/
+    /*--md-code-hl-variable-color: #f8f8f2; !* Variables (default to foreground) *!*/
+
+}
+
+/* Light theme - define fd variables and map to md variables */
+[data-md-color-scheme="default"] {
+    --md-typeset-a-color: var(--brand-color);
+    /* Map to MkDocs Material variables */
+    /*--md-default-bg-color: hsl(var(--fd-background));*/
+    /*--md-default-fg-color: var(--fd-muted-foreground);*/
+    /*--md-default-fg-color--light: hsl(var(--fd-foreground));*/
+    /*--md-default-fg-color--lighter: hsl(var(--fd-foreground) / 0.5);*/
+    /*--md-default-fg-color--lightest: hsl(var(--fd-foreground) / 0.07);*/
+    /*--md-code-bg-color: hsl(var(--fd-muted));*/
+    /*--md-code-fg-color: hsl(var(--fd-foreground));*/
+    /*--md-accent-fg-color: hsl(var(--fd-accent-foreground));*/
+    /*--md-accent-bg-color: hsl(var(--fd-accent));*/
+    /*--md-primary-fg-color: hsl(var(--fd-primary));*/
+    /*--md-primary-bg-color: hsl(var(--fd-foreground));*/
+}
+
+
+.md-typeset {
+
+    font-size: 16px !important;
+    font-weight: 300;
+
+
+    h1 {
+        color: var(--font-foreground-color);
+        font-weight: 700;
+    }
+
+    h2 {
+        color: var(--font-foreground-color);
+        font-weight: 600;
+    }
+
+    h3 {
+        color: var(--font-foreground-color);
+        font-weight: 600;
+    }
+}
+
+.md-nav__title {
+    color: var(--font-foreground-color);
+}
+
+.md-typeset a {
+    color: var(--brand-color) !important;
+}
+
+.md-nav__item {
+    font-weight: 300;
+}
+
+.md-nav__item--active, .md-nav__link--active, .md-tabs__item--active {
+    font-weight: 600;
+    color: var(--font-foreground-color);
+}
+
+.autorefs-internal {
+    font-size: 12px !important;
+}
+
+.md-code__content {
+    border-radius: 7px !important;
+    border: var(--border-color) solid 1px;
+    background-color: var(--code-box-background-color) !important;
+    font-size: 14px !important;
+}
+
+code:not(.md-code__content) {
+    color: var(--font-foreground-color) !important;
+    font-weight: 600;
+}
+
+/*!* Navigation *!*/
+/*.md-nav {*/
+/*    font-size: 0.9rem;*/
+/*}*/
+
+/*.md-nav__link--active {*/
+/*    color: var(--md-accent-fg-color) !important;*/
+/*    font-weight: 600;*/
+/*}*/
+
+/*.md-nav__item .md-nav__link:hover {*/
+/*    color: var(--md-accent-fg-color);*/
+/*}*/
+
+/*!* Code blocks *!*/
+/*.highlight pre {*/
+/*    border-radius: 6px;*/
+/*    padding: 1em;*/
+/*}*/
+
+/*!* Admonitions *!*/
+/*.md-typeset .admonition {*/
+/*    border-radius: 6px;*/
+/*    border-left: 4px solid var(--md-accent-fg-color);*/
+/*}*/
+
+/*!* Tables *!*/
+/*.md-typeset table:not([class]) {*/
+/*    border-radius: 6px;*/
+/*    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);*/
+/*}*/
+
+/*!* Cards *!*/
+/*.md-typeset .grid {*/
+/*    grid-gap: 1rem;*/
+/*}*/
+
+/*.md-typeset .grid > .card {*/
+/*    border-radius: 6px;*/
+/*    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);*/
+/*    background-color: var(--md-code-bg-color);*/
+/*    border: 1px solid rgba(255, 255, 255, 0.05);*/
+/*}*/
