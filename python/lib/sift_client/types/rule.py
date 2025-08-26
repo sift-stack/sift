@@ -4,7 +4,6 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Type
 
-from pydantic import BaseModel, ConfigDict
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
     AnnotationActionConfiguration,
@@ -22,6 +21,9 @@ from sift.rules.v1.rules_pb2 import (
 )
 from sift.rules.v1.rules_pb2 import (
     RuleAction as RuleActionProto,
+)
+from sift.rules.v1.rules_pb2 import (
+    RuleVersion as RuleVersionProto,
 )
 
 from sift_client.types._base import BaseType, ModelUpdate
@@ -67,6 +69,26 @@ class Rule(BaseType[RuleProto, "Rule"]):
     def assets(self) -> List[Asset]:
         """Get the assets that this rule applies to."""
         return self.client.assets.list_(asset_ids=self.asset_ids, tag_ids=self.asset_tag_ids)
+
+    @property
+    def organization(self):
+        """Get the organization that this rule belongs to."""
+        raise NotImplementedError("Organization is not supported yet.")
+
+    @property
+    def created_by(self):
+        """Get the user that created this rule."""
+        raise NotImplementedError("Created by is not supported yet.")
+
+    @property
+    def modified_by(self):
+        """Get the user that modified this rule."""
+        raise NotImplementedError("Modified by is not supported yet.")
+
+    @property
+    def tags(self):
+        """Get the tags that this rule applies to."""
+        raise NotImplementedError("Tags is not supported yet.")
 
     def update(self, update: RuleUpdate | dict, version_notes: str | None = None) -> Rule:
         """
@@ -184,12 +206,10 @@ class RuleAnnotationType(Enum):
         return cls(int(val))
 
 
-class RuleAction(BaseModel):
+class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     """
     Model of a Rule Action.
     """
-
-    model_config = ConfigDict(frozen=True)
 
     action_type: RuleActionType
     condition_id: str | None = None
@@ -268,12 +288,10 @@ class RuleAction(BaseModel):
         )
 
 
-class RuleVersion(BaseModel):
+class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
     """
     Model of a Rule Version.
     """
-
-    model_config = ConfigDict(frozen=True)
 
     rule_id: str
     rule_version_id: str
