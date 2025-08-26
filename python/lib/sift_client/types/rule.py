@@ -244,7 +244,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
         )
 
     @classmethod
-    def _from_proto(cls, proto: RuleActionProto) -> RuleAction:
+    def _from_proto(cls, proto: RuleActionProto, sift_client: SiftClient | None = None) -> RuleAction:
         action_type = RuleActionType(proto.action_type)
         return cls(
             condition_id=proto.rule_condition_id,
@@ -269,6 +269,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
             )
             if action_type == RuleActionType.ANNOTATION
             else None,
+            _client=sift_client,
         )
 
     def _to_update_request(self) -> UpdateActionRequest:
@@ -303,7 +304,7 @@ class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
     deleted_date: datetime | None = None
 
     @classmethod
-    def _from_proto(cls, proto) -> RuleVersion:
+    def _from_proto(cls, proto: RuleVersionProto, sift_client: SiftClient | None = None) -> RuleVersion:
         return cls(
             rule_id=proto.rule_id,
             rule_version_id=proto.rule_version_id,
@@ -313,4 +314,5 @@ class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
             version_notes=proto.version_notes,
             generated_change_message=proto.generated_change_message,
             deleted_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
+            _client=sift_client,
         )
