@@ -94,8 +94,8 @@ class IngestionThread(threading.Thread):
         logger.debug("Ingestion thread started")
         self.sift_stream_builder.ingestion_config = self.ingestion_config
         sift_stream = await self.sift_stream_builder.build()
-        time_since_last_metric = time.time() - 1
-        time_since_last_data = time.time()
+        time_of_last_metric = time.time()
+        time_of_last_data = time.time()
         count = 0
         self.initialized = True
         try:
@@ -108,20 +108,20 @@ class IngestionThread(threading.Thread):
                         )
                         await sift_stream.finish()
                         return
-                    time_since_last_data = time.time()
+                    time_of_last_metric = time.time()
                     item = self.data_queue.get()
                     sift_stream = await sift_stream.send_requests(item)
                     count += 1
-                    if time.time() - time_since_last_metric > self.metric_interval:
+                    time_since_last_metric = time.time() - time_of_last_metric
+                    if time_since_last_metric > self.metric_interval:
                         logger.debug(
                             f"Ingestion thread sent {count} requests, remaining: {self.data_queue.qsize()}"
                         )
-                        time_since_last_metric = time.time()
+                        time_of_last_metric = time.time()
 
-                if (
-                    self._stop_event.is_set()
-                    or time.time() - time_since_last_data > self.no_data_timeout
-                ):
+                # Queue empty, check if we should stop.
+                time_since_last_data = time.time() - time_of_last_data
+                if self._stop_event.is_set() or time_since_last_data > self.no_data_timeout:
                     logger.debug(
                         f"No more requests. Stopping. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
                     )
