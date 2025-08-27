@@ -1861,12 +1861,14 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_py.ingestion.manager.IngestionServiceBuilder" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">IngestionServiceBuilder</span><span class="p">:</span> <span class="n"><span title="typing_extensions.TypeAlias">TypeAlias</span></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Callable" href="https://docs.python.org/3/library/typing.html#typing.Callable">Callable</a></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="            SiftChannel
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">IngestionServiceBuilder</span><span class="p">:</span> <span class="n"><span title="typing_extensions.TypeAlias">TypeAlias</span></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Callable" href="https://docs.python.org/3/library/typing.html#typing.Callable">Callable</a></span><span class="p">[</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            SiftChannel
 
 
   
       module-attribute
-   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionService (sift_py.ingestion.service.IngestionService)" href="../service/#sift_py.ingestion.service.IngestionService">IngestionService</a></span><span class="p">]</span>
+   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionService (sift_py.ingestion.service.IngestionService)" href="../service/#sift_py.ingestion.service.IngestionService">IngestionService</a></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2091,12 +2093,15 @@ You're not viewing the latest version.
 
 
 <a href="#sift_py.ingestion.manager.IngestionServicesManager" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">IngestionServicesManager</span><span class="p">(</span><span class="n">transport_channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftChannel
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">IngestionServicesManager</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">transport_channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftChannel
 
 
   
       module-attribute
-   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">,</span> <span class="n">ingestion_services</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Dict" href="https://docs.python.org/3/library/typing.html#typing.Dict">Dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionService (sift_py.ingestion.service.IngestionService)" href="../service/#sift_py.ingestion.service.IngestionService">IngestionService</a></span><span class="p">])</span>
+   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">ingestion_services</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Dict" href="https://docs.python.org/3/library/typing.html#typing.Dict">Dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionService (sift_py.ingestion.service.IngestionService)" href="../service/#sift_py.ingestion.service.IngestionService">IngestionService</a></span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2238,17 +2243,20 @@ Prefer to use <code>from_builders</code> if you have custom options that you wan
   </span>
 
 <a href="#sift_py.ingestion.manager.IngestionServicesManager.from_builders" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_builders</span><span class="p">(</span><span class="n">channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftChannel
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_builders</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftChannel
 
 
   
       module-attribute
-   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">,</span> <span class="n">builders</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Dict" href="https://docs.python.org/3/library/typing.html#typing.Dict">Dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionServiceBuilder
+   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">builders</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Dict" href="https://docs.python.org/3/library/typing.html#typing.Dict">Dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            IngestionServiceBuilder
 
 
   
       module-attribute
-   (sift_py.ingestion.manager.IngestionServiceBuilder)" href="#sift_py.ingestion.manager.IngestionServiceBuilder">IngestionServiceBuilder</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><span title="typing_extensions.Self">Self</span></span>
+   (sift_py.ingestion.manager.IngestionServiceBuilder)" href="#sift_py.ingestion.manager.IngestionServiceBuilder">IngestionServiceBuilder</a></span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing_extensions.Self">Self</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2270,12 +2278,15 @@ Prefer to use <code>from_builders</code> if you have custom options that you wan
   </span>
 
 <a href="#sift_py.ingestion.manager.IngestionServicesManager.from_telemetry_configs" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_telemetry_configs</span><span class="p">(</span><span class="n">channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftChannel
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_telemetry_configs</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftChannel
 
 
   
       module-attribute
-   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">,</span> <span class="n">telemetry_configs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Dict" href="https://docs.python.org/3/library/typing.html#typing.Dict">Dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            TelemetryConfig (sift_py.ingestion.config.telemetry.TelemetryConfig)" href="../config/telemetry/#sift_py.ingestion.config.telemetry.TelemetryConfig">TelemetryConfig</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><span title="typing_extensions.Self">Self</span></span>
+   (sift_py.grpc.transport.SiftChannel)" href="../../grpc/transport/#sift_py.grpc.transport.SiftChannel">SiftChannel</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">telemetry_configs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Dict" href="https://docs.python.org/3/library/typing.html#typing.Dict">Dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="            TelemetryConfig (sift_py.ingestion.config.telemetry.TelemetryConfig)" href="../config/telemetry/#sift_py.ingestion.config.telemetry.TelemetryConfig">TelemetryConfig</a></span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing_extensions.Self">Self</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2293,7 +2304,9 @@ Prefer to use <code>from_builders</code> if you have custom options that you wan
 
 
 <a href="#sift_py.ingestion.manager.IngestionServicesManager.get_ingestion_service_by_identifier" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_ingestion_service_by_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Optional" href="https://docs.python.org/3/library/typing.html#typing.Optional">Optional</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            IngestionService (sift_py.ingestion.service.IngestionService)" href="../service/#sift_py.ingestion.service.IngestionService">IngestionService</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_ingestion_service_by_identifier</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">identifier</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Optional" href="https://docs.python.org/3/library/typing.html#typing.Optional">Optional</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            IngestionService (sift_py.ingestion.service.IngestionService)" href="../service/#sift_py.ingestion.service.IngestionService">IngestionService</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2311,7 +2324,9 @@ Prefer to use <code>from_builders</code> if you have custom options that you wan
 
 
 <a href="#sift_py.ingestion.manager.IngestionServicesManager.ingestion_service" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ingestion_service</span><span class="p">(</span><span class="n">identifier</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Iterator" href="https://docs.python.org/3/library/typing.html#typing.Iterator">Iterator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            IngestionService (sift_py.ingestion.service.IngestionService)" href="../service/#sift_py.ingestion.service.IngestionService">IngestionService</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ingestion_service</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">identifier</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Iterator" href="https://docs.python.org/3/library/typing.html#typing.Iterator">Iterator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            IngestionService (sift_py.ingestion.service.IngestionService)" href="../service/#sift_py.ingestion.service.IngestionService">IngestionService</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
