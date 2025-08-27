@@ -28,11 +28,16 @@
 
     --brand-color: var(--tomato-9);
 
+    /* MkDocs Material Accent Colors */
     --md-accent-fg-color: var(--brand-color);
     --md-accent-fg-color--transparent: rgb(from var(--brand-color) r g b / 0.1);
     --md-accent-bg-color: hsla(0, 0%, 100%, 1);
     --md-accent-bg-color--light: hsla(0, 0%, 100%, 0.7);
 }
+
+/* =============================================================================
+   LOGO DISPLAY CONTROLS
+   ============================================================================= */
 
 #logo_light_mode {
     display: var(--md-footer-logo-light-mode);
@@ -42,56 +47,65 @@
     display: var(--md-footer-logo-dark-mode);
 }
 
-/* Dark theme - define fd variables and map to md variables */
-[data-md-color-scheme="slate"] {
-    /*--md-primary-fg-color: hsla(#{hex2hsl($clr-indigo-500)}, 1);*/
-    /*--md-primary-fg-color--light: hsla(#{hex2hsl($clr-indigo-400)}, 1);*/
-    /*--md-primary-fg-color--dark: hsla(#{hex2hsl($clr-indigo-700)}, 1);*/
-    /*--md-primary-bg-color: hsla(0, 0%, 100%, 1);*/
-    --md-primary-bg-color--light: hsla(0, 0%, 100%, 0.7);
+/* =============================================================================
+   DARK THEME VARIABLES
+   ============================================================================= */
 
-    /* Logo */
+[data-md-color-scheme="slate"] {
+    /* Primary Colors */
+    --md-primary-bg-color--light: hsla(0, 0%, 100%, 0.7);
+    --md-default-bg-color: rgb(0, 0, 0);
+    --md-primary-bg-color: var(--font-foreground-color);
+
+    /* Logo Display */
     --md-footer-logo-dark-mode: block;
     --md-footer-logo-light-mode: none;
 
-    /* Define your color variables */
-    /* Map to MkDocs Material variables */
+    /* Custom Theme Colors */
     --header-bg-color: hsl(0 0% 8.04%/.8);
     --bold-header-color: white;
-    --md-default-bg-color: rgb(0, 0, 0);
-    --md-typeset-a-color: var(--brand-color) !important;
     --font-foreground-color: rgb(255, 255, 255);
-
     --border-color: rgb(36, 36, 36);
     --code-box-background-color: rgb(18, 18, 18);
-    --md-primary-bg-color: var(--font-foreground-color);
-
     --search-bg: rgba(237, 237, 237, 0);
 
-
+    /* Link Colors */
+    --md-typeset-a-color: var(--brand-color) !important;
 }
 
-/* Light theme - define fd variables and map to md variables */
+/* =============================================================================
+   LIGHT THEME VARIABLES
+   ============================================================================= */
+
 [data-md-color-scheme="default"] {
-    /* Logo */
+    /* Primary Colors */
+    --md-primary-bg-color--light: hsla(0, 0%, 0%, 0.7);
+    --md-default-bg-color: rgb(255, 255, 255);
+    --md-primary-bg-color: var(--font-foreground-color);
+
+    /* Logo Display */
     --md-footer-logo-dark-mode: none;
     --md-footer-logo-light-mode: block;
 
-    /* Define your color variables */
-    /* Map to MkDocs Material variables */
+    /* Custom Theme Colors */
     --header-bg-color: hsl(0 0% 96%/.8);
     --bold-header-color: black;
-    --md-default-bg-color: rgb(255, 255, 255);
-    --md-typeset-a-color: var(--brand-color) !important;
     --font-foreground-color: rgb(10, 10, 10);
-
     --border-color: rgb(229, 229, 229);
     --code-box-background-color: rgba(237, 237, 237, 0.5);
-    --md-primary-bg-color: var(--font-foreground-color);
-
     --search-bg: rgba(237, 237, 237, 0);
 
+    /* Link Colors */
+    --md-typeset-a-color: var(--brand-color) !important;
+}
 
+/* =============================================================================
+   HEADER STYLES
+   ============================================================================= */
+
+.md-header, .md-tabs {
+    background-color: var(--header-bg-color) !important;
+    box-shadow: none !important;
 }
 
 .md-header__title {
@@ -102,16 +116,30 @@
     color: var(--bold-header-color) !important;
 }
 
-.md-header, .md-tabs {
-    background-color: var(--header-bg-color) !important;
-    box-shadow: none !important;
+.md-tabs, .md-header--shadow {
+    border-bottom: var(--border-color) solid 1px;
 }
 
-.md-typeset {
+/* =============================================================================
+   LOGO STYLES
+   ============================================================================= */
 
+.md-header__button.md-logo {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    > img {
+        height: 2rem !important;
+    }
+}
+
+/* =============================================================================
+   TYPOGRAPHY STYLES
+   ============================================================================= */
+
+.md-typeset {
     font-size: 16px !important;
     font-weight: 300;
-
 
     h1 {
         color: var(--font-foreground-color);
@@ -129,9 +157,13 @@
     }
 }
 
-.md-main__inner {
-    margin-top: 0 !important;
+.md-typeset a:hover {
+    text-decoration: underline;
 }
+
+/* =============================================================================
+   NAVIGATION STYLES
+   ============================================================================= */
 
 .md-nav__title {
     color: var(--font-foreground-color);
@@ -140,10 +172,6 @@
 
 .md-nav__source {
     background-color: var(--md-default-bg-color) !important;
-}
-
-.md-typeset a:hover {
-    text-decoration: underline;
 }
 
 .md-nav__item {
@@ -155,6 +183,27 @@
     color: var(--font-foreground-color);
 }
 
+/* =============================================================================
+   SIDEBAR STYLES
+   ============================================================================= */
+
+.md-sidebar--primary {
+    border-right: var(--border-color) solid 1px;
+    height: 100%;
+}
+
+/* =============================================================================
+   LAYOUT STYLES
+   ============================================================================= */
+
+.md-main__inner {
+    margin-top: 0 !important;
+}
+
+/* =============================================================================
+   CODE BLOCK STYLES
+   ============================================================================= */
+
 .md-code__content {
     border-radius: 7px !important;
     border: var(--border-color) solid 1px;
@@ -162,23 +211,9 @@
     font-size: 14px !important;
 }
 
-.md-tabs, .md-header--shadow {
-    border-bottom: var(--border-color) solid 1px;
-}
-
-.md-sidebar--primary {
-    border-right: var(--border-color) solid 1px;
-    height: 100%;
-}
-
-.md-header__button.md-logo {
-    > img {
-        height: 2rem !important;
-    }
-
-    margin: 0 !important;
-    padding: 0 !important;
-}
+/* =============================================================================
+   SEARCH STYLES
+   ============================================================================= */
 
 .md-search__input, .md-search__suggest, .md-search__form {
     background-color: var(--search-bg) !important;
@@ -190,6 +225,10 @@
         font-weight: 300;
     }
 }
+
+/* =============================================================================
+   BANNER STYLES
+   ============================================================================= */
 
 .md-banner--warning {
     .md-banner__inner {
