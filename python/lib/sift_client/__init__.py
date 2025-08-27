@@ -202,8 +202,10 @@ recent_assets = client.assets.list_(
 
 
 """
+
 import logging
 import sys
+
 from sift_client.client import SiftClient
 from sift_client.transport import SiftConnectionConfig
 

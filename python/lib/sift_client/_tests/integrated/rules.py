@@ -11,7 +11,6 @@ from sift_client.types import (
     RuleUpdate,
 )
 
-
 """
 Comprehensive test script for rules with extensive update field exercises.
 
