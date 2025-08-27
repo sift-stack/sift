@@ -17,7 +17,7 @@ pip install sift-stack-py
 
 This documentation covers two Python APIs for interacting with Sift:
 
-### Sift Py API (Legacy)
+### Sift Py API
 
 The original low-level Python API that provides direct access to Sift's protocol buffer interfaces. 
 
@@ -49,13 +49,13 @@ Explore the [**Sift Client API (New)**][sift_client] section for the complete AP
 - **Modern Patterns** - Context managers, iterators, and Python best practices
 
 
-## Getting Help
+## Getting help
 
 - **API Reference** - Browse the complete API documentation in the navigation
 - **Examples** - Check out code examples throughout the documentation
 - **GitHub** - Visit our [repository](https://github.com/sift-stack/sift) for issues and contributions
 
-## What's Next?
+## What's next?
 
 Ready to dive deeper? Explore the API documentation to learn about:
 

@@ -155,10 +155,6 @@
     color: var(--font-foreground-color);
 }
 
-.autorefs-internal {
-    font-size: 12px !important;
-}
-
 .md-code__content {
     border-radius: 7px !important;
     border: var(--border-color) solid 1px;
@@ -195,52 +191,9 @@
     }
 }
 
-
-/*code:not(.md-code__content) {*/
-/*    color: var(--font-foreground-color) !important;*/
-/*    font-weight: 600;*/
-/*}*/
-
-/*!* Navigation *!*/
-/*.md-nav {*/
-/*    font-size: 0.9rem;*/
-/*}*/
-
-/*.md-nav__link--active {*/
-/*    color: var(--md-accent-fg-color) !important;*/
-/*    font-weight: 600;*/
-/*}*/
-
-/*.md-nav__item .md-nav__link:hover {*/
-/*    color: var(--md-accent-fg-color);*/
-/*}*/
-
-/*!* Code blocks *!*/
-/*.highlight pre {*/
-/*    border-radius: 6px;*/
-/*    padding: 1em;*/
-/*}*/
-
-/*!* Admonitions *!*/
-/*.md-typeset .admonition {*/
-/*    border-radius: 6px;*/
-/*    border-left: 4px solid var(--md-accent-fg-color);*/
-/*}*/
-
-/*!* Tables *!*/
-/*.md-typeset table:not([class]) {*/
-/*    border-radius: 6px;*/
-/*    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);*/
-/*}*/
-
-/*!* Cards *!*/
-/*.md-typeset .grid {*/
-/*    grid-gap: 1rem;*/
-/*}*/
-
-/*.md-typeset .grid > .card {*/
-/*    border-radius: 6px;*/
-/*    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);*/
-/*    background-color: var(--md-code-bg-color);*/
-/*    border: 1px solid rgba(255, 255, 255, 0.05);*/
-/*}*/
+.md-banner--warning {
+    .md-banner__inner {
+        font-size: 14px !important;
+        margin: 0;
+    }
+}

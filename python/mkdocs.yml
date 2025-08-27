@@ -107,6 +107,9 @@ plugins:
 
 markdown_extensions:
   - admonition
+  - toc:
+      permalink: true
+      title: On this page
   - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
