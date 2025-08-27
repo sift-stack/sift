@@ -27,6 +27,11 @@
     --tomato-a12: #4e0e01e6;
 
     --brand-color: var(--tomato-9);
+
+    --md-accent-fg-color: var(--brand-color);
+    --md-accent-fg-color--transparent: rgb(from var(--brand-color) r g b / 0.1);
+    --md-accent-bg-color: hsla(0, 0%, 100%, 1);
+    --md-accent-bg-color--light: hsla(0, 0%, 100%, 0.7);
 }
 
 #logo_light_mode {
@@ -39,35 +44,62 @@
 
 /* Dark theme - define fd variables and map to md variables */
 [data-md-color-scheme="slate"] {
+    /*--md-primary-fg-color: hsla(#{hex2hsl($clr-indigo-500)}, 1);*/
+    /*--md-primary-fg-color--light: hsla(#{hex2hsl($clr-indigo-400)}, 1);*/
+    /*--md-primary-fg-color--dark: hsla(#{hex2hsl($clr-indigo-700)}, 1);*/
+    /*--md-primary-bg-color: hsla(0, 0%, 100%, 1);*/
+    --md-primary-bg-color--light: hsla(0, 0%, 100%, 0.7);
+
+    /* Logo */
+    --md-footer-logo-dark-mode: block;
+    --md-footer-logo-light-mode: none;
+
     /* Define your color variables */
     /* Map to MkDocs Material variables */
+    --header-bg-color: hsl(0 0% 8.04%/.8);
+    --bold-header-color: white;
     --md-default-bg-color: rgb(0, 0, 0);
     --md-typeset-a-color: var(--brand-color) !important;
     --font-foreground-color: rgb(255, 255, 255);
+
     --border-color: rgb(36, 36, 36);
     --code-box-background-color: rgb(18, 18, 18);
     --md-primary-bg-color: var(--font-foreground-color);
-    --header-bg-color: hsl(0 0% 8.04%/.8);
-    --md-footer-logo-dark-mode: block;
-    --md-footer-logo-light-mode: none;
+
+    --search-bg: rgba(237, 237, 237, 0);
+
 
 }
 
 /* Light theme - define fd variables and map to md variables */
 [data-md-color-scheme="default"] {
+    /* Logo */
+    --md-footer-logo-dark-mode: none;
+    --md-footer-logo-light-mode: block;
+
+    /* Define your color variables */
+    /* Map to MkDocs Material variables */
+    --header-bg-color: hsl(0 0% 96%/.8);
+    --bold-header-color: black;
     --md-default-bg-color: rgb(255, 255, 255);
     --md-typeset-a-color: var(--brand-color) !important;
     --font-foreground-color: rgb(10, 10, 10);
+
     --border-color: rgb(229, 229, 229);
     --code-box-background-color: rgba(237, 237, 237, 0.5);
     --md-primary-bg-color: var(--font-foreground-color);
-    --header-bg-color: hsl(0 0% 96%/.8);
-    --md-footer-logo-dark-mode: none;
-    --md-footer-logo-light-mode: block;
+
+    --search-bg: rgba(237, 237, 237, 0);
+
+
 }
 
 .md-header__title {
     margin-left: 2px !important;
+}
+
+.md-header__topic {
+    color: var(--bold-header-color) !important;
 }
 
 .md-header, .md-tabs {
@@ -97,8 +129,16 @@
     }
 }
 
+.md-main__inner {
+    margin-top: 0 !important;
+}
+
 .md-nav__title {
     color: var(--font-foreground-color);
+    background-color: var(--md-default-bg-color) !important;
+}
+
+.md-nav__source {
     background-color: var(--md-default-bg-color) !important;
 }
 
@@ -132,6 +172,7 @@
 
 .md-sidebar--primary {
     border-right: var(--border-color) solid 1px;
+    height: 100%;
 }
 
 .md-header__button.md-logo {
@@ -143,8 +184,15 @@
     padding: 0 !important;
 }
 
-.md-search__input {
+.md-search__input, .md-search__suggest, .md-search__form {
+    background-color: var(--search-bg) !important;
+    border-radius: 0.5rem !important;
+    border: var(--border-color) solid 1px;
 
+    ::placeholder {
+        color: var(--font-foreground-color) !important;
+        font-weight: 300;
+    }
 }
 
 

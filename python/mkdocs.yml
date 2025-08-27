@@ -1,4 +1,4 @@
-site_name: Sift Python Client Library
+site_name: Sift | Python Client Library
 site_url: https://sift-stack.github.io/sift/python/
 repo_url: https://github.com/sift-stack/sift/tree/main/python
 copyright: "Copyright 2025 Sift Stack, Inc."
@@ -6,29 +6,42 @@ theme:
   name: material
   custom_dir: docs/overrides
   palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
     # Palette toggle for light mode
-    - scheme: default
-      primary: grey
-      accent: deep orange
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     # Palette toggle for dark mode
-    - scheme: slate
-      primary: black
-      accent: deep orange
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
-        name: Switch to light mode
+        name: Switch to system preference
   logo_light_mode: sift_logo_dark.svg
   logo_dark_mode: sift_logo_light.svg
+  theme:
+    favicon: sift_logo_light.svg
   font:
     text: IBM Plex Sans
     code: IBM Plex Mono
   features:
+    - navigation.instant
     - navigation.tabs
     - navigation.sections
+    - navigation.tracking
+    - navigation.prune
     - toc.follow
+    #    - toc.integrate
     - navigation.top
     - search.suggest
     - content.code.copy
