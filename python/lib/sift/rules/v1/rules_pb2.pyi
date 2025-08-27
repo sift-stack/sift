@@ -1334,19 +1334,25 @@ class RuleConditionExpression(google.protobuf.message.Message):
 
     SINGLE_CHANNEL_COMPARISON_FIELD_NUMBER: builtins.int
     CALCULATED_CHANNEL_FIELD_NUMBER: builtins.int
+    PYTHON_CODE_FIELD_NUMBER: builtins.int
     @property
     def single_channel_comparison(self) -> global___SingleChannelComparisonExpression: ...
     @property
     def calculated_channel(self) -> global___CalculatedChannelConfig: ...
+    @property
+    def python_code(self) -> global___PythonCode:
+        """Experimental - not currently enabled"""
+
     def __init__(
         self,
         *,
         single_channel_comparison: global___SingleChannelComparisonExpression | None = ...,
         calculated_channel: global___CalculatedChannelConfig | None = ...,
+        python_code: global___PythonCode | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "expression", b"expression", "single_channel_comparison", b"single_channel_comparison"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "expression", b"expression", "single_channel_comparison", b"single_channel_comparison"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["expression", b"expression"]) -> typing.Literal["single_channel_comparison", "calculated_channel"] | None: ...
+    def HasField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "expression", b"expression", "python_code", b"python_code", "single_channel_comparison", b"single_channel_comparison"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "expression", b"expression", "python_code", b"python_code", "single_channel_comparison", b"single_channel_comparison"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["expression", b"expression"]) -> typing.Literal["single_channel_comparison", "calculated_channel", "python_code"] | None: ...
 
 global___RuleConditionExpression = RuleConditionExpression
 
@@ -1457,6 +1463,46 @@ class ChannelReference(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["component", b"component", "name", b"name"]) -> None: ...
 
 global___ChannelReference = ChannelReference
+
+@typing.final
+class PythonChannelReference(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REFERENCE_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    reference: builtins.str
+    name: builtins.str
+    def __init__(
+        self,
+        *,
+        reference: builtins.str = ...,
+        name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["name", b"name", "reference", b"reference"]) -> None: ...
+
+global___PythonChannelReference = PythonChannelReference
+
+@typing.final
+class PythonCode(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
+    CODE_FIELD_NUMBER: builtins.int
+    DEPENDENCIES_FIELD_NUMBER: builtins.int
+    code: builtins.str
+    dependencies: builtins.str
+    @property
+    def channel_references(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___PythonChannelReference]: ...
+    def __init__(
+        self,
+        *,
+        channel_references: collections.abc.Iterable[global___PythonChannelReference] | None = ...,
+        code: builtins.str = ...,
+        dependencies: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channel_references", b"channel_references", "code", b"code", "dependencies", b"dependencies"]) -> None: ...
+
+global___PythonCode = PythonCode
 
 @typing.final
 class RuleActionConfiguration(google.protobuf.message.Message):

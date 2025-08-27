@@ -19,6 +19,7 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )
 
+from sift_py.error import raise_if_too_large
 from sift_py.grpc.transport import SiftChannel
 from sift_py.ingestion.flow import FlowConfig
 
@@ -54,6 +55,7 @@ def create_ingestion_config(
 ) -> IngestionConfig:
     """
     Creates a new ingestion config
+    Will raise `ProtobufMaxSizeExceeded` if message size is too large to send
     """
 
     svc = IngestionConfigServiceStub(channel)
@@ -63,6 +65,9 @@ def create_ingestion_config(
         organization_id=organization_id or "",
         flows=[flow.as_pb(FlowConfigPb) for flow in flows],
     )
+
+    raise_if_too_large(req)
+
     res = cast(CreateIngestionConfigResponse, svc.CreateIngestionConfig(req))
     return res.ingestion_config
 
@@ -128,10 +133,14 @@ def create_flow_configs(
 ):
     """
     Adds flow configs to an existing ingestion config.
+    Will raise `ProtobufMaxSizeExceeded` if message size is too large to send
     """
     svc = IngestionConfigServiceStub(channel)
     req = CreateIngestionConfigFlowsRequest(
         ingestion_config_id=ingestion_config_id,
         flows=[f.as_pb(FlowConfigPb) for f in flow_configs],
     )
+
+    raise_if_too_large(req)
+
     _ = cast(CreateIngestionConfigFlowsResponse, svc.CreateIngestionConfigFlows(req))

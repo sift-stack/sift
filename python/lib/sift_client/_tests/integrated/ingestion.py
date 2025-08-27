@@ -6,25 +6,20 @@ import time
 from datetime import datetime, timedelta
 
 from sift_client.client import SiftClient
-from sift_client.transport import SiftConnectionConfig
 from sift_client.types.channel import (
     Channel,
     ChannelBitFieldElement,
     ChannelDataType,
 )
 from sift_client.types.ingestion import Flow
-
+from sift_client._tests import setup_logger
+setup_logger()
 
 async def main():
-    client = SiftClient(
-        connection_config=SiftConnectionConfig(
-            grpc_url=os.getenv("SIFT_GRPC_URI", "localhost:50051"),
-            api_key=os.getenv("SIFT_API_KEY", ""),
-            rest_url=os.getenv("SIFT_REST_URI", "localhost:8080"),
-            use_ssl=False,
-            cert_via_openssl=False,
-        )
-    )
+    grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
+    api_key = os.getenv("SIFT_API_KEY", "")
+    rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
+    client = SiftClient(grpc_url=grpc_url, api_key=api_key, rest_url=rest_url)
 
     asset = "ian-test-asset"
 
@@ -192,7 +187,8 @@ async def main():
             "test-bit-field-channel": bytes([0b11111111]),
         },
     )
-    client.async_.ingestion.wait_for_ingestion_to_complete(timeout=1.5)
+    # Wait less time than threads nominal no_data_timeout so we can exercise forced cleanup.
+    client.async_.ingestion.wait_for_ingestion_to_complete(timeout=0.01)
     client.runs.archive(run=run.id_)
 
     num_datapoints = fake_hs_rate * len(

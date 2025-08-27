@@ -87,4 +87,89 @@ jobs:
             echo "Uploading archive: $archive"
             gh release upload "$TAG_NAME" "$archive" --clobber
           done
+
+  deploy-docs:
+    name: Deploy Documentation
+    needs: publish-to-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd python
+          pip install -e .[docs,development]
+
+      - name: Extract version and check if stable
+        id: version
+        run: |
+          # Extract version from tag (everything after 'python/')
+          FULL_VERSION=${GITHUB_REF#refs/tags/python/}
+          echo "Full version from tag: $FULL_VERSION"
           
+          # Extract major.minor from version (drop patch)
+          if [[ "$FULL_VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.[0-9]+(.*)?$ ]]; then
+            MAJOR=${BASH_REMATCH[1]}
+            MINOR=${BASH_REMATCH[2]}
+            SUFFIX=${BASH_REMATCH[3]}
+            VERSION="v${MAJOR}.${MINOR}"
+            
+            # Check if this is a stable release (no suffix like -alpha, -beta, -rc)
+            if [[ -z "$SUFFIX" ]]; then
+              # Stable release - use 'latest' alias and make visible
+              ALIAS="latest"
+              HIDDEN="false"
+              echo "Stable release detected: $FULL_VERSION -> $VERSION"
+            else
+              # Pre-release (alpha, beta, rc) - no 'latest' alias and hide from dropdown
+              VERSION="${VERSION}${SUFFIX}"
+              ALIAS=""
+              HIDDEN="true"
+              echo "Pre-release detected: $FULL_VERSION -> $VERSION"
+            fi
+          else
+            echo "Error: Could not parse version format: $FULL_VERSION"
+            exit 1
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "alias=$ALIAS" >> $GITHUB_OUTPUT
+          echo "hidden=$HIDDEN" >> $GITHUB_OUTPUT
+          echo "Final - Version: $VERSION, Alias: $ALIAS, Hidden: $HIDDEN"
+
+      - name: Fetch gh-pages branch
+        run: git fetch origin gh-pages --depth=1
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy docs with mike
+        run: |
+          cd python
+          VERSION="${{ steps.version.outputs.version }}"
+          ALIAS="${{ steps.version.outputs.alias }}"
+          HIDDEN="${{ steps.version.outputs.hidden }}"
+          
+          # Always deploy the full version first, but hide it
+          echo "Deploying full version $FULL_VERSION (hidden)"
+          mike deploy "$FULL_VERSION" --push --prop-set hidden=true
+          
+          if [[ "$HIDDEN" == "false" ]]; then
+            # Stable release: deploy abbreviated version with latest alias, visible in dropdown
+            echo "Deploying stable release $VERSION with $ALIAS alias"
+            mike deploy "$VERSION" "$ALIAS" --push --update-aliases
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

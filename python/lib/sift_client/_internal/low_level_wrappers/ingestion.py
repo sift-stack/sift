@@ -43,7 +43,6 @@ from sift_client.util.timestamp import to_rust_py_timestamp
 
 logger = logging.getLogger(__name__)
 
-
 class IngestionThread(threading.Thread):
     """
     Manages ingestion for a single ingestion config.

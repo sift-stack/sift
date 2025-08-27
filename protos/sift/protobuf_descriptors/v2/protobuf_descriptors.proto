@@ -95,6 +95,7 @@ message IncompatibleProtobufField {
   string field_number = 5;
   string reason = 6;
   string details = 7;
+  string field_kind = 8;
 } 
 
 message CheckProtobufDescriptorCompatibilityResponse {

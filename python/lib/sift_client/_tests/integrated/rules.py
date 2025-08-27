@@ -1,4 +1,3 @@
-import logging
 import os
 from datetime import datetime
 
@@ -12,8 +11,6 @@ from sift_client.types import (
     RuleUpdate,
 )
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 """
 Comprehensive test script for rules with extensive update field exercises.
