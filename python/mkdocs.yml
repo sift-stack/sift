@@ -1,0 +1,123 @@
+site_name: Sift | Python Client Library
+site_url: https://sift-stack.github.io/sift/python/
+repo_url: https://github.com/sift-stack/sift/tree/main/python
+copyright: "Copyright 2025 Sift Stack, Inc."
+theme:
+  name: material
+  custom_dir: docs/overrides
+  favicon: stylesheets/sift-favicon.ico
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  logo_light_mode: stylesheets/sift_logo_dark.svg
+  logo_dark_mode: stylesheets/sift_logo_light.svg
+  font:
+    text: IBM Plex Sans
+    code: IBM Plex Mono
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.tracking
+    - navigation.prune
+    - toc.follow
+    #    - toc.integrate
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+
+extra:
+  version:
+    provider: mike
+    alias: true
+
+nav:
+  - Home: index.md
+
+plugins:
+  - search
+  - autorefs
+  - mike: # For docs versioning
+      deploy_prefix: 'python' # In case we want to use doc sites for other client libs too
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          import:
+            - https://docs.python.org/3/objects.inv
+          options:
+            show_docstring_examples: false
+            load_external_modules: true
+            show_source: false
+            find_stubs_package: true
+            show_if_no_docstring: true
+            filters: "public"
+            show_submodules: false
+            # Styling
+            group_by_category: true
+            docstring_section_style: spacy
+            docstring_style: "google"
+            heading_level: 1
+            merge_init_into_class: true
+            separate_signature: true
+            show_root_heading: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            summary: true
+            # Custom Griffe extension to inspect the sync stubs and generate their signatures
+            extensions:
+              - griffe_extensions/sync_stubs_inspector.py:InspectSpecificObjects:
+                  paths:
+                    - sift_client.resources.sync_stubs
+
+  - api-autonav:
+      nav_section_title: Sift Py API
+      modules: [ lib/sift_py ]
+      exclude_private: true
+      nav_item_prefix: ""
+
+  - api-autonav:
+      nav_section_title: Sift Client API (New)
+      modules: [ lib/sift_client ]
+      exclude_private: true
+      nav_item_prefix: ""
+
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+      title: On this page
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+
+extra_css:
+  - stylesheets/extra.css
