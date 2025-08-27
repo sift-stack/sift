@@ -17,7 +17,7 @@
         <link rel="next" href="client/">
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../stylesheets/sift-favicon.ico">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.18">
     
     
@@ -111,8 +111,8 @@ You're not viewing the latest version.
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="Sift | Python Client Library" class="md-header__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
-      <img id='logo_dark_mode' src='../../sift_logo_light.svg' alt='logo'>
-<img id='logo_light_mode' src='../../sift_logo_dark.svg' alt='logo'>
+      <img id='logo_dark_mode' src='../../stylesheets/sift_logo_light.svg' alt='logo'>
+<img id='logo_light_mode' src='../../stylesheets/sift_logo_dark.svg' alt='logo'>
     </a>
     <label class="md-header__button md-icon" for="__drawer">
       
@@ -351,8 +351,8 @@ You're not viewing the latest version.
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Sift | Python Client Library" class="md-nav__button md-logo" aria-label="Sift | Python Client Library" data-md-component="logo">
-      <img id='logo_dark_mode' src='../../sift_logo_light.svg' alt='logo'>
-<img id='logo_light_mode' src='../../sift_logo_dark.svg' alt='logo'>
+      <img id='logo_dark_mode' src='../../stylesheets/sift_logo_light.svg' alt='logo'>
+<img id='logo_light_mode' src='../../stylesheets/sift_logo_dark.svg' alt='logo'>
     </a>
     Sift | Python Client Library
   </label>
@@ -590,7 +590,9 @@ You're not viewing the latest version.
       
         
 
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -599,7 +601,7 @@ You're not viewing the latest version.
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      Table of contents
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
@@ -1203,7 +1205,9 @@ You're not viewing the latest version.
                   <div class="md-sidebar__inner">
                     
 
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
   
   
   
@@ -1212,7 +1216,7 @@ You're not viewing the latest version.
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
-      Table of contents
+      On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
@@ -1561,7 +1565,7 @@ You're not viewing the latest version.
 <code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">sift_client</span>
 
 
-</h1>
+<a href="#sift_client" class="headerlink" title="Permanent link">&para;</a></h1>
 
     <div class="doc doc-contents first">
 
@@ -1569,14 +1573,14 @@ You're not viewing the latest version.
 <p class="admonition-title">Warning</p>
 <p>The Sift Client is experimental and is subject to change.</p>
 </div>
-<h2 id="sift_client--sift-client-library">Sift Client Library</h2>
+<h2 id="sift_client--sift-client-library">Sift Client Library<a class="headerlink" href="#sift_client--sift-client-library" title="Permanent link">&para;</a></h2>
 <p>This library provides a high-level Python client for interacting with Sift APIs. It offers both synchronous and
 asynchronous interfaces, strong type checking, and a Pythonic API design.</p>
-<h3 id="sift_client--installation">Installation</h3>
+<h3 id="sift_client--installation">Installation<a class="headerlink" href="#sift_client--installation" title="Permanent link">&para;</a></h3>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>sift-stack-py
 </span></code></pre></div>
-<h3 id="sift_client--getting-started">Getting Started</h3>
-<h4 id="sift_client--initializing-the-client">Initializing the Client</h4>
+<h3 id="sift_client--getting-started">Getting Started<a class="headerlink" href="#sift_client--getting-started" title="Permanent link">&para;</a></h3>
+<h4 id="sift_client--initializing-the-client">Initializing the Client<a class="headerlink" href="#sift_client--initializing-the-client" title="Permanent link">&para;</a></h4>
 <p>You can initialize the Sift client with your API key and service URLs:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiftClient</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
@@ -1599,10 +1603,10 @@ asynchronous interfaces, strong type checking, and a Pythonic API design.</p>
 </span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="n">client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">connection_config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 </span></code></pre></div>
 <p>The <code>SiftConnectionConfig</code> provides access to additional configuration options such as <code>use_ssl</code> and <code>cert_via_openssl</code>.</p>
-<h4 id="sift_client--using-synchronous-and-asynchronous-apis">Using Synchronous and Asynchronous APIs</h4>
+<h4 id="sift_client--using-synchronous-and-asynchronous-apis">Using Synchronous and Asynchronous APIs<a class="headerlink" href="#sift_client--using-synchronous-and-asynchronous-apis" title="Permanent link">&para;</a></h4>
 <p>The Sift client provides both synchronous and asynchronous versions of all APIs. You can choose the one that best fits
 your application's needs.</p>
-<h5 id="sift_client--synchronous-api">Synchronous API</h5>
+<h5 id="sift_client--synchronous-api">Synchronous API<a class="headerlink" href="#sift_client--synchronous-api" title="Permanent link">&para;</a></h5>
 <p>The synchronous API is perfect for scripts, notebooks, and applications that don't need asynchronous operation:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Get an asset by ID</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">asset_id</span><span class="o">=</span><span class="s2">&quot;asset123&quot;</span><span class="p">)</span>
@@ -1617,7 +1621,7 @@ your application's needs.</p>
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># Find a single asset matching criteria</span>
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-asset&quot;</span><span class="p">)</span>
 </span></code></pre></div>
-<h5 id="sift_client--asynchronous-api">Asynchronous API</h5>
+<h5 id="sift_client--asynchronous-api">Asynchronous API<a class="headerlink" href="#sift_client--asynchronous-api" title="Permanent link">&para;</a></h5>
 <p>The asynchronous API is ideal for high-performance applications and services that need to make concurrent API calls:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
@@ -1635,10 +1639,10 @@ your application's needs.</p>
 </span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># Run in an async context</span>
 </span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">get_asset_async</span><span class="p">())</span>
 </span></code></pre></div>
-<h4 id="sift_client--working-with-sift-types">Working with Sift Types</h4>
+<h4 id="sift_client--working-with-sift-types">Working with Sift Types<a class="headerlink" href="#sift_client--working-with-sift-types" title="Permanent link">&para;</a></h4>
 <p>Sift types (like <code>Asset</code>, <code>Run</code>, etc.) are immutable Pydantic models that provide a convenient interface for working
 with Sift resources.</p>
-<h5 id="sift_client--accessing-properties">Accessing Properties</h5>
+<h5 id="sift_client--accessing-properties">Accessing Properties<a class="headerlink" href="#sift_client--accessing-properties" title="Permanent link">&para;</a></h5>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Get an asset</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">asset_id</span><span class="o">=</span><span class="s2">&quot;asset123&quot;</span><span class="p">)</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
@@ -1648,7 +1652,7 @@ with Sift resources.</p>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tags: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">asset</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Is archived: </span><span class="si">{</span><span class="n">asset</span><span class="o">.</span><span class="n">is_archived</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
-<h5 id="sift_client--using-methods-on-sift-types">Using Methods on Sift Types</h5>
+<h5 id="sift_client--using-methods-on-sift-types">Using Methods on Sift Types<a class="headerlink" href="#sift_client--using-methods-on-sift-types" title="Permanent link">&para;</a></h5>
 <p>Sift types have convenient methods for common operations. These methods use the synchronous API internally.
 <strong>Using these methods will update the instance in-place.</strong></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Get an asset</span>
@@ -1666,7 +1670,7 @@ with Sift resources.</p>
 <p><strong>Note:</strong> Type methods only work with the synchronous API. If you need to use the asynchronous API, you should use the
 resource APIs directly.</p>
 </blockquote>
-<h5 id="sift_client--creating-update-models">Creating Update Models</h5>
+<h5 id="sift_client--creating-update-models">Creating Update Models<a class="headerlink" href="#sift_client--creating-update-models" title="Permanent link">&para;</a></h5>
 <p>For more complex updates, you can create update models (instead of a key-value dictionary):</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.types.asset</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssetUpdate</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
@@ -1679,8 +1683,8 @@ resource APIs directly.</p>
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Or using the asset method</span>
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">asset</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">asset_id</span><span class="o">=</span><span class="s2">&quot;asset123&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">update</span><span class="p">)</span>
 </span></code></pre></div>
-<h3 id="sift_client--advanced-usage">Advanced Usage</h3>
-<h4 id="sift_client--working-with-tags">Working with Tags</h4>
+<h3 id="sift_client--advanced-usage">Advanced Usage<a class="headerlink" href="#sift_client--advanced-usage" title="Permanent link">&para;</a></h3>
+<h4 id="sift_client--working-with-tags">Working with Tags<a class="headerlink" href="#sift_client--working-with-tags" title="Permanent link">&para;</a></h4>
 <p>Tags are a powerful way to organize and filter your assets:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Add tags when updating an asset</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">asset</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
@@ -1692,7 +1696,7 @@ resource APIs directly.</p>
 </span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;production&quot;</span><span class="p">]</span>
 </span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">)</span>
 </span></code></pre></div>
-<h4 id="sift_client--filtering-assets">Filtering Assets</h4>
+<h4 id="sift_client--filtering-assets">Filtering Assets<a class="headerlink" href="#sift_client--filtering-assets" title="Permanent link">&para;</a></h4>
 <p>The client provides various ways to filter different Sift types:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Filter by name (exact match)</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">assets</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">assets</span><span class="o">.</span><span class="n">list_</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-model&quot;</span><span class="p">)</span>
@@ -1846,7 +1850,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
   </span>
 
-</h2>
+<a href="#sift_client.__all__" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SiftClient&#39;</span><span class="p">,</span> <span class="s1">&#39;SiftConnectionConfig&#39;</span><span class="p">]</span>
 </span></code></pre></div>
 
@@ -1866,7 +1870,7 @@ resource APIs directly.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SiftClient</span>
 
 
-</h2>
+<a href="#sift_client.SiftClient" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">SiftClient</span><span class="p">(</span><span class="n">api_key</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">grpc_url</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rest_url</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">connection_config</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftConnectionConfig (sift_client.transport.SiftConnectionConfig)" href="transport/#sift_client.transport.SiftConnectionConfig">SiftConnectionConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </span></code></pre></div>
 
@@ -2156,7 +2160,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftClient.assets" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">assets</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AssetsAPI (sift_client.resources.AssetsAPI)" href="resources/#sift_client.resources.AssetsAPI">AssetsAPI</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            AssetsAPI (sift_client.resources.AssetsAPI)" href="resources/#sift_client.resources.AssetsAPI">AssetsAPI</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">)</span>
 </span></code></pre></div>
 
@@ -2180,7 +2184,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftClient.async_" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">async_</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            AsyncAPIs (sift_client.util.util.AsyncAPIs)" href="util/util/#sift_client.util.util.AsyncAPIs">AsyncAPIs</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            AsyncAPIs (sift_client.util.util.AsyncAPIs)" href="util/util/#sift_client.util.util.AsyncAPIs">AsyncAPIs</a></span><span class="p">(</span><span class="n"><span title="sift_client.util.util.AsyncAPIs(ping)">ping</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            PingAPIAsync (sift_client.resources.PingAPIAsync)" href="resources/#sift_client.resources.PingAPIAsync">PingAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span> <span class="n"><span title="sift_client.util.util.AsyncAPIs(assets)">assets</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            AssetsAPIAsync (sift_client.resources.AssetsAPIAsync)" href="resources/#sift_client.resources.AssetsAPIAsync">AssetsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span> <span class="n"><span title="sift_client.util.util.AsyncAPIs(calculated_channels)">calculated_channels</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            CalculatedChannelsAPIAsync (sift_client.resources.CalculatedChannelsAPIAsync)" href="resources/#sift_client.resources.CalculatedChannelsAPIAsync">CalculatedChannelsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">),</span> <span class="n"><span title="sift_client.util.util.AsyncAPIs(runs)">runs</span></span><span class="o">=</span><span class="n"><a class="autorefs autorefs-internal" title="            RunsAPIAsync (sift_client.resources.RunsAPIAsync)" href="resources/#sift_client.resources.RunsAPIAsync">RunsAPIAsync</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">))</span>
 </span></code></pre></div>
 
@@ -2204,7 +2208,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftClient.calculated_channels" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">calculated_channels</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            CalculatedChannelsAPI (sift_client.resources.CalculatedChannelsAPI)" href="resources/#sift_client.resources.CalculatedChannelsAPI">CalculatedChannelsAPI</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            CalculatedChannelsAPI (sift_client.resources.CalculatedChannelsAPI)" href="resources/#sift_client.resources.CalculatedChannelsAPI">CalculatedChannelsAPI</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">)</span>
 </span></code></pre></div>
 
@@ -2228,7 +2232,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftClient.grpc_client" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">grpc_client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            GrpcClient (sift_client.transport.GrpcClient)" href="transport/#sift_client.transport.GrpcClient">GrpcClient</a></span>
 </span></code></pre></div>
 
@@ -2252,7 +2256,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftClient.ping" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ping</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            PingAPI (sift_client.resources.PingAPI)" href="resources/#sift_client.resources.PingAPI">PingAPI</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            PingAPI (sift_client.resources.PingAPI)" href="resources/#sift_client.resources.PingAPI">PingAPI</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">)</span>
 </span></code></pre></div>
 
@@ -2276,7 +2280,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftClient.rest_client" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">rest_client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RestClient (sift_client.transport.RestClient)" href="transport/#sift_client.transport.RestClient">RestClient</a></span>
 </span></code></pre></div>
 
@@ -2300,7 +2304,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftClient.runs" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">runs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RunsAPI (sift_client.resources.RunsAPI)" href="resources/#sift_client.resources.RunsAPI">RunsAPI</a></span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-internal" title="            RunsAPI (sift_client.resources.RunsAPI)" href="resources/#sift_client.resources.RunsAPI">RunsAPI</a></span><span class="p">(</span><span class="n"><span title="sift_client.client.SiftClient(self)">self</span></span><span class="p">)</span>
 </span></code></pre></div>
 
@@ -2331,7 +2335,7 @@ resource APIs directly.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SiftConnectionConfig</span>
 
 
-</h2>
+<a href="#sift_client.SiftConnectionConfig" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">SiftConnectionConfig</span><span class="p">(</span><span class="n">grpc_url</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n">rest_url</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n">use_ssl</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">cert_via_openssl</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
 </span></code></pre></div>
 
@@ -2490,7 +2494,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftConnectionConfig.api_key" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">api_key</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.base_connection.SiftConnectionConfig(api_key)">api_key</span></span>
 </span></code></pre></div>
 
@@ -2512,7 +2516,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftConnectionConfig.cert_via_openssl" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">cert_via_openssl</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.base_connection.SiftConnectionConfig(cert_via_openssl)">cert_via_openssl</span></span>
 </span></code></pre></div>
 
@@ -2534,7 +2538,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftConnectionConfig.grpc_url" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">grpc_url</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.base_connection.SiftConnectionConfig(grpc_url)">grpc_url</span></span>
 </span></code></pre></div>
 
@@ -2556,7 +2560,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftConnectionConfig.rest_url" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">rest_url</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.base_connection.SiftConnectionConfig(rest_url)">rest_url</span></span>
 </span></code></pre></div>
 
@@ -2578,7 +2582,7 @@ resource APIs directly.</p>
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
   </span>
 
-</h3>
+<a href="#sift_client.SiftConnectionConfig.use_ssl" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">use_ssl</span> <span class="o">=</span> <span class="n"><span title="sift_client.transport.base_connection.SiftConnectionConfig(use_ssl)">use_ssl</span></span>
 </span></code></pre></div>
 
@@ -2598,7 +2602,7 @@ resource APIs directly.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_grpc_config</span>
 
 
-</h3>
+<a href="#sift_client.SiftConnectionConfig.get_grpc_config" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_grpc_config</span><span class="p">()</span>
 </span></code></pre></div>
 
@@ -2616,7 +2620,7 @@ resource APIs directly.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_rest_config</span>
 
 
-</h3>
+<a href="#sift_client.SiftConnectionConfig.get_rest_config" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_rest_config</span><span class="p">()</span>
 </span></code></pre></div>
 
