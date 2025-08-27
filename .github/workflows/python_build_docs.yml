@@ -26,7 +26,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for mike
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -56,6 +56,9 @@ jobs:
           echo "alias=$ALIAS" >> $GITHUB_OUTPUT
           echo "Dev deployment - Version: $VERSION, Alias: $ALIAS"
 
+      - name: Fetch gh-pages branch
+        run: git fetch origin gh-pages --depth=1
+
       - name: Configure Git
         run: |
           git config --global user.name "github-actions[bot]"
@@ -78,7 +81,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for mike
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -89,6 +92,9 @@ jobs:
         run: |
           cd python
           pip install -e .[docs]
+          
+      - name: Fetch gh-pages branch
+        run: git fetch origin gh-pages --depth=1
 
       - name: Configure Git
         run: |

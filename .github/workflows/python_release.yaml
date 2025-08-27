@@ -98,7 +98,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for mike
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -146,6 +146,9 @@ jobs:
           echo "alias=$ALIAS" >> $GITHUB_OUTPUT
           echo "hidden=$HIDDEN" >> $GITHUB_OUTPUT
           echo "Final - Version: $VERSION, Alias: $ALIAS, Hidden: $HIDDEN"
+
+      - name: Fetch gh-pages branch
+        run: git fetch origin gh-pages --depth=1
 
       - name: Configure Git
         run: |
