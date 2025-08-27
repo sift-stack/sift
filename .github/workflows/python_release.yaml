@@ -108,7 +108,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd python
-          pip install -e .[docs]
+          pip install -e .[docs,development]
 
       - name: Extract version and check if stable
         id: version
