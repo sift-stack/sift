@@ -230,9 +230,6 @@
    BANNER STYLES
    ============================================================================= */
 
-.md-banner--warning {
-    .md-banner__inner {
-        font-size: 14px !important;
-        margin: 0;
-    }
+.md-banner__inner {
+    margin: 0;
 }
