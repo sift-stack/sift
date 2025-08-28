@@ -1,13 +1,5 @@
 [
   {
-    "version": "pr-275",
-    "title": "pr-275",
-    "aliases": [],
-    "properties": {
-      "hidden": true
-    }
-  },
-  {
     "version": "v0.8",
     "title": "v0.8",
     "aliases": [
