@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Type
+from typing import TYPE_CHECKING, Any, ClassVar, Type
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannel as CalculatedChannelProto,
@@ -133,7 +133,7 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
     tag_ids: list[str] | None = None
     archived_date: datetime | None = None
 
-    _to_proto_helpers = {
+    _to_proto_helpers: ClassVar = {
         "expression": MappingHelper(
             proto_attr_path="calculated_channel_configuration.query_configuration.sel.expression",
             update_field="query_configuration",

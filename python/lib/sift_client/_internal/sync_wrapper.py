@@ -137,7 +137,7 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
         namespace[name] = _wrap_sync(name)
 
     # Create the sync class
-    sync_class = type(sync_name, (object,), namespace)  # noqa
+    sync_class = type(sync_name, (object,), namespace)
 
     # Register the class in the module's globals
     # This helps static analysis tools recognize it as a proper class

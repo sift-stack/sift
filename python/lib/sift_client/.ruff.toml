@@ -16,7 +16,7 @@ select = [
     #    "UP", # pyupgrade - keep our syntax up to date
     #    "D", # pydocstyle
 
-    #    "RUF", # ruff specific
+    "RUF", # ruff specific
     #    "TRY", # tryceratops - exception handling antipatterns
     #    "TC", # flake8-type-checking
     #    "PT", # flake8-pytest-style

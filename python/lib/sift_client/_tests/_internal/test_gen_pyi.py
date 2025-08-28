@@ -18,7 +18,7 @@ def generated():
 
     generated = generate_stubs_for_module(pathlib.Path(__file__).parent / "test_stub_module")
     assert len(generated) == 1, "test_ file should be excluded"
-    return list(generated.values())[0]
+    return next(iter(generated.values()))
 
 
 def test_extract_imports(generated):

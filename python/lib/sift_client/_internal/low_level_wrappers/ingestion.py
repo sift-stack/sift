@@ -158,7 +158,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     CacheEntry = namedtuple("CacheEntry", ["data_queue", "ingestion_config", "thread"])
 
     sift_stream_builder: sift_stream_bindings.SiftStreamBuilderPy
-    stream_cache: Dict[str, "CacheEntry"] = {}
+    stream_cache: Dict[str, "CacheEntry"]
 
     def __init__(self, grpc_client: GrpcClient):
         """
@@ -183,6 +183,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 sift_stream_bindings.RetryPolicyPy.default()
             )
         )
+        self.stream_cache = {}
 
         atexit.register(self.cleanup, timeout=0.1)
 

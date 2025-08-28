@@ -177,7 +177,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     description: str | None = None
     unit: str | None = None
     bit_field_elements: List[ChannelBitFieldElement] | None = None
-    enum_types: Dict[str, int] = {}
+    enum_types: Dict[str, int] | None = None
     asset_id: str | None = None
     created_date: datetime | None = None
     modified_date: datetime | None = None
@@ -185,8 +185,9 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     modified_by_user_id: str | None = None
 
     @staticmethod
-    def _enum_types_to_proto_list(enum_types: Dict[str, int]) -> List[ChannelEnumTypePb]:
+    def _enum_types_to_proto_list(enum_types: Dict[str, int] | None) -> List[ChannelEnumTypePb]:
         """Convert a dictionary of enum types to a list of ChannelEnumTypePb objects."""
+        enum_types = {} if enum_types is None else enum_types
         return [ChannelEnumTypePb(name=name, key=key) for name, key in enum_types.items()]
 
     @staticmethod

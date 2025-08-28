@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, List, Type
+from typing import TYPE_CHECKING, ClassVar, List, Type
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
@@ -109,7 +109,7 @@ class AssetUpdate(ModelUpdate[AssetProto]):
     archived_date: datetime | str | None = None
     metadata: dict[str, str | float | bool] | None = None
 
-    _to_proto_helpers = {
+    _to_proto_helpers: ClassVar = {
         "metadata": MappingHelper(
             proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
         ),

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, Optional, Type, TypeVar
 
 from google.protobuf import field_mask_pb2, message
 from pydantic import BaseModel, ConfigDict, PrivateAttr
@@ -65,7 +65,7 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
     model_config = ConfigDict(frozen=False)
 
     _resource_id: Optional[Any] = PrivateAttr(default=None)
-    _to_proto_helpers: dict[str, MappingHelper] = PrivateAttr(default={})
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = PrivateAttr(default={})
 
     def __init__(self, **data: Any):
         super().__init__(**data)

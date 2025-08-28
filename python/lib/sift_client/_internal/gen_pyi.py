@@ -182,7 +182,7 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
             lines.append(stub)
 
         unique_imports = list(OrderedDict.fromkeys(new_module_imports))
-        lines = [HEADER] + unique_imports + lines
+        lines = [HEADER, *unique_imports, *lines]
         pyi_file = py_file.with_suffix(".pyi")
 
         stub_files[pyi_file] = "\n".join(lines)
