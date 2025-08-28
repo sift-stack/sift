@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -210,8 +210,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 ],
                 enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
                 asset_id=proto.asset_id,
-                created_date=proto.created_date.ToDatetime(),
-                modified_date=proto.modified_date.ToDatetime(),
+                created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+                modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
                 created_by_user_id=proto.created_by_user_id,
                 modified_by_user_id=proto.modified_by_user_id,
                 _client=sift_client,

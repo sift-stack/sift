@@ -3,7 +3,7 @@ import math
 import os
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sift_client._tests import setup_logger
 from sift_client.client import SiftClient
@@ -45,7 +45,7 @@ async def main():
             client.runs.archive(run=run)
 
     run = client.runs.create(
-        name=f"test-run-{datetime.now().timestamp()}",
+        name=f"test-run-{datetime.now(tz=timezone.utc).timestamp()}",
         description="A test run created via the API",
         tags=["api-created", "test"],
     )
@@ -110,7 +110,7 @@ async def main():
     simulated_duration = 50
     fake_hs_rate = 50  # Hz
     fake_hs_period = 1 / fake_hs_rate
-    start = datetime.now()
+    start = datetime.now(tz=timezone.utc)
     for i in range(simulated_duration):
         now = start + timedelta(seconds=i)
         regular_flow.ingest(
@@ -186,7 +186,7 @@ async def main():
         )
 
     client.async_.ingestion.wait_for_ingestion_to_complete(timeout=2)
-    end = datetime.now()
+    end = datetime.now(tz=timezone.utc)
     # Test ingesting more data after letting a thread finish. Also exercise ingesting bitfield values as bytes.
     time.sleep(1)
     print("Restarting ingestion")

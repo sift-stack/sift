@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sift_client.client import SiftClient
 
@@ -45,7 +45,7 @@ def main():
     asset_id = asset.id_
     print(f"Using asset: {asset.name} (ID: {asset_id})")
 
-    unique_name_suffix = datetime.now().strftime("%Y%m%d%H%M%S")
+    unique_name_suffix = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
     num_rules = 8
     print(f"\n=== Creating {num_rules} rules with unique suffix: {unique_name_suffix} ===")
     created_rules = []

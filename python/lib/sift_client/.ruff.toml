@@ -7,9 +7,9 @@ select = [
     "I", # import sort
     "N", # pep8-naming
     "TID", # flake8-tidy-imports
-    #    "FA", # flake8-future-annotations - necessary for backwards compatibility
+    "FA", # flake8-future-annotations - necessary for backwards compatibility
     #    "UP", # pyupgrade - keep our syntax up to date
-    #    "DTZ", # flake8-datetimez - good timezone practices
+    "DTZ", # flake8-datetimez - good timezone practices
     #    "C4", # flake8-comprehensions
     #    "A", # flake8-builtins - prevent overriding built-ins
     #    "B", # flake8-bugbear

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, List
 
 from sift_client._internal.low_level_wrappers.calculated_channels import (
@@ -293,7 +293,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         Archive a Calculated Channel.
         """
         update = CalculatedChannelUpdate(
-            archived_date=datetime.now(),
+            archived_date=datetime.now(tz=timezone.utc),
         )
         await self.update(calculated_channel=calculated_channel, update=update)
 

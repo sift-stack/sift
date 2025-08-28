@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Type
 
 from pydantic import ConfigDict
@@ -72,13 +72,13 @@ class Run(BaseType[RunProto, "Run"]):
     def _from_proto(cls, proto: RunProto, sift_client: SiftClient | None = None) -> Run:
         return cls(
             id_=proto.run_id,
-            created_date=proto.created_date.ToDatetime(),
-            modified_date=proto.modified_date.ToDatetime(),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
-            start_time=proto.start_time.ToDatetime() if proto.HasField("start_time") else None,
-            stop_time=proto.stop_time.ToDatetime() if proto.HasField("stop_time") else None,
+            start_time=proto.start_time.ToDatetime(tzinfo=timezone.utc) if proto.HasField("start_time") else None,
+            stop_time=proto.stop_time.ToDatetime(tzinfo=timezone.utc) if proto.HasField("stop_time") else None,
             name=proto.name,
             description=proto.description,
             tags=list(proto.tags),

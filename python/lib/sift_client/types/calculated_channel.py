@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Type
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
@@ -46,7 +46,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     @property
     def is_archived(self):
         """Whether the calculated channel is archived."""
-        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
+        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1, tzinfo=timezone.utc)
 
     @property
     def created_by(self):
@@ -101,7 +101,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             organization_id=proto.organization_id,
             client_key=proto.client_key,
             archived_date=(
-                proto.archived_date.ToDatetime() if proto.HasField("archived_date") else None
+                proto.archived_date.ToDatetime(tzinfo=timezone.utc) if proto.HasField("archived_date") else None
             ),
             version_id=proto.version_id,
             version=proto.version,
@@ -111,8 +111,8 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             asset_ids=proto.calculated_channel_configuration.asset_configuration.selection.asset_ids,  # type: ignore
             tag_ids=proto.calculated_channel_configuration.asset_configuration.selection.tag_ids,  # type: ignore
             all_assets=proto.calculated_channel_configuration.asset_configuration.all_assets,
-            created_date=proto.created_date.ToDatetime(),
-            modified_date=proto.modified_date.ToDatetime(),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             _client=sift_client,

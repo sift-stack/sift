@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Type
 
@@ -63,7 +63,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
     @property
     def is_archived(self) -> bool:
         """Whether the rule is archived."""
-        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
+        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1, tzinfo=timezone.utc)
 
     @property
     def assets(self) -> List[Asset]:
