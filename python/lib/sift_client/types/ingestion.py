@@ -34,7 +34,6 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
     Model of the Sift Ingestion Config.
     """
 
-    id: str
     asset_id: str
     client_key: str
 
@@ -43,7 +42,7 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
         cls, proto: IngestionConfigProto, sift_client: SiftClient | None = None
     ) -> "IngestionConfig":
         return cls(
-            id=proto.ingestion_config_id,
+            id_=proto.ingestion_config_id,
             asset_id=proto.asset_id,
             client_key=proto.client_key,
             _client=sift_client,
@@ -79,7 +78,6 @@ class Flow(BaseType[FlowConfig, "Flow"]):
 
     def add_channel(self, channel: Channel):
         if self.ingestion_config_id:
-            # TODO: Do we allow this or not?
             raise ValueError("Cannot add a channel to a flow after creation")
         self.channels.append(channel)
 
@@ -188,7 +186,6 @@ def _to_rust_value(channel: Channel, value: Any) -> IngestWithConfigDataChannelV
 
 
 def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
-    # TODO: Make more elegant?
     if data_type == ChannelDataType.DOUBLE:
         return ChannelDataTypePy.Double
     elif data_type == ChannelDataType.FLOAT:

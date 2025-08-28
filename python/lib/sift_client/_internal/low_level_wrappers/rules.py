@@ -73,9 +73,6 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Raises:
             ValueError: If neither rule_id nor client_key is provided.
         """
-        if rule_id is None and client_key is None:
-            raise ValueError("Either rule_id or client_key must be provided")
-
         request_kwargs: dict[str, Any] = {}
         if rule_id is not None:
             request_kwargs["rule_id"] = rule_id
@@ -223,17 +220,16 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # Special handling for the more complex fields.
         # Also, these must always be set.
         expression = model_dump.get("expression", rule.expression)
-        channel_references = (
+        channel_references: List[ChannelReference] = (
             update.channel_references
             if "channel_references" in model_dump
             else rule.channel_references
-        )
+        ) or []
         action = update.action if "action" in model_dump else rule.action
         if bool(expression) != bool(channel_references):
             raise ValueError(
                 "Expression and channel_references must both be provided or both be None"
             )
-        assert channel_references is not None  # make mypy happy
         expression_proto = RuleConditionExpression(
             calculated_channel=CalculatedChannelConfig(
                 expression=expression,

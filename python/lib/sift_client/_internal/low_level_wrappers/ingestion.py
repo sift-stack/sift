@@ -236,7 +236,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             raise ValueError(
                 f"Expected 1 ingestion config for client key {client_key}, got {len(ingestion_configs)}"
             )
-        return ingestion_configs[0].id
+        return ingestion_configs[0].id_
 
     def _new_ingestion_thread(
         self, ingestion_config_id: str, ingestion_config: IngestionConfigFormPy | None = None
