@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, List
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.run import Run, RunUpdate
+from sift_client.sift_types.run import Run, RunUpdate
 from sift_client.util.cel_utils import contains, equals, equals_null, match, not_
 
 if TYPE_CHECKING:

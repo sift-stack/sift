@@ -19,9 +19,9 @@ from sift.runs.v2.runs_pb2 import (
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client.sift_types.run import Run, RunUpdate
 from sift_client.transport import WithGrpcClient
 from sift_client.transport.grpc_transport import GrpcClient
-from sift_client.types.run import Run, RunUpdate
 from sift_client.util.metadata import metadata_dict_to_proto
 
 # Configure logging

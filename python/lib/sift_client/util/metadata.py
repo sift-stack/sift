@@ -27,25 +27,25 @@ def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[Met
     metadata = []
 
     for key, value in _metadata.items():
-        type = MetadataKeyType.METADATA_KEY_TYPE_UNSPECIFIED
+        metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_UNSPECIFIED
         string_value = None
         boolean_value = None
         number_value = None
 
         if isinstance(value, str):
             string_value = value
-            type = MetadataKeyType.METADATA_KEY_TYPE_STRING
+            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_STRING
         elif isinstance(value, bool):
             # Need to check bool before int since python thinks "True" is an int
             boolean_value = value
-            type = MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN
+            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN
         elif isinstance(value, (int, float)):
             number_value = value
-            type = MetadataKeyType.METADATA_KEY_TYPE_NUMBER
+            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_NUMBER
         else:
             raise ValueError(f"Unsupported metadata value type for key '{key}': {value}")
 
-        wrapped_key = MetadataKey(name=key, type=type)
+        wrapped_key = MetadataKey(name=key, type=metadata_key_type)
         wrapped_value = MetadataProto(
             key=wrapped_key,
             string_value=string_value,  # type: ignore

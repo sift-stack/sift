@@ -10,7 +10,7 @@ import pyarrow as pa
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
 from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.channel import Channel
+from sift_client.sift_types.channel import Channel
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:

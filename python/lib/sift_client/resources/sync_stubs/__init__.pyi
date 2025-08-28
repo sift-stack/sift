@@ -10,11 +10,11 @@ import pandas as pd
 import pyarrow as pa
 
 from sift_client.client import SiftClient
-from sift_client.types.asset import Asset, AssetUpdate
-from sift_client.types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
-from sift_client.types.channel import Channel, ChannelReference
-from sift_client.types.rule import Rule, RuleAction, RuleUpdate
-from sift_client.types.run import Run, RunUpdate
+from sift_client.sift_types.asset import Asset, AssetUpdate
+from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
+from sift_client.sift_types.channel import Channel, ChannelReference
+from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
+from sift_client.sift_types.run import Run, RunUpdate
 
 class AssetsAPI:
     """

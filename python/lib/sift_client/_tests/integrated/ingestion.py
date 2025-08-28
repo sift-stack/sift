@@ -7,13 +7,13 @@ from datetime import datetime, timedelta, timezone
 
 from sift_client._tests import setup_logger
 from sift_client.client import SiftClient
-from sift_client.transport import SiftConnectionConfig
-from sift_client.types.channel import (
+from sift_client.sift_types.channel import (
     Channel,
     ChannelBitFieldElement,
     ChannelDataType,
 )
-from sift_client.types.ingestion import Flow
+from sift_client.sift_types.ingestion import Flow
+from sift_client.transport import SiftConnectionConfig
 
 setup_logger()
 

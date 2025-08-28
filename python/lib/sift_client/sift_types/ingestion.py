@@ -22,8 +22,8 @@ from sift_stream_bindings import (
     IngestWithConfigDataChannelValuePy,
 )
 
-from sift_client.types._base import BaseType
-from sift_client.types.channel import Channel, ChannelDataType
+from sift_client.sift_types._base import BaseType
+from sift_client.sift_types.channel import Channel, ChannelDataType
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -209,8 +209,8 @@ def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
     raise ValueError(f"Unknown data type: {data_type}")
 
 
-def _to_ingestion_value(type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
+def _to_ingestion_value(data_type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
     if value is None:
         return IngestWithConfigDataChannelValue(empty=Empty())
-    ingestion_type_string = type.name.lower().replace("int_", "int")
+    ingestion_type_string = data_type.name.lower().replace("int_", "int")
     return IngestWithConfigDataChannelValue(**{ingestion_type_string: value})

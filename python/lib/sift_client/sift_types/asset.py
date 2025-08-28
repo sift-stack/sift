@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, List, Type
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
-from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
-from sift_client.types.channel import Channel
-from sift_client.types.run import Run
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.run import Run
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:

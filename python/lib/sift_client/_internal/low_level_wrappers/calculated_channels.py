@@ -23,12 +23,12 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
 from sift.calculated_channels.v2.calculated_channels_pb2_grpc import CalculatedChannelServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.transport import GrpcClient, WithGrpcClient
-from sift_client.types.calculated_channel import (
+from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelUpdate,
 )
-from sift_client.types.channel import ChannelReference
+from sift_client.sift_types.channel import ChannelReference
+from sift_client.transport import GrpcClient, WithGrpcClient
 
 logger = logging.getLogger(__name__)
 

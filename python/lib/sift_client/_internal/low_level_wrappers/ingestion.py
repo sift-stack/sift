@@ -36,8 +36,8 @@ from sift_stream_bindings import (
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
+from sift_client.sift_types.ingestion import Flow, IngestionConfig, _to_rust_value
 from sift_client.transport import GrpcClient, WithGrpcClient
-from sift_client.types.ingestion import Flow, IngestionConfig, _to_rust_value
 from sift_client.util import cel_utils as cel
 from sift_client.util.timestamp import to_rust_py_timestamp
 

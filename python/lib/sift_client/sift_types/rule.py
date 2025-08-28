@@ -26,9 +26,9 @@ from sift.rules.v1.rules_pb2 import (
     RuleVersion as RuleVersionProto,
 )
 
-from sift_client.types._base import BaseType, ModelUpdate
-from sift_client.types.asset import Asset
-from sift_client.types.channel import ChannelReference
+from sift_client.sift_types._base import BaseType, ModelUpdate
+from sift_client.sift_types.asset import Asset
+from sift_client.sift_types.channel import ChannelReference
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient

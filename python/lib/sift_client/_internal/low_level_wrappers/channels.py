@@ -12,9 +12,9 @@ from sift.channels.v3.channels_pb2 import (
 from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client.sift_types.channel import Channel
 from sift_client.transport import WithGrpcClient
 from sift_client.transport.grpc_transport import GrpcClient
-from sift_client.types.channel import Channel
 
 # Configure logging
 logger = logging.getLogger(__name__)

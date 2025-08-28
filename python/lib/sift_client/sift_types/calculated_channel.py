@@ -10,8 +10,8 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannelAbstractChannelReference,
 )
 
-from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
-from sift_client.types.channel import ChannelReference
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types.channel import ChannelReference
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient

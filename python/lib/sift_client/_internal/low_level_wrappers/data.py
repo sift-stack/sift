@@ -19,9 +19,9 @@ from sift.data.v2.data_pb2_grpc import DataServiceStub
 from sift_py._internal.time import to_timestamp_nanos
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.transport import WithGrpcClient
 from sift_client.transport.grpc_transport import GrpcClient
-from sift_client.types.channel import Channel, ChannelDataType
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -113,11 +113,11 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
     def _filter_cached_channels(self, channel_ids: List[str]) -> Tuple[List[str], List[str]]:
         cached_channels = []
         not_cached_channels = []
-        for id in channel_ids:
-            if self.channel_cache.channels.get(id):
-                cached_channels.append(id)
+        for channel_id in channel_ids:
+            if self.channel_cache.channels.get(channel_id):
+                cached_channels.append(channel_id)
             else:
-                not_cached_channels.append(id)
+                not_cached_channels.append(channel_id)
         return cached_channels, not_cached_channels
 
     def _check_cache(

@@ -17,8 +17,8 @@ from sift.assets.v1.assets_pb2_grpc import AssetServiceStub
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
+from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.transport import GrpcClient, WithGrpcClient
-from sift_client.types.asset import Asset, AssetUpdate
 
 # Configure logging
 logger = logging.getLogger(__name__)

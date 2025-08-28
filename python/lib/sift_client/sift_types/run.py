@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, List, Type
 from pydantic import ConfigDict
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
-from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.types.asset import Asset
+    from sift_client.sift_types.asset import Asset
 
 
 class RunUpdate(ModelUpdate[RunProto]):

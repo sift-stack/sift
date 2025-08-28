@@ -8,11 +8,11 @@ from sift_client._internal.low_level_wrappers.calculated_channels import (
     CalculatedChannelsLowLevelClient,
 )
 from sift_client.resources._base import ResourceBase
-from sift_client.types.calculated_channel import (
+from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelUpdate,
 )
-from sift_client.types.channel import ChannelReference
+from sift_client.sift_types.channel import ChannelReference
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:

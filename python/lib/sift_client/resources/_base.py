@@ -10,7 +10,7 @@ _sift_client_experimental_warning()
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.types._base import BaseType
+    from sift_client.sift_types._base import BaseType
 
 T = TypeVar("T", bound="BaseType")
 

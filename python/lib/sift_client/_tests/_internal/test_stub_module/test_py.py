@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sift_client.resources._base import ResourceBase
-from sift_client.types.asset import Asset
+from sift_client.sift_types.asset import Asset
 
 
 class MockClassAsync(ResourceBase):

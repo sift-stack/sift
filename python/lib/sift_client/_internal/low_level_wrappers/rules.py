@@ -31,13 +31,13 @@ from sift.rules.v1.rules_pb2 import (
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.transport import GrpcClient, WithGrpcClient
-from sift_client.types.channel import ChannelReference
-from sift_client.types.rule import (
+from sift_client.sift_types.channel import ChannelReference
+from sift_client.sift_types.rule import (
     Rule,
     RuleAction,
     RuleUpdate,
 )
+from sift_client.transport import GrpcClient, WithGrpcClient
 
 # Configure logging
 logger = logging.getLogger(__name__)
