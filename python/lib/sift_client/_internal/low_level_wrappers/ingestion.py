@@ -193,7 +193,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Args:
             timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
         """
-        for _, cache_entry in self.stream_cache.items():
+        for cache_entry in self.stream_cache.values():
             data_queue, ingestion_config, thread = cache_entry
             # "None" value on the queue signals its loop to terminate.
             if thread:

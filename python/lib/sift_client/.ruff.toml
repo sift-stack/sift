@@ -8,13 +8,14 @@ select = [
     "N", # pep8-naming
     "TID", # flake8-tidy-imports
     "FA", # flake8-future-annotations - necessary for backwards compatibility
-    #    "UP", # pyupgrade - keep our syntax up to date
     "DTZ", # flake8-datetimez - good timezone practices
     "C4", # flake8-comprehensions
     "A", # flake8-builtins - prevent overriding built-ins
     "B", # flake8-bugbear
+    "PERF", # perflint
+    #    "UP", # pyupgrade - keep our syntax up to date
     #    "D", # pydocstyle
-    #    "PERF", # perflint
+
     #    "RUF", # ruff specific
     #    "TRY", # tryceratops - exception handling antipatterns
     #    "TC", # flake8-type-checking

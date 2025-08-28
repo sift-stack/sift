@@ -139,8 +139,7 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
 
             orig_path = pathlib.Path(source_file).resolve()
             imports = extract_imports(orig_path)
-            for imp in imports:
-                new_module_imports.append(imp)
+            new_module_imports = new_module_imports + imports
 
             # Class docstring
             raw_doc = inspect.getdoc(cls) or ""

@@ -209,9 +209,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ]
 
         # Populate the trivial fields first.
-        for updated_field, value in model_dump.items():
-            if updated_field not in nontrivial_updates:
-                update_dict[updated_field] = value
+        update_dict.update({
+            updated_field: value for updated_field, value in model_dump.items()
+            if updated_field not in nontrivial_updates
+        })
         # Populate the fields that weren't updated but will be reset if not provided in request.
         for field in copy_unset_fields:
             if field not in model_dump:
