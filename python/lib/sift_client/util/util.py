@@ -5,7 +5,10 @@ from typing import NamedTuple
 from sift_client.resources import (
     AssetsAPIAsync,
     CalculatedChannelsAPIAsync,
+    ChannelsAPIAsync,
+    IngestionAPIAsync,
     PingAPIAsync,
+    RulesAPIAsync,
     RunsAPIAsync,
 )
 
@@ -22,5 +25,14 @@ class AsyncAPIs(NamedTuple):
     calculated_channels: CalculatedChannelsAPIAsync
     """Instance of the Calculated Channels API for making asynchronous requests."""
 
+    channels: ChannelsAPIAsync
+    """Instance of the Channels API for making asynchronous requests."""
+
+    ingestion: IngestionAPIAsync
+    """Instance of the Ingestion API for making asynchronous requests."""
+
     runs: RunsAPIAsync
     """Instance of the Runs API for making asynchronous requests."""
+
+    rules: RulesAPIAsync
+    """Instance of the Rules API for making asynchronous requests."""

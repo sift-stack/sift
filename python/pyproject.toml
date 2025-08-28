@@ -47,6 +47,7 @@ Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 development = [
     "grpcio-testing~=1.13",
     "mypy==1.10.0",
+    "pyarrow>=17.0.0", # sift_client, older version to support py3.8
     "pyright==1.1.386",
     "pytest==8.2.2",
     "pytest-asyncio==0.23.7",
@@ -59,9 +60,8 @@ docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdocs-include-mar
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
+sift-stream = ["sift-stream-bindings>=0.1.2"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]
-
-
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
@@ -122,6 +122,11 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "grpc.aio"
+ignore_missing_imports = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "pyarrow"
 ignore_missing_imports = true
 ignore_errors = true
 
