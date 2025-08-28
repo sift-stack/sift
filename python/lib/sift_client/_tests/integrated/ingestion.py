@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from sift_client._tests import setup_logger
 from sift_client.client import SiftClient
+from sift_client.transport import SiftConnectionConfig
 from sift_client.types.channel import (
     Channel,
     ChannelBitFieldElement,
@@ -21,7 +22,15 @@ async def main():
     grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
     api_key = os.getenv("SIFT_API_KEY", "")
     rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
-    client = SiftClient(grpc_url=grpc_url, api_key=api_key, rest_url=rest_url)
+    client = SiftClient(
+        connection_config=SiftConnectionConfig(
+            grpc_url=grpc_url,
+            api_key=api_key,
+            rest_url=rest_url,
+            use_ssl=True,
+            cert_via_openssl=True,
+        )
+    )
 
     asset = "ian-test-asset"
 
@@ -107,7 +116,7 @@ async def main():
         regular_flow.ingest(
             timestamp=now,
             channel_values={
-                "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * i + 0.05),
+                "test-channel": 3.0 * math.sin(2 * math.pi * fake_hs_rate * i + 0.07),
                 "test-enum-channel": i % 2 + 1,
                 "test-bit-field-channel": {
                     "12v": random.randint(3, 13),

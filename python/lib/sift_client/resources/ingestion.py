@@ -81,13 +81,10 @@ class IngestionAPIAsync(ResourceBase):
     def ingest(
         self,
         *,
-        flow: Flow | None = None,
+        flow: Flow,
         timestamp: datetime,
         channel_values: dict[str, Any],
     ):
-        if flow is None:
-            raise ValueError("Either flow or flows must be provided")
-
         self._low_level_client.ingest_flow(
             flow=flow,
             timestamp=timestamp,
