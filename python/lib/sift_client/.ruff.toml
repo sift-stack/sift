@@ -12,7 +12,7 @@ select = [
     "DTZ", # flake8-datetimez - good timezone practices
     "C4", # flake8-comprehensions
     "A", # flake8-builtins - prevent overriding built-ins
-    #    "B", # flake8-bugbear
+    "B", # flake8-bugbear
     #    "D", # pydocstyle
     #    "PERF", # perflint
     #    "RUF", # ruff specific
@@ -25,4 +25,6 @@ select = [
     #    "ASYNC", # flake8-async
 ]
 
-exclude = ["W191", "D206", "D300"] # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+ignore = ["W191", "D206", "D300", # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "B024", # ignore missing abstract methods
+]

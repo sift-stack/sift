@@ -87,7 +87,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         asset_ids: list[str] | None = None,
         tag_ids: list[str] | None = None,
         expression: str = "",
-        channel_references: list[ChannelReference] = [],
+        channel_references: list[ChannelReference] | None = None,
         description: str = "",
         user_notes: str = "",
         units: str | None = None,
@@ -111,6 +111,9 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             A tuple of (CalculatedChannel, list of inapplicable assets).
         """
+        if channel_references is None:
+            channel_references = []
+
         asset_config = CalculatedChannelAssetConfiguration(
             all_assets=all_assets,
             selection=CalculatedChannelAssetConfiguration.AssetSelection(

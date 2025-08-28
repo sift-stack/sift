@@ -169,10 +169,10 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                 try:
                     setattr(proto_msg, field_name, value)
                     paths.append(path)
-                except TypeError:
+                except TypeError as e:
                     raise TypeError(
                         f"Can't set {field_name} to {value} on {proto_msg.__class__.__name__}"
-                    )
+                    ) from e
 
         return paths
 

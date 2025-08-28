@@ -19,4 +19,5 @@ def _sift_client_experimental_warning():
     warnings.warn(
         "`sift_client` is experimental and is subject to change. Use with caution.",
         SiftExperimentalWarning,
+        stacklevel=2
     )
