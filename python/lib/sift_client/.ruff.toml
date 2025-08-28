@@ -1,0 +1,28 @@
+extend = "../../pyproject.toml"
+
+[lint]
+select = [
+    "F", # pyflakes
+    "W", # pycodestyle warning
+    "I", # import sort
+    "N", # pep8-naming
+    "TID", # flake8-tidy-imports
+    #    "FA", # flake8-future-annotations - necessary for backwards compatibility
+    #    "UP", # pyupgrade - keep our syntax up to date
+    #    "DTZ", # flake8-datetimez - good timezone practices
+    #    "C4", # flake8-comprehensions
+    #    "A", # flake8-builtins - prevent overriding built-ins
+    #    "B", # flake8-bugbear
+    #    "D", # pydocstyle
+    #    "PERF", # perflint
+    #    "RUF", # ruff specific
+    #    "TRY", # tryceratops - exception handling antipatterns
+    #    "TC", # flake8-type-checking
+    #    "PT", # flake8-pytest-style
+    #    "INP", # flake8-no-pep420 - no implicit namespace packages
+    #    "G", # flake8-logging-format
+    #    "LOG", # flake8-logging
+    #    "ASYNC", # flake8-async
+]
+
+exclude = ["W191", "D206", "D300"] # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules

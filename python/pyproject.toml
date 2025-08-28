@@ -180,4 +180,10 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["F", "W", "I", "N", "TID"]
+select = [
+    "F", # pyflakes
+    "W", # pycodestyle warning
+    "I", # import sort
+    "N", # pep8-naming
+    "TID", # flake8-tidy-imports
+]
