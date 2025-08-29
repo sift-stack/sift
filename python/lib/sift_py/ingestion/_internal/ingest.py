@@ -533,25 +533,16 @@ class _IngestionServiceImpl:
             # There isn't a flow in Sift for this config flow so we'll create it.
             if sift_flow_index is None:
                 flows_to_create.append(config_flow)
-                print("creating flow", config_flow.name)
                 continue
 
             # There is a flow in Sift with the name of the config flow. We'll
             # compare the channels in the config flow with the sift flow and
             # see if there's a difference. If there is we'll create a new flow.
             sift_flow = sift_flows[sift_flow_index]
-            print(f"SIFT FLOW: {sift_flow_index} - {sift_flow.name}")
 
             sift_channel_identifiers = {
                 sift_channel_identifier(channel) for channel in sift_flow.channels
             }
-            print("SIFT CHANNEL IDENTIFIERS")
-            for identifier in sift_channel_identifiers:
-                print(identifier)
-            print("CONFIG CHANNEL IDENTIFIERS")
-            for config_channel in config_flow.channels:
-                print(config_channel_identifier(config_channel))
-                print(config_channel.name)
 
             for config_channel in config_flow.channels:
                 # Found a channel for this flow that doesn't exist in Sift based on channel
@@ -575,7 +566,6 @@ class _IngestionServiceImpl:
         May raise `ProtobufMaxSizeExceeded` if a large number of flows needing updates or creation are passed
         """
 
-        print(config.ingestion_client_key)
         ingestion_config = get_ingestion_config_by_client_key(channel, config.ingestion_client_key)
 
         # Exiting ingestion config.. update flows if necessary
