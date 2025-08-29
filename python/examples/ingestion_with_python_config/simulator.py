@@ -7,6 +7,7 @@ from typing import List
 
 from sift_py.ingestion.channel import (
     bit_field_value,
+    bytes_value,
     double_value,
     enum_value,
     int32_value,
@@ -99,6 +100,10 @@ class Simulator:
                                     "value": bit_field_value(
                                         random.choice(self.sample_bit_field_values)
                                     ),
+                                },
+                                {
+                                    "channel_name": "raw_bin",
+                                    "value": bytes_value(str(timestamp).encode("utf-8")),
                                 },
                             ],
                         }

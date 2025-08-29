@@ -55,6 +55,11 @@ def nostromos_lv_426() -> TelemetryConfig:
             ChannelBitFieldElement(name="heater", index=7, bit_count=1),
         ],
     )
+    raw_binary_channel = ChannelConfig(
+        name="raw_bin",
+        data_type=ChannelDataType.BYTES,
+        description="Example of binary encoded data (binary string encoding of time in seconds)",
+    )
 
     return TelemetryConfig(
         asset_name="NostromoLV426",
@@ -66,6 +71,7 @@ def nostromos_lv_426() -> TelemetryConfig:
                     voltage_channel,
                     vehicle_state_channel,
                     gpio_channel,
+                    raw_binary_channel,
                 ],
             ),
             FlowConfig(

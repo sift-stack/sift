@@ -240,7 +240,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         end_time: datetime | None = None,
         limit: int | None = None,
         ignore_cache: bool = False,
-    ):
+    ) -> dict[str, pd.DataFrame]:
         """
         Get the data for a channel during a run.
         """

@@ -7,6 +7,7 @@ from typing import List
 
 from sift_py.ingestion.channel import (
     bit_field_value,
+    bytes_value,
     double_value,
     enum_value,
     int32_value,
@@ -39,7 +40,7 @@ class Simulator:
         sample_bit_field_values = ["00001001", "00100011", "00001101", "11000001"]
         self.sample_bit_field_values = [bytes([int(byte, 2)]) for byte in sample_bit_field_values]
 
-        sample_logs = Path().joinpath("sample_data").joinpath("sample_logs.txt")
+        sample_logs = Path(__file__).parent.joinpath("sample_data").joinpath("sample_logs.txt")
 
         with open(sample_logs, "r") as file:
             self.sample_logs = file.readlines()
@@ -99,6 +100,10 @@ class Simulator:
                                     "value": bit_field_value(
                                         random.choice(self.sample_bit_field_values)
                                     ),
+                                },
+                                {
+                                    "channel_name": "raw_bin",
+                                    "value": bytes_value(str(timestamp).encode("utf-8")),
                                 },
                             ],
                         }

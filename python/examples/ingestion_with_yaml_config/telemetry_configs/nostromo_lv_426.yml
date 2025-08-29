@@ -1,5 +1,4 @@
 asset_name: NostromoLV426
-ingestion_client_key: nostromo_lv_426
 
 channels:
   log_channel: &log_channel
@@ -51,6 +50,11 @@ channels:
         index: 7
         bit_count: 1
 
+  raw_binary_channel: &raw_binary_channel
+    name: raw_bin
+    data_type: bytes
+    description: Example of binary encoded data (binary string encoding of time in seconds)
+
 flows:
   - name: readings
     channels:
@@ -58,6 +62,7 @@ flows:
       - <<: *voltage_channel
       - <<: *vehicle_state_channel
       - <<: *gpio_channel
+      - <<: *raw_binary_channel
 
   - name: voltage
     channels:

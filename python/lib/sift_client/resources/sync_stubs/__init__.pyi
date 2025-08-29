@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List
 
-import numpy as np
+import pandas as pd
 import pyarrow as pa
 
 from sift_client.client import SiftClient
@@ -428,7 +428,7 @@ class ChannelsAPI:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> Dict[str, np.ndarray]:
+    ) -> Dict[str, pd.DataFrame]:
         """
         Get data for one or more channels.
 
