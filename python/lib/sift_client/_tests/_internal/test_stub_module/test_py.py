@@ -42,8 +42,8 @@ class MockClassAsync(ResourceBase):
 
 
 class SecondMockClass:
-    """Class doesn't have a sync version generated so shouldn't be present"""
+    """Class doesn't have a sync version generated so shouldn't be present."""
 
     def shouldnt_be_in_gen_stubs(self):
-        """Shouldn't be in gen stubs since it isn't called by generator"""
+        """Shouldn't be in gen stubs since it isn't called by generator."""
         return

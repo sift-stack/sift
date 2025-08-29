@@ -22,8 +22,7 @@ if TYPE_CHECKING:
 
 
 class ChannelsAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with channels.
+    """High-level API for interacting with channels.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -33,8 +32,7 @@ class ChannelsAPIAsync(ResourceBase):
     """
 
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the ChannelsAPI.
+        """Initialize the ChannelsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -48,8 +46,7 @@ class ChannelsAPIAsync(ResourceBase):
         *,
         channel_id: str,
     ) -> Channel:
-        """
-        Get a Channel.
+        """Get a Channel.
 
         Args:
             channel_id: The ID of the channel.
@@ -80,8 +77,7 @@ class ChannelsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Channel]:
-        """
-        List channels with optional filtering.
+        """List channels with optional filtering.
 
         Args:
             asset_id: The asset ID to get.
@@ -155,8 +151,7 @@ class ChannelsAPIAsync(ResourceBase):
         return self._apply_client_to_instances(channels)
 
     async def find(self, **kwargs) -> Channel | None:
-        """
-        Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
+        """Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
         raises an error.
 
         Args:
@@ -181,8 +176,7 @@ class ChannelsAPIAsync(ResourceBase):
         end_time: datetime | None = None,
         limit: int | None = None,
     ) -> dict[str, pd.DataFrame]:
-        """
-        Get data for one or more channels.
+        """Get data for one or more channels.
 
         Args:
             channels: The channels to get data for.
@@ -208,9 +202,7 @@ class ChannelsAPIAsync(ResourceBase):
         end_time: datetime | None = None,
         limit: int | None = None,
     ) -> dict[str, pa.Table]:
-        """
-        Get data for one or more channels as pyarrow tables.
-        """
+        """Get data for one or more channels as pyarrow tables."""
         data = await self.get_data(
             channels=channels,
             run_id=run_id,

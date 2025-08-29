@@ -10,8 +10,7 @@ from sift.metadata.v1.metadata_pb2 import (
 
 
 def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[MetadataProto]:
-    """
-    Converts metadata dictionary into a list of MetadataValue objects.
+    """Converts metadata dictionary into a list of MetadataValue objects.
 
     Args:
         _metadata: Dictionary of metadata key-value pairs.
@@ -53,8 +52,7 @@ def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[Met
 
 
 def metadata_proto_to_dict(metadata: list[MetadataProto]) -> dict[str, str | float | bool]:
-    """
-    Converts a list of MetadataValue objects into a dictionary.
+    """Converts a list of MetadataValue objects into a dictionary.
 
     Args:
         metadata: List of MetadataValue objects.
@@ -62,7 +60,6 @@ def metadata_proto_to_dict(metadata: list[MetadataProto]) -> dict[str, str | flo
     Returns:
         Dictionary of metadata key-value pairs.
     """
-
     unwrapped_metadata: dict[str, str | float | bool] = {}
     for md in metadata:
         if md.key.name in unwrapped_metadata:

@@ -16,8 +16,7 @@ if TYPE_CHECKING:
 
 
 class RulesAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with rules.
+    """High-level API for interacting with rules.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -27,8 +26,7 @@ class RulesAPIAsync(ResourceBase):
     """
 
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the RulesAPI.
+        """Initialize the RulesAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -42,8 +40,7 @@ class RulesAPIAsync(ResourceBase):
         rule_id: str | None = None,
         client_key: str | None = None,
     ) -> Rule:
-        """
-        Get a Rule.
+        """Get a Rule.
 
         Args:
             rule_id: The ID of the rule.
@@ -65,8 +62,7 @@ class RulesAPIAsync(ResourceBase):
         limit: int | None = None,
         include_deleted: bool = False,
     ) -> list[Rule]:
-        """
-        List rules with optional filtering.
+        """List rules with optional filtering.
 
         Args:
             name: Exact name of the rule.
@@ -74,6 +70,7 @@ class RulesAPIAsync(ResourceBase):
             name_regex: Regular expression string to filter rules by name.
             order_by: How to order the retrieved rules.
             limit: How many rules to retrieve. If None, retrieves all matches.
+            include_deleted: Include deleted rules.
 
         Returns:
             A list of Rules that matches the filter.
@@ -100,8 +97,7 @@ class RulesAPIAsync(ResourceBase):
         return self._apply_client_to_instances(rules)
 
     async def find(self, **kwargs) -> Rule | None:
-        """
-        Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
+        """Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
         raises an error.
 
         Args:
@@ -130,9 +126,7 @@ class RulesAPIAsync(ResourceBase):
         contextual_channels: builtins.list[str] | None = None,
         is_external: bool = False,
     ) -> Rule:
-        """
-        Create a new rule.
-        """
+        """Create a new rule."""
         created_rule = await self._low_level_client.create_rule(
             name=name,
             description=description,
@@ -150,13 +144,13 @@ class RulesAPIAsync(ResourceBase):
     async def update(
         self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
     ) -> Rule:
-        """
-        Update a Rule.
+        """Update a Rule.
 
         Args:
             rule: The Rule or rule ID to update.
             update: Updates to apply to the Rule.
             version_notes: Notes to include in the rule version.
+
         Returns:
             The updated Rule.
         """
@@ -177,8 +171,7 @@ class RulesAPIAsync(ResourceBase):
         rule_ids: builtins.list[str] | None = None,
         client_keys: builtins.list[str] | None = None,
     ) -> None:
-        """
-        Archive a rule or multiple.
+        """Archive a rule or multiple.
 
         Args:
             rule: The Rule to archive.
@@ -215,8 +208,7 @@ class RulesAPIAsync(ResourceBase):
         rule_id: str | None = None,
         client_key: str | None = None,
     ) -> Rule:
-        """
-        Restore a rule.
+        """Restore a rule.
 
         Args:
             rule: The Rule or rule ID to restore.
@@ -242,8 +234,7 @@ class RulesAPIAsync(ResourceBase):
         rule_ids: builtins.list[str] | None = None,
         client_keys: builtins.list[str] | None = None,
     ) -> None:
-        """
-        Batch restore rules.
+        """Batch restore rules.
 
         Args:
             rule_ids: List of rule IDs to restore.
@@ -257,8 +248,7 @@ class RulesAPIAsync(ResourceBase):
         rule_ids: builtins.list[str] | None = None,
         client_keys: builtins.list[str] | None = None,
     ) -> builtins.list[Rule]:
-        """
-        Get multiple rules by rule IDs or client keys.
+        """Get multiple rules by rule IDs or client keys.
 
         Args:
             rule_ids: List of rule IDs to get.

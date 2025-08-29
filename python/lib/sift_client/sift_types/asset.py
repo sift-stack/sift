@@ -15,9 +15,7 @@ if TYPE_CHECKING:
 
 
 class Asset(BaseType[AssetProto, "Asset"]):
-    """
-    Model of the Sift Asset.
-    """
+    """Model of the Sift Asset."""
 
     name: str
     organization_id: str
@@ -37,28 +35,31 @@ class Asset(BaseType[AssetProto, "Asset"]):
 
     @property
     def created_by(self):
+        """Get the user that created this asset."""
         raise NotImplementedError
 
     @property
     def modified_by(self):
+        """Get the user that modified this asset."""
         raise NotImplementedError
 
     @property
     def runs(self) -> list[Run]:
+        """Get the runs associated with this asset."""
         return self.client.runs.list(asset_id=self.id_)
 
     def channels(self, run_id: str | None = None, limit: int | None = None) -> list[Channel]:
-        """
-        Return all channels for this asset.
-        """
+        """Get the channels for this asset."""
         return self.client.channels.list(asset_id=self.id_, run_id=run_id, limit=limit)
 
     @property
     def rules(self):
+        """Get the rules that apply to this asset."""
         raise NotImplementedError
 
     @property
     def annotations(self):
+        """Get the annotations for this asset."""
         raise NotImplementedError
 
     def archive(self, *, archive_runs: bool = False) -> Asset:
@@ -72,8 +73,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
         return self
 
     def update(self, update: AssetUpdate | dict) -> Asset:
-        """
-        Update the Asset.
+        """Update the Asset.
 
         Args:
             update: Either an AssetUpdate instance or a dictionary of key-value pairs to update.
@@ -101,9 +101,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
 
 
 class AssetUpdate(ModelUpdate[AssetProto]):
-    """
-    Model of the Asset Fields that can be updated.
-    """
+    """Model of the Asset Fields that can be updated."""
 
     tags: list[str] | None = None
     archived_date: datetime | str | None = None

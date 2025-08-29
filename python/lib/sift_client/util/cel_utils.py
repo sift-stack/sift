@@ -1,5 +1,4 @@
-"""
-CEL (Common Expression Language) utilities for generating CEL expressions.
+"""CEL (Common Expression Language) utilities for generating CEL expressions.
 
 This module provides helper functions to generate CEL expressions for building filters commonly used in Sift.
 """
@@ -12,8 +11,7 @@ from typing import Any
 
 
 def in_(field: str, vals: list[str]) -> str:
-    """
-    Generates a CEL expression that checks for `field` membership in `vals`.
+    """Generates a CEL expression that checks for `field` membership in `vals`.
 
     Args:
         field: The field name to check
@@ -30,8 +28,7 @@ def in_(field: str, vals: list[str]) -> str:
 
 
 def parens(expr: str) -> str:
-    """
-    Wraps the given expression in parentheses.
+    """Wraps the given expression in parentheses.
 
     Args:
         expr: The expression to wrap in parentheses
@@ -43,8 +40,7 @@ def parens(expr: str) -> str:
 
 
 def equals(key: str, value: Any) -> str:
-    """
-    Generates a CEL expression that checks for equality.
+    """Generates a CEL expression that checks for equality.
 
     Args:
         key: The field name
@@ -62,8 +58,7 @@ def equals(key: str, value: Any) -> str:
 
 
 def equals_all(values: dict[str, Any]) -> str:
-    """
-    Generates a CEL expression that checks for equality of all key-value pairs.
+    """Generates a CEL expression that checks for equality of all key-value pairs.
 
     Args:
         values: Dictionary of field names and values to check for equality
@@ -76,8 +71,7 @@ def equals_all(values: dict[str, Any]) -> str:
 
 
 def equals_any(values: dict[str, Any]) -> str:
-    """
-    Generates a CEL expression that checks for equality of any key-value pairs.
+    """Generates a CEL expression that checks for equality of any key-value pairs.
 
     Args:
         values: Dictionary of field names and values to check for equality
@@ -90,8 +84,7 @@ def equals_any(values: dict[str, Any]) -> str:
 
 
 def equals_double(key: str, value: Any) -> str:
-    """
-    Generates a CEL expression that checks for equality with a double value.
+    """Generates a CEL expression that checks for equality with a double value.
 
     Args:
         key: The field name
@@ -106,8 +99,7 @@ def equals_double(key: str, value: Any) -> str:
 
 
 def equals_null(key: str) -> str:
-    """
-    Generates a CEL expression that checks for equality with null.
+    """Generates a CEL expression that checks for equality with null.
 
     Args:
         key: The field name
@@ -119,8 +111,7 @@ def equals_null(key: str) -> str:
 
 
 def and_(*clauses: str) -> str:
-    """
-    Generates a CEL expression that joins all clauses with an AND operator.
+    """Generates a CEL expression that joins all clauses with an AND operator.
 
     Args:
         *clauses: Variable number of CEL expression strings
@@ -136,8 +127,7 @@ def and_(*clauses: str) -> str:
 
 
 def or_(*clauses: str) -> str:
-    """
-    Generates a CEL expression that joins all clauses with an OR operator.
+    """Generates a CEL expression that joins all clauses with an OR operator.
 
     Args:
         *clauses: Variable number of CEL expression strings
@@ -153,8 +143,7 @@ def or_(*clauses: str) -> str:
 
 
 def not_(clause: str) -> str:
-    """
-    Generates a CEL expression that negates the given clause.
+    """Generates a CEL expression that negates the given clause.
 
     Args:
         clause: The CEL expression to negate
@@ -166,8 +155,7 @@ def not_(clause: str) -> str:
 
 
 def contains(field: str, value: str) -> str:
-    """
-    Generates a CEL expression that checks whether a string field contains a given value.
+    """Generates a CEL expression that checks whether a string field contains a given value.
 
     Args:
         field: The field name
@@ -180,8 +168,7 @@ def contains(field: str, value: str) -> str:
 
 
 def match(field: str, query: str | re.Pattern) -> str:
-    """
-    Generates a CEL expression that checks for a match on the specified field.
+    """Generates a CEL expression that checks for a match on the specified field.
 
     Args:
         field: The field name
@@ -198,8 +185,7 @@ def match(field: str, query: str | re.Pattern) -> str:
 
 
 def greater_than(field: str, value: int | float | datetime) -> str:
-    """
-    Generates a CEL expression that checks whether a numeric or datetime field is greater than a given value.
+    """Generates a CEL expression that checks whether a numeric or datetime field is greater than a given value.
 
     Args:
         field: The field name
@@ -216,8 +202,7 @@ def greater_than(field: str, value: int | float | datetime) -> str:
 
 
 def less_than(field: str, value: int | float | datetime) -> str:
-    """
-    Generates a CEL expression that checks whether a numeric or datetime field is less than a given value.
+    """Generates a CEL expression that checks whether a numeric or datetime field is less than a given value.
 
     Args:
         field: The field name

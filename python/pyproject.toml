@@ -44,6 +44,7 @@ Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
+# development
 development = [
     "grpcio-testing~=1.13",
     "mypy==1.10.0",
@@ -57,11 +58,14 @@ development = [
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdocs-include-markdown-plugin", "mkdocs-api-autonav", "mike"]
+
+# May be required for certain library functionality
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
 sift-stream = ["sift-stream-bindings>=0.1.2"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"

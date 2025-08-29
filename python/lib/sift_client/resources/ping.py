@@ -10,13 +10,10 @@ if TYPE_CHECKING:
 
 
 class PingAPIAsync(ResourceBase):
-    """
-    High-level API for performing health checks.
-    """
+    """High-level API for performing health checks."""
 
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the AssetsAPI.
+        """Initialize the AssetsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -25,8 +22,7 @@ class PingAPIAsync(ResourceBase):
         self._low_level_client = PingLowLevelClient(sift_client.grpc_client)
 
     async def ping(self) -> str:
-        """
-        Send a ping request to the server.
+        """Send a ping request to the server.
 
         Returns:
             The response from the server.

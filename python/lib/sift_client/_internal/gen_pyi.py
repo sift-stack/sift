@@ -26,17 +26,13 @@ class {cls_name}:
 METHOD_TEMPLATE = '''\
     {decorator}
     def {meth_name}(self{params}){ret_ann}:
-        """
-        {meth_doc}
-        """
+{docstring_section}
         ...
 '''
 
 
 def extract_imports(path: pathlib.Path) -> list[str]:
-    """
-    Parse the given Python file and return a list of its import statements (as strings).
-    """
+    """Parse the given Python file and return a list of its import statements (as strings)."""
     source = path.read_text()
     tree = ast.parse(source, filename=str(path))
 
@@ -263,14 +259,18 @@ def generate_method_stub(name: str, f: Callable, module, decorator: str = "") ->
 
     # Method docstring
     raw_mdoc = inspect.getdoc(f) or ""
-    meth_doc = raw_mdoc.replace('"""', '\\"\\"\\"').replace("\n", "\n        ")
+    if raw_mdoc and raw_mdoc.strip():
+        meth_doc = raw_mdoc.replace('"""', '\\"\\"\\"').replace("\n", "\n        ")
+        docstring_section = f'        """\n        {meth_doc}\n        """\n'
+    else:
+        docstring_section = ""
 
     return METHOD_TEMPLATE.format(
         decorator=decorator,
         meth_name=name,
         params=params_txt,
         ret_ann=ret_txt,
-        meth_doc=meth_doc,
+        docstring_section=docstring_section,
     )
 
 

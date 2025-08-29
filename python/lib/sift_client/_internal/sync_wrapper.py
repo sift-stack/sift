@@ -1,6 +1,4 @@
-"""
-Utility for generating synchronous API wrappers from asynchronous API classes.
-"""
+"""Utility for generating synchronous API wrappers from asynchronous API classes."""
 
 from __future__ import annotations
 
@@ -27,8 +25,7 @@ S = TypeVar("S")
 
 
 def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
-    """
-    Generate a synchronous wrapper class for the given async API class.
+    """Generate a synchronous wrapper class for the given async API class.
 
     It creates a new class whose name is derived from the async class by
     stripping a trailing 'Async' (e.g. PingAPIAsync -> PingAPI). For each

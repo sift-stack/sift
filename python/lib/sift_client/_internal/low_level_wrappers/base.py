@@ -14,8 +14,7 @@ class LowLevelClientBase(ABC):
         order_by: str | None = None,
         max_results: int | None = None,
     ) -> list[Any]:
-        """
-        Handle pagination for a given function by calling the function until all results are retrieved or the max_results is reached.
+        """Handle pagination for a given function by calling the function until all results are retrieved or the max_results is reached.
 
         Args:
             func: The function to call.

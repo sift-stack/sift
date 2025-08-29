@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This test demonstrates the usage of the Runs API.
+"""This test demonstrates the usage of the Runs API.
 
 It creates a new run, updates it, and associates assets with it.
 It also lists runs, filters them, and deletes the run.
@@ -16,9 +15,7 @@ from sift_client import SiftClient
 
 
 async def main():
-    """
-    Main function demonstrating the Runs API usage.
-    """
+    """Main function demonstrating the Runs API usage."""
     # Initialize the client
     # You can set these environment variables or pass them directly
     grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")

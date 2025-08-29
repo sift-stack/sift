@@ -37,7 +37,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
         self.__dict__["_client"] = client
 
     def _update(self, other: BaseType[ProtoT, SelfT]) -> BaseType[ProtoT, SelfT]:
-        """Update this instance with the values from another instance"""
+        """Update this instance with the values from another instance."""
         # This bypasses the frozen status of the model
         for key in other.__class__.model_fields.keys():
             if key in self.model_fields:
@@ -60,7 +60,7 @@ class MappingHelper(BaseModel):
 
 # TODO: how to handle nulling fields, needs to be default value for the type
 class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
-    """Base class for Pydantic models that generate proto patches with field masks"""
+    """Base class for Pydantic models that generate proto patches with field masks."""
 
     model_config = ConfigDict(frozen=False)
 
@@ -86,7 +86,7 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
         self._resource_id = value
 
     def to_proto_with_mask(self) -> tuple[ProtoT, field_mask_pb2.FieldMask]:
-        """Convert to proto with field mask"""
+        """Convert to proto with field mask."""
         # Get the corresponding proto class
         proto_cls: type[ProtoT] = self._get_proto_class()
         proto_msg = proto_cls()
@@ -181,5 +181,5 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
         raise NotImplementedError("Subclasses must implement this")
 
     def _add_resource_id_to_proto(self, proto_msg: ProtoT):
-        """Assigns a resource ID (such as Asset ID) to the proto message"""
+        """Assigns a resource ID (such as Asset ID) to the proto message."""
         raise NotImplementedError("Subclasses must implement this")

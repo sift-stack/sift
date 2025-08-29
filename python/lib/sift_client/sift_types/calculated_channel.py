@@ -18,9 +18,7 @@ if TYPE_CHECKING:
 
 
 class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
-    """
-    Model of the Sift Calculated Channel.
-    """
+    """Model of the Sift Calculated Channel."""
 
     name: str
     description: str
@@ -50,10 +48,12 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
 
     @property
     def created_by(self):
+        """Get the user that created this calculated channel."""
         raise NotImplementedError
 
     @property
     def modified_by(self):
+        """Get the user that modified this calculated channel."""
         raise NotImplementedError
 
     def archive(self) -> CalculatedChannel:
@@ -66,8 +66,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         update: CalculatedChannelUpdate | dict,
         user_notes: str | None = None,
     ) -> CalculatedChannel:
-        """
-        Update the Calculated Channel.
+        """Update the Calculated Channel.
 
         Args:
             update: The update to apply to the calculated channel. See CalculatedChannelUpdate for more updatable fields.
@@ -120,9 +119,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
 
 
 class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
-    """
-    Model of the Calculated Channel Fields that can be updated.
-    """
+    """Model of the Calculated Channel Fields that can be updated."""
 
     name: str | None = None
     description: str | None = None
@@ -150,6 +147,15 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
     }
 
     def __init__(self, **data: Any):
+        """Initialize a CalculatedChannelUpdate instance.
+
+        Args:
+            **data: Keyword arguments for the update fields.
+
+        Raises:
+            ValueError: If only one of expression or expression_channel_references is provided.
+                       Both must be provided together or neither should be provided.
+        """
         super().__init__(**data)
         if any([self.expression, self.expression_channel_references]) and not all(
             [self.expression, self.expression_channel_references]

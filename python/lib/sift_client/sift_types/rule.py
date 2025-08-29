@@ -35,9 +35,7 @@ if TYPE_CHECKING:
 
 
 class Rule(BaseType[RuleProto, "Rule"]):
-    """
-    Model of the Sift Rule.
-    """
+    """Model of the Sift Rule."""
 
     name: str
     description: str
@@ -91,11 +89,11 @@ class Rule(BaseType[RuleProto, "Rule"]):
         raise NotImplementedError("Tags is not supported yet.")
 
     def update(self, update: RuleUpdate | dict, version_notes: str | None = None) -> Rule:
-        """
-        Update the Rule.
+        """Update the Rule.
 
         Args:
             update: Either a RuleUpdate instance or a dictionary of key-value pairs to update.
+            version_notes: Notes associated with the change.
         """
         updated_rule = self.client.rules.update(
             rule=self, update=update, version_notes=version_notes
@@ -146,8 +144,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
 
 
 class RuleUpdate(ModelUpdate[RuleProto]):
-    """
-    Model of the Rule fields that can be updated.
+    """Model of the Rule fields that can be updated.
 
     Note:
         - asset_ids applies this rule to those assets.
@@ -181,13 +178,20 @@ class RuleActionType(Enum):
 
     @classmethod
     def from_str(cls, val: str) -> RuleActionType | None:
+        """Convert string representation to RuleActionType.
+
+        Args:
+            val: String representation of RuleActionType.
+
+        Returns:
+            RuleActionType if conversion is successful, None otherwise.
+        """
         if isinstance(val, str) and val.startswith("ACTION_KIND_"):
             for item in cls:
                 if "ACTION_KIND_" + item.name == val:
                     return item
 
         return cls(int(val))
-
 
 class RuleAnnotationType(Enum):
     """Enum for rule annotation types."""
@@ -198,6 +202,14 @@ class RuleAnnotationType(Enum):
 
     @classmethod
     def from_str(cls, val: str) -> RuleAnnotationType | None:
+        """Convert string representation to RuleAnnotationType.
+
+        Args:
+            val: String representation of RuleAnnotationType.
+
+        Returns:
+            RuleAnnotationType if conversion is successful, None otherwise.
+        """
         if isinstance(val, str) and val.startswith("ANNOTATION_TYPE_"):
             for item in cls:
                 if "ANNOTATION_TYPE_" + item.name == val:
@@ -205,11 +217,8 @@ class RuleAnnotationType(Enum):
 
         return cls(int(val))
 
-
 class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
-    """
-    Model of a Rule Action.
-    """
+    """Model of a Rule Action."""
 
     action_type: RuleActionType
     condition_id: str | None = None
@@ -292,9 +301,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
 
 
 class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
-    """
-    Model of a Rule Version.
-    """
+    """Model of a Rule Version."""
 
     rule_id: str
     rule_version_id: str

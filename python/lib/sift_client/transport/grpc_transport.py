@@ -1,5 +1,4 @@
-"""
-Transport layer for gRPC communication.
+"""Transport layer for gRPC communication.
 
 This module provides a simple wrapper around sift_py/grpc/transport.py for making gRPC API calls.
 It just stores the channel and the stubs, without any additional functionality.
@@ -23,8 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def _suppress_blocking_io(loop, context):
-    """
-    Suppress benign BlockingIOError from gRPC's PollerCompletionQueue.
+    """Suppress benign BlockingIOError from gRPC's PollerCompletionQueue.
 
     gRPC's internal poller uses non-blocking I/O. When no events are ready,
     it raises BlockingIOError (EAGAIN), which is expected and safe to ignore.
@@ -47,8 +45,7 @@ class GrpcConfig:
         cert_via_openssl: bool = False,
         metadata: dict[str, str] | None = None,
     ):
-        """
-        Initialize the gRPC configuration.
+        """Initialize the gRPC configuration.
 
         Args:
             url: The URI of the gRPC server.
@@ -65,8 +62,7 @@ class GrpcConfig:
         self.metadata = metadata or {}
 
     def _to_sift_channel_config(self) -> SiftChannelConfig:
-        """
-        Convert to a SiftChannelConfig.
+        """Convert to a SiftChannelConfig.
 
         Returns:
             A SiftChannelConfig.
@@ -80,15 +76,13 @@ class GrpcConfig:
 
 
 class GrpcClient:
-    """
-    A simple wrapper around sift_py/grpc/transport.py for making gRPC API calls.
+    """A simple wrapper around sift_py/grpc/transport.py for making gRPC API calls.
 
     This class just stores the channel and the stubs, without any additional functionality.
     """
 
     def __init__(self, config: GrpcConfig):
-        """
-        Initialize the gRPC client.
+        """Initialize the gRPC client.
 
         Args:
             config: The gRPC client configuration.
@@ -124,11 +118,14 @@ class GrpcClient:
 
     @property
     def default_loop(self) -> asyncio.AbstractEventLoop:
-        return self._default_loop
+        """Return the default event loop used for synchronous API operations.
 
-    def get_stub(self, stub_class: type[Any]) -> Any:
+        Returns:
+            The default asyncio event loop.
         """
-        Get an async stub bound to the current event loop.
+        return self._default_loop
+    def get_stub(self, stub_class: type[Any]) -> Any:
+        """Get an async stub bound to the current event loop.
         Creates a channel and stub for this loop if needed.
         """
         try:

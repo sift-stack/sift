@@ -15,9 +15,7 @@ if TYPE_CHECKING:
 
 
 class RunUpdate(ModelUpdate[RunProto]):
-    """
-    Update model for Run.
-    """
+    """Update model for Run."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -46,9 +44,7 @@ class RunUpdate(ModelUpdate[RunProto]):
 
 
 class Run(BaseType[RunProto, "Run"]):
-    """
-    Run model representing a data collection run.
-    """
+    """Run model representing a data collection run."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -93,9 +89,7 @@ class Run(BaseType[RunProto, "Run"]):
         )
 
     def _to_proto(self) -> RunProto:
-        """
-        Convert to protobuf message.
-        """
+        """Convert to protobuf message."""
         proto = RunProto(
             run_id=self.id_ or "",
             created_date=self.created_date,  # type: ignore
@@ -130,9 +124,7 @@ class Run(BaseType[RunProto, "Run"]):
 
     @property
     def assets(self) -> list[Asset]:
-        """
-        Return all assets associated with this run.
-        """
+        """Return all assets associated with this run."""
         if not hasattr(self, "client") or self.client is None:
             raise RuntimeError("Run is not bound to a client instance.")
         if not self.asset_ids:

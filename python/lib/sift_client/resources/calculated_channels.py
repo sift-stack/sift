@@ -22,8 +22,7 @@ if TYPE_CHECKING:
 
 
 class CalculatedChannelsAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with calculated channels.
+    """High-level API for interacting with calculated channels.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -33,8 +32,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
     """
 
     def __init__(self, sift_client: SiftClient):
-        """
-        Initialize the CalculatedChannelsAPI.
+        """Initialize the CalculatedChannelsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -51,8 +49,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         client_key: str | None = None,
         organization_id: str | None = None,
     ) -> CalculatedChannel:
-        """
-        Get a Calculated Channel.
+        """Get a Calculated Channel.
 
         Args:
             calculated_channel_id: The ID of the calculated channel.
@@ -100,8 +97,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         limit: int | None = None,
         organization_id: str | None = None,
     ) -> builtins.list[CalculatedChannel]:
-        """
-        List calculated channels with optional filtering.
+        """List calculated channels with optional filtering.
 
         Args:
             name: Exact name of the calculated channel.
@@ -173,8 +169,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         return self._apply_client_to_instances(calculated_channels)
 
     async def find(self, **kwargs) -> CalculatedChannel | None:
-        """
-        Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
+        """Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
         Will raise an error if multiple calculated channels are found.
 
         Args:
@@ -207,8 +202,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         all_assets: bool = False,
         user_notes: str = "",
     ) -> CalculatedChannel:
-        """
-        Create a calculated channel.
+        """Create a calculated channel.
 
         Args:
             name: The name of the calculated channel.
@@ -259,8 +253,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         update: CalculatedChannelUpdate | dict,
         user_notes: str | None = None,
     ) -> CalculatedChannel:
-        """
-        Update a Calculated Channel.
+        """Update a Calculated Channel.
 
         Args:
             calculated_channel: The CalculatedChannel or id of the CalculatedChannel to update.
@@ -291,9 +284,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         return self._apply_client_to_instance(updated_calculated_channel)
 
     async def archive(self, *, calculated_channel: str | CalculatedChannel) -> None:
-        """
-        Archive a Calculated Channel.
-        """
+        """Archive a Calculated Channel."""
         update = CalculatedChannelUpdate(
             archived_date=datetime.now(tz=timezone.utc),
         )
@@ -317,8 +308,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
     ) -> builtins.list[CalculatedChannel]:
-        """
-        List versions of a calculated channel.
+        """List versions of a calculated channel.
 
         Args:
             calculated_channel_id: The ID of the calculated channel.
