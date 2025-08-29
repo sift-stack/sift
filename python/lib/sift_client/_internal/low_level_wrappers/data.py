@@ -329,13 +329,13 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ret_data = {}
 
         components = (
-            proto_data_value.values if proto_data_class == BitFieldValues else [proto_data_value]
+            proto_data_value.values if proto_data_class is BitFieldValues else [proto_data_value]
         )
         for component in components:
             name = metadata.channel.name
             time_column = []
             value_column = []
-            if proto_data_class == BitFieldValues:
+            if proto_data_class is BitFieldValues:
                 name += "." + component.name
             for value_obj in component.values:
                 time_column.append(to_timestamp_nanos(value_obj.timestamp))

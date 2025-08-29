@@ -61,7 +61,9 @@ class Rule(BaseType[RuleProto, "Rule"]):
     @property
     def is_archived(self) -> bool:
         """Whether the rule is archived."""
-        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1, tzinfo=timezone.utc)
+        return self.archived_date is not None and self.archived_date > datetime(
+            1970, 1, 1, tzinfo=timezone.utc
+        )
 
     @property
     def assets(self) -> list[Asset]:
@@ -193,6 +195,7 @@ class RuleActionType(Enum):
 
         return cls(int(val))
 
+
 class RuleAnnotationType(Enum):
     """Enum for rule annotation types."""
 
@@ -216,6 +219,7 @@ class RuleAnnotationType(Enum):
                     return item
 
         return cls(int(val))
+
 
 class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     """Model of a Rule Action."""

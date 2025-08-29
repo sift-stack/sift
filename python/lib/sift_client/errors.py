@@ -10,12 +10,17 @@ class SiftWarning(UserWarning):
 class SiftExperimentalWarning(SiftWarning):
     """Warning for experimental features."""
 
+
+_sift_client_experimental_warned = False
+
+
 def _sift_client_experimental_warning():
     # Ensure this warning has only been emitted once, even if used in different places.
-    if not getattr(_sift_client_experimental_warning, "_warned", False):
+    global _sift_client_experimental_warned
+    if not _sift_client_experimental_warned:
         warnings.warn(
             "`sift_client` is experimental and is subject to change. Use with caution.",
             SiftExperimentalWarning,
-            stacklevel=2
+            stacklevel=2,
         )
-        _sift_client_experimental_warning._warned = True
+        _sift_client_experimental_warned = True

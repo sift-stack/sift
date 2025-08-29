@@ -13,6 +13,7 @@ from typing_extensions import TypedDict
 if TYPE_CHECKING:
     from sift_client.resources._base import ResourceBase
 
+
 # registry of all classes decorated with @generate_sync_api
 class SyncAPIRegistration(TypedDict):
     async_cls: type[Any]

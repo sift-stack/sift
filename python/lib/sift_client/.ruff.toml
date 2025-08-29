@@ -8,7 +8,7 @@ select = [
     "B", # flake8-bugbear - detect potential bugs and design problems
     "PERF", # perflint - performance optimizations
     "RUF", # ruff-specific rules
-    #     "ASYNC",  # flake8-async - async/await best practices
+    #     "ASYNC",  # flake8-async - async/await best practices # TODO
 
     # Code style and formatting
     "I", # isort - import sorting
@@ -32,14 +32,14 @@ select = [
     "DTZ", # flake8-datetimez - good timezone practices
 
     # Exception handling
-    #    "TRY", # tryceratops - exception handling antipatterns
+    #    "TRY", # tryceratops - exception handling antipatterns # TODO: FD-102
 
     # Logging best practices
-    #    "G", # flake8-logging-format - logging format best practices
+    #    "G", # flake8-logging-format - logging format best practices # TODO: FD-101
     "LOG", # flake8-logging - logging best practices
 
     # Tests
-    #     "PT",     # flake8-pytest-style - pytest best practices
+    #     "PT",     # flake8-pytest-style - pytest best practices # TODO: FD-59
 
 ]
 

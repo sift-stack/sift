@@ -256,7 +256,8 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         updated_calculated_channel = CalculatedChannel._from_proto(response.calculated_channel)
         inapplicable_assets = [
-            cast("CalculatedChannelValidationResult", asset) for asset in response.inapplicable_assets
+            cast("CalculatedChannelValidationResult", asset)
+            for asset in response.inapplicable_assets
         ]
 
         return updated_calculated_channel, inapplicable_assets

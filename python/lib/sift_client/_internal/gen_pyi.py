@@ -23,12 +23,12 @@ class {cls_name}:
 {methods}
 """
 
-METHOD_TEMPLATE = '''\
+METHOD_TEMPLATE = """\
     {decorator}
     def {meth_name}(self{params}){ret_ann}:
 {docstring_section}
         ...
-'''
+"""
 
 
 def extract_imports(path: pathlib.Path) -> list[str]:
@@ -121,7 +121,8 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
             async_class = matched.get("async_cls")
             if async_class is None:
                 warnings.warn(
-                    f"Could not find async class for {cls_name}. Skipping stub generation.", stacklevel=2
+                    f"Could not find async class for {cls_name}. Skipping stub generation.",
+                    stacklevel=2,
                 )
                 continue
 
@@ -129,7 +130,8 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
             source_file = inspect.getsourcefile(async_class)
             if source_file is None:
                 warnings.warn(
-                    f"Could not find source file for {async_class.__name__}. Skipping stub generation.", stacklevel=2
+                    f"Could not find source file for {async_class.__name__}. Skipping stub generation.",
+                    stacklevel=2,
                 )
                 continue
 

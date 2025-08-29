@@ -31,7 +31,9 @@ class Asset(BaseType[AssetProto, "Asset"]):
     def is_archived(self):
         """Whether the asset is archived."""
         # TODO: clean up this logic when gRPC returns a null.
-        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1, tzinfo=timezone.utc)
+        return self.archived_date is not None and self.archived_date > datetime(
+            1970, 1, 1, tzinfo=timezone.utc
+        )
 
     @property
     def created_by(self):

@@ -5,7 +5,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sift.channels.v3.channels_pb2 import Channel as ChannelProto
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
 class ChannelDataType(Enum):
     """Enum for channel data types (mimics protobuf values, but as int for now)."""
+
     DOUBLE = channel_pb.CHANNEL_DATA_TYPE_DOUBLE
     STRING = channel_pb.CHANNEL_DATA_TYPE_STRING
     ENUM = channel_pb.CHANNEL_DATA_TYPE_ENUM
@@ -179,9 +180,9 @@ class ChannelDataType(Enum):
             raise Exception("Unreachable.")
 
 
-
 class ChannelBitFieldElement(BaseModel):
     """Bit field element model."""
+
     name: str
     index: int
     bit_count: int
@@ -205,12 +206,13 @@ class ChannelBitFieldElement(BaseModel):
 # Channel config model
 class Channel(BaseType[ChannelProto, "Channel"]):
     """Model representing a Sift Channel."""
+
     name: str
     data_type: ChannelDataType
     description: str | None = None
     unit: str | None = None
-    bit_field_elements: list[ChannelBitFieldElement] | None = None
-    enum_types: dict[str, int] | None = None
+    bit_field_elements: list[ChannelBitFieldElement] = Field(default_factory=list)
+    enum_types: dict[str, int] = Field(default_factory=dict)
     asset_id: str | None = None
     created_date: datetime | None = None
     modified_date: datetime | None = None

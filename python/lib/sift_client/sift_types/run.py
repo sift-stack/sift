@@ -73,8 +73,12 @@ class Run(BaseType[RunProto, "Run"]):
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
-            start_time=proto.start_time.ToDatetime(tzinfo=timezone.utc) if proto.HasField("start_time") else None,
-            stop_time=proto.stop_time.ToDatetime(tzinfo=timezone.utc) if proto.HasField("stop_time") else None,
+            start_time=proto.start_time.ToDatetime(tzinfo=timezone.utc)
+            if proto.HasField("start_time")
+            else None,
+            stop_time=proto.stop_time.ToDatetime(tzinfo=timezone.utc)
+            if proto.HasField("stop_time")
+            else None,
             name=proto.name,
             description=proto.description,
             tags=list(proto.tags),

@@ -72,6 +72,7 @@ class WithGrpcClient(ABC):
 
     This class provides access to a gRPC client for making API calls.
     """
+
     _grpc_client: GrpcClient
 
     def __init__(self, grpc_client: GrpcClient):
@@ -96,6 +97,7 @@ class WithRestClient(ABC):
 
     This class provides access to a REST client for making API calls.
     """
+
     _rest_client: RestClient
 
     def __init__(self, rest_client: RestClient):

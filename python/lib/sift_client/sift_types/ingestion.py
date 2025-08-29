@@ -59,6 +59,7 @@ class Flow(BaseType[FlowConfig, "Flow"]):
     channels: list[Channel]
     ingestion_config_id: str | None = None
     run_id: str | None = None
+
     @classmethod
     def _from_proto(cls, proto: FlowConfig, sift_client: SiftClient | None = None) -> Flow:
         return cls(

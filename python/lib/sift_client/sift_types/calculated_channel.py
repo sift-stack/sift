@@ -44,7 +44,9 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     @property
     def is_archived(self):
         """Whether the calculated channel is archived."""
-        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1, tzinfo=timezone.utc)
+        return self.archived_date is not None and self.archived_date > datetime(
+            1970, 1, 1, tzinfo=timezone.utc
+        )
 
     @property
     def created_by(self):
@@ -100,7 +102,9 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             organization_id=proto.organization_id,
             client_key=proto.client_key,
             archived_date=(
-                proto.archived_date.ToDatetime(tzinfo=timezone.utc) if proto.HasField("archived_date") else None
+                proto.archived_date.ToDatetime(tzinfo=timezone.utc)
+                if proto.HasField("archived_date")
+                else None
             ),
             version_id=proto.version_id,
             version=proto.version,
