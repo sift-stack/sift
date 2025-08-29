@@ -2,34 +2,53 @@ extend = "../../pyproject.toml"
 
 [lint]
 select = [
-    "F", # pyflakes
-    "W", # pycodestyle warning
-    "I", # import sort
-    "N", # pep8-naming
-    "TID", # flake8-tidy-imports
-    "FA", # flake8-future-annotations - necessary for backwards compatibility
-    "DTZ", # flake8-datetimez - good timezone practices
-    "C4", # flake8-comprehensions
-    "A", # flake8-builtins - prevent overriding built-ins
-    "B", # flake8-bugbear
-    "PERF", # perflint
-    "UP", # pyupgrade - keep our syntax up to date
-    "D", # pydocstyle
-    "RUF", # ruff specific
+    # Core linting
+    "F", # pyflakes - detect various errors
+    "W", # pycodestyle warnings - style recommendations
+    "B", # flake8-bugbear - detect potential bugs and design problems
+    "PERF", # perflint - performance optimizations
+    "RUF", # ruff-specific rules
+    #     "ASYNC",  # flake8-async - async/await best practices
 
-    "TC", # flake8-type-checking
-    #    "PT", # flake8-pytest-style
+    # Code style and formatting
+    "I", # isort - import sorting
+    "N", # pep8-naming - naming conventions
+    "C4", # flake8-comprehensions - better list/dict/set comprehensions
+    "UP", # pyupgrade - modernize syntax to latest Python
+
+    # Documentation
+    "D", # pydocstyle - docstring style checking
+
+    # Imports and modules
+    "TID", # flake8-tidy-imports - import organization
     "INP", # flake8-no-pep420 - no implicit namespace packages
-    #    "ASYNC", # flake8-async
-    #    "G", # flake8-logging-format
-    #    "LOG", # flake8-logging
+
+    # Type checking and annotations
+    "FA", # flake8-future-annotations - necessary for backwards compatibility
+    "TC", # flake8-type-checking - type checking best practices
+
+    # Built-ins and standard library
+    "A", # flake8-builtins - prevent overriding built-ins
+    "DTZ", # flake8-datetimez - good timezone practices
+
+    # Exception handling
     #    "TRY", # tryceratops - exception handling antipatterns
+
+    # Logging best practices
+    #    "G", # flake8-logging-format - logging format best practices
+    "LOG", # flake8-logging - logging best practices
+
+    # Tests
+    #     "PT",     # flake8-pytest-style - pytest best practices
+
 ]
 
 ignore = ["W191", "D206", "D300", # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
     "B024", # ignore missing abstract methods
-    # D105: Missing docstring in magic method
-    "D104", "D105", "D205", "D100"
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D205", # 1 blank line required between summary line and description
+    "D100", # Missing docstring in public module
 ]
 
 

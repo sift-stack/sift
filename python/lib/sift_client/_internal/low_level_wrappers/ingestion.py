@@ -321,7 +321,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 logger.debug(f"Getting ingestion config id from generated client key {client_key}")
                 ingestion_config_id = await self.get_ingestion_config_id_from_client_key(client_key)
             except ValueError:
-                logging.debug(
+                logger.debug(
                     f"No ingestion config found for client key {client_key}. Creating new one."
                 )
                 pass
