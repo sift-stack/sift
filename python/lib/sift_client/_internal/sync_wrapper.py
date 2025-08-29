@@ -8,7 +8,7 @@ import asyncio
 import inspect
 import sys
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Type, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import TypedDict
 
@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 
 # registry of all classes decorated with @generate_sync_api
 class SyncAPIRegistration(TypedDict):
-    async_cls: Type[Any]
-    sync_cls: Type[Any]
+    async_cls: type[Any]
+    sync_cls: type[Any]
 
 
 _registered: list[SyncAPIRegistration] = []
@@ -26,7 +26,7 @@ _registered: list[SyncAPIRegistration] = []
 S = TypeVar("S")
 
 
-def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
+def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
     """
     Generate a synchronous wrapper class for the given async API class.
 

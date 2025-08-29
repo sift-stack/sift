@@ -17,7 +17,7 @@ import threading
 import time
 from collections import namedtuple
 from queue import Queue
-from typing import TYPE_CHECKING, Any, Dict, List, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import sift_stream_bindings
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
@@ -160,7 +160,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
     CacheEntry = namedtuple("CacheEntry", ["data_queue", "ingestion_config", "thread"])
 
     sift_stream_builder: sift_stream_bindings.SiftStreamBuilderPy
-    stream_cache: Dict[str, "CacheEntry"]
+    stream_cache: dict[str, CacheEntry]
 
     def __init__(self, grpc_client: GrpcClient):
         """
@@ -207,7 +207,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     )
                     thread.stop()
 
-    async def get_ingestion_config_flows(self, ingestion_config_id: str) -> List[Flow]:
+    async def get_ingestion_config_flows(self, ingestion_config_id: str) -> list[Flow]:
         """
         Get the flows for an ingestion config.
         """
@@ -217,7 +217,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         res = cast("ListIngestionConfigFlowsResponse", res)
         return [Flow._from_proto(flow) for flow in res.flows]
 
-    async def list_ingestion_configs(self, filter_query: str) -> List[IngestionConfig]:
+    async def list_ingestion_configs(self, filter_query: str) -> list[IngestionConfig]:
         """
         List ingestion configs.
         """
@@ -253,7 +253,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             ingestion_config_id: The id of the ingestion config for the flows this stream will ingest. Used to cache the stream.
             ingestion_config: The ingestion config to use for ingestion.
         """
-        data_queue: Queue[List[IngestWithConfigDataStreamRequestPy]] = Queue()
+        data_queue: Queue[list[IngestWithConfigDataStreamRequestPy]] = Queue()
         existing = self.stream_cache.get(ingestion_config_id)
         if existing:
             existing_data_queue, existing_ingestion_config, existing_thread = existing
@@ -269,7 +269,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         return self.CacheEntry(data_queue, ingestion_config, thread)
 
-    def _hash_flows(self, asset_name: str, flows: List[Flow]) -> str:
+    def _hash_flows(self, asset_name: str, flows: list[Flow]) -> str:
         """
         Generate a client key that should be unique but deterministic for the given asset and flow configuration.
         """
@@ -303,7 +303,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         *,
         asset_name: str,
-        flows: List[Flow],
+        flows: list[Flow],
         client_key: str | None = None,
         organization_id: str | None = None,
     ) -> str:

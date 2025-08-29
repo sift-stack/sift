@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -8,6 +8,7 @@ from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import builtins
     import re
 
     from sift_client.client import SiftClient
@@ -25,7 +26,7 @@ class RulesAPIAsync(ResourceBase):
     representation of a rule using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
+    def __init__(self, sift_client: SiftClient):
         """
         Initialize the RulesAPI.
 
@@ -121,12 +122,12 @@ class RulesAPIAsync(ResourceBase):
         name: str,
         description: str,
         expression: str,
-        channel_references: List[ChannelReference],
+        channel_references: builtins.list[ChannelReference],
         action: RuleAction,
         organization_id: str | None = None,
         client_key: str | None = None,
-        asset_ids: List[str] | None = None,
-        contextual_channels: List[str] | None = None,
+        asset_ids: builtins.list[str] | None = None,
+        contextual_channels: builtins.list[str] | None = None,
         is_external: bool = False,
     ) -> Rule:
         """
@@ -172,9 +173,9 @@ class RulesAPIAsync(ResourceBase):
         self,
         *,
         rule: str | Rule | None = None,
-        rules: List[Rule] | None = None,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
+        rules: builtins.list[Rule] | None = None,
+        rule_ids: builtins.list[str] | None = None,
+        client_keys: builtins.list[str] | None = None,
     ) -> None:
         """
         Archive a rule or multiple.
@@ -238,8 +239,8 @@ class RulesAPIAsync(ResourceBase):
     async def batch_restore(
         self,
         *,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
+        rule_ids: builtins.list[str] | None = None,
+        client_keys: builtins.list[str] | None = None,
     ) -> None:
         """
         Batch restore rules.
@@ -253,9 +254,9 @@ class RulesAPIAsync(ResourceBase):
     async def batch_get(
         self,
         *,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
-    ) -> List[Rule]:
+        rule_ids: builtins.list[str] | None = None,
+        client_keys: builtins.list[str] | None = None,
+    ) -> builtins.list[Rule]:
         """
         Get multiple rules by rule IDs or client keys.
 

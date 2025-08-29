@@ -14,7 +14,7 @@ class PingAPIAsync(ResourceBase):
     High-level API for performing health checks.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
+    def __init__(self, sift_client: SiftClient):
         """
         Initialize the AssetsAPI.
 

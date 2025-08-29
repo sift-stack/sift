@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.ingestion import IngestionLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -26,7 +26,7 @@ class IngestionAPIAsync(ResourceBase):
     representation of ingestion flows using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
+    def __init__(self, sift_client: SiftClient):
         """
         Initialize the IngestionAPI.
 
@@ -41,7 +41,7 @@ class IngestionAPIAsync(ResourceBase):
         *,
         asset_name: str,
         run_id: str | None = None,
-        flows: List[Flow],
+        flows: list[Flow],
         client_key: str | None = None,
         organization_id: str | None = None,
     ) -> str:

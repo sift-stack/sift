@@ -16,13 +16,13 @@ T = TypeVar("T", bound="BaseType")
 
 
 class ResourceBase(ABC):
-    _sift_client: "SiftClient"
+    _sift_client: SiftClient
 
-    def __init__(self, sift_client: "SiftClient"):
+    def __init__(self, sift_client: SiftClient):
         self._sift_client = sift_client
 
     @property
-    def client(self) -> "SiftClient":
+    def client(self) -> SiftClient:
         return self._sift_client
 
     @property

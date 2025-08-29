@@ -25,7 +25,7 @@ class AssetsAPIAsync(ResourceBase):
     representation of an asset using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
+    def __init__(self, sift_client: SiftClient):
         """
         Initialize the AssetsAPI.
 

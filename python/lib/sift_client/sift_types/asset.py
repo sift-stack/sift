@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, ClassVar, List, Type
+from typing import TYPE_CHECKING, ClassVar
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
@@ -44,10 +44,10 @@ class Asset(BaseType[AssetProto, "Asset"]):
         raise NotImplementedError
 
     @property
-    def runs(self) -> List[Run]:
+    def runs(self) -> list[Run]:
         return self.client.runs.list(asset_id=self.id_)
 
-    def channels(self, run_id: str | None = None, limit: int | None = None) -> List[Channel]:
+    def channels(self, run_id: str | None = None, limit: int | None = None) -> list[Channel]:
         """
         Return all channels for this asset.
         """
@@ -115,7 +115,7 @@ class AssetUpdate(ModelUpdate[AssetProto]):
         ),
     }
 
-    def _get_proto_class(self) -> Type[AssetProto]:
+    def _get_proto_class(self) -> type[AssetProto]:
         return AssetProto
 
     def _add_resource_id_to_proto(self, proto_msg: AssetProto):

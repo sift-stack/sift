@@ -13,17 +13,17 @@ select = [
     "A", # flake8-builtins - prevent overriding built-ins
     "B", # flake8-bugbear
     "PERF", # perflint
-    #    "UP", # pyupgrade - keep our syntax up to date
+    "UP", # pyupgrade - keep our syntax up to date
     #    "D", # pydocstyle
-
     "RUF", # ruff specific
-    #    "TRY", # tryceratops - exception handling antipatterns
+
     "TC", # flake8-type-checking
     #    "PT", # flake8-pytest-style
     "INP", # flake8-no-pep420 - no implicit namespace packages
+    #    "ASYNC", # flake8-async
     #    "G", # flake8-logging-format
     #    "LOG", # flake8-logging
-    #    "ASYNC", # flake8-async
+    #    "TRY", # tryceratops - exception handling antipatterns
 ]
 
 ignore = ["W191", "D206", "D300", # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules

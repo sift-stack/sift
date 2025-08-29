@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannelAbstractChannelReference,
@@ -239,7 +239,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         *,
         update: CalculatedChannelUpdate,
         user_notes: str | None = None,
-    ) -> tuple[CalculatedChannel, List[Any]]:
+    ) -> tuple[CalculatedChannel, list[Any]]:
         """
         Update a calculated channel.
 

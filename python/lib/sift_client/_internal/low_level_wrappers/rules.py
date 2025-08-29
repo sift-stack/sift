@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sift.rules.v1.rules_pb2 import (
     BatchDeleteRulesRequest,
@@ -128,7 +128,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         contextual_channels: list[str] | None = None,
         is_external: bool,
         expression: str,
-        channel_references: List[ChannelReference],
+        channel_references: list[ChannelReference],
         action: RuleAction,
     ) -> Rule:
         """
@@ -223,7 +223,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         # Special handling for the more complex fields.
         # Also, these must always be set.
         expression = model_dump.get("expression", rule.expression)
-        channel_references: List[ChannelReference] = (
+        channel_references: list[ChannelReference] = (
             update.channel_references
             if "channel_references" in model_dump
             else rule.channel_references
@@ -337,7 +337,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         await self._grpc_client.get_stub(RuleServiceStub).ArchiveRule(request)
 
     async def batch_archive_rules(
-        self, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
+        self, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
     ) -> None:
         """
         Batch archive rules.
@@ -390,7 +390,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return await self.get_rule(rule_id=rule_id, client_key=client_key)
 
     async def batch_restore_rules(
-        self, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
+        self, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
     ) -> None:
         """
         Batch restore rules.
@@ -421,7 +421,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         order_by: str | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
-    ) -> tuple[List[Rule], str | None]:
+    ) -> tuple[list[Rule], str | None]:
         """
         List rules.
         """
@@ -446,7 +446,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         order_by: str | None = None,
         max_results: int | None = None,
         page_size: int | None = None,
-    ) -> List[Rule]:
+    ) -> list[Rule]:
         """
         List all rules.
         """

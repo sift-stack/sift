@@ -4,7 +4,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from math import ceil
-from typing import TYPE_CHECKING, Any, List, Tuple, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
@@ -90,7 +90,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = None,
         page_token: str | None = None,
         order_by: str | None = None,
-    ) -> Tuple[List[Any], str | None]:
+    ) -> tuple[list[Any], str | None]:
         """
         Get the data for a channel during a run.
         """
@@ -112,7 +112,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = cast("GetDataResponse", response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 
-    def _filter_cached_channels(self, channel_ids: List[str]) -> Tuple[List[str], List[str]]:
+    def _filter_cached_channels(self, channel_ids: list[str]) -> tuple[list[str], list[str]]:
         cached_channels = []
         not_cached_channels = []
         for channel_id in channel_ids:
@@ -129,7 +129,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         start_time: datetime,
         end_time: datetime,
         run_id: str | None = None,
-    ) -> Tuple[pd.DataFrame | None, datetime | None, datetime | None]:
+    ) -> tuple[pd.DataFrame | None, datetime | None, datetime | None]:
         """
         Check if the data for a channel during a run is cached and return how to query remaining data if so.
 
@@ -236,7 +236,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def get_channel_data(
         self,
         *,
-        channels: List[Channel],
+        channels: list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,

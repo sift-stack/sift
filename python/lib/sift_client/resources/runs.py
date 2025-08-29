@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -9,6 +9,7 @@ from sift_client.sift_types.run import Run, RunUpdate
 from sift_client.util.cel_utils import contains, equals, equals_null, match, not_
 
 if TYPE_CHECKING:
+    import builtins
     from datetime import datetime
 
     from sift_client.client import SiftClient
@@ -25,7 +26,7 @@ class RunsAPIAsync(ResourceBase):
     representation of a run using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
+    def __init__(self, sift_client: SiftClient):
         """
         Initialize the RunsAPI.
 
@@ -69,7 +70,7 @@ class RunsAPIAsync(ResourceBase):
         include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> List[Run]:
+    ) -> builtins.list[Run]:
         """
         List runs with optional filtering.
 
@@ -161,7 +162,7 @@ class RunsAPIAsync(ResourceBase):
         self,
         name: str,
         description: str,
-        tags: List[str] | None = None,
+        tags: builtins.list[str] | None = None,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         organization_id: str | None = None,
@@ -250,7 +251,7 @@ class RunsAPIAsync(ResourceBase):
     async def create_automatic_association_for_assets(
         self,
         run: str | Run,
-        asset_names: List[str],
+        asset_names: builtins.list[str],
     ) -> None:
         """
         Associate assets with a run for automatic data ingestion.

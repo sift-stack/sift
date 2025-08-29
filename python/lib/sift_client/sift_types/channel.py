@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
 from pydantic import BaseModel
@@ -55,14 +55,14 @@ class ChannelDataType(Enum):
         return ret
 
     @staticmethod
-    def from_api_format(val: str) -> Optional["ChannelDataType"]:
+    def from_api_format(val: str) -> ChannelDataType | None:
         for item in ChannelDataType:
             if "CHANNEL_DATA_TYPE_" + item.name == val:
                 return item
         return None
 
     @staticmethod
-    def from_str(raw: str) -> Optional["ChannelDataType"]:
+    def from_str(raw: str) -> ChannelDataType | None:
         if raw.startswith("CHANNEL_DATA_TYPE_"):
             val = ChannelDataType.from_api_format(raw)
             if val is None:
@@ -176,8 +176,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     data_type: ChannelDataType
     description: str | None = None
     unit: str | None = None
-    bit_field_elements: List[ChannelBitFieldElement] | None = None
-    enum_types: Dict[str, int] | None = None
+    bit_field_elements: list[ChannelBitFieldElement] | None = None
+    enum_types: dict[str, int] | None = None
     asset_id: str | None = None
     created_date: datetime | None = None
     modified_date: datetime | None = None
@@ -185,13 +185,13 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     modified_by_user_id: str | None = None
 
     @staticmethod
-    def _enum_types_to_proto_list(enum_types: Dict[str, int] | None) -> List[ChannelEnumTypePb]:
+    def _enum_types_to_proto_list(enum_types: dict[str, int] | None) -> list[ChannelEnumTypePb]:
         """Convert a dictionary of enum types to a list of ChannelEnumTypePb objects."""
         enum_types = {} if enum_types is None else enum_types
         return [ChannelEnumTypePb(name=name, key=key) for name, key in enum_types.items()]
 
     @staticmethod
-    def _enum_types_from_proto_list(enum_types: List[ChannelEnumTypePb]) -> Dict[str, int]:
+    def _enum_types_from_proto_list(enum_types: list[ChannelEnumTypePb]) -> dict[str, int]:
         """Convert a list of ChannelEnumTypePb objects to a dictionary of enum types."""
         return {enum.name: enum.key for enum in enum_types}
 
@@ -281,7 +281,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return self.client.assets.get(asset_id=self.asset_id)
 
     @property
-    def runs(self) -> List[Run]:
+    def runs(self) -> list[Run]:
         return self.asset.runs
 
 

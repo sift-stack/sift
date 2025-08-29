@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.calculated_channels import (
     CalculatedChannelsLowLevelClient,
@@ -14,6 +14,7 @@ from sift_client.sift_types.calculated_channel import (
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import builtins
     import re
 
     from sift_client.client import SiftClient
@@ -31,7 +32,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
     representation of a calculated channel using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
+    def __init__(self, sift_client: SiftClient):
         """
         Initialize the CalculatedChannelsAPI.
 
@@ -98,7 +99,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
         organization_id: str | None = None,
-    ) -> List[CalculatedChannel]:
+    ) -> builtins.list[CalculatedChannel]:
         """
         List calculated channels with optional filtering.
 
@@ -197,12 +198,12 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         *,
         name: str,
         expression: str,
-        channel_references: List[ChannelReference],
+        channel_references: builtins.list[ChannelReference],
         description: str = "",
         units: str | None = None,
         client_key: str | None = None,
-        asset_ids: List[str] | None = None,
-        tag_ids: List[str] | None = None,
+        asset_ids: builtins.list[str] | None = None,
+        tag_ids: builtins.list[str] | None = None,
         all_assets: bool = False,
         user_notes: str = "",
     ) -> CalculatedChannel:
@@ -315,7 +316,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> List[CalculatedChannel]:
+    ) -> builtins.list[CalculatedChannel]:
         """
         List versions of a calculated channel.
 

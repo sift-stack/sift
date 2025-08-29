@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, ClassVar, List, Type
+from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import ConfigDict
 from sift.runs.v2.runs_pb2 import Run as RunProto
@@ -27,7 +27,7 @@ class RunUpdate(ModelUpdate[RunProto]):
     stop_time: datetime | None = None
     is_pinned: bool | None = None
     client_key: str | None = None
-    tags: List[str] | None = None
+    tags: list[str] | None = None
     metadata: dict[str, str | float | bool] | None = None
 
     _to_proto_helpers: ClassVar = {
@@ -36,7 +36,7 @@ class RunUpdate(ModelUpdate[RunProto]):
         ),
     }
 
-    def _get_proto_class(self) -> Type[RunProto]:
+    def _get_proto_class(self) -> type[RunProto]:
         return RunProto
 
     def _add_resource_id_to_proto(self, proto_msg: RunProto):
@@ -61,11 +61,11 @@ class Run(BaseType[RunProto, "Run"]):
     organization_id: str
     start_time: datetime | None = None
     stop_time: datetime | None = None
-    tags: List[str] | None = None
+    tags: list[str] | None = None
     default_report_id: str | None = None
     client_key: str | None = None
     metadata: dict[str, str | float | bool]
-    asset_ids: List[str] | None = None
+    asset_ids: list[str] | None = None
     archived_date: datetime | None = None
 
     @classmethod
@@ -129,7 +129,7 @@ class Run(BaseType[RunProto, "Run"]):
         return proto
 
     @property
-    def assets(self) -> List[Asset]:
+    def assets(self) -> list[Asset]:
         """
         Return all assets associated with this run.
         """

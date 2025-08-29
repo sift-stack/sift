@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 import pandas as pd
 import pyarrow as pa
@@ -12,6 +12,7 @@ from sift_client.resources._base import ResourceBase
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import builtins
     from datetime import datetime
 
     import numpy as np
@@ -31,7 +32,7 @@ class ChannelsAPIAsync(ResourceBase):
     representation of a channel using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
+    def __init__(self, sift_client: SiftClient):
         """
         Initialize the ChannelsAPI.
 
@@ -174,12 +175,12 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data(
         self,
         *,
-        channels: List[Channel],
+        channels: builtins.list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> Dict[str, pd.DataFrame]:
+    ) -> dict[str, pd.DataFrame]:
         """
         Get data for one or more channels.
 
@@ -201,12 +202,12 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data_as_arrow(
         self,
         *,
-        channels: List[Channel],
+        channels: builtins.list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> Dict[str, pa.Table]:
+    ) -> dict[str, pa.Table]:
         """
         Get data for one or more channels as pyarrow tables.
         """

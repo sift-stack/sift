@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, ClassVar, Type
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannel as CalculatedChannelProto,
@@ -156,7 +156,7 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
         ):
             raise ValueError("Expression and channel references must be set together")
 
-    def _get_proto_class(self) -> Type[CalculatedChannelProto]:
+    def _get_proto_class(self) -> type[CalculatedChannelProto]:
         return CalculatedChannelProto
 
     def _add_resource_id_to_proto(self, proto_msg: CalculatedChannelProto):

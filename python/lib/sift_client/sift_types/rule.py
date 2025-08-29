@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING
 
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
@@ -43,11 +43,11 @@ class Rule(BaseType[RuleProto, "Rule"]):
     description: str
     is_enabled: bool = True
     expression: str | None = None
-    channel_references: List[ChannelReference] | None = None
+    channel_references: list[ChannelReference] | None = None
     action: RuleAction | None = None
-    asset_ids: List[str] | None = None
-    asset_tag_ids: List[str] | None = None
-    contextual_channels: List[str] | None = None
+    asset_ids: list[str] | None = None
+    asset_tag_ids: list[str] | None = None
+    contextual_channels: list[str] | None = None
     client_key: str | None = None
 
     # Fields from proto
@@ -66,7 +66,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
         return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1, tzinfo=timezone.utc)
 
     @property
-    def assets(self) -> List[Asset]:
+    def assets(self) -> list[Asset]:
         """Get the assets that this rule applies to."""
         return self.client.assets.list_(asset_ids=self.asset_ids, tag_ids=self.asset_tag_ids)
 
@@ -157,13 +157,13 @@ class RuleUpdate(ModelUpdate[RuleProto]):
     name: str | None = None
     description: str | None = None
     expression: str | None = None
-    channel_references: List[ChannelReference] | None = None
+    channel_references: list[ChannelReference] | None = None
     action: RuleAction | None = None
-    asset_ids: List[str] | None = None
-    asset_tag_ids: List[str] | None = None
-    contextual_channels: List[str] | None = None
+    asset_ids: list[str] | None = None
+    asset_tag_ids: list[str] | None = None
+    contextual_channels: list[str] | None = None
 
-    def _get_proto_class(self) -> Type[RuleProto]:
+    def _get_proto_class(self) -> type[RuleProto]:
         return RuleProto
 
     def _add_resource_id_to_proto(self, proto_msg: RuleProto):
@@ -180,7 +180,7 @@ class RuleActionType(Enum):
     WEBHOOK = ActionKind.WEBHOOK  # 2
 
     @classmethod
-    def from_str(cls, val: str) -> Optional["RuleActionType"]:
+    def from_str(cls, val: str) -> RuleActionType | None:
         if isinstance(val, str) and val.startswith("ACTION_KIND_"):
             for item in cls:
                 if "ACTION_KIND_" + item.name == val:
@@ -197,7 +197,7 @@ class RuleAnnotationType(Enum):
     PHASE = 2
 
     @classmethod
-    def from_str(cls, val: str) -> Optional["RuleAnnotationType"]:
+    def from_str(cls, val: str) -> RuleAnnotationType | None:
         if isinstance(val, str) and val.startswith("ANNOTATION_TYPE_"):
             for item in cls:
                 if "ANNOTATION_TYPE_" + item.name == val:
@@ -219,14 +219,14 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     modified_by_user_id: str | None = None
     version_id: str | None = None
     annotation_type: RuleAnnotationType | None = None
-    tags: List[str] | None = None
+    tags: list[str] | None = None
     default_assignee_user_id: str | None = None
 
     @classmethod
     def annotation(
         cls,
         annotation_type: RuleAnnotationType,
-        tags: List[str],
+        tags: list[str],
         default_assignee_user_id: str | None = None,
     ) -> RuleAction:
         """Create an annotation action.

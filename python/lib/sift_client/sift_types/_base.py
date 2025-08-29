@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, TypeVar
 
 from google.protobuf import field_mask_pb2, message
 from pydantic import BaseModel, ConfigDict, PrivateAttr
@@ -55,7 +55,7 @@ class MappingHelper(BaseModel):
 
     proto_attr_path: str
     update_field: str | None = None
-    converter: Type[Any] | Callable[[Any], Any] | None = None
+    converter: type[Any] | Callable[[Any], Any] | None = None
 
 
 # TODO: how to handle nulling fields, needs to be default value for the type
@@ -64,7 +64,7 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
 
     model_config = ConfigDict(frozen=False)
 
-    _resource_id: Optional[Any] = PrivateAttr(default=None)
+    _resource_id: Any | None = PrivateAttr(default=None)
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = PrivateAttr(default={})
 
     def __init__(self, **data: Any):
@@ -88,7 +88,7 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
     def to_proto_with_mask(self) -> tuple[ProtoT, field_mask_pb2.FieldMask]:
         """Convert to proto with field mask"""
         # Get the corresponding proto class
-        proto_cls: Type[ProtoT] = self._get_proto_class()
+        proto_cls: type[ProtoT] = self._get_proto_class()
         proto_msg = proto_cls()
 
         # Get only explicitly set fields, including those set to None
@@ -176,7 +176,7 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
 
         return paths
 
-    def _get_proto_class(self) -> Type[ProtoT]:
+    def _get_proto_class(self) -> type[ProtoT]:
         """Get the corresponding proto class - override in subclasses since typing is not strict."""
         raise NotImplementedError("Subclasses must implement this")
 

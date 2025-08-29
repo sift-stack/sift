@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from google.protobuf.empty_pb2 import Empty
 from pydantic import ConfigDict
@@ -41,7 +41,7 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
     @classmethod
     def _from_proto(
         cls, proto: IngestionConfigProto, sift_client: SiftClient | None = None
-    ) -> "IngestionConfig":
+    ) -> IngestionConfig:
         return cls(
             id_=proto.ingestion_config_id,
             asset_id=proto.asset_id,
@@ -53,7 +53,7 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
 class Flow(BaseType[FlowConfig, "Flow"]):
     model_config = ConfigDict(frozen=False)
     name: str
-    channels: List[Channel]
+    channels: list[Channel]
     ingestion_config_id: str | None = None
     run_id: str | None = None
 

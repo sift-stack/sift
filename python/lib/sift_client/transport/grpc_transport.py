@@ -11,7 +11,7 @@ import asyncio
 import atexit
 import logging
 import threading
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 from sift_py.grpc.transport import (
     SiftChannelConfig,
@@ -45,7 +45,7 @@ class GrpcConfig:
         api_key: str,
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
-        metadata: Dict[str, str] | None = None,
+        metadata: dict[str, str] | None = None,
     ):
         """
         Initialize the gRPC configuration.
@@ -95,8 +95,8 @@ class GrpcClient:
         """
         self._config = config
         # map each asyncio loop to its async channel and stub dict
-        self._channels_async: Dict[asyncio.AbstractEventLoop, Any] = {}
-        self._stubs_async_map: Dict[asyncio.AbstractEventLoop, Dict[Type[Any], Any]] = {}
+        self._channels_async: dict[asyncio.AbstractEventLoop, Any] = {}
+        self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = {}
         # default loop for sync API
         self._default_loop = asyncio.new_event_loop()
         atexit.register(self.close_sync)
@@ -126,7 +126,7 @@ class GrpcClient:
     def default_loop(self) -> asyncio.AbstractEventLoop:
         return self._default_loop
 
-    def get_stub(self, stub_class: Type[Any]) -> Any:
+    def get_stub(self, stub_class: type[Any]) -> Any:
         """
         Get an async stub bound to the current event loop.
         Creates a channel and stub for this loop if needed.
@@ -180,7 +180,7 @@ class GrpcClient:
         self.close_sync()
 
     async def _create_async_channel(
-        self, cfg: SiftChannelConfig, metadata: Optional[Dict[str, str]]
+        self, cfg: SiftChannelConfig, metadata: dict[str, str] | None
     ) -> Any:
         """Helper to create async channel on default loop."""
         return use_sift_async_channel(cfg, metadata)
