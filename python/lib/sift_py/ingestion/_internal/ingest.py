@@ -547,7 +547,6 @@ class _IngestionServiceImpl:
             for config_channel in config_flow.channels:
                 # Found a channel for this flow that doesn't exist in Sift based on channel
                 # fully-qualified name and data-type. Create a new flow.
-
                 if not config_channel_identifier(config_channel) in sift_channel_identifiers:
                     raise IngestionValidationError(
                         "Encountered duplicate flow with mismatched channels"
