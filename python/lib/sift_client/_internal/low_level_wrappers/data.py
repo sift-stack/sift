@@ -4,7 +4,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from math import ceil
-from typing import Any, List, Tuple, cast
+from typing import Any, Dict, List, Tuple, cast
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
@@ -240,7 +240,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         end_time: datetime | None = None,
         limit: int | None = None,
         ignore_cache: bool = False,
-    ):
+    ) -> Dict[str, pd.DataFrame]:
         """
         Get the data for a channel during a run.
         """
@@ -326,7 +326,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return ret_data
 
     @staticmethod
-    def try_deserialize_channel_data(channel_data: Any) -> dict[str, pd.DataFrame]:
+    def try_deserialize_channel_data(channel_data: Any) -> Dict[str, pd.DataFrame]:
         """
         Deserialize a channel data object into a numpy array.
         """

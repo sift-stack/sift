@@ -14,6 +14,7 @@ from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as Channel
 from sift.data.v2.data_pb2 import (
     BitFieldValues,
     BoolValues,
+    BytesValues,
     DoubleValues,
     EnumValues,
     FloatValues,
@@ -45,6 +46,7 @@ class ChannelDataType(Enum):
     INT_64 = channel_pb.CHANNEL_DATA_TYPE_INT_64
     UINT_32 = channel_pb.CHANNEL_DATA_TYPE_UINT_32
     UINT_64 = channel_pb.CHANNEL_DATA_TYPE_UINT_64
+    BYTES = channel_pb.CHANNEL_DATA_TYPE_BYTES
 
     def __str__(self) -> str:
         ret = self.name.lower()
@@ -78,7 +80,7 @@ class ChannelDataType(Enum):
                 if item.__str__() == val:
                     return item
             raise Exception(
-                "Unreachable. ChannelTypeUrls and ChannelDataType enum names are out of sync."
+                f"{raw} type not found. ChannelTypeUrls and ChannelDataType enum names are out of sync."
             )
         else:
             try:
@@ -111,6 +113,8 @@ class ChannelDataType(Enum):
             return Uint32Values
         elif data_type == ChannelDataType.UINT_64:
             return Uint64Values
+        elif data_type == ChannelDataType.BYTES:
+            return BytesValues
         else:
             raise ValueError(f"Unknown data type: {data_type}")
 
@@ -138,6 +142,8 @@ class ChannelDataType(Enum):
             return "CHANNEL_DATA_TYPE_UINT_32" if api_format else ChannelDataType.UINT_32.__str__()
         elif self == ChannelDataType.UINT_64:
             return "CHANNEL_DATA_TYPE_UINT_64" if api_format else ChannelDataType.UINT_64.__str__()
+        elif self == ChannelDataType.BYTES:
+            return "CHANNEL_DATA_TYPE_BYTES" if api_format else ChannelDataType.BYTES.__str__()
         else:
             raise Exception("Unreachable.")
 
@@ -249,7 +255,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             limit: The maximum number of data points to return.
 
         Returns:
-            A ChannelTimeSeries object.
+            A dict of channel name to pandas DataFrame or Arrow Table object.
         """
         if as_arrow:
             data = self.client.channels.get_data_as_arrow(

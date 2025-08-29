@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List
 
-import numpy as np
+import pandas as pd
 import pyarrow as pa
 
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
@@ -176,7 +176,7 @@ class ChannelsAPIAsync(ResourceBase):
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> Dict[str, np.ndarray]:
+    ) -> Dict[str, pd.DataFrame]:
         """
         Get data for one or more channels.
 
