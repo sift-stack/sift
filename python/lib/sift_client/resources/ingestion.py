@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, List
 
 from sift_client._internal.low_level_wrappers.ingestion import IngestionLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.ingestion import Flow
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.client import SiftClient
+    from sift_client.sift_types.ingestion import Flow
 
 logger = logging.getLogger(__name__)
 

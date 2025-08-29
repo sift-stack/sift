@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, List
 
@@ -12,11 +11,13 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelUpdate,
 )
-from sift_client.sift_types.channel import ChannelReference
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
+
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import ChannelReference
 
 
 class CalculatedChannelsAPIAsync(ResourceBase):

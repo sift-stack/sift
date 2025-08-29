@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, List
 
 from google.protobuf.empty_pb2 import Empty
@@ -26,6 +25,8 @@ from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import Channel, ChannelDataType
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.client import SiftClient
 
 

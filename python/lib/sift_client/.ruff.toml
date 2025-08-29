@@ -18,7 +18,7 @@ select = [
 
     "RUF", # ruff specific
     #    "TRY", # tryceratops - exception handling antipatterns
-    #    "TC", # flake8-type-checking
+    "TC", # flake8-type-checking
     #    "PT", # flake8-pytest-style
     "INP", # flake8-no-pep420 - no implicit namespace packages
     #    "G", # flake8-logging-format

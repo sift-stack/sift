@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List
 
 import pandas as pd
@@ -10,11 +9,15 @@ import pyarrow as pa
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
 from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.channel import Channel
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
+    import numpy as np
+
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import Channel
 
 
 class ChannelsAPIAsync(ResourceBase):

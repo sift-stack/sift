@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 from abc import ABC
+from typing import TYPE_CHECKING
 
 from sift_client.transport.grpc_transport import GrpcClient, GrpcConfig
 from sift_client.transport.rest_transport import RestClient, RestConfig
+
+if TYPE_CHECKING:
+    import asyncio
 
 
 class SiftConnectionConfig:

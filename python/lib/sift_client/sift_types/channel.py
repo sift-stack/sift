@@ -27,11 +27,11 @@ from sift.data.v2.data_pb2 import (
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig
 
 from sift_client.sift_types._base import BaseType
-from sift_client.sift_types.run import Run
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.run import Run
 
 
 # Enum for channel data types (mimics protobuf values, but as int for now)

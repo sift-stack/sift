@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List, cast
+from typing import TYPE_CHECKING, Any, List, cast
 
 from sift.rules.v1.rules_pb2 import (
     BatchDeleteRulesRequest,
@@ -31,13 +31,15 @@ from sift.rules.v1.rules_pb2 import (
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.sift_types.channel import ChannelReference
 from sift_client.sift_types.rule import (
     Rule,
     RuleAction,
     RuleUpdate,
 )
 from sift_client.transport import GrpcClient, WithGrpcClient
+
+if TYPE_CHECKING:
+    from sift_client.sift_types.channel import ChannelReference
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -81,7 +83,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = GetRuleRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RuleServiceStub).GetRule(request)
-        grpc_rule = cast(GetRuleResponse, response).rule
+        grpc_rule = cast("GetRuleResponse", response).rule
         return Rule._from_proto(grpc_rule)
 
     async def batch_get_rules(
@@ -111,7 +113,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = BatchGetRulesRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchGetRules(request)
-        response = cast(BatchGetRulesResponse, response)
+        response = cast("BatchGetRulesResponse", response)
         return [Rule._from_proto(rule) for rule in response.rules]
 
     async def create_rule(
@@ -177,7 +179,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = CreateRuleRequest(update=update_request)
         created_rule = cast(
-            CreateRuleResponse,
+            "CreateRuleResponse",
             await self._grpc_client.get_stub(RuleServiceStub).CreateRule(request),
         )
         return await self.get_rule(rule_id=created_rule.rule_id, client_key=client_key)
@@ -287,7 +289,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         update_request = self._update_rule_request_from_update(rule, update, version_notes)
 
         response = await self._grpc_client.get_stub(RuleServiceStub).UpdateRule(update_request)
-        updated_grpc_rule = cast(UpdateRuleResponse, response)
+        updated_grpc_rule = cast("UpdateRuleResponse", response)
         # Get the updated rule
         return await self.get_rule(rule_id=updated_grpc_rule.rule_id)
 
@@ -309,7 +311,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = BatchUpdateRulesRequest(rules=update_requests)  # type: ignore
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchUpdateRules(request)
-        return cast(BatchUpdateRulesResponse, response)
+        return cast("BatchUpdateRulesResponse", response)
 
     async def archive_rule(self, rule_id: str | None = None, client_key: str | None = None) -> None:
         """

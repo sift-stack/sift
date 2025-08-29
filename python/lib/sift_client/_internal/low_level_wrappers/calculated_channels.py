@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List, cast
+from typing import TYPE_CHECKING, Any, List, cast
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannelAbstractChannelReference,
@@ -27,8 +27,10 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelUpdate,
 )
-from sift_client.sift_types.channel import ChannelReference
 from sift_client.transport import GrpcClient, WithGrpcClient
+
+if TYPE_CHECKING:
+    from sift_client.sift_types.channel import ChannelReference
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +78,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).GetCalculatedChannel(request)
-        grpc_calculated_channel = cast(GetCalculatedChannelResponse, response).calculated_channel
+        grpc_calculated_channel = cast("GetCalculatedChannelResponse", response).calculated_channel
         return CalculatedChannel._from_proto(grpc_calculated_channel)
 
     async def create_calculated_channel(
@@ -150,7 +152,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).CreateCalculatedChannel(request)
-        response = cast(CreateCalculatedChannelResponse, response)
+        response = cast("CreateCalculatedChannelResponse", response)
 
         calculated_channel = CalculatedChannel._from_proto(response.calculated_channel)
         inapplicable_assets = list(response.inapplicable_assets)
@@ -225,7 +227,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).ListCalculatedChannels(request)
-        response = cast(ListCalculatedChannelsResponse, response)
+        response = cast("ListCalculatedChannelsResponse", response)
 
         calculated_channels = [
             CalculatedChannel._from_proto(cc) for cc in response.calculated_channels
@@ -257,11 +259,11 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).UpdateCalculatedChannel(request)
-        response = cast(UpdateCalculatedChannelResponse, response)
+        response = cast("UpdateCalculatedChannelResponse", response)
 
         updated_calculated_channel = CalculatedChannel._from_proto(response.calculated_channel)
         inapplicable_assets = [
-            cast(CalculatedChannelValidationResult, asset) for asset in response.inapplicable_assets
+            cast("CalculatedChannelValidationResult", asset) for asset in response.inapplicable_assets
         ]
 
         return updated_calculated_channel, inapplicable_assets
@@ -318,7 +320,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).ListCalculatedChannelVersions(request)
-        response = cast(ListCalculatedChannelVersionsResponse, response)
+        response = cast("ListCalculatedChannelVersionsResponse", response)
 
         versions = [
             CalculatedChannel._from_proto(cc) for cc in response.calculated_channel_versions

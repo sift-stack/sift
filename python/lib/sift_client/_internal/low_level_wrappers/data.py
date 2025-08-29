@@ -4,7 +4,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from math import ceil
-from typing import Any, List, Tuple, cast
+from typing import TYPE_CHECKING, Any, List, Tuple, cast
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
@@ -21,7 +21,9 @@ from sift_py._internal.time import to_timestamp_nanos
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.sift_types.channel import Channel, ChannelDataType
 from sift_client.transport import WithGrpcClient
-from sift_client.transport.grpc_transport import GrpcClient
+
+if TYPE_CHECKING:
+    from sift_client.transport.grpc_transport import GrpcClient
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -107,7 +109,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = GetDataRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(DataServiceStub).GetData(request)
-        response = cast(GetDataResponse, response)
+        response = cast("GetDataResponse", response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 
     def _filter_cached_channels(self, channel_ids: List[str]) -> Tuple[List[str], List[str]]:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sift.channels.v3.channels_pb2 import (
     GetChannelRequest,
@@ -14,7 +14,9 @@ from sift.channels.v3.channels_pb2_grpc import ChannelServiceStub
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.sift_types.channel import Channel
 from sift_client.transport import WithGrpcClient
-from sift_client.transport.grpc_transport import GrpcClient
+
+if TYPE_CHECKING:
+    from sift_client.transport.grpc_transport import GrpcClient
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -54,7 +56,7 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = GetChannelRequest(channel_id=channel_id)
         response = await self._grpc_client.get_stub(ChannelServiceStub).GetChannel(request)
-        grpc_channel = cast(GetChannelResponse, response).channel
+        grpc_channel = cast("GetChannelResponse", response).channel
         channel = Channel._from_proto(grpc_channel)
         return channel
 
@@ -91,7 +93,7 @@ class ChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = ListChannelsRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(ChannelServiceStub).ListChannels(request)
-        response = cast(ListChannelsResponse, response)
+        response = cast("ListChannelsResponse", response)
 
         channels = [Channel._from_proto(channel) for channel in response.channels]
         return channels, response.next_page_token

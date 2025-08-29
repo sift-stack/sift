@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from sift.metadata.v1.metadata_pb2 import (
     MetadataKey,
     MetadataKeyType,
@@ -9,9 +7,6 @@ from sift.metadata.v1.metadata_pb2 import (
 from sift.metadata.v1.metadata_pb2 import (
     MetadataValue as MetadataProto,
 )
-
-if TYPE_CHECKING:
-    pass
 
 
 def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[MetadataProto]:

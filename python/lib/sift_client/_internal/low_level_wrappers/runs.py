@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sift.runs.v2.runs_pb2 import (
     CreateAutomaticRunAssociationForAssetsRequest,
@@ -21,8 +21,10 @@ from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.sift_types.run import Run, RunUpdate
 from sift_client.transport import WithGrpcClient
-from sift_client.transport.grpc_transport import GrpcClient
 from sift_client.util.metadata import metadata_dict_to_proto
+
+if TYPE_CHECKING:
+    from sift_client.transport.grpc_transport import GrpcClient
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -62,7 +64,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = GetRunRequest(run_id=run_id)
         response = await self._grpc_client.get_stub(RunServiceStub).GetRun(request)
-        grpc_run = cast(GetRunResponse, response).run
+        grpc_run = cast("GetRunResponse", response).run
         return Run._from_proto(grpc_run)
 
     async def list_runs(
@@ -97,7 +99,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = ListRunsRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RunServiceStub).ListRuns(request)
-        response = cast(ListRunsResponse, response)
+        response = cast("ListRunsResponse", response)
 
         runs = [Run._from_proto(run) for run in response.runs]
         return runs, response.next_page_token
@@ -176,7 +178,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = CreateRunRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RunServiceStub).CreateRun(request)
-        grpc_run = cast(CreateRunResponse, response).run
+        grpc_run = cast("CreateRunResponse", response).run
         return Run._from_proto(grpc_run)
 
     async def update_run(self, run: Run, update: RunUpdate) -> Run:
@@ -194,7 +196,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = UpdateRunRequest(run=run_proto, update_mask=field_mask)
         response = await self._grpc_client.get_stub(RunServiceStub).UpdateRun(request)
-        grpc_run = cast(UpdateRunResponse, response).run
+        grpc_run = cast("UpdateRunResponse", response).run
         return Run._from_proto(grpc_run)
 
     async def archive_run(self, run_id: str) -> None:

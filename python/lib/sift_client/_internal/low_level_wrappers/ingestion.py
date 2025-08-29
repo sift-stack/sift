@@ -16,9 +16,8 @@ import logging
 import threading
 import time
 from collections import namedtuple
-from datetime import datetime
 from queue import Queue
-from typing import Any, Dict, List, cast
+from typing import TYPE_CHECKING, Any, Dict, List, cast
 
 import sift_stream_bindings
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
@@ -42,6 +41,9 @@ from sift_client.util import cel_utils as cel
 from sift_client.util.timestamp import to_rust_py_timestamp
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class IngestionThread(threading.Thread):
@@ -212,7 +214,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         res = await self._grpc_client.get_stub(IngestionConfigServiceStub).GetIngestionConfig(
             GetIngestionConfigRequest(ingestion_config_id=ingestion_config_id)
         )
-        res = cast(ListIngestionConfigFlowsResponse, res)
+        res = cast("ListIngestionConfigFlowsResponse", res)
         return [Flow._from_proto(flow) for flow in res.flows]
 
     async def list_ingestion_configs(self, filter_query: str) -> List[IngestionConfig]:
@@ -222,7 +224,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         res = await self._grpc_client.get_stub(IngestionConfigServiceStub).ListIngestionConfigs(
             ListIngestionConfigsRequest(filter=filter_query)
         )
-        res = cast(ListIngestionConfigsResponse, res)
+        res = cast("ListIngestionConfigsResponse", res)
         return [IngestionConfig._from_proto(config) for config in res.ingestion_configs]
 
     async def get_ingestion_config_id_from_client_key(self, client_key: str) -> str | None:

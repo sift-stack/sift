@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, List
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.channel import ChannelReference
 from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
+
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import ChannelReference
 
 
 class RulesAPIAsync(ResourceBase):

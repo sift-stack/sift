@@ -4,13 +4,13 @@ from abc import ABC
 from typing import TYPE_CHECKING, TypeVar
 
 from sift_client.errors import _sift_client_experimental_warning
-from sift_client.transport.base_connection import GrpcClient, RestClient
 
 _sift_client_experimental_warning()
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types._base import BaseType
+    from sift_client.transport.base_connection import GrpcClient, RestClient
 
 T = TypeVar("T", bound="BaseType")
 

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.asset import Asset
+
+if TYPE_CHECKING:
+    from sift_client.sift_types.asset import Asset
 
 
 class MockClassAsync(ResourceBase):

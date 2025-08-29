@@ -8,12 +8,12 @@ import asyncio
 import inspect
 import sys
 from functools import wraps
-from typing import Any, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 from typing_extensions import TypedDict
 
-from sift_client.resources._base import ResourceBase
-
+if TYPE_CHECKING:
+    from sift_client.resources._base import ResourceBase
 
 # registry of all classes decorated with @generate_sync_api
 class SyncAPIRegistration(TypedDict):

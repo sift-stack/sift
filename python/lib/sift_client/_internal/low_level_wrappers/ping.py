@@ -52,4 +52,4 @@ class PingLowLevelClient(LowLevelClientBase, WithGrpcClient):
         stub = self._grpc_client.get_stub(PingServiceStub)
         request = PingRequest()
         response = await stub.Ping(request)
-        return cast(PingResponse, response).response
+        return cast("PingResponse", response).response

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
@@ -10,6 +8,9 @@ from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.util import cel_utils
 
 if TYPE_CHECKING:
+    import re
+    from datetime import datetime
+
     from sift_client.client import SiftClient
 
 
