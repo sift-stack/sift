@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sift_client.util.cel_utils import (
     and_,
@@ -153,7 +153,7 @@ class TestCelUtils:
 
     def test_greater_than_datetime(self):
         """Test greater_than function with datetime value."""
-        dt = datetime(2023, 1, 1, 12, 0, 0)
+        dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         assert greater_than("field", dt) == f"field > {dt.isoformat()}"
 
     def test_less_than_number(self):
@@ -163,5 +163,5 @@ class TestCelUtils:
 
     def test_less_than_datetime(self):
         """Test less_than function with datetime value."""
-        dt = datetime(2023, 1, 1, 12, 0, 0)
+        dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         assert less_than("field", dt) == f"field < {dt.isoformat()}"

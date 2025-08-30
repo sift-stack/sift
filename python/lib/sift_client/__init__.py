@@ -1,5 +1,4 @@
-"""
-!!! warning
+"""!!! warning
     The Sift Client is experimental and is subject to change.
 
 

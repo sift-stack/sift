@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, List, Type
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, ClassVar
 
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
-from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
-from sift_client.types.channel import Channel
-from sift_client.types.run import Run
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.run import Run
 
 
 class Asset(BaseType[AssetProto, "Asset"]):
-    """
-    Model of the Sift Asset.
-    """
+    """Model of the Sift Asset."""
 
     name: str
     organization_id: str
@@ -33,32 +31,37 @@ class Asset(BaseType[AssetProto, "Asset"]):
     def is_archived(self):
         """Whether the asset is archived."""
         # TODO: clean up this logic when gRPC returns a null.
-        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
+        return self.archived_date is not None and self.archived_date > datetime(
+            1970, 1, 1, tzinfo=timezone.utc
+        )
 
     @property
     def created_by(self):
+        """Get the user that created this asset."""
         raise NotImplementedError
 
     @property
     def modified_by(self):
+        """Get the user that modified this asset."""
         raise NotImplementedError
 
     @property
-    def runs(self) -> List[Run]:
-        return self.client.runs.list(asset_id=self.id_)
+    def runs(self) -> list[Run]:
+        """Get the runs associated with this asset."""
+        return self.client.runs.list_(asset_id=self.id_)
 
-    def channels(self, run_id: str | None = None, limit: int | None = None) -> List[Channel]:
-        """
-        Return all channels for this asset.
-        """
-        return self.client.channels.list(asset_id=self.id_, run_id=run_id, limit=limit)
+    def channels(self, run_id: str | None = None, limit: int | None = None) -> list[Channel]:
+        """Get the channels for this asset."""
+        return self.client.channels.list_(asset_id=self.id_, run_id=run_id, limit=limit)
 
     @property
     def rules(self):
+        """Get the rules that apply to this asset."""
         raise NotImplementedError
 
     @property
     def annotations(self):
+        """Get the annotations for this asset."""
         raise NotImplementedError
 
     def archive(self, *, archive_runs: bool = False) -> Asset:
@@ -72,8 +75,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
         return self
 
     def update(self, update: AssetUpdate | dict) -> Asset:
-        """
-        Update the Asset.
+        """Update the Asset.
 
         Args:
             update: Either an AssetUpdate instance or a dictionary of key-value pairs to update.
@@ -89,33 +91,31 @@ class Asset(BaseType[AssetProto, "Asset"]):
             id_=proto.asset_id,
             name=proto.name,
             organization_id=proto.organization_id,
-            created_date=proto.created_date.ToDatetime(),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
-            modified_date=proto.modified_date.ToDatetime(),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             modified_by_user_id=proto.modified_by_user_id,
             tags=list(proto.tags) if proto.tags else [],
-            archived_date=proto.archived_date.ToDatetime(),
+            archived_date=proto.archived_date.ToDatetime(tzinfo=timezone.utc),
             metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             _client=sift_client,
         )
 
 
 class AssetUpdate(ModelUpdate[AssetProto]):
-    """
-    Model of the Asset Fields that can be updated.
-    """
+    """Model of the Asset Fields that can be updated."""
 
     tags: list[str] | None = None
     archived_date: datetime | str | None = None
     metadata: dict[str, str | float | bool] | None = None
 
-    _to_proto_helpers = {
+    _to_proto_helpers: ClassVar = {
         "metadata": MappingHelper(
             proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
         ),
     }
 
-    def _get_proto_class(self) -> Type[AssetProto]:
+    def _get_proto_class(self) -> type[AssetProto]:
         return AssetProto
 
     def _add_resource_id_to_proto(self, proto_msg: AssetProto):

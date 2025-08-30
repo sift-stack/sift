@@ -1,3 +1,1 @@
-"""
-Utility modules for the sift_client package.
-"""
+"""Utility modules for the sift_client package."""

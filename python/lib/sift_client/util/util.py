@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
-from sift_client.resources import (
-    AssetsAPIAsync,
-    CalculatedChannelsAPIAsync,
-    ChannelsAPIAsync,
-    IngestionAPIAsync,
-    PingAPIAsync,
-    RulesAPIAsync,
-    RunsAPIAsync,
-)
+if TYPE_CHECKING:
+    from sift_client.resources import (
+        AssetsAPIAsync,
+        CalculatedChannelsAPIAsync,
+        ChannelsAPIAsync,
+        IngestionAPIAsync,
+        PingAPIAsync,
+        RulesAPIAsync,
+        RunsAPIAsync,
+    )
 
 
 class AsyncAPIs(NamedTuple):

@@ -1,6 +1,4 @@
-"""
-Utility for generating synchronous API wrappers from asynchronous API classes.
-"""
+"""Utility for generating synchronous API wrappers from asynchronous API classes."""
 
 from __future__ import annotations
 
@@ -8,17 +6,18 @@ import asyncio
 import inspect
 import sys
 from functools import wraps
-from typing import Any, Type, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import TypedDict
 
-from sift_client.resources._base import ResourceBase
+if TYPE_CHECKING:
+    from sift_client.resources._base import ResourceBase
 
 
 # registry of all classes decorated with @generate_sync_api
 class SyncAPIRegistration(TypedDict):
-    async_cls: Type[Any]
-    sync_cls: Type[Any]
+    async_cls: type[Any]
+    sync_cls: type[Any]
 
 
 _registered: list[SyncAPIRegistration] = []
@@ -26,9 +25,8 @@ _registered: list[SyncAPIRegistration] = []
 S = TypeVar("S")
 
 
-def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
-    """
-    Generate a synchronous wrapper class for the given async API class.
+def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
+    """Generate a synchronous wrapper class for the given async API class.
 
     It creates a new class whose name is derived from the async class by
     stripping a trailing 'Async' (e.g. PingAPIAsync -> PingAPI). For each
@@ -137,7 +135,7 @@ def generate_sync_api(cls: Type[ResourceBase], sync_name: str) -> type:
         namespace[name] = _wrap_sync(name)
 
     # Create the sync class
-    sync_class = type(sync_name, (object,), namespace)  # noqa
+    sync_class = type(sync_name, (object,), namespace)
 
     # Register the class in the module's globals
     # This helps static analysis tools recognize it as a proper class

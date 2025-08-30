@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, Type
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannel as CalculatedChannelProto,
@@ -10,17 +10,15 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannelAbstractChannelReference,
 )
 
-from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
-from sift_client.types.channel import ChannelReference
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types.channel import ChannelReference
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
 class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
-    """
-    Model of the Sift Calculated Channel.
-    """
+    """Model of the Sift Calculated Channel."""
 
     name: str
     description: str
@@ -46,14 +44,18 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     @property
     def is_archived(self):
         """Whether the calculated channel is archived."""
-        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
+        return self.archived_date is not None and self.archived_date > datetime(
+            1970, 1, 1, tzinfo=timezone.utc
+        )
 
     @property
     def created_by(self):
+        """Get the user that created this calculated channel."""
         raise NotImplementedError
 
     @property
     def modified_by(self):
+        """Get the user that modified this calculated channel."""
         raise NotImplementedError
 
     def archive(self) -> CalculatedChannel:
@@ -66,8 +68,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         update: CalculatedChannelUpdate | dict,
         user_notes: str | None = None,
     ) -> CalculatedChannel:
-        """
-        Update the Calculated Channel.
+        """Update the Calculated Channel.
 
         Args:
             update: The update to apply to the calculated channel. See CalculatedChannelUpdate for more updatable fields.
@@ -101,7 +102,9 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             organization_id=proto.organization_id,
             client_key=proto.client_key,
             archived_date=(
-                proto.archived_date.ToDatetime() if proto.HasField("archived_date") else None
+                proto.archived_date.ToDatetime(tzinfo=timezone.utc)
+                if proto.HasField("archived_date")
+                else None
             ),
             version_id=proto.version_id,
             version=proto.version,
@@ -111,8 +114,8 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
             asset_ids=proto.calculated_channel_configuration.asset_configuration.selection.asset_ids,  # type: ignore
             tag_ids=proto.calculated_channel_configuration.asset_configuration.selection.tag_ids,  # type: ignore
             all_assets=proto.calculated_channel_configuration.asset_configuration.all_assets,
-            created_date=proto.created_date.ToDatetime(),
-            modified_date=proto.modified_date.ToDatetime(),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             _client=sift_client,
@@ -120,9 +123,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
 
 
 class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
-    """
-    Model of the Calculated Channel Fields that can be updated.
-    """
+    """Model of the Calculated Channel Fields that can be updated."""
 
     name: str | None = None
     description: str | None = None
@@ -133,7 +134,7 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
     tag_ids: list[str] | None = None
     archived_date: datetime | None = None
 
-    _to_proto_helpers = {
+    _to_proto_helpers: ClassVar = {
         "expression": MappingHelper(
             proto_attr_path="calculated_channel_configuration.query_configuration.sel.expression",
             update_field="query_configuration",
@@ -150,13 +151,22 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
     }
 
     def __init__(self, **data: Any):
+        """Initialize a CalculatedChannelUpdate instance.
+
+        Args:
+            **data: Keyword arguments for the update fields.
+
+        Raises:
+            ValueError: If only one of expression or expression_channel_references is provided.
+                       Both must be provided together or neither should be provided.
+        """
         super().__init__(**data)
         if any([self.expression, self.expression_channel_references]) and not all(
             [self.expression, self.expression_channel_references]
         ):
             raise ValueError("Expression and channel references must be set together")
 
-    def _get_proto_class(self) -> Type[CalculatedChannelProto]:
+    def _get_proto_class(self) -> type[CalculatedChannelProto]:
         return CalculatedChannelProto
 
     def _add_resource_id_to_proto(self, proto_msg: CalculatedChannelProto):

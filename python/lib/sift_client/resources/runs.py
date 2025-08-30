@@ -1,21 +1,21 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.run import Run, RunUpdate
+from sift_client.sift_types.run import Run, RunUpdate
 from sift_client.util.cel_utils import contains, equals, equals_null, match, not_
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.client import SiftClient
 
 
 class RunsAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with runs.
+    """High-level API for interacting with runs.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -24,9 +24,8 @@ class RunsAPIAsync(ResourceBase):
     representation of a run using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the RunsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the RunsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -39,8 +38,7 @@ class RunsAPIAsync(ResourceBase):
         *,
         run_id: str,
     ) -> Run:
-        """
-        Get a Run.
+        """Get a Run.
 
         Args:
             run_id: The ID of the run.
@@ -51,7 +49,7 @@ class RunsAPIAsync(ResourceBase):
         run = await self._low_level_client.get_run(run_id=run_id)
         return self._apply_client_to_instance(run)
 
-    async def list(
+    async def list_(
         self,
         *,
         name: str | None = None,
@@ -68,9 +66,8 @@ class RunsAPIAsync(ResourceBase):
         include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> List[Run]:
-        """
-        List runs with optional filtering.
+    ) -> list[Run]:
+        """List runs with optional filtering.
 
         Args:
             name: Exact name of the run.
@@ -139,8 +136,7 @@ class RunsAPIAsync(ResourceBase):
         return self._apply_client_to_instances(runs)
 
     async def find(self, **kwargs) -> Run | None:
-        """
-        Find a single run matching the given query. Takes the same arguments as `list`. If more than one run is found,
+        """Find a single run matching the given query. Takes the same arguments as `list`. If more than one run is found,
         raises an error.
 
         Args:
@@ -149,7 +145,7 @@ class RunsAPIAsync(ResourceBase):
         Returns:
             The Run found or None.
         """
-        runs = await self.list(**kwargs)
+        runs = await self.list_(**kwargs)
         if len(runs) > 1:
             raise ValueError("Multiple runs found for query")
         elif len(runs) == 1:
@@ -160,15 +156,14 @@ class RunsAPIAsync(ResourceBase):
         self,
         name: str,
         description: str,
-        tags: List[str] | None = None,
+        tags: list[str] | None = None,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         organization_id: str | None = None,
         client_key: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
     ) -> Run:
-        """
-        Create a new run.
+        """Create a new run.
 
         Args:
             name: The name of the run.
@@ -196,8 +191,7 @@ class RunsAPIAsync(ResourceBase):
         return self._apply_client_to_instance(created_run)
 
     async def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
-        """
-        Update a Run.
+        """Update a Run.
 
         Args:
             run: The Run or run ID to update.
@@ -221,8 +215,7 @@ class RunsAPIAsync(ResourceBase):
         *,
         run: str | Run,
     ) -> None:
-        """
-        Archive a run.
+        """Archive a run.
 
         Args:
             run: The Run or run ID to archive.
@@ -237,8 +230,7 @@ class RunsAPIAsync(ResourceBase):
         *,
         run: str | Run,
     ) -> None:
-        """
-        Stop a run by setting its stop time to the current time.
+        """Stop a run by setting its stop time to the current time.
 
         Args:
             run: The Run or run ID to stop.
@@ -249,10 +241,9 @@ class RunsAPIAsync(ResourceBase):
     async def create_automatic_association_for_assets(
         self,
         run: str | Run,
-        asset_names: List[str],
+        asset_names: list[str],
     ) -> None:
-        """
-        Associate assets with a run for automatic data ingestion.
+        """Associate assets with a run for automatic data ingestion.
 
         Args:
             run: The Run or run ID.
@@ -264,8 +255,7 @@ class RunsAPIAsync(ResourceBase):
         )
 
     async def stop_run(self, run: str | Run) -> None:
-        """
-        Stop a run by setting its stop time to the current time.
+        """Stop a run by setting its stop time to the current time.
 
         Args:
             run: The Run or run ID to stop.

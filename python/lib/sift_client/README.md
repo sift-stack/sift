@@ -130,7 +130,7 @@ asset.update({
 For more complex updates, you can create update models (instead of a key-value dictionary):
 
 ```python
-from sift_client.types.asset import AssetUpdate
+from sift_client.sift_types.asset import AssetUpdate
 
 # Create an update model
 update = AssetUpdate(tags=["new", "tags"])

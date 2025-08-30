@@ -8,14 +8,13 @@ class LowLevelClientBase(ABC):
     @staticmethod
     async def _handle_pagination(
         func: Callable,
-        kwargs: dict[str, Any] = {},
+        kwargs: dict[str, Any] | None = None,
         page_size: int | None = None,
         page_token: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
     ) -> list[Any]:
-        """
-        Handle pagination for a given function by calling the function until all results are retrieved or the max_results is reached.
+        """Handle pagination for a given function by calling the function until all results are retrieved or the max_results is reached.
 
         Args:
             func: The function to call.
@@ -28,6 +27,9 @@ class LowLevelClientBase(ABC):
         Returns:
             A list of all matching results.
         """
+        if kwargs is None:
+            kwargs = {}
+
         results: list[Any] = []
         if page_token is None:
             page_token = ""

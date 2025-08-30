@@ -31,8 +31,7 @@ EOT
 
 pip_install() {
   source venv/bin/activate
-  pip install '.[development]'
-  pip install '.[build]'
+  pip install '.[development,build,docs,openssl,tdms,rosbags,sift-stream,hdf5]'
   pip install -e .
 }
 
@@ -99,7 +98,7 @@ gen_stubs() {
   python3 sift_client/_internal/gen_pyi.py sift_client/resources/sync_stubs
   cd ..
   ruff format ./lib/sift_client/resources/sync_stubs/*.pyi -q
-  ruff check ./lib/sift_client/resources/sync_stubs/*.pyi --fix -q
+  ruff check ./lib/sift_client/resources/sync_stubs/*.pyi --fix --unsafe-fixes -q
 }
 
 mypy_stubs() {

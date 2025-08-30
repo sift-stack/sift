@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import TYPE_CHECKING, List, Type
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import ConfigDict
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
-from sift_client.types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.types.asset import Asset
+    from sift_client.sift_types.asset import Asset
 
 
 class RunUpdate(ModelUpdate[RunProto]):
-    """
-    Update model for Run.
-    """
+    """Update model for Run."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -27,16 +25,16 @@ class RunUpdate(ModelUpdate[RunProto]):
     stop_time: datetime | None = None
     is_pinned: bool | None = None
     client_key: str | None = None
-    tags: List[str] | None = None
+    tags: list[str] | None = None
     metadata: dict[str, str | float | bool] | None = None
 
-    _to_proto_helpers = {
+    _to_proto_helpers: ClassVar = {
         "metadata": MappingHelper(
             proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
         ),
     }
 
-    def _get_proto_class(self) -> Type[RunProto]:
+    def _get_proto_class(self) -> type[RunProto]:
         return RunProto
 
     def _add_resource_id_to_proto(self, proto_msg: RunProto):
@@ -46,9 +44,7 @@ class RunUpdate(ModelUpdate[RunProto]):
 
 
 class Run(BaseType[RunProto, "Run"]):
-    """
-    Run model representing a data collection run.
-    """
+    """Run model representing a data collection run."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -61,24 +57,28 @@ class Run(BaseType[RunProto, "Run"]):
     organization_id: str
     start_time: datetime | None = None
     stop_time: datetime | None = None
-    tags: List[str] | None = None
+    tags: list[str] | None = None
     default_report_id: str | None = None
     client_key: str | None = None
     metadata: dict[str, str | float | bool]
-    asset_ids: List[str] | None = None
+    asset_ids: list[str] | None = None
     archived_date: datetime | None = None
 
     @classmethod
     def _from_proto(cls, proto: RunProto, sift_client: SiftClient | None = None) -> Run:
         return cls(
             id_=proto.run_id,
-            created_date=proto.created_date.ToDatetime(),
-            modified_date=proto.modified_date.ToDatetime(),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
-            start_time=proto.start_time.ToDatetime() if proto.HasField("start_time") else None,
-            stop_time=proto.stop_time.ToDatetime() if proto.HasField("stop_time") else None,
+            start_time=proto.start_time.ToDatetime(tzinfo=timezone.utc)
+            if proto.HasField("start_time")
+            else None,
+            stop_time=proto.stop_time.ToDatetime(tzinfo=timezone.utc)
+            if proto.HasField("stop_time")
+            else None,
             name=proto.name,
             description=proto.description,
             tags=list(proto.tags),
@@ -93,9 +93,7 @@ class Run(BaseType[RunProto, "Run"]):
         )
 
     def _to_proto(self) -> RunProto:
-        """
-        Convert to protobuf message.
-        """
+        """Convert to protobuf message."""
         proto = RunProto(
             run_id=self.id_ or "",
             created_date=self.created_date,  # type: ignore
@@ -129,10 +127,8 @@ class Run(BaseType[RunProto, "Run"]):
         return proto
 
     @property
-    def assets(self) -> List[Asset]:
-        """
-        Return all assets associated with this run.
-        """
+    def assets(self) -> list[Asset]:
+        """Return all assets associated with this run."""
         if not hasattr(self, "client") or self.client is None:
             raise RuntimeError("Run is not bound to a client instance.")
         if not self.asset_ids:

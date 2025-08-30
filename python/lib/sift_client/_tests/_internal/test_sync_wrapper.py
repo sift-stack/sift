@@ -4,7 +4,7 @@ import asyncio
 import atexit
 import inspect
 import threading
-from typing import Any, Dict, Optional
+from typing import Any
 
 import pytest
 
@@ -48,7 +48,7 @@ class MockResourceAsync(ResourceBase):
     def __init__(self, client=None, value: str = "default"):
         super().__init__(client)
         self._value = value
-        self._calls: Dict[str, int] = {}
+        self._calls: dict[str, int] = {}
 
     @property
     def value(self) -> str:
@@ -83,8 +83,8 @@ class MockResourceAsync(ResourceBase):
         raise ValueError("Test exception")
 
     async def async_method_with_complex_args(
-        self, arg1: str, arg2: Optional[Dict[str, Any]] = None, *args, **kwargs
-    ) -> Dict[str, Any]:
+        self, arg1: str, arg2: dict[str, Any] | None = None, *args, **kwargs
+    ) -> dict[str, Any]:
         """Test asynchronous method with complex arguments."""
         self._record_call("async_method_with_complex_args")
         await asyncio.sleep(0.01)

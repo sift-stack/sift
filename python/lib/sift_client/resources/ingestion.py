@@ -1,22 +1,22 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.ingestion import IngestionLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.ingestion import Flow
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.client import SiftClient
+    from sift_client.sift_types.ingestion import Flow
 
 logger = logging.getLogger(__name__)
 
 
 class IngestionAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with ingestion services.
+    """High-level API for interacting with ingestion services.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the IngestionAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -25,9 +25,8 @@ class IngestionAPIAsync(ResourceBase):
     representation of ingestion flows using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the IngestionAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the IngestionAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -40,12 +39,11 @@ class IngestionAPIAsync(ResourceBase):
         *,
         asset_name: str,
         run_id: str | None = None,
-        flows: List[Flow],
+        flows: list[Flow],
         client_key: str | None = None,
         organization_id: str | None = None,
     ) -> str:
-        """
-        Create an ingestion config.
+        """Create an ingestion config.
 
         Args:
             asset_name: The name of the asset for this ingestion config.
@@ -85,6 +83,13 @@ class IngestionAPIAsync(ResourceBase):
         timestamp: datetime,
         channel_values: dict[str, Any],
     ):
+        """Ingest data for a flow.
+
+        Args:
+            flow: The flow to ingest data for.
+            timestamp: The timestamp of the data.
+            channel_values: Dictionary mapping channel names to their values.
+        """
         self._low_level_client.ingest_flow(
             flow=flow,
             timestamp=timestamp,
@@ -92,8 +97,7 @@ class IngestionAPIAsync(ResourceBase):
         )
 
     def wait_for_ingestion_to_complete(self, timeout: float | None = None):
-        """
-        Wait for all ingestion to complete.
+        """Wait for all ingestion to complete.
 
         Args:
             run_id: The id of the run to wait for.

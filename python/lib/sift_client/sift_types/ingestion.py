@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from google.protobuf.empty_pb2 import Empty
 from pydantic import ConfigDict
@@ -22,17 +21,17 @@ from sift_stream_bindings import (
     IngestWithConfigDataChannelValuePy,
 )
 
-from sift_client.types._base import BaseType
-from sift_client.types.channel import Channel, ChannelDataType
+from sift_client.sift_types._base import BaseType
+from sift_client.sift_types.channel import Channel, ChannelDataType
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.client import SiftClient
 
 
 class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
-    """
-    Model of the Sift Ingestion Config.
-    """
+    """Model of the Sift Ingestion Config."""
 
     asset_id: str
     client_key: str
@@ -40,7 +39,7 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
     @classmethod
     def _from_proto(
         cls, proto: IngestionConfigProto, sift_client: SiftClient | None = None
-    ) -> "IngestionConfig":
+    ) -> IngestionConfig:
         return cls(
             id_=proto.ingestion_config_id,
             asset_id=proto.asset_id,
@@ -50,9 +49,14 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
 
 
 class Flow(BaseType[FlowConfig, "Flow"]):
+    """Model representing a data flow for ingestion.
+
+    A Flow represents a collection of channels that are ingested together.
+    """
+
     model_config = ConfigDict(frozen=False)
     name: str
-    channels: List[Channel]
+    channels: list[Channel]
     ingestion_config_id: str | None = None
     run_id: str | None = None
 
@@ -77,11 +81,28 @@ class Flow(BaseType[FlowConfig, "Flow"]):
         )
 
     def add_channel(self, channel: Channel):
+        """Add a Channel to this Flow.
+
+        Args:
+            channel: The Channel to add.
+
+        Raises:
+            ValueError: If the flow has already been created with an ingestion config.
+        """
         if self.ingestion_config_id:
             raise ValueError("Cannot add a channel to a flow after creation")
         self.channels.append(channel)
 
     def ingest(self, *, timestamp: datetime, channel_values: dict[str, Any]):
+        """Ingest data for this Flow.
+
+        Args:
+            timestamp: The timestamp of the data.
+            channel_values: Dictionary mapping Channel names to their values.
+
+        Raises:
+            ValueError: If the ingestion config ID is not set.
+        """
         if self.ingestion_config_id is None:
             raise ValueError("Ingestion config ID is not set.")
         self.client.ingestion.ingest(
@@ -117,6 +138,7 @@ def _rust_channel_value_from_bitfield(
     """Helper function to convert a bitfield value to a ChannelValuePy object.
 
     Args:
+        channel: The channel object for the bitfield value.
         value: The value to convert to a ChannelValuePy object.
             - A single int or bytes will be treated as representing bytes directly
             - Dicts or list of ints will be treated as representing individual bitfield elements.
@@ -209,8 +231,8 @@ def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
     raise ValueError(f"Unknown data type: {data_type}")
 
 
-def _to_ingestion_value(type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
+def _to_ingestion_value(data_type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
     if value is None:
         return IngestWithConfigDataChannelValue(empty=Empty())
-    ingestion_type_string = type.name.lower().replace("int_", "int")
+    ingestion_type_string = data_type.name.lower().replace("int_", "int")
     return IngestWithConfigDataChannelValue(**{ingestion_type_string: value})

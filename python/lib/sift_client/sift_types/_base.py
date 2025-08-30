@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, TypeVar
 
 from google.protobuf import field_mask_pb2, message
 from pydantic import BaseModel, ConfigDict, PrivateAttr
@@ -37,7 +37,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
         self.__dict__["_client"] = client
 
     def _update(self, other: BaseType[ProtoT, SelfT]) -> BaseType[ProtoT, SelfT]:
-        """Update this instance with the values from another instance"""
+        """Update this instance with the values from another instance."""
         # This bypasses the frozen status of the model
         for key in other.__class__.model_fields.keys():
             if key in self.model_fields:
@@ -55,17 +55,17 @@ class MappingHelper(BaseModel):
 
     proto_attr_path: str
     update_field: str | None = None
-    converter: Type[Any] | Callable[[Any], Any] | None = None
+    converter: type[Any] | Callable[[Any], Any] | None = None
 
 
 # TODO: how to handle nulling fields, needs to be default value for the type
 class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
-    """Base class for Pydantic models that generate proto patches with field masks"""
+    """Base class for Pydantic models that generate proto patches with field masks."""
 
     model_config = ConfigDict(frozen=False)
 
-    _resource_id: Optional[Any] = PrivateAttr(default=None)
-    _to_proto_helpers: dict[str, MappingHelper] = PrivateAttr(default={})
+    _resource_id: Any | None = PrivateAttr(default=None)
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = PrivateAttr(default={})
 
     def __init__(self, **data: Any):
         super().__init__(**data)
@@ -86,9 +86,9 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
         self._resource_id = value
 
     def to_proto_with_mask(self) -> tuple[ProtoT, field_mask_pb2.FieldMask]:
-        """Convert to proto with field mask"""
+        """Convert to proto with field mask."""
         # Get the corresponding proto class
-        proto_cls: Type[ProtoT] = self._get_proto_class()
+        proto_cls: type[ProtoT] = self._get_proto_class()
         proto_msg = proto_cls()
 
         # Get only explicitly set fields, including those set to None
@@ -169,17 +169,17 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                 try:
                     setattr(proto_msg, field_name, value)
                     paths.append(path)
-                except TypeError:
+                except TypeError as e:
                     raise TypeError(
                         f"Can't set {field_name} to {value} on {proto_msg.__class__.__name__}"
-                    )
+                    ) from e
 
         return paths
 
-    def _get_proto_class(self) -> Type[ProtoT]:
+    def _get_proto_class(self) -> type[ProtoT]:
         """Get the corresponding proto class - override in subclasses since typing is not strict."""
         raise NotImplementedError("Subclasses must implement this")
 
     def _add_resource_id_to_proto(self, proto_msg: ProtoT):
-        """Assigns a resource ID (such as Asset ID) to the proto message"""
+        """Assigns a resource ID (such as Asset ID) to the proto message."""
         raise NotImplementedError("Subclasses must implement this")

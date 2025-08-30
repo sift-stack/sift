@@ -1,0 +1,60 @@
+extend = "../../pyproject.toml"
+
+[lint]
+select = [
+    # Core linting
+    "F", # pyflakes - detect various errors
+    "W", # pycodestyle warnings - style recommendations
+    "B", # flake8-bugbear - detect potential bugs and design problems
+    "PERF", # perflint - performance optimizations
+    "RUF", # ruff-specific rules
+    #     "ASYNC",  # flake8-async - async/await best practices # TODO
+
+    # Code style and formatting
+    "I", # isort - import sorting
+    "N", # pep8-naming - naming conventions
+    "C4", # flake8-comprehensions - better list/dict/set comprehensions
+    "UP", # pyupgrade - modernize syntax to latest Python
+
+    # Documentation
+    "D", # pydocstyle - docstring style checking
+
+    # Imports and modules
+    "TID", # flake8-tidy-imports - import organization
+    "INP", # flake8-no-pep420 - no implicit namespace packages
+
+    # Type checking and annotations
+    "FA", # flake8-future-annotations - necessary for backwards compatibility
+    "TC", # flake8-type-checking - type checking best practices
+
+    # Built-ins and standard library
+    "A", # flake8-builtins - prevent overriding built-ins
+    "DTZ", # flake8-datetimez - good timezone practices
+
+    # Exception handling
+    #    "TRY", # tryceratops - exception handling antipatterns # TODO: FD-102
+
+    # Logging best practices
+    #    "G", # flake8-logging-format - logging format best practices # TODO: FD-101
+    "LOG", # flake8-logging - logging best practices
+
+    # Tests
+    #     "PT",     # flake8-pytest-style - pytest best practices # TODO: FD-59
+
+]
+
+ignore = ["W191", "D206", "D300", # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "B024", # ignore missing abstract methods
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D205", # 1 blank line required between summary line and description
+    "D100", # Missing docstring in public module
+]
+
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+"examples/*" = ["D"]
+"_internal/*" = ["D"] # Private docs, be less strict

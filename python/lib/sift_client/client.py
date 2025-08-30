@@ -34,8 +34,7 @@ class SiftClient(
     WithGrpcClient,
     WithRestClient,
 ):
-    """
-    SiftClient is a high-level client for interacting with Sift's APIs.
+    """SiftClient is a high-level client for interacting with Sift's APIs.
 
     It provides both synchronous and asynchronous interfaces, strong type checking, and a Pythonic API design.
 
@@ -97,8 +96,7 @@ class SiftClient(
         rest_url: str | None = None,
         connection_config: SiftConnectionConfig | None = None,
     ):
-        """
-        Initialize the SiftClient with specific connection parameters or a connection_config.
+        """Initialize the SiftClient with specific connection parameters or a connection_config.
 
         Args:
             api_key: The Sift API key for authentication.
@@ -106,7 +104,6 @@ class SiftClient(
             rest_url: The Sift REST API URL.
             connection_config: A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
         """
-
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
                 "Either api_key, grpc_url and rest_url or connection_config must be provided to establish a connection."
