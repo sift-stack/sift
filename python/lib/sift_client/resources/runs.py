@@ -9,7 +9,6 @@ from sift_client.sift_types.run import Run, RunUpdate
 from sift_client.util.cel_utils import contains, equals, equals_null, match, not_
 
 if TYPE_CHECKING:
-    import builtins
     from datetime import datetime
 
     from sift_client.client import SiftClient
@@ -50,7 +49,7 @@ class RunsAPIAsync(ResourceBase):
         run = await self._low_level_client.get_run(run_id=run_id)
         return self._apply_client_to_instance(run)
 
-    async def list(
+    async def list_(
         self,
         *,
         name: str | None = None,
@@ -67,7 +66,7 @@ class RunsAPIAsync(ResourceBase):
         include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> builtins.list[Run]:
+    ) -> list[Run]:
         """List runs with optional filtering.
 
         Args:
@@ -146,7 +145,7 @@ class RunsAPIAsync(ResourceBase):
         Returns:
             The Run found or None.
         """
-        runs = await self.list(**kwargs)
+        runs = await self.list_(**kwargs)
         if len(runs) > 1:
             raise ValueError("Multiple runs found for query")
         elif len(runs) == 1:
@@ -157,7 +156,7 @@ class RunsAPIAsync(ResourceBase):
         self,
         name: str,
         description: str,
-        tags: builtins.list[str] | None = None,
+        tags: list[str] | None = None,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         organization_id: str | None = None,
@@ -242,7 +241,7 @@ class RunsAPIAsync(ResourceBase):
     async def create_automatic_association_for_assets(
         self,
         run: str | Run,
-        asset_names: builtins.list[str],
+        asset_names: list[str],
     ) -> None:
         """Associate assets with a run for automatic data ingestion.
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-import pandas as pd
 import pyarrow as pa
 
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
@@ -12,10 +11,9 @@ from sift_client.resources._base import ResourceBase
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
-    import builtins
     from datetime import datetime
 
-    import numpy as np
+    import pandas as pd
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.channel import Channel
@@ -57,7 +55,7 @@ class ChannelsAPIAsync(ResourceBase):
         channel = await self._low_level_client.get_channel(channel_id=channel_id)
         return self._apply_client_to_instance(channel)
 
-    async def list(
+    async def list_(
         self,
         *,
         asset_id: str | None = None,
@@ -160,7 +158,7 @@ class ChannelsAPIAsync(ResourceBase):
         Returns:
             The Channel found or None.
         """
-        channels = await self.list(**kwargs)
+        channels = await self.list_(**kwargs)
         if len(channels) > 1:
             raise ValueError("Multiple channels found for query")
         elif len(channels) == 1:
@@ -170,7 +168,7 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data(
         self,
         *,
-        channels: builtins.list[Channel],
+        channels: list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
@@ -196,7 +194,7 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data_as_arrow(
         self,
         *,
-        channels: builtins.list[Channel],
+        channels: list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
