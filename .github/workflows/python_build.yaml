@@ -125,6 +125,7 @@ jobs:
         run: |
           # Generate requirements file with all extras
           pip-compile pyproject.toml \
+          --extra build \
           --extra tdms \
           --extra hdf5 \
           --extra sift-stream \
