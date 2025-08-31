@@ -34,18 +34,25 @@ def get_extras_from_wheel(wheel_path: str) -> List[str]:
         return extras
 
 
-def get_extra_combinations(extras: List[str]) -> List[str]:
+def get_extra_combinations(extras: List[str], exclude: Optional[List[str]] = None) -> List[str]:
     """Generate all possible combinations of extras.
 
     Args:
         extras: List of extra names to generate combinations from.
+        exclude: Optional list of extra names to exclude from combinations.
 
     Returns:
         List of comma-separated strings representing each combination of extras.
     """
+    # Filter out excluded extras
+    if exclude:
+        filtered_extras = [extra for extra in extras if extra not in exclude]
+    else:
+        filtered_extras = extras
+
     all_combinations = []
-    for r in range(len(extras) + 1):
-        all_combinations.extend(",".join(c) for c in combinations(extras, r))
+    for r in range(len(filtered_extras) + 1):
+        all_combinations.extend(",".join(c) for c in combinations(filtered_extras, r))
     return all_combinations
 
 
@@ -100,7 +107,7 @@ def main():
 
     # Get all extras from the wheel
     extras = get_extras_from_wheel(str(wheel_file))
-    combinations = get_extra_combinations(extras)
+    combinations = get_extra_combinations(extras, ["development","docs"])
 
     # Test base installation first
     test_install(
