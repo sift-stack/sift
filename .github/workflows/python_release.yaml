@@ -142,6 +142,7 @@ jobs:
             exit 1
           fi
           
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "alias=$ALIAS" >> $GITHUB_OUTPUT
           echo "hidden=$HIDDEN" >> $GITHUB_OUTPUT
@@ -158,6 +159,7 @@ jobs:
       - name: Deploy docs with mike
         run: |
           cd python
+          FULL_VERSION="${{ steps.version.outputs.full_version }}"
           VERSION="${{ steps.version.outputs.version }}"
           ALIAS="${{ steps.version.outputs.alias }}"
           HIDDEN="${{ steps.version.outputs.hidden }}"
