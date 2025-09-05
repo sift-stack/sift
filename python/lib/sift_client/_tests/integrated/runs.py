@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-This test demonstrates the usage of the Runs API.
+"""This test demonstrates the usage of the Runs API.
 
 It creates a new run, updates it, and associates assets with it.
 It also lists runs, filters them, and deletes the run.
@@ -10,15 +9,13 @@ It uses the SiftClient to interact with the API.
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sift_client import SiftClient
 
 
 async def main():
-    """
-    Main function demonstrating the Runs API usage.
-    """
+    """Main function demonstrating the Runs API usage."""
     # Initialize the client
     # You can set these environment variables or pass them directly
     grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
@@ -206,7 +203,7 @@ async def main():
     }
 
     # Create a run with start and stop times
-    start_time = datetime.now()
+    start_time = datetime.now(timezone.utc)
     stop_time = start_time + timedelta(minutes=2)
 
     previously_created_runs = client.runs.list(name_regex="Example Test Run.*")
@@ -217,13 +214,13 @@ async def main():
             client.runs.archive(run=run)
 
     new_run = client.runs.create(
-        name=f"Example Test Run {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        name=f"Example Test Run {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
         description="A test run created via the API",
         tags=["api-created", "test"],
         start_time=start_time,
         stop_time=stop_time,
         # Use a unique client key for each run
-        client_key=f"example-run-key-{datetime.now().timestamp()}",
+        client_key=f"example-run-key-{datetime.now(tz=timezone.utc).timestamp()}",
         metadata=metadata,
     )
     print(f"   Created run: {new_run.name} (ID: {new_run.id_})")

@@ -1,25 +1,26 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
-import pandas as pd
 import pyarrow as pa
 
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
 from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.channel import Channel
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
+    import pandas as pd
+
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import Channel
 
 
 class ChannelsAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with channels.
+    """High-level API for interacting with channels.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -28,9 +29,8 @@ class ChannelsAPIAsync(ResourceBase):
     representation of a channel using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the ChannelsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ChannelsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -44,8 +44,7 @@ class ChannelsAPIAsync(ResourceBase):
         *,
         channel_id: str,
     ) -> Channel:
-        """
-        Get a Channel.
+        """Get a Channel.
 
         Args:
             channel_id: The ID of the channel.
@@ -56,7 +55,7 @@ class ChannelsAPIAsync(ResourceBase):
         channel = await self._low_level_client.get_channel(channel_id=channel_id)
         return self._apply_client_to_instance(channel)
 
-    async def list(
+    async def list_(
         self,
         *,
         asset_id: str | None = None,
@@ -76,8 +75,7 @@ class ChannelsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Channel]:
-        """
-        List channels with optional filtering.
+        """List channels with optional filtering.
 
         Args:
             asset_id: The asset ID to get.
@@ -151,8 +149,7 @@ class ChannelsAPIAsync(ResourceBase):
         return self._apply_client_to_instances(channels)
 
     async def find(self, **kwargs) -> Channel | None:
-        """
-        Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
+        """Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
         raises an error.
 
         Args:
@@ -161,7 +158,7 @@ class ChannelsAPIAsync(ResourceBase):
         Returns:
             The Channel found or None.
         """
-        channels = await self.list(**kwargs)
+        channels = await self.list_(**kwargs)
         if len(channels) > 1:
             raise ValueError("Multiple channels found for query")
         elif len(channels) == 1:
@@ -171,14 +168,13 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data(
         self,
         *,
-        channels: List[Channel],
+        channels: list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> Dict[str, pd.DataFrame]:
-        """
-        Get data for one or more channels.
+    ) -> dict[str, pd.DataFrame]:
+        """Get data for one or more channels.
 
         Args:
             channels: The channels to get data for.
@@ -198,15 +194,13 @@ class ChannelsAPIAsync(ResourceBase):
     async def get_data_as_arrow(
         self,
         *,
-        channels: List[Channel],
+        channels: list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> Dict[str, pa.Table]:
-        """
-        Get data for one or more channels as pyarrow tables.
-        """
+    ) -> dict[str, pa.Table]:
+        """Get data for one or more channels as pyarrow tables."""
         data = await self.get_data(
             channels=channels,
             run_id=run_id,

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING
 
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
@@ -26,28 +26,26 @@ from sift.rules.v1.rules_pb2 import (
     RuleVersion as RuleVersionProto,
 )
 
-from sift_client.types._base import BaseType, ModelUpdate
-from sift_client.types.asset import Asset
-from sift_client.types.channel import ChannelReference
+from sift_client.sift_types._base import BaseType, ModelUpdate
+from sift_client.sift_types.channel import ChannelReference
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset
 
 
 class Rule(BaseType[RuleProto, "Rule"]):
-    """
-    Model of the Sift Rule.
-    """
+    """Model of the Sift Rule."""
 
     name: str
     description: str
     is_enabled: bool = True
     expression: str | None = None
-    channel_references: List[ChannelReference] | None = None
+    channel_references: list[ChannelReference] | None = None
     action: RuleAction | None = None
-    asset_ids: List[str] | None = None
-    asset_tag_ids: List[str] | None = None
-    contextual_channels: List[str] | None = None
+    asset_ids: list[str] | None = None
+    asset_tag_ids: list[str] | None = None
+    contextual_channels: list[str] | None = None
     client_key: str | None = None
 
     # Fields from proto
@@ -63,10 +61,12 @@ class Rule(BaseType[RuleProto, "Rule"]):
     @property
     def is_archived(self) -> bool:
         """Whether the rule is archived."""
-        return self.archived_date is not None and self.archived_date > datetime(1970, 1, 1)
+        return self.archived_date is not None and self.archived_date > datetime(
+            1970, 1, 1, tzinfo=timezone.utc
+        )
 
     @property
-    def assets(self) -> List[Asset]:
+    def assets(self) -> list[Asset]:
         """Get the assets that this rule applies to."""
         return self.client.assets.list_(asset_ids=self.asset_ids, tag_ids=self.asset_tag_ids)
 
@@ -91,11 +91,11 @@ class Rule(BaseType[RuleProto, "Rule"]):
         raise NotImplementedError("Tags is not supported yet.")
 
     def update(self, update: RuleUpdate | dict, version_notes: str | None = None) -> Rule:
-        """
-        Update the Rule.
+        """Update the Rule.
 
         Args:
             update: Either a RuleUpdate instance or a dictionary of key-value pairs to update.
+            version_notes: Notes associated with the change.
         """
         updated_rule = self.client.rules.update(
             rule=self, update=update, version_notes=version_notes
@@ -146,8 +146,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
 
 
 class RuleUpdate(ModelUpdate[RuleProto]):
-    """
-    Model of the Rule fields that can be updated.
+    """Model of the Rule fields that can be updated.
 
     Note:
         - asset_ids applies this rule to those assets.
@@ -157,13 +156,13 @@ class RuleUpdate(ModelUpdate[RuleProto]):
     name: str | None = None
     description: str | None = None
     expression: str | None = None
-    channel_references: List[ChannelReference] | None = None
+    channel_references: list[ChannelReference] | None = None
     action: RuleAction | None = None
-    asset_ids: List[str] | None = None
-    asset_tag_ids: List[str] | None = None
-    contextual_channels: List[str] | None = None
+    asset_ids: list[str] | None = None
+    asset_tag_ids: list[str] | None = None
+    contextual_channels: list[str] | None = None
 
-    def _get_proto_class(self) -> Type[RuleProto]:
+    def _get_proto_class(self) -> type[RuleProto]:
         return RuleProto
 
     def _add_resource_id_to_proto(self, proto_msg: RuleProto):
@@ -180,7 +179,15 @@ class RuleActionType(Enum):
     WEBHOOK = ActionKind.WEBHOOK  # 2
 
     @classmethod
-    def from_str(cls, val: str) -> Optional["RuleActionType"]:
+    def from_str(cls, val: str) -> RuleActionType | None:
+        """Convert string representation to RuleActionType.
+
+        Args:
+            val: String representation of RuleActionType.
+
+        Returns:
+            RuleActionType if conversion is successful, None otherwise.
+        """
         if isinstance(val, str) and val.startswith("ACTION_KIND_"):
             for item in cls:
                 if "ACTION_KIND_" + item.name == val:
@@ -197,7 +204,15 @@ class RuleAnnotationType(Enum):
     PHASE = 2
 
     @classmethod
-    def from_str(cls, val: str) -> Optional["RuleAnnotationType"]:
+    def from_str(cls, val: str) -> RuleAnnotationType | None:
+        """Convert string representation to RuleAnnotationType.
+
+        Args:
+            val: String representation of RuleAnnotationType.
+
+        Returns:
+            RuleAnnotationType if conversion is successful, None otherwise.
+        """
         if isinstance(val, str) and val.startswith("ANNOTATION_TYPE_"):
             for item in cls:
                 if "ANNOTATION_TYPE_" + item.name == val:
@@ -207,9 +222,7 @@ class RuleAnnotationType(Enum):
 
 
 class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
-    """
-    Model of a Rule Action.
-    """
+    """Model of a Rule Action."""
 
     action_type: RuleActionType
     condition_id: str | None = None
@@ -219,14 +232,14 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     modified_by_user_id: str | None = None
     version_id: str | None = None
     annotation_type: RuleAnnotationType | None = None
-    tags: List[str] | None = None
+    tags: list[str] | None = None
     default_assignee_user_id: str | None = None
 
     @classmethod
     def annotation(
         cls,
         annotation_type: RuleAnnotationType,
-        tags: List[str],
+        tags: list[str],
         default_assignee_user_id: str | None = None,
     ) -> RuleAction:
         """Create an annotation action.
@@ -292,9 +305,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
 
 
 class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
-    """
-    Model of a Rule Version.
-    """
+    """Model of a Rule Version."""
 
     rule_id: str
     rule_version_id: str

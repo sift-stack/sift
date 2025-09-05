@@ -44,6 +44,7 @@ Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
+# development
 development = [
     "grpcio-testing~=1.13",
     "mypy==1.10.0",
@@ -57,6 +58,8 @@ development = [
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdocs-include-markdown-plugin", "mkdocs-api-autonav", "mike"]
+
+# May be required for certain library functionality
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
@@ -182,4 +185,10 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["F", "W", "I", "N", "TID"]
+select = [
+    "F", # pyflakes
+    "W", # pycodestyle warning
+    "I", # import sort
+    "N", # pep8-naming
+    "TID", # flake8-tidy-imports
+]

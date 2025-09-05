@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-import re
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.channel import ChannelReference
-from sift_client.types.rule import Rule, RuleAction, RuleUpdate
+from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
+
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import ChannelReference
 
 
 class RulesAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with rules.
+    """High-level API for interacting with rules.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -24,9 +24,8 @@ class RulesAPIAsync(ResourceBase):
     representation of a rule using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the RulesAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the RulesAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -40,8 +39,7 @@ class RulesAPIAsync(ResourceBase):
         rule_id: str | None = None,
         client_key: str | None = None,
     ) -> Rule:
-        """
-        Get a Rule.
+        """Get a Rule.
 
         Args:
             rule_id: The ID of the rule.
@@ -53,7 +51,7 @@ class RulesAPIAsync(ResourceBase):
         rule = await self._low_level_client.get_rule(rule_id=rule_id, client_key=client_key)
         return self._apply_client_to_instance(rule)
 
-    async def list(
+    async def list_(
         self,
         *,
         name: str | None = None,
@@ -63,8 +61,7 @@ class RulesAPIAsync(ResourceBase):
         limit: int | None = None,
         include_deleted: bool = False,
     ) -> list[Rule]:
-        """
-        List rules with optional filtering.
+        """List rules with optional filtering.
 
         Args:
             name: Exact name of the rule.
@@ -72,6 +69,7 @@ class RulesAPIAsync(ResourceBase):
             name_regex: Regular expression string to filter rules by name.
             order_by: How to order the retrieved rules.
             limit: How many rules to retrieve. If None, retrieves all matches.
+            include_deleted: Include deleted rules.
 
         Returns:
             A list of Rules that matches the filter.
@@ -98,8 +96,7 @@ class RulesAPIAsync(ResourceBase):
         return self._apply_client_to_instances(rules)
 
     async def find(self, **kwargs) -> Rule | None:
-        """
-        Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
+        """Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
         raises an error.
 
         Args:
@@ -108,7 +105,7 @@ class RulesAPIAsync(ResourceBase):
         Returns:
             The Rule found or None.
         """
-        rules = await self.list(**kwargs)
+        rules = await self.list_(**kwargs)
         if len(rules) > 1:
             raise ValueError("Multiple rules found for query")
         elif len(rules) == 1:
@@ -120,17 +117,15 @@ class RulesAPIAsync(ResourceBase):
         name: str,
         description: str,
         expression: str,
-        channel_references: List[ChannelReference],
+        channel_references: list[ChannelReference],
         action: RuleAction,
         organization_id: str | None = None,
         client_key: str | None = None,
-        asset_ids: List[str] | None = None,
-        contextual_channels: List[str] | None = None,
+        asset_ids: list[str] | None = None,
+        contextual_channels: list[str] | None = None,
         is_external: bool = False,
     ) -> Rule:
-        """
-        Create a new rule.
-        """
+        """Create a new rule."""
         created_rule = await self._low_level_client.create_rule(
             name=name,
             description=description,
@@ -148,13 +143,13 @@ class RulesAPIAsync(ResourceBase):
     async def update(
         self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
     ) -> Rule:
-        """
-        Update a Rule.
+        """Update a Rule.
 
         Args:
             rule: The Rule or rule ID to update.
             update: Updates to apply to the Rule.
             version_notes: Notes to include in the rule version.
+
         Returns:
             The updated Rule.
         """
@@ -171,12 +166,11 @@ class RulesAPIAsync(ResourceBase):
         self,
         *,
         rule: str | Rule | None = None,
-        rules: List[Rule] | None = None,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
+        rules: list[Rule] | None = None,
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
     ) -> None:
-        """
-        Archive a rule or multiple.
+        """Archive a rule or multiple.
 
         Args:
             rule: The Rule to archive.
@@ -213,8 +207,7 @@ class RulesAPIAsync(ResourceBase):
         rule_id: str | None = None,
         client_key: str | None = None,
     ) -> Rule:
-        """
-        Restore a rule.
+        """Restore a rule.
 
         Args:
             rule: The Rule or rule ID to restore.
@@ -237,11 +230,10 @@ class RulesAPIAsync(ResourceBase):
     async def batch_restore(
         self,
         *,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
     ) -> None:
-        """
-        Batch restore rules.
+        """Batch restore rules.
 
         Args:
             rule_ids: List of rule IDs to restore.
@@ -252,11 +244,10 @@ class RulesAPIAsync(ResourceBase):
     async def batch_get(
         self,
         *,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
-    ) -> List[Rule]:
-        """
-        Get multiple rules by rule IDs or client keys.
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+    ) -> list[Rule]:
+        """Get multiple rules by rule IDs or client keys.
 
         Args:
             rule_ids: List of rule IDs to get.

@@ -1,27 +1,27 @@
 from __future__ import annotations
 
-import re
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, List
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.calculated_channels import (
     CalculatedChannelsLowLevelClient,
 )
 from sift_client.resources._base import ResourceBase
-from sift_client.types.calculated_channel import (
+from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelUpdate,
 )
-from sift_client.types.channel import ChannelReference
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
+
     from sift_client.client import SiftClient
+    from sift_client.sift_types.channel import ChannelReference
 
 
 class CalculatedChannelsAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with calculated channels.
+    """High-level API for interacting with calculated channels.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -30,9 +30,8 @@ class CalculatedChannelsAPIAsync(ResourceBase):
     representation of a calculated channel using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the CalculatedChannelsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the CalculatedChannelsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -49,8 +48,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         client_key: str | None = None,
         organization_id: str | None = None,
     ) -> CalculatedChannel:
-        """
-        Get a Calculated Channel.
+        """Get a Calculated Channel.
 
         Args:
             calculated_channel_id: The ID of the calculated channel.
@@ -74,7 +72,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
 
         return self._apply_client_to_instance(calculated_channel)
 
-    async def list(
+    async def list_(
         self,
         *,
         name: str | None = None,
@@ -97,9 +95,8 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
         organization_id: str | None = None,
-    ) -> List[CalculatedChannel]:
-        """
-        List calculated channels with optional filtering.
+    ) -> list[CalculatedChannel]:
+        """List calculated channels with optional filtering.
 
         Args:
             name: Exact name of the calculated channel.
@@ -171,8 +168,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         return self._apply_client_to_instances(calculated_channels)
 
     async def find(self, **kwargs) -> CalculatedChannel | None:
-        """
-        Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
+        """Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
         Will raise an error if multiple calculated channels are found.
 
         Args:
@@ -181,7 +177,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         Returns:
             The CalculatedChannel found or None.
         """
-        calculated_channels = await self.list(**kwargs)
+        calculated_channels = await self.list_(**kwargs)
         if len(calculated_channels) > 1:
             raise ValueError(
                 f"Multiple calculated channels found for query: {kwargs}. "
@@ -196,17 +192,16 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         *,
         name: str,
         expression: str,
-        channel_references: List[ChannelReference],
+        channel_references: list[ChannelReference],
         description: str = "",
         units: str | None = None,
         client_key: str | None = None,
-        asset_ids: List[str] | None = None,
-        tag_ids: List[str] | None = None,
+        asset_ids: list[str] | None = None,
+        tag_ids: list[str] | None = None,
         all_assets: bool = False,
         user_notes: str = "",
     ) -> CalculatedChannel:
-        """
-        Create a calculated channel.
+        """Create a calculated channel.
 
         Args:
             name: The name of the calculated channel.
@@ -257,8 +252,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         update: CalculatedChannelUpdate | dict,
         user_notes: str | None = None,
     ) -> CalculatedChannel:
-        """
-        Update a Calculated Channel.
+        """Update a Calculated Channel.
 
         Args:
             calculated_channel: The CalculatedChannel or id of the CalculatedChannel to update.
@@ -289,11 +283,9 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         return self._apply_client_to_instance(updated_calculated_channel)
 
     async def archive(self, *, calculated_channel: str | CalculatedChannel) -> None:
-        """
-        Archive a Calculated Channel.
-        """
+        """Archive a Calculated Channel."""
         update = CalculatedChannelUpdate(
-            archived_date=datetime.now(),
+            archived_date=datetime.now(tz=timezone.utc),
         )
         await self.update(calculated_channel=calculated_channel, update=update)
 
@@ -314,9 +306,8 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> List[CalculatedChannel]:
-        """
-        List versions of a calculated channel.
+    ) -> list[CalculatedChannel]:
+        """List versions of a calculated channel.
 
         Args:
             calculated_channel_id: The ID of the calculated channel.

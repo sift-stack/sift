@@ -15,17 +15,17 @@ from sift_client.resources.sync_stubs import (
 )
 
 __all__ = [
+    "AssetsAPI",
     "AssetsAPIAsync",
+    "CalculatedChannelsAPI",
     "CalculatedChannelsAPIAsync",
+    "ChannelsAPI",
     "ChannelsAPIAsync",
     "IngestionAPIAsync",
-    "PingAPIAsync",
-    "RulesAPIAsync",
-    "RunsAPIAsync",
-    "AssetsAPI",
-    "CalculatedChannelsAPI",
-    "ChannelsAPI",
     "PingAPI",
+    "PingAPIAsync",
     "RulesAPI",
+    "RulesAPIAsync",
     "RunsAPI",
+    "RunsAPIAsync",
 ]

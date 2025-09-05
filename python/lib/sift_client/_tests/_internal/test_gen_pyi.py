@@ -18,7 +18,7 @@ def generated():
 
     generated = generate_stubs_for_module(pathlib.Path(__file__).parent / "test_stub_module")
     assert len(generated) == 1, "test_ file should be excluded"
-    return list(generated.values())[0]
+    return next(iter(generated.values()))
 
 
 def test_extract_imports(generated):
@@ -29,7 +29,7 @@ def test_extract_imports(generated):
     assert "Auto-generated" in import_section
 
     assert "from __future__ import annotations" in import_section
-    assert "from sift_client.types.asset import Asset" in import_section
+    assert "from sift_client.sift_types.asset import Asset" in import_section
     assert "from sift_client.resources._base import ResourceBase" in import_section
 
 

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from sift.metadata.v1.metadata_pb2 import (
     MetadataKey,
     MetadataKeyType,
@@ -10,13 +8,9 @@ from sift.metadata.v1.metadata_pb2 import (
     MetadataValue as MetadataProto,
 )
 
-if TYPE_CHECKING:
-    pass
-
 
 def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[MetadataProto]:
-    """
-    Converts metadata dictionary into a list of MetadataValue objects.
+    """Converts metadata dictionary into a list of MetadataValue objects.
 
     Args:
         _metadata: Dictionary of metadata key-value pairs.
@@ -27,25 +21,25 @@ def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[Met
     metadata = []
 
     for key, value in _metadata.items():
-        type = MetadataKeyType.METADATA_KEY_TYPE_UNSPECIFIED
+        metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_UNSPECIFIED
         string_value = None
         boolean_value = None
         number_value = None
 
         if isinstance(value, str):
             string_value = value
-            type = MetadataKeyType.METADATA_KEY_TYPE_STRING
+            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_STRING
         elif isinstance(value, bool):
             # Need to check bool before int since python thinks "True" is an int
             boolean_value = value
-            type = MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN
+            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN
         elif isinstance(value, (int, float)):
             number_value = value
-            type = MetadataKeyType.METADATA_KEY_TYPE_NUMBER
+            metadata_key_type = MetadataKeyType.METADATA_KEY_TYPE_NUMBER
         else:
             raise ValueError(f"Unsupported metadata value type for key '{key}': {value}")
 
-        wrapped_key = MetadataKey(name=key, type=type)
+        wrapped_key = MetadataKey(name=key, type=metadata_key_type)
         wrapped_value = MetadataProto(
             key=wrapped_key,
             string_value=string_value,  # type: ignore
@@ -58,8 +52,7 @@ def metadata_dict_to_proto(_metadata: dict[str, str | float | bool]) -> list[Met
 
 
 def metadata_proto_to_dict(metadata: list[MetadataProto]) -> dict[str, str | float | bool]:
-    """
-    Converts a list of MetadataValue objects into a dictionary.
+    """Converts a list of MetadataValue objects into a dictionary.
 
     Args:
         metadata: List of MetadataValue objects.
@@ -67,7 +60,6 @@ def metadata_proto_to_dict(metadata: list[MetadataProto]) -> dict[str, str | flo
     Returns:
         Dictionary of metadata key-value pairs.
     """
-
     unwrapped_metadata: dict[str, str | float | bool] = {}
     for md in metadata:
         if md.key.name in unwrapped_metadata:

@@ -4,61 +4,54 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 import pyarrow as pa
 
 from sift_client.client import SiftClient
-from sift_client.types.asset import Asset, AssetUpdate
-from sift_client.types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
-from sift_client.types.channel import Channel, ChannelReference
-from sift_client.types.rule import Rule, RuleAction, RuleUpdate
-from sift_client.types.run import Run, RunUpdate
+from sift_client.sift_types.asset import Asset, AssetUpdate
+from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
+from sift_client.sift_types.channel import Channel, ChannelReference
+from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
+from sift_client.sift_types.run import Run, RunUpdate
 
 class AssetsAPI:
-    """
-    Sync counterpart to `AssetsAPIAsync`.
-
+    """Sync counterpart to `AssetsAPIAsync`.
 
     High-level API for interacting with assets.
 
-    This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+        This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
+        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-    All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
-    representation of an asset using standard Python data structures and types.
+        All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
+        representation of an asset using standard Python data structures and types.
+
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the AssetsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the AssetsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
         ...
 
-    def _run(self, coro):
-        """ """
-        ...
-
+    def _run(self, coro): ...
     def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
-        """
-        Archive an asset.
+        """Archive an asset.
 
-         Args:
+        Args:
              asset: The Asset or asset ID to archive.
              archive_runs: If True, archive all Runs associated with the Asset.
 
-         Returns:
+        Returns:
              The archived Asset.
         """
         ...
 
     def find(self, **kwargs) -> Asset | None:
-        """
-        Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
+        """Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
         raises an error.
 
         Args:
@@ -70,8 +63,7 @@ class AssetsAPI:
         ...
 
     def get(self, *, asset_id: str | None = None, name: str | None = None) -> Asset:
-        """
-        Get an Asset.
+        """Get an Asset.
 
         Args:
             asset_id: The ID of the asset.
@@ -103,8 +95,7 @@ class AssetsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Asset]:
-        """
-        List assets with optional filtering.
+        """List assets with optional filtering.
 
         Args:
             asset_ids: List of asset IDs to filter by.
@@ -120,6 +111,7 @@ class AssetsAPI:
             modified_by: Assets last modified by this user.
             tags: Assets with these tags.
             tag_ids: List of asset tag IDs to filter by.
+            metadata: metadata filter
             include_archived: Include archived assets.
             filter_query: Explicit CEL query to filter assets.
             order_by: How to order the retrieved assets. # TODO: tooling for this?
@@ -131,8 +123,7 @@ class AssetsAPI:
         ...
 
     def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
-        """
-        Update an Asset.
+        """Update an Asset.
 
         Args:
             asset: The Asset or asset ID to update.
@@ -144,36 +135,29 @@ class AssetsAPI:
         ...
 
 class CalculatedChannelsAPI:
-    """
-    Sync counterpart to `CalculatedChannelsAPIAsync`.
-
+    """Sync counterpart to `CalculatedChannelsAPIAsync`.
 
     High-level API for interacting with calculated channels.
 
-    This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+        This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
+        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-    All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
-    representation of a calculated channel using standard Python data structures and types.
+        All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
+        representation of a calculated channel using standard Python data structures and types.
+
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the CalculatedChannelsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the CalculatedChannelsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
         ...
 
-    def _run(self, coro):
-        """ """
-        ...
-
+    def _run(self, coro): ...
     def archive(self, *, calculated_channel: str | CalculatedChannel) -> None:
-        """
-        Archive a Calculated Channel.
-        """
+        """Archive a Calculated Channel."""
         ...
 
     def create(
@@ -181,17 +165,16 @@ class CalculatedChannelsAPI:
         *,
         name: str,
         expression: str,
-        channel_references: List[ChannelReference],
+        channel_references: list[ChannelReference],
         description: str = "",
         units: str | None = None,
         client_key: str | None = None,
-        asset_ids: List[str] | None = None,
-        tag_ids: List[str] | None = None,
+        asset_ids: list[str] | None = None,
+        tag_ids: list[str] | None = None,
         all_assets: bool = False,
         user_notes: str = "",
     ) -> CalculatedChannel:
-        """
-        Create a calculated channel.
+        """Create a calculated channel.
 
         Args:
             name: The name of the calculated channel.
@@ -214,8 +197,7 @@ class CalculatedChannelsAPI:
         ...
 
     def find(self, **kwargs) -> CalculatedChannel | None:
-        """
-        Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
+        """Find a single calculated channel matching the given query. Takes the same arguments as `list` but handles checking for multiple matches.
         Will raise an error if multiple calculated channels are found.
 
         Args:
@@ -233,8 +215,7 @@ class CalculatedChannelsAPI:
         client_key: str | None = None,
         organization_id: str | None = None,
     ) -> CalculatedChannel:
-        """
-        Get a Calculated Channel.
+        """Get a Calculated Channel.
 
         Args:
             calculated_channel_id: The ID of the calculated channel.
@@ -249,7 +230,7 @@ class CalculatedChannelsAPI:
         """
         ...
 
-    def list(
+    def list_(
         self,
         *,
         name: str | None = None,
@@ -272,9 +253,8 @@ class CalculatedChannelsAPI:
         order_by: str | None = None,
         limit: int | None = None,
         organization_id: str | None = None,
-    ) -> List[CalculatedChannel]:
-        """
-        List calculated channels with optional filtering.
+    ) -> list[CalculatedChannel]:
+        """List calculated channels with optional filtering.
 
         Args:
             name: Exact name of the calculated channel.
@@ -320,9 +300,8 @@ class CalculatedChannelsAPI:
         include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> List[CalculatedChannel]:
-        """
-        List versions of a calculated channel.
+    ) -> list[CalculatedChannel]:
+        """List versions of a calculated channel.
 
         Args:
             calculated_channel_id: The ID of the calculated channel.
@@ -355,8 +334,7 @@ class CalculatedChannelsAPI:
         update: CalculatedChannelUpdate | dict,
         user_notes: str | None = None,
     ) -> CalculatedChannel:
-        """
-        Update a Calculated Channel.
+        """Update a Calculated Channel.
 
         Args:
             calculated_channel: The CalculatedChannel or id of the CalculatedChannel to update.
@@ -369,35 +347,29 @@ class CalculatedChannelsAPI:
         ...
 
 class ChannelsAPI:
-    """
-    Sync counterpart to `ChannelsAPIAsync`.
-
+    """Sync counterpart to `ChannelsAPIAsync`.
 
     High-level API for interacting with channels.
 
-    This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+        This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
+        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-    All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
-    representation of a channel using standard Python data structures and types.
+        All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
+        representation of a channel using standard Python data structures and types.
+
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the ChannelsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ChannelsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
         ...
 
-    def _run(self, coro):
-        """ """
-        ...
-
+    def _run(self, coro): ...
     def find(self, **kwargs) -> Channel | None:
-        """
-        Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
+        """Find a single channel matching the given query. Takes the same arguments as `list`. If more than one channel is found,
         raises an error.
 
         Args:
@@ -409,8 +381,7 @@ class ChannelsAPI:
         ...
 
     def get(self, *, channel_id: str) -> Channel:
-        """
-        Get a Channel.
+        """Get a Channel.
 
         Args:
             channel_id: The ID of the channel.
@@ -423,14 +394,13 @@ class ChannelsAPI:
     def get_data(
         self,
         *,
-        channels: List[Channel],
+        channels: list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> Dict[str, pd.DataFrame]:
-        """
-        Get data for one or more channels.
+    ) -> dict[str, pd.DataFrame]:
+        """Get data for one or more channels.
 
         Args:
             channels: The channels to get data for.
@@ -444,18 +414,16 @@ class ChannelsAPI:
     def get_data_as_arrow(
         self,
         *,
-        channels: List[Channel],
+        channels: list[Channel],
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
-    ) -> Dict[str, pa.Table]:
-        """
-        Get data for one or more channels as pyarrow tables.
-        """
+    ) -> dict[str, pa.Table]:
+        """Get data for one or more channels as pyarrow tables."""
         ...
 
-    def list(
+    def list_(
         self,
         *,
         asset_id: str | None = None,
@@ -475,8 +443,7 @@ class ChannelsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Channel]:
-        """
-        List channels with optional filtering.
+        """List channels with optional filtering.
 
         Args:
             asset_id: The asset ID to get.
@@ -502,29 +469,22 @@ class ChannelsAPI:
         ...
 
 class PingAPI:
-    """
-    Sync counterpart to `PingAPIAsync`.
-
+    """Sync counterpart to `PingAPIAsync`.
 
     High-level API for performing health checks.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the AssetsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the AssetsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
         ...
 
-    def _run(self, coro):
-        """ """
-        ...
-
+    def _run(self, coro): ...
     def ping(self) -> str:
-        """
-        Send a ping request to the server.
+        """Send a ping request to the server.
 
         Returns:
             The response from the server.
@@ -532,42 +492,36 @@ class PingAPI:
         ...
 
 class RulesAPI:
-    """
-    Sync counterpart to `RulesAPIAsync`.
-
+    """Sync counterpart to `RulesAPIAsync`.
 
     High-level API for interacting with rules.
 
-    This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+        This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
+        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-    All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
-    representation of a rule using standard Python data structures and types.
+        All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
+        representation of a rule using standard Python data structures and types.
+
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the RulesAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the RulesAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
         ...
 
-    def _run(self, coro):
-        """ """
-        ...
-
+    def _run(self, coro): ...
     def archive(
         self,
         *,
         rule: str | Rule | None = None,
-        rules: List[Rule] | None = None,
-        rule_ids: List[str] | None = None,
-        client_keys: List[str] | None = None,
+        rules: list[Rule] | None = None,
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
     ) -> None:
-        """
-        Archive a rule or multiple.
+        """Archive a rule or multiple.
 
         Args:
             rule: The Rule to archive.
@@ -578,10 +532,9 @@ class RulesAPI:
         ...
 
     def batch_get(
-        self, *, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
-    ) -> List[Rule]:
-        """
-        Get multiple rules by rule IDs or client keys.
+        self, *, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
+    ) -> list[Rule]:
+        """Get multiple rules by rule IDs or client keys.
 
         Args:
             rule_ids: List of rule IDs to get.
@@ -593,10 +546,9 @@ class RulesAPI:
         ...
 
     def batch_restore(
-        self, *, rule_ids: List[str] | None = None, client_keys: List[str] | None = None
+        self, *, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
     ) -> None:
-        """
-        Batch restore rules.
+        """Batch restore rules.
 
         Args:
             rule_ids: List of rule IDs to restore.
@@ -609,22 +561,19 @@ class RulesAPI:
         name: str,
         description: str,
         expression: str,
-        channel_references: List[ChannelReference],
+        channel_references: list[ChannelReference],
         action: RuleAction,
         organization_id: str | None = None,
         client_key: str | None = None,
-        asset_ids: List[str] | None = None,
-        contextual_channels: List[str] | None = None,
+        asset_ids: list[str] | None = None,
+        contextual_channels: list[str] | None = None,
         is_external: bool = False,
     ) -> Rule:
-        """
-        Create a new rule.
-        """
+        """Create a new rule."""
         ...
 
     def find(self, **kwargs) -> Rule | None:
-        """
-        Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
+        """Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
         raises an error.
 
         Args:
@@ -636,8 +585,7 @@ class RulesAPI:
         ...
 
     def get(self, *, rule_id: str | None = None, client_key: str | None = None) -> Rule:
-        """
-        Get a Rule.
+        """Get a Rule.
 
         Args:
             rule_id: The ID of the rule.
@@ -648,7 +596,7 @@ class RulesAPI:
         """
         ...
 
-    def list(
+    def list_(
         self,
         *,
         name: str | None = None,
@@ -658,8 +606,7 @@ class RulesAPI:
         limit: int | None = None,
         include_deleted: bool = False,
     ) -> list[Rule]:
-        """
-        List rules with optional filtering.
+        """List rules with optional filtering.
 
         Args:
             name: Exact name of the rule.
@@ -667,6 +614,7 @@ class RulesAPI:
             name_regex: Regular expression string to filter rules by name.
             order_by: How to order the retrieved rules.
             limit: How many rules to retrieve. If None, retrieves all matches.
+            include_deleted: Include deleted rules.
 
         Returns:
             A list of Rules that matches the filter.
@@ -676,8 +624,7 @@ class RulesAPI:
     def restore(
         self, *, rule: str | Rule, rule_id: str | None = None, client_key: str | None = None
     ) -> Rule:
-        """
-        Restore a rule.
+        """Restore a rule.
 
         Args:
             rule: The Rule or rule ID to restore.
@@ -692,48 +639,42 @@ class RulesAPI:
     def update(
         self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
     ) -> Rule:
-        """
-        Update a Rule.
+        """Update a Rule.
 
         Args:
             rule: The Rule or rule ID to update.
             update: Updates to apply to the Rule.
             version_notes: Notes to include in the rule version.
+
         Returns:
             The updated Rule.
         """
         ...
 
 class RunsAPI:
-    """
-    Sync counterpart to `RunsAPIAsync`.
-
+    """Sync counterpart to `RunsAPIAsync`.
 
     High-level API for interacting with runs.
 
-    This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
-    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+        This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
+        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-    All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
-    representation of a run using standard Python data structures and types.
+        All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
+        representation of a run using standard Python data structures and types.
+
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the RunsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the RunsAPI.
 
         Args:
             sift_client: The Sift client to use.
         """
         ...
 
-    def _run(self, coro):
-        """ """
-        ...
-
+    def _run(self, coro): ...
     def archive(self, *, run: str | Run) -> None:
-        """
-        Archive a run.
+        """Archive a run.
 
         Args:
             run: The Run or run ID to archive.
@@ -744,15 +685,14 @@ class RunsAPI:
         self,
         name: str,
         description: str,
-        tags: List[str] | None = None,
+        tags: list[str] | None = None,
         start_time: datetime | None = None,
         stop_time: datetime | None = None,
         organization_id: str | None = None,
         client_key: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
     ) -> Run:
-        """
-        Create a new run.
+        """Create a new run.
 
         Args:
             name: The name of the run.
@@ -770,10 +710,9 @@ class RunsAPI:
         ...
 
     def create_automatic_association_for_assets(
-        self, run: str | Run, asset_names: List[str]
+        self, run: str | Run, asset_names: list[str]
     ) -> None:
-        """
-        Associate assets with a run for automatic data ingestion.
+        """Associate assets with a run for automatic data ingestion.
 
         Args:
             run: The Run or run ID.
@@ -782,8 +721,7 @@ class RunsAPI:
         ...
 
     def find(self, **kwargs) -> Run | None:
-        """
-        Find a single run matching the given query. Takes the same arguments as `list`. If more than one run is found,
+        """Find a single run matching the given query. Takes the same arguments as `list`. If more than one run is found,
         raises an error.
 
         Args:
@@ -795,8 +733,7 @@ class RunsAPI:
         ...
 
     def get(self, *, run_id: str) -> Run:
-        """
-        Get a Run.
+        """Get a Run.
 
         Args:
             run_id: The ID of the run.
@@ -806,7 +743,7 @@ class RunsAPI:
         """
         ...
 
-    def list(
+    def list_(
         self,
         *,
         name: str | None = None,
@@ -823,9 +760,8 @@ class RunsAPI:
         include_archived: bool = False,
         order_by: str | None = None,
         limit: int | None = None,
-    ) -> List[Run]:
-        """
-        List runs with optional filtering.
+    ) -> list[Run]:
+        """List runs with optional filtering.
 
         Args:
             name: Exact name of the run.
@@ -849,8 +785,7 @@ class RunsAPI:
         ...
 
     def stop(self, *, run: str | Run) -> None:
-        """
-        Stop a run by setting its stop time to the current time.
+        """Stop a run by setting its stop time to the current time.
 
         Args:
             run: The Run or run ID to stop.
@@ -858,8 +793,7 @@ class RunsAPI:
         ...
 
     def stop_run(self, run: str | Run) -> None:
-        """
-        Stop a run by setting its stop time to the current time.
+        """Stop a run by setting its stop time to the current time.
 
         Args:
             run: The Run or run ID to stop.
@@ -867,8 +801,7 @@ class RunsAPI:
         ...
 
     def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
-        """
-        Update a Run.
+        """Update a Run.
 
         Args:
             run: The Run or run ID to update.

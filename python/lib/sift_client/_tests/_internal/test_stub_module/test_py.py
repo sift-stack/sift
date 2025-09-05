@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sift_client.resources._base import ResourceBase
-from sift_client.types.asset import Asset
+
+if TYPE_CHECKING:
+    from sift_client.sift_types.asset import Asset
 
 
 class MockClassAsync(ResourceBase):
@@ -38,8 +42,8 @@ class MockClassAsync(ResourceBase):
 
 
 class SecondMockClass:
-    """Class doesn't have a sync version generated so shouldn't be present"""
+    """Class doesn't have a sync version generated so shouldn't be present."""
 
     def shouldnt_be_in_gen_stubs(self):
-        """Shouldn't be in gen stubs since it isn't called by generator"""
+        """Shouldn't be in gen stubs since it isn't called by generator."""
         return

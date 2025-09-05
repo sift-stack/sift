@@ -23,20 +23,16 @@ class {cls_name}:
 {methods}
 """
 
-METHOD_TEMPLATE = '''\
+METHOD_TEMPLATE = """\
     {decorator}
     def {meth_name}(self{params}){ret_ann}:
-        """
-        {meth_doc}
-        """
+{docstring_section}
         ...
-'''
+"""
 
 
 def extract_imports(path: pathlib.Path) -> list[str]:
-    """
-    Parse the given Python file and return a list of its import statements (as strings).
-    """
+    """Parse the given Python file and return a list of its import statements (as strings)."""
     source = path.read_text()
     tree = ast.parse(source, filename=str(path))
 
@@ -125,7 +121,8 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
             async_class = matched.get("async_cls")
             if async_class is None:
                 warnings.warn(
-                    f"Could not find async class for {cls_name}. Skipping stub generation."
+                    f"Could not find async class for {cls_name}. Skipping stub generation.",
+                    stacklevel=2,
                 )
                 continue
 
@@ -133,14 +130,14 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
             source_file = inspect.getsourcefile(async_class)
             if source_file is None:
                 warnings.warn(
-                    f"Could not find source file for {async_class.__name__}. Skipping stub generation."
+                    f"Could not find source file for {async_class.__name__}. Skipping stub generation.",
+                    stacklevel=2,
                 )
                 continue
 
             orig_path = pathlib.Path(source_file).resolve()
             imports = extract_imports(orig_path)
-            for imp in imports:
-                new_module_imports.append(imp)
+            new_module_imports = new_module_imports + imports
 
             # Class docstring
             raw_doc = inspect.getdoc(cls) or ""
@@ -183,7 +180,7 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
             lines.append(stub)
 
         unique_imports = list(OrderedDict.fromkeys(new_module_imports))
-        lines = [HEADER] + unique_imports + lines
+        lines = [HEADER, *unique_imports, *lines]
         pyi_file = py_file.with_suffix(".pyi")
 
         stub_files[pyi_file] = "\n".join(lines)
@@ -264,14 +261,18 @@ def generate_method_stub(name: str, f: Callable, module, decorator: str = "") ->
 
     # Method docstring
     raw_mdoc = inspect.getdoc(f) or ""
-    meth_doc = raw_mdoc.replace('"""', '\\"\\"\\"').replace("\n", "\n        ")
+    if raw_mdoc and raw_mdoc.strip():
+        meth_doc = raw_mdoc.replace('"""', '\\"\\"\\"').replace("\n", "\n        ")
+        docstring_section = f'        """\n        {meth_doc}\n        """\n'
+    else:
+        docstring_section = ""
 
     return METHOD_TEMPLATE.format(
         decorator=decorator,
         meth_name=name,
         params=params_txt,
         ret_ann=ret_txt,
-        meth_doc=meth_doc,
+        docstring_section=docstring_section,
     )
 
 

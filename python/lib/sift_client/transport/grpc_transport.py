@@ -1,5 +1,4 @@
-"""
-Transport layer for gRPC communication.
+"""Transport layer for gRPC communication.
 
 This module provides a simple wrapper around sift_py/grpc/transport.py for making gRPC API calls.
 It just stores the channel and the stubs, without any additional functionality.
@@ -11,7 +10,7 @@ import asyncio
 import atexit
 import logging
 import threading
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 from sift_py.grpc.transport import (
     SiftChannelConfig,
@@ -23,8 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def _suppress_blocking_io(loop, context):
-    """
-    Suppress benign BlockingIOError from gRPC's PollerCompletionQueue.
+    """Suppress benign BlockingIOError from gRPC's PollerCompletionQueue.
 
     gRPC's internal poller uses non-blocking I/O. When no events are ready,
     it raises BlockingIOError (EAGAIN), which is expected and safe to ignore.
@@ -45,10 +43,9 @@ class GrpcConfig:
         api_key: str,
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
-        metadata: Dict[str, str] | None = None,
+        metadata: dict[str, str] | None = None,
     ):
-        """
-        Initialize the gRPC configuration.
+        """Initialize the gRPC configuration.
 
         Args:
             url: The URI of the gRPC server.
@@ -65,8 +62,7 @@ class GrpcConfig:
         self.metadata = metadata or {}
 
     def _to_sift_channel_config(self) -> SiftChannelConfig:
-        """
-        Convert to a SiftChannelConfig.
+        """Convert to a SiftChannelConfig.
 
         Returns:
             A SiftChannelConfig.
@@ -80,23 +76,21 @@ class GrpcConfig:
 
 
 class GrpcClient:
-    """
-    A simple wrapper around sift_py/grpc/transport.py for making gRPC API calls.
+    """A simple wrapper around sift_py/grpc/transport.py for making gRPC API calls.
 
     This class just stores the channel and the stubs, without any additional functionality.
     """
 
     def __init__(self, config: GrpcConfig):
-        """
-        Initialize the gRPC client.
+        """Initialize the gRPC client.
 
         Args:
             config: The gRPC client configuration.
         """
         self._config = config
         # map each asyncio loop to its async channel and stub dict
-        self._channels_async: Dict[asyncio.AbstractEventLoop, Any] = {}
-        self._stubs_async_map: Dict[asyncio.AbstractEventLoop, Dict[Type[Any], Any]] = {}
+        self._channels_async: dict[asyncio.AbstractEventLoop, Any] = {}
+        self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = {}
         # default loop for sync API
         self._default_loop = asyncio.new_event_loop()
         atexit.register(self.close_sync)
@@ -124,11 +118,15 @@ class GrpcClient:
 
     @property
     def default_loop(self) -> asyncio.AbstractEventLoop:
+        """Return the default event loop used for synchronous API operations.
+
+        Returns:
+            The default asyncio event loop.
+        """
         return self._default_loop
 
-    def get_stub(self, stub_class: Type[Any]) -> Any:
-        """
-        Get an async stub bound to the current event loop.
+    def get_stub(self, stub_class: type[Any]) -> Any:
+        """Get an async stub bound to the current event loop.
         Creates a channel and stub for this loop if needed.
         """
         try:
@@ -180,7 +178,7 @@ class GrpcClient:
         self.close_sync()
 
     async def _create_async_channel(
-        self, cfg: SiftChannelConfig, metadata: Optional[Dict[str, str]]
+        self, cfg: SiftChannelConfig, metadata: dict[str, str] | None
     ) -> Any:
         """Helper to create async channel on default loop."""
         return use_sift_async_channel(cfg, metadata)

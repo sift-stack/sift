@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 import sift.common.type.v1.channel_data_type_pb2 as channel_pb
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sift.channels.v3.channels_pb2 import Channel as ChannelProto
 from sift.common.type.v1.channel_bit_field_element_pb2 import (
     ChannelBitFieldElement as ChannelBitFieldElementPb,
@@ -26,16 +26,17 @@ from sift.data.v2.data_pb2 import (
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig
 
-from sift_client.types._base import BaseType
-from sift_client.types.run import Run
+from sift_client.sift_types._base import BaseType
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.types.asset import Asset
+    from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.run import Run
 
 
-# Enum for channel data types (mimics protobuf values, but as int for now)
 class ChannelDataType(Enum):
+    """Enum for channel data types (mimics protobuf values, but as int for now)."""
+
     DOUBLE = channel_pb.CHANNEL_DATA_TYPE_DOUBLE
     STRING = channel_pb.CHANNEL_DATA_TYPE_STRING
     ENUM = channel_pb.CHANNEL_DATA_TYPE_ENUM
@@ -55,14 +56,33 @@ class ChannelDataType(Enum):
         return ret
 
     @staticmethod
-    def from_api_format(val: str) -> Optional["ChannelDataType"]:
+    def from_api_format(val: str) -> ChannelDataType | None:
+        """Convert API format string to ChannelDataType.
+
+        Args:
+            val: API format string representation of ChannelDataType.
+
+        Returns:
+            ChannelDataType if conversion is successful, None otherwise.
+        """
         for item in ChannelDataType:
             if "CHANNEL_DATA_TYPE_" + item.name == val:
                 return item
         return None
 
     @staticmethod
-    def from_str(raw: str) -> Optional["ChannelDataType"]:
+    def from_str(raw: str) -> ChannelDataType | None:
+        """Convert string representation to ChannelDataType.
+
+        Args:
+            raw: String representation of ChannelDataType.
+
+        Returns:
+            ChannelDataType if conversion is successful, None otherwise.
+
+        Raises:
+            Exception: If the string format is recognized but cannot be converted.
+        """
         if raw.startswith("CHANNEL_DATA_TYPE_"):
             val = ChannelDataType.from_api_format(raw)
             if val is None:
@@ -92,7 +112,18 @@ class ChannelDataType(Enum):
         raise Exception(f"Unknown channel data type: {raw}")
 
     @staticmethod
-    def proto_data_class(data_type: ChannelDataType) -> Any:
+    def proto_data_class(data_type: ChannelDataType):
+        """Return the appropriate protobuf class for the given channel data type.
+
+        Args:
+            data_type: The channel data type.
+
+        Returns:
+            The protobuf class corresponding to the data type.
+
+        Raises:
+            ValueError: If the data type is not recognized.
+        """
         if data_type == ChannelDataType.DOUBLE:
             return DoubleValues
         elif data_type == ChannelDataType.FLOAT:
@@ -120,6 +151,7 @@ class ChannelDataType(Enum):
 
     # TODO: Can we get rid of this? Is hashing the same between clients that likely to ever actually discover a conflict?
     def hash_str(self, api_format: bool = False) -> str:
+        """Get the hash string for this channel data type."""
         if self == ChannelDataType.DOUBLE:
             return "CHANNEL_DATA_TYPE_DOUBLE" if api_format else ChannelDataType.DOUBLE.__str__()
         elif self == ChannelDataType.STRING:
@@ -148,8 +180,9 @@ class ChannelDataType(Enum):
             raise Exception("Unreachable.")
 
 
-# Bit field element model
 class ChannelBitFieldElement(BaseModel):
+    """Bit field element model."""
+
     name: str
     index: int
     bit_count: int
@@ -172,12 +205,14 @@ class ChannelBitFieldElement(BaseModel):
 
 # Channel config model
 class Channel(BaseType[ChannelProto, "Channel"]):
+    """Model representing a Sift Channel."""
+
     name: str
     data_type: ChannelDataType
     description: str | None = None
     unit: str | None = None
-    bit_field_elements: List[ChannelBitFieldElement] | None = None
-    enum_types: Dict[str, int] = {}
+    bit_field_elements: list[ChannelBitFieldElement] = Field(default_factory=list)
+    enum_types: dict[str, int] = Field(default_factory=dict)
     asset_id: str | None = None
     created_date: datetime | None = None
     modified_date: datetime | None = None
@@ -185,12 +220,13 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     modified_by_user_id: str | None = None
 
     @staticmethod
-    def _enum_types_to_proto_list(enum_types: Dict[str, int]) -> List[ChannelEnumTypePb]:
+    def _enum_types_to_proto_list(enum_types: dict[str, int] | None) -> list[ChannelEnumTypePb]:
         """Convert a dictionary of enum types to a list of ChannelEnumTypePb objects."""
+        enum_types = {} if enum_types is None else enum_types
         return [ChannelEnumTypePb(name=name, key=key) for name, key in enum_types.items()]
 
     @staticmethod
-    def _enum_types_from_proto_list(enum_types: List[ChannelEnumTypePb]) -> Dict[str, int]:
+    def _enum_types_from_proto_list(enum_types: list[ChannelEnumTypePb]) -> dict[str, int]:
         """Convert a list of ChannelEnumTypePb objects to a dictionary of enum types."""
         return {enum.name: enum.key for enum in enum_types}
 
@@ -210,8 +246,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 ],
                 enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
                 asset_id=proto.asset_id,
-                created_date=proto.created_date.ToDatetime(),
-                modified_date=proto.modified_date.ToDatetime(),
+                created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+                modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
                 created_by_user_id=proto.created_by_user_id,
                 modified_by_user_id=proto.modified_by_user_id,
                 _client=sift_client,
@@ -245,14 +281,14 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         limit: int | None = None,
         as_arrow: bool = False,
     ):
-        """
-        Retrieve channel data for this channel during the specified run.
+        """Retrieve channel data for this channel during the specified run.
 
         Args:
             run_id: The run ID to get data for.
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return.
+            as_arrow: Whether to return the data as an Arrow table.
 
         Returns:
             A dict of channel name to pandas DataFrame or Arrow Table object.
@@ -277,17 +313,18 @@ class Channel(BaseType[ChannelProto, "Channel"]):
 
     @property
     def asset(self) -> Asset:
+        """Get the asset that this channel belongs to."""
         return self.client.assets.get(asset_id=self.asset_id)
 
+    # TODO: update this logic to correctly scope to only runs that this channel is associated with.
     @property
-    def runs(self) -> List[Run]:
+    def runs(self) -> list[Run]:
+        """Get all runs associated with this channel's asset."""
         return self.asset.runs
 
 
 class ChannelReference(BaseModel):
-    """
-    Channel reference for calculated channel or rule.
-    """
+    """Channel reference for calculated channel or rule."""
 
     channel_reference: str  # The key of the channel in the expression i.e. $1, $2, etc.
     channel_identifier: str  # The name of the channel

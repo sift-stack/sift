@@ -1,11 +1,11 @@
 import asyncio
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sift_client.client import SiftClient
 
 # Import sift_client types for calculated channels and rules
-from sift_client.types import (
+from sift_client.sift_types import (
     CalculatedChannelUpdate,
     ChannelReference,
 )
@@ -48,7 +48,7 @@ async def main():
 
     # Create example calculated channels that will be unique to this test run in case things don't cleanup.
     num_channels = 7
-    unique_name_suffix = datetime.now().strftime("%Y%m%d%H%M%S")
+    unique_name_suffix = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
     print(
         f"\n=== Creating {num_channels} calculated channels with unique suffix: {unique_name_suffix} ==="
     )

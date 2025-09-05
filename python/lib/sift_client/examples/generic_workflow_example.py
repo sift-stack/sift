@@ -1,11 +1,11 @@
 import asyncio
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sift_client.client import SiftClient
 
 # Import sift_client types for calculated channels and rules
-from sift_client.types import (
+from sift_client.sift_types import (
     CalculatedChannelUpdate,
     ChannelReference,
     RuleAction,
@@ -80,7 +80,7 @@ async def main():
         print(f"Updating rule: {rule.name}")
         rule = rule.update(
             RuleUpdate(
-                description=f"Alert when velocity-to-voltage ratio exceeds 0.1 (Updated at {datetime.now().isoformat()})",
+                description=f"Alert when velocity-to-voltage ratio exceeds 0.1 (Updated at {datetime.now(tz=timezone.utc).isoformat()})",
                 asset_ids=[asset_id],
             )
         )

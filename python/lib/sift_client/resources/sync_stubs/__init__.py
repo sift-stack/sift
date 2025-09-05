@@ -1,5 +1,4 @@
-"""
-Synchronous API wrappers generated from async classes.
+"""Synchronous API wrappers generated from async classes.
 This package contains synchronous versions of all async API classes.
 """
 
@@ -20,4 +19,4 @@ ChannelsAPI = generate_sync_api(ChannelsAPIAsync, "ChannelsAPI")
 RulesAPI = generate_sync_api(RulesAPIAsync, "RulesAPI")
 RunsAPI = generate_sync_api(RunsAPIAsync, "RunsAPI")
 
-__all__ = ["PingAPI", "AssetsAPI", "CalculatedChannelsAPI", "RunsAPI"]
+__all__ = ["AssetsAPI", "CalculatedChannelsAPI", "PingAPI", "RunsAPI"]

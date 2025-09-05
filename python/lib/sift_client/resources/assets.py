@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-import re
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.types.asset import Asset, AssetUpdate
+from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.util import cel_utils
 
 if TYPE_CHECKING:
+    import re
+    from datetime import datetime
+
     from sift_client.client import SiftClient
 
 
 class AssetsAPIAsync(ResourceBase):
-    """
-    High-level API for interacting with assets.
+    """High-level API for interacting with assets.
 
     This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
     It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
@@ -24,9 +24,8 @@ class AssetsAPIAsync(ResourceBase):
     representation of an asset using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: "SiftClient"):
-        """
-        Initialize the AssetsAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the AssetsAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -40,8 +39,7 @@ class AssetsAPIAsync(ResourceBase):
         asset_id: str | None = None,
         name: str | None = None,
     ) -> Asset:
-        """
-        Get an Asset.
+        """Get an Asset.
 
         Args:
             asset_id: The ID of the asset.
@@ -91,8 +89,7 @@ class AssetsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Asset]:
-        """
-        List assets with optional filtering.
+        """List assets with optional filtering.
 
         Args:
             asset_ids: List of asset IDs to filter by.
@@ -108,6 +105,7 @@ class AssetsAPIAsync(ResourceBase):
             modified_by: Assets last modified by this user.
             tags: Assets with these tags.
             tag_ids: List of asset tag IDs to filter by.
+            metadata: metadata filter
             include_archived: Include archived assets.
             filter_query: Explicit CEL query to filter assets.
             order_by: How to order the retrieved assets. # TODO: tooling for this?
@@ -157,8 +155,7 @@ class AssetsAPIAsync(ResourceBase):
         return self._apply_client_to_instances(assets)
 
     async def find(self, **kwargs) -> Asset | None:
-        """
-        Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
+        """Find a single asset matching the given query. Takes the same arguments as `list_`. If more than one asset is found,
         raises an error.
 
         Args:
@@ -175,14 +172,13 @@ class AssetsAPIAsync(ResourceBase):
         return None
 
     async def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
-        """
-        Archive an asset.
+        """Archive an asset.
 
-         Args:
+        Args:
              asset: The Asset or asset ID to archive.
              archive_runs: If True, archive all Runs associated with the Asset.
 
-         Returns:
+        Returns:
              The archived Asset.
         """
         asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
@@ -192,8 +188,7 @@ class AssetsAPIAsync(ResourceBase):
         return await self.get(asset_id=asset_id)
 
     async def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
-        """
-        Update an Asset.
+        """Update an Asset.
 
         Args:
             asset: The Asset or asset ID to update.
