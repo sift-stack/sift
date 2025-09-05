@@ -153,8 +153,9 @@ where
 
         let join_handle = tokio::task::spawn_blocking(move || -> Result<()> {
             let mut message_buffer = Vec::with_capacity(CHANNEL_BUFFER_SIZE);
-            //let mut bytes_processed = 0;
 
+            let mut total_bytes_written = 0;
+            let mut total_files_written = 0;
             let mut cur_bytes_processed = 0;
             let (mut cur_backup_file_path, mut cur_backup_file) =
                 Self::create_backup_file(&backup_info)?;
@@ -172,12 +173,17 @@ where
                             cur_bytes_processed += CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN;
 
                             if cur_bytes_processed >= backup_info.max_size {
+                                total_bytes_written += cur_bytes_processed;
+                                total_files_written += 1;
+
                                 #[cfg(feature = "tracing")]
                                 tracing::debug!(
                                     cur_backup_file = format!("{}", cur_backup_file_path.display()),
                                     cur_bytes_processed,
+                                    total_bytes_written,
+                                    total_files_written,
                                     max_backup_size = backup_info.max_size,
-                                    "current backup file has reached max size"
+                                    "Current backup file has reached max size. Closing out file"
                                 );
 
                                 // Close out the current file
@@ -204,8 +210,18 @@ where
                         }
                     }
                     Message::Flush => {
+                        total_bytes_written += cur_bytes_processed;
+                        total_files_written += 1;
+
                         #[cfg(feature = "tracing")]
-                        tracing::debug!("backup task received flush and sync signal");
+                        tracing::debug!(
+                            cur_backup_file = format!("{}", cur_backup_file_path.display()),
+                            cur_bytes_processed,
+                            total_bytes_written,
+                            total_files_written,
+                            max_backup_size = backup_info.max_size,
+                            "Backup task received flush and sync signal. Closing out file"
+                        );
 
                         if !message_buffer.is_empty() {
                             Self::flush_message_buffer(&mut cur_backup_file, &mut message_buffer)?;
@@ -216,12 +232,23 @@ where
                             backup_files_guard.push(cur_backup_file_path);
                         }
                         flush_and_sync_notifier.notify_one();
+                        cur_bytes_processed = 0;
                         (cur_backup_file_path, cur_backup_file) =
                             Self::create_backup_file(&backup_info)?;
                     }
                     Message::Complete => {
+                        total_bytes_written += cur_bytes_processed;
+                        total_files_written += 1;
+
                         #[cfg(feature = "tracing")]
-                        tracing::debug!("backup task complete - shutting down");
+                        tracing::debug!(
+                            cur_backup_file = format!("{}", cur_backup_file_path.display()),
+                            cur_bytes_processed,
+                            total_bytes_written,
+                            total_files_written,
+                            max_backup_size = backup_info.max_size,
+                            "Backup task complete. Closing file and shutting down"
+                        );
 
                         // Close out current file and add to file list
                         drop(cur_backup_file);
@@ -266,11 +293,13 @@ where
     /// Restart the backup task. Clears the current list of unprocessed backup files, and deleting them
     /// if allowed by the retain policy. Unpauses the backup task if the backups were full.
     pub async fn restart(&mut self) -> Result<()> {
-        #[cfg(feature = "tracing")]
-        tracing::info!("Restarting async backup. Clearing existing backup files");
-
         // Always clear backup files on restart since it indicates a successful checkpoint
         let mut backup_files_guard = self.backup_files.lock().await;
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            cur_file_count = backup_files_guard.len(),
+            "Restarting async backup. Clearing existing backup files"
+        );
         if !self.backup_info.retain_ingested {
             for file_path in backup_files_guard.iter() {
                 if let Err(err) = fs::remove_file(file_path) {
