@@ -1,13 +1,5 @@
 [
   {
-    "version": "pr-302",
-    "title": "pr-302",
-    "aliases": [],
-    "properties": {
-      "hidden": true
-    }
-  },
-  {
     "version": "v0.8",
     "title": "v0.8",
     "aliases": [
