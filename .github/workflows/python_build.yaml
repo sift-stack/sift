@@ -124,7 +124,14 @@ jobs:
         shell: bash
         run: |
           # Generate requirements file with all extras
-          pip-compile pyproject.toml --all-extras -o requirements-all.txt
+          pip-compile pyproject.toml \
+          --extra build \
+          --extra tdms \
+          --extra hdf5 \
+          --extra sift-stream \
+          --extra rosbags \
+          --extra openssl \
+          -o requirements-all.txt
 
       - name: Build dependency wheels
         working-directory: python
