@@ -20,7 +20,7 @@ pub const DEFAULT_BACKUP_FILE_COUNT: Option<usize> = None;
 ///
 /// - `rolling_file_policy` is the rolling backup file policy to use
 ///
-/// - `retain_ingested_backups` will retain backup files indefinitely, instead of deleting them once a checkpoint
+/// - `retain_backups` will retain backup files indefinitely, instead of deleting them once a checkpoint
 ///   has been cleared or the data has otherwise been confirmed to be ingested in Sift.
 ///
 /// **Important Note**: The `max_backup_file_size` does not represent that actual amount of
@@ -31,7 +31,7 @@ pub struct DiskBackupPolicy {
     pub backups_dir: Option<PathBuf>,
     pub max_backup_file_size: usize,
     pub rolling_file_policy: RollingFilePolicy,
-    pub retain_ingested_backups: bool,
+    pub retain_backups: bool,
 }
 
 impl Default for DiskBackupPolicy {
@@ -40,7 +40,7 @@ impl Default for DiskBackupPolicy {
             backups_dir: Default::default(),
             max_backup_file_size: DEFAULT_MAX_BACKUP_SIZE,
             rolling_file_policy: Default::default(),
-            retain_ingested_backups: false,
+            retain_backups: false,
         }
     }
 }

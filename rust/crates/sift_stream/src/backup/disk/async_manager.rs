@@ -103,7 +103,7 @@ where
             prefix: backup_prefix.to_string(),
             max_size: disk_backup_policy.max_backup_file_size,
             max_file_count: disk_backup_policy.rolling_file_policy.max_file_count,
-            retain_ingested: disk_backup_policy.retain_ingested_backups,
+            retain_ingested: disk_backup_policy.retain_backups,
         };
 
         let backup_files = Arc::new(Mutex::new(vec![]));
