@@ -537,7 +537,7 @@ impl BackupIngestTask {
                         tracing::warn!(
                             backup_file = backup_file_path.display().to_string(),
                             err = format!("{err:?}"),
-                            current_retry = retries,
+                            current_backup_retry = retries,
                             "Retrying backup file ingestion after backoff: {} secs",
                             current_wait.as_secs_f32()
                         );
