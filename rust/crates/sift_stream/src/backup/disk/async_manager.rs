@@ -309,6 +309,19 @@ where
     /// Restart the backup task. Clears the current list of unprocessed backup files, and deleting them
     /// if allowed by the retain policy. Unpauses the backup task if the backups were full.
     pub async fn restart(&mut self) -> Result<()> {
+        // Flush the current file
+        // We don't want to get stuck here, and proceeding before the flush is complete won't cause any harm
+        // so keep the timeout small
+        let _ = self.backup_tx.send(Message::Flush);
+        tokio::select! {
+            _ = self.flush_and_sync_notifier.notified() => {
+
+            }
+            _ = tokio::time::sleep(Duration::from_secs(1)) => {
+
+            }
+        }
+
         // Always clear backup files on restart since it indicates a successful checkpoint
         let mut backup_files_guard = self.backup_files.lock().await;
         #[cfg(feature = "tracing")]
