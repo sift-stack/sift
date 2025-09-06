@@ -17,6 +17,12 @@ use tokio::{
     task::JoinHandle,
 };
 
+mod async_manager;
+pub use async_manager::AsyncBackupsManager;
+
+mod policy;
+pub use policy::{DiskBackupPolicy, RollingFilePolicy};
+
 /// Concerned with writing/reading protobuf from disk.
 mod pbfs;
 use pbfs::{
