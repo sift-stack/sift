@@ -315,10 +315,16 @@ where
         let _ = self.backup_tx.send(Message::Flush);
         tokio::select! {
             _ = self.flush_and_sync_notifier.notified() => {
-
+                #[cfg(feature = "tracing")]
+                tracing::debug!(
+                    "Saw flush notification for restart"
+                );
             }
             _ = tokio::time::sleep(Duration::from_secs(1)) => {
-
+                #[cfg(feature = "tracing")]
+                tracing::debug!(
+                    "Timed out before flush could complete for restart"
+                );
             }
         }
 
