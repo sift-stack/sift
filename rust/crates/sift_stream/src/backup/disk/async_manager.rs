@@ -229,6 +229,14 @@ where
                         drop(cur_backup_file);
                         {
                             let mut backup_files_guard = backup_files.blocking_lock();
+
+                            #[cfg(feature = "tracing")]
+                            tracing::debug!(
+                                cur_backup_file = format!("{}", cur_backup_file_path.display()),
+                                cur_file_count = backup_files_guard.len(),
+                                "Adding unprocessed file"
+                            );
+
                             backup_files_guard.push(cur_backup_file_path);
                         }
                         flush_and_sync_notifier.notify_one();
@@ -254,6 +262,14 @@ where
                         drop(cur_backup_file);
                         {
                             let mut backup_files_guard = backup_files.blocking_lock();
+
+                            #[cfg(feature = "tracing")]
+                            tracing::debug!(
+                                cur_backup_file = format!("{}", cur_backup_file_path.display()),
+                                cur_file_count = backup_files_guard.len(),
+                                "Adding unprocessed file"
+                            );
+
                             backup_files_guard.push(cur_backup_file_path);
                         }
 
@@ -363,6 +379,13 @@ where
 
         let unprocessed_files: Vec<PathBuf> = {
             let mut backup_files_guard = self.backup_files.lock().await;
+
+            #[cfg(feature = "tracing")]
+            tracing::info!(
+                cur_file_count = backup_files_guard.len(),
+                "Adding backup files for ingest"
+            );
+
             backup_files_guard.drain(..).collect()
         };
 
