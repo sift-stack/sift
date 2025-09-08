@@ -4,6 +4,9 @@ package sift.common.type.v1;
 
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
+import "sift/metadata/v1/metadata.proto";
+
+
 
 enum FunctionDataType {
   FUNCTION_DATA_TYPE_UNSPECIFIED = 0;
@@ -31,6 +34,7 @@ message UserDefinedFunction {
   google.protobuf.Timestamp modified_date = 15 [(google.api.field_behavior) = REQUIRED];
   string created_by_user_id = 16 [(google.api.field_behavior) = REQUIRED];
   string modified_by_user_id = 17 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.metadata.v1.MetadataValue metadata = 18 [(google.api.field_behavior) = REQUIRED];
 }
 
 message FunctionDependency {
