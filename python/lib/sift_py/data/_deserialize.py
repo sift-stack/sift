@@ -6,6 +6,7 @@ from google.protobuf.any_pb2 import Any
 from sift.data.v2.data_pb2 import (
     BitFieldValues,
     BoolValues,
+    BytesValues,
     DoubleValues,
     EnumValues,
     FloatValues,
@@ -34,6 +35,7 @@ class ChannelValues(Enum):
     INT64_VALUES = "sift.data.v2.Int64Values"
     UINT32_VALUES = "sift.data.v2.Uint32Values"
     UINT64_VALUES = "sift.data.v2.Uint64Values"
+    BYTES_VALUES = "sift.data.v2.BytesValues"
 
 
 def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, ChannelTimeSeries]]:
@@ -204,5 +206,20 @@ def try_deserialize_channel_data(channel_values: Any) -> List[Tuple[Metadata, Ch
             parsed_data.append((md_copy, time_series))
 
         return parsed_data
+    elif ChannelValues.BYTES_VALUES.value in channel_values.type_url:
+        bytes_values = cast(BytesValues, BytesValues.FromString(channel_values.value))
+        metadata = bytes_values.metadata
+
+        time_column = []
+        bytes_value_column = []
+
+        for bytes_v in bytes_values.values:
+            time_column.append(to_timestamp_nanos(bytes_v.timestamp))
+            bytes_value_column.append(bytes_v.value)
+
+        time_series = ChannelTimeSeries(
+            ChannelDataType.from_pb(metadata.data_type), time_column, bytes_value_column
+        )
+        return [(metadata, time_series)]
 
     raise SiftError(f"Received an unknown channel-type '{channel_values.type_url}'.")
