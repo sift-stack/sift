@@ -4,11 +4,13 @@ package sift.channels.v3;
 
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/channel_bit_field_element.proto";
 import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
+import "sift/metadata/v1/metadata.proto";
 
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -43,6 +45,19 @@ service ChannelService {
       operation_id: "ChannelService_ListChannelsV2"
     };
   }
+
+  // Update a channel
+  rpc UpdateChannel(UpdateChannelRequest) returns (UpdateChannelResponse) {
+    option (google.api.http) = {
+      patch: "/api/v3/channels"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateChannel"
+      description: "Update a channel."
+      operation_id: "ChannelService_UpdateChannelV3"
+    };
+  }
 }
 
 message Channel {
@@ -59,6 +74,9 @@ message Channel {
   sift.common.type.v1.ChannelDataType data_type = 10 [(google.api.field_behavior) = REQUIRED];
   repeated sift.common.type.v1.ChannelEnumType enum_types = 11;
   repeated sift.common.type.v1.ChannelBitFieldElement bit_field_elements = 12;
+  string display_description = 13;
+  string display_unit_id = 14;
+  repeated sift.metadata.v1.MetadataValue metadata = 15 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `ChannelService_GetChannel`.
@@ -92,15 +110,28 @@ message ListChannelsRequest {
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-  // Available fields to order_by are `created_date` and `modified_date`.
+  // Available fields to order_by are `name`, `created_date` and `modified_date`.
   // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date"
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
-// The result of a call to `ChannelService_ListChannels`.
+// The result of a call to ChannelService_ListChannels.
 message ListChannelsResponse {
   repeated Channel channels = 1;
   string next_page_token = 2;
+}
+
+// The request for a call to ChannelService_UpdateChannel.
+message UpdateChannelRequest {
+  Channel channel = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to be updated. The fields available to be updated are `display_description`, `display_units`, and `metadata`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The result of a call to ChannelService_UpdateChannel.
+message UpdateChannelResponse {
+  Channel channel = 1 [(google.api.field_behavior) = REQUIRED];
 }

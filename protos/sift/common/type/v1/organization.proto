@@ -2,9 +2,11 @@ syntax = "proto3";
 
 package sift.common.type.v1;
 
+import "google/api/field_behavior.proto";
+
 
 
 message Organization {
-  string organization_id = 1;
-  string organization_name = 2;
+  string organization_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_name = 2 [(google.api.field_behavior) = REQUIRED];
 }

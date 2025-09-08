@@ -8,6 +8,7 @@ import "google/protobuf/field_mask.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/calculated_channels/v2/calculated_channels.proto";
 import "sift/common/type/v1/user_defined_functions.proto";
+import "sift/metadata/v1/metadata.proto";
 import "sift/rules/v1/rules.proto";
 
 
@@ -168,6 +169,7 @@ message CreateUserDefinedFunctionRequest {
   string expression = 3 [(google.api.field_behavior) = REQUIRED];
   repeated sift.common.type.v1.FunctionInput function_inputs = 4 [(google.api.field_behavior) = REQUIRED];
   optional string user_notes = 5 [(google.api.field_behavior) = OPTIONAL];
+  repeated sift.metadata.v1.MetadataValue metadata = 6 [(google.api.field_behavior) = REQUIRED];
 }
 
 message CreateUserDefinedFunctionResponse {
@@ -246,7 +248,7 @@ message ListUserDefinedFunctionsRequest {
 
   // How to order the retrieved user defined functions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
   // Available fields to order_by are `created_date`, `modified_date`, and `name`.
-  // If left empty, items are ordered by `name` in ascending order (alphabetical).
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date".
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];

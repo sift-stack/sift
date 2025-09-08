@@ -16,6 +16,8 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/annotations/v1/annotations.proto";
 import "sift/common/type/v1/resource_identifier.proto";
 import "sift/common/type/v1/user_defined_functions.proto";
+import "sift/metadata/v1/metadata.proto";
+
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Rule Service"}
@@ -284,6 +286,7 @@ message Rule {
   ContextualChannels contextual_channels = 16 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp deleted_date = 17 [(google.api.field_behavior) = OPTIONAL];
   bool is_external = 18 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.metadata.v1.MetadataValue metadata = 19 [(google.api.field_behavior) = REQUIRED];
 }
 message RuleCondition {
   // 4 is reserved from old "status" column that lived directly on rule condition
@@ -393,7 +396,11 @@ message UpdateRuleRequest {
     (google.api.field_behavior) = OPTIONAL,
     deprecated = true
   ];
-  bool is_enabled = 5 [(google.api.field_behavior) = REQUIRED];
+  // Deprecated - use DeleteRule instead.
+  bool is_enabled = 5 [
+    (google.api.field_behavior) = OPTIONAL,
+    deprecated = true
+  ];
   repeated UpdateConditionRequest conditions = 6 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 7;
   string version_notes = 8;
@@ -402,6 +409,7 @@ message UpdateRuleRequest {
   RuleAssetConfiguration asset_configuration = 10;
   ContextualChannels contextual_channels = 11;
   bool is_external = 12;
+  repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = REQUIRED];
 }
 message UpdateConditionRequest {
   // 2 is reserved from old status update support on rule condition directly
@@ -583,14 +591,14 @@ message ListRulesRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `rule_id`, `client_key`, `name`, and `description`.
+  // Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `asset_id`, `tag_id`, and `deleted_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved Rules. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
   // Available fields to order_by are `created_date` and `modified_date`.
-  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
@@ -656,8 +664,6 @@ message RuleConditionExpression {
   oneof expression {
     SingleChannelComparisonExpression single_channel_comparison = 1 [deprecated = true];
     CalculatedChannelConfig calculated_channel = 2;
-    // Experimental - not currently enabled
-    PythonCode python_code = 3;
   }
 }
 
@@ -695,15 +701,6 @@ message ChannelReference {
   // Deprecated - use name instead. If provided, name will be joined with the component as `component.name`
   string component = 2 [(google.api.field_behavior) = REQUIRED];
 }
-message PythonChannelReference {
-  string reference = 1 [(google.api.field_behavior) = REQUIRED];
-  string name = 2 [(google.api.field_behavior) = REQUIRED];
-}
-message PythonCode {
-  repeated PythonChannelReference channel_references = 1 [(google.api.field_behavior) = REQUIRED];
-  string code = 2 [(google.api.field_behavior) = REQUIRED];
-  string dependencies = 3 [(google.api.field_behavior) = OPTIONAL];
-}
 
 message RuleActionConfiguration {
   oneof configuration {
@@ -721,6 +718,7 @@ message AnnotationActionConfiguration {
   repeated string tag_ids = 1 [(google.api.field_behavior) = REQUIRED];
   sift.annotations.v1.AnnotationType annotation_type = 2;
   optional string assigned_to_user_id = 3;
+  repeated sift.metadata.v1.MetadataValue metadata = 4;
 }
 
 // Deprecated - use RuleEvaluationService instead.

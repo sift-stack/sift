@@ -4,8 +4,10 @@ package sift.reports.v1;
 
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/metadata/v1/metadata.proto";
 
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -22,7 +24,7 @@ service ReportService {
     };
   }
 
-  // Create a report.
+  // Deprecated - use RuleEvaluationService instead.
   rpc CreateReport(CreateReportRequest) returns (CreateReportResponse) {
     option (google.api.http) = {
       post: "/api/v1/reports"
@@ -34,11 +36,23 @@ service ReportService {
     };
   }
 
+  // Update a report.
+  rpc UpdateReport(UpdateReportRequest) returns (UpdateReportResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/reports"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateReport",
+      description: "Update a report."
+    };
+  }
+
   // List reports.
   rpc ListReports(ListReportsRequest) returns (ListReportsResponse) {
     option (google.api.http) = {get: "/api/v1/reports"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ListReports"
+      summary: "ListReports",
       description: "List reports."
     };
   }
@@ -78,6 +92,9 @@ message Report {
   repeated ReportRuleSummary summaries = 11 [(google.api.field_behavior) = REQUIRED];
   repeated ReportTag tags = 12 [(google.api.field_behavior) = REQUIRED];
   optional string rerun_from_report_id = 13 [(google.api.field_behavior) = OPTIONAL];
+  optional string job_id = 14 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Timestamp archived_date = 15 [(google.api.field_behavior) = OPTIONAL];
+  repeated sift.metadata.v1.MetadataValue metadata = 16 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ReportRuleSummary {
@@ -142,8 +159,7 @@ message ReportRuleStatusDetailsError {
   optional string stderr = 4;
 }
 
-// The request of a call to `ReportService_CreateReport` to create a report. A report can be created either via a report template
-// or an arbitrary report can be constructed depending on the variant of the `request` field.
+// Deprecated - use RuleEvaluationService instead.
 message CreateReportRequest {
   oneof request {
     CreateReportFromReportTemplateRequest report_from_report_template_request = 1 [(google.api.field_behavior) = OPTIONAL];
@@ -154,20 +170,20 @@ message CreateReportRequest {
 
   // Override the name of the report. If not provided, the name will be generated based on the report template or run.
   optional string name = 5 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.metadata.v1.MetadataValue metadata = 16 [(google.api.field_behavior) = OPTIONAL];
 }
 
-// The response of a call to `ReportService_CreateReport` to create a report.
+// Deprecated - use RuleEvaluationService instead.
 message CreateReportResponse {
   Report report = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
-// Used to create a report from a report template.
+// Deprecated - use RuleEvaluationService instead.
 message CreateReportFromReportTemplateRequest {
   string report_template_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
-// Used to construct an arbitrary report for an arbitrary set of rules. Rules can be specified either by rule ID
-// or client key based on the variant used in the `rule_identifiers` field.
+// Deprecated - use RuleEvaluationService instead.
 message CreateReportFromRulesRequest {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
   optional string description = 2 [(google.api.field_behavior) = REQUIRED];
@@ -178,10 +194,12 @@ message CreateReportFromRulesRequest {
   }
 }
 
+// Deprecated - use RuleEvaluationService instead.
 message CreateReportRequestRuleIds {
   repeated string rule_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
+// Deprecated - use RuleEvaluationService instead.
 message CreateReportRequestClientKeys {
   repeated string rule_client_keys = 1 [(google.api.field_behavior) = REQUIRED];
 }
@@ -210,7 +228,7 @@ message ListReportsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, and `run_id`.
+  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, and `archived_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -219,8 +237,8 @@ message ListReportsRequest {
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-  // Available fields to order_by are `created_date` and `modified_date`.
-  // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+  // Available fields to order_by are `name`, `created_date` and `modified_date`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date"
   string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
@@ -246,5 +264,17 @@ message CancelReportRequest {
 }
 
 message CancelReportResponse {
+  // no response fields
+}
+
+message UpdateReportRequest {
+  // The report to update.
+  Report report = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The list of fields to be updated. The fields available to be updated are `archived_date` and `metadata`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateReportResponse {
   // no response fields
 }
