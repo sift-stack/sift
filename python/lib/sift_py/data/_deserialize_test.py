@@ -2,12 +2,15 @@ from google.protobuf.any_pb2 import Any
 from sift.common.type.v1.channel_bit_field_element_pb2 import ChannelBitFieldElement
 from sift.common.type.v1.channel_data_type_pb2 import (
     CHANNEL_DATA_TYPE_BIT_FIELD,
+    CHANNEL_DATA_TYPE_BYTES,
     CHANNEL_DATA_TYPE_DOUBLE,
 )
 from sift.data.v2.data_pb2 import (
     BitFieldElementValues,
     BitFieldValue,
     BitFieldValues,
+    BytesValue,
+    BytesValues,
     DoubleValue,
     DoubleValues,
     Metadata,
@@ -54,6 +57,47 @@ def test_try_deserialize_channel_data_double():
     assert len(time_series.value_column) == 2
     assert time_series.value_column[0] == 10
     assert time_series.value_column[1] == 11
+    assert time_series.time_column[0] == to_timestamp_nanos(time_a)
+    assert time_series.time_column[1] == to_timestamp_nanos(time_b)
+
+
+def test_try_deserialize_channel_data_bytes():
+    metadata = Metadata(
+        data_type=CHANNEL_DATA_TYPE_BYTES, channel=Metadata.Channel(name="bytes-channel")
+    )
+
+    time_a = "2024-07-04T18:09:08.555-07:00"
+    time_b = "2024-07-04T18:09:09.555-07:00"
+
+    bytes_values = BytesValues(
+        metadata=metadata,
+        values=[
+            BytesValue(
+                timestamp=to_timestamp_pb(time_a),
+                value=b"abc",
+            ),
+            BytesValue(
+                timestamp=to_timestamp_pb(time_b),
+                value=b"def",
+            ),
+        ],
+    )
+
+    raw_values = Any()
+    raw_values.Pack(bytes_values)
+
+    deserialized_data = try_deserialize_channel_data(raw_values)
+
+    assert len(deserialized_data) == 1
+
+    metadata, time_series = deserialized_data[0]
+
+    assert metadata.data_type == CHANNEL_DATA_TYPE_BYTES
+    assert metadata.channel.name == "bytes-channel"
+    assert len(time_series.time_column) == 2
+    assert len(time_series.value_column) == 2
+    assert time_series.value_column[0] == b"abc"
+    assert time_series.value_column[1] == b"def"
     assert time_series.time_column[0] == to_timestamp_nanos(time_a)
     assert time_series.time_column[1] == to_timestamp_nanos(time_b)
 
