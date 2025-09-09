@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.8.6-rc.1] - September 9, 2025
+### What's New
+Update ingestion to use compiled Rust binary under the hood for performance improvements.
+
+## [v0.8.5] - August 31, 2025
+### What's New
+#### Bytes support
+Add plumbing to allow specifying bytes type data for ingestion.
+
 ## [v0.8.3] - August 11, 2025
 - [Fix windows utf-8 encoding bug with Hdf5UploadService](https://github.com/sift-stack/sift/pull/289)
 
