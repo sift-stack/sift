@@ -50,19 +50,10 @@ class AssetsAPIAsync(ResourceBase):
         """
         if asset_id:
             asset = await self._low_level_client.get_asset(asset_id)
-
         elif name:
-            assets = await self._low_level_client.list_all_assets(
-                query_filter=cel_utils.equals("name", name)
-            )
-            if len(assets) < 1:
+            asset = await self.find(name=name)
+            if asset is None:
                 raise ValueError(f"No asset found with name '{name}'")
-            if len(assets) > 1:
-                raise ValueError(
-                    f"Multiple ({len(assets)}) assets found with name '{name}'"
-                )  # should not happen
-            asset = assets[0]
-
         else:
             raise ValueError("Either asset_id or name must be provided")
 
