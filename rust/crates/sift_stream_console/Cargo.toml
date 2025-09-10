@@ -1,0 +1,19 @@
+[package]
+name = "sift_stream_console"
+description = "TODO"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+categories.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+chrono.workspace = true
+clap = { version = "4.5.46", features = ["cargo", "derive"] }
+crossterm = "0.29.0"
+ratatui = "0.29.0"
+strip-ansi-escapes = "0.2.1"
