@@ -29,6 +29,12 @@ pub struct Report {
     pub tags: ::prost::alloc::vec::Vec<ReportTag>,
     #[prost(string, optional, tag="13")]
     pub rerun_from_report_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="14")]
+    pub job_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag="15")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, repeated, tag="16")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -146,6 +152,8 @@ pub struct CreateReportRequest {
     pub run_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="5")]
     pub name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="16")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
     #[prost(oneof="create_report_request::Request", tags="1, 2")]
     pub request: ::core::option::Option<create_report_request::Request>,
 }
@@ -264,6 +272,18 @@ pub struct CancelReportRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct CancelReportResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateReportRequest {
+    #[prost(message, optional, tag="1")]
+    pub report: ::core::option::Option<Report>,
+    #[prost(message, optional, tag="2")]
+    pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UpdateReportResponse {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

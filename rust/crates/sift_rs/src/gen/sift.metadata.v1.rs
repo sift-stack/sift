@@ -7,12 +7,16 @@ pub struct MetadataKey {
     pub name: ::prost::alloc::string::String,
     #[prost(enumeration="MetadataKeyType", tag="2")]
     pub r#type: i32,
+    #[prost(message, optional, tag="3")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetadataValue {
     #[prost(message, optional, tag="1")]
     pub key: ::core::option::Option<MetadataKey>,
+    #[prost(message, optional, tag="5")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(oneof="metadata_value::Value", tags="2, 3, 4")]
     pub value: ::core::option::Option<metadata_value::Value>,
 }
@@ -43,6 +47,18 @@ pub struct CreateMetadataKeyResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateMetadataValueRequest {
+    #[prost(message, optional, tag="1")]
+    pub metadata_value: ::core::option::Option<MetadataValue>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateMetadataValueResponse {
+    #[prost(message, optional, tag="1")]
+    pub metadata_value: ::core::option::Option<MetadataValue>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListMetadataKeysRequest {
     #[prost(uint32, tag="1")]
     pub page_size: u32,
@@ -58,6 +74,120 @@ pub struct ListMetadataKeysRequest {
 pub struct ListMetadataKeysResponse {
     #[prost(message, repeated, tag="1")]
     pub metadata_keys: ::prost::alloc::vec::Vec<MetadataKey>,
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListMetadataValuesRequest {
+    #[prost(uint32, tag="1")]
+    pub page_size: u32,
+    #[prost(string, tag="2")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub filter: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub order_by: ::prost::alloc::string::String,
+    #[prost(string, tag="5")]
+    pub metadata_key_name: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListMetadataValuesResponse {
+    #[prost(message, repeated, tag="1")]
+    pub metadata_values: ::prost::alloc::vec::Vec<MetadataValue>,
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ArchiveMetadataKeysRequest {
+    #[prost(message, repeated, tag="1")]
+    pub metadata_keys: ::prost::alloc::vec::Vec<MetadataKey>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ArchiveMetadataKeysResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ArchiveMetadataValuesRequest {
+    #[prost(message, repeated, tag="1")]
+    pub metadata_values: ::prost::alloc::vec::Vec<MetadataValue>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ArchiveMetadataValuesResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnarchiveMetadataKeysRequest {
+    #[prost(message, repeated, tag="1")]
+    pub metadata_keys: ::prost::alloc::vec::Vec<MetadataKey>,
+    #[prost(bool, tag="2")]
+    pub unarchive_values: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UnarchiveMetadataKeysResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnarchiveMetadataValuesRequest {
+    #[prost(message, repeated, tag="1")]
+    pub metadata_values: ::prost::alloc::vec::Vec<MetadataValue>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UnarchiveMetadataValuesResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteMetadataKeysRequest {
+    #[prost(message, repeated, tag="1")]
+    pub metadata_keys: ::prost::alloc::vec::Vec<MetadataKey>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DeleteMetadataKeysResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DeleteMetadataValuesRequest {
+    #[prost(message, repeated, tag="1")]
+    pub metadata_values: ::prost::alloc::vec::Vec<MetadataValue>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DeleteMetadataValuesResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetadataUsage {
+    #[prost(string, tag="1")]
+    pub entity_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub entity_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="3")]
+    pub value: ::core::option::Option<MetadataValue>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListMetadataUsageRequest {
+    #[prost(uint32, tag="1")]
+    pub page_size: u32,
+    #[prost(string, tag="2")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub filter: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub order_by: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListMetadataUsageResponse {
+    #[prost(message, repeated, tag="1")]
+    pub metadata_usages: ::prost::alloc::vec::Vec<MetadataUsage>,
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
 }

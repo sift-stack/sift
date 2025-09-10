@@ -88,6 +88,8 @@ pub struct CreateUserDefinedFunctionRequest {
     pub function_inputs: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::FunctionInput>,
     #[prost(string, optional, tag="5")]
     pub user_notes: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="6")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

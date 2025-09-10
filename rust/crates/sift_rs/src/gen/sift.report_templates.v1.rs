@@ -27,6 +27,8 @@ pub struct ReportTemplate {
     pub rules: ::prost::alloc::vec::Vec<ReportTemplateRule>,
     #[prost(message, repeated, tag="12")]
     pub tags: ::prost::alloc::vec::Vec<ReportTemplateTag>,
+    #[prost(message, repeated, tag="13")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -75,6 +77,8 @@ pub struct CreateReportTemplateRequest {
     pub tag_names: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag="6")]
     pub organization_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="9")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
     #[prost(oneof="create_report_template_request::RuleIdentifiers", tags="7, 8")]
     pub rule_identifiers: ::core::option::Option<create_report_template_request::RuleIdentifiers>,
 }
@@ -118,6 +122,7 @@ pub struct ListReportTemplatesRequest {
     pub filter: ::prost::alloc::string::String,
     #[prost(string, tag="4")]
     pub organization_id: ::prost::alloc::string::String,
+    #[deprecated]
     #[prost(bool, tag="5")]
     pub include_archived: bool,
     #[prost(string, tag="6")]

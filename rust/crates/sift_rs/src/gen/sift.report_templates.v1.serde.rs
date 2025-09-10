@@ -22,6 +22,9 @@ impl serde::Serialize for CreateReportTemplateRequest {
         if !self.organization_id.is_empty() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         if self.rule_identifiers.is_some() {
             len += 1;
         }
@@ -40,6 +43,9 @@ impl serde::Serialize for CreateReportTemplateRequest {
         }
         if !self.organization_id.is_empty() {
             struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
         }
         if let Some(v) = self.rule_identifiers.as_ref() {
             match v {
@@ -69,6 +75,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportTemplateRequest {
             "tagNames",
             "organization_id",
             "organizationId",
+            "metadata",
             "rule_ids",
             "ruleIds",
             "rule_client_keys",
@@ -82,6 +89,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportTemplateRequest {
             Description,
             TagNames,
             OrganizationId,
+            Metadata,
             RuleIds,
             RuleClientKeys,
         }
@@ -110,6 +118,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportTemplateRequest {
                             "description" => Ok(GeneratedField::Description),
                             "tagNames" | "tag_names" => Ok(GeneratedField::TagNames),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             "ruleIds" | "rule_ids" => Ok(GeneratedField::RuleIds),
                             "ruleClientKeys" | "rule_client_keys" => Ok(GeneratedField::RuleClientKeys),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
@@ -136,6 +145,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportTemplateRequest {
                 let mut description__ = None;
                 let mut tag_names__ = None;
                 let mut organization_id__ = None;
+                let mut metadata__ = None;
                 let mut rule_identifiers__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -169,6 +179,12 @@ impl<'de> serde::Deserialize<'de> for CreateReportTemplateRequest {
                             }
                             organization_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::RuleIds => {
                             if rule_identifiers__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ruleIds"));
@@ -191,6 +207,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportTemplateRequest {
                     description: description__,
                     tag_names: tag_names__.unwrap_or_default(),
                     organization_id: organization_id__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                     rule_identifiers: rule_identifiers__,
                 })
             }
@@ -1031,6 +1048,9 @@ impl serde::Serialize for ReportTemplate {
         if !self.tags.is_empty() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.report_templates.v1.ReportTemplate", len)?;
         if !self.report_template_id.is_empty() {
             struct_ser.serialize_field("reportTemplateId", &self.report_template_id)?;
@@ -1068,6 +1088,9 @@ impl serde::Serialize for ReportTemplate {
         if !self.tags.is_empty() {
             struct_ser.serialize_field("tags", &self.tags)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -1098,6 +1121,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
             "modifiedDate",
             "rules",
             "tags",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1114,6 +1138,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
             ModifiedDate,
             Rules,
             Tags,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1147,6 +1172,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "rules" => Ok(GeneratedField::Rules),
                             "tags" => Ok(GeneratedField::Tags),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1178,6 +1204,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
                 let mut modified_date__ = None;
                 let mut rules__ = None;
                 let mut tags__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportTemplateId => {
@@ -1252,6 +1279,12 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
                             }
                             tags__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ReportTemplate {
@@ -1267,6 +1300,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
                     modified_date: modified_date__,
                     rules: rules__.unwrap_or_default(),
                     tags: tags__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }

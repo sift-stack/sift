@@ -8,6 +8,16 @@ pub struct Organization {
     #[prost(string, tag="2")]
     pub organization_name: ::prost::alloc::string::String,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct User {
+    #[prost(string, tag="1")]
+    pub user_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub user_name: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="3")]
+    pub organizations: ::prost::alloc::vec::Vec<Organization>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ChannelDataType {
@@ -152,83 +162,6 @@ pub struct Names {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ChannelBitFieldElement {
-    #[prost(string, tag="1")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(int32, tag="2")]
-    pub index: i32,
-    #[prost(uint32, tag="3")]
-    pub bit_count: u32,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ChannelEnumType {
-    #[prost(string, tag="1")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(uint32, tag="2")]
-    pub key: u32,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ChannelConfig {
-    #[prost(string, tag="1")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
-    pub units: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(enumeration="ChannelDataType", tag="4")]
-    pub data_type: i32,
-    #[prost(message, repeated, tag="5")]
-    pub enum_types: ::prost::alloc::vec::Vec<ChannelEnumType>,
-    #[prost(message, repeated, tag="6")]
-    pub bit_field_elements: ::prost::alloc::vec::Vec<ChannelBitFieldElement>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ResourceRef {
-    #[prost(string, tag="1")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(string, optional, tag="2")]
-    pub client_key: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, tag="3")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="4")]
-    pub find_by: ::core::option::Option<FindResourceBy>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FindResourceBy {
-    #[prost(string, tag="4")]
-    pub organization_id: ::prost::alloc::string::String,
-    #[prost(oneof="find_resource_by::Identifier", tags="1, 2, 3")]
-    pub identifier: ::core::option::Option<find_resource_by::Identifier>,
-}
-/// Nested message and enum types in `FindResourceBy`.
-pub mod find_resource_by {
-    #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Identifier {
-        #[prost(string, tag="1")]
-        Id(::prost::alloc::string::String),
-        #[prost(string, tag="2")]
-        ClientKey(::prost::alloc::string::String),
-        #[prost(string, tag="3")]
-        Name(::prost::alloc::string::String),
-    }
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct User {
-    #[prost(string, tag="1")]
-    pub user_id: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
-    pub user_name: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag="3")]
-    pub organizations: ::prost::alloc::vec::Vec<Organization>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UserDefinedFunction {
     #[prost(string, tag="1")]
     pub user_defined_function_id: ::prost::alloc::string::String,
@@ -262,6 +195,8 @@ pub struct UserDefinedFunction {
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="17")]
     pub modified_by_user_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="18")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -309,6 +244,77 @@ impl FunctionDataType {
             "FUNCTION_DATA_TYPE_BOOL" => Some(Self::Bool),
             _ => None,
         }
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChannelBitFieldElement {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(int32, tag="2")]
+    pub index: i32,
+    #[prost(uint32, tag="3")]
+    pub bit_count: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChannelEnumType {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint32, tag="2")]
+    pub key: u32,
+    #[prost(bool, tag="3")]
+    pub is_signed: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChannelConfig {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub units: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(enumeration="ChannelDataType", tag="4")]
+    pub data_type: i32,
+    #[prost(message, repeated, tag="5")]
+    pub enum_types: ::prost::alloc::vec::Vec<ChannelEnumType>,
+    #[prost(message, repeated, tag="6")]
+    pub bit_field_elements: ::prost::alloc::vec::Vec<ChannelBitFieldElement>,
+    #[prost(message, repeated, tag="7")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::super::metadata::v1::MetadataValue>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResourceRef {
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="2")]
+    pub client_key: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag="3")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub find_by: ::core::option::Option<FindResourceBy>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FindResourceBy {
+    #[prost(string, tag="4")]
+    pub organization_id: ::prost::alloc::string::String,
+    #[prost(oneof="find_resource_by::Identifier", tags="1, 2, 3")]
+    pub identifier: ::core::option::Option<find_resource_by::Identifier>,
+}
+/// Nested message and enum types in `FindResourceBy`.
+pub mod find_resource_by {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Identifier {
+        #[prost(string, tag="1")]
+        Id(::prost::alloc::string::String),
+        #[prost(string, tag="2")]
+        ClientKey(::prost::alloc::string::String),
+        #[prost(string, tag="3")]
+        Name(::prost::alloc::string::String),
     }
 }
 include!("sift.common.type.v1.serde.rs");

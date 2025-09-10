@@ -29,6 +29,8 @@ pub struct Campaign {
     pub reports: ::prost::alloc::vec::Vec<CampaignReport>,
     #[prost(string, optional, tag="13")]
     pub created_from_campaign_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="14")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -79,6 +81,8 @@ pub struct CreateCampaignRequest {
     pub client_key: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="6")]
     pub create_from: ::core::option::Option<CreateCampaignFrom>,
+    #[prost(message, repeated, tag="7")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -142,6 +146,28 @@ pub struct UpdateCampaignRequest {
 pub struct UpdateCampaignResponse {
     #[prost(message, optional, tag="1")]
     pub campaign: ::core::option::Option<Campaign>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListCampaignAnnotationsRequest {
+    #[prost(string, tag="1")]
+    pub campaign_id: ::prost::alloc::string::String,
+    #[prost(uint32, tag="2")]
+    pub page_size: u32,
+    #[prost(string, tag="3")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub filter: ::prost::alloc::string::String,
+    #[prost(string, tag="5")]
+    pub order_by: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListCampaignAnnotationsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub annotations: ::prost::alloc::vec::Vec<super::super::annotations::v1::Annotation>,
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
 }
 include!("sift.campaigns.v1.tonic.rs");
 include!("sift.campaigns.v1.serde.rs");

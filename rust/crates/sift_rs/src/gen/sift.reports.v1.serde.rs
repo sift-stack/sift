@@ -434,6 +434,9 @@ impl serde::Serialize for CreateReportRequest {
         if self.name.is_some() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         if self.request.is_some() {
             len += 1;
         }
@@ -446,6 +449,9 @@ impl serde::Serialize for CreateReportRequest {
         }
         if let Some(v) = self.name.as_ref() {
             struct_ser.serialize_field("name", v)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
         }
         if let Some(v) = self.request.as_ref() {
             match v {
@@ -472,6 +478,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportRequest {
             "run_id",
             "runId",
             "name",
+            "metadata",
             "report_from_report_template_request",
             "reportFromReportTemplateRequest",
             "report_from_rules_request",
@@ -483,6 +490,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportRequest {
             OrganizationId,
             RunId,
             Name,
+            Metadata,
             ReportFromReportTemplateRequest,
             ReportFromRulesRequest,
         }
@@ -509,6 +517,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportRequest {
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "runId" | "run_id" => Ok(GeneratedField::RunId),
                             "name" => Ok(GeneratedField::Name),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             "reportFromReportTemplateRequest" | "report_from_report_template_request" => Ok(GeneratedField::ReportFromReportTemplateRequest),
                             "reportFromRulesRequest" | "report_from_rules_request" => Ok(GeneratedField::ReportFromRulesRequest),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
@@ -533,6 +542,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportRequest {
                 let mut organization_id__ = None;
                 let mut run_id__ = None;
                 let mut name__ = None;
+                let mut metadata__ = None;
                 let mut request__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -554,6 +564,12 @@ impl<'de> serde::Deserialize<'de> for CreateReportRequest {
                             }
                             name__ = map_.next_value()?;
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::ReportFromReportTemplateRequest => {
                             if request__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("reportFromReportTemplateRequest"));
@@ -574,6 +590,7 @@ impl<'de> serde::Deserialize<'de> for CreateReportRequest {
                     organization_id: organization_id__.unwrap_or_default(),
                     run_id: run_id__.unwrap_or_default(),
                     name: name__,
+                    metadata: metadata__.unwrap_or_default(),
                     request: request__,
                 })
             }
@@ -1360,6 +1377,15 @@ impl serde::Serialize for Report {
         if self.rerun_from_report_id.is_some() {
             len += 1;
         }
+        if self.job_id.is_some() {
+            len += 1;
+        }
+        if self.archived_date.is_some() {
+            len += 1;
+        }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.reports.v1.Report", len)?;
         if !self.report_id.is_empty() {
             struct_ser.serialize_field("reportId", &self.report_id)?;
@@ -1400,6 +1426,15 @@ impl serde::Serialize for Report {
         if let Some(v) = self.rerun_from_report_id.as_ref() {
             struct_ser.serialize_field("rerunFromReportId", v)?;
         }
+        if let Some(v) = self.job_id.as_ref() {
+            struct_ser.serialize_field("jobId", v)?;
+        }
+        if let Some(v) = self.archived_date.as_ref() {
+            struct_ser.serialize_field("archivedDate", v)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -1432,6 +1467,11 @@ impl<'de> serde::Deserialize<'de> for Report {
             "tags",
             "rerun_from_report_id",
             "rerunFromReportId",
+            "job_id",
+            "jobId",
+            "archived_date",
+            "archivedDate",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1449,6 +1489,9 @@ impl<'de> serde::Deserialize<'de> for Report {
             Summaries,
             Tags,
             RerunFromReportId,
+            JobId,
+            ArchivedDate,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1483,6 +1526,9 @@ impl<'de> serde::Deserialize<'de> for Report {
                             "summaries" => Ok(GeneratedField::Summaries),
                             "tags" => Ok(GeneratedField::Tags),
                             "rerunFromReportId" | "rerun_from_report_id" => Ok(GeneratedField::RerunFromReportId),
+                            "jobId" | "job_id" => Ok(GeneratedField::JobId),
+                            "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1515,6 +1561,9 @@ impl<'de> serde::Deserialize<'de> for Report {
                 let mut summaries__ = None;
                 let mut tags__ = None;
                 let mut rerun_from_report_id__ = None;
+                let mut job_id__ = None;
+                let mut archived_date__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportId => {
@@ -1595,6 +1644,24 @@ impl<'de> serde::Deserialize<'de> for Report {
                             }
                             rerun_from_report_id__ = map_.next_value()?;
                         }
+                        GeneratedField::JobId => {
+                            if job_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("jobId"));
+                            }
+                            job_id__ = map_.next_value()?;
+                        }
+                        GeneratedField::ArchivedDate => {
+                            if archived_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("archivedDate"));
+                            }
+                            archived_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Report {
@@ -1611,6 +1678,9 @@ impl<'de> serde::Deserialize<'de> for Report {
                     summaries: summaries__.unwrap_or_default(),
                     tags: tags__.unwrap_or_default(),
                     rerun_from_report_id: rerun_from_report_id__,
+                    job_id: job_id__,
+                    archived_date: archived_date__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -3104,5 +3174,185 @@ impl<'de> serde::Deserialize<'de> for RerunReportResponse {
             }
         }
         deserializer.deserialize_struct("sift.reports.v1.RerunReportResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UpdateReportRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.report.is_some() {
+            len += 1;
+        }
+        if self.update_mask.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.reports.v1.UpdateReportRequest", len)?;
+        if let Some(v) = self.report.as_ref() {
+            struct_ser.serialize_field("report", v)?;
+        }
+        if let Some(v) = self.update_mask.as_ref() {
+            struct_ser.serialize_field("updateMask", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UpdateReportRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "report",
+            "update_mask",
+            "updateMask",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Report,
+            UpdateMask,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "report" => Ok(GeneratedField::Report),
+                            "updateMask" | "update_mask" => Ok(GeneratedField::UpdateMask),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UpdateReportRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.UpdateReportRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UpdateReportRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut report__ = None;
+                let mut update_mask__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Report => {
+                            if report__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("report"));
+                            }
+                            report__ = map_.next_value()?;
+                        }
+                        GeneratedField::UpdateMask => {
+                            if update_mask__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("updateMask"));
+                            }
+                            update_mask__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UpdateReportRequest {
+                    report: report__,
+                    update_mask: update_mask__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.UpdateReportRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UpdateReportResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let len = 0;
+        let struct_ser = serializer.serialize_struct("sift.reports.v1.UpdateReportResponse", len)?;
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UpdateReportResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                            Err(serde::de::Error::unknown_field(value, FIELDS))
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UpdateReportResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.reports.v1.UpdateReportResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UpdateReportResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                while map_.next_key::<GeneratedField>()?.is_some() {
+                    let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                }
+                Ok(UpdateReportResponse {
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.reports.v1.UpdateReportResponse", FIELDS, GeneratedVisitor)
     }
 }

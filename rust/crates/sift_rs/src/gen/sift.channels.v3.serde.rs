@@ -43,6 +43,15 @@ impl serde::Serialize for Channel {
         if !self.bit_field_elements.is_empty() {
             len += 1;
         }
+        if !self.display_description.is_empty() {
+            len += 1;
+        }
+        if !self.display_unit_id.is_empty() {
+            len += 1;
+        }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.channels.v3.Channel", len)?;
         if !self.channel_id.is_empty() {
             struct_ser.serialize_field("channelId", &self.channel_id)?;
@@ -82,6 +91,15 @@ impl serde::Serialize for Channel {
         if !self.bit_field_elements.is_empty() {
             struct_ser.serialize_field("bitFieldElements", &self.bit_field_elements)?;
         }
+        if !self.display_description.is_empty() {
+            struct_ser.serialize_field("displayDescription", &self.display_description)?;
+        }
+        if !self.display_unit_id.is_empty() {
+            struct_ser.serialize_field("displayUnitId", &self.display_unit_id)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -114,6 +132,11 @@ impl<'de> serde::Deserialize<'de> for Channel {
             "enumTypes",
             "bit_field_elements",
             "bitFieldElements",
+            "display_description",
+            "displayDescription",
+            "display_unit_id",
+            "displayUnitId",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -130,6 +153,9 @@ impl<'de> serde::Deserialize<'de> for Channel {
             DataType,
             EnumTypes,
             BitFieldElements,
+            DisplayDescription,
+            DisplayUnitId,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -163,6 +189,9 @@ impl<'de> serde::Deserialize<'de> for Channel {
                             "dataType" | "data_type" => Ok(GeneratedField::DataType),
                             "enumTypes" | "enum_types" => Ok(GeneratedField::EnumTypes),
                             "bitFieldElements" | "bit_field_elements" => Ok(GeneratedField::BitFieldElements),
+                            "displayDescription" | "display_description" => Ok(GeneratedField::DisplayDescription),
+                            "displayUnitId" | "display_unit_id" => Ok(GeneratedField::DisplayUnitId),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -194,6 +223,9 @@ impl<'de> serde::Deserialize<'de> for Channel {
                 let mut data_type__ = None;
                 let mut enum_types__ = None;
                 let mut bit_field_elements__ = None;
+                let mut display_description__ = None;
+                let mut display_unit_id__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelId => {
@@ -268,6 +300,24 @@ impl<'de> serde::Deserialize<'de> for Channel {
                             }
                             bit_field_elements__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::DisplayDescription => {
+                            if display_description__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("displayDescription"));
+                            }
+                            display_description__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DisplayUnitId => {
+                            if display_unit_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("displayUnitId"));
+                            }
+                            display_unit_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Channel {
@@ -283,6 +333,9 @@ impl<'de> serde::Deserialize<'de> for Channel {
                     data_type: data_type__.unwrap_or_default(),
                     enum_types: enum_types__.unwrap_or_default(),
                     bit_field_elements: bit_field_elements__.unwrap_or_default(),
+                    display_description: display_description__.unwrap_or_default(),
+                    display_unit_id: display_unit_id__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -726,5 +779,205 @@ impl<'de> serde::Deserialize<'de> for ListChannelsResponse {
             }
         }
         deserializer.deserialize_struct("sift.channels.v3.ListChannelsResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UpdateChannelRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.channel.is_some() {
+            len += 1;
+        }
+        if self.update_mask.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.channels.v3.UpdateChannelRequest", len)?;
+        if let Some(v) = self.channel.as_ref() {
+            struct_ser.serialize_field("channel", v)?;
+        }
+        if let Some(v) = self.update_mask.as_ref() {
+            struct_ser.serialize_field("updateMask", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UpdateChannelRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "channel",
+            "update_mask",
+            "updateMask",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Channel,
+            UpdateMask,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "channel" => Ok(GeneratedField::Channel),
+                            "updateMask" | "update_mask" => Ok(GeneratedField::UpdateMask),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UpdateChannelRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.channels.v3.UpdateChannelRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UpdateChannelRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut channel__ = None;
+                let mut update_mask__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Channel => {
+                            if channel__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channel"));
+                            }
+                            channel__ = map_.next_value()?;
+                        }
+                        GeneratedField::UpdateMask => {
+                            if update_mask__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("updateMask"));
+                            }
+                            update_mask__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UpdateChannelRequest {
+                    channel: channel__,
+                    update_mask: update_mask__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.channels.v3.UpdateChannelRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UpdateChannelResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.channel.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.channels.v3.UpdateChannelResponse", len)?;
+        if let Some(v) = self.channel.as_ref() {
+            struct_ser.serialize_field("channel", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UpdateChannelResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "channel",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Channel,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "channel" => Ok(GeneratedField::Channel),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UpdateChannelResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.channels.v3.UpdateChannelResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UpdateChannelResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut channel__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Channel => {
+                            if channel__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channel"));
+                            }
+                            channel__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UpdateChannelResponse {
+                    channel: channel__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.channels.v3.UpdateChannelResponse", FIELDS, GeneratedVisitor)
     }
 }

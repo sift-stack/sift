@@ -6,9 +6,9 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 fn main() -> Result<()> {
     // Generate the stub files
     let stub =
-        sift_stream_bindings::stub_info().map_err(|e| format!("Failed to get stub info: {}", e))?;
+        sift_stream_bindings::stub_info().map_err(|e| format!("Failed to get stub info: {e}"))?;
     stub.generate()
-        .map_err(|e| format!("Failed to generate stubs: {}", e))?;
+        .map_err(|e| format!("Failed to generate stubs: {e}"))?;
 
     // Post-process the generated stub file to add __all__ and @final decorators
     post_process_stub_file()?;
@@ -59,10 +59,7 @@ fn post_process_stub_file() -> Result<()> {
     } else if Path::new(underscore_name).exists() {
         underscore_name
     } else {
-        return Err(format!(
-            "Stub file not found. Expected either {} or {}",
-            hyphenated_name, underscore_name
-        )
+        return Err(format!("Stub file not found. Expected either {hyphenated_name} or {underscore_name}")
         .into());
     };
 
@@ -95,7 +92,7 @@ fn post_process_stub_file() -> Result<()> {
         "__all__ = [\n{}\n]",
         classes_to_finalize
             .iter()
-            .map(|class| format!("    \"{}\",", class))
+            .map(|class| format!("    \"{class}\","))
             .collect::<Vec<_>>()
             .join("\n")
     );
@@ -105,21 +102,21 @@ fn post_process_stub_file() -> Result<()> {
 
     // Add @final decorator before each class
     for class_name in &classes_to_finalize {
-        let class_pattern = format!("class {}(", class_name);
-        let class_pattern_no_inherit = format!("class {}:", class_name);
+        let class_pattern = format!("class {class_name}(");
+        let class_pattern_no_inherit = format!("class {class_name}:");
 
         // Handle classes with inheritance
         if processed_content.contains(&class_pattern) {
             processed_content = processed_content.replace(
                 &class_pattern,
-                &format!("@typing.final\nclass {}(", class_name),
+                &format!("@typing.final\nclass {class_name}("),
             );
         }
         // Handle classes without inheritance
         else if processed_content.contains(&class_pattern_no_inherit) {
             processed_content = processed_content.replace(
                 &class_pattern_no_inherit,
-                &format!("@typing.final\nclass {}:", class_name),
+                &format!("@typing.final\nclass {class_name}:"),
             );
         }
     }
@@ -151,7 +148,7 @@ fn post_process_stub_file() -> Result<()> {
 
     // If we didn't add __all__ yet (no imports found), add it at the beginning
     if !added_all {
-        processed_content = format!("{}\n\n{}", all_declaration, processed_content);
+        processed_content = format!("{all_declaration}\n\n{processed_content}");
     } else {
         processed_content = result_lines.join("\n");
     }
@@ -178,10 +175,7 @@ fn post_process_stub_file() -> Result<()> {
     // If we read from the hyphenated version, remove it
     if stub_file_path == hyphenated_name && Path::new(hyphenated_name).exists() {
         fs::remove_file(hyphenated_name)?;
-        println!(
-            "Renamed stub file from {} to {}",
-            hyphenated_name, underscore_name
-        );
+        println!("Renamed stub file from {hyphenated_name} to {underscore_name}");
     }
 
     println!("Successfully post-processed stub files: added __all__ and @final decorators");

@@ -799,6 +799,9 @@ impl serde::Serialize for IncompatibleProtobufField {
         if !self.details.is_empty() {
             len += 1;
         }
+        if !self.field_kind.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.protobuf_descriptors.v2.IncompatibleProtobufField", len)?;
         if !self.protobuf_descriptor_id.is_empty() {
             struct_ser.serialize_field("protobufDescriptorId", &self.protobuf_descriptor_id)?;
@@ -820,6 +823,9 @@ impl serde::Serialize for IncompatibleProtobufField {
         }
         if !self.details.is_empty() {
             struct_ser.serialize_field("details", &self.details)?;
+        }
+        if !self.field_kind.is_empty() {
+            struct_ser.serialize_field("fieldKind", &self.field_kind)?;
         }
         struct_ser.end()
     }
@@ -843,6 +849,8 @@ impl<'de> serde::Deserialize<'de> for IncompatibleProtobufField {
             "fieldNumber",
             "reason",
             "details",
+            "field_kind",
+            "fieldKind",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -854,6 +862,7 @@ impl<'de> serde::Deserialize<'de> for IncompatibleProtobufField {
             FieldNumber,
             Reason,
             Details,
+            FieldKind,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -882,6 +891,7 @@ impl<'de> serde::Deserialize<'de> for IncompatibleProtobufField {
                             "fieldNumber" | "field_number" => Ok(GeneratedField::FieldNumber),
                             "reason" => Ok(GeneratedField::Reason),
                             "details" => Ok(GeneratedField::Details),
+                            "fieldKind" | "field_kind" => Ok(GeneratedField::FieldKind),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -908,6 +918,7 @@ impl<'de> serde::Deserialize<'de> for IncompatibleProtobufField {
                 let mut field_number__ = None;
                 let mut reason__ = None;
                 let mut details__ = None;
+                let mut field_kind__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ProtobufDescriptorId => {
@@ -952,6 +963,12 @@ impl<'de> serde::Deserialize<'de> for IncompatibleProtobufField {
                             }
                             details__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::FieldKind => {
+                            if field_kind__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("fieldKind"));
+                            }
+                            field_kind__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(IncompatibleProtobufField {
@@ -962,6 +979,7 @@ impl<'de> serde::Deserialize<'de> for IncompatibleProtobufField {
                     field_number: field_number__.unwrap_or_default(),
                     reason: reason__.unwrap_or_default(),
                     details: details__.unwrap_or_default(),
+                    field_kind: field_kind__.unwrap_or_default(),
                 })
             }
         }

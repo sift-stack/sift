@@ -1,4 +1,309 @@
 // @generated
+impl serde::Serialize for CreateAdhocRunRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if !self.description.is_empty() {
+            len += 1;
+        }
+        if self.start_time.is_some() {
+            len += 1;
+        }
+        if self.stop_time.is_some() {
+            len += 1;
+        }
+        if !self.asset_ids.is_empty() {
+            len += 1;
+        }
+        if !self.tags.is_empty() {
+            len += 1;
+        }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
+        if self.client_key.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.runs.v2.CreateAdhocRunRequest", len)?;
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if !self.description.is_empty() {
+            struct_ser.serialize_field("description", &self.description)?;
+        }
+        if let Some(v) = self.start_time.as_ref() {
+            struct_ser.serialize_field("startTime", v)?;
+        }
+        if let Some(v) = self.stop_time.as_ref() {
+            struct_ser.serialize_field("stopTime", v)?;
+        }
+        if !self.asset_ids.is_empty() {
+            struct_ser.serialize_field("assetIds", &self.asset_ids)?;
+        }
+        if !self.tags.is_empty() {
+            struct_ser.serialize_field("tags", &self.tags)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
+        if let Some(v) = self.client_key.as_ref() {
+            struct_ser.serialize_field("clientKey", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CreateAdhocRunRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "name",
+            "description",
+            "start_time",
+            "startTime",
+            "stop_time",
+            "stopTime",
+            "asset_ids",
+            "assetIds",
+            "tags",
+            "metadata",
+            "client_key",
+            "clientKey",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Name,
+            Description,
+            StartTime,
+            StopTime,
+            AssetIds,
+            Tags,
+            Metadata,
+            ClientKey,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "name" => Ok(GeneratedField::Name),
+                            "description" => Ok(GeneratedField::Description),
+                            "startTime" | "start_time" => Ok(GeneratedField::StartTime),
+                            "stopTime" | "stop_time" => Ok(GeneratedField::StopTime),
+                            "assetIds" | "asset_ids" => Ok(GeneratedField::AssetIds),
+                            "tags" => Ok(GeneratedField::Tags),
+                            "metadata" => Ok(GeneratedField::Metadata),
+                            "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CreateAdhocRunRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.runs.v2.CreateAdhocRunRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CreateAdhocRunRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut name__ = None;
+                let mut description__ = None;
+                let mut start_time__ = None;
+                let mut stop_time__ = None;
+                let mut asset_ids__ = None;
+                let mut tags__ = None;
+                let mut metadata__ = None;
+                let mut client_key__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Description => {
+                            if description__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("description"));
+                            }
+                            description__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::StartTime => {
+                            if start_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("startTime"));
+                            }
+                            start_time__ = map_.next_value()?;
+                        }
+                        GeneratedField::StopTime => {
+                            if stop_time__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stopTime"));
+                            }
+                            stop_time__ = map_.next_value()?;
+                        }
+                        GeneratedField::AssetIds => {
+                            if asset_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetIds"));
+                            }
+                            asset_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Tags => {
+                            if tags__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("tags"));
+                            }
+                            tags__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ClientKey => {
+                            if client_key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("clientKey"));
+                            }
+                            client_key__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(CreateAdhocRunRequest {
+                    name: name__.unwrap_or_default(),
+                    description: description__.unwrap_or_default(),
+                    start_time: start_time__,
+                    stop_time: stop_time__,
+                    asset_ids: asset_ids__.unwrap_or_default(),
+                    tags: tags__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
+                    client_key: client_key__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.runs.v2.CreateAdhocRunRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for CreateAdhocRunResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.run.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.runs.v2.CreateAdhocRunResponse", len)?;
+        if let Some(v) = self.run.as_ref() {
+            struct_ser.serialize_field("run", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for CreateAdhocRunResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "run",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Run,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "run" => Ok(GeneratedField::Run),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = CreateAdhocRunResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.runs.v2.CreateAdhocRunResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CreateAdhocRunResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut run__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Run => {
+                            if run__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("run"));
+                            }
+                            run__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(CreateAdhocRunResponse {
+                    run: run__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.runs.v2.CreateAdhocRunResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for CreateAutomaticRunAssociationForAssetsRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1146,6 +1451,9 @@ impl serde::Serialize for Run {
         if self.archived_date.is_some() {
             len += 1;
         }
+        if self.is_adhoc {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.runs.v2.Run", len)?;
         if !self.run_id.is_empty() {
             struct_ser.serialize_field("runId", &self.run_id)?;
@@ -1198,6 +1506,9 @@ impl serde::Serialize for Run {
         if let Some(v) = self.archived_date.as_ref() {
             struct_ser.serialize_field("archivedDate", v)?;
         }
+        if self.is_adhoc {
+            struct_ser.serialize_field("isAdhoc", &self.is_adhoc)?;
+        }
         struct_ser.end()
     }
 }
@@ -1238,6 +1549,8 @@ impl<'de> serde::Deserialize<'de> for Run {
             "assetIds",
             "archived_date",
             "archivedDate",
+            "is_adhoc",
+            "isAdhoc",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1259,6 +1572,7 @@ impl<'de> serde::Deserialize<'de> for Run {
             Metadata,
             AssetIds,
             ArchivedDate,
+            IsAdhoc,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1297,6 +1611,7 @@ impl<'de> serde::Deserialize<'de> for Run {
                             "metadata" => Ok(GeneratedField::Metadata),
                             "assetIds" | "asset_ids" => Ok(GeneratedField::AssetIds),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "isAdhoc" | "is_adhoc" => Ok(GeneratedField::IsAdhoc),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1333,6 +1648,7 @@ impl<'de> serde::Deserialize<'de> for Run {
                 let mut metadata__ = None;
                 let mut asset_ids__ = None;
                 let mut archived_date__ = None;
+                let mut is_adhoc__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RunId => {
@@ -1437,6 +1753,12 @@ impl<'de> serde::Deserialize<'de> for Run {
                             }
                             archived_date__ = map_.next_value()?;
                         }
+                        GeneratedField::IsAdhoc => {
+                            if is_adhoc__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isAdhoc"));
+                            }
+                            is_adhoc__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Run {
@@ -1457,6 +1779,7 @@ impl<'de> serde::Deserialize<'de> for Run {
                     metadata: metadata__.unwrap_or_default(),
                     asset_ids: asset_ids__.unwrap_or_default(),
                     archived_date: archived_date__,
+                    is_adhoc: is_adhoc__.unwrap_or_default(),
                 })
             }
         }

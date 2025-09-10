@@ -170,6 +170,7 @@ impl ChannelEnumTypePy {
             inner: ChannelEnumType {
                 name: name.to_string(),
                 key,
+                ..Default::default()
             },
             name: name.to_string(),
             key,

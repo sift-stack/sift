@@ -198,6 +198,36 @@ pub mod campaign_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn list_campaign_annotations(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListCampaignAnnotationsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListCampaignAnnotationsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.campaigns.v1.CampaignService/ListCampaignAnnotations",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.campaigns.v1.CampaignService",
+                        "ListCampaignAnnotations",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -233,6 +263,13 @@ pub mod campaign_service_server {
             request: tonic::Request<super::UpdateCampaignRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UpdateCampaignResponse>,
+            tonic::Status,
+        >;
+        async fn list_campaign_annotations(
+            &self,
+            request: tonic::Request<super::ListCampaignAnnotationsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListCampaignAnnotationsResponse>,
             tonic::Status,
         >;
     }
@@ -487,6 +524,58 @@ pub mod campaign_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = UpdateCampaignSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.campaigns.v1.CampaignService/ListCampaignAnnotations" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListCampaignAnnotationsSvc<T: CampaignService>(pub Arc<T>);
+                    impl<
+                        T: CampaignService,
+                    > tonic::server::UnaryService<super::ListCampaignAnnotationsRequest>
+                    for ListCampaignAnnotationsSvc<T> {
+                        type Response = super::ListCampaignAnnotationsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::ListCampaignAnnotationsRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as CampaignService>::list_campaign_annotations(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ListCampaignAnnotationsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
