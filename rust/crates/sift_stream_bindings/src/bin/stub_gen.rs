@@ -59,7 +59,9 @@ fn post_process_stub_file() -> Result<()> {
     } else if Path::new(underscore_name).exists() {
         underscore_name
     } else {
-        return Err(format!("Stub file not found. Expected either {hyphenated_name} or {underscore_name}")
+        return Err(format!(
+            "Stub file not found. Expected either {hyphenated_name} or {underscore_name}"
+        )
         .into());
     };
 
