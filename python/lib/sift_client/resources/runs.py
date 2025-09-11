@@ -169,10 +169,8 @@ class RunsAPIAsync(ResourceBase):
             filter_parts.append(cel.greater_than("stop_time", stop_time_after))
         if stop_time_before:
             filter_parts.append(cel.less_than("stop_time", stop_time_before))
-
         if is_stopped is not None:
             filter_parts.append(cel.not_(cel.equals_null("stop_time")))
-
         query_filter = cel.and_(*filter_parts)
 
         runs = await self._low_level_client.list_all_runs(
@@ -231,7 +229,7 @@ class RunsAPIAsync(ResourceBase):
         if isinstance(update, dict):
             update = RunUpdate.model_validate(update)
         update.resource_id = run_id
-        updated_run = await self._low_level_client.update_run(run, update)
+        updated_run = await self._low_level_client.update_run(update)
         return self._apply_client_to_instance(updated_run)
 
     async def archive(
@@ -245,6 +243,8 @@ class RunsAPIAsync(ResourceBase):
         """
         run_id = run.id_ if isinstance(run, Run) else run
         await self._low_level_client.archive_run(run_id=run_id)
+
+    # TODO: unarchive
 
     async def stop(
         self,
