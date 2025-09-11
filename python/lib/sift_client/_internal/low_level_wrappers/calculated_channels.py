@@ -72,9 +72,7 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return CalculatedChannel._from_proto(grpc_calculated_channel)
 
     async def create_calculated_channel(
-        self,
-        *,
-        create: CalculatedChannelCreate
+        self, *, create: CalculatedChannelCreate
     ) -> tuple[CalculatedChannel, list[Any]]:
         request = create.to_proto()
         response = await self._grpc_client.get_stub(

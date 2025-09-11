@@ -113,9 +113,8 @@ class ChannelsAPIAsync(ResourceBase):
                 modified_before=modified_before,
             ),
             *self._build_common_cel_filters(
-                description_contains=description_contains,
-                filter_query=filter_query
-            )
+                description_contains=description_contains, filter_query=filter_query
+            ),
         ]
         if channel_ids:
             filter_parts.append(cel.in_("channel_id", channel_ids))

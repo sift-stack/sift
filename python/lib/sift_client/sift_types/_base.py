@@ -57,6 +57,7 @@ class MappingHelper(BaseModel):
     update_field: str | None = None
     converter: type[Any] | Callable[[Any], Any] | None = None
 
+
 class ModelCreate(BaseModel, Generic[ProtoT], ABC):
     """Base class for Pydantic models that generate proto messages for creation."""
 
