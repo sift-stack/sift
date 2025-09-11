@@ -11,6 +11,7 @@ use prost::Message as PbMessage;
 use sift_error::prelude::*;
 use sift_rs::ingest::v1::IngestWithConfigDataStreamRequest;
 use sift_rs::{SiftChannel, ingest::v1::ingest_service_client::IngestServiceClient};
+use std::path::Path;
 use std::{
     fs::{self, File},
     io::{Error as IoError, ErrorKind as IoErrorKind, Write},
@@ -35,17 +36,17 @@ use tokio_stream::StreamExt;
 const CHANNEL_BUFFER_SIZE: usize = 10_000;
 
 #[derive(Clone)]
-struct BackupInfo {
+struct BackupConfig {
     directory: PathBuf,
     prefix: String,
     max_size: usize,
     max_file_count: Option<usize>,
-    retain_ingested: bool,
+    retain_backups: bool,
 }
 
 /// Disk-based backup with async ingestion implementation.
 pub struct AsyncBackupsManager<T> {
-    backup_info: BackupInfo,
+    backup_config: BackupConfig,
     backup_retry_policy: RetryPolicy,
     backup_task: Option<JoinHandle<Result<()>>>,
     ingest_task: Option<BackupIngestTask>,
@@ -98,15 +99,15 @@ where
             _ => ()
         }
 
-        let backup_info = BackupInfo {
+        let backup_info = BackupConfig {
             directory: backups_dir,
             prefix: backup_prefix.to_string(),
             max_size: disk_backup_policy.max_backup_file_size,
             max_file_count: disk_backup_policy.rolling_file_policy.max_file_count,
-            retain_ingested: disk_backup_policy.retain_backups,
+            retain_backups: disk_backup_policy.retain_backups,
         };
 
-        let backup_files = Arc::new(Mutex::new(vec![]));
+        let backup_files = Arc::new(Mutex::new(Vec::new()));
         let flush_and_sync_notifier = Arc::new(Notify::new());
         let restart_backup_notifier = Arc::new(Notify::new());
         let backup_full = Arc::new(AtomicBool::new(false));
@@ -122,7 +123,7 @@ where
         .context("failed to start backup task")?;
 
         Ok(Self {
-            backup_info,
+            backup_config: backup_info,
             backup_retry_policy,
             backup_task: Some(backup_task),
             ingest_task: None,
@@ -142,7 +143,7 @@ where
     // Waits on restart_backup_notifier if full.
     // Sends notification of flush_and_sync_notifier when flush is complete.
     fn init_backup_task(
-        backup_info: BackupInfo,
+        backup_info: BackupConfig,
         mut backup_rx: UnboundedReceiver<Message<T>>,
         backup_files: Arc<Mutex<Vec<PathBuf>>>,
         backup_full: Arc<AtomicBool>,
@@ -189,12 +190,11 @@ where
                                 // Close out the current file
                                 drop(cur_backup_file);
 
-                                let backup_files_len;
-                                {
+                                let backup_files_len = {
                                     let mut backup_files_guard = backup_files.blocking_lock();
                                     backup_files_guard.push(cur_backup_file_path);
-                                    backup_files_len = backup_files_guard.len();
-                                }
+                                    backup_files_guard.len()
+                                };
                                 if let Some(max_file_count) = backup_info.max_file_count
                                     && backup_files_len >= max_file_count
                                 {
@@ -292,7 +292,7 @@ where
     }
 
     // Create a backup file. Called from backup task
-    fn create_backup_file(backup_info: &BackupInfo) -> Result<(PathBuf, File)> {
+    fn create_backup_file(backup_info: &BackupConfig) -> Result<(PathBuf, File)> {
         let backup_file_path = backup_info.directory.join(format!(
             "{}-{}",
             backup_info.prefix,
@@ -335,14 +335,13 @@ where
             cur_file_count = backup_files_guard.len(),
             "Restarting async backup. Clearing existing backup files"
         );
-        if !self.backup_info.retain_ingested {
+        if !self.backup_config.retain_backups {
             for file_path in backup_files_guard.iter() {
                 if let Err(err) = fs::remove_file(file_path) {
                     #[cfg(feature = "tracing")]
                     tracing::warn!(
                         backup_file = file_path.display().to_string(),
-                        "Unable to delete backup file: {:?}",
-                        err
+                        "Unable to delete backup file: {err:?}"
                     );
                 }
             }
@@ -361,7 +360,7 @@ where
             let (backup_tx, backup_rx) = unbounded_channel::<Message<T>>();
 
             let backup_task = Self::init_backup_task(
-                self.backup_info.clone(),
+                self.backup_config.clone(),
                 backup_rx,
                 self.backup_files.clone(),
                 self.backup_full.clone(),
@@ -431,7 +430,7 @@ where
         let mut ingest_task = BackupIngestTask::new(
             self.grpc_channel.clone(),
             self.backup_retry_policy.clone(),
-            self.backup_info.retain_ingested,
+            self.backup_config.retain_backups,
         );
         if let Err(err) = ingest_task.add(unprocessed_files) {
             #[cfg(feature = "tracing")]
@@ -502,7 +501,7 @@ where
         }
 
         // If we aren't retaining backup files, wait for task to complete and clean up
-        if !self.backup_info.retain_ingested
+        if !self.backup_config.retain_backups
             && let Some(backup_task) = self.backup_task.take()
         {
             let _ = backup_task.await;
@@ -522,9 +521,9 @@ where
     }
 }
 
-/// Contains handle to the ingest task and an unbound queue for transmitting data
-/// Task will ingest each file provided in the ingestion queue, retrying indefinitely if needed
-/// Successfully ingested files are cleared using the provided retention policy
+/// Contains handle to the ingest task and an unbound queue for transmitting data.
+/// Task will ingest each file provided in the ingestion queue, retrying indefinitely if needed.
+/// Successfully ingested files are cleared using the provided retention policy.
 struct BackupIngestTask {
     ingest_tx: UnboundedSender<PathBuf>,
     task_handle: JoinHandle<Result<()>>,
@@ -548,7 +547,7 @@ impl BackupIngestTask {
                     }
 
                     if let Err(err) =
-                        Self::ingest_file(grpc_channel.clone(), backup_file_path.clone()).await
+                        Self::ingest_file(grpc_channel.clone(), &backup_file_path).await
                     {
                         retries += 1;
 
@@ -582,8 +581,7 @@ impl BackupIngestTask {
                     #[cfg(feature = "tracing")]
                     tracing::warn!(
                         backup_file = backup_file_path.display().to_string(),
-                        "Unable to delete ingested backup file: {:?}",
-                        err
+                        "Unable to delete ingested backup file: {err:?}"
                     );
                 }
             }
@@ -598,11 +596,11 @@ impl BackupIngestTask {
     }
 
     /// Attempt to ingest a provided file into sift
-    async fn ingest_file(grpc_channel: SiftChannel, backup_file_path: PathBuf) -> Result<()> {
+    async fn ingest_file(grpc_channel: SiftChannel, backup_file_path: &Path) -> Result<()> {
         let mut client = IngestServiceClient::new(grpc_channel);
 
         let decoder_res: Result<BackupsDecoder<IngestWithConfigDataStreamRequest, _>> =
-            decode_backup(&backup_file_path);
+            decode_backup(backup_file_path);
 
         match decoder_res {
             Ok(backups_decoder) => {
