@@ -6,15 +6,14 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.report import Report
-from sift_client.util.cel_utils import contains, equals, equals_null, match, not_
+from sift_client.util.cel_utils import contains, equals, match
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
 class ReportsAPIAsync(ResourceBase):
-    """High-level API for interacting with reports.
-    """
+    """High-level API for interacting with reports."""
 
     def __init__(self, sift_client: SiftClient):
         """Initialize the ReportsAPI.
@@ -200,7 +199,6 @@ class ReportsAPIAsync(ResourceBase):
             organization_id=organization_id,
         )
         return self._apply_client_to_instance(created_report)
-
 
     async def rerun(
         self,

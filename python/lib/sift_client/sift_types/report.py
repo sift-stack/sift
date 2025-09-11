@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 class ReportRuleSummary(BaseType[ReportRuleSummaryProto, "ReportRuleSummary"]):
     """ReportRuleSummary model representing a rule summary within a report."""
+
     rule_id: str
     rule_client_key: str | None = None
     rule_version_id: str
@@ -31,7 +32,9 @@ class ReportRuleSummary(BaseType[ReportRuleSummaryProto, "ReportRuleSummary"]):
     deleted_date: datetime | None = None
 
     @classmethod
-    def _from_proto(cls, proto: ReportRuleSummaryProto, sift_client: SiftClient | None = None) -> ReportRuleSummary:
+    def _from_proto(
+        cls, proto: ReportRuleSummaryProto, sift_client: SiftClient | None = None
+    ) -> ReportRuleSummary:
         return cls(
             id_=proto.report_rule_version_id,
             rule_id=proto.rule_id,
@@ -102,7 +105,9 @@ class Report(BaseType[ReportProto, "Report"]):
             modified_by_user_id=proto.modified_by_user_id,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
-            summaries=[ReportRuleSummary._from_proto(summary, sift_client) for summary in proto.summaries],
+            summaries=[
+                ReportRuleSummary._from_proto(summary, sift_client) for summary in proto.summaries
+            ],
             tags=[tag.tag_name for tag in proto.tags],
             rerun_from_report_id=proto.rerun_from_report_id,
             _client=sift_client,

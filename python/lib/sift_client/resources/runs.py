@@ -6,7 +6,16 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.run import Run, RunUpdate
-from sift_client.util.cel_utils import contains, equals, equals_null, greater_than, less_than, match, not_
+from sift_client.util.cel_utils import (
+    contains,
+    equals,
+    equals_null,
+    greater_than,
+    in_,
+    less_than,
+    match,
+    not_,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -55,6 +64,7 @@ class RunsAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        run_ids: list[str] | None = None,
         description: str | None = None,
         description_contains: str | None = None,
         duration_seconds: int | None = None,
@@ -82,6 +92,7 @@ class RunsAPIAsync(ResourceBase):
             name: Exact name of the run.
             name_contains: Partial name of the run.
             name_regex: Regular expression string to filter runs by name.
+            run_ids: List of run IDs to filter by.
             description: Exact description of the run.
             description_contains: Partial description of the run.
             duration_seconds: Duration of the run in seconds.
@@ -117,6 +128,9 @@ class RunsAPIAsync(ResourceBase):
             if isinstance(name_regex, re.Pattern):
                 name_regex = name_regex.pattern
             filter_parts.append(match("name", name_regex))  # type: ignore
+
+        if run_ids:
+            filter_parts.append(in_("run_id", run_ids))
 
         if description:
             filter_parts.append(equals("description", description))

@@ -494,7 +494,6 @@ class ReportsAPI:
     """Sync counterpart to `ReportsAPIAsync`.
 
     High-level API for interacting with reports.
-
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -709,6 +708,47 @@ class RulesAPI:
         """Create a new rule."""
         ...
 
+    def evaluate(
+        self,
+        *,
+        run_id: str | None = None,
+        assets: list[str] | None = None,
+        all_applicable_rules: bool | None = None,
+        run_start_time: datetime | None = None,
+        run_end_time: datetime | None = None,
+        rule_ids: list[str] | None = None,
+        rule_version_ids: list[str] | None = None,
+        report_template_id: str | None = None,
+        tags: list[str] | None = None,
+    ) -> Report | None:
+        """Evaluate a rule.
+
+        Pick one of the following grouping of rules to evaluate against:
+        - run_id
+        - assets
+        - run_start_time and run_end_time
+        And one of the following filters to select which rules to evaluate:
+        - rule_ids
+        - rule_version_ids
+        - report_template_id
+        - all_applicable_rules
+
+        Args:
+            run_id: The run ID to evaluate.
+            assets: The assets to evaluate.
+            all_applicable_rules: Whether to evaluate all rules applicable to the selected run, assets, or time range.
+            run_start_time: The start time of the run.
+            run_end_time: The end time of the run.
+            rule_ids: The rule IDs to evaluate.
+            rule_version_ids: The rule version IDs to evaluate.
+            report_template_id: The report template ID to evaluate.
+            tags: Optional tags to add to generated annotations.
+
+        Returns:
+            The result of the rule evaluation.
+        """
+        ...
+
     def find(self, **kwargs) -> Rule | None:
         """Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
         raises an error.
@@ -740,7 +780,7 @@ class RulesAPI:
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         asset_ids: list[str] | None = None,
-        asset_tags: list[str] | None = None,
+        asset_tags_ids: list[str] | None = None,
         client_key: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
@@ -753,7 +793,7 @@ class RulesAPI:
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
             asset_ids: List of asset IDs to filter rules by.
-            asset_tags: List of asset tags to filter rules by.
+            asset_tags_ids: List of asset tags IDs to filter rules by.
             client_key: The client key of the rules.
             order_by: How to order the retrieved rules.
             limit: How many rules to retrieve. If None, retrieves all matches.
@@ -891,6 +931,7 @@ class RunsAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        run_ids: list[str] | None = None,
         description: str | None = None,
         description_contains: str | None = None,
         duration_seconds: int | None = None,
@@ -918,6 +959,7 @@ class RunsAPI:
             name: Exact name of the run.
             name_contains: Partial name of the run.
             name_regex: Regular expression string to filter runs by name.
+            run_ids: List of run IDs to filter by.
             description: Exact description of the run.
             description_contains: Partial description of the run.
             duration_seconds: Duration of the run in seconds.

@@ -10,6 +10,7 @@ from sift_client.sift_types.channel import (
     ChannelReference,
 )
 from sift_client.sift_types.ingestion import IngestionConfig
+from sift_client.sift_types.report import Report
 from sift_client.sift_types.rule import (
     Rule,
     RuleAction,
@@ -19,7 +20,6 @@ from sift_client.sift_types.rule import (
     RuleVersion,
 )
 from sift_client.sift_types.run import Run, RunUpdate
-from sift_client.sift_types.report import Report
 from sift_client.sift_types.tag import Tag, TagUpdate
 
 __all__ = [
