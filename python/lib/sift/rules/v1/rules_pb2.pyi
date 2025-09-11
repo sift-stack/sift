@@ -114,6 +114,8 @@ class Rule(google.protobuf.message.Message):
     DELETED_DATE_FIELD_NUMBER: builtins.int
     IS_EXTERNAL_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     asset_id: builtins.str
     name: builtins.str
@@ -125,6 +127,8 @@ class Rule(google.protobuf.message.Message):
     client_key: builtins.str
     """client_key is a client provided identifier for the rule. It is immutable after rule creation."""
     is_external: builtins.bool
+    is_archived: builtins.bool
+    """is_archived is inferred from when archived_date is not null"""
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -141,6 +145,10 @@ class Rule(google.protobuf.message.Message):
     def deleted_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """archived_date indicates when the rule was archived"""
+
     def __init__(
         self,
         *,
@@ -162,9 +170,11 @@ class Rule(google.protobuf.message.Message):
         deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_external: builtins.bool = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "contextual_channels", b"contextual_channels", "created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "is_enabled", b"is_enabled", "is_external", b"is_external", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_configuration", b"asset_configuration", "contextual_channels", b"contextual_channels", "created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
 
 global___Rule = Rule
 
@@ -529,6 +539,7 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     CONTEXTUAL_CHANNELS_FIELD_NUMBER: builtins.int
     IS_EXTERNAL_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -541,6 +552,7 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     client_key: builtins.str
     """client_key is a client provided identifier for the rule. It is immutable after being set"""
     is_external: builtins.bool
+    is_archived: builtins.bool
     @property
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateConditionRequest]: ...
     @property
@@ -565,9 +577,10 @@ class UpdateRuleRequest(google.protobuf.message.Message):
         contextual_channels: global___ContextualChannels | None = ...,
         is_external: builtins.bool = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "contextual_channels", b"contextual_channels", "rule_id", b"rule_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_enabled", b"is_enabled", "is_external", b"is_external", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -824,6 +837,68 @@ class BatchDeleteRulesResponse(google.protobuf.message.Message):
 global___BatchDeleteRulesResponse = BatchDeleteRulesResponse
 
 @typing.final
+class ArchiveRuleRequest(google.protobuf.message.Message):
+    """ArchiveRuleRequest is used to archive a rule by rule_id or client_key. If both are provided, only rule_id will be used."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_ID_FIELD_NUMBER: builtins.int
+    CLIENT_KEY_FIELD_NUMBER: builtins.int
+    rule_id: builtins.str
+    client_key: builtins.str
+    def __init__(
+        self,
+        *,
+        rule_id: builtins.str = ...,
+        client_key: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["client_key", b"client_key", "rule_id", b"rule_id"]) -> None: ...
+
+global___ArchiveRuleRequest = ArchiveRuleRequest
+
+@typing.final
+class ArchiveRuleResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___ArchiveRuleResponse = ArchiveRuleResponse
+
+@typing.final
+class BatchArchiveRulesRequest(google.protobuf.message.Message):
+    """BatchArchiveRulesRequest is used to archive a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_IDS_FIELD_NUMBER: builtins.int
+    CLIENT_KEYS_FIELD_NUMBER: builtins.int
+    @property
+    def rule_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def client_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        rule_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        client_keys: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["client_keys", b"client_keys", "rule_ids", b"rule_ids"]) -> None: ...
+
+global___BatchArchiveRulesRequest = BatchArchiveRulesRequest
+
+@typing.final
+class BatchArchiveRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___BatchArchiveRulesResponse = BatchArchiveRulesResponse
+
+@typing.final
 class UndeleteRuleRequest(google.protobuf.message.Message):
     """UndeleteRuleRequest is used to undelete a rule by rule_id or client_key. If both are provided, only rule_id will be used."""
 
@@ -884,6 +959,68 @@ class BatchUndeleteRulesResponse(google.protobuf.message.Message):
     ) -> None: ...
 
 global___BatchUndeleteRulesResponse = BatchUndeleteRulesResponse
+
+@typing.final
+class UnarchiveRuleRequest(google.protobuf.message.Message):
+    """UnarchiveRuleRequest is used to unarchive a rule by rule_id or client_key. If both are provided, only rule_id will be used."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_ID_FIELD_NUMBER: builtins.int
+    CLIENT_KEY_FIELD_NUMBER: builtins.int
+    rule_id: builtins.str
+    client_key: builtins.str
+    def __init__(
+        self,
+        *,
+        rule_id: builtins.str = ...,
+        client_key: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["client_key", b"client_key", "rule_id", b"rule_id"]) -> None: ...
+
+global___UnarchiveRuleRequest = UnarchiveRuleRequest
+
+@typing.final
+class UnarchiveRuleResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___UnarchiveRuleResponse = UnarchiveRuleResponse
+
+@typing.final
+class BatchUnarchiveRulesRequest(google.protobuf.message.Message):
+    """BatchUnarchiveRulesRequest is used to unarchive a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_IDS_FIELD_NUMBER: builtins.int
+    CLIENT_KEYS_FIELD_NUMBER: builtins.int
+    @property
+    def rule_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def client_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        rule_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        client_keys: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["client_keys", b"client_keys", "rule_ids", b"rule_ids"]) -> None: ...
+
+global___BatchUnarchiveRulesRequest = BatchUnarchiveRulesRequest
+
+@typing.final
+class BatchUnarchiveRulesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___BatchUnarchiveRulesResponse = BatchUnarchiveRulesResponse
 
 @typing.final
 class ViewHumanFriendlyRulesRequest(google.protobuf.message.Message):
@@ -1138,7 +1275,8 @@ class ListRulesRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `asset_id`, `tag_id`, and `deleted_date`.
+    Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
+    `created_date`, `created_by_user_id`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, and `archived_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     Optional.
     """
@@ -1228,16 +1366,24 @@ class RuleVersion(google.protobuf.message.Message):
     VERSION_NOTES_FIELD_NUMBER: builtins.int
     GENERATED_CHANGE_MESSAGE_FIELD_NUMBER: builtins.int
     DELETED_DATE_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     rule_version_id: builtins.str
     version: builtins.str
     created_by_user_id: builtins.str
     version_notes: builtins.str
     generated_change_message: builtins.str
+    is_archived: builtins.bool
+    """is_archived is inferred from when archived_date is not null"""
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def deleted_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """archived_date indicates when the rule version was archived"""
+
     def __init__(
         self,
         *,
@@ -1249,9 +1395,11 @@ class RuleVersion(google.protobuf.message.Message):
         version_notes: builtins.str = ...,
         generated_change_message: builtins.str = ...,
         deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["created_date", b"created_date", "deleted_date", b"deleted_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "generated_change_message", b"generated_change_message", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "version", b"version", "version_notes", b"version_notes"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "created_date", b"created_date", "deleted_date", b"deleted_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "generated_change_message", b"generated_change_message", "is_archived", b"is_archived", "rule_id", b"rule_id", "rule_version_id", b"rule_version_id", "version", b"version", "version_notes", b"version_notes"]) -> None: ...
 
 global___RuleVersion = RuleVersion
 

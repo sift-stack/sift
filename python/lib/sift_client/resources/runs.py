@@ -6,7 +6,16 @@ from typing import TYPE_CHECKING
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.run import Run, RunUpdate
-from sift_client.util.cel_utils import contains, equals, equals_null, match, not_
+from sift_client.util.cel_utils import (
+    contains,
+    equals,
+    equals_null,
+    greater_than,
+    in_,
+    less_than,
+    match,
+    not_,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -55,6 +64,7 @@ class RunsAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        run_ids: list[str] | None = None,
         description: str | None = None,
         description_contains: str | None = None,
         duration_seconds: int | None = None,
@@ -63,7 +73,16 @@ class RunsAPIAsync(ResourceBase):
         asset_name: str | None = None,
         created_by_user_id: str | None = None,
         is_stopped: bool | None = None,
+        created_date_start: datetime | None = None,
+        created_date_end: datetime | None = None,
+        modified_date_start: datetime | None = None,
+        modified_date_end: datetime | None = None,
+        start_time_start: datetime | None = None,
+        start_time_end: datetime | None = None,
+        stop_time_start: datetime | None = None,
+        stop_time_end: datetime | None = None,
         include_archived: bool = False,
+        organization_id: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Run]:
@@ -73,6 +92,7 @@ class RunsAPIAsync(ResourceBase):
             name: Exact name of the run.
             name_contains: Partial name of the run.
             name_regex: Regular expression string to filter runs by name.
+            run_ids: List of run IDs to filter by.
             description: Exact description of the run.
             description_contains: Partial description of the run.
             duration_seconds: Duration of the run in seconds.
@@ -81,7 +101,16 @@ class RunsAPIAsync(ResourceBase):
             asset_name: Asset name to filter by.
             created_by_user_id: User ID who created the run.
             is_stopped: Whether the run is stopped.
+            created_date_start: Start date for created_date filter.
+            created_date_end: End date for created_date filter.
+            modified_date_start: Start date for modified_date filter.
+            modified_date_end: End date for modified_date filter.
+            start_time_start: Start date for start_time filter.
+            start_time_end: End date for start_time filter.
+            stop_time_start: Start date for stop_time filter.
+            stop_time_end: End date for stop_time filter.
             include_archived: Whether to include archived runs.
+            organization_id: Organization ID to filter by.
             order_by: How to order the retrieved runs.
             limit: How many runs to retrieve. If None, retrieves all matches.
 
@@ -99,6 +128,9 @@ class RunsAPIAsync(ResourceBase):
             if isinstance(name_regex, re.Pattern):
                 name_regex = name_regex.pattern
             filter_parts.append(match("name", name_regex))  # type: ignore
+
+        if run_ids:
+            filter_parts.append(in_("run_id", run_ids))
 
         if description:
             filter_parts.append(equals("description", description))
@@ -125,6 +157,33 @@ class RunsAPIAsync(ResourceBase):
 
         if not include_archived:
             filter_parts.append(equals("archived_date", None))
+
+        if created_date_start:
+            filter_parts.append(greater_than("created_date", created_date_start))
+
+        if created_date_end:
+            filter_parts.append(less_than("created_date", created_date_end))
+
+        if modified_date_start:
+            filter_parts.append(greater_than("modified_date", modified_date_start))
+
+        if modified_date_end:
+            filter_parts.append(less_than("modified_date", modified_date_end))
+
+        if start_time_start:
+            filter_parts.append(greater_than("start_time", start_time_start))
+
+        if start_time_end:
+            filter_parts.append(less_than("start_time", start_time_end))
+
+        if stop_time_start:
+            filter_parts.append(greater_than("stop_time", stop_time_start))
+
+        if stop_time_end:
+            filter_parts.append(less_than("stop_time", stop_time_end))
+
+        if organization_id:
+            filter_parts.append(equals("organization_id", organization_id))
 
         query_filter = " && ".join(filter_parts) if filter_parts else None
 

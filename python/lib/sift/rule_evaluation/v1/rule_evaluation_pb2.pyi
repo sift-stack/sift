@@ -284,57 +284,20 @@ class EvaluateRulesFromRuleConfigs(google.protobuf.message.Message):
 global___EvaluateRulesFromRuleConfigs = EvaluateRulesFromRuleConfigs
 
 @typing.final
-class RulePreviewOutput(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    RULE_NAME_FIELD_NUMBER: builtins.int
-    RULE_ID_FIELD_NUMBER: builtins.int
-    RULE_VERSION_ID_FIELD_NUMBER: builtins.int
-    ASSET_ID_FIELD_NUMBER: builtins.int
-    EXIT_CODE_FIELD_NUMBER: builtins.int
-    STDOUT_FIELD_NUMBER: builtins.int
-    STDERR_FIELD_NUMBER: builtins.int
-    rule_name: builtins.str
-    rule_id: builtins.str
-    rule_version_id: builtins.str
-    asset_id: builtins.str
-    exit_code: builtins.int
-    stdout: builtins.str
-    stderr: builtins.str
-    def __init__(
-        self,
-        *,
-        rule_name: builtins.str = ...,
-        rule_id: builtins.str = ...,
-        rule_version_id: builtins.str = ...,
-        asset_id: builtins.str = ...,
-        exit_code: builtins.int = ...,
-        stdout: builtins.str = ...,
-        stderr: builtins.str = ...,
-    ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "exit_code", b"exit_code", "rule_id", b"rule_id", "rule_name", b"rule_name", "rule_version_id", b"rule_version_id", "stderr", b"stderr", "stdout", b"stdout"]) -> None: ...
-
-global___RulePreviewOutput = RulePreviewOutput
-
-@typing.final
 class EvaluateRulesPreviewResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     CREATED_ANNOTATION_COUNT_FIELD_NUMBER: builtins.int
     DRY_RUN_ANNOTATIONS_FIELD_NUMBER: builtins.int
-    RULE_OUTPUTS_FIELD_NUMBER: builtins.int
     created_annotation_count: builtins.int
     @property
     def dry_run_annotations(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.rules.v1.rules_pb2.DryRunAnnotation]: ...
-    @property
-    def rule_outputs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___RulePreviewOutput]: ...
     def __init__(
         self,
         *,
         created_annotation_count: builtins.int = ...,
         dry_run_annotations: collections.abc.Iterable[sift.rules.v1.rules_pb2.DryRunAnnotation] | None = ...,
-        rule_outputs: collections.abc.Iterable[global___RulePreviewOutput] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["created_annotation_count", b"created_annotation_count", "dry_run_annotations", b"dry_run_annotations", "rule_outputs", b"rule_outputs"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["created_annotation_count", b"created_annotation_count", "dry_run_annotations", b"dry_run_annotations"]) -> None: ...
 
 global___EvaluateRulesPreviewResponse = EvaluateRulesPreviewResponse

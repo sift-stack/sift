@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timezone
 
-from sift_client.client import SiftClient
+from sift_client.client import SiftClient, SiftConnectionConfig
 
 # Import sift_client types for calculated channels and rules
 from sift_client.sift_types import (
@@ -36,10 +36,15 @@ If we keep it as a test, we should ideally have a setup that populates data, and
 
 
 def main():
-    grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
+    grpc_url = os.getenv("SIFT_GRPC_URI", "http://localhost:50051")
     api_key = os.getenv("SIFT_API_KEY", "")
     rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
-    client = SiftClient(grpc_url=grpc_url, api_key=api_key, rest_url=rest_url)
+    api_key = os.getenv("SIFT_LOCAL_API_KEY", "")
+    client = SiftClient(
+        connection_config=SiftConnectionConfig(
+            grpc_url=grpc_url, api_key=api_key, rest_url=rest_url, use_ssl=False
+        )
+    )
 
     asset = client.assets.find(name="NostromoLV426")
     asset_id = asset.id_
@@ -48,6 +53,8 @@ def main():
     unique_name_suffix = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
     num_rules = 8
     print(f"\n=== Creating {num_rules} rules with unique suffix: {unique_name_suffix} ===")
+    tags = client.tags.find_or_create(names=["test", "initial"])
+    tag_ids = [tag.id_ for tag in tags]
     created_rules = []
     for i in range(num_rules):
         rule = client.rules.create(
@@ -59,7 +66,7 @@ def main():
             ],
             action=RuleAction.annotation(
                 annotation_type=RuleAnnotationType.DATA_REVIEW,
-                tags=["test", "initial"],
+                tags_ids=tag_ids,
                 default_assignee_user_id=None,
             ),
             asset_ids=[asset_id],
@@ -68,7 +75,7 @@ def main():
         print(f"Created rule: {rule.name} (ID: {rule.id_})")
 
     # Find the rules we just created
-    search_results = client.rules.list(
+    search_results = client.rules.list_(
         name_regex=f"test_rule_{unique_name_suffix}.*",
     )
     assert len(search_results) == num_rules, (
@@ -105,18 +112,20 @@ def main():
     # Test 3: Update action (change annotation type and tags)
     print("\n--- Test 3: Update action ---")
     rule_3 = created_rules[2]
+    updated_tags = client.tags.find_or_create(names=["updated", "phase", "alert"])
+    updated_tag_ids = [tag.id_ for tag in updated_tags]
     updated_rule_3 = rule_3.update(
         RuleUpdate(
             action=RuleAction.annotation(
                 annotation_type=RuleAnnotationType.PHASE,
-                tags=["updated", "phase", "alert"],
+                tags_ids=updated_tag_ids,
                 default_assignee_user_id=rule_3.created_by_user_id,
             ),
         )
     )
     print(f"Updated {updated_rule_3.name}: action type = {updated_rule_3.action.action_type}")
     print(f"  - annotation type: {updated_rule_3.action.annotation_type}")
-    print(f"  - tags: {updated_rule_3.action.tags}")
+    print(f"  - tags: {updated_rule_3.action.tags_ids}")
     print(f"  - assignee: {updated_rule_3.action.default_assignee_user_id}")
 
     # Test 4: Update name

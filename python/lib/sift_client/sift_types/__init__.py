@@ -10,6 +10,7 @@ from sift_client.sift_types.channel import (
     ChannelReference,
 )
 from sift_client.sift_types.ingestion import IngestionConfig
+from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
 from sift_client.sift_types.rule import (
     Rule,
     RuleAction,
@@ -19,6 +20,7 @@ from sift_client.sift_types.rule import (
     RuleVersion,
 )
 from sift_client.sift_types.run import Run, RunUpdate
+from sift_client.sift_types.tag import Tag, TagUpdate
 
 __all__ = [
     "Asset",
@@ -30,6 +32,10 @@ __all__ = [
     "ChannelDataType",
     "ChannelReference",
     "IngestionConfig",
+    "Report",
+    "ReportRuleStatus",
+    "ReportRuleSummary",
+    "ReportUpdate",
     "Rule",
     "RuleAction",
     "RuleActionType",
@@ -38,4 +44,6 @@ __all__ = [
     "RuleVersion",
     "Run",
     "RunUpdate",
+    "Tag",
+    "TagUpdate",
 ]

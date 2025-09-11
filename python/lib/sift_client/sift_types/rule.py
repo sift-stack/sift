@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
@@ -232,14 +233,14 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     modified_by_user_id: str | None = None
     version_id: str | None = None
     annotation_type: RuleAnnotationType | None = None
-    tags: list[str] | None = None
+    tags_ids: list[str] | None = None
     default_assignee_user_id: str | None = None
 
     @classmethod
     def annotation(
         cls,
         annotation_type: RuleAnnotationType,
-        tags: list[str],
+        tags_ids: list[str],
         default_assignee_user_id: str | None = None,
     ) -> RuleAction:
         """Create an annotation action.
@@ -247,12 +248,12 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
         Args:
             annotation_type: Type of annotation to create.
             default_assignee_user_id: User ID to assign the annotation to.
-            tags: List of tag IDs to add to the annotation.
+            tags_ids: List of tag IDs to add to the annotation.
         """
         return cls(
             action_type=RuleActionType.ANNOTATION,
             annotation_type=annotation_type,
-            tags=tags,
+            tags_ids=[str(UUID(tag_id)) for tag_id in tags_ids],
             default_assignee_user_id=default_assignee_user_id,
         )
 
@@ -268,7 +269,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             version_id=proto.rule_action_version_id,
-            tags=(
+            tags_ids=(
                 list(proto.configuration.annotation.tag_ids)
                 if proto.configuration.annotation.tag_ids
                 else None
@@ -294,7 +295,7 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                 annotation=(
                     AnnotationActionConfiguration(
                         assigned_to_user_id=self.default_assignee_user_id,
-                        tag_ids=self.tags,
+                        tag_ids=self.tags_ids,
                         annotation_type=self.annotation_type.value,  # type: ignore
                     )
                     if self.action_type == RuleActionType.ANNOTATION
