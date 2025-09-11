@@ -122,11 +122,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             max_results=max_results,
         )
 
-    async def create_run(
-        self,
-        *,
-        create: RunCreate
-    ) -> Run:
+    async def create_run(self, *, create: RunCreate) -> Run:
         request_proto = create.to_proto()
         response = await self._grpc_client.get_stub(RunServiceStub).CreateRun(request_proto)
         grpc_run = cast("CreateRunResponse", response).run

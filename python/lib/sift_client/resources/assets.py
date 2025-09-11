@@ -121,17 +121,14 @@ class AssetsAPIAsync(ResourceBase):
                 modified_after=modified_after,
                 modified_before=modified_before,
                 created_by=created_by,
-                modified_by=modified_by
+                modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(
-                tags=tags,
-                metadata=metadata
-            ),
+            *self._build_tags_metadata_cel_filters(tags=tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
-                filter_query=filter_query
-            )
+                filter_query=filter_query,
+            ),
         ]
         if asset_ids:
             filter_parts.append(cel.in_("asset_id", asset_ids))
@@ -178,7 +175,6 @@ class AssetsAPIAsync(ResourceBase):
         update.resource_id = asset_id
         asset = await self._low_level_client.update_asset(update=update)
         return self._apply_client_to_instance(asset)
-
 
     async def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
         """Archive an asset.

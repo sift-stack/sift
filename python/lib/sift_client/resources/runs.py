@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
@@ -9,6 +8,7 @@ from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
     from datetime import datetime, timedelta
 
     from sift_client.client import SiftClient
@@ -34,12 +34,7 @@ class RunsAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = RunsLowLevelClient(grpc_client=self.client.grpc_client)
 
-    async def get(
-        self,
-        *,
-        run_id: str | None = None,
-        client_key: str | None = None
-    ) -> Run:
+    async def get(self, *, run_id: str | None = None, client_key: str | None = None) -> Run:
         """Get a Run.
 
         Args:
@@ -136,16 +131,14 @@ class RunsAPIAsync(ResourceBase):
                 modified_after=modified_after,
                 modified_before=modified_before,
                 created_by=created_by,
-                modified_by=modified_by
+                modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(
-                metadata=metadata
-            ),
+            *self._build_tags_metadata_cel_filters(metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
-                filter_query=filter_query
-            )
+                filter_query=filter_query,
+            ),
         ]
         if run_ids:
             filter_parts.append(cel.in_("run_id", run_ids))
