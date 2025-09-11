@@ -193,3 +193,4 @@ class AssetsAPIAsync(ResourceBase):
 
         return await self.get(asset_id=asset_id)
 
+    # TODO: unarchive
