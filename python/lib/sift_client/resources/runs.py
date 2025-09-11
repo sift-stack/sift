@@ -88,7 +88,7 @@ class RunsAPIAsync(ResourceBase):
         stop_time_after: datetime | None = None,
         stop_time_before: datetime | None = None,
         is_stopped: bool | None = None,
-        # common filter_parts
+        # common filters
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
