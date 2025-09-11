@@ -31,6 +31,7 @@ END_VAR
 VAR
     fbAuth : FB_AuthenticateService;	
 	fbStartSiftProxy : NT_StartProcess;
+	fbGetLocalAmsNetID : FB_GetLocalAmsNetId;
 	fbFormat : FB_FormatString;
 	nAttempts : UINT;
 	startDelay : TON;
@@ -41,6 +42,8 @@ VAR
 		CLOSE_ALL_WAIT, 
 		CONNECT, 
 		CONNECT_WAIT, 
+		GET_LOCAL_AMD_NET_ID,
+		GET_LOCAL_AMD_NET_ID_WAIT,
 		START_SIFT_PROXY, 
 		START_SIFT_PROXY_DELAY,
 		START_SIFT_PROXY_WAIT,
@@ -56,6 +59,7 @@ END_VAR
     <Implementation>
       <ST><![CDATA[CASE eState OF
 	IDLE:
+	    bBusy := FALSE;
 		IF bExecute THEN
 			eState := CLOSE_ALL;
 		ELSIF bStop THEN
@@ -124,10 +128,31 @@ END_VAR
 			RETURN;
 		ELSIF hSiftClient.fbConnect.bError THEN
 			nErrId := hSiftClient.fbConnect.nErrId;
-			eState := START_SIFT_PROXY;
+			eState := GET_LOCAL_AMD_NET_ID;
 			RETURN;
 		END_IF
 		eState := AUTHENTICATE;
+		
+	GET_LOCAL_AMD_NET_ID:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbGetLocalAmsNetID(bExecute := TRUE);
+		eState := GET_LOCAL_AMD_NET_ID_WAIT;
+		
+	GET_LOCAL_AMD_NET_ID_WAIT:
+		bBusy := TRUE;
+		bError := FALSE;
+		fbGetLocalAmsNetID(bExecute := FALSE);
+		
+		IF fbGetLocalAmsNetID.bBusy THEN
+			RETURN;
+		ELSIF fbGetLocalAmsNetID.bError THEN
+			nErrId := fbGetLocalAmsNetID.nErrId;
+			nErrMsg := 'Failed to get local AmsNetId';
+			eState := FAILURE;
+			RETURN;
+		END_IF
+		eState := START_SIFT_PROXY;
 
 	START_SIFT_PROXY:
 		bBusy := TRUE;
@@ -165,6 +190,7 @@ END_VAR
 		END_IF
 		
 		fbStartSiftProxy(
+			NetId:=fbGetLocalAmsNetID.AddrString,
 			PATHSTR:=SiftClientParameters.START_SIFT_PROXY_PATH, 
 			COMNDLINE:=fbFormat.sOut,
 			START := TRUE,

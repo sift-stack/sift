@@ -59,7 +59,7 @@ END_VAR
 		IF fbSendSiftMessage.bBusy THEN
 			RETURN;
 		ELSIF fbSendSiftMessage.bError THEN
-			nErrId := GVL_SIFT.SIFT_PROXY_NO_RESPONSE;
+			nErrId := fbSendSiftMessage.nErrId;
 			eState := FAILURE;
 			RETURN;
 		END_IF

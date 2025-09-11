@@ -11,6 +11,7 @@ VAR_INPUT
 END_VAR
 
 VAR_OUTPUT
+	bBusy : BOOL; // Set to high while data is being transferred.
 	bError : BOOL;
 	nErrId : UDINT;
 	nMsgsSent : UDINT; // Number of total messages sent to sift_proxy.
@@ -34,6 +35,7 @@ fBufferUtilization := UDINT_TO_LREAL(fbSendRingBuffer.cbSize) / UDINT_TO_LREAL(S
 
 CASE eState OF
 	IDLE:
+    	bBusy := FALSE;
 		bError := FALSE;
 		IF nBufSize > 0 THEN
 			nCount := nBufSize;
@@ -42,8 +44,8 @@ CASE eState OF
 		END_IF
 			
 	SEND_MESSAGE:
+		bBusy := TRUE;
 		bError := FALSE;
-		
 		curOffset := 0;
 		FOR i := 1 TO nCount DO
 			fbSendRingBuffer.A_RemoveHead(pRead := ADR(aTmpBuffer[curOffset]),
@@ -69,6 +71,7 @@ CASE eState OF
 		eState := SEND_MESSAGE_WAIT;
 
 	SEND_MESSAGE_WAIT:
+	    bBusy := TRUE;
 		bError := FALSE;
 		hSiftClient.fbSend(bExecute := FALSE);
 		
@@ -84,6 +87,7 @@ CASE eState OF
 		eState := IDLE;
 		
 	FAILURE:
+	    bBusy := FALSE;
 		bError := TRUE;
 END_CASE
 ]]></ST>

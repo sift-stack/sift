@@ -8,7 +8,7 @@ VAR_INPUT
 	stMsg : REFERENCE TO _ST_SiftMessage;
 	bExecute : BOOL;
 	bWaitForReply : BOOL := TRUE;
-	tReplyTimeout : TIME := T#1S;
+	tReplyTimeout : TIME := T#10S; // Default 10s timeout. In practice we've seen local repsonses take up to about 1s.
 END_VAR
 VAR_OUTPUT
 	bBusy : BOOL;
@@ -39,6 +39,9 @@ END_VAR
 	SEND_MESSAGE:
 		bBusy := TRUE;
 		bError := FALSE;
+		
+		// Always reset the writer before using it.
+		fbWriter.SetOffset(0);
 		
 		// Verify MAX_PACKET_SIZE is a reasonable number
 		IF SiftClientParameters.MAX_PACKET_SIZE <= GVL_SIFT.HEADER_LENGTH THEN
@@ -81,7 +84,7 @@ END_VAR
 			cbLen := stMsg.nLength + GVL_SIFT.HEADER_LENGTH,
 			bExecute := TRUE,
 		);
-		fbWriter.SetOffset(0);	
+	
 		eState := SEND_MESSAGE_WAIT;
 
 	SEND_MESSAGE_WAIT:
@@ -150,6 +153,9 @@ END_VAR
 			END_IF		
 			RETURN;
 		END_IF
+		
+		// Always reset the writer before using it.
+		fbWriter.SetOffset(0);
 			
 		IF NOT fbWriter.Write(ADR(aRecvBuf), hSiftClient.fbReceive.nRecBytes) THEN
 			nErrId := GVL_SIFT.MEMCPY_ERROR;

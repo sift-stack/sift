@@ -3,7 +3,8 @@
   <POU Name="MAIN" Id="{7ccbb6f8-c213-4a05-8b24-7eb24159ab86}" SpecialFunc="None">
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
-	/// Ingestion example
+	/// Integration test that stress tests restarting Sift Client.
+	/// This is needed until we properly mock TCP connections in the Sift Client.
 	/// Instrucstions to run:
 	/// 1. Fill in sGrpcUri and sApiKey
 	///     See https://docs.siftstack.com/docs
@@ -13,16 +14,17 @@ VAR
 	sGrpcUri : STRING(255) := '';
 	sApiKey : STRING(255) := '';
 	sLogDir : STRING(255) := '';
-	
+		
 	aJsonBuffer : ARRAY[1..65535] OF BYTE; // Buffer used to create JSON messages. Increase this if you get JSON_CAPACITY_REACHED errors.
 	
 	// Run information.
-	sRunName : STRING(255) := 'TwinCat3 PLC Ingestion Example';
-	sRunDescription : STRING(255) := 'Example run from TwinCat3 application.';
+	sRunName : STRING(255) := 'TwinCat3 Stress Restart Test';
+	sRunDescription : STRING(255) := 'Stress test restarting Sift Client.';
 
 	// Flows and Channels created here should all be pointers and initialized with CreateFlowConfig and CreateChannelConfig
 	pFlow1 : POINTER TO ST_FlowConfig;
 	pIntChannel1 : POINTER TO ST_ChannelConfig;
+	pTestCountChannel : POINTER TO ST_ChannelConfig;
 	pEnumChannel2 : POINTER TO ST_ChannelConfig;
 	aChannel2Enums : ARRAY[1..SiftClientParameters.MAX_NUM_ENUMS_PER_CHANNEL] OF ST_EnumType := [
 		(nKey:=0, sName:='enum1'),
@@ -33,13 +35,12 @@ VAR
 	
 	pFlow2 : POINTER TO ST_FlowConfig;
 	pStringChannel3 : POINTER TO ST_ChannelConfig;
-	pDoubleChannel4 : POINTER TO ST_ChannelConfig;
+	pBufUtilChannel : POINTER TO ST_ChannelConfig;
 	
 	// Example values that would come from sensors or other parts of the PLC application.
 	nData1 : DINT := 0;
 	nData2 : UDINT := 0;
 	sData3 : STRING(255) := 'This is a string value from the PLC task.';
-	fData4 : LREAL := 1.2345;
 
 	// Sift Client used for all services.
 	fbSiftClient : FB_SiftClient;
@@ -62,12 +63,19 @@ VAR
 		SUBMIT_RUN,				// Create and submit the Run.
 		SUBMIT_RUN_WAIT,		// Wait for the call to finish.
 		INGEST_DATA,			// Main state for ingesting data.
-		STOP_INGEST_WAIT,        // Wait for data in transit to finish sending.
+		STOP_INGEST_WAIT,       // Wait for data in transit to finish sending.
 		STOP,					// Close and stop the Sift Client.
+		STOP_WAIT, 			    // Wait for the Sift Client to clean up.
 		ERROR,					// An error has occurred.
 		IDLE_STOP,				// Idle state after stopping.
+		TEST_SUCCESS,
 	) := INIT_SIFT_CLIENT;
 	
+	currentTestCount : UDINT;
+	currentTestDuration : TON;
+	totalTestCount : UDINT := 100;
+	testDuration : TIME := T#5S;	
+	bInitialized : BOOL;
 	bStop : BOOL; 			// Set this to True to close the Sift Client and stop the program.
 	bRestart : BOOL; 		// Set this to True after stopping to restart ingestion.
 	bConfigError : BOOL;	// True if there is an error creating or submitting the ingestion config.
@@ -96,6 +104,7 @@ END_VAR]]></Declaration>
 			eSiftState := ERROR;
 			RETURN;
 		END_IF
+			
 		eSiftState := SUBMIT_CONFIG;
 	
 	SUBMIT_CONFIG:
@@ -114,6 +123,17 @@ END_VAR]]></Declaration>
 															  sDescription:='An integer channel', 
 															  sUnit:='count');
 		IF pIntChannel1 = 0 THEN
+			eSiftState := ERROR;
+			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
+			RETURN;
+		END_IF
+		
+		pTestCountChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow1, 
+															  sName:='test_count', 
+															  eDataType:=E_ChannelDataType.UInt32, 
+															  sDescription:='Current test iteration', 
+															  sUnit:='');
+		IF pTestCountChannel = 0 THEN
 			eSiftState := ERROR;
 			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
 			RETURN;
@@ -154,12 +174,12 @@ END_VAR]]></Declaration>
 			RETURN;
 		END_IF
 		
-		pDoubleChannel4 := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2,  
-												    			 sName:='plc.double_channel4', 
+		pBufUtilChannel := fbIngestionConfig.CreateChannelConfig(pFlowConfig := pFlow2,  
+												    			 sName:='buffer_utilitation', 
 																 eDataType:=E_ChannelDataType.Double, 
-																 sDescription:='A double channel', 
-																 sUnit:='V');
-		IF pDoubleChannel4 = 0 THEN
+																 sDescription:='fbIngest buffer utilization', 
+																 sUnit:='');
+		IF pBufUtilChannel = 0 THEN
 			eSiftState := ERROR;
 			nErrId := GVL_SIFT.INVALID_INGESTION_CONFIG;
 			RETURN;
@@ -185,7 +205,17 @@ END_VAR]]></Declaration>
 			eSiftState := ERROR;
 			RETURN;
 		END_IF
-		eSiftState := SUBMIT_RUN;
+
+		// Start timer for next test.
+		currentTestDuration(IN:=FALSE);
+		currentTestDuration(IN:=TRUE, PT:=testDuration);
+			
+		// Skip creating a new run for additional tests.
+		IF bInitialized THEN
+			eSiftState := INGEST_DATA;	
+		ELSE
+    		eSiftState := SUBMIT_RUN;
+		END_IF
 
 	SUBMIT_RUN:
 		fbRun(bExecute := TRUE, 
@@ -204,10 +234,12 @@ END_VAR]]></Declaration>
 			RETURN;
 		END_IF
 		eSiftState := INGEST_DATA;
+		bInitialized := TRUE;
 
-	// Ingest data until there's an error.		
+	// Ingest data for the configured duration.		
 	INGEST_DATA:
 		fbIngest(hSiftClient := fbSiftClient.hSiftClient, sRunId:=fbRun.sId);
+		currentTestDuration();
 				 
 		// Verify there are no ingestion errors.
 		IF fbIngest.bError THEN
@@ -226,7 +258,8 @@ END_VAR]]></Declaration>
 		bWriteOk := SetChannelValue(pIntChannel1, nData1);
 		bWriteOk := bWriteOk OR SetChannelValue(pEnumChannel2, nData2);
 		bWriteOk := bWriteOk OR SetChannelValue(pStringChannel3, sData3);
-		bWriteOk := bWriteOk OR SetChannelValue(pDoubleChannel4, fData4);
+		bWriteOk := bWriteOk OR SetChannelValue(pBufUtilChannel, fbIngest.fBufferUtilization);
+		bWriteOk := bWriteOk OR SetChannelValue(pTestCountChannel, currentTestCount);
 		IF NOT bWriteOk THEN
 			eSiftState := ERROR;
 			RETURN;
@@ -245,7 +278,7 @@ END_VAR]]></Declaration>
 			RETURN;
 		END_IF
 		
-		IF bStop THEN
+		IF currentTestDuration.Q THEN
 			eSiftState := STOP_INGEST_WAIT;
 			RETURN;
 		END_IF
@@ -259,12 +292,22 @@ END_VAR]]></Declaration>
 		
 	STOP:
 		fbSiftClient(bStop := TRUE);
+		eSiftState := STOP_WAIT;
+	
+	STOP_WAIT:
+    	fbSiftClient(bStop := FALSE);
+		IF fbSiftClient.bBusy THEN
+			RETURN;
+		END_IF
 		eSiftState := IDLE_STOP;
 		
 	IDLE_STOP:
 		fbSiftClient(bStop := FALSE);
-	    IF bRestart THEN
+		currentTestCount := currentTestCount + 1;
+	    IF currentTestCount < totalTestCount THEN
 			eSiftState := INIT_SIFT_CLIENT;
+		ELSE
+			eSiftState := TEST_SUCCESS;
 		END_IF
 		
 	ERROR:
