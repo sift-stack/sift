@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
+from pydantic import model_validator
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannel as CalculatedChannelProto,
 )
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CalculatedChannelAbstractChannelReference,
+    CreateCalculatedChannelRequest,
 )
 
-from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelCreate, ModelUpdate
 from sift_client.sift_types.channel import ChannelReference
+from sift_client.util.metadata import metadata_dict_to_proto
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -122,17 +125,25 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         )
 
 
-class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
-    """Model of the Calculated Channel Fields that can be updated."""
+class CalculatedChannelCreate(ModelCreate[CreateCalculatedChannelRequest]):
+    """Create model for a Calculated Channel."""
 
-    name: str | None = None
+    name: str
     description: str | None = None
+    user_notes: str | None = None
     units: str | None = None
+    client_key: str | None = None
+
     expression: str | None = None
     # This is named expression_channel_references to match the protobuf field name for easier deserialization.
     expression_channel_references: list[ChannelReference] | None = None
+
+    # Scoping of the calculated channel.
     tag_ids: list[str] | None = None
-    archived_date: datetime | None = None
+    asset_ids: list[str] | None = None
+    all_assets: bool | None = None
+
+    metadata: dict[str, str | float | bool] | None = None
 
     _to_proto_helpers: ClassVar = {
         "expression": MappingHelper(
@@ -148,23 +159,53 @@ class CalculatedChannelUpdate(ModelUpdate[CalculatedChannelProto]):
             proto_attr_path="calculated_channel_configuration.asset_configuration.selection.tag_ids",
             update_field="asset_configuration",
         ),
+        "asset_ids": MappingHelper(
+            proto_attr_path="calculated_channel_configuration.asset_configuration.selection.asset_ids",
+            update_field="asset_configuration",
+        ),
+        "all_assets": MappingHelper(
+            proto_attr_path="calculated_channel_configuration.asset_configuration.all_assets",
+        ),
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
     }
 
-    def __init__(self, **data: Any):
-        """Initialize a CalculatedChannelUpdate instance.
+    @model_validator(mode='after')
+    def validate_asset_configuration(self):
+        """Validate that either all_assets is True or at least one of tag_ids or asset_ids is provided, but not both."""
+        if self.all_assets is not None and self.all_assets and (self.asset_ids or self.tag_ids):
+            raise ValueError("Cannot specify both all_assets=True and asset_ids/tag_ids")
+        return self
 
-        Args:
-            **data: Keyword arguments for the update fields.
 
-        Raises:
-            ValueError: If only one of expression or expression_channel_references is provided.
-                       Both must be provided together or neither should be provided.
-        """
-        super().__init__(**data)
+    @model_validator(mode='after')
+    def validate_expression_and_channel_references(self):
+        """Validate that expression and expression_channel_references are set together."""
         if any([self.expression, self.expression_channel_references]) and not all(
             [self.expression, self.expression_channel_references]
         ):
             raise ValueError("Expression and channel references must be set together")
+        return self
+
+    def _get_proto_class(self) -> type[CreateCalculatedChannelRequest]:
+        return CreateCalculatedChannelRequest
+
+class CalculatedChannelUpdate(CalculatedChannelCreate, ModelUpdate[CalculatedChannelProto]):
+    """Update model for a Calculated Channel. Inherits from the CalculatedChannelCreate model."""
+
+    name: str | None = None
+
+    archived_date: datetime | None = None
+
+    @model_validator(mode='after')
+    def validate_non_updatable_fields(self):
+        """Validate that the fields that cannot be updated are not set."""
+        if self.user_notes is not None:
+            raise ValueError("Cannot update user notes")
+        if self.client_key is not None:
+            raise ValueError("Cannot update client key")
+        return self
 
     def _get_proto_class(self) -> type[CalculatedChannelProto]:
         return CalculatedChannelProto

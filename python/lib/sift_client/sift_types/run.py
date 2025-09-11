@@ -138,9 +138,16 @@ class RunCreate(ModelCreate[CreateRunRequestProto]):
         return self
 
 class RunUpdate(RunCreate, ModelUpdate[RunProto]):
-    """Update model for Run."""
+    """Update model for Run. Inherits from the RunCreate model."""
 
-    name: str
+    name: str | None = None
+
+    @model_validator(mode='after')
+    def validate_non_updatable_fields(self):
+        """Validate that the fields that cannot be updated are not set."""
+        if self.client_key is not None:
+            raise ValueError("Cannot update client key")
+        return self
 
     def _get_proto_class(self) -> type[RunProto]:
         return RunProto
