@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING
 
 import pyarrow as pa
@@ -8,17 +7,18 @@ import pyarrow as pa
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
 from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.asset import Asset
+from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
     from datetime import datetime
 
     import pandas as pd
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.channel import Channel
-    from sift_client.sift_types.run import Run
 
 
 class ChannelsAPIAsync(ResourceBase):
@@ -73,8 +73,8 @@ class ChannelsAPIAsync(ResourceBase):
         # channel specific
         asset: Asset | str | None = None,
         run: Run | str | None = None,
-        description_contains: str | None = None,
         # common filters
+        description_contains: str | None = None,
         include_archived: bool | None = None,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -113,6 +113,7 @@ class ChannelsAPIAsync(ResourceBase):
                 modified_before=modified_before,
             ),
             *self._build_common_cel_filters(
+                description_contains=description_contains,
                 filter_query=filter_query
             )
         ]
@@ -124,9 +125,7 @@ class ChannelsAPIAsync(ResourceBase):
         if run is not None:
             run_id = run.id_ if isinstance(run, Run) else run
             filter_parts.append(cel.equals("run_id", run_id))
-        if description_contains:
-            filter_parts.append(cel.contains("description", description_contains))
-            # This is opposite of usual archived state
+        # This is opposite of usual archived state
         if include_archived is not None:
             filter_parts.append(cel.equals("active", not include_archived))
 
@@ -144,14 +143,14 @@ class ChannelsAPIAsync(ResourceBase):
         raises an error.
 
         Args:
-            **kwargs: Keyword arguments to pass to `list`.
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
             The Channel found or None.
         """
         channels = await self.list_(**kwargs)
         if len(channels) > 1:
-            raise ValueError("Multiple channels found for query")
+            raise ValueError(f"Multiple ({len(channels)}) channels found for query")
         elif len(channels) == 1:
             return channels[0]
         return None

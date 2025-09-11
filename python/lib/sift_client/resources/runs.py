@@ -79,7 +79,6 @@ class RunsAPIAsync(ResourceBase):
         # metadata
         metadata: list[Any] | None = None,
         # run specific
-        description_contains: str | None = None,
         assets: list[Asset] | list[str] | None = None,
         duration_less_than: timedelta | None = None,
         duration_greater_than: timedelta | None = None,
@@ -89,6 +88,7 @@ class RunsAPIAsync(ResourceBase):
         stop_time_before: datetime | None = None,
         is_stopped: bool | None = None,
         # common filters
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -109,7 +109,6 @@ class RunsAPIAsync(ResourceBase):
             created_by: Filter runs created by this User or user ID.
             modified_by: Filter runs last modified by this User or user ID.
             metadata: Filter runs by metadata criteria.
-            description_contains: Partial description of the run.
             assets: Filter runs associated with any of these Assets or asset IDs.
             duration_less_than: Filter runs with duration less than this time.
             duration_greater_than: Filter runs with duration greater than this time.
@@ -118,6 +117,7 @@ class RunsAPIAsync(ResourceBase):
             stop_time_after: Filter runs that stopped after this datetime.
             stop_time_before: Filter runs that stopped before this datetime.
             is_stopped: Whether the run is stopped.
+            description_contains: Partial description of the run.
             include_archived: If True, include archived runs in results.
             filter_query: Explicit CEL query to filter runs.
             order_by: Field and direction to order results by.
@@ -142,6 +142,7 @@ class RunsAPIAsync(ResourceBase):
                 metadata=metadata
             ),
             *self._build_common_cel_filters(
+                description_contains=description_contains,
                 include_archived=include_archived,
                 filter_query=filter_query
             )
@@ -150,8 +151,6 @@ class RunsAPIAsync(ResourceBase):
             filter_parts.append(cel.in_("run_id", run_ids))
         if client_keys:
             filter_parts.append(cel.in_("client_key", client_keys))
-        if description_contains:
-            filter_parts.append(cel.contains("description", description_contains))
         if assets:
             if all(isinstance(s, str) for s in assets):
                 filter_parts.append(cel.in_("asset_ids", assets))

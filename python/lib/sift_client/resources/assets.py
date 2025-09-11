@@ -81,6 +81,7 @@ class AssetsAPIAsync(ResourceBase):
         # metadata
         metadata: list[Any] | None = None,
         # common filters
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -101,6 +102,7 @@ class AssetsAPIAsync(ResourceBase):
             modified_by: Filter assets last modified by this User or user ID.
             tags: Filter assets with any of these Tags or tag names.
             metadata: Filter assets by metadata criteria.
+            description_contains: Partial description of the asset.
             include_archived: If True, include archived assets in results.
             filter_query: Explicit CEL query to filter assets.
             order_by: Field and direction to order results by.
@@ -126,6 +128,7 @@ class AssetsAPIAsync(ResourceBase):
                 metadata=metadata
             ),
             *self._build_common_cel_filters(
+                description_contains=description_contains,
                 include_archived=include_archived,
                 filter_query=filter_query
             )

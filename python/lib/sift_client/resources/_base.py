@@ -102,10 +102,13 @@ class ResourceBase(ABC):
 
     def _build_common_cel_filters(
         self,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
     ) -> list[str]:
         filter_parts = []
+        if description_contains:
+            filter_parts.append(cel.contains("description", description_contains))
         if not include_archived:
             filter_parts.append(cel.equals("is_archived", False))
         if filter_query:
