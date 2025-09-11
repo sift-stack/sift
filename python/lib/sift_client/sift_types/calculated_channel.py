@@ -171,15 +171,14 @@ class CalculatedChannelCreate(ModelCreate[CreateCalculatedChannelRequest]):
         ),
     }
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_asset_configuration(self):
         """Validate that either all_assets is True or at least one of tag_ids or asset_ids is provided, but not both."""
         if self.all_assets is not None and self.all_assets and (self.asset_ids or self.tag_ids):
             raise ValueError("Cannot specify both all_assets=True and asset_ids/tag_ids")
         return self
 
-
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_expression_and_channel_references(self):
         """Validate that expression and expression_channel_references are set together."""
         if any([self.expression, self.expression_channel_references]) and not all(
@@ -191,6 +190,7 @@ class CalculatedChannelCreate(ModelCreate[CreateCalculatedChannelRequest]):
     def _get_proto_class(self) -> type[CreateCalculatedChannelRequest]:
         return CreateCalculatedChannelRequest
 
+
 class CalculatedChannelUpdate(CalculatedChannelCreate, ModelUpdate[CalculatedChannelProto]):
     """Update model for a Calculated Channel. Inherits from the CalculatedChannelCreate model."""
 
@@ -198,7 +198,7 @@ class CalculatedChannelUpdate(CalculatedChannelCreate, ModelUpdate[CalculatedCha
 
     archived_date: datetime | None = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_non_updatable_fields(self):
         """Validate that the fields that cannot be updated are not set."""
         if self.user_notes is not None:

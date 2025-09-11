@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import pandas as pd
@@ -11,10 +11,14 @@ import pyarrow as pa
 
 from sift_client.client import SiftClient
 from sift_client.sift_types.asset import Asset, AssetUpdate
-from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
+from sift_client.sift_types.calculated_channel import (
+    CalculatedChannel,
+    CalculatedChannelCreate,
+    CalculatedChannelUpdate,
+)
 from sift_client.sift_types.channel import Channel, ChannelReference
 from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
-from sift_client.sift_types.run import Run, RunUpdate
+from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
@@ -85,11 +89,11 @@ class AssetsAPI:
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
-        created_by: Any | None = None,
-        modified_by: Any | None = None,
-        tags: list[str] | None = None,
-        tag_ids: list[str] | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        tags: list[Any] | list[str] | None = None,
         metadata: list[Any] | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
@@ -98,27 +102,26 @@ class AssetsAPI:
         """List assets with optional filtering.
 
         Args:
-            asset_ids: List of asset IDs to filter by.
             name: Exact name of the asset.
             name_contains: Partial name of the asset.
-            name_regex: Regular expression string to filter assets by name.
-            asset_ids: List of asset IDs to filter by.
-            created_after: Created after this date.
-            created_before: Created before this date.
-            modified_after: Modified after this date.
-            modified_before: Modified before this date.
-            created_by: Assets created by this user.
-            modified_by: Assets last modified by this user.
-            tags: Assets with these tags.
-            tag_ids: List of asset tag IDs to filter by.
-            metadata: metadata filter
-            include_archived: Include archived assets.
+            name_regex: Regular expression to filter assets by name.
+            asset_ids: Filter to assets with any of these Ids.
+            created_after: Filter assets created after this datetime.
+            created_before: Filter assets created before this datetime.
+            modified_after: Filter assets modified after this datetime.
+            modified_before: Filter assets modified before this datetime.
+            created_by: Filter assets created by this User or user ID.
+            modified_by: Filter assets last modified by this User or user ID.
+            tags: Filter assets with any of these Tags or tag names.
+            metadata: Filter assets by metadata criteria.
+            description_contains: Partial description of the asset.
+            include_archived: If True, include archived assets in results.
             filter_query: Explicit CEL query to filter assets.
-            order_by: How to order the retrieved assets. # TODO: tooling for this?
-            limit: How many assets to retrieve. If None, retrieves all matches.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of assets to return. If None, returns all matches.
 
         Returns:
-            A list of Assets that matches the filter.
+            A list of Asset objects that match the filter criteria.
         """
         ...
 
@@ -156,43 +159,19 @@ class CalculatedChannelsAPI:
         ...
 
     def _run(self, coro): ...
-    def archive(self, *, calculated_channel: str | CalculatedChannel) -> None:
+    def archive(self, calculated_channel: str | CalculatedChannel) -> None:
         """Archive a Calculated Channel."""
         ...
 
-    def create(
-        self,
-        *,
-        name: str,
-        expression: str,
-        channel_references: list[ChannelReference],
-        description: str = "",
-        units: str | None = None,
-        client_key: str | None = None,
-        asset_ids: list[str] | None = None,
-        tag_ids: list[str] | None = None,
-        all_assets: bool = False,
-        user_notes: str = "",
-    ) -> CalculatedChannel:
+    def create(self, create: CalculatedChannelCreate | dict) -> CalculatedChannel:
         """Create a calculated channel.
 
         Args:
-            name: The name of the calculated channel.
-            expression: The expression to calculate the value of the calculated channel.
-            channel_references: A list of channel references that are used in the expression.
-            description: The description of the calculated channel.
-            units: The units of the calculated channel.
-            client_key: A user-defined unique identifier for the calculated channel.
-            asset_ids: A list of asset IDs to make the calculation available for.
-            tag_ids: A list of tag IDs to make the calculation available for.
-            all_assets: A flag that, when set to True, associates the calculated channel with all assets.
-            user_notes: User notes for the calculated channel.
+            create: A CalculatedChannelCreate object or dictionary with configuration for the new calculated channel.
+                   This should include properties like name, expression, channel_references, etc.
 
         Returns:
             The created CalculatedChannel.
-
-        Raises:
-            ValueError: If asset configuration is invalid.
         """
         ...
 
@@ -201,7 +180,7 @@ class CalculatedChannelsAPI:
         Will raise an error if multiple calculated channels are found.
 
         Args:
-            **kwargs: Keyword arguments to pass to `list`.
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
             The CalculatedChannel found or None.
@@ -209,18 +188,13 @@ class CalculatedChannelsAPI:
         ...
 
     def get(
-        self,
-        *,
-        calculated_channel_id: str | None = None,
-        client_key: str | None = None,
-        organization_id: str | None = None,
+        self, *, calculated_channel_id: str | None = None, client_key: str | None = None
     ) -> CalculatedChannel:
         """Get a Calculated Channel.
 
         Args:
             calculated_channel_id: The ID of the calculated channel.
             client_key: The client key of the calculated channel.
-            organization_id: The organization ID (required if using client_key and user belongs to multiple organizations).
 
         Returns:
             The CalculatedChannel.
@@ -236,23 +210,24 @@ class CalculatedChannelsAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        calculated_channel_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
-        created_by: Any | None = None,
-        modified_by: Any | None = None,
-        client_key: str | None = None,
-        asset_id: str | None = None,
-        asset_name: str | None = None,
-        tag_id: str | None = None,
-        tag_name: str | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        tags: list[Any] | list[str] | None = None,
+        metadata: list[Any] | None = None,
+        asset: Asset | str | None = None,
+        run: Run | str | None = None,
         version: int | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
-        organization_id: str | None = None,
     ) -> list[CalculatedChannel]:
         """List calculated channels with optional filtering.
 
@@ -260,23 +235,24 @@ class CalculatedChannelsAPI:
             name: Exact name of the calculated channel.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
+            calculated_channel_ids: Filter to calculated channels with any of these IDs.
+            client_keys: Filter to calculated channels with any of these client keys.
             created_after: Created after this date.
             created_before: Created before this date.
             modified_after: Modified after this date.
             modified_before: Modified before this date.
             created_by: Calculated channels created by this user.
             modified_by: Calculated channels last modified by this user.
-            client_key: The client key of the calculated channel.
-            asset_id: The asset ID associated with the calculated channel.
-            asset_name: The asset name associated with the calculated channel.
-            tag_id: The tag ID associated with the calculated channel.
-            tag_name: The tag name associated with the calculated channel.
+            tags: Filter calculated channels with any of these Tags or tag names.
+            metadata: Filter calculated channels by metadata criteria.
+            asset: Filter calculated channels associated with this Asset or asset ID.
+            run: Filter calculated channels associated with this Run or run ID.
             version: The version of the calculated channel.
+            description_contains: Partial description of the calculated channel.
             include_archived: Include archived calculated channels.
             filter_query: Explicit CEL query to filter calculated channels.
             order_by: How to order the retrieved calculated channels.
             limit: How many calculated channels to retrieve. If None, retrieves all matches.
-            organization_id: The organization ID (required if user belongs to multiple organizations).
 
         Returns:
             A list of CalculatedChannels that matches the filter.
@@ -286,52 +262,57 @@ class CalculatedChannelsAPI:
     def list_versions(
         self,
         *,
-        calculated_channel_id: str | None = None,
+        calculated_channel: CalculatedChannel | str | None = None,
         client_key: str | None = None,
-        organization_id: str | None = None,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        asset_id: str | None = None,
-        asset_name: str | None = None,
-        tag_id: str | None = None,
-        tag_name: str | None = None,
-        version: int | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        tags: list[Any] | list[str] | None = None,
+        metadata: list[Any] | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[CalculatedChannel]:
         """List versions of a calculated channel.
 
         Args:
-            calculated_channel_id: The ID of the calculated channel.
+            calculated_channel: The CalculatedChannel or ID of the calculated channel to get versions for.
             client_key: The client key of the calculated channel.
-            name: The name of the calculated channel.
-            name_contains: The name of the calculated channel.
-            name_regex: The name of the calculated channel.
-            asset_id: The asset ID of the calculated channel.
-            asset_name: The asset name of the calculated channel.
-            tag_id: The tag ID of the calculated channel.
-            tag_name: The tag name of the calculated channel.
-            version: The version of the calculated channel.
-            include_archived: Whether to include archived calculated channels.
-            organization_id: The organization ID. Required if your user belongs to multiple organizations.
-            order_by: The field to order by.
-            limit: How many versions to retrieve. If None, retrieves all matches.
+            name: Exact name of the calculated channel.
+            name_contains: Partial name of the calculated channel.
+            name_regex: Regular expression string to filter calculated channels by name.
+            created_after: Filter versions created after this datetime.
+            created_before: Filter versions created before this datetime.
+            modified_after: Filter versions modified after this datetime.
+            modified_before: Filter versions modified before this datetime.
+            created_by: Filter versions created by this user or user ID.
+            modified_by: Filter versions modified by this user or user ID.
+            tags: Filter versions with any of these Tags or tag names.
+            metadata: Filter versions by metadata criteria.
+            description_contains: Partial description of the calculated channel.
+            include_archived: Include archived versions.
+            filter_query: Explicit CEL query to filter versions.
+            order_by: How to order the retrieved versions.
+            limit: Maximum number of versions to return. If None, returns all matches.
 
         Returns:
-            A list of CalculatedChannel versions.
-
-        Raises:
-            ValueError: If neither calculated_channel_id nor client_key is provided.
+            A list of CalculatedChannel versions that match the filter criteria.
         """
         ...
 
     def update(
         self,
-        *,
-        calculated_channel: str | CalculatedChannel,
+        calculated_channel: CalculatedChannel | str,
         update: CalculatedChannelUpdate | dict,
+        *,
         user_notes: str | None = None,
     ) -> CalculatedChannel:
         """Update a Calculated Channel.
@@ -373,7 +354,7 @@ class ChannelsAPI:
         raises an error.
 
         Args:
-            **kwargs: Keyword arguments to pass to `list`.
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
             The Channel found or None.
@@ -395,7 +376,7 @@ class ChannelsAPI:
         self,
         *,
         channels: list[Channel],
-        run_id: str | None = None,
+        run: Run | str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
@@ -404,10 +385,13 @@ class ChannelsAPI:
 
         Args:
             channels: The channels to get data for.
-            run_id: The run to get data for.
+            run: The Run or run_id to get data for.
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+
+        Returns:
+            A dictionary mapping channel names to pandas DataFrames containing the channel data.
         """
         ...
 
@@ -415,7 +399,7 @@ class ChannelsAPI:
         self,
         *,
         channels: list[Channel],
-        run_id: str | None = None,
+        run: Run | str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
@@ -426,45 +410,43 @@ class ChannelsAPI:
     def list_(
         self,
         *,
-        asset_id: str | None = None,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        description: str | None = None,
-        description_contains: str | None = None,
-        active: bool | None = None,
-        run_id: str | None = None,
-        run_name: str | None = None,
-        client_key: str | None = None,
-        created_before: datetime | None = None,
+        channel_ids: list[str] | None = None,
         created_after: datetime | None = None,
-        modified_before: datetime | None = None,
+        created_before: datetime | None = None,
         modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        asset: Asset | str | None = None,
+        run: Run | str | None = None,
+        description_contains: str | None = None,
+        include_archived: bool | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Channel]:
         """List channels with optional filtering.
 
         Args:
-            asset_id: The asset ID to get.
-            name: The name of the channel to get.
-            name_contains: The partial name of the channel to get.
-            name_regex: The regex name of the channel to get.
-            description: The description of the channel to get.
-            description_contains: The partial description of the channel to get.
-            active: Whether the channel is active.
-            run_id: The run ID to get.
-            run_name: The name of the run to get.
-            client_key: The client key of the run to get.
-            created_before: The created date of the channel to get.
-            created_after: The created date of the channel to get.
-            modified_before: The modified date of the channel to get.
-            modified_after: The modified date of the channel to get.
-            order_by: How to order the retrieved channels.
-            limit: How many channels to retrieve. If None, retrieves all matches.
+            name: Exact name of the channel.
+            name_contains: Partial name of the channel.
+            name_regex: Regular expression to filter channels by name.
+            channel_ids: Filter to channels with any of these IDs.
+            created_after: Filter channels created after this datetime.
+            created_before: Filter channels created before this datetime.
+            modified_after: Filter channels modified after this datetime.
+            modified_before: Filter channels modified before this datetime.
+            asset: Filter channels associated with this Asset or asset ID.
+            run: Filter channels associated with this Run or run ID.
+            description_contains: Partial description of the channel.
+            include_archived: If True, include archived channels in results.
+            filter_query: Explicit CEL query to filter channels.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of channels to return. If None, returns all matches.
 
         Returns:
-            A list of Channels that matches the filter.
+            A list of Channels that matches the filter criteria.
         """
         ...
 
@@ -673,7 +655,7 @@ class RunsAPI:
         ...
 
     def _run(self, coro): ...
-    def archive(self, *, run: str | Run) -> None:
+    def archive(self, run: str | Run) -> None:
         """Archive a run.
 
         Args:
@@ -681,28 +663,11 @@ class RunsAPI:
         """
         ...
 
-    def create(
-        self,
-        name: str,
-        description: str,
-        tags: list[str] | None = None,
-        start_time: datetime | None = None,
-        stop_time: datetime | None = None,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
-    ) -> Run:
+    def create(self, create: RunCreate | dict) -> Run:
         """Create a new run.
 
         Args:
-            name: The name of the run.
-            description: The description of the run.
-            tags: Tags to associate with the run.
-            start_time: The start time of the run.
-            stop_time: The stop time of the run.
-            organization_id: The organization ID.
-            client_key: A unique client key for the run.
-            metadata: Metadata values for the run.
+            create: The Run definition to create.
 
         Returns:
             The created Run.
@@ -710,7 +675,7 @@ class RunsAPI:
         ...
 
     def create_automatic_association_for_assets(
-        self, run: str | Run, asset_names: list[str]
+        self, run: str | Run, *, asset_names: list[str]
     ) -> None:
         """Associate assets with a run for automatic data ingestion.
 
@@ -721,22 +686,23 @@ class RunsAPI:
         ...
 
     def find(self, **kwargs) -> Run | None:
-        """Find a single run matching the given query. Takes the same arguments as `list`. If more than one run is found,
+        """Find a single run matching the given query. Takes the same arguments as `list_`. If more than one run is found,
         raises an error.
 
         Args:
-            **kwargs: Keyword arguments to pass to `list`.
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
             The Run found or None.
         """
         ...
 
-    def get(self, *, run_id: str) -> Run:
+    def get(self, *, run_id: str | None = None, client_key: str | None = None) -> Run:
         """Get a Run.
 
         Args:
             run_id: The ID of the run.
+            client_key: The client key of the run.
 
         Returns:
             The Run.
@@ -749,15 +715,26 @@ class RunsAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        description: str | None = None,
-        description_contains: str | None = None,
-        duration_seconds: int | None = None,
-        client_key: str | None = None,
-        asset_id: str | None = None,
-        asset_name: str | None = None,
-        created_by_user_id: str | None = None,
+        run_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        metadata: list[Any] | None = None,
+        assets: list[Asset] | list[str] | None = None,
+        duration_less_than: timedelta | None = None,
+        duration_greater_than: timedelta | None = None,
+        start_time_after: datetime | None = None,
+        start_time_before: datetime | None = None,
+        stop_time_after: datetime | None = None,
+        stop_time_before: datetime | None = None,
         is_stopped: bool | None = None,
+        description_contains: str | None = None,
         include_archived: bool = False,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Run]:
@@ -766,33 +743,36 @@ class RunsAPI:
         Args:
             name: Exact name of the run.
             name_contains: Partial name of the run.
-            name_regex: Regular expression string to filter runs by name.
-            description: Exact description of the run.
-            description_contains: Partial description of the run.
-            duration_seconds: Duration of the run in seconds.
-            client_key: Client key to filter by.
-            asset_id: Asset ID to filter by.
-            asset_name: Asset name to filter by.
-            created_by_user_id: User ID who created the run.
+            name_regex: Regular expression to filter runs by name.
+            run_ids: Filter to runs with any of these IDs.
+            client_keys: Filter to runs with any of these client keys.
+            created_after: Filter runs created after this datetime.
+            created_before: Filter runs created before this datetime.
+            modified_after: Filter runs modified after this datetime.
+            modified_before: Filter runs modified before this datetime.
+            created_by: Filter runs created by this User or user ID.
+            modified_by: Filter runs last modified by this User or user ID.
+            metadata: Filter runs by metadata criteria.
+            assets: Filter runs associated with any of these Assets or asset IDs.
+            duration_less_than: Filter runs with duration less than this time.
+            duration_greater_than: Filter runs with duration greater than this time.
+            start_time_after: Filter runs that started after this datetime.
+            start_time_before: Filter runs that started before this datetime.
+            stop_time_after: Filter runs that stopped after this datetime.
+            stop_time_before: Filter runs that stopped before this datetime.
             is_stopped: Whether the run is stopped.
-            include_archived: Whether to include archived runs.
-            order_by: How to order the retrieved runs.
-            limit: How many runs to retrieve. If None, retrieves all matches.
+            description_contains: Partial description of the run.
+            include_archived: If True, include archived runs in results.
+            filter_query: Explicit CEL query to filter runs.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of runs to return. If None, returns all matches.
 
         Returns:
-            A list of Runs that matches the filter.
+            A list of Run objects that match the filter criteria.
         """
         ...
 
-    def stop(self, *, run: str | Run) -> None:
-        """Stop a run by setting its stop time to the current time.
-
-        Args:
-            run: The Run or run ID to stop.
-        """
-        ...
-
-    def stop_run(self, run: str | Run) -> None:
+    def stop(self, run: str | Run) -> None:
         """Stop a run by setting its stop time to the current time.
 
         Args:

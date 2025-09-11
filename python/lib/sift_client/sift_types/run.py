@@ -105,6 +105,7 @@ class Run(BaseType[RunProto, "Run"]):
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
 
+
 class RunCreate(ModelCreate[CreateRunRequestProto]):
     """Create model for Run."""
 
@@ -125,7 +126,7 @@ class RunCreate(ModelCreate[CreateRunRequestProto]):
     def _get_proto_class(self) -> type[CreateRunRequestProto]:
         return CreateRunRequestProto
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_time_fields(self):
         """Validate time-related fields after initialization."""
         if self.stop_time is not None and self.start_time is None:
@@ -137,12 +138,13 @@ class RunCreate(ModelCreate[CreateRunRequestProto]):
 
         return self
 
+
 class RunUpdate(RunCreate, ModelUpdate[RunProto]):
     """Update model for Run. Inherits from the RunCreate model."""
 
     name: str | None = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_non_updatable_fields(self):
         """Validate that the fields that cannot be updated are not set."""
         if self.client_key is not None:

@@ -44,11 +44,13 @@ class ResourceBase(ABC):
     def _apply_client_to_instances(self, instances: list[T]) -> list[T]:
         return [self._apply_client_to_instance(i) for i in instances]
 
-
     # Common CEL filters used in resources
-    def _build_name_cel_filters(self, name: str | None = None,
-                                name_contains: str | None = None,
-                                name_regex: str | re.Pattern | None = None) -> list[str]:
+    def _build_name_cel_filters(
+        self,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+    ) -> list[str]:
         filter_parts = []
         if name:
             filter_parts.append(cel.equals("name", name))
@@ -88,8 +90,9 @@ class ResourceBase(ABC):
                 raise NotImplementedError
         return filter_parts
 
-    def _build_tags_metadata_cel_filters(self, tags: list[Any] | list[str] | None = None,
-                                         metadata: list[Any] | None = None) -> list[str]:
+    def _build_tags_metadata_cel_filters(
+        self, tags: list[Any] | list[str] | None = None, metadata: list[Any] | None = None
+    ) -> list[str]:
         filter_parts = []
         if tags:
             if all(isinstance(tag, str) for tag in tags):
