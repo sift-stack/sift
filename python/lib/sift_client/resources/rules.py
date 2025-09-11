@@ -57,6 +57,9 @@ class RulesAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        asset_ids: list[str] | None = None,
+        asset_tags_ids: list[str] | None = None,
+        client_key: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         include_deleted: bool = False,
@@ -67,6 +70,9 @@ class RulesAPIAsync(ResourceBase):
             name: Exact name of the rule.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
+            asset_ids: List of asset IDs to filter rules by.
+            asset_tags_ids: List of asset tags IDs to filter rules by.
+            client_key: The client key of the rules.
             order_by: How to order the retrieved rules.
             limit: How many rules to retrieve. If None, retrieves all matches.
             include_deleted: Include deleted rules.
@@ -84,9 +90,16 @@ class RulesAPIAsync(ResourceBase):
             filters.append(cel.contains("name", name_contains))
         if name_regex:
             filters.append(cel.match("name", name_regex))
+        if asset_ids:
+            filters.append(cel.in_("asset_id", asset_ids))
+        if asset_tags_ids:
+            filters.append(cel.in_("tag_id", asset_tags_ids))
+        if client_key:
+            filters.append(cel.equals("client_key", client_key))
+        # We mostly want to OR these filters except for the deleted_date filter
+        filter_str = " || ".join(filters) if filters else ""
         if not include_deleted:
-            filters.append(cel.equals_null("deleted_date"))
-        filter_str = " && ".join(filters) if filters else ""
+            filter_str = f"({filter_str}) && {cel.equals_null('deleted_date')}"
         rules = await self._low_level_client.list_all_rules(
             filter_query=filter_str,
             order_by=order_by,

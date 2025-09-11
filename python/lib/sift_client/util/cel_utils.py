@@ -198,7 +198,7 @@ def greater_than(field: str, value: int | float | datetime) -> str:
         as_string = value.isoformat()
     else:
         as_string = str(value)
-    return f"{field} > {as_string}"
+    return f"{field} > timestamp('{as_string}')"
 
 
 def less_than(field: str, value: int | float | datetime) -> str:
@@ -215,4 +215,4 @@ def less_than(field: str, value: int | float | datetime) -> str:
         as_string = value.isoformat()
     else:
         as_string = str(value)
-    return f"{field} < {as_string}"
+    return f"{field} < timestamp('{as_string}')"
