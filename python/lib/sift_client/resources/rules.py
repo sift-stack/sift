@@ -9,9 +9,11 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from datetime import datetime
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.channel import ChannelReference
+    from sift_client.sift_types.report import Report
 
 
 class RulesAPIAsync(ResourceBase):
@@ -273,3 +275,54 @@ class RulesAPIAsync(ResourceBase):
             rule_ids=rule_ids, client_keys=client_keys
         )
         return self._apply_client_to_instances(rules)
+
+    async def evaluate(self, *,
+        run_id: str | None = None,
+        assets: list[str] | None = None,
+        all_applicable_rules: bool | None = None,
+        run_start_time: datetime | None = None,
+        run_end_time: datetime | None = None,
+        rule_ids: list[str] | None = None,
+        rule_version_ids: list[str] | None = None,
+        report_template_id: str | None = None,
+        tags: list[str] | None = None
+        ) -> Report:
+        """Evaluate a rule.
+
+        Pick one of the following grouping of rules to evaluate against:
+        - run_id
+        - assets
+        - run_start_time and run_end_time
+        And one of the following filters to select which rules to evaluate:
+        - rule_ids
+        - rule_version_ids
+        - report_template_id
+        - all_applicable_rules
+
+        Args:
+            run_id: The run ID to evaluate.
+            assets: The assets to evaluate.
+            all_applicable_rules: Whether to evaluate all rules applicable to the selected run, assets, or time range.
+            run_start_time: The start time of the run.
+            run_end_time: The end time of the run.
+            rule_ids: The rule IDs to evaluate.
+            rule_version_ids: The rule version IDs to evaluate.
+            report_template_id: The report template ID to evaluate.
+            tags: Optional tags to add to generated annotations.
+
+        Returns:
+            The result of the rule evaluation.
+        """
+        report = await self._low_level_client.evaluate_rules(
+            run_id=run_id,
+            assets=assets,
+            all_applicable_rules=all_applicable_rules,
+            run_start_time=run_start_time,
+            run_end_time=run_end_time,
+            rule_ids=rule_ids,
+            rule_version_ids=rule_version_ids,
+            report_template_id=report_template_id,
+            tags=tags,
+        )
+
+        return self._apply_client_to_instance(report)

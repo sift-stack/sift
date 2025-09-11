@@ -9,11 +9,11 @@ It uses the SiftClient to interact with the API.
 
 import asyncio
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
+
 from zoneinfo import ZoneInfo
 
 from sift_client import SiftClient
-from sift_client.sift_types import report
 
 
 async def main():
@@ -23,6 +23,7 @@ async def main():
     grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
     rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
     api_key = os.getenv("SIFT_API_KEY", "")
+
     client = SiftClient(
         api_key=api_key,
         grpc_url=grpc_url,
@@ -56,8 +57,8 @@ async def main():
             run_id=run.id_,
         )
         print("  reports: ", [report.name for report in per_run_reports])
-        reports.extend(per_run_reports)  
-    
+        reports.extend(per_run_reports)
+
     asset_ids = list(set(asset_ids))
     asset_tags_names = list(set(asset_tags_names))
     asset_tags = client.tags.list_(
@@ -69,7 +70,7 @@ async def main():
 
     rules = client.rules.list_(
         asset_ids=asset_ids,
-        asset_tags_ids=[tag.id_ for tag in asset_tags],
+        # asset_tags_ids=[tag.id_ for tag in asset_tags],
     )
     print("reports: ", [report.name for report in reports])
     if len(rules) < 10:
@@ -77,7 +78,7 @@ async def main():
     else:
         print("number of rules: ", len(rules))
 
-    
+
 
 if __name__ == "__main__":
     asyncio.run(main())

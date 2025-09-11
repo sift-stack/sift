@@ -3,6 +3,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
+from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
+    EvaluateRulesRequest,
+    EvaluateRulesResponse,
+    RunTimeRange,
+)
 from sift.rules.v1.rules_pb2 import (
     BatchDeleteRulesRequest,
     BatchGetRulesRequest,
@@ -31,15 +36,20 @@ from sift.rules.v1.rules_pb2 import (
 from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client.sift_types.rule import (
     Rule,
     RuleAction,
     RuleUpdate,
 )
 from sift_client.transport import GrpcClient, WithGrpcClient
+from sift_client.util.util import count_non_none
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.sift_types.channel import ChannelReference
+    from sift_client.sift_types.report import Report
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -445,3 +455,55 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             order_by=order_by,
             max_results=max_results,
         )
+
+    async def evaluate_rules(self,
+        *,
+        run_id: str | None = None,
+        assets: list[str] | None = None,
+        all_applicable_rules: bool | None = None,
+        run_start_time: datetime | None = None,
+        run_end_time: datetime | None = None,
+        rule_ids: list[str] | None = None,
+        rule_version_ids: list[str] | None = None,
+        report_template_id: str | None = None,
+        tags: list[str] | None = None,
+    ) -> Report:
+        """Evaluate a rule.
+
+        Args:
+            run_id: The run ID to evaluate.
+            assets: The assets to evaluate.
+            run_start_time: The start time of the run.
+            run_end_time: The end time of the run.
+            all_applicable_rules: Whether to evaluate all rules applicable to the selected run, assets, or time range.
+            rule_ids: The rule IDs to evaluate.
+            rule_version_ids: The rule version IDs to evaluate.
+            report_template_id: The report template ID to evaluate.
+            tags: Optional tags to add to generated annotations.
+
+        Returns:
+            The result of the rule execution.
+        """
+        if count_non_none(run_id, assets, run_start_time, run_end_time) > 1:
+            raise ValueError("Pick only one run_id, assets, or (run_start_time and run_end_time) to select what to evaluate against.")
+
+        all_applicable_rules = None if not all_applicable_rules else True # Cast to None if False so we don't count it against other filters if they aren't opting in.
+        if count_non_none(rule_ids, rule_version_ids, report_template_id, all_applicable_rules) > 1:
+            raise ValueError("Pick only one rule_ids, rule_version_ids, report_template_id, or all_applicable_rules to further filter which rules to evaluate.")
+
+        kwargs: dict[str, Any] = {
+            "run": run_id,
+            "assets": assets,
+            "all_applicable_rules": all_applicable_rules,
+            "run_time_range": RunTimeRange(run=run_id, start_time=run_start_time, end_time=run_end_time),
+            "rules": rule_ids,
+            "rule_versions": rule_version_ids,
+            "report_template": report_template_id,
+            "tags": tags,
+        }
+        request = EvaluateRulesRequest(**kwargs)
+        response = await self._grpc_client.get_stub(RuleServiceStub).EvaluateRules(request)
+        response = cast("EvaluateRulesResponse", response)
+        report_id = response.report_id
+        report = await ReportsLowLevelClient(self._grpc_client).get_report(report_id=report_id)
+        return report

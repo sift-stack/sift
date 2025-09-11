@@ -5,12 +5,11 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.tags import TagsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.tag import Tag, TagUpdate
 from sift_client.util.cel_utils import contains, equals, in_, match
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-
+    from sift_client.sift_types.tag import Tag, TagUpdate
 
 class TagsAPIAsync(ResourceBase):
     """High-level API for interacting with tags."""

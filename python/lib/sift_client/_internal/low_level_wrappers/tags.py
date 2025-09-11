@@ -12,7 +12,7 @@ from sift.tags.v2.tags_pb2 import (
 from sift.tags.v2.tags_pb2_grpc import TagServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.sift_types.tag import Tag, TagUpdate
+from sift_client.sift_types.tag import Tag
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
