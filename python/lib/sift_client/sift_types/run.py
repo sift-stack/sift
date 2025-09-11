@@ -101,9 +101,6 @@ class Run(BaseType[RunProto, "Run"]):
     @property
     def assets(self) -> list[Asset]:
         """Return all assets associated with this run."""
-        # TODO: add this check to the base class.
-        if not hasattr(self, "client") or self.client is None:
-            raise RuntimeError("Run is not bound to a client instance.")
         if not self.asset_ids:
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
@@ -111,7 +108,7 @@ class Run(BaseType[RunProto, "Run"]):
 class RunCreate(ModelCreate[CreateRunRequestProto]):
     """Create model for Run."""
 
-    name: str | None = None
+    name: str
     description: str | None = None
     start_time: datetime | None = None
     stop_time: datetime | None = None
@@ -140,23 +137,10 @@ class RunCreate(ModelCreate[CreateRunRequestProto]):
 
         return self
 
-class RunUpdate(ModelUpdate[RunProto]):
+class RunUpdate(RunCreate, ModelUpdate[RunProto]):
     """Update model for Run."""
 
-
     name: str
-    description: str | None = None
-    start_time: datetime | None = None
-    stop_time: datetime | None = None
-    client_key: str | None = None
-    tags: list[str] | None = None
-    metadata: dict[str, str | float | bool] | None = None
-
-    _to_proto_helpers: ClassVar = {
-        "metadata": MappingHelper(
-            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
-        ),
-    }
 
     def _get_proto_class(self) -> type[RunProto]:
         return RunProto
