@@ -16,7 +16,9 @@ if TYPE_CHECKING:
     import pandas as pd
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.run import Run
 
 
 class ChannelsAPIAsync(ResourceBase):
@@ -58,91 +60,80 @@ class ChannelsAPIAsync(ResourceBase):
     async def list_(
         self,
         *,
-        asset_id: str | None = None,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        description: str | None = None,
-        description_contains: str | None = None,
-        active: bool | None = None,
-        run_id: str | None = None,
-        run_name: str | None = None,
-        client_key: str | None = None,
-        created_before: datetime | None = None,
+        # self ids
+        channel_ids: list[str] | None = None,
+        # created/modified ranges
         created_after: datetime | None = None,
-        modified_before: datetime | None = None,
+        created_before: datetime | None = None,
         modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        # channel specific
+        asset: Asset | str | None = None,
+        run: Run | str | None = None,
+        description_contains: str | None = None,
+        # common filters
+        include_archived: bool | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Channel]:
         """List channels with optional filtering.
 
         Args:
-            asset_id: The asset ID to get.
-            name: The name of the channel to get.
-            name_contains: The partial name of the channel to get.
-            name_regex: The regex name of the channel to get.
-            description: The description of the channel to get.
-            description_contains: The partial description of the channel to get.
-            active: Whether the channel is active.
-            run_id: The run ID to get.
-            run_name: The name of the run to get.
-            client_key: The client key of the run to get.
-            created_before: The created date of the channel to get.
-            created_after: The created date of the channel to get.
-            modified_before: The modified date of the channel to get.
-            modified_after: The modified date of the channel to get.
-            order_by: How to order the retrieved channels.
-            limit: How many channels to retrieve. If None, retrieves all matches.
+            name: Exact name of the channel.
+            name_contains: Partial name of the channel.
+            name_regex: Regular expression to filter channels by name.
+            channel_ids: Filter to channels with any of these IDs.
+            created_after: Filter channels created after this datetime.
+            created_before: Filter channels created before this datetime.
+            modified_after: Filter channels modified after this datetime.
+            modified_before: Filter channels modified before this datetime.
+            asset: Filter channels associated with this Asset or asset ID.
+            run: Filter channels associated with this Run or run ID.
+            description_contains: Partial description of the channel.
+            include_archived: If True, include archived channels in results.
+            filter_query: Explicit CEL query to filter channels.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of channels to return. If None, returns all matches.
 
         Returns:
-            A list of Channels that matches the filter.
+            A list of Channels that matches the filter criteria.
         """
-        if sum(bool(x) for x in [name, name_contains, name_regex]) > 1:
-            raise ValueError("Cannot provide more than one of name, name_contains, or name_regex")
-        if sum(bool(x) for x in [description, description_contains]) > 1:
-            raise ValueError("Cannot provide both description and description_contains")
-        if sum(bool(x) for x in [created_before, created_after]) > 1:
-            raise ValueError("Cannot provide both created_before and created_after")
-        if sum(bool(x) for x in [modified_before, modified_after]) > 1:
-            raise ValueError("Cannot provide both modified_before and modified_after")
-
-        filter_parts = []
-        if asset_id:
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name, name_contains=name_contains, name_regex=name_regex
+            ),
+            *self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+            ),
+            *self._build_common_cel_filters(
+                filter_query=filter_query
+            )
+        ]
+        if channel_ids:
+            filter_parts.append(cel.in_("channel_id", channel_ids))
+        if asset is not None:
+            asset_id = asset.id_ if isinstance(asset, Asset) else asset
             filter_parts.append(cel.equals("asset_id", asset_id))
-        if name:
-            filter_parts.append(cel.equals("name", name))
-        elif name_contains:
-            filter_parts.append(cel.contains("name", name_contains))
-        elif name_regex:
-            if isinstance(name_regex, re.Pattern):
-                name_regex = name_regex.pattern
-            filter_parts.append(cel.match("name", name_regex))  # type: ignore
-        if description:
-            filter_parts.append(cel.equals("description", description))
-        elif description_contains:
-            filter_parts.append(cel.contains("description", description_contains))
-        if active:
-            filter_parts.append(cel.equals("active", active))
-        if run_id:
+        if run is not None:
+            run_id = run.id_ if isinstance(run, Run) else run
             filter_parts.append(cel.equals("run_id", run_id))
-        if run_name:
-            filter_parts.append(cel.equals("run_name", run_name))
-        if client_key:
-            filter_parts.append(cel.equals("client_key", client_key))
-        if created_before:
-            filter_parts.append(cel.less_than("created_date", created_before))
-        if created_after:
-            filter_parts.append(cel.greater_than("created_date", created_after))
-        if modified_before:
-            filter_parts.append(cel.less_than("modified_date", modified_before))
-        if modified_after:
-            filter_parts.append(cel.greater_than("modified_date", modified_after))
+        if description_contains:
+            filter_parts.append(cel.contains("description", description_contains))
+            # This is opposite of usual archived state
+        if include_archived is not None:
+            filter_parts.append(cel.equals("active", not include_archived))
 
-        filter_str = " && ".join(filter_parts)
+        query_filter = cel.and_(*filter_parts)
 
         channels = await self._low_level_client.list_all_channels(
-            query_filter=filter_str,
+            query_filter=query_filter or None,
             order_by=order_by,
             max_results=limit,
         )
@@ -169,7 +160,7 @@ class ChannelsAPIAsync(ResourceBase):
         self,
         *,
         channels: list[Channel],
-        run_id: str | None = None,
+        run: Run | str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
@@ -178,11 +169,15 @@ class ChannelsAPIAsync(ResourceBase):
 
         Args:
             channels: The channels to get data for.
-            run_id: The run to get data for.
+            run: The Run or run_id to get data for.
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+
+        Returns:
+            A dictionary mapping channel names to pandas DataFrames containing the channel data.
         """
+        run_id = run.id_ if isinstance(run, Run) else run
         return await self._data_low_level_client.get_channel_data(
             channels=channels,
             run_id=run_id,
@@ -195,12 +190,13 @@ class ChannelsAPIAsync(ResourceBase):
         self,
         *,
         channels: list[Channel],
-        run_id: str | None = None,
+        run: Run | str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
     ) -> dict[str, pa.Table]:
         """Get data for one or more channels as pyarrow tables."""
+        run_id = run.id_ if isinstance(run, Run) else run
         data = await self.get_data(
             channels=channels,
             run_id=run_id,
