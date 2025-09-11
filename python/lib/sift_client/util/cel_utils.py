@@ -53,6 +53,8 @@ def equals(key: str, value: Any) -> str:
         return f"{key} == null"
     elif isinstance(value, str):
         return f"{key} == '{value}'"
+    elif isinstance(value, bool):
+        return f"{key} == {str(value).lower()}"
     else:
         return f"{key} == {value}"
 
@@ -195,7 +197,7 @@ def greater_than(field: str, value: int | float | datetime) -> str:
         A CEL expression string
     """
     if isinstance(value, datetime):
-        as_string = value.isoformat()
+        as_string = f"timestamp({value.isoformat()})"
     else:
         as_string = str(value)
     return f"{field} > {as_string}"
@@ -212,7 +214,7 @@ def less_than(field: str, value: int | float | datetime) -> str:
         A CEL expression string
     """
     if isinstance(value, datetime):
-        as_string = value.isoformat()
+        as_string = f"timestamp({value.isoformat()})"
     else:
         as_string = str(value)
     return f"{field} < {as_string}"
