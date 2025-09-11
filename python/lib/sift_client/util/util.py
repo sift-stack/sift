@@ -9,8 +9,10 @@ if TYPE_CHECKING:
         ChannelsAPIAsync,
         IngestionAPIAsync,
         PingAPIAsync,
+        ReportsAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
+        TagsAPIAsync,
     )
 
 
@@ -32,8 +34,14 @@ class AsyncAPIs(NamedTuple):
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making asynchronous requests."""
 
+    reports: ReportsAPIAsync
+    """Instance of the Reports API for making asynchronous requests."""
+
     runs: RunsAPIAsync
     """Instance of the Runs API for making asynchronous requests."""
+
+    tags: TagsAPIAsync
+    """Instance of the Tags API for making asynchronous requests."""
 
     rules: RulesAPIAsync
     """Instance of the Rules API for making asynchronous requests."""

@@ -13,20 +13,21 @@ from sift_client.client import SiftClient
 from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
 from sift_client.sift_types.channel import Channel, ChannelReference
+from sift_client.sift_types.report import Report
 from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
 from sift_client.sift_types.run import Run, RunUpdate
+from sift_client.sift_types.tag import Tag, TagUpdate
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
 
     High-level API for interacting with assets.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
-        representation of an asset using standard Python data structures and types.
-
+    All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
+    representation of an asset using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -139,12 +140,11 @@ class CalculatedChannelsAPI:
 
     High-level API for interacting with calculated channels.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
-        representation of a calculated channel using standard Python data structures and types.
-
+    All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
+    representation of a calculated channel using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -351,12 +351,11 @@ class ChannelsAPI:
 
     High-level API for interacting with channels.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
-        representation of a channel using standard Python data structures and types.
-
+    All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
+    representation of a channel using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -491,17 +490,155 @@ class PingAPI:
         """
         ...
 
+class ReportsAPI:
+    """Sync counterpart to `ReportsAPIAsync`.
+
+    High-level API for interacting with reports.
+
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ReportsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def cancel(self, *, report: str | Report) -> None:
+        """Cancel a report.
+
+        Args:
+            report: The Report or report ID to cancel.
+        """
+        ...
+
+    def create_from_rules(
+        self,
+        name: str,
+        run_id: str,
+        organization_id: str,
+        description: str | None = None,
+        tag_names: list[str] | None = None,
+        rule_ids: list[str] | None = None,
+        rule_client_keys: list[str] | None = None,
+    ) -> Report:
+        """Create a new report from rules.
+
+        Args:
+            name: The name of the report.
+            run_id: The run ID to associate with the report.
+            organization_id: The organization ID.
+            description: Optional description of the report.
+            tag_names: List of tag names to associate with the report.
+            rule_ids: List of rule IDs to include in the report.
+            rule_client_keys: List of rule client keys to include in the report.
+
+        Returns:
+            The created Report.
+        """
+        ...
+
+    def create_from_template(
+        self, report_template_id: str, run_id: str, organization_id: str, name: str | None = None
+    ) -> Report:
+        """Create a new report from a report template.
+
+        Args:
+            report_template_id: The ID of the report template to use.
+            run_id: The run ID to associate with the report.
+            organization_id: The organization ID.
+            name: Optional name for the report.
+
+        Returns:
+            The created Report.
+        """
+        ...
+
+    def find(self, **kwargs) -> Report | None:
+        """Find a single report matching the given query. Takes the same arguments as `list`. If more than one report is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list`.
+
+        Returns:
+            The Report found or None.
+        """
+        ...
+
+    def get(self, *, report_id: str) -> Report:
+        """Get a Report.
+
+        Args:
+            report_id: The ID of the report.
+
+        Returns:
+            The Report.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        description: str | None = None,
+        description_contains: str | None = None,
+        run_id: str | None = None,
+        organization_id: str | None = None,
+        created_by_user_id: str | None = None,
+        modified_by_user_id: str | None = None,
+        report_template_id: str | None = None,
+        tag_name: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[Report]:
+        """List reports with optional filtering.
+
+        Args:
+            name: Exact name of the report.
+            name_contains: Partial name of the report.
+            name_regex: Regular expression string to filter reports by name.
+            description: Exact description of the report.
+            description_contains: Partial description of the report.
+            run_id: Run ID to filter by.
+            organization_id: Organization ID to filter by.
+            created_by_user_id: User ID who created the report.
+            modified_by_user_id: User ID who modified the report.
+            report_template_id: Report template ID to filter by.
+            tag_name: Tag name to filter by.
+            order_by: How to order the retrieved reports.
+            limit: How many reports to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of Reports that matches the filter.
+        """
+        ...
+
+    def rerun(self, *, report: str | Report) -> tuple[str, str]:
+        """Rerun a report.
+
+        Args:
+            report: The Report or report ID to rerun.
+
+        Returns:
+            A tuple of (job_id, new_report_id).
+        """
+        ...
+
 class RulesAPI:
     """Sync counterpart to `RulesAPIAsync`.
 
     High-level API for interacting with rules.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
-        representation of a rule using standard Python data structures and types.
-
+    All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
+    representation of a rule using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -602,6 +739,9 @@ class RulesAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        asset_ids: list[str] | None = None,
+        asset_tags: list[str] | None = None,
+        client_key: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         include_deleted: bool = False,
@@ -612,6 +752,9 @@ class RulesAPI:
             name: Exact name of the rule.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
+            asset_ids: List of asset IDs to filter rules by.
+            asset_tags: List of asset tags to filter rules by.
+            client_key: The client key of the rules.
             order_by: How to order the retrieved rules.
             limit: How many rules to retrieve. If None, retrieves all matches.
             include_deleted: Include deleted rules.
@@ -656,12 +799,11 @@ class RunsAPI:
 
     High-level API for interacting with runs.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
-        representation of a run using standard Python data structures and types.
-
+    All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
+    representation of a run using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -757,7 +899,16 @@ class RunsAPI:
         asset_name: str | None = None,
         created_by_user_id: str | None = None,
         is_stopped: bool | None = None,
+        created_date_start: datetime | None = None,
+        created_date_end: datetime | None = None,
+        modified_date_start: datetime | None = None,
+        modified_date_end: datetime | None = None,
+        start_time_start: datetime | None = None,
+        start_time_end: datetime | None = None,
+        stop_time_start: datetime | None = None,
+        stop_time_end: datetime | None = None,
         include_archived: bool = False,
+        organization_id: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Run]:
@@ -775,7 +926,16 @@ class RunsAPI:
             asset_name: Asset name to filter by.
             created_by_user_id: User ID who created the run.
             is_stopped: Whether the run is stopped.
+            created_date_start: Start date for created_date filter.
+            created_date_end: End date for created_date filter.
+            modified_date_start: Start date for modified_date filter.
+            modified_date_end: End date for modified_date filter.
+            start_time_start: Start date for start_time filter.
+            start_time_end: End date for start_time filter.
+            stop_time_start: Start date for stop_time filter.
+            stop_time_end: End date for stop_time filter.
             include_archived: Whether to include archived runs.
+            organization_id: Organization ID to filter by.
             order_by: How to order the retrieved runs.
             limit: How many runs to retrieve. If None, retrieves all matches.
 
@@ -809,5 +969,88 @@ class RunsAPI:
 
         Returns:
             The updated Run.
+        """
+        ...
+
+class TagsAPI:
+    """Sync counterpart to `TagsAPIAsync`.
+
+    High-level API for interacting with tags.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the TagsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def create(self, name: str) -> Tag:
+        """Create a new tag.
+
+        Args:
+            name: The name of the tag.
+
+        Returns:
+            The created Tag.
+        """
+        ...
+
+    def find(self, **kwargs) -> Tag | None:
+        """Find a single tag matching the given query. Takes the same arguments as `list`. If more than one tag is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list`.
+
+        Returns:
+            The Tag found or None.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        names: list[str] | None = None,
+        tag_ids: list[str] | None = None,
+        created_by_user_id: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[Tag]:
+        """List tags with optional filtering.
+
+        Args:
+            name: Exact name of the tag.
+            name_contains: Partial name of the tag.
+            name_regex: Regular expression string to filter tags by name.
+            names: List of tag names to filter by.
+            tag_ids: List of tag IDs to filter by.
+            created_by_user_id: User ID who created the tag.
+            order_by: How to order the retrieved tags.
+            limit: How many tags to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of Tags that matches the filter.
+        """
+        ...
+
+    def update(self, tag: str | Tag, update: TagUpdate | dict) -> Tag:
+        """Update a Tag.
+
+        Args:
+            tag: The Tag or tag ID to update.
+            update: Updates to apply to the Tag.
+
+        Returns:
+            The updated Tag.
+
+        Note:
+            The tags API doesn't have an update method in the proto,
+            so this would need to be implemented if the API supports it.
         """
         ...

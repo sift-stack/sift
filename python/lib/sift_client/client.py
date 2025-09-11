@@ -11,10 +11,14 @@ from sift_client.resources import (
     IngestionAPIAsync,
     PingAPI,
     PingAPIAsync,
+    ReportsAPI,
+    ReportsAPIAsync,
     RulesAPI,
     RulesAPIAsync,
     RunsAPI,
     RunsAPIAsync,
+    TagsAPI,
+    TagsAPIAsync,
 )
 from sift_client.transport import (
     GrpcClient,
@@ -80,11 +84,17 @@ class SiftClient(
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making synchronous requests."""
 
+    reports: ReportsAPI
+    """Instance of the Reports API for making synchronous requests."""
+
     rules: RulesAPI
     """Instance of the Rules API for making synchronous requests."""
 
     runs: RunsAPI
     """Instance of the Runs API for making synchronous requests."""
+
+    tags: TagsAPI
+    """Instance of the Tags API for making synchronous requests."""
 
     async_: AsyncAPIs
     """Accessor for the asynchronous APIs. All asynchronous APIs are available as attributes on this accessor."""
@@ -130,7 +140,8 @@ class SiftClient(
         self.ingestion = IngestionAPIAsync(self)
         self.rules = RulesAPI(self)
         self.runs = RunsAPI(self)
-
+        self.reports = ReportsAPI(self)
+        self.tags = TagsAPI(self)
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
             ping=PingAPIAsync(self),
@@ -140,6 +151,8 @@ class SiftClient(
             ingestion=IngestionAPIAsync(self),
             rules=RulesAPIAsync(self),
             runs=RunsAPIAsync(self),
+            reports=ReportsAPIAsync(self),
+            tags=TagsAPIAsync(self),
         )
 
     @property
