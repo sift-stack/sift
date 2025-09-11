@@ -158,22 +158,6 @@ class AssetsAPIAsync(ResourceBase):
             return assets[0]
         return None
 
-    async def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
-        """Archive an asset.
-
-        Args:
-             asset: The Asset or asset ID to archive.
-             archive_runs: If True, archive all Runs associated with the Asset.
-
-        Returns:
-             The archived Asset.
-        """
-        asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
-
-        await self._low_level_client.delete_asset(asset_id or "", archive_runs=archive_runs)
-
-        return await self.get(asset_id=asset_id)
-
     async def update(self, asset: str | Asset, update: AssetUpdate | dict) -> Asset:
         """Update an Asset.
 
@@ -191,3 +175,21 @@ class AssetsAPIAsync(ResourceBase):
         update.resource_id = asset_id
         asset = await self._low_level_client.update_asset(update=update)
         return self._apply_client_to_instance(asset)
+
+
+    async def archive(self, asset: str | Asset, *, archive_runs: bool = False) -> Asset:
+        """Archive an asset.
+
+        Args:
+             asset: The Asset or asset ID to archive.
+             archive_runs: If True, archive all Runs associated with the Asset.
+
+        Returns:
+             The archived Asset.
+        """
+        asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
+
+        await self._low_level_client.delete_asset(asset_id or "", archive_runs=archive_runs)
+
+        return await self.get(asset_id=asset_id)
+
