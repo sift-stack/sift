@@ -37,6 +37,8 @@ pub struct Run {
     pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag="17")]
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bool, tag="18")]
+    pub is_adhoc: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -93,6 +95,32 @@ pub struct CreateRunRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRunResponse {
+    #[prost(message, optional, tag="1")]
+    pub run: ::core::option::Option<Run>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateAdhocRunRequest {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="3")]
+    pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, optional, tag="4")]
+    pub stop_time: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(string, repeated, tag="5")]
+    pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="6")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="7")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(string, optional, tag="8")]
+    pub client_key: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateAdhocRunResponse {
     #[prost(message, optional, tag="1")]
     pub run: ::core::option::Option<Run>,
 }

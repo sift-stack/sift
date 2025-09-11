@@ -27,6 +27,12 @@ pub struct Channel {
     pub enum_types: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::ChannelEnumType>,
     #[prost(message, repeated, tag="12")]
     pub bit_field_elements: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::ChannelBitFieldElement>,
+    #[prost(string, tag="13")]
+    pub display_description: ::prost::alloc::string::String,
+    #[prost(string, tag="14")]
+    pub display_unit_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="15")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -59,6 +65,20 @@ pub struct ListChannelsResponse {
     pub channels: ::prost::alloc::vec::Vec<Channel>,
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateChannelRequest {
+    #[prost(message, optional, tag="1")]
+    pub channel: ::core::option::Option<Channel>,
+    #[prost(message, optional, tag="2")]
+    pub update_mask: ::core::option::Option<::pbjson_types::FieldMask>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateChannelResponse {
+    #[prost(message, optional, tag="1")]
+    pub channel: ::core::option::Option<Channel>,
 }
 include!("sift.channels.v3.tonic.rs");
 include!("sift.channels.v3.serde.rs");

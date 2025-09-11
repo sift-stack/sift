@@ -67,6 +67,21 @@ impl serde::Serialize for Annotation {
         if self.pending {
             len += 1;
         }
+        if self.assigned_to_user.is_some() {
+            len += 1;
+        }
+        if self.deleted_date.is_some() {
+            len += 1;
+        }
+        if !self.linked_channels.is_empty() {
+            len += 1;
+        }
+        if !self.asset_ids.is_empty() {
+            len += 1;
+        }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.Annotation", len)?;
         if !self.annotation_id.is_empty() {
             struct_ser.serialize_field("annotationId", &self.annotation_id)?;
@@ -132,6 +147,21 @@ impl serde::Serialize for Annotation {
         if self.pending {
             struct_ser.serialize_field("pending", &self.pending)?;
         }
+        if let Some(v) = self.assigned_to_user.as_ref() {
+            struct_ser.serialize_field("assignedToUser", v)?;
+        }
+        if let Some(v) = self.deleted_date.as_ref() {
+            struct_ser.serialize_field("deletedDate", v)?;
+        }
+        if !self.linked_channels.is_empty() {
+            struct_ser.serialize_field("linkedChannels", &self.linked_channels)?;
+        }
+        if !self.asset_ids.is_empty() {
+            struct_ser.serialize_field("assetIds", &self.asset_ids)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -177,6 +207,15 @@ impl<'de> serde::Deserialize<'de> for Annotation {
             "report_rule_version_id",
             "reportRuleVersionId",
             "pending",
+            "assigned_to_user",
+            "assignedToUser",
+            "deleted_date",
+            "deletedDate",
+            "linked_channels",
+            "linkedChannels",
+            "asset_ids",
+            "assetIds",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -201,6 +240,11 @@ impl<'de> serde::Deserialize<'de> for Annotation {
             CreatedByRuleConditionVersionId,
             ReportRuleVersionId,
             Pending,
+            AssignedToUser,
+            DeletedDate,
+            LinkedChannels,
+            AssetIds,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -242,6 +286,11 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                             "createdByRuleConditionVersionId" | "created_by_rule_condition_version_id" => Ok(GeneratedField::CreatedByRuleConditionVersionId),
                             "reportRuleVersionId" | "report_rule_version_id" => Ok(GeneratedField::ReportRuleVersionId),
                             "pending" => Ok(GeneratedField::Pending),
+                            "assignedToUser" | "assigned_to_user" => Ok(GeneratedField::AssignedToUser),
+                            "deletedDate" | "deleted_date" => Ok(GeneratedField::DeletedDate),
+                            "linkedChannels" | "linked_channels" => Ok(GeneratedField::LinkedChannels),
+                            "assetIds" | "asset_ids" => Ok(GeneratedField::AssetIds),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -281,6 +330,11 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                 let mut created_by_rule_condition_version_id__ = None;
                 let mut report_rule_version_id__ = None;
                 let mut pending__ = None;
+                let mut assigned_to_user__ = None;
+                let mut deleted_date__ = None;
+                let mut linked_channels__ = None;
+                let mut asset_ids__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AnnotationId => {
@@ -403,6 +457,36 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                             }
                             pending__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::AssignedToUser => {
+                            if assigned_to_user__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assignedToUser"));
+                            }
+                            assigned_to_user__ = map_.next_value()?;
+                        }
+                        GeneratedField::DeletedDate => {
+                            if deleted_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("deletedDate"));
+                            }
+                            deleted_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::LinkedChannels => {
+                            if linked_channels__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("linkedChannels"));
+                            }
+                            linked_channels__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AssetIds => {
+                            if asset_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetIds"));
+                            }
+                            asset_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Annotation {
@@ -426,6 +510,11 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                     created_by_rule_condition_version_id: created_by_rule_condition_version_id__,
                     report_rule_version_id: report_rule_version_id__,
                     pending: pending__.unwrap_or_default(),
+                    assigned_to_user: assigned_to_user__,
+                    deleted_date: deleted_date__,
+                    linked_channels: linked_channels__.unwrap_or_default(),
+                    asset_ids: asset_ids__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -1111,6 +1200,9 @@ impl serde::Serialize for CreateAnnotationRequest {
         if self.created_by_rule_condition_version_id.is_some() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.CreateAnnotationRequest", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -1161,6 +1253,9 @@ impl serde::Serialize for CreateAnnotationRequest {
         if let Some(v) = self.created_by_rule_condition_version_id.as_ref() {
             struct_ser.serialize_field("createdByRuleConditionVersionId", v)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -1196,6 +1291,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
             "legendConfig",
             "created_by_rule_condition_version_id",
             "createdByRuleConditionVersionId",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1215,6 +1311,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
             CreatedByConditionId,
             LegendConfig,
             CreatedByRuleConditionVersionId,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1251,6 +1348,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
                             "createdByConditionId" | "created_by_condition_id" => Ok(GeneratedField::CreatedByConditionId),
                             "legendConfig" | "legend_config" => Ok(GeneratedField::LegendConfig),
                             "createdByRuleConditionVersionId" | "created_by_rule_condition_version_id" => Ok(GeneratedField::CreatedByRuleConditionVersionId),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1285,6 +1383,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
                 let mut created_by_condition_id__ = None;
                 let mut legend_config__ = None;
                 let mut created_by_rule_condition_version_id__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -1377,6 +1476,12 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
                             }
                             created_by_rule_condition_version_id__ = map_.next_value()?;
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CreateAnnotationRequest {
@@ -1395,6 +1500,7 @@ impl<'de> serde::Deserialize<'de> for CreateAnnotationRequest {
                     created_by_condition_id: created_by_condition_id__,
                     legend_config: legend_config__,
                     created_by_rule_condition_version_id: created_by_rule_condition_version_id__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
