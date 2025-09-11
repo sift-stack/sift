@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from sift_client._internal.low_level_wrappers.assets import AssetsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset, AssetUpdate
-from sift_client.util import cel_utils
+from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
@@ -48,9 +48,9 @@ class AssetsAPIAsync(ResourceBase):
         Returns:
             The Asset.
         """
-        if asset_id:
+        if asset_id is not None:
             asset = await self._low_level_client.get_asset(asset_id)
-        elif name:
+        elif name is not None:
             asset = await self.find(name=name)
             if asset is None:
                 raise ValueError(f"No asset found with name '{name}'")
@@ -77,7 +77,7 @@ class AssetsAPIAsync(ResourceBase):
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
         # tags
-        tags: list[Any | str] | None = None,
+        tags: list[Any] | list[str] | None = None,
         # metadata
         metadata: list[Any] | None = None,
         # common filters
@@ -92,14 +92,14 @@ class AssetsAPIAsync(ResourceBase):
             name: Exact name of the asset.
             name_contains: Partial name of the asset.
             name_regex: Regular expression to filter assets by name.
-            asset_ids: List of asset IDs to filter by.
+            asset_ids: Filter to assets with any of these Ids.
             created_after: Filter assets created after this datetime.
             created_before: Filter assets created before this datetime.
             modified_after: Filter assets modified after this datetime.
             modified_before: Filter assets modified before this datetime.
             created_by: Filter assets created by this User or user ID.
             modified_by: Filter assets last modified by this User or user ID.
-            tags: Filter assets with these Tags or tag names.
+            tags: Filter assets with any of these Tags or tag names.
             metadata: Filter assets by metadata criteria.
             include_archived: If True, include archived assets in results.
             filter_query: Explicit CEL query to filter assets.
@@ -109,48 +109,33 @@ class AssetsAPIAsync(ResourceBase):
         Returns:
             A list of Asset objects that match the filter criteria.
         """
-        filters = []
-        if name:
-            filters.append(cel_utils.equals("name", name))
-        if name_contains:
-            filters.append(cel_utils.contains("name", name_contains))
-        if name_regex:
-            filters.append(cel_utils.match("name", name_regex))
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name, name_contains=name_contains, name_regex=name_regex
+            ),
+            *self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+                created_by=created_by,
+                modified_by=modified_by
+            ),
+            *self._build_tags_metadata_cel_filters(
+                tags=tags,
+                metadata=metadata
+            ),
+            *self._build_common_cel_filters(
+                include_archived=include_archived,
+                filter_query=filter_query
+            )
+        ]
         if asset_ids:
-            filters.append(cel_utils.in_("asset_id", asset_ids))
-        if created_after:
-            filters.append(cel_utils.greater_than("created_date", created_after))
-        if created_before:
-            filters.append(cel_utils.less_than("created_date", created_before))
-        if modified_after:
-            filters.append(cel_utils.greater_than("modified_date", modified_after))
-        if modified_before:
-            filters.append(cel_utils.less_than("modified_date", modified_before))
-        if created_by:
-            if isinstance(created_by, str):
-                filters.append(cel_utils.equals("created_by_user_id", created_by))
-            else:
-                raise NotImplementedError
-        if modified_by:
-            if isinstance(modified_by, str):
-                filters.append(cel_utils.equals("modified_by_user_id", created_by))
-            else:
-                raise NotImplementedError
-        if tags:
-            if all(isinstance(tag, str) for tag in tags):
-                filters.append(cel_utils.in_("tag_name", tags))
-            else:
-                raise NotImplementedError
-        if metadata:
-            raise NotImplementedError
-        if not include_archived:
-            filters.append(cel_utils.equals_null("archived_date"))
-        if filter_query:
-            filters.append(filter_query)
-        filter_query = cel_utils.and_(*filters)
+            filter_parts.append(cel.in_("asset_id", asset_ids))
+        filter_query = cel.and_(*filter_parts)
 
         assets = await self._low_level_client.list_all_assets(
-            query_filter=filter_query,
+            query_filter=filter_query or None,
             order_by=order_by,
             max_results=limit,
         )
