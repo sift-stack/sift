@@ -51,8 +51,8 @@ class TestCelUtils:
 
     def test_equals_boolean(self):
         """Test equals function with boolean value."""
-        assert equals("field", True) == "field == True"
-        assert equals("field", False) == "field == False"
+        assert equals("field", True) == "field == true"
+        assert equals("field", False) == "field == false"
 
     def test_equals_all_empty(self):
         """Test equals_all function with empty dict."""
@@ -154,7 +154,7 @@ class TestCelUtils:
     def test_greater_than_datetime(self):
         """Test greater_than function with datetime value."""
         dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        assert greater_than("field", dt) == f"field > {dt.isoformat()}"
+        assert greater_than("field", dt) == f"field > timestamp('{dt.isoformat()}')"
 
     def test_less_than_number(self):
         """Test less_than function with numeric value."""
@@ -164,4 +164,4 @@ class TestCelUtils:
     def test_less_than_datetime(self):
         """Test less_than function with datetime value."""
         dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        assert less_than("field", dt) == f"field < {dt.isoformat()}"
+        assert less_than("field", dt) == f"field < timestamp('{dt.isoformat()}')"
