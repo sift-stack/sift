@@ -138,17 +138,14 @@ class CalculatedChannelsAPIAsync(ResourceBase):
                 modified_after=modified_after,
                 modified_before=modified_before,
                 created_by=created_by,
-                modified_by=modified_by
+                modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(
-                tags=tags,
-                metadata=metadata
-            ),
+            *self._build_tags_metadata_cel_filters(tags=tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
-                filter_query=filter_query
-            )
+                filter_query=filter_query,
+            ),
         ]
         if calculated_channel_ids:
             filter_parts.append(cel.in_("calculated_channel_id", calculated_channel_ids))
@@ -184,14 +181,16 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         """
         calculated_channels = await self.list_(**kwargs)
         if len(calculated_channels) > 1:
-            raise ValueError(f"Multiple ({len(calculated_channels)}) calculated channels found for query")
+            raise ValueError(
+                f"Multiple ({len(calculated_channels)}) calculated channels found for query"
+            )
         elif len(calculated_channels) == 1:
             return calculated_channels[0]
         return None
 
     async def create(
         self,
-       create: CalculatedChannelCreate | dict,
+        create: CalculatedChannelCreate | dict,
     ) -> CalculatedChannel:
         """Create a calculated channel.
 
@@ -206,7 +205,9 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         if isinstance(create, dict):
             create = CalculatedChannelCreate.model_validate(create)
 
-        created_calc_channel, _ = await self._low_level_client.create_calculated_channel(create=create)
+        created_calc_channel, _ = await self._low_level_client.create_calculated_channel(
+            create=create
+        )
         return self._apply_client_to_instance(created_calc_channel)
 
     async def update(
@@ -262,7 +263,6 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-
         # created/modified ranges
         created_after: datetime | None = None,
         created_before: datetime | None = None,
@@ -317,23 +317,22 @@ class CalculatedChannelsAPIAsync(ResourceBase):
                 modified_after=modified_after,
                 modified_before=modified_before,
                 created_by=created_by,
-                modified_by=modified_by
+                modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(
-                tags=tags,
-                metadata=metadata
-            ),
+            *self._build_tags_metadata_cel_filters(tags=tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
-                filter_query=filter_query
-            )
+                filter_query=filter_query,
+            ),
         ]
         query_filter = cel.and_(*filter_parts)
 
         versions = await self._low_level_client.list_all_calculated_channel_versions(
             client_key=client_key,
-            calculated_channel_id=calculated_channel.id_ if isinstance(calculated_channel, CalculatedChannel) else calculated_channel,
+            calculated_channel_id=calculated_channel.id_
+            if isinstance(calculated_channel, CalculatedChannel)
+            else calculated_channel,
             query_filter=query_filter or None,
             order_by=order_by,
             limit=limit,
