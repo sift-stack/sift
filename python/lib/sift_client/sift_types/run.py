@@ -3,44 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, model_validator
+from sift.runs.v2.runs_pb2 import CreateRunRequest as CreateRunRequestProto
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
-from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelCreate, ModelUpdate
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
-
-
-class RunUpdate(ModelUpdate[RunProto]):
-    """Update model for Run."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    name: str | None = None
-    description: str | None = None
-    start_time: datetime | None = None
-    stop_time: datetime | None = None
-    is_pinned: bool | None = None
-    client_key: str | None = None
-    tags: list[str] | None = None
-    metadata: dict[str, str | float | bool] | None = None
-
-    _to_proto_helpers: ClassVar = {
-        "metadata": MappingHelper(
-            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
-        ),
-    }
-
-    def _get_proto_class(self) -> type[RunProto]:
-        return RunProto
-
-    def _add_resource_id_to_proto(self, proto_msg: RunProto):
-        if self._resource_id is None:
-            raise ValueError("Resource ID must be set before adding to proto")
-        proto_msg.run_id = self._resource_id
 
 
 class Run(BaseType[RunProto, "Run"]):
@@ -129,8 +101,67 @@ class Run(BaseType[RunProto, "Run"]):
     @property
     def assets(self) -> list[Asset]:
         """Return all assets associated with this run."""
+        # TODO: add this check to the base class.
         if not hasattr(self, "client") or self.client is None:
             raise RuntimeError("Run is not bound to a client instance.")
         if not self.asset_ids:
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
+
+class RunCreate(ModelCreate[CreateRunRequestProto]):
+    """Create model for Run."""
+
+    name: str | None = None
+    description: str | None = None
+    start_time: datetime | None = None
+    stop_time: datetime | None = None
+    client_key: str | None = None
+    tags: list[str] | None = None
+    metadata: dict[str, str | float | bool] | None = None
+
+    _to_proto_helpers: ClassVar = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
+
+    def _get_proto_class(self) -> type[CreateRunRequestProto]:
+        return CreateRunRequestProto
+
+    @model_validator(mode='after')
+    def validate_time_fields(self):
+        """Validate time-related fields after initialization."""
+        if self.stop_time is not None and self.start_time is None:
+            raise ValueError("start_time must be provided if stop_time is provided")
+
+        if self.start_time is not None and self.stop_time is not None:
+            if self.start_time >= self.stop_time:
+                raise ValueError("start_time must be before stop_time")
+
+        return self
+
+class RunUpdate(ModelUpdate[RunProto]):
+    """Update model for Run."""
+
+
+    name: str
+    description: str | None = None
+    start_time: datetime | None = None
+    stop_time: datetime | None = None
+    client_key: str | None = None
+    tags: list[str] | None = None
+    metadata: dict[str, str | float | bool] | None = None
+
+    _to_proto_helpers: ClassVar = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
+
+    def _get_proto_class(self) -> type[RunProto]:
+        return RunProto
+
+    def _add_resource_id_to_proto(self, proto_msg: RunProto):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
+        proto_msg.run_id = self._resource_id

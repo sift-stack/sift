@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.run import Run, RunUpdate
+from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
@@ -201,40 +201,20 @@ class RunsAPIAsync(ResourceBase):
 
     async def create(
         self,
-        name: str,
-        description: str,
-        tags: list[str] | None = None,
-        start_time: datetime | None = None,
-        stop_time: datetime | None = None,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
+        create: RunCreate | dict,
     ) -> Run:
         """Create a new run.
 
         Args:
-            name: The name of the run.
-            description: The description of the run.
-            tags: Tags to associate with the run.
-            start_time: The start time of the run.
-            stop_time: The stop time of the run.
-            organization_id: The organization ID.
-            client_key: A unique client key for the run.
-            metadata: Metadata values for the run.
+            create: The Run definition to create.
 
         Returns:
             The created Run.
         """
-        created_run = await self._low_level_client.create_run(
-            name=name,
-            description=description,
-            tags=tags,
-            start_time=start_time,
-            stop_time=stop_time,
-            organization_id=organization_id,
-            client_key=client_key,
-            metadata=metadata,
-        )
+        if isinstance(create, dict):
+            create = RunCreate.model_validate(create)
+
+        created_run = await self._low_level_client.create_run(create=create)
         return self._apply_client_to_instance(created_run)
 
     async def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
@@ -247,19 +227,15 @@ class RunsAPIAsync(ResourceBase):
         Returns:
             The updated Run.
         """
-        if isinstance(run, str):
-            run = await self.get(run_id=run)
-
+        run_id = run.id_ or "" if isinstance(run, Run) else run
         if isinstance(update, dict):
             update = RunUpdate.model_validate(update)
-
-        update.resource_id = run.id_
+        update.resource_id = run_id
         updated_run = await self._low_level_client.update_run(run, update)
         return self._apply_client_to_instance(updated_run)
 
     async def archive(
         self,
-        *,
         run: str | Run,
     ) -> None:
         """Archive a run.
@@ -268,13 +244,10 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID to archive.
         """
         run_id = run.id_ if isinstance(run, Run) else run
-        if not isinstance(run_id, str):
-            raise TypeError(f"run_id must be a string not {type(run_id)}")
         await self._low_level_client.archive_run(run_id=run_id)
 
     async def stop(
         self,
-        *,
         run: str | Run,
     ) -> None:
         """Stop a run by setting its stop time to the current time.
@@ -288,6 +261,7 @@ class RunsAPIAsync(ResourceBase):
     async def create_automatic_association_for_assets(
         self,
         run: str | Run,
+        *,
         asset_names: list[str],
     ) -> None:
         """Associate assets with a run for automatic data ingestion.
@@ -300,12 +274,3 @@ class RunsAPIAsync(ResourceBase):
         await self._low_level_client.create_automatic_run_association_for_assets(
             run_id=run_id, asset_names=asset_names
         )
-
-    async def stop_run(self, run: str | Run) -> None:
-        """Stop a run by setting its stop time to the current time.
-
-        Args:
-            run: The Run or run ID to stop.
-        """
-        run_id = run.id_ or "" if isinstance(run, Run) else run
-        await self._low_level_client.stop_run(run_id=run_id or "")

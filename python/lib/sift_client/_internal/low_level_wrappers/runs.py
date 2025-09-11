@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 from sift.runs.v2.runs_pb2 import (
     CreateAutomaticRunAssociationForAssetsRequest,
-    CreateRunRequest,
     CreateRunResponse,
     DeleteRunRequest,
     GetRunRequest,
@@ -19,9 +18,8 @@ from sift.runs.v2.runs_pb2 import (
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
-from sift_client.sift_types.run import Run, RunUpdate
+from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.transport import WithGrpcClient
-from sift_client.util.metadata import metadata_dict_to_proto
 
 if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
@@ -127,70 +125,19 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def create_run(
         self,
         *,
-        name: str,
-        description: str,
-        tags: list[str] | None = None,
-        start_time: Any | None = None,
-        stop_time: Any | None = None,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
+        create: RunCreate
     ) -> Run:
-        """Create a new run.
-
-        Args:
-            name: The name of the run.
-            description: The description of the run.
-            tags: Tags to associate with the run.
-            start_time: The start time of the run.
-            stop_time: The stop time of the run.
-            organization_id: The organization ID.
-            client_key: A unique client key for the run.
-            metadata: Metadata values for the run.
-
-        Returns:
-            The created Run.
-        """
-        request_kwargs: dict[str, Any] = {
-            "name": name,
-            "description": description,
-        }
-
-        if tags is not None:
-            request_kwargs["tags"] = tags
-        if start_time is not None:
-            request_kwargs["start_time"] = start_time
-        if stop_time is not None:
-            request_kwargs["stop_time"] = stop_time
-        if organization_id is not None:
-            request_kwargs["organization_id"] = organization_id
-        if client_key is not None:
-            request_kwargs["client_key"] = client_key
-        if metadata is not None:
-            metadata_proto = metadata_dict_to_proto(metadata)
-            request_kwargs["metadata"] = metadata_proto
-
-        request = CreateRunRequest(**request_kwargs)
-        response = await self._grpc_client.get_stub(RunServiceStub).CreateRun(request)
+        request_proto = create.to_proto()
+        response = await self._grpc_client.get_stub(RunServiceStub).CreateRun(request_proto)
         grpc_run = cast("CreateRunResponse", response).run
         return Run._from_proto(grpc_run)
 
-    async def update_run(self, run: Run, update: RunUpdate) -> Run:
-        """Update an existing run.
-
-        Args:
-            run: The run to update.
-            update: The updates to apply.
-
-        Returns:
-            The updated Run.
-        """
-        run_proto, field_mask = update.to_proto_with_mask()
-
-        request = UpdateRunRequest(run=run_proto, update_mask=field_mask)
+    async def update_run(self, update: RunUpdate) -> Run:
+        grpc_run, update_mask = update.to_proto_with_mask()
+        request = UpdateRunRequest(run=grpc_run, update_mask=update_mask)
         response = await self._grpc_client.get_stub(RunServiceStub).UpdateRun(request)
-        grpc_run = cast("UpdateRunResponse", response).run
-        return Run._from_proto(grpc_run)
+        updated_grpc_run = cast("UpdateRunResponse", response).run
+        return Run._from_proto(updated_grpc_run)
 
     async def archive_run(self, run_id: str) -> None:
         """Archive a run.
