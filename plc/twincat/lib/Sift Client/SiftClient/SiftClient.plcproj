@@ -22,7 +22,7 @@
     <POUsForPropertyAccessIncluded>false</POUsForPropertyAccessIncluded>
     <GlobalVersionStructureIncluded>true</GlobalVersionStructureIncluded>
     <Title>Sift Client Library</Title>
-    <ProjectVersion>0.1.0.0</ProjectVersion>
+    <ProjectVersion>0.2.0.0</ProjectVersion>
     <DefaultNamespace>Sift</DefaultNamespace>
     <Author>Marc Julien</Author>
     <Description>Sift Client library for streaming data from PLC applications into Sift.</Description>
