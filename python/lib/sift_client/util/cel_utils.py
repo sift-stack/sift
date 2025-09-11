@@ -50,7 +50,7 @@ def equals(key: str, value: Any) -> str:
         A CEL expression string
     """
     if value is None:
-        return f"{key} == null"
+        return equals_null(key)
     elif isinstance(value, str):
         return f"{key} == '{value}'"
     elif isinstance(value, bool):
