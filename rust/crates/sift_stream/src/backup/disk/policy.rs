@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-/// Default maximum backup file size - 500 MiB.
+/// Default maximum backup file size - 500 MiB. Divisible by common file block size of 4096 bytes (4 KiB)
 pub const DEFAULT_MAX_BACKUP_SIZE: usize = 500 * 2_usize.pow(20);
 
 /// Default rolling file count - None (unlimited files)
