@@ -19,10 +19,55 @@ class MetadataServiceStub(object):
                 request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataKeyRequest.SerializeToString,
                 response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataKeyResponse.FromString,
                 )
+        self.CreateMetadataValue = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/CreateMetadataValue',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataValueRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataValueResponse.FromString,
+                )
         self.ListMetadataKeys = channel.unary_unary(
                 '/sift.metadata.v1.MetadataService/ListMetadataKeys',
                 request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataKeysRequest.SerializeToString,
                 response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataKeysResponse.FromString,
+                )
+        self.ListMetadataValues = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/ListMetadataValues',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataValuesRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataValuesResponse.FromString,
+                )
+        self.ArchiveMetadataKeys = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/ArchiveMetadataKeys',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataKeysRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataKeysResponse.FromString,
+                )
+        self.ArchiveMetadataValues = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/ArchiveMetadataValues',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataValuesRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataValuesResponse.FromString,
+                )
+        self.UnarchiveMetadataKeys = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/UnarchiveMetadataKeys',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataKeysRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataKeysResponse.FromString,
+                )
+        self.UnarchiveMetadataValues = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/UnarchiveMetadataValues',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataValuesRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataValuesResponse.FromString,
+                )
+        self.DeleteMetadataKeys = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/DeleteMetadataKeys',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataKeysRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataKeysResponse.FromString,
+                )
+        self.DeleteMetadataValues = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/DeleteMetadataValues',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataValuesRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataValuesResponse.FromString,
+                )
+        self.ListMetadataUsage = channel.unary_unary(
+                '/sift.metadata.v1.MetadataService/ListMetadataUsage',
+                request_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataUsageRequest.SerializeToString,
+                response_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataUsageResponse.FromString,
                 )
 
 
@@ -36,8 +81,71 @@ class MetadataServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CreateMetadataValue(self, request, context):
+        """Create a metadata value.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ListMetadataKeys(self, request, context):
         """List metadata keys.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListMetadataValues(self, request, context):
+        """List metadata values.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ArchiveMetadataKeys(self, request, context):
+        """Archive metadata keys.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ArchiveMetadataValues(self, request, context):
+        """Archive metadata values.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UnarchiveMetadataKeys(self, request, context):
+        """Unarchive metadata keys.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UnarchiveMetadataValues(self, request, context):
+        """Unarchive metadata values.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteMetadataKeys(self, request, context):
+        """Delete metadata keys.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteMetadataValues(self, request, context):
+        """Delete metadata values.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListMetadataUsage(self, request, context):
+        """List metadata key usage.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -51,10 +159,55 @@ def add_MetadataServiceServicer_to_server(servicer, server):
                     request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataKeyRequest.FromString,
                     response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataKeyResponse.SerializeToString,
             ),
+            'CreateMetadataValue': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateMetadataValue,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataValueRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataValueResponse.SerializeToString,
+            ),
             'ListMetadataKeys': grpc.unary_unary_rpc_method_handler(
                     servicer.ListMetadataKeys,
                     request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataKeysRequest.FromString,
                     response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataKeysResponse.SerializeToString,
+            ),
+            'ListMetadataValues': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListMetadataValues,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataValuesRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataValuesResponse.SerializeToString,
+            ),
+            'ArchiveMetadataKeys': grpc.unary_unary_rpc_method_handler(
+                    servicer.ArchiveMetadataKeys,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataKeysRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataKeysResponse.SerializeToString,
+            ),
+            'ArchiveMetadataValues': grpc.unary_unary_rpc_method_handler(
+                    servicer.ArchiveMetadataValues,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataValuesRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataValuesResponse.SerializeToString,
+            ),
+            'UnarchiveMetadataKeys': grpc.unary_unary_rpc_method_handler(
+                    servicer.UnarchiveMetadataKeys,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataKeysRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataKeysResponse.SerializeToString,
+            ),
+            'UnarchiveMetadataValues': grpc.unary_unary_rpc_method_handler(
+                    servicer.UnarchiveMetadataValues,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataValuesRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataValuesResponse.SerializeToString,
+            ),
+            'DeleteMetadataKeys': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteMetadataKeys,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataKeysRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataKeysResponse.SerializeToString,
+            ),
+            'DeleteMetadataValues': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteMetadataValues,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataValuesRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataValuesResponse.SerializeToString,
+            ),
+            'ListMetadataUsage': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListMetadataUsage,
+                    request_deserializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataUsageRequest.FromString,
+                    response_serializer=sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataUsageResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -84,6 +237,23 @@ class MetadataService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def CreateMetadataValue(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/CreateMetadataValue',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataValueRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.CreateMetadataValueResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def ListMetadataKeys(request,
             target,
             options=(),
@@ -97,5 +267,141 @@ class MetadataService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/ListMetadataKeys',
             sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataKeysRequest.SerializeToString,
             sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataKeysResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListMetadataValues(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/ListMetadataValues',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataValuesRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataValuesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ArchiveMetadataKeys(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/ArchiveMetadataKeys',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataKeysRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataKeysResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ArchiveMetadataValues(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/ArchiveMetadataValues',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataValuesRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.ArchiveMetadataValuesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UnarchiveMetadataKeys(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/UnarchiveMetadataKeys',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataKeysRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataKeysResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UnarchiveMetadataValues(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/UnarchiveMetadataValues',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataValuesRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.UnarchiveMetadataValuesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def DeleteMetadataKeys(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/DeleteMetadataKeys',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataKeysRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataKeysResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def DeleteMetadataValues(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/DeleteMetadataValues',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataValuesRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.DeleteMetadataValuesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListMetadataUsage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.metadata.v1.MetadataService/ListMetadataUsage',
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataUsageRequest.SerializeToString,
+            sift_dot_metadata_dot_v1_dot_metadata__pb2.ListMetadataUsageResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

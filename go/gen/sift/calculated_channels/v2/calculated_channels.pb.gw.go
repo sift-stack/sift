@@ -523,6 +523,42 @@ func local_request_CalculatedChannelService_BatchResolveCalculatedChannels_0(ctx
 
 }
 
+var (
+	filter_CalculatedChannelService_ListResolvedCalculatedChannels_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+)
+
+func request_CalculatedChannelService_ListResolvedCalculatedChannels_0(ctx context.Context, marshaler runtime.Marshaler, client CalculatedChannelServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq ListResolvedCalculatedChannelsRequest
+	var metadata runtime.ServerMetadata
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_CalculatedChannelService_ListResolvedCalculatedChannels_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	msg, err := client.ListResolvedCalculatedChannels(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func local_request_CalculatedChannelService_ListResolvedCalculatedChannels_0(ctx context.Context, marshaler runtime.Marshaler, server CalculatedChannelServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq ListResolvedCalculatedChannelsRequest
+	var metadata runtime.ServerMetadata
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_CalculatedChannelService_ListResolvedCalculatedChannels_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	msg, err := server.ListResolvedCalculatedChannels(ctx, &protoReq)
+	return msg, metadata, err
+
+}
+
 // RegisterCalculatedChannelServiceHandlerServer registers the http handlers for service CalculatedChannelService to "mux".
 // UnaryRPC     :call CalculatedChannelServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
@@ -751,6 +787,31 @@ func RegisterCalculatedChannelServiceHandlerServer(ctx context.Context, mux *run
 		}
 
 		forward_CalculatedChannelService_BatchResolveCalculatedChannels_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
+	mux.Handle("GET", pattern_CalculatedChannelService_ListResolvedCalculatedChannels_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		var err error
+		var annotatedContext context.Context
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/sift.calculated_channels.v2.CalculatedChannelService/ListResolvedCalculatedChannels", runtime.WithHTTPPathPattern("/api/v2/calculated-channels/resolved"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_CalculatedChannelService_ListResolvedCalculatedChannels_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_CalculatedChannelService_ListResolvedCalculatedChannels_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -993,6 +1054,28 @@ func RegisterCalculatedChannelServiceHandlerClient(ctx context.Context, mux *run
 
 	})
 
+	mux.Handle("GET", pattern_CalculatedChannelService_ListResolvedCalculatedChannels_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		var err error
+		var annotatedContext context.Context
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/sift.calculated_channels.v2.CalculatedChannelService/ListResolvedCalculatedChannels", runtime.WithHTTPPathPattern("/api/v2/calculated-channels/resolved"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_CalculatedChannelService_ListResolvedCalculatedChannels_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_CalculatedChannelService_ListResolvedCalculatedChannels_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	return nil
 }
 
@@ -1014,6 +1097,8 @@ var (
 	pattern_CalculatedChannelService_ResolveCalculatedChannel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"api", "v2", "calculated-channels", "resolve"}, ""))
 
 	pattern_CalculatedChannelService_BatchResolveCalculatedChannels_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"api", "v2", "calculated-channels", "resolve"}, "batch"))
+
+	pattern_CalculatedChannelService_ListResolvedCalculatedChannels_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"api", "v2", "calculated-channels", "resolved"}, ""))
 )
 
 var (
@@ -1034,4 +1119,6 @@ var (
 	forward_CalculatedChannelService_ResolveCalculatedChannel_0 = runtime.ForwardResponseMessage
 
 	forward_CalculatedChannelService_BatchResolveCalculatedChannels_0 = runtime.ForwardResponseMessage
+
+	forward_CalculatedChannelService_ListResolvedCalculatedChannels_0 = runtime.ForwardResponseMessage
 )

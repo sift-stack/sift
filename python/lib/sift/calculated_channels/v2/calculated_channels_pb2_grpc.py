@@ -49,6 +49,11 @@ class CalculatedChannelServiceStub(object):
                 request_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.BatchResolveCalculatedChannelsRequest.SerializeToString,
                 response_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.BatchResolveCalculatedChannelsResponse.FromString,
                 )
+        self.ListResolvedCalculatedChannels = channel.unary_unary(
+                '/sift.calculated_channels.v2.CalculatedChannelService/ListResolvedCalculatedChannels',
+                request_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsRequest.SerializeToString,
+                response_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsResponse.FromString,
+                )
 
 
 class CalculatedChannelServiceServicer(object):
@@ -103,6 +108,13 @@ class CalculatedChannelServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListResolvedCalculatedChannels(self, request, context):
+        """Retrieve the latest versions of calculated channels based on an optional filter.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_CalculatedChannelServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -140,6 +152,11 @@ def add_CalculatedChannelServiceServicer_to_server(servicer, server):
                     servicer.BatchResolveCalculatedChannels,
                     request_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.BatchResolveCalculatedChannelsRequest.FromString,
                     response_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.BatchResolveCalculatedChannelsResponse.SerializeToString,
+            ),
+            'ListResolvedCalculatedChannels': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListResolvedCalculatedChannels,
+                    request_deserializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsRequest.FromString,
+                    response_serializer=sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -267,5 +284,22 @@ class CalculatedChannelService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.calculated_channels.v2.CalculatedChannelService/BatchResolveCalculatedChannels',
             sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.BatchResolveCalculatedChannelsRequest.SerializeToString,
             sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.BatchResolveCalculatedChannelsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListResolvedCalculatedChannels(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.calculated_channels.v2.CalculatedChannelService/ListResolvedCalculatedChannels',
+            sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsRequest.SerializeToString,
+            sift_dot_calculated__channels_dot_v2_dot_calculated__channels__pb2.ListResolvedCalculatedChannelsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

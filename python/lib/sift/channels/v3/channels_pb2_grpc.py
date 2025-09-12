@@ -24,6 +24,11 @@ class ChannelServiceStub(object):
                 request_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsRequest.SerializeToString,
                 response_deserializer=sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsResponse.FromString,
                 )
+        self.UpdateChannel = channel.unary_unary(
+                '/sift.channels.v3.ChannelService/UpdateChannel',
+                request_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.UpdateChannelRequest.SerializeToString,
+                response_deserializer=sift_dot_channels_dot_v3_dot_channels__pb2.UpdateChannelResponse.FromString,
+                )
 
 
 class ChannelServiceServicer(object):
@@ -43,6 +48,13 @@ class ChannelServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def UpdateChannel(self, request, context):
+        """Update a channel
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChannelServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -55,6 +67,11 @@ def add_ChannelServiceServicer_to_server(servicer, server):
                     servicer.ListChannels,
                     request_deserializer=sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsRequest.FromString,
                     response_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsResponse.SerializeToString,
+            ),
+            'UpdateChannel': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateChannel,
+                    request_deserializer=sift_dot_channels_dot_v3_dot_channels__pb2.UpdateChannelRequest.FromString,
+                    response_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.UpdateChannelResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -97,5 +114,22 @@ class ChannelService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.channels.v3.ChannelService/ListChannels',
             sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsRequest.SerializeToString,
             sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UpdateChannel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.channels.v3.ChannelService/UpdateChannel',
+            sift_dot_channels_dot_v3_dot_channels__pb2.UpdateChannelRequest.SerializeToString,
+            sift_dot_channels_dot_v3_dot_channels__pb2.UpdateChannelResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

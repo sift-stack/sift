@@ -31,6 +31,12 @@ class ChannelServiceStub:
     ]
     """Retrieve channels using an optional filter."""
 
+    UpdateChannel: grpc.UnaryUnaryMultiCallable[
+        sift.channels.v3.channels_pb2.UpdateChannelRequest,
+        sift.channels.v3.channels_pb2.UpdateChannelResponse,
+    ]
+    """Update a channel"""
+
 class ChannelServiceAsyncStub:
     GetChannel: grpc.aio.UnaryUnaryMultiCallable[
         sift.channels.v3.channels_pb2.GetChannelRequest,
@@ -43,6 +49,12 @@ class ChannelServiceAsyncStub:
         sift.channels.v3.channels_pb2.ListChannelsResponse,
     ]
     """Retrieve channels using an optional filter."""
+
+    UpdateChannel: grpc.aio.UnaryUnaryMultiCallable[
+        sift.channels.v3.channels_pb2.UpdateChannelRequest,
+        sift.channels.v3.channels_pb2.UpdateChannelResponse,
+    ]
+    """Update a channel"""
 
 class ChannelServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -60,5 +72,13 @@ class ChannelServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.channels.v3.channels_pb2.ListChannelsResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.ListChannelsResponse]]:
         """Retrieve channels using an optional filter."""
+
+    @abc.abstractmethod
+    def UpdateChannel(
+        self,
+        request: sift.channels.v3.channels_pb2.UpdateChannelRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.channels.v3.channels_pb2.UpdateChannelResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.UpdateChannelResponse]]:
+        """Update a channel"""
 
 def add_ChannelServiceServicer_to_server(servicer: ChannelServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

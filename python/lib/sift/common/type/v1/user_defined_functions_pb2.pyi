@@ -10,6 +10,7 @@ import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.metadata.v1.metadata_pb2
 import sys
 import typing
 
@@ -59,6 +60,7 @@ class UserDefinedFunction(google.protobuf.message.Message):
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
     CREATED_BY_USER_ID_FIELD_NUMBER: builtins.int
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     user_defined_function_id: builtins.str
     name: builtins.str
     user_defined_function_version_id: builtins.str
@@ -80,6 +82,8 @@ class UserDefinedFunction(google.protobuf.message.Message):
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -99,9 +103,10 @@ class UserDefinedFunction(google.protobuf.message.Message):
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         created_by_user_id: builtins.str = ...,
         modified_by_user_id: builtins.str = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "archived_date", b"archived_date", "created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "archived_date", b"archived_date", "change_message", b"change_message", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "expression", b"expression", "function_dependencies", b"function_dependencies", "function_inputs", b"function_inputs", "function_output_type", b"function_output_type", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "user_defined_function_id", b"user_defined_function_id", "user_defined_function_version_id", b"user_defined_function_version_id", "user_notes", b"user_notes", "version", b"version"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "archived_date", b"archived_date", "change_message", b"change_message", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "expression", b"expression", "function_dependencies", b"function_dependencies", "function_inputs", b"function_inputs", "function_output_type", b"function_output_type", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "user_defined_function_id", b"user_defined_function_id", "user_defined_function_version_id", b"user_defined_function_version_id", "user_notes", b"user_notes", "version", b"version"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
 
 global___UserDefinedFunction = UserDefinedFunction

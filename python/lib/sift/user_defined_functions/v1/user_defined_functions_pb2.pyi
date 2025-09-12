@@ -11,6 +11,7 @@ import google.protobuf.internal.containers
 import google.protobuf.message
 import sift.calculated_channels.v2.calculated_channels_pb2
 import sift.common.type.v1.user_defined_functions_pb2
+import sift.metadata.v1.metadata_pb2
 import sift.rules.v1.rules_pb2
 import typing
 
@@ -194,12 +195,15 @@ class CreateUserDefinedFunctionRequest(google.protobuf.message.Message):
     EXPRESSION_FIELD_NUMBER: builtins.int
     FUNCTION_INPUTS_FIELD_NUMBER: builtins.int
     USER_NOTES_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     name: builtins.str
     description: builtins.str
     expression: builtins.str
     user_notes: builtins.str
     @property
     def function_inputs(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.user_defined_functions_pb2.FunctionInput]: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -208,9 +212,10 @@ class CreateUserDefinedFunctionRequest(google.protobuf.message.Message):
         expression: builtins.str = ...,
         function_inputs: collections.abc.Iterable[sift.common.type.v1.user_defined_functions_pb2.FunctionInput] | None = ...,
         user_notes: builtins.str | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_description", b"_description", "_user_notes", b"_user_notes", "description", b"description", "user_notes", b"user_notes"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_description", b"_description", "_user_notes", b"_user_notes", "description", b"description", "expression", b"expression", "function_inputs", b"function_inputs", "name", b"name", "user_notes", b"user_notes"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_description", b"_description", "_user_notes", b"_user_notes", "description", b"description", "expression", b"expression", "function_inputs", b"function_inputs", "metadata", b"metadata", "name", b"name", "user_notes", b"user_notes"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
     @typing.overload
@@ -446,7 +451,7 @@ class ListUserDefinedFunctionsRequest(google.protobuf.message.Message):
     order_by: builtins.str
     """How to order the retrieved user defined functions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
     Available fields to order_by are `created_date`, `modified_date`, and `name`.
-    If left empty, items are ordered by `name` in ascending order (alphabetical).
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date".
     """

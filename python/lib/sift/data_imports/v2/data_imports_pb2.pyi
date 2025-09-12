@@ -58,6 +58,56 @@ TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS: TimeFormat.ValueType  # 14
 TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS: TimeFormat.ValueType  # 15
 global___TimeFormat = TimeFormat
 
+class _DataTypeKey:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _DataTypeKeyEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_DataTypeKey.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    DATA_TYPE_KEY_UNSPECIFIED: _DataTypeKey.ValueType  # 0
+    DATA_TYPE_KEY_CSV: _DataTypeKey.ValueType  # 1
+    DATA_TYPE_KEY_TDMS: _DataTypeKey.ValueType  # 2
+    DATA_TYPE_KEY_CH10: _DataTypeKey.ValueType  # 3
+    DATA_TYPE_KEY_PARQUET_FLATDATASET: _DataTypeKey.ValueType  # 4
+
+class DataTypeKey(_DataTypeKey, metaclass=_DataTypeKeyEnumTypeWrapper): ...
+
+DATA_TYPE_KEY_UNSPECIFIED: DataTypeKey.ValueType  # 0
+DATA_TYPE_KEY_CSV: DataTypeKey.ValueType  # 1
+DATA_TYPE_KEY_TDMS: DataTypeKey.ValueType  # 2
+DATA_TYPE_KEY_CH10: DataTypeKey.ValueType  # 3
+DATA_TYPE_KEY_PARQUET_FLATDATASET: DataTypeKey.ValueType  # 4
+global___DataTypeKey = DataTypeKey
+
+class _ParquetComplexTypesImportMode:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _ParquetComplexTypesImportModeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ParquetComplexTypesImportMode.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_UNSPECIFIED: _ParquetComplexTypesImportMode.ValueType  # 0
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE: _ParquetComplexTypesImportMode.ValueType  # 1
+    """Ignore complex types and do not ingest them."""
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH: _ParquetComplexTypesImportMode.ValueType  # 2
+    """Import complex types as both Arrow bytes and JSON strings."""
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING: _ParquetComplexTypesImportMode.ValueType  # 3
+    """Import complex types as only JSON strings."""
+    PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES: _ParquetComplexTypesImportMode.ValueType  # 4
+    """Import complex types as only Arrow bytes."""
+
+class ParquetComplexTypesImportMode(_ParquetComplexTypesImportMode, metaclass=_ParquetComplexTypesImportModeEnumTypeWrapper): ...
+
+PARQUET_COMPLEX_TYPES_IMPORT_MODE_UNSPECIFIED: ParquetComplexTypesImportMode.ValueType  # 0
+PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE: ParquetComplexTypesImportMode.ValueType  # 1
+"""Ignore complex types and do not ingest them."""
+PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH: ParquetComplexTypesImportMode.ValueType  # 2
+"""Import complex types as both Arrow bytes and JSON strings."""
+PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING: ParquetComplexTypesImportMode.ValueType  # 3
+"""Import complex types as only JSON strings."""
+PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES: ParquetComplexTypesImportMode.ValueType  # 4
+"""Import complex types as only Arrow bytes."""
+global___ParquetComplexTypesImportMode = ParquetComplexTypesImportMode
+
 class _DataImportStatus:
     ValueType = typing.NewType("ValueType", builtins.int)
     V: typing_extensions.TypeAlias = ValueType
@@ -87,6 +137,7 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     CSV_CONFIG_FIELD_NUMBER: builtins.int
     CH10_CONFIG_FIELD_NUMBER: builtins.int
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
+    PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     url: builtins.str
     """The url to import. HTTP and S3 urls are supported.
     If you need to import non-public S3 objects, please contact Sift to set that up.
@@ -97,6 +148,8 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
     def ch10_config(self) -> global___Ch10Config: ...
     @property
     def tdms_config(self) -> global___TDMSConfig: ...
+    @property
+    def parquet_config(self) -> global___ParquetConfig: ...
     def __init__(
         self,
         *,
@@ -104,9 +157,10 @@ class CreateDataImportFromUrlRequest(google.protobuf.message.Message):
         csv_config: global___CsvConfig | None = ...,
         ch10_config: global___Ch10Config | None = ...,
         tdms_config: global___TDMSConfig | None = ...,
+        parquet_config: global___ParquetConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "tdms_config", b"tdms_config", "url", b"url"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config", "url", b"url"]) -> None: ...
 
 global___CreateDataImportFromUrlRequest = CreateDataImportFromUrlRequest
 
@@ -164,21 +218,25 @@ class CreateDataImportFromUploadRequest(google.protobuf.message.Message):
     CSV_CONFIG_FIELD_NUMBER: builtins.int
     CH10_CONFIG_FIELD_NUMBER: builtins.int
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
+    PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     @property
     def csv_config(self) -> global___CsvConfig: ...
     @property
     def ch10_config(self) -> global___Ch10Config: ...
     @property
     def tdms_config(self) -> global___TDMSConfig: ...
+    @property
+    def parquet_config(self) -> global___ParquetConfig: ...
     def __init__(
         self,
         *,
         csv_config: global___CsvConfig | None = ...,
         ch10_config: global___Ch10Config | None = ...,
         tdms_config: global___TDMSConfig | None = ...,
+        parquet_config: global___ParquetConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "tdms_config", b"tdms_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "csv_config", b"csv_config", "parquet_config", b"parquet_config", "tdms_config", b"tdms_config"]) -> None: ...
 
 global___CreateDataImportFromUploadRequest = CreateDataImportFromUploadRequest
 
@@ -228,6 +286,7 @@ class CsvConfig(google.protobuf.message.Message):
     FIRST_DATA_ROW_FIELD_NUMBER: builtins.int
     TIME_COLUMN_FIELD_NUMBER: builtins.int
     DATA_COLUMNS_FIELD_NUMBER: builtins.int
+    NUM_ROWS_FIELD_NUMBER: builtins.int
     asset_name: builtins.str
     run_name: builtins.str
     run_id: builtins.str
@@ -236,6 +295,8 @@ class CsvConfig(google.protobuf.message.Message):
     """The first row to start reading as data. Can be used to skip header rows.
     The first row in the file is 1.
     """
+    num_rows: builtins.int
+    """This will be read on upload from the file if not set."""
     @property
     def time_column(self) -> global___CsvTimeColumn: ...
     @property
@@ -251,9 +312,13 @@ class CsvConfig(google.protobuf.message.Message):
         first_data_row: builtins.int = ...,
         time_column: global___CsvTimeColumn | None = ...,
         data_columns: collections.abc.Mapping[builtins.int, sift.common.type.v1.channel_config_pb2.ChannelConfig] | None = ...,
+        num_rows: builtins.int | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_time_column", b"_time_column", "time_column", b"time_column"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_time_column", b"_time_column", "asset_name", b"asset_name", "data_columns", b"data_columns", "first_data_row", b"first_data_row", "run_id", b"run_id", "run_name", b"run_name", "time_column", b"time_column"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_num_rows", b"_num_rows", "_time_column", b"_time_column", "num_rows", b"num_rows", "time_column", b"time_column"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_num_rows", b"_num_rows", "_time_column", b"_time_column", "asset_name", b"asset_name", "data_columns", b"data_columns", "first_data_row", b"first_data_row", "num_rows", b"num_rows", "run_id", b"run_id", "run_name", b"run_name", "time_column", b"time_column"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_num_rows", b"_num_rows"]) -> typing.Literal["num_rows"] | None: ...
+    @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_time_column", b"_time_column"]) -> typing.Literal["time_column"] | None: ...
 
 global___CsvConfig = CsvConfig
@@ -288,13 +353,16 @@ class DetectConfigRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     DATA_FIELD_NUMBER: builtins.int
+    TYPE_FIELD_NUMBER: builtins.int
     data: builtins.bytes
+    type: global___DataTypeKey.ValueType
     def __init__(
         self,
         *,
         data: builtins.bytes = ...,
+        type: global___DataTypeKey.ValueType = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data", b"data", "type", b"type"]) -> None: ...
 
 global___DetectConfigRequest = DetectConfigRequest
 
@@ -303,15 +371,19 @@ class DetectConfigResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     CSV_CONFIG_FIELD_NUMBER: builtins.int
+    PARQUET_CONFIG_FIELD_NUMBER: builtins.int
     @property
     def csv_config(self) -> global___CsvConfig: ...
+    @property
+    def parquet_config(self) -> global___ParquetConfig: ...
     def __init__(
         self,
         *,
         csv_config: global___CsvConfig | None = ...,
+        parquet_config: global___ParquetConfig | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["csv_config", b"csv_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["csv_config", b"csv_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["csv_config", b"csv_config", "parquet_config", b"parquet_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["csv_config", b"csv_config", "parquet_config", b"parquet_config"]) -> None: ...
 
 global___DetectConfigResponse = DetectConfigResponse
 
@@ -343,8 +415,13 @@ class TDMSConfig(google.protobuf.message.Message):
     ASSET_NAME_FIELD_NUMBER: builtins.int
     RUN_NAME_FIELD_NUMBER: builtins.int
     START_TIME_OVERRIDE_FIELD_NUMBER: builtins.int
+    FILE_SIZE_FIELD_NUMBER: builtins.int
     asset_name: builtins.str
     run_name: builtins.str
+    file_size: builtins.int
+    """The file size in bytes.
+    If the file has truncated chunks, this will be required to pass validation.
+    """
     @property
     def start_time_override(self) -> google.protobuf.timestamp_pb2.Timestamp:
         """Override the wf_start_time metadata field for all channels.
@@ -357,11 +434,115 @@ class TDMSConfig(google.protobuf.message.Message):
         asset_name: builtins.str = ...,
         run_name: builtins.str = ...,
         start_time_override: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        file_size: builtins.int | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["start_time_override", b"start_time_override"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_name", b"asset_name", "run_name", b"run_name", "start_time_override", b"start_time_override"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_file_size", b"_file_size", "file_size", b"file_size", "start_time_override", b"start_time_override"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_file_size", b"_file_size", "asset_name", b"asset_name", "file_size", b"file_size", "run_name", b"run_name", "start_time_override", b"start_time_override"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_file_size", b"_file_size"]) -> typing.Literal["file_size"] | None: ...
 
 global___TDMSConfig = TDMSConfig
+
+@typing.final
+class ParquetTimeColumn(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PATH_FIELD_NUMBER: builtins.int
+    FORMAT_FIELD_NUMBER: builtins.int
+    RELATIVE_START_TIME_FIELD_NUMBER: builtins.int
+    path: builtins.str
+    format: global___TimeFormat.ValueType
+    @property
+    def relative_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    def __init__(
+        self,
+        *,
+        path: builtins.str = ...,
+        format: global___TimeFormat.ValueType = ...,
+        relative_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "relative_start_time", b"relative_start_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_relative_start_time", b"_relative_start_time", "format", b"format", "path", b"path", "relative_start_time", b"relative_start_time"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_relative_start_time", b"_relative_start_time"]) -> typing.Literal["relative_start_time"] | None: ...
+
+global___ParquetTimeColumn = ParquetTimeColumn
+
+@typing.final
+class ParquetDataColumn(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PATH_FIELD_NUMBER: builtins.int
+    CHANNEL_CONFIG_FIELD_NUMBER: builtins.int
+    path: builtins.str
+    @property
+    def channel_config(self) -> sift.common.type.v1.channel_config_pb2.ChannelConfig: ...
+    def __init__(
+        self,
+        *,
+        path: builtins.str = ...,
+        channel_config: sift.common.type.v1.channel_config_pb2.ChannelConfig | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["channel_config", b"channel_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["channel_config", b"channel_config", "path", b"path"]) -> None: ...
+
+global___ParquetDataColumn = ParquetDataColumn
+
+@typing.final
+class ParquetFlatDatasetConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TIME_COLUMN_FIELD_NUMBER: builtins.int
+    DATA_COLUMNS_FIELD_NUMBER: builtins.int
+    @property
+    def time_column(self) -> global___ParquetTimeColumn: ...
+    @property
+    def data_columns(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ParquetDataColumn]: ...
+    def __init__(
+        self,
+        *,
+        time_column: global___ParquetTimeColumn | None = ...,
+        data_columns: collections.abc.Iterable[global___ParquetDataColumn] | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["time_column", b"time_column"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["data_columns", b"data_columns", "time_column", b"time_column"]) -> None: ...
+
+global___ParquetFlatDatasetConfig = ParquetFlatDatasetConfig
+
+@typing.final
+class ParquetConfig(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_NAME_FIELD_NUMBER: builtins.int
+    RUN_NAME_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
+    FLAT_DATASET_FIELD_NUMBER: builtins.int
+    FOOTER_OFFSET_FIELD_NUMBER: builtins.int
+    FOOTER_LENGTH_FIELD_NUMBER: builtins.int
+    COMPLEX_TYPES_IMPORT_MODE_FIELD_NUMBER: builtins.int
+    asset_name: builtins.str
+    run_name: builtins.str
+    run_id: builtins.str
+    """The id of the run to add this data to. If set, `run_name` is ignored."""
+    footer_offset: builtins.int
+    footer_length: builtins.int
+    complex_types_import_mode: global___ParquetComplexTypesImportMode.ValueType
+    @property
+    def flat_dataset(self) -> global___ParquetFlatDatasetConfig: ...
+    def __init__(
+        self,
+        *,
+        asset_name: builtins.str = ...,
+        run_name: builtins.str = ...,
+        run_id: builtins.str = ...,
+        flat_dataset: global___ParquetFlatDatasetConfig | None = ...,
+        footer_offset: builtins.int = ...,
+        footer_length: builtins.int = ...,
+        complex_types_import_mode: global___ParquetComplexTypesImportMode.ValueType = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["config", b"config", "flat_dataset", b"flat_dataset"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["asset_name", b"asset_name", "complex_types_import_mode", b"complex_types_import_mode", "config", b"config", "flat_dataset", b"flat_dataset", "footer_length", b"footer_length", "footer_offset", b"footer_offset", "run_id", b"run_id", "run_name", b"run_name"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["config", b"config"]) -> typing.Literal["flat_dataset"] | None: ...
+
+global___ParquetConfig = ParquetConfig
 
 @typing.final
 class DataImport(google.protobuf.message.Message):
@@ -376,10 +557,21 @@ class DataImport(google.protobuf.message.Message):
     CSV_CONFIG_FIELD_NUMBER: builtins.int
     CH10_CONFIG_FIELD_NUMBER: builtins.int
     TDMS_CONFIG_FIELD_NUMBER: builtins.int
+    PARQUET_CONFIG_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
+    REPORT_ID_FIELD_NUMBER: builtins.int
+    ASSET_ID_FIELD_NUMBER: builtins.int
+    DATA_START_TIME_FIELD_NUMBER: builtins.int
+    DATA_STOP_TIME_FIELD_NUMBER: builtins.int
     data_import_id: builtins.str
     source_url: builtins.str
     status: global___DataImportStatus.ValueType
     error_message: builtins.str
+    run_id: builtins.str
+    """The run id will be set if the data import ingests to a run once the run is available."""
+    report_id: builtins.str
+    """The report id will be set if the data import creates a report once the report is available."""
+    asset_id: builtins.str
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -390,6 +582,12 @@ class DataImport(google.protobuf.message.Message):
     def ch10_config(self) -> global___Ch10Config: ...
     @property
     def tdms_config(self) -> global___TDMSConfig: ...
+    @property
+    def parquet_config(self) -> global___ParquetConfig: ...
+    @property
+    def data_start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def data_stop_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -402,9 +600,25 @@ class DataImport(google.protobuf.message.Message):
         csv_config: global___CsvConfig | None = ...,
         ch10_config: global___Ch10Config | None = ...,
         tdms_config: global___TDMSConfig | None = ...,
+        parquet_config: global___ParquetConfig | None = ...,
+        run_id: builtins.str | None = ...,
+        report_id: builtins.str | None = ...,
+        asset_id: builtins.str | None = ...,
+        data_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        data_stop_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "modified_date", b"modified_date", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_import_id", b"data_import_id", "error_message", b"error_message", "modified_date", b"modified_date", "source_url", b"source_url", "status", b"status", "tdms_config", b"tdms_config"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "tdms_config", b"tdms_config"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_asset_id", b"_asset_id", "_data_start_time", b"_data_start_time", "_data_stop_time", b"_data_stop_time", "_report_id", b"_report_id", "_run_id", b"_run_id", "asset_id", b"asset_id", "ch10_config", b"ch10_config", "created_date", b"created_date", "csv_config", b"csv_config", "data_import_id", b"data_import_id", "data_start_time", b"data_start_time", "data_stop_time", b"data_stop_time", "error_message", b"error_message", "modified_date", b"modified_date", "parquet_config", b"parquet_config", "report_id", b"report_id", "run_id", b"run_id", "source_url", b"source_url", "status", b"status", "tdms_config", b"tdms_config"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_asset_id", b"_asset_id"]) -> typing.Literal["asset_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_data_start_time", b"_data_start_time"]) -> typing.Literal["data_start_time"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_data_stop_time", b"_data_stop_time"]) -> typing.Literal["data_stop_time"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_report_id", b"_report_id"]) -> typing.Literal["report_id"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_run_id", b"_run_id"]) -> typing.Literal["run_id"] | None: ...
 
 global___DataImport = DataImport
 
