@@ -84,6 +84,7 @@ message CreateDataImportFromUrlRequest {
   CsvConfig csv_config = 2 [(google.api.field_behavior) = OPTIONAL];
   Ch10Config ch10_config = 3 [(google.api.field_behavior) = OPTIONAL];
   TDMSConfig tdms_config = 4 [(google.api.field_behavior) = OPTIONAL];
+  ParquetConfig parquet_config = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUrlResponse {
@@ -102,6 +103,7 @@ message CreateDataImportFromUploadRequest {
   CsvConfig csv_config = 1 [(google.api.field_behavior) = OPTIONAL];
   Ch10Config ch10_config = 3 [(google.api.field_behavior) = OPTIONAL];
   TDMSConfig tdms_config = 4 [(google.api.field_behavior) = OPTIONAL];
+  ParquetConfig parquet_config = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateDataImportFromUploadResponse {
@@ -136,6 +138,8 @@ message CsvConfig {
   optional CsvTimeColumn time_column = 5;
   // A map from column number (1-indexed) to the channel configuration for that column.
   map<uint32, sift.common.type.v1.ChannelConfig> data_columns = 6;
+  // This will be read on upload from the file if not set.
+  optional uint64 num_rows = 7 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CsvTimeColumn {
@@ -145,12 +149,24 @@ message CsvTimeColumn {
   optional google.protobuf.Timestamp relative_start_time = 3;
 }
 
+
+
+enum DataTypeKey {
+  DATA_TYPE_KEY_UNSPECIFIED = 0 [deprecated = true];
+  DATA_TYPE_KEY_CSV = 1;
+  DATA_TYPE_KEY_TDMS = 2;
+  DATA_TYPE_KEY_CH10 = 3;
+  DATA_TYPE_KEY_PARQUET_FLATDATASET = 4;
+}
+
 message DetectConfigRequest {
   bytes data = 1;
+  DataTypeKey type = 2;
 }
 
 message DetectConfigResponse {
   CsvConfig csv_config = 1;
+  ParquetConfig parquet_config = 2;
 }
 
 message Ch10Config {
@@ -166,6 +182,52 @@ message TDMSConfig {
   // Override the wf_start_time metadata field for all channels.
   // Useful if your waveform channels have wf_increment but no wf_start_time (Veristand is guilty of this).
   google.protobuf.Timestamp start_time_override = 3;
+
+  // The file size in bytes.
+  // If the file has truncated chunks, this will be required to pass validation.
+  optional uint64 file_size = 4;
+}
+
+message ParquetTimeColumn {
+  string path = 1;
+  TimeFormat format = 2;
+  optional google.protobuf.Timestamp relative_start_time = 3;
+}
+
+message ParquetDataColumn {
+  string path = 1;
+  sift.common.type.v1.ChannelConfig channel_config = 2;
+}
+
+message ParquetFlatDatasetConfig {
+  ParquetTimeColumn time_column = 1;
+  repeated ParquetDataColumn data_columns = 2;
+}
+
+enum ParquetComplexTypesImportMode {
+  PARQUET_COMPLEX_TYPES_IMPORT_MODE_UNSPECIFIED = 0 [deprecated = true];
+  // Ignore complex types and do not ingest them.
+  PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE = 1;
+  // Import complex types as both Arrow bytes and JSON strings.
+  PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH = 2;
+  // Import complex types as only JSON strings.
+  PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING = 3;
+  // Import complex types as only Arrow bytes.
+  PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES = 4;
+}
+
+message ParquetConfig {
+  string asset_name = 1;
+  string run_name = 2;
+  // The id of the run to add this data to. If set, `run_name` is ignored.
+  string run_id = 3;
+  oneof config {
+    ParquetFlatDatasetConfig flat_dataset = 4;
+  }
+  uint64 footer_offset = 5;
+  uint32 footer_length = 6;
+
+  ParquetComplexTypesImportMode complex_types_import_mode = 7;
 }
 
 enum DataImportStatus {
@@ -186,6 +248,17 @@ message DataImport {
   CsvConfig csv_config = 6 [(google.api.field_behavior) = OPTIONAL];
   Ch10Config ch10_config = 9 [(google.api.field_behavior) = OPTIONAL];
   TDMSConfig tdms_config = 10 [(google.api.field_behavior) = OPTIONAL];
+  ParquetConfig parquet_config = 16 [(google.api.field_behavior) = OPTIONAL];
+
+  // The run id will be set if the data import ingests to a run once the run is available.
+  optional string run_id = 11 [(google.api.field_behavior) = OPTIONAL];
+
+  // The report id will be set if the data import creates a report once the report is available.
+  optional string report_id = 12 [(google.api.field_behavior) = OPTIONAL];
+
+  optional string asset_id = 13 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Timestamp data_start_time = 14 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Timestamp data_stop_time = 15 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListDataImportsRequest {
