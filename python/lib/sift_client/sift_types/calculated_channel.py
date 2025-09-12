@@ -12,7 +12,13 @@ from sift.calculated_channels.v2.calculated_channels_pb2 import (
     CreateCalculatedChannelRequest,
 )
 
-from sift_client.sift_types._base import BaseType, MappingHelper, ModelCreate, ModelUpdate
+from sift_client.sift_types._base import (
+    BaseType,
+    MappingHelper,
+    ModelCreate,
+    ModelCreateUpdateBase,
+    ModelUpdate,
+)
 from sift_client.sift_types.channel import ChannelReference
 from sift_client.util.metadata import metadata_dict_to_proto
 
@@ -125,14 +131,12 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         )
 
 
-class CalculatedChannelCreate(ModelCreate[CreateCalculatedChannelRequest]):
-    """Create model for a Calculated Channel."""
+class CalculatedChannelBase(ModelCreateUpdateBase):
+    """Base class for CalculatedChannel create and update models with shared fields and validation."""
 
-    name: str
     description: str | None = None
     user_notes: str | None = None
     units: str | None = None
-    client_key: str | None = None
 
     expression: str | None = None
     # This is named expression_channel_references to match the protobuf field name for easier deserialization.
@@ -187,15 +191,21 @@ class CalculatedChannelCreate(ModelCreate[CreateCalculatedChannelRequest]):
             raise ValueError("Expression and channel references must be set together")
         return self
 
+
+class CalculatedChannelCreate(CalculatedChannelBase, ModelCreate[CreateCalculatedChannelRequest]):
+    """Create model for a Calculated Channel."""
+
+    name: str
+    client_key: str | None = None
+
     def _get_proto_class(self) -> type[CreateCalculatedChannelRequest]:
         return CreateCalculatedChannelRequest
 
 
-class CalculatedChannelUpdate(CalculatedChannelCreate, ModelUpdate[CalculatedChannelProto]):
-    """Update model for a Calculated Channel. Inherits from the CalculatedChannelCreate model."""
+class CalculatedChannelUpdate(CalculatedChannelBase, ModelUpdate[CalculatedChannelProto]):
+    """Update model for a Calculated Channel."""
 
     name: str | None = None
-
     archived_date: datetime | None = None
 
     @model_validator(mode="after")
