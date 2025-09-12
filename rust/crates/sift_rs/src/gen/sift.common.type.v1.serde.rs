@@ -155,6 +155,9 @@ impl serde::Serialize for ChannelConfig {
         if !self.bit_field_elements.is_empty() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.ChannelConfig", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -176,6 +179,9 @@ impl serde::Serialize for ChannelConfig {
         if !self.bit_field_elements.is_empty() {
             struct_ser.serialize_field("bitFieldElements", &self.bit_field_elements)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -195,6 +201,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfig {
             "enumTypes",
             "bit_field_elements",
             "bitFieldElements",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -205,6 +212,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfig {
             DataType,
             EnumTypes,
             BitFieldElements,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -232,6 +240,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfig {
                             "dataType" | "data_type" => Ok(GeneratedField::DataType),
                             "enumTypes" | "enum_types" => Ok(GeneratedField::EnumTypes),
                             "bitFieldElements" | "bit_field_elements" => Ok(GeneratedField::BitFieldElements),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -257,6 +266,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfig {
                 let mut data_type__ = None;
                 let mut enum_types__ = None;
                 let mut bit_field_elements__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -295,6 +305,12 @@ impl<'de> serde::Deserialize<'de> for ChannelConfig {
                             }
                             bit_field_elements__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ChannelConfig {
@@ -304,6 +320,7 @@ impl<'de> serde::Deserialize<'de> for ChannelConfig {
                     data_type: data_type__.unwrap_or_default(),
                     enum_types: enum_types__.unwrap_or_default(),
                     bit_field_elements: bit_field_elements__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -425,12 +442,18 @@ impl serde::Serialize for ChannelEnumType {
         if self.key != 0 {
             len += 1;
         }
+        if self.is_signed {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.ChannelEnumType", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
         }
         if self.key != 0 {
             struct_ser.serialize_field("key", &self.key)?;
+        }
+        if self.is_signed {
+            struct_ser.serialize_field("isSigned", &self.is_signed)?;
         }
         struct_ser.end()
     }
@@ -444,12 +467,15 @@ impl<'de> serde::Deserialize<'de> for ChannelEnumType {
         const FIELDS: &[&str] = &[
             "name",
             "key",
+            "is_signed",
+            "isSigned",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Name,
             Key,
+            IsSigned,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -473,6 +499,7 @@ impl<'de> serde::Deserialize<'de> for ChannelEnumType {
                         match value {
                             "name" => Ok(GeneratedField::Name),
                             "key" => Ok(GeneratedField::Key),
+                            "isSigned" | "is_signed" => Ok(GeneratedField::IsSigned),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -494,6 +521,7 @@ impl<'de> serde::Deserialize<'de> for ChannelEnumType {
             {
                 let mut name__ = None;
                 let mut key__ = None;
+                let mut is_signed__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -510,11 +538,18 @@ impl<'de> serde::Deserialize<'de> for ChannelEnumType {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
+                        GeneratedField::IsSigned => {
+                            if is_signed__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isSigned"));
+                            }
+                            is_signed__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ChannelEnumType {
                     name: name__.unwrap_or_default(),
                     key: key__.unwrap_or_default(),
+                    is_signed: is_signed__.unwrap_or_default(),
                 })
             }
         }
@@ -2101,6 +2136,9 @@ impl serde::Serialize for UserDefinedFunction {
         if !self.modified_by_user_id.is_empty() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.UserDefinedFunction", len)?;
         if !self.user_defined_function_id.is_empty() {
             struct_ser.serialize_field("userDefinedFunctionId", &self.user_defined_function_id)?;
@@ -2152,6 +2190,9 @@ impl serde::Serialize for UserDefinedFunction {
         if !self.modified_by_user_id.is_empty() {
             struct_ser.serialize_field("modifiedByUserId", &self.modified_by_user_id)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -2190,6 +2231,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
             "createdByUserId",
             "modified_by_user_id",
             "modifiedByUserId",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2210,6 +2252,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
             ModifiedDate,
             CreatedByUserId,
             ModifiedByUserId,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2247,6 +2290,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
                             "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2282,6 +2326,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
                 let mut modified_date__ = None;
                 let mut created_by_user_id__ = None;
                 let mut modified_by_user_id__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::UserDefinedFunctionId => {
@@ -2382,6 +2427,12 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
                             }
                             modified_by_user_id__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(UserDefinedFunction {
@@ -2401,6 +2452,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
                     modified_date: modified_date__,
                     created_by_user_id: created_by_user_id__.unwrap_or_default(),
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }

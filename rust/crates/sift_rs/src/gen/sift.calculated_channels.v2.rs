@@ -35,6 +35,10 @@ pub struct CalculatedChannel {
     pub created_by_user_id: ::prost::alloc::string::String,
     #[prost(string, tag="17")]
     pub modified_by_user_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="19")]
+    pub function_dependencies: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::FunctionDependency>,
+    #[prost(message, repeated, tag="20")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -143,6 +147,8 @@ pub struct CreateCalculatedChannelRequest {
     pub client_key: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="5")]
     pub calculated_channel_configuration: ::core::option::Option<CalculatedChannelConfiguration>,
+    #[prost(message, repeated, tag="8")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -243,34 +249,33 @@ pub mod resolve_calculated_channel_request {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolvedCalculatedChannel {
+    #[prost(string, tag="1")]
+    pub asset_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub expression_request: ::core::option::Option<super::v1::ExpressionRequest>,
+    #[prost(enumeration="super::super::common::r#type::v1::ChannelDataType", tag="3")]
+    pub output_data_type: i32,
+    #[prost(string, tag="4")]
+    pub asset_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnresolvedCalculatedChannel {
+    #[prost(string, tag="1")]
+    pub asset_name: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub error_message: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveCalculatedChannelResponse {
     #[prost(string, optional, tag="1")]
     pub calculated_channel_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, repeated, tag="2")]
-    pub resolved: ::prost::alloc::vec::Vec<resolve_calculated_channel_response::ResolvedCalculatedChannel>,
+    pub resolved: ::prost::alloc::vec::Vec<ResolvedCalculatedChannel>,
     #[prost(message, repeated, tag="3")]
-    pub unresolved: ::prost::alloc::vec::Vec<resolve_calculated_channel_response::UnresolvedCalculatedChannel>,
-}
-/// Nested message and enum types in `ResolveCalculatedChannelResponse`.
-pub mod resolve_calculated_channel_response {
-    #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct ResolvedCalculatedChannel {
-        #[prost(string, tag="1")]
-        pub asset_name: ::prost::alloc::string::String,
-        #[prost(message, optional, tag="2")]
-        pub expression_request: ::core::option::Option<super::super::v1::ExpressionRequest>,
-        #[prost(enumeration="super::super::super::common::r#type::v1::ChannelDataType", tag="3")]
-        pub output_data_type: i32,
-    }
-    #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct UnresolvedCalculatedChannel {
-        #[prost(string, tag="1")]
-        pub asset_name: ::prost::alloc::string::String,
-        #[prost(string, tag="2")]
-        pub error_message: ::prost::alloc::string::String,
-    }
+    pub unresolved: ::prost::alloc::vec::Vec<UnresolvedCalculatedChannel>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -283,6 +288,40 @@ pub struct BatchResolveCalculatedChannelsRequest {
 pub struct BatchResolveCalculatedChannelsResponse {
     #[prost(message, repeated, tag="1")]
     pub responses: ::prost::alloc::vec::Vec<ResolveCalculatedChannelResponse>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListResolvedCalculatedChannelsRequest {
+    #[prost(string, tag="1")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub run_id: ::prost::alloc::string::String,
+    #[prost(uint32, tag="3")]
+    pub page_size: u32,
+    #[prost(string, tag="4")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(string, tag="5")]
+    pub filter: ::prost::alloc::string::String,
+    #[prost(string, tag="6")]
+    pub order_by: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CalculatedChannelResolution {
+    #[prost(message, optional, tag="1")]
+    pub calculated_channel: ::core::option::Option<CalculatedChannel>,
+    #[prost(message, repeated, tag="2")]
+    pub resolved: ::prost::alloc::vec::Vec<ResolvedCalculatedChannel>,
+    #[prost(message, repeated, tag="3")]
+    pub unresolved: ::prost::alloc::vec::Vec<UnresolvedCalculatedChannel>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListResolvedCalculatedChannelsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub calculated_channel_resolutions: ::prost::alloc::vec::Vec<CalculatedChannelResolution>,
+    #[prost(string, tag="3")]
+    pub next_page_token: ::prost::alloc::string::String,
 }
 include!("sift.calculated_channels.v2.tonic.rs");
 include!("sift.calculated_channels.v2.serde.rs");

@@ -6,10 +6,12 @@ isort:skip_file
 import builtins
 import collections.abc
 import google.protobuf.descriptor
+import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.metadata.v1.metadata_pb2
 import sys
 import typing
 
@@ -62,6 +64,9 @@ class Report(google.protobuf.message.Message):
     SUMMARIES_FIELD_NUMBER: builtins.int
     TAGS_FIELD_NUMBER: builtins.int
     RERUN_FROM_REPORT_ID_FIELD_NUMBER: builtins.int
+    JOB_ID_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     report_id: builtins.str
     report_template_id: builtins.str
     run_id: builtins.str
@@ -71,6 +76,7 @@ class Report(google.protobuf.message.Message):
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
     rerun_from_report_id: builtins.str
+    job_id: builtins.str
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -79,6 +85,10 @@ class Report(google.protobuf.message.Message):
     def summaries(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportRuleSummary]: ...
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReportTag]: ...
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -95,11 +105,18 @@ class Report(google.protobuf.message.Message):
         summaries: collections.abc.Iterable[global___ReportRuleSummary] | None = ...,
         tags: collections.abc.Iterable[global___ReportTag] | None = ...,
         rerun_from_report_id: builtins.str | None = ...,
+        job_id: builtins.str | None = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_description", b"_description", "_rerun_from_report_id", b"_rerun_from_report_id", "created_date", b"created_date", "description", b"description", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_description", b"_description", "_rerun_from_report_id", b"_rerun_from_report_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "summaries", b"summaries", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_date", b"created_date", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "job_id", b"job_id", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "summaries", b"summaries", "tags", b"tags"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_job_id", b"_job_id"]) -> typing.Literal["job_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_rerun_from_report_id", b"_rerun_from_report_id"]) -> typing.Literal["rerun_from_report_id"] | None: ...
 
@@ -334,9 +351,7 @@ global___ReportRuleStatusDetailsError = ReportRuleStatusDetailsError
 
 @typing.final
 class CreateReportRequest(google.protobuf.message.Message):
-    """The request of a call to `ReportService_CreateReport` to create a report. A report can be created either via a report template
-    or an arbitrary report can be constructed depending on the variant of the `request` field.
-    """
+    """Deprecated - use RuleEvaluationService instead."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -345,6 +360,7 @@ class CreateReportRequest(google.protobuf.message.Message):
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
     NAME_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     organization_id: builtins.str
     run_id: builtins.str
     name: builtins.str
@@ -353,6 +369,8 @@ class CreateReportRequest(google.protobuf.message.Message):
     def report_from_report_template_request(self) -> global___CreateReportFromReportTemplateRequest: ...
     @property
     def report_from_rules_request(self) -> global___CreateReportFromRulesRequest: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -361,9 +379,10 @@ class CreateReportRequest(google.protobuf.message.Message):
         organization_id: builtins.str = ...,
         run_id: builtins.str = ...,
         name: builtins.str | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_name", b"_name", "name", b"name", "report_from_report_template_request", b"report_from_report_template_request", "report_from_rules_request", b"report_from_rules_request", "request", b"request"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_name", b"_name", "name", b"name", "organization_id", b"organization_id", "report_from_report_template_request", b"report_from_report_template_request", "report_from_rules_request", b"report_from_rules_request", "request", b"request", "run_id", b"run_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_name", b"_name", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "report_from_report_template_request", b"report_from_report_template_request", "report_from_rules_request", b"report_from_rules_request", "request", b"request", "run_id", b"run_id"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_name", b"_name"]) -> typing.Literal["name"] | None: ...
     @typing.overload
@@ -373,7 +392,7 @@ global___CreateReportRequest = CreateReportRequest
 
 @typing.final
 class CreateReportResponse(google.protobuf.message.Message):
-    """The response of a call to `ReportService_CreateReport` to create a report."""
+    """Deprecated - use RuleEvaluationService instead."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -392,7 +411,7 @@ global___CreateReportResponse = CreateReportResponse
 
 @typing.final
 class CreateReportFromReportTemplateRequest(google.protobuf.message.Message):
-    """Used to create a report from a report template."""
+    """Deprecated - use RuleEvaluationService instead."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -409,9 +428,7 @@ global___CreateReportFromReportTemplateRequest = CreateReportFromReportTemplateR
 
 @typing.final
 class CreateReportFromRulesRequest(google.protobuf.message.Message):
-    """Used to construct an arbitrary report for an arbitrary set of rules. Rules can be specified either by rule ID
-    or client key based on the variant used in the `rule_identifiers` field.
-    """
+    """Deprecated - use RuleEvaluationService instead."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -448,6 +465,8 @@ global___CreateReportFromRulesRequest = CreateReportFromRulesRequest
 
 @typing.final
 class CreateReportRequestRuleIds(google.protobuf.message.Message):
+    """Deprecated - use RuleEvaluationService instead."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RULE_IDS_FIELD_NUMBER: builtins.int
@@ -464,6 +483,8 @@ global___CreateReportRequestRuleIds = CreateReportRequestRuleIds
 
 @typing.final
 class CreateReportRequestClientKeys(google.protobuf.message.Message):
+    """Deprecated - use RuleEvaluationService instead."""
+
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     RULE_CLIENT_KEYS_FIELD_NUMBER: builtins.int
@@ -538,7 +559,7 @@ class ListReportsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, and `run_id`.
+    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, and `archived_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
     """
@@ -546,8 +567,8 @@ class ListReportsRequest(google.protobuf.message.Message):
     """This field is only required if your user belongs to multiple organizations."""
     order_by: builtins.str
     """How to order the retrieved reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `created_date` and `modified_date`.
-    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    Available fields to order_by are `name`, `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
     """
@@ -644,3 +665,40 @@ class CancelReportResponse(google.protobuf.message.Message):
     ) -> None: ...
 
 global___CancelReportResponse = CancelReportResponse
+
+@typing.final
+class UpdateReportRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_FIELD_NUMBER: builtins.int
+    UPDATE_MASK_FIELD_NUMBER: builtins.int
+    @property
+    def report(self) -> global___Report:
+        """The report to update."""
+
+    @property
+    def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
+        """The list of fields to be updated. The fields available to be updated are `archived_date` and `metadata`."""
+
+    def __init__(
+        self,
+        *,
+        report: global___Report | None = ...,
+        update_mask: google.protobuf.field_mask_pb2.FieldMask | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["report", b"report", "update_mask", b"update_mask"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["report", b"report", "update_mask", b"update_mask"]) -> None: ...
+
+global___UpdateReportRequest = UpdateReportRequest
+
+@typing.final
+class UpdateReportResponse(google.protobuf.message.Message):
+    """no response fields"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___UpdateReportResponse = UpdateReportResponse

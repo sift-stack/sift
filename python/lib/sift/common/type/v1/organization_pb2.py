@@ -12,9 +12,10 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
+from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&sift/common/type/v1/organization.proto\x12\x13sift.common.type.v1\"d\n\x0cOrganization\x12\'\n\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12+\n\x11organization_name\x18\x02 \x01(\tR\x10organizationNameB\x9b\x01\n\x17\x63om.sift.common.type.v1B\x11OrganizationProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&sift/common/type/v1/organization.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\"n\n\x0cOrganization\x12,\n\x0forganization_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\x30\n\x11organization_name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x10organizationNameB\x9b\x01\n\x17\x63om.sift.common.type.v1B\x11OrganizationProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -22,6 +23,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'sift.common.type.v1.organiz
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\027com.sift.common.type.v1B\021OrganizationProtoP\001\242\002\003SCT\252\002\023Sift.Common.Type.V1\312\002\023Sift\\Common\\Type\\V1\342\002\037Sift\\Common\\Type\\V1\\GPBMetadata\352\002\026Sift::Common::Type::V1'
-  _globals['_ORGANIZATION']._serialized_start=63
-  _globals['_ORGANIZATION']._serialized_end=163
+  _globals['_ORGANIZATION'].fields_by_name['organization_id']._loaded_options = None
+  _globals['_ORGANIZATION'].fields_by_name['organization_id']._serialized_options = b'\340A\002'
+  _globals['_ORGANIZATION'].fields_by_name['organization_name']._loaded_options = None
+  _globals['_ORGANIZATION'].fields_by_name['organization_name']._serialized_options = b'\340A\002'
+  _globals['_ORGANIZATION']._serialized_start=96
+  _globals['_ORGANIZATION']._serialized_end=206
 # @@protoc_insertion_point(module_scope)

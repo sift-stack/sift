@@ -43,6 +43,16 @@ pub struct Annotation {
     pub report_rule_version_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(bool, tag="20")]
     pub pending: bool,
+    #[prost(message, optional, tag="21")]
+    pub assigned_to_user: ::core::option::Option<super::super::common::r#type::v1::User>,
+    #[prost(message, optional, tag="22")]
+    pub deleted_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, repeated, tag="23")]
+    pub linked_channels: ::prost::alloc::vec::Vec<AnnotationLinkedChannel>,
+    #[prost(string, repeated, tag="24")]
+    pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="25")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -108,6 +118,8 @@ pub struct CreateAnnotationRequest {
     pub legend_config: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="15")]
     pub created_by_rule_condition_version_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="16")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

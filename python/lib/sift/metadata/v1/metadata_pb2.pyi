@@ -9,6 +9,7 @@ import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
+import google.protobuf.timestamp_pb2
 import sys
 import typing
 
@@ -51,15 +52,20 @@ class MetadataKey(google.protobuf.message.Message):
 
     NAME_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     name: builtins.str
     type: global___MetadataKeyType.ValueType
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
         name: builtins.str = ...,
         type: global___MetadataKeyType.ValueType = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["name", b"name", "type", b"type"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "name", b"name", "type", b"type"]) -> None: ...
 
 global___MetadataKey = MetadataKey
 
@@ -71,11 +77,14 @@ class MetadataValue(google.protobuf.message.Message):
     STRING_VALUE_FIELD_NUMBER: builtins.int
     NUMBER_VALUE_FIELD_NUMBER: builtins.int
     BOOLEAN_VALUE_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     string_value: builtins.str
     number_value: builtins.float
     boolean_value: builtins.bool
     @property
     def key(self) -> global___MetadataKey: ...
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -83,9 +92,10 @@ class MetadataValue(google.protobuf.message.Message):
         string_value: builtins.str = ...,
         number_value: builtins.float = ...,
         boolean_value: builtins.bool = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["value", b"value"]) -> typing.Literal["string_value", "number_value", "boolean_value"] | None: ...
 
 global___MetadataValue = MetadataValue
@@ -127,6 +137,44 @@ class CreateMetadataKeyResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["metadata_key", b"metadata_key"]) -> None: ...
 
 global___CreateMetadataKeyResponse = CreateMetadataKeyResponse
+
+@typing.final
+class CreateMetadataValueRequest(google.protobuf.message.Message):
+    """The request of a call to `MetadataService_CreateMetadataValue` to create a metadata value."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_VALUE_FIELD_NUMBER: builtins.int
+    @property
+    def metadata_value(self) -> global___MetadataValue: ...
+    def __init__(
+        self,
+        *,
+        metadata_value: global___MetadataValue | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["metadata_value", b"metadata_value"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["metadata_value", b"metadata_value"]) -> None: ...
+
+global___CreateMetadataValueRequest = CreateMetadataValueRequest
+
+@typing.final
+class CreateMetadataValueResponse(google.protobuf.message.Message):
+    """The response of a call to `MetadataService_CreateMetadataValue` to create a metadata value."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_VALUE_FIELD_NUMBER: builtins.int
+    @property
+    def metadata_value(self) -> global___MetadataValue: ...
+    def __init__(
+        self,
+        *,
+        metadata_value: global___MetadataValue | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["metadata_value", b"metadata_value"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["metadata_value", b"metadata_value"]) -> None: ...
+
+global___CreateMetadataValueResponse = CreateMetadataValueResponse
 
 @typing.final
 class ListMetadataKeysRequest(google.protobuf.message.Message):
@@ -195,3 +243,321 @@ class ListMetadataKeysResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["metadata_keys", b"metadata_keys", "next_page_token", b"next_page_token"]) -> None: ...
 
 global___ListMetadataKeysResponse = ListMetadataKeysResponse
+
+@typing.final
+class ListMetadataValuesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
+    METADATA_KEY_NAME_FIELD_NUMBER: builtins.int
+    page_size: builtins.int
+    """The maximum number of metadata values to return. The service may return fewer than this value.
+    If unspecified, at most 50 metadata values will be returned. The maximum value is 1000; values above
+    1000 will be coerced to 1000. Optional.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListMetadataValues` call.
+    Provide this to retrieve the subsequent page.
+    When paginating, all other parameters provided to `ListMetadataValues` must match
+    the call that provided the page token. Optional.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are:
+    `value_string`, `value_number`, and `value_boolean`.
+    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+    For more information about the fields used for filtering, please refer to this definition. Optional.
+    """
+    order_by: builtins.str
+    """How to order the retrieved metadata keys. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+    Available fields to order_by are `created_date` and `name`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
+    metadata_key_name: builtins.str
+    """The name of the metadata key to list values for."""
+    def __init__(
+        self,
+        *,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        order_by: builtins.str = ...,
+        metadata_key_name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "metadata_key_name", b"metadata_key_name", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+
+global___ListMetadataValuesRequest = ListMetadataValuesRequest
+
+@typing.final
+class ListMetadataValuesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_VALUES_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def metadata_values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___MetadataValue]: ...
+    def __init__(
+        self,
+        *,
+        metadata_values: collections.abc.Iterable[global___MetadataValue] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_values", b"metadata_values", "next_page_token", b"next_page_token"]) -> None: ...
+
+global___ListMetadataValuesResponse = ListMetadataValuesResponse
+
+@typing.final
+class ArchiveMetadataKeysRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_KEYS_FIELD_NUMBER: builtins.int
+    @property
+    def metadata_keys(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___MetadataKey]: ...
+    def __init__(
+        self,
+        *,
+        metadata_keys: collections.abc.Iterable[global___MetadataKey] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_keys", b"metadata_keys"]) -> None: ...
+
+global___ArchiveMetadataKeysRequest = ArchiveMetadataKeysRequest
+
+@typing.final
+class ArchiveMetadataKeysResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___ArchiveMetadataKeysResponse = ArchiveMetadataKeysResponse
+
+@typing.final
+class ArchiveMetadataValuesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_VALUES_FIELD_NUMBER: builtins.int
+    @property
+    def metadata_values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___MetadataValue]: ...
+    def __init__(
+        self,
+        *,
+        metadata_values: collections.abc.Iterable[global___MetadataValue] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_values", b"metadata_values"]) -> None: ...
+
+global___ArchiveMetadataValuesRequest = ArchiveMetadataValuesRequest
+
+@typing.final
+class ArchiveMetadataValuesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___ArchiveMetadataValuesResponse = ArchiveMetadataValuesResponse
+
+@typing.final
+class UnarchiveMetadataKeysRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_KEYS_FIELD_NUMBER: builtins.int
+    UNARCHIVE_VALUES_FIELD_NUMBER: builtins.int
+    unarchive_values: builtins.bool
+    @property
+    def metadata_keys(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___MetadataKey]: ...
+    def __init__(
+        self,
+        *,
+        metadata_keys: collections.abc.Iterable[global___MetadataKey] | None = ...,
+        unarchive_values: builtins.bool = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_keys", b"metadata_keys", "unarchive_values", b"unarchive_values"]) -> None: ...
+
+global___UnarchiveMetadataKeysRequest = UnarchiveMetadataKeysRequest
+
+@typing.final
+class UnarchiveMetadataKeysResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___UnarchiveMetadataKeysResponse = UnarchiveMetadataKeysResponse
+
+@typing.final
+class UnarchiveMetadataValuesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_VALUES_FIELD_NUMBER: builtins.int
+    @property
+    def metadata_values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___MetadataValue]: ...
+    def __init__(
+        self,
+        *,
+        metadata_values: collections.abc.Iterable[global___MetadataValue] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_values", b"metadata_values"]) -> None: ...
+
+global___UnarchiveMetadataValuesRequest = UnarchiveMetadataValuesRequest
+
+@typing.final
+class UnarchiveMetadataValuesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___UnarchiveMetadataValuesResponse = UnarchiveMetadataValuesResponse
+
+@typing.final
+class DeleteMetadataKeysRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_KEYS_FIELD_NUMBER: builtins.int
+    @property
+    def metadata_keys(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___MetadataKey]: ...
+    def __init__(
+        self,
+        *,
+        metadata_keys: collections.abc.Iterable[global___MetadataKey] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_keys", b"metadata_keys"]) -> None: ...
+
+global___DeleteMetadataKeysRequest = DeleteMetadataKeysRequest
+
+@typing.final
+class DeleteMetadataKeysResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___DeleteMetadataKeysResponse = DeleteMetadataKeysResponse
+
+@typing.final
+class DeleteMetadataValuesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_VALUES_FIELD_NUMBER: builtins.int
+    @property
+    def metadata_values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___MetadataValue]: ...
+    def __init__(
+        self,
+        *,
+        metadata_values: collections.abc.Iterable[global___MetadataValue] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_values", b"metadata_values"]) -> None: ...
+
+global___DeleteMetadataValuesRequest = DeleteMetadataValuesRequest
+
+@typing.final
+class DeleteMetadataValuesResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___DeleteMetadataValuesResponse = DeleteMetadataValuesResponse
+
+@typing.final
+class MetadataUsage(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ENTITY_ID_FIELD_NUMBER: builtins.int
+    ENTITY_TYPE_FIELD_NUMBER: builtins.int
+    VALUE_FIELD_NUMBER: builtins.int
+    entity_id: builtins.str
+    """The ID of the entity. For example assetId, runId, reportId, etc."""
+    entity_type: builtins.str
+    """The type of the entity. For example asset, run, report, etc."""
+    @property
+    def value(self) -> global___MetadataValue:
+        """The value of the metadata key on this entity."""
+
+    def __init__(
+        self,
+        *,
+        entity_id: builtins.str = ...,
+        entity_type: builtins.str = ...,
+        value: global___MetadataValue | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["value", b"value"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["entity_id", b"entity_id", "entity_type", b"entity_type", "value", b"value"]) -> None: ...
+
+global___MetadataUsage = MetadataUsage
+
+@typing.final
+class ListMetadataUsageRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
+    page_size: builtins.int
+    """The maximum number of metadata key usages to return. The service may return fewer than this value.
+    If unspecified, at most 50 metadata key usages will be returned. The maximum value is 1000; values above
+    1000 will be coerced to 1000. Optional.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListMetadataUsage` call.
+    Provide this to retrieve the subsequent page.
+    When paginating, all other parameters provided to `ListMetadataUsage` must match
+    the call that provided the page token. Optional.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are:
+    `entity_name`, `entity_type`, `key_name`,`value_string`, `value_number`, and `value_boolean`.
+    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+    For more information about the fields used for filtering, please refer to this definition. Optional.
+    """
+    order_by: builtins.str
+    """How to order the retrieved metadata key usages. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+    Available fields to order_by are `created_date`, `entity_id` and `entity_type`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc"
+    """
+    def __init__(
+        self,
+        *,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        order_by: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+
+global___ListMetadataUsageRequest = ListMetadataUsageRequest
+
+@typing.final
+class ListMetadataUsageResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    METADATA_USAGES_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def metadata_usages(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___MetadataUsage]: ...
+    def __init__(
+        self,
+        *,
+        metadata_usages: collections.abc.Iterable[global___MetadataUsage] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["metadata_usages", b"metadata_usages", "next_page_token", b"next_page_token"]) -> None: ...
+
+global___ListMetadataUsageResponse = ListMetadataUsageResponse

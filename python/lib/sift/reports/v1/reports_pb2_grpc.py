@@ -24,6 +24,11 @@ class ReportServiceStub(object):
                 request_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.CreateReportRequest.SerializeToString,
                 response_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.CreateReportResponse.FromString,
                 )
+        self.UpdateReport = channel.unary_unary(
+                '/sift.reports.v1.ReportService/UpdateReport',
+                request_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.UpdateReportRequest.SerializeToString,
+                response_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.UpdateReportResponse.FromString,
+                )
         self.ListReports = channel.unary_unary(
                 '/sift.reports.v1.ReportService/ListReports',
                 request_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.ListReportsRequest.SerializeToString,
@@ -52,7 +57,14 @@ class ReportServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def CreateReport(self, request, context):
-        """Create a report.
+        """Deprecated - use RuleEvaluationService instead.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateReport(self, request, context):
+        """Update a report.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -93,6 +105,11 @@ def add_ReportServiceServicer_to_server(servicer, server):
                     servicer.CreateReport,
                     request_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.CreateReportRequest.FromString,
                     response_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.CreateReportResponse.SerializeToString,
+            ),
+            'UpdateReport': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateReport,
+                    request_deserializer=sift_dot_reports_dot_v1_dot_reports__pb2.UpdateReportRequest.FromString,
+                    response_serializer=sift_dot_reports_dot_v1_dot_reports__pb2.UpdateReportResponse.SerializeToString,
             ),
             'ListReports': grpc.unary_unary_rpc_method_handler(
                     servicer.ListReports,
@@ -150,6 +167,23 @@ class ReportService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.reports.v1.ReportService/CreateReport',
             sift_dot_reports_dot_v1_dot_reports__pb2.CreateReportRequest.SerializeToString,
             sift_dot_reports_dot_v1_dot_reports__pb2.CreateReportResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UpdateReport(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.reports.v1.ReportService/UpdateReport',
+            sift_dot_reports_dot_v1_dot_reports__pb2.UpdateReportRequest.SerializeToString,
+            sift_dot_reports_dot_v1_dot_reports__pb2.UpdateReportResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

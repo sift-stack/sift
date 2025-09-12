@@ -38,6 +38,8 @@ pub struct Rule {
     pub deleted_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(bool, tag="18")]
     pub is_external: bool,
+    #[prost(message, repeated, tag="19")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -195,6 +197,7 @@ pub struct UpdateRuleRequest {
     #[deprecated]
     #[prost(string, tag="4")]
     pub asset_id: ::prost::alloc::string::String,
+    #[deprecated]
     #[prost(bool, tag="5")]
     pub is_enabled: bool,
     #[prost(message, repeated, tag="6")]
@@ -211,6 +214,8 @@ pub struct UpdateRuleRequest {
     pub contextual_channels: ::core::option::Option<ContextualChannels>,
     #[prost(bool, tag="12")]
     pub is_external: bool,
+    #[prost(message, repeated, tag="13")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -611,6 +616,8 @@ pub struct AnnotationActionConfiguration {
     pub annotation_type: i32,
     #[prost(string, optional, tag="3")]
     pub assigned_to_user_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="4")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

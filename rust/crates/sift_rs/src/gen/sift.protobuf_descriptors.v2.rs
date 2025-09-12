@@ -223,6 +223,8 @@ pub struct IncompatibleProtobufField {
     pub reason: ::prost::alloc::string::String,
     #[prost(string, tag="7")]
     pub details: ::prost::alloc::string::String,
+    #[prost(string, tag="8")]
+    pub field_kind: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

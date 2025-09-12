@@ -114,6 +114,36 @@ pub mod metadata_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn create_metadata_value(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CreateMetadataValueRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateMetadataValueResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/CreateMetadataValue",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "CreateMetadataValue",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn list_metadata_keys(
             &mut self,
             request: impl tonic::IntoRequest<super::ListMetadataKeysRequest>,
@@ -144,6 +174,246 @@ pub mod metadata_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn list_metadata_values(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListMetadataValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListMetadataValuesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/ListMetadataValues",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "ListMetadataValues",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn archive_metadata_keys(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ArchiveMetadataKeysRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ArchiveMetadataKeysResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/ArchiveMetadataKeys",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "ArchiveMetadataKeys",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn archive_metadata_values(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ArchiveMetadataValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ArchiveMetadataValuesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/ArchiveMetadataValues",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "ArchiveMetadataValues",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn unarchive_metadata_keys(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UnarchiveMetadataKeysRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UnarchiveMetadataKeysResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/UnarchiveMetadataKeys",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "UnarchiveMetadataKeys",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn unarchive_metadata_values(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UnarchiveMetadataValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UnarchiveMetadataValuesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/UnarchiveMetadataValues",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "UnarchiveMetadataValues",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_metadata_keys(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteMetadataKeysRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteMetadataKeysResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/DeleteMetadataKeys",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "DeleteMetadataKeys",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_metadata_values(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteMetadataValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteMetadataValuesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/DeleteMetadataValues",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "DeleteMetadataValues",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_metadata_usage(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListMetadataUsageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListMetadataUsageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.metadata.v1.MetadataService/ListMetadataUsage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.metadata.v1.MetadataService",
+                        "ListMetadataUsage",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -160,11 +430,74 @@ pub mod metadata_service_server {
             tonic::Response<super::CreateMetadataKeyResponse>,
             tonic::Status,
         >;
+        async fn create_metadata_value(
+            &self,
+            request: tonic::Request<super::CreateMetadataValueRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateMetadataValueResponse>,
+            tonic::Status,
+        >;
         async fn list_metadata_keys(
             &self,
             request: tonic::Request<super::ListMetadataKeysRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListMetadataKeysResponse>,
+            tonic::Status,
+        >;
+        async fn list_metadata_values(
+            &self,
+            request: tonic::Request<super::ListMetadataValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListMetadataValuesResponse>,
+            tonic::Status,
+        >;
+        async fn archive_metadata_keys(
+            &self,
+            request: tonic::Request<super::ArchiveMetadataKeysRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ArchiveMetadataKeysResponse>,
+            tonic::Status,
+        >;
+        async fn archive_metadata_values(
+            &self,
+            request: tonic::Request<super::ArchiveMetadataValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ArchiveMetadataValuesResponse>,
+            tonic::Status,
+        >;
+        async fn unarchive_metadata_keys(
+            &self,
+            request: tonic::Request<super::UnarchiveMetadataKeysRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UnarchiveMetadataKeysResponse>,
+            tonic::Status,
+        >;
+        async fn unarchive_metadata_values(
+            &self,
+            request: tonic::Request<super::UnarchiveMetadataValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UnarchiveMetadataValuesResponse>,
+            tonic::Status,
+        >;
+        async fn delete_metadata_keys(
+            &self,
+            request: tonic::Request<super::DeleteMetadataKeysRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteMetadataKeysResponse>,
+            tonic::Status,
+        >;
+        async fn delete_metadata_values(
+            &self,
+            request: tonic::Request<super::DeleteMetadataValuesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteMetadataValuesResponse>,
+            tonic::Status,
+        >;
+        async fn list_metadata_usage(
+            &self,
+            request: tonic::Request<super::ListMetadataUsageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListMetadataUsageResponse>,
             tonic::Status,
         >;
     }
@@ -294,6 +627,56 @@ pub mod metadata_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/sift.metadata.v1.MetadataService/CreateMetadataValue" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateMetadataValueSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::CreateMetadataValueRequest>
+                    for CreateMetadataValueSvc<T> {
+                        type Response = super::CreateMetadataValueResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateMetadataValueRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::create_metadata_value(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = CreateMetadataValueSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/sift.metadata.v1.MetadataService/ListMetadataKeys" => {
                     #[allow(non_camel_case_types)]
                     struct ListMetadataKeysSvc<T: MetadataService>(pub Arc<T>);
@@ -326,6 +709,405 @@ pub mod metadata_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = ListMetadataKeysSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.metadata.v1.MetadataService/ListMetadataValues" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListMetadataValuesSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::ListMetadataValuesRequest>
+                    for ListMetadataValuesSvc<T> {
+                        type Response = super::ListMetadataValuesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListMetadataValuesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::list_metadata_values(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ListMetadataValuesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.metadata.v1.MetadataService/ArchiveMetadataKeys" => {
+                    #[allow(non_camel_case_types)]
+                    struct ArchiveMetadataKeysSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::ArchiveMetadataKeysRequest>
+                    for ArchiveMetadataKeysSvc<T> {
+                        type Response = super::ArchiveMetadataKeysResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ArchiveMetadataKeysRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::archive_metadata_keys(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ArchiveMetadataKeysSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.metadata.v1.MetadataService/ArchiveMetadataValues" => {
+                    #[allow(non_camel_case_types)]
+                    struct ArchiveMetadataValuesSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::ArchiveMetadataValuesRequest>
+                    for ArchiveMetadataValuesSvc<T> {
+                        type Response = super::ArchiveMetadataValuesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ArchiveMetadataValuesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::archive_metadata_values(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ArchiveMetadataValuesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.metadata.v1.MetadataService/UnarchiveMetadataKeys" => {
+                    #[allow(non_camel_case_types)]
+                    struct UnarchiveMetadataKeysSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::UnarchiveMetadataKeysRequest>
+                    for UnarchiveMetadataKeysSvc<T> {
+                        type Response = super::UnarchiveMetadataKeysResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UnarchiveMetadataKeysRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::unarchive_metadata_keys(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = UnarchiveMetadataKeysSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.metadata.v1.MetadataService/UnarchiveMetadataValues" => {
+                    #[allow(non_camel_case_types)]
+                    struct UnarchiveMetadataValuesSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::UnarchiveMetadataValuesRequest>
+                    for UnarchiveMetadataValuesSvc<T> {
+                        type Response = super::UnarchiveMetadataValuesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::UnarchiveMetadataValuesRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::unarchive_metadata_values(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = UnarchiveMetadataValuesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.metadata.v1.MetadataService/DeleteMetadataKeys" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteMetadataKeysSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::DeleteMetadataKeysRequest>
+                    for DeleteMetadataKeysSvc<T> {
+                        type Response = super::DeleteMetadataKeysResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteMetadataKeysRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::delete_metadata_keys(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = DeleteMetadataKeysSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.metadata.v1.MetadataService/DeleteMetadataValues" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteMetadataValuesSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::DeleteMetadataValuesRequest>
+                    for DeleteMetadataValuesSvc<T> {
+                        type Response = super::DeleteMetadataValuesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteMetadataValuesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::delete_metadata_values(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = DeleteMetadataValuesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.metadata.v1.MetadataService/ListMetadataUsage" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListMetadataUsageSvc<T: MetadataService>(pub Arc<T>);
+                    impl<
+                        T: MetadataService,
+                    > tonic::server::UnaryService<super::ListMetadataUsageRequest>
+                    for ListMetadataUsageSvc<T> {
+                        type Response = super::ListMetadataUsageResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListMetadataUsageRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MetadataService>::list_metadata_usage(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ListMetadataUsageSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

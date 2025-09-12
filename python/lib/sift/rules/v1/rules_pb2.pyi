@@ -20,6 +20,7 @@ import google.protobuf.timestamp_pb2
 import sift.annotations.v1.annotations_pb2
 import sift.common.type.v1.resource_identifier_pb2
 import sift.common.type.v1.user_defined_functions_pb2
+import sift.metadata.v1.metadata_pb2
 import sys
 import typing
 
@@ -112,6 +113,7 @@ class Rule(google.protobuf.message.Message):
     CONTEXTUAL_CHANNELS_FIELD_NUMBER: builtins.int
     DELETED_DATE_FIELD_NUMBER: builtins.int
     IS_EXTERNAL_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     asset_id: builtins.str
     name: builtins.str
@@ -137,6 +139,8 @@ class Rule(google.protobuf.message.Message):
     def contextual_channels(self) -> global___ContextualChannels: ...
     @property
     def deleted_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -157,9 +161,10 @@ class Rule(google.protobuf.message.Message):
         contextual_channels: global___ContextualChannels | None = ...,
         deleted_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_external: builtins.bool = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "contextual_channels", b"contextual_channels", "created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "is_enabled", b"is_enabled", "is_external", b"is_external", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "is_enabled", b"is_enabled", "is_external", b"is_external", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
 
 global___Rule = Rule
 
@@ -523,12 +528,14 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     ASSET_CONFIGURATION_FIELD_NUMBER: builtins.int
     CONTEXTUAL_CHANNELS_FIELD_NUMBER: builtins.int
     IS_EXTERNAL_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     name: builtins.str
     description: builtins.str
     asset_id: builtins.str
     """Deprecated - use asset_configuration instead."""
     is_enabled: builtins.bool
+    """Deprecated - use DeleteRule instead."""
     organization_id: builtins.str
     version_notes: builtins.str
     client_key: builtins.str
@@ -540,6 +547,8 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     def asset_configuration(self) -> global___RuleAssetConfiguration: ...
     @property
     def contextual_channels(self) -> global___ContextualChannels: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -555,9 +564,10 @@ class UpdateRuleRequest(google.protobuf.message.Message):
         asset_configuration: global___RuleAssetConfiguration | None = ...,
         contextual_channels: global___ContextualChannels | None = ...,
         is_external: builtins.bool = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "contextual_channels", b"contextual_channels", "rule_id", b"rule_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_enabled", b"is_enabled", "is_external", b"is_external", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_enabled", b"is_enabled", "is_external", b"is_external", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -1128,14 +1138,14 @@ class ListRulesRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `rule_id`, `client_key`, `name`, and `description`.
+    Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `asset_id`, `tag_id`, and `deleted_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     Optional.
     """
     order_by: builtins.str
     """How to order the retrieved Rules. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
     Available fields to order_by are `created_date` and `modified_date`.
-    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
     """
     def __init__(
         self,
@@ -1334,25 +1344,19 @@ class RuleConditionExpression(google.protobuf.message.Message):
 
     SINGLE_CHANNEL_COMPARISON_FIELD_NUMBER: builtins.int
     CALCULATED_CHANNEL_FIELD_NUMBER: builtins.int
-    PYTHON_CODE_FIELD_NUMBER: builtins.int
     @property
     def single_channel_comparison(self) -> global___SingleChannelComparisonExpression: ...
     @property
     def calculated_channel(self) -> global___CalculatedChannelConfig: ...
-    @property
-    def python_code(self) -> global___PythonCode:
-        """Experimental - not currently enabled"""
-
     def __init__(
         self,
         *,
         single_channel_comparison: global___SingleChannelComparisonExpression | None = ...,
         calculated_channel: global___CalculatedChannelConfig | None = ...,
-        python_code: global___PythonCode | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "expression", b"expression", "python_code", b"python_code", "single_channel_comparison", b"single_channel_comparison"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "expression", b"expression", "python_code", b"python_code", "single_channel_comparison", b"single_channel_comparison"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["expression", b"expression"]) -> typing.Literal["single_channel_comparison", "calculated_channel", "python_code"] | None: ...
+    def HasField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "expression", b"expression", "single_channel_comparison", b"single_channel_comparison"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["calculated_channel", b"calculated_channel", "expression", b"expression", "single_channel_comparison", b"single_channel_comparison"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["expression", b"expression"]) -> typing.Literal["single_channel_comparison", "calculated_channel"] | None: ...
 
 global___RuleConditionExpression = RuleConditionExpression
 
@@ -1465,46 +1469,6 @@ class ChannelReference(google.protobuf.message.Message):
 global___ChannelReference = ChannelReference
 
 @typing.final
-class PythonChannelReference(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    REFERENCE_FIELD_NUMBER: builtins.int
-    NAME_FIELD_NUMBER: builtins.int
-    reference: builtins.str
-    name: builtins.str
-    def __init__(
-        self,
-        *,
-        reference: builtins.str = ...,
-        name: builtins.str = ...,
-    ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["name", b"name", "reference", b"reference"]) -> None: ...
-
-global___PythonChannelReference = PythonChannelReference
-
-@typing.final
-class PythonCode(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
-    CODE_FIELD_NUMBER: builtins.int
-    DEPENDENCIES_FIELD_NUMBER: builtins.int
-    code: builtins.str
-    dependencies: builtins.str
-    @property
-    def channel_references(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___PythonChannelReference]: ...
-    def __init__(
-        self,
-        *,
-        channel_references: collections.abc.Iterable[global___PythonChannelReference] | None = ...,
-        code: builtins.str = ...,
-        dependencies: builtins.str = ...,
-    ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["channel_references", b"channel_references", "code", b"code", "dependencies", b"dependencies"]) -> None: ...
-
-global___PythonCode = PythonCode
-
-@typing.final
 class RuleActionConfiguration(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -1549,19 +1513,23 @@ class AnnotationActionConfiguration(google.protobuf.message.Message):
     TAG_IDS_FIELD_NUMBER: builtins.int
     ANNOTATION_TYPE_FIELD_NUMBER: builtins.int
     ASSIGNED_TO_USER_ID_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     annotation_type: sift.annotations.v1.annotations_pb2.AnnotationType.ValueType
     assigned_to_user_id: builtins.str
     @property
     def tag_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
         tag_ids: collections.abc.Iterable[builtins.str] | None = ...,
         annotation_type: sift.annotations.v1.annotations_pb2.AnnotationType.ValueType = ...,
         assigned_to_user_id: builtins.str | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_assigned_to_user_id", b"_assigned_to_user_id", "assigned_to_user_id", b"assigned_to_user_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_assigned_to_user_id", b"_assigned_to_user_id", "annotation_type", b"annotation_type", "assigned_to_user_id", b"assigned_to_user_id", "tag_ids", b"tag_ids"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_assigned_to_user_id", b"_assigned_to_user_id", "annotation_type", b"annotation_type", "assigned_to_user_id", b"assigned_to_user_id", "metadata", b"metadata", "tag_ids", b"tag_ids"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_assigned_to_user_id", b"_assigned_to_user_id"]) -> typing.Literal["assigned_to_user_id"] | None: ...
 
 global___AnnotationActionConfiguration = AnnotationActionConfiguration

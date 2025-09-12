@@ -10,7 +10,9 @@ import google.protobuf.field_mask_pb2
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.annotations.v1.annotations_pb2
 import sift.common.type.v1.resource_identifier_pb2
+import sift.metadata.v1.metadata_pb2
 import sift.tags.v1.tags_pb2
 import typing
 
@@ -33,6 +35,7 @@ class Campaign(google.protobuf.message.Message):
     TAGS_FIELD_NUMBER: builtins.int
     REPORTS_FIELD_NUMBER: builtins.int
     CREATED_FROM_CAMPAIGN_ID_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     campaign_id: builtins.str
     organization_id: builtins.str
     client_key: builtins.str
@@ -54,6 +57,10 @@ class Campaign(google.protobuf.message.Message):
     def reports(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CampaignReport]:
         """A campaign, at its core, is a list of reports"""
 
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """User-defined metadata for this campaign"""
+
     def __init__(
         self,
         *,
@@ -70,9 +77,10 @@ class Campaign(google.protobuf.message.Message):
         tags: collections.abc.Iterable[sift.tags.v1.tags_pb2.TagRef] | None = ...,
         reports: collections.abc.Iterable[global___CampaignReport] | None = ...,
         created_from_campaign_id: builtins.str | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "campaign_id", b"campaign_id", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "reports", b"reports", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "campaign_id", b"campaign_id", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "reports", b"reports", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -180,6 +188,7 @@ class CreateCampaignRequest(google.protobuf.message.Message):
     ORGANIZATION_ID_FIELD_NUMBER: builtins.int
     CLIENT_KEY_FIELD_NUMBER: builtins.int
     CREATE_FROM_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     name: builtins.str
     """The descriptive display name of the created campaign"""
     description: builtins.str
@@ -196,6 +205,10 @@ class CreateCampaignRequest(google.protobuf.message.Message):
     def create_from(self) -> global___CreateCampaignFrom:
         """Initialize the campaign, or leave this field empty to create an empty campaign to be populated later"""
 
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """User-defined metadata for this campaign"""
+
     def __init__(
         self,
         *,
@@ -205,9 +218,10 @@ class CreateCampaignRequest(google.protobuf.message.Message):
         organization_id: builtins.str = ...,
         client_key: builtins.str | None = ...,
         create_from: global___CreateCampaignFrom | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_description", b"_description", "client_key", b"client_key", "create_from", b"create_from", "description", b"description", "tags", b"tags"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_description", b"_description", "client_key", b"client_key", "create_from", b"create_from", "description", b"description", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_description", b"_description", "client_key", b"client_key", "create_from", b"create_from", "description", b"description", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -294,7 +308,7 @@ class ListCampaignsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are:
-    `created_by_user_id`, `tag_id`, `tag_name`, `report_id`, `report_name`, `campaign_id`, `client_key`, `description`, `run_id`, and `name`.
+    `created_by_user_id`, `tag_id`, `tag_name`, `report_id`, `report_name`, `campaign_id`, `client_key`, `description`, `run_id`, `name`, and `metadata`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to this definition. Optional.
     """
@@ -304,8 +318,8 @@ class ListCampaignsRequest(google.protobuf.message.Message):
     """If `true` then archived campaigns will be included in the query. Defaults to `false`."""
     order_by: builtins.str
     """How to order the retrieved campaigns. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `created_date` and `modified_date`.
-    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    Available fields to order_by are `name`, `created_date` and `modified_date`.
+    If left empty, items are ordered by `created_date` in descending order (newest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
     """
@@ -361,7 +375,7 @@ class UpdateCampaignRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, and `reports`."""
+        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, `reports`, and `metadata`."""
 
     def __init__(
         self,
@@ -392,3 +406,71 @@ class UpdateCampaignResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["campaign", b"campaign"]) -> None: ...
 
 global___UpdateCampaignResponse = UpdateCampaignResponse
+
+@typing.final
+class ListCampaignAnnotationsRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CAMPAIGN_ID_FIELD_NUMBER: builtins.int
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    FILTER_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
+    campaign_id: builtins.str
+    page_size: builtins.int
+    """The maximum number of annotations to return. The service may return fewer than this value.
+    If unspecified, at most 50 annotations will be returned. The maximum value is 1000; values above
+    1000 will be coerced to 1000. Optional.
+    """
+    page_token: builtins.str
+    """A page token, received from a previous `ListAnnotations` call.
+    Provide this to retrieve the subsequent page.
+    When paginating, all other parameters provided to `ListAnnotations` must match
+    the call that provided the page token. Optional.
+    """
+    filter: builtins.str
+    """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+    Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
+    `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`,
+    `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`, and `metadata`.
+    For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+    For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/annotations#annotation). Optional.
+    """
+    order_by: builtins.str
+    """How to order the retrieved annotations. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+    Available fields to order_by are `created_date`, `modified_date`, `start_time`, and `end_time`.
+    If left empty, items are ordered by `created_date` in ascending order (oldest-first).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
+    """
+    def __init__(
+        self,
+        *,
+        campaign_id: builtins.str = ...,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        filter: builtins.str = ...,
+        order_by: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["campaign_id", b"campaign_id", "filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+
+global___ListCampaignAnnotationsRequest = ListCampaignAnnotationsRequest
+
+@typing.final
+class ListCampaignAnnotationsResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATIONS_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def annotations(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.annotations.v1.annotations_pb2.Annotation]: ...
+    def __init__(
+        self,
+        *,
+        annotations: collections.abc.Iterable[sift.annotations.v1.annotations_pb2.Annotation] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["annotations", b"annotations", "next_page_token", b"next_page_token"]) -> None: ...
+
+global___ListCampaignAnnotationsResponse = ListCampaignAnnotationsResponse

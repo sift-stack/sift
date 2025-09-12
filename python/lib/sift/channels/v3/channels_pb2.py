@@ -14,14 +14,16 @@ _sym_db = _symbol_database.Default()
 
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
+from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapiv2_dot_options_dot_annotations__pb2
 from sift.common.type.v1 import channel_bit_field_element_pb2 as sift_dot_common_dot_type_dot_v1_dot_channel__bit__field__element__pb2
 from sift.common.type.v1 import channel_data_type_pb2 as sift_dot_common_dot_type_dot_v1_dot_channel__data__type__pb2
 from sift.common.type.v1 import channel_enum_type_pb2 as sift_dot_common_dot_type_dot_v1_dot_channel__enum__type__pb2
+from sift.metadata.v1 import metadata_pb2 as sift_dot_metadata_dot_v1_dot_metadata__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1fsift/channels/v3/channels.proto\x12\x10sift.channels.v3\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x33sift/common/type/v1/channel_bit_field_element.proto\x1a+sift/common/type/v1/channel_data_type.proto\x1a+sift/common/type/v1/channel_enum_type.proto\"\x83\x05\n\x07\x43hannel\x12\"\n\nchannel_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\tchannelId\x12\x17\n\x04name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x04name\x12\x1e\n\x08\x61sset_id\x18\x03 \x01(\tB\x03\xe0\x41\x02R\x07\x61ssetId\x12%\n\x0b\x64\x65scription\x18\x04 \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12\x1c\n\x07unit_id\x18\x05 \x01(\tB\x03\xe0\x41\x02R\x06unitId\x12\x42\n\x0c\x63reated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x30\n\x12\x63reated_by_user_id\x18\x08 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\t \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12\x46\n\tdata_type\x18\n \x01(\x0e\x32$.sift.common.type.v1.ChannelDataTypeB\x03\xe0\x41\x02R\x08\x64\x61taType\x12\x43\n\nenum_types\x18\x0b \x03(\x0b\x32$.sift.common.type.v1.ChannelEnumTypeR\tenumTypes\x12Y\n\x12\x62it_field_elements\x18\x0c \x03(\x0b\x32+.sift.common.type.v1.ChannelBitFieldElementR\x10\x62itFieldElements\"7\n\x11GetChannelRequest\x12\"\n\nchannel_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\tchannelId\"N\n\x12GetChannelResponse\x12\x38\n\x07\x63hannel\x18\x01 \x01(\x0b\x32\x19.sift.channels.v3.ChannelB\x03\xe0\x41\x02R\x07\x63hannel\"\x98\x01\n\x13ListChannelsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"u\n\x14ListChannelsResponse\x12\x35\n\x08\x63hannels\x18\x01 \x03(\x0b\x32\x19.sift.channels.v3.ChannelR\x08\x63hannels\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xf8\x04\n\x0e\x43hannelService\x12\xbf\x01\n\nGetChannel\x12#.sift.channels.v3.GetChannelRequest\x1a$.sift.channels.v3.GetChannelResponse\"f\x92\x41>\x12\nGetChannel\x1a\x13Retrieve a channel.*\x1b\x43hannelService_GetChannelV2\x82\xd3\xe4\x93\x02\x1f\x12\x1d/api/v3/channels/{channel_id}\x12\xd4\x01\n\x0cListChannels\x12%.sift.channels.v3.ListChannelsRequest\x1a&.sift.channels.v3.ListChannelsResponse\"u\x92\x41Z\x12\x0cListChannels\x1a+Retrieve channels using an optional filter.*\x1d\x43hannelService_ListChannelsV2\x82\xd3\xe4\x93\x02\x12\x12\x10/api/v3/channels\x1a\xcc\x01\x92\x41\xc8\x01\x12HService to programmatically interact with [channels](/glossary#channel).\x1a|\n\"Read more about what channels are.\x12Vhttps://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265453943B\x9d\x01\n\x14\x63om.sift.channels.v3B\rChannelsProtoP\x01\xa2\x02\x03SCX\xaa\x02\x10Sift.Channels.V3\xca\x02\x10Sift\\Channels\\V3\xe2\x02\x1cSift\\Channels\\V3\\GPBMetadata\xea\x02\x12Sift::Channels::V3\x92\x41\x13\x12\x11\n\x0f\x43hannel serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1fsift/channels/v3/channels.proto\x12\x10sift.channels.v3\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x33sift/common/type/v1/channel_bit_field_element.proto\x1a+sift/common/type/v1/channel_data_type.proto\x1a+sift/common/type/v1/channel_enum_type.proto\x1a\x1fsift/metadata/v1/metadata.proto\"\x9e\x06\n\x07\x43hannel\x12\"\n\nchannel_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\tchannelId\x12\x17\n\x04name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x04name\x12\x1e\n\x08\x61sset_id\x18\x03 \x01(\tB\x03\xe0\x41\x02R\x07\x61ssetId\x12%\n\x0b\x64\x65scription\x18\x04 \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12\x1c\n\x07unit_id\x18\x05 \x01(\tB\x03\xe0\x41\x02R\x06unitId\x12\x42\n\x0c\x63reated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x30\n\x12\x63reated_by_user_id\x18\x08 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\t \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12\x46\n\tdata_type\x18\n \x01(\x0e\x32$.sift.common.type.v1.ChannelDataTypeB\x03\xe0\x41\x02R\x08\x64\x61taType\x12\x43\n\nenum_types\x18\x0b \x03(\x0b\x32$.sift.common.type.v1.ChannelEnumTypeR\tenumTypes\x12Y\n\x12\x62it_field_elements\x18\x0c \x03(\x0b\x32+.sift.common.type.v1.ChannelBitFieldElementR\x10\x62itFieldElements\x12/\n\x13\x64isplay_description\x18\r \x01(\tR\x12\x64isplayDescription\x12&\n\x0f\x64isplay_unit_id\x18\x0e \x01(\tR\rdisplayUnitId\x12@\n\x08metadata\x18\x0f \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x02R\x08metadata\"7\n\x11GetChannelRequest\x12\"\n\nchannel_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\tchannelId\"N\n\x12GetChannelResponse\x12\x38\n\x07\x63hannel\x18\x01 \x01(\x0b\x32\x19.sift.channels.v3.ChannelB\x03\xe0\x41\x02R\x07\x63hannel\"\x98\x01\n\x13ListChannelsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"u\n\x14ListChannelsResponse\x12\x35\n\x08\x63hannels\x18\x01 \x03(\x0b\x32\x19.sift.channels.v3.ChannelR\x08\x63hannels\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x92\x01\n\x14UpdateChannelRequest\x12\x38\n\x07\x63hannel\x18\x01 \x01(\x0b\x32\x19.sift.channels.v3.ChannelB\x03\xe0\x41\x02R\x07\x63hannel\x12@\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x03\xe0\x41\x02R\nupdateMask\"Q\n\x15UpdateChannelResponse\x12\x38\n\x07\x63hannel\x18\x01 \x01(\x0b\x32\x19.sift.channels.v3.ChannelB\x03\xe0\x41\x02R\x07\x63hannel2\xbd\x06\n\x0e\x43hannelService\x12\xbf\x01\n\nGetChannel\x12#.sift.channels.v3.GetChannelRequest\x1a$.sift.channels.v3.GetChannelResponse\"f\x92\x41>\x12\nGetChannel\x1a\x13Retrieve a channel.*\x1b\x43hannelService_GetChannelV2\x82\xd3\xe4\x93\x02\x1f\x12\x1d/api/v3/channels/{channel_id}\x12\xd4\x01\n\x0cListChannels\x12%.sift.channels.v3.ListChannelsRequest\x1a&.sift.channels.v3.ListChannelsResponse\"u\x92\x41Z\x12\x0cListChannels\x1a+Retrieve channels using an optional filter.*\x1d\x43hannelService_ListChannelsV2\x82\xd3\xe4\x93\x02\x12\x12\x10/api/v3/channels\x12\xc2\x01\n\rUpdateChannel\x12&.sift.channels.v3.UpdateChannelRequest\x1a\'.sift.channels.v3.UpdateChannelResponse\"`\x92\x41\x42\x12\rUpdateChannel\x1a\x11Update a channel.*\x1e\x43hannelService_UpdateChannelV3\x82\xd3\xe4\x93\x02\x15\x32\x10/api/v3/channels:\x01*\x1a\xcc\x01\x92\x41\xc8\x01\x12HService to programmatically interact with [channels](/glossary#channel).\x1a|\n\"Read more about what channels are.\x12Vhttps://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265453943B\x9d\x01\n\x14\x63om.sift.channels.v3B\rChannelsProtoP\x01\xa2\x02\x03SCX\xaa\x02\x10Sift.Channels.V3\xca\x02\x10Sift\\Channels\\V3\xe2\x02\x1cSift\\Channels\\V3\\GPBMetadata\xea\x02\x12Sift::Channels::V3\x92\x41\x13\x12\x11\n\x0f\x43hannel serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -49,6 +51,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CHANNEL'].fields_by_name['modified_by_user_id']._serialized_options = b'\340A\002'
   _globals['_CHANNEL'].fields_by_name['data_type']._loaded_options = None
   _globals['_CHANNEL'].fields_by_name['data_type']._serialized_options = b'\340A\002'
+  _globals['_CHANNEL'].fields_by_name['metadata']._loaded_options = None
+  _globals['_CHANNEL'].fields_by_name['metadata']._serialized_options = b'\340A\002'
   _globals['_GETCHANNELREQUEST'].fields_by_name['channel_id']._loaded_options = None
   _globals['_GETCHANNELREQUEST'].fields_by_name['channel_id']._serialized_options = b'\340A\002'
   _globals['_GETCHANNELRESPONSE'].fields_by_name['channel']._loaded_options = None
@@ -61,22 +65,34 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTCHANNELSREQUEST'].fields_by_name['filter']._serialized_options = b'\340A\001'
   _globals['_LISTCHANNELSREQUEST'].fields_by_name['order_by']._loaded_options = None
   _globals['_LISTCHANNELSREQUEST'].fields_by_name['order_by']._serialized_options = b'\340A\001'
+  _globals['_UPDATECHANNELREQUEST'].fields_by_name['channel']._loaded_options = None
+  _globals['_UPDATECHANNELREQUEST'].fields_by_name['channel']._serialized_options = b'\340A\002'
+  _globals['_UPDATECHANNELREQUEST'].fields_by_name['update_mask']._loaded_options = None
+  _globals['_UPDATECHANNELREQUEST'].fields_by_name['update_mask']._serialized_options = b'\340A\002'
+  _globals['_UPDATECHANNELRESPONSE'].fields_by_name['channel']._loaded_options = None
+  _globals['_UPDATECHANNELRESPONSE'].fields_by_name['channel']._serialized_options = b'\340A\002'
   _globals['_CHANNELSERVICE']._loaded_options = None
   _globals['_CHANNELSERVICE']._serialized_options = b'\222A\310\001\022HService to programmatically interact with [channels](/glossary#channel).\032|\n\"Read more about what channels are.\022Vhttps://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265453943'
   _globals['_CHANNELSERVICE'].methods_by_name['GetChannel']._loaded_options = None
   _globals['_CHANNELSERVICE'].methods_by_name['GetChannel']._serialized_options = b'\222A>\022\nGetChannel\032\023Retrieve a channel.*\033ChannelService_GetChannelV2\202\323\344\223\002\037\022\035/api/v3/channels/{channel_id}'
   _globals['_CHANNELSERVICE'].methods_by_name['ListChannels']._loaded_options = None
   _globals['_CHANNELSERVICE'].methods_by_name['ListChannels']._serialized_options = b'\222AZ\022\014ListChannels\032+Retrieve channels using an optional filter.*\035ChannelService_ListChannelsV2\202\323\344\223\002\022\022\020/api/v3/channels'
-  _globals['_CHANNEL']._serialized_start=341
-  _globals['_CHANNEL']._serialized_end=984
-  _globals['_GETCHANNELREQUEST']._serialized_start=986
-  _globals['_GETCHANNELREQUEST']._serialized_end=1041
-  _globals['_GETCHANNELRESPONSE']._serialized_start=1043
-  _globals['_GETCHANNELRESPONSE']._serialized_end=1121
-  _globals['_LISTCHANNELSREQUEST']._serialized_start=1124
-  _globals['_LISTCHANNELSREQUEST']._serialized_end=1276
-  _globals['_LISTCHANNELSRESPONSE']._serialized_start=1278
-  _globals['_LISTCHANNELSRESPONSE']._serialized_end=1395
-  _globals['_CHANNELSERVICE']._serialized_start=1398
-  _globals['_CHANNELSERVICE']._serialized_end=2030
+  _globals['_CHANNELSERVICE'].methods_by_name['UpdateChannel']._loaded_options = None
+  _globals['_CHANNELSERVICE'].methods_by_name['UpdateChannel']._serialized_options = b'\222AB\022\rUpdateChannel\032\021Update a channel.*\036ChannelService_UpdateChannelV3\202\323\344\223\002\0252\020/api/v3/channels:\001*'
+  _globals['_CHANNEL']._serialized_start=408
+  _globals['_CHANNEL']._serialized_end=1206
+  _globals['_GETCHANNELREQUEST']._serialized_start=1208
+  _globals['_GETCHANNELREQUEST']._serialized_end=1263
+  _globals['_GETCHANNELRESPONSE']._serialized_start=1265
+  _globals['_GETCHANNELRESPONSE']._serialized_end=1343
+  _globals['_LISTCHANNELSREQUEST']._serialized_start=1346
+  _globals['_LISTCHANNELSREQUEST']._serialized_end=1498
+  _globals['_LISTCHANNELSRESPONSE']._serialized_start=1500
+  _globals['_LISTCHANNELSRESPONSE']._serialized_end=1617
+  _globals['_UPDATECHANNELREQUEST']._serialized_start=1620
+  _globals['_UPDATECHANNELREQUEST']._serialized_end=1766
+  _globals['_UPDATECHANNELRESPONSE']._serialized_start=1768
+  _globals['_UPDATECHANNELRESPONSE']._serialized_end=1849
+  _globals['_CHANNELSERVICE']._serialized_start=1852
+  _globals['_CHANNELSERVICE']._serialized_end=2681
 # @@protoc_insertion_point(module_scope)

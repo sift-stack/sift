@@ -11,7 +11,7 @@ pub struct EvaluateRulesRequest {
     pub report_name: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(oneof="evaluate_rules_request::Time", tags="1, 2, 9")]
     pub time: ::core::option::Option<evaluate_rules_request::Time>,
-    #[prost(oneof="evaluate_rules_request::Mode", tags="3, 4, 5")]
+    #[prost(oneof="evaluate_rules_request::Mode", tags="3, 4, 5, 10")]
     pub mode: ::core::option::Option<evaluate_rules_request::Mode>,
 }
 /// Nested message and enum types in `EvaluateRulesRequest`.
@@ -35,6 +35,8 @@ pub mod evaluate_rules_request {
         RuleVersions(super::EvaluateRulesFromRuleVersions),
         #[prost(message, tag="5")]
         ReportTemplate(super::EvaluateRulesFromReportTemplate),
+        #[prost(bool, tag="10")]
+        AllApplicableRules(bool),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -132,11 +134,31 @@ pub struct EvaluateRulesFromRuleConfigs {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RulePreviewOutput {
+    #[prost(string, tag="1")]
+    pub rule_name: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub rule_version_id: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(int32, tag="5")]
+    pub exit_code: i32,
+    #[prost(string, tag="6")]
+    pub stdout: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub stderr: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EvaluateRulesPreviewResponse {
     #[prost(int32, tag="1")]
     pub created_annotation_count: i32,
     #[prost(message, repeated, tag="2")]
     pub dry_run_annotations: ::prost::alloc::vec::Vec<super::super::rules::v1::DryRunAnnotation>,
+    #[prost(message, repeated, tag="3")]
+    pub rule_outputs: ::prost::alloc::vec::Vec<RulePreviewOutput>,
 }
 include!("sift.rule_evaluation.v1.tonic.rs");
 include!("sift.rule_evaluation.v1.serde.rs");

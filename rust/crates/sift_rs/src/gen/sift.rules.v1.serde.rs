@@ -93,6 +93,9 @@ impl serde::Serialize for AnnotationActionConfiguration {
         if self.assigned_to_user_id.is_some() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.AnnotationActionConfiguration", len)?;
         if !self.tag_ids.is_empty() {
             struct_ser.serialize_field("tagIds", &self.tag_ids)?;
@@ -104,6 +107,9 @@ impl serde::Serialize for AnnotationActionConfiguration {
         }
         if let Some(v) = self.assigned_to_user_id.as_ref() {
             struct_ser.serialize_field("assignedToUserId", v)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
         }
         struct_ser.end()
     }
@@ -121,6 +127,7 @@ impl<'de> serde::Deserialize<'de> for AnnotationActionConfiguration {
             "annotationType",
             "assigned_to_user_id",
             "assignedToUserId",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -128,6 +135,7 @@ impl<'de> serde::Deserialize<'de> for AnnotationActionConfiguration {
             TagIds,
             AnnotationType,
             AssignedToUserId,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -152,6 +160,7 @@ impl<'de> serde::Deserialize<'de> for AnnotationActionConfiguration {
                             "tagIds" | "tag_ids" => Ok(GeneratedField::TagIds),
                             "annotationType" | "annotation_type" => Ok(GeneratedField::AnnotationType),
                             "assignedToUserId" | "assigned_to_user_id" => Ok(GeneratedField::AssignedToUserId),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -174,6 +183,7 @@ impl<'de> serde::Deserialize<'de> for AnnotationActionConfiguration {
                 let mut tag_ids__ = None;
                 let mut annotation_type__ = None;
                 let mut assigned_to_user_id__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::TagIds => {
@@ -194,12 +204,19 @@ impl<'de> serde::Deserialize<'de> for AnnotationActionConfiguration {
                             }
                             assigned_to_user_id__ = map_.next_value()?;
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(AnnotationActionConfiguration {
                     tag_ids: tag_ids__.unwrap_or_default(),
                     annotation_type: annotation_type__.unwrap_or_default(),
                     assigned_to_user_id: assigned_to_user_id__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -4317,6 +4334,9 @@ impl serde::Serialize for Rule {
         if self.is_external {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.Rule", len)?;
         if !self.rule_id.is_empty() {
             struct_ser.serialize_field("ruleId", &self.rule_id)?;
@@ -4369,6 +4389,9 @@ impl serde::Serialize for Rule {
         if self.is_external {
             struct_ser.serialize_field("isExternal", &self.is_external)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -4410,6 +4433,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
             "deletedDate",
             "is_external",
             "isExternal",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -4431,6 +4455,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
             ContextualChannels,
             DeletedDate,
             IsExternal,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -4469,6 +4494,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             "contextualChannels" | "contextual_channels" => Ok(GeneratedField::ContextualChannels),
                             "deletedDate" | "deleted_date" => Ok(GeneratedField::DeletedDate),
                             "isExternal" | "is_external" => Ok(GeneratedField::IsExternal),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -4505,6 +4531,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                 let mut contextual_channels__ = None;
                 let mut deleted_date__ = None;
                 let mut is_external__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -4609,6 +4636,12 @@ impl<'de> serde::Deserialize<'de> for Rule {
                             }
                             is_external__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Rule {
@@ -4629,6 +4662,7 @@ impl<'de> serde::Deserialize<'de> for Rule {
                     contextual_channels: contextual_channels__,
                     deleted_date: deleted_date__,
                     is_external: is_external__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -7315,6 +7349,9 @@ impl serde::Serialize for UpdateRuleRequest {
         if self.is_external {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.rules.v1.UpdateRuleRequest", len)?;
         if let Some(v) = self.rule_id.as_ref() {
             struct_ser.serialize_field("ruleId", v)?;
@@ -7352,6 +7389,9 @@ impl serde::Serialize for UpdateRuleRequest {
         if self.is_external {
             struct_ser.serialize_field("isExternal", &self.is_external)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -7383,6 +7423,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             "contextualChannels",
             "is_external",
             "isExternal",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -7399,6 +7440,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
             AssetConfiguration,
             ContextualChannels,
             IsExternal,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -7432,6 +7474,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             "assetConfiguration" | "asset_configuration" => Ok(GeneratedField::AssetConfiguration),
                             "contextualChannels" | "contextual_channels" => Ok(GeneratedField::ContextualChannels),
                             "isExternal" | "is_external" => Ok(GeneratedField::IsExternal),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -7463,6 +7506,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                 let mut asset_configuration__ = None;
                 let mut contextual_channels__ = None;
                 let mut is_external__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RuleId => {
@@ -7537,6 +7581,12 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                             }
                             is_external__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(UpdateRuleRequest {
@@ -7552,6 +7602,7 @@ impl<'de> serde::Deserialize<'de> for UpdateRuleRequest {
                     asset_configuration: asset_configuration__,
                     contextual_channels: contextual_channels__,
                     is_external: is_external__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }

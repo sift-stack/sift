@@ -29,6 +29,11 @@ class RunServiceStub(object):
                 request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateRunRequest.SerializeToString,
                 response_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateRunResponse.FromString,
                 )
+        self.CreateAdhocRun = channel.unary_unary(
+                '/sift.runs.v2.RunService/CreateAdhocRun',
+                request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateAdhocRunRequest.SerializeToString,
+                response_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateAdhocRunResponse.FromString,
+                )
         self.UpdateRun = channel.unary_unary(
                 '/sift.runs.v2.RunService/UpdateRun',
                 request_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.UpdateRunRequest.SerializeToString,
@@ -70,6 +75,13 @@ class RunServiceServicer(object):
 
     def CreateRun(self, request, context):
         """Create a run.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CreateAdhocRun(self, request, context):
+        """Create adhoc run, this is used to create a run after the data has been ingested
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -120,6 +132,11 @@ def add_RunServiceServicer_to_server(servicer, server):
                     servicer.CreateRun,
                     request_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateRunRequest.FromString,
                     response_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateRunResponse.SerializeToString,
+            ),
+            'CreateAdhocRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateAdhocRun,
+                    request_deserializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateAdhocRunRequest.FromString,
+                    response_serializer=sift_dot_runs_dot_v2_dot_runs__pb2.CreateAdhocRunResponse.SerializeToString,
             ),
             'UpdateRun': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateRun,
@@ -199,6 +216,23 @@ class RunService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.runs.v2.RunService/CreateRun',
             sift_dot_runs_dot_v2_dot_runs__pb2.CreateRunRequest.SerializeToString,
             sift_dot_runs_dot_v2_dot_runs__pb2.CreateRunResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def CreateAdhocRun(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.runs.v2.RunService/CreateAdhocRun',
+            sift_dot_runs_dot_v2_dot_runs__pb2.CreateAdhocRunRequest.SerializeToString,
+            sift_dot_runs_dot_v2_dot_runs__pb2.CreateAdhocRunResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

@@ -46,6 +46,9 @@ impl serde::Serialize for Campaign {
         if self.created_from_campaign_id.is_some() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.Campaign", len)?;
         if !self.campaign_id.is_empty() {
             struct_ser.serialize_field("campaignId", &self.campaign_id)?;
@@ -86,6 +89,9 @@ impl serde::Serialize for Campaign {
         if let Some(v) = self.created_from_campaign_id.as_ref() {
             struct_ser.serialize_field("createdFromCampaignId", v)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -118,6 +124,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
             "reports",
             "created_from_campaign_id",
             "createdFromCampaignId",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -135,6 +142,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
             Tags,
             Reports,
             CreatedFromCampaignId,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -169,6 +177,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             "tags" => Ok(GeneratedField::Tags),
                             "reports" => Ok(GeneratedField::Reports),
                             "createdFromCampaignId" | "created_from_campaign_id" => Ok(GeneratedField::CreatedFromCampaignId),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -201,6 +210,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                 let mut tags__ = None;
                 let mut reports__ = None;
                 let mut created_from_campaign_id__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CampaignId => {
@@ -281,6 +291,12 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             }
                             created_from_campaign_id__ = map_.next_value()?;
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Campaign {
@@ -297,6 +313,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                     tags: tags__.unwrap_or_default(),
                     reports: reports__.unwrap_or_default(),
                     created_from_campaign_id: created_from_campaign_id__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -662,6 +679,9 @@ impl serde::Serialize for CreateCampaignRequest {
         if self.create_from.is_some() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.CreateCampaignRequest", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -680,6 +700,9 @@ impl serde::Serialize for CreateCampaignRequest {
         }
         if let Some(v) = self.create_from.as_ref() {
             struct_ser.serialize_field("createFrom", v)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
         }
         struct_ser.end()
     }
@@ -700,6 +723,7 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
             "clientKey",
             "create_from",
             "createFrom",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -710,6 +734,7 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
             OrganizationId,
             ClientKey,
             CreateFrom,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -737,6 +762,7 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "clientKey" | "client_key" => Ok(GeneratedField::ClientKey),
                             "createFrom" | "create_from" => Ok(GeneratedField::CreateFrom),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -762,6 +788,7 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
                 let mut organization_id__ = None;
                 let mut client_key__ = None;
                 let mut create_from__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -800,6 +827,12 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
                             }
                             create_from__ = map_.next_value()?;
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CreateCampaignRequest {
@@ -809,6 +842,7 @@ impl<'de> serde::Deserialize<'de> for CreateCampaignRequest {
                     organization_id: organization_id__.unwrap_or_default(),
                     client_key: client_key__,
                     create_from: create_from__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
@@ -1123,6 +1157,280 @@ impl<'de> serde::Deserialize<'de> for GetCampaignResponse {
             }
         }
         deserializer.deserialize_struct("sift.campaigns.v1.GetCampaignResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListCampaignAnnotationsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.campaign_id.is_empty() {
+            len += 1;
+        }
+        if self.page_size != 0 {
+            len += 1;
+        }
+        if !self.page_token.is_empty() {
+            len += 1;
+        }
+        if !self.filter.is_empty() {
+            len += 1;
+        }
+        if !self.order_by.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.ListCampaignAnnotationsRequest", len)?;
+        if !self.campaign_id.is_empty() {
+            struct_ser.serialize_field("campaignId", &self.campaign_id)?;
+        }
+        if self.page_size != 0 {
+            struct_ser.serialize_field("pageSize", &self.page_size)?;
+        }
+        if !self.page_token.is_empty() {
+            struct_ser.serialize_field("pageToken", &self.page_token)?;
+        }
+        if !self.filter.is_empty() {
+            struct_ser.serialize_field("filter", &self.filter)?;
+        }
+        if !self.order_by.is_empty() {
+            struct_ser.serialize_field("orderBy", &self.order_by)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListCampaignAnnotationsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "campaign_id",
+            "campaignId",
+            "page_size",
+            "pageSize",
+            "page_token",
+            "pageToken",
+            "filter",
+            "order_by",
+            "orderBy",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            CampaignId,
+            PageSize,
+            PageToken,
+            Filter,
+            OrderBy,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "campaignId" | "campaign_id" => Ok(GeneratedField::CampaignId),
+                            "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
+                            "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
+                            "filter" => Ok(GeneratedField::Filter),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListCampaignAnnotationsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.campaigns.v1.ListCampaignAnnotationsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListCampaignAnnotationsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut campaign_id__ = None;
+                let mut page_size__ = None;
+                let mut page_token__ = None;
+                let mut filter__ = None;
+                let mut order_by__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::CampaignId => {
+                            if campaign_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("campaignId"));
+                            }
+                            campaign_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::PageSize => {
+                            if page_size__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageSize"));
+                            }
+                            page_size__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PageToken => {
+                            if page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageToken"));
+                            }
+                            page_token__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Filter => {
+                            if filter__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("filter"));
+                            }
+                            filter__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListCampaignAnnotationsRequest {
+                    campaign_id: campaign_id__.unwrap_or_default(),
+                    page_size: page_size__.unwrap_or_default(),
+                    page_token: page_token__.unwrap_or_default(),
+                    filter: filter__.unwrap_or_default(),
+                    order_by: order_by__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.campaigns.v1.ListCampaignAnnotationsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ListCampaignAnnotationsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.annotations.is_empty() {
+            len += 1;
+        }
+        if !self.next_page_token.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.ListCampaignAnnotationsResponse", len)?;
+        if !self.annotations.is_empty() {
+            struct_ser.serialize_field("annotations", &self.annotations)?;
+        }
+        if !self.next_page_token.is_empty() {
+            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ListCampaignAnnotationsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotations",
+            "next_page_token",
+            "nextPageToken",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Annotations,
+            NextPageToken,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotations" => Ok(GeneratedField::Annotations),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ListCampaignAnnotationsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.campaigns.v1.ListCampaignAnnotationsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ListCampaignAnnotationsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotations__ = None;
+                let mut next_page_token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Annotations => {
+                            if annotations__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotations"));
+                            }
+                            annotations__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ListCampaignAnnotationsResponse {
+                    annotations: annotations__.unwrap_or_default(),
+                    next_page_token: next_page_token__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.campaigns.v1.ListCampaignAnnotationsResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for ListCampaignsRequest {

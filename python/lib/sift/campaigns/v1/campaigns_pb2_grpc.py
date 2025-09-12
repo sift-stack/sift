@@ -34,6 +34,11 @@ class CampaignServiceStub(object):
                 request_serializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.UpdateCampaignRequest.SerializeToString,
                 response_deserializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.UpdateCampaignResponse.FromString,
                 )
+        self.ListCampaignAnnotations = channel.unary_unary(
+                '/sift.campaigns.v1.CampaignService/ListCampaignAnnotations',
+                request_serializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsRequest.SerializeToString,
+                response_deserializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsResponse.FromString,
+                )
 
 
 class CampaignServiceServicer(object):
@@ -67,6 +72,13 @@ class CampaignServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListCampaignAnnotations(self, request, context):
+        """List campaigns.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_CampaignServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -89,6 +101,11 @@ def add_CampaignServiceServicer_to_server(servicer, server):
                     servicer.UpdateCampaign,
                     request_deserializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.UpdateCampaignRequest.FromString,
                     response_serializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.UpdateCampaignResponse.SerializeToString,
+            ),
+            'ListCampaignAnnotations': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListCampaignAnnotations,
+                    request_deserializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsRequest.FromString,
+                    response_serializer=sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -165,5 +182,22 @@ class CampaignService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.campaigns.v1.CampaignService/UpdateCampaign',
             sift_dot_campaigns_dot_v1_dot_campaigns__pb2.UpdateCampaignRequest.SerializeToString,
             sift_dot_campaigns_dot_v1_dot_campaigns__pb2.UpdateCampaignResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListCampaignAnnotations(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.campaigns.v1.CampaignService/ListCampaignAnnotations',
+            sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsRequest.SerializeToString,
+            sift_dot_campaigns_dot_v1_dot_campaigns__pb2.ListCampaignAnnotationsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -244,6 +244,9 @@ impl serde::Serialize for CreateUserDefinedFunctionRequest {
         if self.user_notes.is_some() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.user_defined_functions.v1.CreateUserDefinedFunctionRequest", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -259,6 +262,9 @@ impl serde::Serialize for CreateUserDefinedFunctionRequest {
         }
         if let Some(v) = self.user_notes.as_ref() {
             struct_ser.serialize_field("userNotes", v)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
         }
         struct_ser.end()
     }
@@ -277,6 +283,7 @@ impl<'de> serde::Deserialize<'de> for CreateUserDefinedFunctionRequest {
             "functionInputs",
             "user_notes",
             "userNotes",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -286,6 +293,7 @@ impl<'de> serde::Deserialize<'de> for CreateUserDefinedFunctionRequest {
             Expression,
             FunctionInputs,
             UserNotes,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -312,6 +320,7 @@ impl<'de> serde::Deserialize<'de> for CreateUserDefinedFunctionRequest {
                             "expression" => Ok(GeneratedField::Expression),
                             "functionInputs" | "function_inputs" => Ok(GeneratedField::FunctionInputs),
                             "userNotes" | "user_notes" => Ok(GeneratedField::UserNotes),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -336,6 +345,7 @@ impl<'de> serde::Deserialize<'de> for CreateUserDefinedFunctionRequest {
                 let mut expression__ = None;
                 let mut function_inputs__ = None;
                 let mut user_notes__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -368,6 +378,12 @@ impl<'de> serde::Deserialize<'de> for CreateUserDefinedFunctionRequest {
                             }
                             user_notes__ = map_.next_value()?;
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CreateUserDefinedFunctionRequest {
@@ -376,6 +392,7 @@ impl<'de> serde::Deserialize<'de> for CreateUserDefinedFunctionRequest {
                     expression: expression__.unwrap_or_default(),
                     function_inputs: function_inputs__.unwrap_or_default(),
                     user_notes: user_notes__,
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }
