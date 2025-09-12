@@ -49,7 +49,7 @@ pub struct AsyncBackupsManager<T> {
     backup_config: BackupConfig,
     backup_retry_policy: RetryPolicy,
     backup_task: Option<JoinHandle<Result<()>>>,
-    ingest_task: Option<BackupIngestTask>,
+    ingest_task: Option<BackupIngestTask<T>>,
     backup_files: Arc<Mutex<Vec<PathBuf>>>,
     backup_tx: UnboundedSender<Message<T>>,
     backup_full: Arc<AtomicBool>,
@@ -58,11 +58,8 @@ pub struct AsyncBackupsManager<T> {
     grpc_channel: SiftChannel,
 }
 
-impl<T> AsyncBackupsManager<T>
-where
-    T: PbMessage + Default + 'static,
-{
-    /// Create new AsyncBackupsManager.
+impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
+    /// Create new AsyncBackupsManager using [IngestWithConfigDataStreamRequest].
     /// Starts backup task for ingesting sent data to files.
     /// Users shouldn't have to call interact with [AsyncBackupsManager::new] directly, as this is
     /// normally performed as part of builder
@@ -74,14 +71,15 @@ where
     /// * `disk_backup_policy` - The policy for disk backups
     /// * `backup_retry_policy` - The retry policy used if backup ingestion is required, but with unlimited retries
     /// * `grpc_channel` - The SiftChannel used for backup ingestion
-    pub fn new(
+    pub(crate) fn new(
         new_dir_name: &str,
         backup_prefix: &str,
         disk_backup_policy: DiskBackupPolicy,
         backup_retry_policy: RetryPolicy,
         grpc_channel: SiftChannel,
     ) -> Result<Self> {
-        let (backup_tx, backup_rx) = unbounded_channel::<Message<T>>();
+        let (backup_tx, backup_rx) =
+            unbounded_channel::<Message<IngestWithConfigDataStreamRequest>>();
 
         let Some(backups_root) = disk_backup_policy.backups_dir.or_else(dirs::data_dir) else {
             return Err(
@@ -144,7 +142,7 @@ where
     // Sends notification of flush_and_sync_notifier when flush is complete.
     fn init_backup_task(
         backup_info: BackupConfig,
-        mut backup_rx: UnboundedReceiver<Message<T>>,
+        mut backup_rx: UnboundedReceiver<Message<IngestWithConfigDataStreamRequest>>,
         backup_files: Arc<Mutex<Vec<PathBuf>>>,
         backup_full: Arc<AtomicBool>,
         flush_and_sync_notifier: Arc<Notify>,
@@ -283,7 +281,10 @@ where
     }
 
     // Write to file from message_buffer. Called from backup task
-    fn flush_message_buffer(backup_file: &mut File, message_buffer: &mut Vec<T>) -> Result<()> {
+    fn flush_message_buffer(
+        backup_file: &mut File,
+        message_buffer: &mut Vec<IngestWithConfigDataStreamRequest>,
+    ) -> Result<()> {
         let chunk = PbfsChunk::new(message_buffer)?;
         backup_file.write_all(&chunk)?;
         backup_file.sync_all()?;
@@ -308,7 +309,7 @@ where
 
     /// Restart the backup task. Clears the current list of unprocessed backup files, and deleting them
     /// if allowed by the retain policy. Unpauses the backup task if the backups were full.
-    pub async fn restart(&mut self) -> Result<()> {
+    pub(crate) async fn restart(&mut self) -> Result<()> {
         // Flush the current file
         // We don't want to get stuck here, and proceeding before the flush is complete won't cause any harm
         // so keep the timeout small
@@ -355,9 +356,12 @@ where
             }
         } else {
             #[cfg(feature = "tracing")]
-            tracing::warn!("no backup task found - restarting - some backup data may have been lost");
+            tracing::warn!(
+                "no backup task found - restarting - some backup data may have been lost"
+            );
 
-            let (backup_tx, backup_rx) = unbounded_channel::<Message<T>>();
+            let (backup_tx, backup_rx) =
+                unbounded_channel::<Message<IngestWithConfigDataStreamRequest>>();
 
             let backup_task = Self::init_backup_task(
                 self.backup_config.clone(),
@@ -380,7 +384,7 @@ where
     /// Send flush command and wait
     /// Takes the current list of backup files and adds them to a queue for ingestion
     /// The ingestion task is started if not already running
-    pub async fn start_backup_ingestion(&mut self) -> usize {
+    pub(crate) async fn start_backup_ingestion(&mut self) -> usize {
         match self.backup_tx.send(Message::Flush) {
             Ok(_) => {
                 // Wait for notification that we've flushed the backup file
@@ -445,7 +449,7 @@ where
     }
 
     /// Send files for backup or sends message to flush/complete
-    pub async fn send(&mut self, msg: T) -> Result<()> {
+    pub(crate) async fn send(&mut self, msg: IngestWithConfigDataStreamRequest) -> Result<()> {
         if self.backup_full.load(Ordering::Relaxed) {
             return Err(Error::new_msg(
                 ErrorKind::BackupLimitReached,
@@ -490,7 +494,7 @@ where
     }
 
     /// Shutdown the manager. Flushes the open backup file and adds to the backup file list
-    pub async fn finish(&mut self) -> Result<()> {
+    pub(crate) async fn finish(&mut self) -> Result<()> {
         // Signal to close out last file
         let _ = self.backup_tx.send(Message::Complete);
 
@@ -524,12 +528,13 @@ where
 /// Contains handle to the ingest task and an unbound queue for transmitting data.
 /// Task will ingest each file provided in the ingestion queue, retrying indefinitely if needed.
 /// Successfully ingested files are cleared using the provided retention policy.
-struct BackupIngestTask {
+struct BackupIngestTask<T> {
     ingest_tx: UnboundedSender<PathBuf>,
     task_handle: JoinHandle<Result<()>>,
+    _phantom_data: std::marker::PhantomData<T>,
 }
 
-impl BackupIngestTask {
+impl BackupIngestTask<IngestWithConfigDataStreamRequest> {
     fn new(grpc_channel: SiftChannel, retry_policy: RetryPolicy, retain_ingested: bool) -> Self {
         let (ingest_tx, mut ingest_rx) = unbounded_channel::<PathBuf>();
 
@@ -592,6 +597,7 @@ impl BackupIngestTask {
         Self {
             ingest_tx,
             task_handle,
+            _phantom_data: std::marker::PhantomData,
         }
     }
 

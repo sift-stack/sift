@@ -2,7 +2,7 @@ use prost::Message as PbMessage;
 use sift_error::prelude::*;
 
 pub mod disk;
-pub use disk::{AsyncBackupsManager, DiskBackupPolicy, DiskBackupsManager};
+pub use disk::{DiskBackupPolicy, DiskBackupsManager};
 
 pub mod memory;
 pub use memory::InMemoryBackupsManager;

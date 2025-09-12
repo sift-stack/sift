@@ -1,9 +1,7 @@
-use super::{
-    AsyncBackupsManager, BackupsManager, DiskBackupPolicy, DiskBackupsManager,
-    InMemoryBackupsManager,
-};
+use super::{BackupsManager, DiskBackupPolicy, DiskBackupsManager, InMemoryBackupsManager};
 use crate::SiftChannel;
 use crate::TimeValue;
+use crate::backup::disk::AsyncBackupsManager;
 use hyper_util::rt::TokioIo;
 use sift_connect::grpc::interceptor::AuthInterceptor;
 use sift_error::ErrorKind;

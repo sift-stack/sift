@@ -18,7 +18,7 @@ use tokio::{
 };
 
 mod async_manager;
-pub use async_manager::AsyncBackupsManager;
+pub(crate) use async_manager::AsyncBackupsManager;
 
 mod policy;
 pub use policy::{DiskBackupPolicy, RollingFilePolicy};
