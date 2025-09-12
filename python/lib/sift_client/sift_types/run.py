@@ -7,7 +7,13 @@ from pydantic import ConfigDict, model_validator
 from sift.runs.v2.runs_pb2 import CreateRunRequest as CreateRunRequestProto
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
-from sift_client.sift_types._base import BaseType, MappingHelper, ModelCreate, ModelUpdate
+from sift_client.sift_types._base import (
+    BaseType,
+    MappingHelper,
+    ModelCreate,
+    ModelCreateUpdateBase,
+    ModelUpdate,
+)
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
@@ -106,14 +112,13 @@ class Run(BaseType[RunProto, "Run"]):
         return self.client.assets.list_(asset_ids=self.asset_ids)
 
 
-class RunCreate(ModelCreate[CreateRunRequestProto]):
-    """Create model for Run."""
+class RunBase(ModelCreateUpdateBase):
+    """Base class for Run create and update models with shared fields and validation."""
 
-    name: str
+    name: str | None = None
     description: str | None = None
     start_time: datetime | None = None
     stop_time: datetime | None = None
-    client_key: str | None = None
     tags: list[str] | None = None
     metadata: dict[str, str | float | bool] | None = None
 
@@ -122,9 +127,6 @@ class RunCreate(ModelCreate[CreateRunRequestProto]):
             proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
         ),
     }
-
-    def _get_proto_class(self) -> type[CreateRunRequestProto]:
-        return CreateRunRequestProto
 
     @model_validator(mode="after")
     def validate_time_fields(self):
@@ -139,10 +141,18 @@ class RunCreate(ModelCreate[CreateRunRequestProto]):
         return self
 
 
-class RunUpdate(RunCreate, ModelUpdate[RunProto]):
-    """Update model for Run. Inherits from the RunCreate model."""
+class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
+    """Create model for Run."""
 
-    name: str | None = None
+    name: str
+    client_key: str | None = None
+
+    def _get_proto_class(self) -> type[CreateRunRequestProto]:
+        return CreateRunRequestProto
+
+
+class RunUpdate(RunBase, ModelUpdate[RunProto]):
+    """Update model for Run."""
 
     @model_validator(mode="after")
     def validate_non_updatable_fields(self):

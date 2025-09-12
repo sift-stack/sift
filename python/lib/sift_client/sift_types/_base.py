@@ -58,8 +58,8 @@ class MappingHelper(BaseModel):
     converter: type[Any] | Callable[[Any], Any] | None = None
 
 
-class ModelCreate(BaseModel, Generic[ProtoT], ABC):
-    """Base class for Pydantic models that generate proto messages for creation."""
+class ModelCreateUpdateBase(BaseModel, Generic[ProtoT], ABC):
+    """Base class for Pydantic models that generate proto messages."""
 
     model_config = ConfigDict(frozen=False)
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = PrivateAttr(default={})
@@ -169,7 +169,12 @@ class ModelCreate(BaseModel, Generic[ProtoT], ABC):
         return proto_msg
 
 
-class ModelUpdate(ModelCreate[ProtoT], ABC):
+class ModelCreate(ModelCreateUpdateBase[ProtoT], ABC):
+    """Base class for Pydantic models that generate proto messages for creation."""
+    pass
+
+
+class ModelUpdate(ModelCreateUpdateBase[ProtoT], ABC):
     """Base class for Pydantic models that generate proto patches with field masks."""
 
     _resource_id: str | None = PrivateAttr(default=None)
