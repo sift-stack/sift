@@ -58,7 +58,7 @@ class MappingHelper(BaseModel):
     converter: type[Any] | Callable[[Any], Any] | None = None
 
 
-class ModelCreateUpdateBase(BaseModel, Generic[ProtoT], ABC):
+class ModelCreateUpdateBase(BaseModel, ABC):
     """Base class for Pydantic models that generate proto messages."""
 
     model_config = ConfigDict(frozen=False)
@@ -151,6 +151,9 @@ class ModelCreateUpdateBase(BaseModel, Generic[ProtoT], ABC):
 
         return paths
 
+
+class ModelCreate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
+    """Base class for Pydantic models that generate proto messages for creation."""
     @abstractmethod
     def _get_proto_class(self) -> type[ProtoT]:
         """Get the corresponding proto class - override in subclasses since typing is not strict."""
@@ -169,12 +172,7 @@ class ModelCreateUpdateBase(BaseModel, Generic[ProtoT], ABC):
         return proto_msg
 
 
-class ModelCreate(ModelCreateUpdateBase[ProtoT], ABC):
-    """Base class for Pydantic models that generate proto messages for creation."""
-    pass
-
-
-class ModelUpdate(ModelCreateUpdateBase[ProtoT], ABC):
+class ModelUpdate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
     """Base class for Pydantic models that generate proto patches with field masks."""
 
     _resource_id: str | None = PrivateAttr(default=None)
@@ -200,6 +198,12 @@ class ModelUpdate(ModelCreateUpdateBase[ProtoT], ABC):
         self._add_resource_id_to_proto(proto_msg)
         mask = field_mask_pb2.FieldMask(paths=paths)
         return proto_msg, mask
+
+    @abstractmethod
+    def _get_proto_class(self) -> type[ProtoT]:
+        """Get the corresponding proto class - override in subclasses since typing is not strict."""
+        raise NotImplementedError("Subclasses must implement this")
+
 
     @abstractmethod
     def _add_resource_id_to_proto(self, proto_msg: ProtoT):

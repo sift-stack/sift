@@ -129,7 +129,7 @@ class RunBase(ModelCreateUpdateBase):
     }
 
     @model_validator(mode="after")
-    def validate_time_fields(self):
+    def _validate_time_fields(self):
         """Validate time-related fields after initialization."""
         if self.stop_time is not None and self.start_time is None:
             raise ValueError("start_time must be provided if stop_time is provided")
@@ -155,7 +155,7 @@ class RunUpdate(RunBase, ModelUpdate[RunProto]):
     """Update model for Run."""
 
     @model_validator(mode="after")
-    def validate_non_updatable_fields(self):
+    def _validate_non_updatable_fields(self):
         """Validate that the fields that cannot be updated are not set."""
         if self.client_key is not None:
             raise ValueError("Cannot update client key")
