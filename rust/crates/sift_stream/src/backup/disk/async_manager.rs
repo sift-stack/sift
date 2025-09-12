@@ -184,7 +184,7 @@ where
                                     total_bytes_written,
                                     total_files_written,
                                     max_backup_size = backup_info.max_size,
-                                    "current backup file has reached max size. closing out file"
+                                    "current backup file has reached max size - closing out file"
                                 );
 
                                 // Close out the current file
@@ -220,7 +220,7 @@ where
                             total_bytes_written,
                             total_files_written,
                             max_backup_size = backup_info.max_size,
-                            "backup task received flush and sync signal. closing out file"
+                            "backup task received flush and sync signal - closing out file"
                         );
 
                         if !message_buffer.is_empty() {
@@ -255,7 +255,7 @@ where
                             total_bytes_written,
                             total_files_written,
                             max_backup_size = backup_info.max_size,
-                            "backup task complete. closing file and shutting down"
+                            "backup task complete - closing file and shutting down"
                         );
 
                         // Close out current file and add to file list
@@ -333,7 +333,7 @@ where
         #[cfg(feature = "tracing")]
         tracing::info!(
             cur_file_count = backup_files_guard.len(),
-            "restarting async backup. Clearing existing backup files"
+            "restarting async backup - Clearing existing backup files"
         );
         if !self.backup_config.retain_backups {
             for file_path in backup_files_guard.iter() {
@@ -355,7 +355,7 @@ where
             }
         } else {
             #[cfg(feature = "tracing")]
-            tracing::warn!("no backup task found. Restarting. some backup data may have been lost");
+            tracing::warn!("no backup task found - restarting - some backup data may have been lost");
 
             let (backup_tx, backup_rx) = unbounded_channel::<Message<T>>();
 
@@ -417,7 +417,7 @@ where
             if let Err(err) = ingest_task.add(unprocessed_files.clone()) {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
-                    "error trying to add files to ingest queue. Restarting ingest task. {:?}",
+                    "error trying to add files to ingest queue - restarting ingest task. {:?}",
                     err
                 );
             } else {
@@ -636,7 +636,7 @@ impl BackupIngestTask {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
                     backup_file = backup_file_path.display().to_string(),
-                    "saw an error while trying to open backup file for ingestion. Ignoring file: {:?}",
+                    "saw an error while trying to open backup file for ingestion - ignoring file: {:?}",
                     err
                 );
                 // We want to return Ok here, since we aren't going to try re-ingesting this file
