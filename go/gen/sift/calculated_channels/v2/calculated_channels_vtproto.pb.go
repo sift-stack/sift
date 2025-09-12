@@ -10,8 +10,9 @@ import (
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	fieldmaskpb1 "github.com/planetscale/vtprotobuf/types/known/fieldmaskpb"
 	timestamppb1 "github.com/planetscale/vtprotobuf/types/known/timestamppb"
-	v11 "github.com/sift-stack/sift/go/gen/sift/calculated_channels/v1"
+	v12 "github.com/sift-stack/sift/go/gen/sift/calculated_channels/v1"
 	v1 "github.com/sift-stack/sift/go/gen/sift/common/type/v1"
+	v11 "github.com/sift-stack/sift/go/gen/sift/metadata/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -56,6 +57,28 @@ func (m *CalculatedChannel) CloneVT() *CalculatedChannel {
 	if rhs := m.Units; rhs != nil {
 		tmpVal := *rhs
 		r.Units = &tmpVal
+	}
+	if rhs := m.FunctionDependencies; rhs != nil {
+		tmpContainer := make([]*v1.FunctionDependency, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v1.FunctionDependency }); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v1.FunctionDependency)
+			}
+		}
+		r.FunctionDependencies = tmpContainer
+	}
+	if rhs := m.Metadata; rhs != nil {
+		tmpContainer := make([]*v11.MetadataValue, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v11.MetadataValue }); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v11.MetadataValue)
+			}
+		}
+		r.Metadata = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -307,6 +330,17 @@ func (m *CreateCalculatedChannelRequest) CloneVT() *CreateCalculatedChannelReque
 		tmpVal := *rhs
 		r.ClientKey = &tmpVal
 	}
+	if rhs := m.Metadata; rhs != nil {
+		tmpContainer := make([]*v11.MetadataValue, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface{ CloneVT() *v11.MetadataValue }); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v11.MetadataValue)
+			}
+		}
+		r.Metadata = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -540,18 +574,19 @@ func (m *ResolveCalculatedChannelRequest_CalculatedChannelConfiguration) CloneVT
 	return r
 }
 
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) CloneVT() *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel {
+func (m *ResolvedCalculatedChannel) CloneVT() *ResolvedCalculatedChannel {
 	if m == nil {
-		return (*ResolveCalculatedChannelResponse_ResolvedCalculatedChannel)(nil)
+		return (*ResolvedCalculatedChannel)(nil)
 	}
-	r := new(ResolveCalculatedChannelResponse_ResolvedCalculatedChannel)
+	r := new(ResolvedCalculatedChannel)
 	r.AssetName = m.AssetName
 	r.OutputDataType = m.OutputDataType
+	r.AssetId = m.AssetId
 	if rhs := m.ExpressionRequest; rhs != nil {
-		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v11.ExpressionRequest }); ok {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v12.ExpressionRequest }); ok {
 			r.ExpressionRequest = vtpb.CloneVT()
 		} else {
-			r.ExpressionRequest = proto.Clone(rhs).(*v11.ExpressionRequest)
+			r.ExpressionRequest = proto.Clone(rhs).(*v12.ExpressionRequest)
 		}
 	}
 	if len(m.unknownFields) > 0 {
@@ -561,15 +596,15 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) CloneVT() *
 	return r
 }
 
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) CloneMessageVT() proto.Message {
+func (m *ResolvedCalculatedChannel) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) CloneVT() *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel {
+func (m *UnresolvedCalculatedChannel) CloneVT() *UnresolvedCalculatedChannel {
 	if m == nil {
-		return (*ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel)(nil)
+		return (*UnresolvedCalculatedChannel)(nil)
 	}
-	r := new(ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel)
+	r := new(UnresolvedCalculatedChannel)
 	r.AssetName = m.AssetName
 	r.ErrorMessage = m.ErrorMessage
 	if len(m.unknownFields) > 0 {
@@ -579,7 +614,7 @@ func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) CloneVT()
 	return r
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) CloneMessageVT() proto.Message {
+func (m *UnresolvedCalculatedChannel) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -593,14 +628,14 @@ func (m *ResolveCalculatedChannelResponse) CloneVT() *ResolveCalculatedChannelRe
 		r.CalculatedChannelId = &tmpVal
 	}
 	if rhs := m.Resolved; rhs != nil {
-		tmpContainer := make([]*ResolveCalculatedChannelResponse_ResolvedCalculatedChannel, len(rhs))
+		tmpContainer := make([]*ResolvedCalculatedChannel, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
 		r.Resolved = tmpContainer
 	}
 	if rhs := m.Unresolved; rhs != nil {
-		tmpContainer := make([]*ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel, len(rhs))
+		tmpContainer := make([]*UnresolvedCalculatedChannel, len(rhs))
 		for k, v := range rhs {
 			tmpContainer[k] = v.CloneVT()
 		}
@@ -663,6 +698,83 @@ func (m *BatchResolveCalculatedChannelsResponse) CloneMessageVT() proto.Message 
 	return m.CloneVT()
 }
 
+func (m *ListResolvedCalculatedChannelsRequest) CloneVT() *ListResolvedCalculatedChannelsRequest {
+	if m == nil {
+		return (*ListResolvedCalculatedChannelsRequest)(nil)
+	}
+	r := new(ListResolvedCalculatedChannelsRequest)
+	r.AssetId = m.AssetId
+	r.RunId = m.RunId
+	r.PageSize = m.PageSize
+	r.PageToken = m.PageToken
+	r.Filter = m.Filter
+	r.OrderBy = m.OrderBy
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListResolvedCalculatedChannelsRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *CalculatedChannelResolution) CloneVT() *CalculatedChannelResolution {
+	if m == nil {
+		return (*CalculatedChannelResolution)(nil)
+	}
+	r := new(CalculatedChannelResolution)
+	r.CalculatedChannel = m.CalculatedChannel.CloneVT()
+	if rhs := m.Resolved; rhs != nil {
+		tmpContainer := make([]*ResolvedCalculatedChannel, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Resolved = tmpContainer
+	}
+	if rhs := m.Unresolved; rhs != nil {
+		tmpContainer := make([]*UnresolvedCalculatedChannel, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Unresolved = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *CalculatedChannelResolution) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) CloneVT() *ListResolvedCalculatedChannelsResponse {
+	if m == nil {
+		return (*ListResolvedCalculatedChannelsResponse)(nil)
+	}
+	r := new(ListResolvedCalculatedChannelsResponse)
+	r.NextPageToken = m.NextPageToken
+	if rhs := m.CalculatedChannelResolutions; rhs != nil {
+		tmpContainer := make([]*CalculatedChannelResolution, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.CalculatedChannelResolutions = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *CalculatedChannel) EqualVT(that *CalculatedChannel) bool {
 	if this == that {
 		return true
@@ -716,6 +828,50 @@ func (this *CalculatedChannel) EqualVT(that *CalculatedChannel) bool {
 	}
 	if p, q := this.Units, that.Units; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
+	}
+	if len(this.FunctionDependencies) != len(that.FunctionDependencies) {
+		return false
+	}
+	for i, vx := range this.FunctionDependencies {
+		vy := that.FunctionDependencies[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &v1.FunctionDependency{}
+			}
+			if q == nil {
+				q = &v1.FunctionDependency{}
+			}
+			if equal, ok := interface{}(p).(interface {
+				EqualVT(*v1.FunctionDependency) bool
+			}); ok {
+				if !equal.EqualVT(q) {
+					return false
+				}
+			} else if !proto.Equal(p, q) {
+				return false
+			}
+		}
+	}
+	if len(this.Metadata) != len(that.Metadata) {
+		return false
+	}
+	for i, vx := range this.Metadata {
+		vy := that.Metadata[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &v11.MetadataValue{}
+			}
+			if q == nil {
+				q = &v11.MetadataValue{}
+			}
+			if equal, ok := interface{}(p).(interface{ EqualVT(*v11.MetadataValue) bool }); ok {
+				if !equal.EqualVT(q) {
+					return false
+				}
+			} else if !proto.Equal(p, q) {
+				return false
+			}
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1072,6 +1228,27 @@ func (this *CreateCalculatedChannelRequest) EqualVT(that *CreateCalculatedChanne
 	if p, q := this.Units, that.Units; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
+	if len(this.Metadata) != len(that.Metadata) {
+		return false
+	}
+	for i, vx := range this.Metadata {
+		vy := that.Metadata[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &v11.MetadataValue{}
+			}
+			if q == nil {
+				q = &v11.MetadataValue{}
+			}
+			if equal, ok := interface{}(p).(interface{ EqualVT(*v11.MetadataValue) bool }); ok {
+				if !equal.EqualVT(q) {
+					return false
+				}
+			} else if !proto.Equal(p, q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1422,7 +1599,7 @@ func (this *ResolveCalculatedChannelRequest_CalculatedChannelConfiguration) Equa
 	return true
 }
 
-func (this *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) EqualVT(that *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) bool {
+func (this *ResolvedCalculatedChannel) EqualVT(that *ResolvedCalculatedChannel) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1432,7 +1609,7 @@ func (this *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) EqualVT(
 		return false
 	}
 	if equal, ok := interface{}(this.ExpressionRequest).(interface {
-		EqualVT(*v11.ExpressionRequest) bool
+		EqualVT(*v12.ExpressionRequest) bool
 	}); ok {
 		if !equal.EqualVT(that.ExpressionRequest) {
 			return false
@@ -1443,17 +1620,20 @@ func (this *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) EqualVT(
 	if this.OutputDataType != that.OutputDataType {
 		return false
 	}
+	if this.AssetId != that.AssetId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*ResolveCalculatedChannelResponse_ResolvedCalculatedChannel)
+func (this *ResolvedCalculatedChannel) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ResolvedCalculatedChannel)
 	if !ok {
 		return false
 	}
 	return this.EqualVT(that)
 }
-func (this *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) EqualVT(that *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) bool {
+func (this *UnresolvedCalculatedChannel) EqualVT(that *UnresolvedCalculatedChannel) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
@@ -1468,8 +1648,8 @@ func (this *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) EqualV
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel)
+func (this *UnresolvedCalculatedChannel) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*UnresolvedCalculatedChannel)
 	if !ok {
 		return false
 	}
@@ -1491,10 +1671,10 @@ func (this *ResolveCalculatedChannelResponse) EqualVT(that *ResolveCalculatedCha
 		vy := that.Resolved[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &ResolveCalculatedChannelResponse_ResolvedCalculatedChannel{}
+				p = &ResolvedCalculatedChannel{}
 			}
 			if q == nil {
-				q = &ResolveCalculatedChannelResponse_ResolvedCalculatedChannel{}
+				q = &ResolvedCalculatedChannel{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1508,10 +1688,10 @@ func (this *ResolveCalculatedChannelResponse) EqualVT(that *ResolveCalculatedCha
 		vy := that.Unresolved[i]
 		if p, q := vx, vy; p != q {
 			if p == nil {
-				p = &ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel{}
+				p = &UnresolvedCalculatedChannel{}
 			}
 			if q == nil {
-				q = &ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel{}
+				q = &UnresolvedCalculatedChannel{}
 			}
 			if !p.EqualVT(q) {
 				return false
@@ -1594,6 +1774,129 @@ func (this *BatchResolveCalculatedChannelsResponse) EqualMessageVT(thatMsg proto
 	}
 	return this.EqualVT(that)
 }
+func (this *ListResolvedCalculatedChannelsRequest) EqualVT(that *ListResolvedCalculatedChannelsRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AssetId != that.AssetId {
+		return false
+	}
+	if this.RunId != that.RunId {
+		return false
+	}
+	if this.PageSize != that.PageSize {
+		return false
+	}
+	if this.PageToken != that.PageToken {
+		return false
+	}
+	if this.Filter != that.Filter {
+		return false
+	}
+	if this.OrderBy != that.OrderBy {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListResolvedCalculatedChannelsRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ListResolvedCalculatedChannelsRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *CalculatedChannelResolution) EqualVT(that *CalculatedChannelResolution) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.CalculatedChannel.EqualVT(that.CalculatedChannel) {
+		return false
+	}
+	if len(this.Resolved) != len(that.Resolved) {
+		return false
+	}
+	for i, vx := range this.Resolved {
+		vy := that.Resolved[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ResolvedCalculatedChannel{}
+			}
+			if q == nil {
+				q = &ResolvedCalculatedChannel{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if len(this.Unresolved) != len(that.Unresolved) {
+		return false
+	}
+	for i, vx := range this.Unresolved {
+		vy := that.Unresolved[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &UnresolvedCalculatedChannel{}
+			}
+			if q == nil {
+				q = &UnresolvedCalculatedChannel{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CalculatedChannelResolution) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*CalculatedChannelResolution)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ListResolvedCalculatedChannelsResponse) EqualVT(that *ListResolvedCalculatedChannelsResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.CalculatedChannelResolutions) != len(that.CalculatedChannelResolutions) {
+		return false
+	}
+	for i, vx := range this.CalculatedChannelResolutions {
+		vy := that.CalculatedChannelResolutions[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &CalculatedChannelResolution{}
+			}
+			if q == nil {
+				q = &CalculatedChannelResolution{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	if this.NextPageToken != that.NextPageToken {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListResolvedCalculatedChannelsResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ListResolvedCalculatedChannelsResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -1618,6 +1921,8 @@ type CalculatedChannelServiceClient interface {
 	ResolveCalculatedChannel(ctx context.Context, in *ResolveCalculatedChannelRequest, opts ...grpc.CallOption) (*ResolveCalculatedChannelResponse, error)
 	// Resolve a batch of calculated channels into expressions with references.
 	BatchResolveCalculatedChannels(ctx context.Context, in *BatchResolveCalculatedChannelsRequest, opts ...grpc.CallOption) (*BatchResolveCalculatedChannelsResponse, error)
+	// Retrieve the latest versions of calculated channels based on an optional filter.
+	ListResolvedCalculatedChannels(ctx context.Context, in *ListResolvedCalculatedChannelsRequest, opts ...grpc.CallOption) (*ListResolvedCalculatedChannelsResponse, error)
 }
 
 type calculatedChannelServiceClient struct {
@@ -1691,6 +1996,15 @@ func (c *calculatedChannelServiceClient) BatchResolveCalculatedChannels(ctx cont
 	return out, nil
 }
 
+func (c *calculatedChannelServiceClient) ListResolvedCalculatedChannels(ctx context.Context, in *ListResolvedCalculatedChannelsRequest, opts ...grpc.CallOption) (*ListResolvedCalculatedChannelsResponse, error) {
+	out := new(ListResolvedCalculatedChannelsResponse)
+	err := c.cc.Invoke(ctx, "/sift.calculated_channels.v2.CalculatedChannelService/ListResolvedCalculatedChannels", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CalculatedChannelServiceServer is the server API for CalculatedChannelService service.
 // All implementations must embed UnimplementedCalculatedChannelServiceServer
 // for forward compatibility
@@ -1709,6 +2023,8 @@ type CalculatedChannelServiceServer interface {
 	ResolveCalculatedChannel(context.Context, *ResolveCalculatedChannelRequest) (*ResolveCalculatedChannelResponse, error)
 	// Resolve a batch of calculated channels into expressions with references.
 	BatchResolveCalculatedChannels(context.Context, *BatchResolveCalculatedChannelsRequest) (*BatchResolveCalculatedChannelsResponse, error)
+	// Retrieve the latest versions of calculated channels based on an optional filter.
+	ListResolvedCalculatedChannels(context.Context, *ListResolvedCalculatedChannelsRequest) (*ListResolvedCalculatedChannelsResponse, error)
 	mustEmbedUnimplementedCalculatedChannelServiceServer()
 }
 
@@ -1736,6 +2052,9 @@ func (UnimplementedCalculatedChannelServiceServer) ResolveCalculatedChannel(cont
 }
 func (UnimplementedCalculatedChannelServiceServer) BatchResolveCalculatedChannels(context.Context, *BatchResolveCalculatedChannelsRequest) (*BatchResolveCalculatedChannelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchResolveCalculatedChannels not implemented")
+}
+func (UnimplementedCalculatedChannelServiceServer) ListResolvedCalculatedChannels(context.Context, *ListResolvedCalculatedChannelsRequest) (*ListResolvedCalculatedChannelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListResolvedCalculatedChannels not implemented")
 }
 func (UnimplementedCalculatedChannelServiceServer) mustEmbedUnimplementedCalculatedChannelServiceServer() {
 }
@@ -1877,6 +2196,24 @@ func _CalculatedChannelService_BatchResolveCalculatedChannels_Handler(srv interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CalculatedChannelService_ListResolvedCalculatedChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListResolvedCalculatedChannelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CalculatedChannelServiceServer).ListResolvedCalculatedChannels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sift.calculated_channels.v2.CalculatedChannelService/ListResolvedCalculatedChannels",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CalculatedChannelServiceServer).ListResolvedCalculatedChannels(ctx, req.(*ListResolvedCalculatedChannelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CalculatedChannelService_ServiceDesc is the grpc.ServiceDesc for CalculatedChannelService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1912,6 +2249,10 @@ var CalculatedChannelService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "BatchResolveCalculatedChannels",
 			Handler:    _CalculatedChannelService_BatchResolveCalculatedChannels_Handler,
 		},
+		{
+			MethodName: "ListResolvedCalculatedChannels",
+			Handler:    _CalculatedChannelService_ListResolvedCalculatedChannels_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "sift/calculated_channels/v2/calculated_channels.proto",
@@ -1946,6 +2287,58 @@ func (m *CalculatedChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
+				MarshalToSizedBufferVT([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.Metadata[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
+	}
+	if len(m.FunctionDependencies) > 0 {
+		for iNdEx := len(m.FunctionDependencies) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.FunctionDependencies[iNdEx]).(interface {
+				MarshalToSizedBufferVT([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.FunctionDependencies[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
 	}
 	if m.Units != nil {
 		i -= len(*m.Units)
@@ -2612,6 +3005,30 @@ func (m *CreateCalculatedChannelRequest) MarshalToSizedBufferVT(dAtA []byte) (in
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
+				MarshalToSizedBufferVT([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.Metadata[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x42
+		}
+	}
 	if m.Units != nil {
 		i -= len(*m.Units)
 		copy(dAtA[i:], *m.Units)
@@ -3223,7 +3640,7 @@ func (m *ResolveCalculatedChannelRequest_CalculatedChannelConfiguration) Marshal
 	}
 	return len(dAtA) - i, nil
 }
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalVT() (dAtA []byte, err error) {
+func (m *ResolvedCalculatedChannel) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -3236,12 +3653,12 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalVT()
 	return dAtA[:n], nil
 }
 
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalToVT(dAtA []byte) (int, error) {
+func (m *ResolvedCalculatedChannel) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *ResolvedCalculatedChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -3252,6 +3669,13 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalToSi
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.AssetId) > 0 {
+		i -= len(m.AssetId)
+		copy(dAtA[i:], m.AssetId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AssetId)))
+		i--
+		dAtA[i] = 0x22
 	}
 	if m.OutputDataType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.OutputDataType))
@@ -3290,7 +3714,7 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalToSi
 	return len(dAtA) - i, nil
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) MarshalVT() (dAtA []byte, err error) {
+func (m *UnresolvedCalculatedChannel) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -3303,12 +3727,12 @@ func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) MarshalVT
 	return dAtA[:n], nil
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) MarshalToVT(dAtA []byte) (int, error) {
+func (m *UnresolvedCalculatedChannel) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+func (m *UnresolvedCalculatedChannel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -3491,6 +3915,198 @@ func (m *BatchResolveCalculatedChannelsResponse) MarshalToSizedBufferVT(dAtA []b
 	return len(dAtA) - i, nil
 }
 
+func (m *ListResolvedCalculatedChannelsRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListResolvedCalculatedChannelsRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListResolvedCalculatedChannelsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.OrderBy) > 0 {
+		i -= len(m.OrderBy)
+		copy(dAtA[i:], m.OrderBy)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.OrderBy)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Filter) > 0 {
+		i -= len(m.Filter)
+		copy(dAtA[i:], m.Filter)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Filter)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.PageToken) > 0 {
+		i -= len(m.PageToken)
+		copy(dAtA[i:], m.PageToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.PageToken)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.PageSize != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PageSize))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.RunId) > 0 {
+		i -= len(m.RunId)
+		copy(dAtA[i:], m.RunId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RunId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.AssetId) > 0 {
+		i -= len(m.AssetId)
+		copy(dAtA[i:], m.AssetId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AssetId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CalculatedChannelResolution) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CalculatedChannelResolution) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CalculatedChannelResolution) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Unresolved) > 0 {
+		for iNdEx := len(m.Unresolved) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Unresolved[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Resolved) > 0 {
+		for iNdEx := len(m.Resolved) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Resolved[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.CalculatedChannel != nil {
+		size, err := m.CalculatedChannel.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.NextPageToken) > 0 {
+		i -= len(m.NextPageToken)
+		copy(dAtA[i:], m.NextPageToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.NextPageToken)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.CalculatedChannelResolutions) > 0 {
+		for iNdEx := len(m.CalculatedChannelResolutions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.CalculatedChannelResolutions[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CalculatedChannel) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3520,6 +4136,58 @@ func (m *CalculatedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
+				MarshalToSizedBufferVTStrict([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.Metadata[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
+	}
+	if len(m.FunctionDependencies) > 0 {
+		for iNdEx := len(m.FunctionDependencies) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.FunctionDependencies[iNdEx]).(interface {
+				MarshalToSizedBufferVTStrict([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.FunctionDependencies[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
 	}
 	if m.Units != nil {
 		i -= len(*m.Units)
@@ -4189,6 +4857,30 @@ func (m *CreateCalculatedChannelRequest) MarshalToSizedBufferVTStrict(dAtA []byt
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Metadata) > 0 {
+		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
+			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
+				MarshalToSizedBufferVTStrict([]byte) (int, error)
+			}); ok {
+				size, err := vtmsg.MarshalToSizedBufferVTStrict(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			} else {
+				encoded, err := proto.Marshal(m.Metadata[iNdEx])
+				if err != nil {
+					return 0, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = protohelpers.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			}
+			i--
+			dAtA[i] = 0x42
+		}
+	}
 	if m.Units != nil {
 		i -= len(*m.Units)
 		copy(dAtA[i:], *m.Units)
@@ -4805,7 +5497,7 @@ func (m *ResolveCalculatedChannelRequest_CalculatedChannelConfiguration) Marshal
 	}
 	return len(dAtA) - i, nil
 }
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalVTStrict() (dAtA []byte, err error) {
+func (m *ResolvedCalculatedChannel) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -4818,12 +5510,12 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalVTSt
 	return dAtA[:n], nil
 }
 
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalToVTStrict(dAtA []byte) (int, error) {
+func (m *ResolvedCalculatedChannel) MarshalToVTStrict(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
 }
 
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+func (m *ResolvedCalculatedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -4834,6 +5526,13 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalToSi
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.AssetId) > 0 {
+		i -= len(m.AssetId)
+		copy(dAtA[i:], m.AssetId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AssetId)))
+		i--
+		dAtA[i] = 0x22
 	}
 	if m.OutputDataType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.OutputDataType))
@@ -4872,7 +5571,7 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) MarshalToSi
 	return len(dAtA) - i, nil
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) MarshalVTStrict() (dAtA []byte, err error) {
+func (m *UnresolvedCalculatedChannel) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -4885,12 +5584,12 @@ func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) MarshalVT
 	return dAtA[:n], nil
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) MarshalToVTStrict(dAtA []byte) (int, error) {
+func (m *UnresolvedCalculatedChannel) MarshalToVTStrict(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+func (m *UnresolvedCalculatedChannel) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -5073,6 +5772,198 @@ func (m *BatchResolveCalculatedChannelsResponse) MarshalToSizedBufferVTStrict(dA
 	return len(dAtA) - i, nil
 }
 
+func (m *ListResolvedCalculatedChannelsRequest) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListResolvedCalculatedChannelsRequest) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *ListResolvedCalculatedChannelsRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.OrderBy) > 0 {
+		i -= len(m.OrderBy)
+		copy(dAtA[i:], m.OrderBy)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.OrderBy)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Filter) > 0 {
+		i -= len(m.Filter)
+		copy(dAtA[i:], m.Filter)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Filter)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.PageToken) > 0 {
+		i -= len(m.PageToken)
+		copy(dAtA[i:], m.PageToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.PageToken)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.PageSize != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PageSize))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.RunId) > 0 {
+		i -= len(m.RunId)
+		copy(dAtA[i:], m.RunId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RunId)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.AssetId) > 0 {
+		i -= len(m.AssetId)
+		copy(dAtA[i:], m.AssetId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AssetId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CalculatedChannelResolution) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CalculatedChannelResolution) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *CalculatedChannelResolution) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Unresolved) > 0 {
+		for iNdEx := len(m.Unresolved) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Unresolved[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Resolved) > 0 {
+		for iNdEx := len(m.Resolved) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Resolved[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.CalculatedChannel != nil {
+		size, err := m.CalculatedChannel.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.NextPageToken) > 0 {
+		i -= len(m.NextPageToken)
+		copy(dAtA[i:], m.NextPageToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.NextPageToken)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.CalculatedChannelResolutions) > 0 {
+		for iNdEx := len(m.CalculatedChannelResolutions) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.CalculatedChannelResolutions[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CalculatedChannel) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5141,6 +6032,30 @@ func (m *CalculatedChannel) SizeVT() (n int) {
 	if m.Units != nil {
 		l = len(*m.Units)
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.FunctionDependencies) > 0 {
+		for _, e := range m.FunctionDependencies {
+			if size, ok := interface{}(e).(interface {
+				SizeVT() int
+			}); ok {
+				l = size.SizeVT()
+			} else {
+				l = proto.Size(e)
+			}
+			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Metadata) > 0 {
+		for _, e := range m.Metadata {
+			if size, ok := interface{}(e).(interface {
+				SizeVT() int
+			}); ok {
+				l = size.SizeVT()
+			} else {
+				l = proto.Size(e)
+			}
+			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -5378,6 +6293,18 @@ func (m *CreateCalculatedChannelRequest) SizeVT() (n int) {
 	if m.Units != nil {
 		l = len(*m.Units)
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.Metadata) > 0 {
+		for _, e := range m.Metadata {
+			if size, ok := interface{}(e).(interface {
+				SizeVT() int
+			}); ok {
+				l = size.SizeVT()
+			} else {
+				l = proto.Size(e)
+			}
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -5618,7 +6545,7 @@ func (m *ResolveCalculatedChannelRequest_CalculatedChannelConfiguration) SizeVT(
 	}
 	return n
 }
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) SizeVT() (n int) {
+func (m *ResolvedCalculatedChannel) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -5641,11 +6568,15 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) SizeVT() (n
 	if m.OutputDataType != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.OutputDataType))
 	}
+	l = len(m.AssetId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
 
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) SizeVT() (n int) {
+func (m *UnresolvedCalculatedChannel) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -5716,6 +6647,85 @@ func (m *BatchResolveCalculatedChannelsResponse) SizeVT() (n int) {
 			l = e.SizeVT()
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListResolvedCalculatedChannelsRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.AssetId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RunId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.PageSize != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.PageSize))
+	}
+	l = len(m.PageToken)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Filter)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.OrderBy)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CalculatedChannelResolution) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.CalculatedChannel != nil {
+		l = m.CalculatedChannel.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.Resolved) > 0 {
+		for _, e := range m.Resolved {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Unresolved) > 0 {
+		for _, e := range m.Unresolved {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListResolvedCalculatedChannelsResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.CalculatedChannelResolutions) > 0 {
+		for _, e := range m.CalculatedChannelResolutions {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.NextPageToken)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -6266,6 +7276,90 @@ func (m *CalculatedChannel) UnmarshalVT(dAtA []byte) error {
 			}
 			s := string(dAtA[iNdEx:postIndex])
 			m.Units = &s
+			iNdEx = postIndex
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FunctionDependencies", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FunctionDependencies = append(m.FunctionDependencies, &v1.FunctionDependency{})
+			if unmarshal, ok := interface{}(m.FunctionDependencies[len(m.FunctionDependencies)-1]).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.FunctionDependencies[len(m.FunctionDependencies)-1]); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &v11.MetadataValue{})
+			if unmarshal, ok := interface{}(m.Metadata[len(m.Metadata)-1]).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Metadata[len(m.Metadata)-1]); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -7604,6 +8698,48 @@ func (m *CreateCalculatedChannelRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			s := string(dAtA[iNdEx:postIndex])
 			m.Units = &s
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &v11.MetadataValue{})
+			if unmarshal, ok := interface{}(m.Metadata[len(m.Metadata)-1]).(interface {
+				UnmarshalVT([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Metadata[len(m.Metadata)-1]); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -8988,7 +10124,7 @@ func (m *ResolveCalculatedChannelRequest) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT(dAtA []byte) error {
+func (m *ResolvedCalculatedChannel) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -9011,10 +10147,10 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ResolveCalculatedChannelResponse_ResolvedCalculatedChannel: wiretype end group for non-group")
+			return fmt.Errorf("proto: ResolvedCalculatedChannel: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ResolveCalculatedChannelResponse_ResolvedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ResolvedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -9079,7 +10215,7 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT
 				return io.ErrUnexpectedEOF
 			}
 			if m.ExpressionRequest == nil {
-				m.ExpressionRequest = &v11.ExpressionRequest{}
+				m.ExpressionRequest = &v12.ExpressionRequest{}
 			}
 			if unmarshal, ok := interface{}(m.ExpressionRequest).(interface {
 				UnmarshalVT([]byte) error
@@ -9112,6 +10248,38 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT
 					break
 				}
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AssetId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AssetId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -9134,7 +10302,7 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT
 	}
 	return nil
 }
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) UnmarshalVT(dAtA []byte) error {
+func (m *UnresolvedCalculatedChannel) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -9157,10 +10325,10 @@ func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) Unmarshal
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel: wiretype end group for non-group")
+			return fmt.Errorf("proto: UnresolvedCalculatedChannel: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: UnresolvedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -9340,7 +10508,7 @@ func (m *ResolveCalculatedChannelResponse) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Resolved = append(m.Resolved, &ResolveCalculatedChannelResponse_ResolvedCalculatedChannel{})
+			m.Resolved = append(m.Resolved, &ResolvedCalculatedChannel{})
 			if err := m.Resolved[len(m.Resolved)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -9374,7 +10542,7 @@ func (m *ResolveCalculatedChannelResponse) UnmarshalVT(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Unresolved = append(m.Unresolved, &ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel{})
+			m.Unresolved = append(m.Unresolved, &UnresolvedCalculatedChannel{})
 			if err := m.Unresolved[len(m.Unresolved)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -9548,6 +10716,508 @@ func (m *BatchResolveCalculatedChannelsResponse) UnmarshalVT(dAtA []byte) error 
 			if err := m.Responses[len(m.Responses)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ListResolvedCalculatedChannelsRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListResolvedCalculatedChannelsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListResolvedCalculatedChannelsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AssetId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AssetId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RunId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageSize", wireType)
+			}
+			m.PageSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PageSize |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PageToken = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Filter", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Filter = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrderBy", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OrderBy = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *CalculatedChannelResolution) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CalculatedChannelResolution: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CalculatedChannelResolution: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannel", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CalculatedChannel == nil {
+				m.CalculatedChannel = &CalculatedChannel{}
+			}
+			if err := m.CalculatedChannel.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Resolved", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Resolved = append(m.Resolved, &ResolvedCalculatedChannel{})
+			if err := m.Resolved[len(m.Resolved)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unresolved", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Unresolved = append(m.Unresolved, &UnresolvedCalculatedChannel{})
+			if err := m.Unresolved[len(m.Unresolved)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ListResolvedCalculatedChannelsResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListResolvedCalculatedChannelsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListResolvedCalculatedChannelsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelResolutions", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CalculatedChannelResolutions = append(m.CalculatedChannelResolutions, &CalculatedChannelResolution{})
+			if err := m.CalculatedChannelResolutions[len(m.CalculatedChannelResolutions)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextPageToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NextPageToken = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -10160,6 +11830,90 @@ func (m *CalculatedChannel) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			s := stringValue
 			m.Units = &s
+			iNdEx = postIndex
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FunctionDependencies", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FunctionDependencies = append(m.FunctionDependencies, &v1.FunctionDependency{})
+			if unmarshal, ok := interface{}(m.FunctionDependencies[len(m.FunctionDependencies)-1]).(interface {
+				UnmarshalVTUnsafe([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.FunctionDependencies[len(m.FunctionDependencies)-1]); err != nil {
+					return err
+				}
+			}
+			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &v11.MetadataValue{})
+			if unmarshal, ok := interface{}(m.Metadata[len(m.Metadata)-1]).(interface {
+				UnmarshalVTUnsafe([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Metadata[len(m.Metadata)-1]); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -11566,6 +13320,48 @@ func (m *CreateCalculatedChannelRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			s := stringValue
 			m.Units = &s
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Metadata = append(m.Metadata, &v11.MetadataValue{})
+			if unmarshal, ok := interface{}(m.Metadata[len(m.Metadata)-1]).(interface {
+				UnmarshalVTUnsafe([]byte) error
+			}); ok {
+				if err := unmarshal.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				if err := proto.Unmarshal(dAtA[iNdEx:postIndex], m.Metadata[len(m.Metadata)-1]); err != nil {
+					return err
+				}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -13006,7 +14802,7 @@ func (m *ResolveCalculatedChannelRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVTUnsafe(dAtA []byte) error {
+func (m *ResolvedCalculatedChannel) UnmarshalVTUnsafe(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -13029,10 +14825,10 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ResolveCalculatedChannelResponse_ResolvedCalculatedChannel: wiretype end group for non-group")
+			return fmt.Errorf("proto: ResolvedCalculatedChannel: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ResolveCalculatedChannelResponse_ResolvedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ResolvedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -13101,7 +14897,7 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT
 				return io.ErrUnexpectedEOF
 			}
 			if m.ExpressionRequest == nil {
-				m.ExpressionRequest = &v11.ExpressionRequest{}
+				m.ExpressionRequest = &v12.ExpressionRequest{}
 			}
 			if unmarshal, ok := interface{}(m.ExpressionRequest).(interface {
 				UnmarshalVTUnsafe([]byte) error
@@ -13134,6 +14930,42 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT
 					break
 				}
 			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AssetId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.AssetId = stringValue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -13156,7 +14988,7 @@ func (m *ResolveCalculatedChannelResponse_ResolvedCalculatedChannel) UnmarshalVT
 	}
 	return nil
 }
-func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) UnmarshalVTUnsafe(dAtA []byte) error {
+func (m *UnresolvedCalculatedChannel) UnmarshalVTUnsafe(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -13179,10 +15011,10 @@ func (m *ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel) Unmarshal
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel: wiretype end group for non-group")
+			return fmt.Errorf("proto: UnresolvedCalculatedChannel: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: UnresolvedCalculatedChannel: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -13374,7 +15206,7 @@ func (m *ResolveCalculatedChannelResponse) UnmarshalVTUnsafe(dAtA []byte) error 
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Resolved = append(m.Resolved, &ResolveCalculatedChannelResponse_ResolvedCalculatedChannel{})
+			m.Resolved = append(m.Resolved, &ResolvedCalculatedChannel{})
 			if err := m.Resolved[len(m.Resolved)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -13408,7 +15240,7 @@ func (m *ResolveCalculatedChannelResponse) UnmarshalVTUnsafe(dAtA []byte) error 
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Unresolved = append(m.Unresolved, &ResolveCalculatedChannelResponse_UnresolvedCalculatedChannel{})
+			m.Unresolved = append(m.Unresolved, &UnresolvedCalculatedChannel{})
 			if err := m.Unresolved[len(m.Unresolved)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -13582,6 +15414,532 @@ func (m *BatchResolveCalculatedChannelsResponse) UnmarshalVTUnsafe(dAtA []byte) 
 			if err := m.Responses[len(m.Responses)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ListResolvedCalculatedChannelsRequest) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListResolvedCalculatedChannelsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListResolvedCalculatedChannelsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AssetId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.AssetId = stringValue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RunId = stringValue
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageSize", wireType)
+			}
+			m.PageSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PageSize |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PageToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.PageToken = stringValue
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Filter", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Filter = stringValue
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrderBy", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.OrderBy = stringValue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *CalculatedChannelResolution) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CalculatedChannelResolution: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CalculatedChannelResolution: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannel", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CalculatedChannel == nil {
+				m.CalculatedChannel = &CalculatedChannel{}
+			}
+			if err := m.CalculatedChannel.UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Resolved", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Resolved = append(m.Resolved, &ResolvedCalculatedChannel{})
+			if err := m.Resolved[len(m.Resolved)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Unresolved", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Unresolved = append(m.Unresolved, &UnresolvedCalculatedChannel{})
+			if err := m.Unresolved[len(m.Unresolved)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ListResolvedCalculatedChannelsResponse) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListResolvedCalculatedChannelsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListResolvedCalculatedChannelsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CalculatedChannelResolutions", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CalculatedChannelResolutions = append(m.CalculatedChannelResolutions, &CalculatedChannelResolution{})
+			if err := m.CalculatedChannelResolutions[len(m.CalculatedChannelResolutions)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextPageToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.NextPageToken = stringValue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

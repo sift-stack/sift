@@ -57,14 +57,17 @@ class AnnotationServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def DeleteAnnotation(self, request, context):
-        """Deletes an annotation.
+        """Delete Annotation is deprecated. Calling this will archive the annotation, which should be done using the
+        UpdateAnnotation method with the delete date set to a non-null value. Restoring an annotation can be done
+        by calling UpdateAnnotation with the delete date set to a null value.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def BatchDeleteAnnotations(self, request, context):
-        """Batch deletes annotations.
+        """BatchDeleteAnnotations will archive the annotations specified in the request. These can be restored
+        by calling UpdateAnnotation with the delete date set to a null value.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

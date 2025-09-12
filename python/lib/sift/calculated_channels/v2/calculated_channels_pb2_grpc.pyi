@@ -61,6 +61,12 @@ class CalculatedChannelServiceStub:
     ]
     """Resolve a batch of calculated channels into expressions with references."""
 
+    ListResolvedCalculatedChannels: grpc.UnaryUnaryMultiCallable[
+        sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsRequest,
+        sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsResponse,
+    ]
+    """Retrieve the latest versions of calculated channels based on an optional filter."""
+
 class CalculatedChannelServiceAsyncStub:
     GetCalculatedChannel: grpc.aio.UnaryUnaryMultiCallable[
         sift.calculated_channels.v2.calculated_channels_pb2.GetCalculatedChannelRequest,
@@ -103,6 +109,12 @@ class CalculatedChannelServiceAsyncStub:
         sift.calculated_channels.v2.calculated_channels_pb2.BatchResolveCalculatedChannelsResponse,
     ]
     """Resolve a batch of calculated channels into expressions with references."""
+
+    ListResolvedCalculatedChannels: grpc.aio.UnaryUnaryMultiCallable[
+        sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsRequest,
+        sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsResponse,
+    ]
+    """Retrieve the latest versions of calculated channels based on an optional filter."""
 
 class CalculatedChannelServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -160,5 +172,13 @@ class CalculatedChannelServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.calculated_channels.v2.calculated_channels_pb2.BatchResolveCalculatedChannelsResponse, collections.abc.Awaitable[sift.calculated_channels.v2.calculated_channels_pb2.BatchResolveCalculatedChannelsResponse]]:
         """Resolve a batch of calculated channels into expressions with references."""
+
+    @abc.abstractmethod
+    def ListResolvedCalculatedChannels(
+        self,
+        request: sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsResponse, collections.abc.Awaitable[sift.calculated_channels.v2.calculated_channels_pb2.ListResolvedCalculatedChannelsResponse]]:
+        """Retrieve the latest versions of calculated channels based on an optional filter."""
 
 def add_CalculatedChannelServiceServicer_to_server(servicer: CalculatedChannelServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

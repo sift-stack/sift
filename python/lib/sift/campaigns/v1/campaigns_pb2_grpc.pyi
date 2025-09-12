@@ -43,6 +43,12 @@ class CampaignServiceStub:
     ]
     """Updates an existing campaign using the list of fields specified in `update_mask`."""
 
+    ListCampaignAnnotations: grpc.UnaryUnaryMultiCallable[
+        sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsRequest,
+        sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsResponse,
+    ]
+    """List campaigns."""
+
 class CampaignServiceAsyncStub:
     GetCampaign: grpc.aio.UnaryUnaryMultiCallable[
         sift.campaigns.v1.campaigns_pb2.GetCampaignRequest,
@@ -67,6 +73,12 @@ class CampaignServiceAsyncStub:
         sift.campaigns.v1.campaigns_pb2.UpdateCampaignResponse,
     ]
     """Updates an existing campaign using the list of fields specified in `update_mask`."""
+
+    ListCampaignAnnotations: grpc.aio.UnaryUnaryMultiCallable[
+        sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsRequest,
+        sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsResponse,
+    ]
+    """List campaigns."""
 
 class CampaignServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -100,5 +112,13 @@ class CampaignServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.campaigns.v1.campaigns_pb2.UpdateCampaignResponse, collections.abc.Awaitable[sift.campaigns.v1.campaigns_pb2.UpdateCampaignResponse]]:
         """Updates an existing campaign using the list of fields specified in `update_mask`."""
+
+    @abc.abstractmethod
+    def ListCampaignAnnotations(
+        self,
+        request: sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsResponse, collections.abc.Awaitable[sift.campaigns.v1.campaigns_pb2.ListCampaignAnnotationsResponse]]:
+        """List campaigns."""
 
 def add_CampaignServiceServicer_to_server(servicer: CampaignServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

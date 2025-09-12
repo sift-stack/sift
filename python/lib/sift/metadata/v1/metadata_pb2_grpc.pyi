@@ -25,11 +25,65 @@ class MetadataServiceStub:
     ]
     """Create a metadata key."""
 
+    CreateMetadataValue: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.CreateMetadataValueRequest,
+        sift.metadata.v1.metadata_pb2.CreateMetadataValueResponse,
+    ]
+    """Create a metadata value."""
+
     ListMetadataKeys: grpc.UnaryUnaryMultiCallable[
         sift.metadata.v1.metadata_pb2.ListMetadataKeysRequest,
         sift.metadata.v1.metadata_pb2.ListMetadataKeysResponse,
     ]
     """List metadata keys."""
+
+    ListMetadataValues: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.ListMetadataValuesRequest,
+        sift.metadata.v1.metadata_pb2.ListMetadataValuesResponse,
+    ]
+    """List metadata values."""
+
+    ArchiveMetadataKeys: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.ArchiveMetadataKeysRequest,
+        sift.metadata.v1.metadata_pb2.ArchiveMetadataKeysResponse,
+    ]
+    """Archive metadata keys."""
+
+    ArchiveMetadataValues: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.ArchiveMetadataValuesRequest,
+        sift.metadata.v1.metadata_pb2.ArchiveMetadataValuesResponse,
+    ]
+    """Archive metadata values."""
+
+    UnarchiveMetadataKeys: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.UnarchiveMetadataKeysRequest,
+        sift.metadata.v1.metadata_pb2.UnarchiveMetadataKeysResponse,
+    ]
+    """Unarchive metadata keys."""
+
+    UnarchiveMetadataValues: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.UnarchiveMetadataValuesRequest,
+        sift.metadata.v1.metadata_pb2.UnarchiveMetadataValuesResponse,
+    ]
+    """Unarchive metadata values."""
+
+    DeleteMetadataKeys: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.DeleteMetadataKeysRequest,
+        sift.metadata.v1.metadata_pb2.DeleteMetadataKeysResponse,
+    ]
+    """Delete metadata keys."""
+
+    DeleteMetadataValues: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.DeleteMetadataValuesRequest,
+        sift.metadata.v1.metadata_pb2.DeleteMetadataValuesResponse,
+    ]
+    """Delete metadata values."""
+
+    ListMetadataUsage: grpc.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.ListMetadataUsageRequest,
+        sift.metadata.v1.metadata_pb2.ListMetadataUsageResponse,
+    ]
+    """List metadata key usage."""
 
 class MetadataServiceAsyncStub:
     CreateMetadataKey: grpc.aio.UnaryUnaryMultiCallable[
@@ -38,11 +92,65 @@ class MetadataServiceAsyncStub:
     ]
     """Create a metadata key."""
 
+    CreateMetadataValue: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.CreateMetadataValueRequest,
+        sift.metadata.v1.metadata_pb2.CreateMetadataValueResponse,
+    ]
+    """Create a metadata value."""
+
     ListMetadataKeys: grpc.aio.UnaryUnaryMultiCallable[
         sift.metadata.v1.metadata_pb2.ListMetadataKeysRequest,
         sift.metadata.v1.metadata_pb2.ListMetadataKeysResponse,
     ]
     """List metadata keys."""
+
+    ListMetadataValues: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.ListMetadataValuesRequest,
+        sift.metadata.v1.metadata_pb2.ListMetadataValuesResponse,
+    ]
+    """List metadata values."""
+
+    ArchiveMetadataKeys: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.ArchiveMetadataKeysRequest,
+        sift.metadata.v1.metadata_pb2.ArchiveMetadataKeysResponse,
+    ]
+    """Archive metadata keys."""
+
+    ArchiveMetadataValues: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.ArchiveMetadataValuesRequest,
+        sift.metadata.v1.metadata_pb2.ArchiveMetadataValuesResponse,
+    ]
+    """Archive metadata values."""
+
+    UnarchiveMetadataKeys: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.UnarchiveMetadataKeysRequest,
+        sift.metadata.v1.metadata_pb2.UnarchiveMetadataKeysResponse,
+    ]
+    """Unarchive metadata keys."""
+
+    UnarchiveMetadataValues: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.UnarchiveMetadataValuesRequest,
+        sift.metadata.v1.metadata_pb2.UnarchiveMetadataValuesResponse,
+    ]
+    """Unarchive metadata values."""
+
+    DeleteMetadataKeys: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.DeleteMetadataKeysRequest,
+        sift.metadata.v1.metadata_pb2.DeleteMetadataKeysResponse,
+    ]
+    """Delete metadata keys."""
+
+    DeleteMetadataValues: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.DeleteMetadataValuesRequest,
+        sift.metadata.v1.metadata_pb2.DeleteMetadataValuesResponse,
+    ]
+    """Delete metadata values."""
+
+    ListMetadataUsage: grpc.aio.UnaryUnaryMultiCallable[
+        sift.metadata.v1.metadata_pb2.ListMetadataUsageRequest,
+        sift.metadata.v1.metadata_pb2.ListMetadataUsageResponse,
+    ]
+    """List metadata key usage."""
 
 class MetadataServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -54,11 +162,83 @@ class MetadataServiceServicer(metaclass=abc.ABCMeta):
         """Create a metadata key."""
 
     @abc.abstractmethod
+    def CreateMetadataValue(
+        self,
+        request: sift.metadata.v1.metadata_pb2.CreateMetadataValueRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.CreateMetadataValueResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.CreateMetadataValueResponse]]:
+        """Create a metadata value."""
+
+    @abc.abstractmethod
     def ListMetadataKeys(
         self,
         request: sift.metadata.v1.metadata_pb2.ListMetadataKeysRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.metadata.v1.metadata_pb2.ListMetadataKeysResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.ListMetadataKeysResponse]]:
         """List metadata keys."""
+
+    @abc.abstractmethod
+    def ListMetadataValues(
+        self,
+        request: sift.metadata.v1.metadata_pb2.ListMetadataValuesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.ListMetadataValuesResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.ListMetadataValuesResponse]]:
+        """List metadata values."""
+
+    @abc.abstractmethod
+    def ArchiveMetadataKeys(
+        self,
+        request: sift.metadata.v1.metadata_pb2.ArchiveMetadataKeysRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.ArchiveMetadataKeysResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.ArchiveMetadataKeysResponse]]:
+        """Archive metadata keys."""
+
+    @abc.abstractmethod
+    def ArchiveMetadataValues(
+        self,
+        request: sift.metadata.v1.metadata_pb2.ArchiveMetadataValuesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.ArchiveMetadataValuesResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.ArchiveMetadataValuesResponse]]:
+        """Archive metadata values."""
+
+    @abc.abstractmethod
+    def UnarchiveMetadataKeys(
+        self,
+        request: sift.metadata.v1.metadata_pb2.UnarchiveMetadataKeysRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.UnarchiveMetadataKeysResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.UnarchiveMetadataKeysResponse]]:
+        """Unarchive metadata keys."""
+
+    @abc.abstractmethod
+    def UnarchiveMetadataValues(
+        self,
+        request: sift.metadata.v1.metadata_pb2.UnarchiveMetadataValuesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.UnarchiveMetadataValuesResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.UnarchiveMetadataValuesResponse]]:
+        """Unarchive metadata values."""
+
+    @abc.abstractmethod
+    def DeleteMetadataKeys(
+        self,
+        request: sift.metadata.v1.metadata_pb2.DeleteMetadataKeysRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.DeleteMetadataKeysResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.DeleteMetadataKeysResponse]]:
+        """Delete metadata keys."""
+
+    @abc.abstractmethod
+    def DeleteMetadataValues(
+        self,
+        request: sift.metadata.v1.metadata_pb2.DeleteMetadataValuesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.DeleteMetadataValuesResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.DeleteMetadataValuesResponse]]:
+        """Delete metadata values."""
+
+    @abc.abstractmethod
+    def ListMetadataUsage(
+        self,
+        request: sift.metadata.v1.metadata_pb2.ListMetadataUsageRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.metadata.v1.metadata_pb2.ListMetadataUsageResponse, collections.abc.Awaitable[sift.metadata.v1.metadata_pb2.ListMetadataUsageResponse]]:
+        """List metadata key usage."""
 
 def add_MetadataServiceServicer_to_server(servicer: MetadataServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

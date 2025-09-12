@@ -11,6 +11,8 @@ pub struct CreateDataImportFromUrlRequest {
     pub ch10_config: ::core::option::Option<Ch10Config>,
     #[prost(message, optional, tag="4")]
     pub tdms_config: ::core::option::Option<TdmsConfig>,
+    #[prost(message, optional, tag="5")]
+    pub parquet_config: ::core::option::Option<ParquetConfig>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -39,6 +41,8 @@ pub struct CreateDataImportFromUploadRequest {
     pub ch10_config: ::core::option::Option<Ch10Config>,
     #[prost(message, optional, tag="4")]
     pub tdms_config: ::core::option::Option<TdmsConfig>,
+    #[prost(message, optional, tag="5")]
+    pub parquet_config: ::core::option::Option<ParquetConfig>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -63,6 +67,8 @@ pub struct CsvConfig {
     pub time_column: ::core::option::Option<CsvTimeColumn>,
     #[prost(map="uint32, message", tag="6")]
     pub data_columns: ::std::collections::HashMap<u32, super::super::common::r#type::v1::ChannelConfig>,
+    #[prost(uint64, optional, tag="7")]
+    pub num_rows: ::core::option::Option<u64>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
@@ -79,12 +85,16 @@ pub struct CsvTimeColumn {
 pub struct DetectConfigRequest {
     #[prost(bytes="vec", tag="1")]
     pub data: ::prost::alloc::vec::Vec<u8>,
+    #[prost(enumeration="DataTypeKey", tag="2")]
+    pub r#type: i32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DetectConfigResponse {
     #[prost(message, optional, tag="1")]
     pub csv_config: ::core::option::Option<CsvConfig>,
+    #[prost(message, optional, tag="2")]
+    pub parquet_config: ::core::option::Option<ParquetConfig>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -105,6 +115,61 @@ pub struct TdmsConfig {
     pub run_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag="3")]
     pub start_time_override: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(uint64, optional, tag="4")]
+    pub file_size: ::core::option::Option<u64>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ParquetTimeColumn {
+    #[prost(string, tag="1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(enumeration="TimeFormat", tag="2")]
+    pub format: i32,
+    #[prost(message, optional, tag="3")]
+    pub relative_start_time: ::core::option::Option<::pbjson_types::Timestamp>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ParquetDataColumn {
+    #[prost(string, tag="1")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub channel_config: ::core::option::Option<super::super::common::r#type::v1::ChannelConfig>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ParquetFlatDatasetConfig {
+    #[prost(message, optional, tag="1")]
+    pub time_column: ::core::option::Option<ParquetTimeColumn>,
+    #[prost(message, repeated, tag="2")]
+    pub data_columns: ::prost::alloc::vec::Vec<ParquetDataColumn>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ParquetConfig {
+    #[prost(string, tag="1")]
+    pub asset_name: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub run_name: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub run_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag="5")]
+    pub footer_offset: u64,
+    #[prost(uint32, tag="6")]
+    pub footer_length: u32,
+    #[prost(enumeration="ParquetComplexTypesImportMode", tag="7")]
+    pub complex_types_import_mode: i32,
+    #[prost(oneof="parquet_config::Config", tags="4")]
+    pub config: ::core::option::Option<parquet_config::Config>,
+}
+/// Nested message and enum types in `ParquetConfig`.
+pub mod parquet_config {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Config {
+        #[prost(message, tag="4")]
+        FlatDataset(super::ParquetFlatDatasetConfig),
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -127,6 +192,18 @@ pub struct DataImport {
     pub ch10_config: ::core::option::Option<Ch10Config>,
     #[prost(message, optional, tag="10")]
     pub tdms_config: ::core::option::Option<TdmsConfig>,
+    #[prost(message, optional, tag="16")]
+    pub parquet_config: ::core::option::Option<ParquetConfig>,
+    #[prost(string, optional, tag="11")]
+    pub run_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="12")]
+    pub report_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag="13")]
+    pub asset_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag="14")]
+    pub data_start_time: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, optional, tag="15")]
+    pub data_stop_time: ::core::option::Option<::pbjson_types::Timestamp>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -213,6 +290,76 @@ impl TimeFormat {
             "TIME_FORMAT_ABSOLUTE_UNIX_MILLISECONDS" => Some(Self::AbsoluteUnixMilliseconds),
             "TIME_FORMAT_ABSOLUTE_UNIX_MICROSECONDS" => Some(Self::AbsoluteUnixMicroseconds),
             "TIME_FORMAT_ABSOLUTE_UNIX_NANOSECONDS" => Some(Self::AbsoluteUnixNanoseconds),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DataTypeKey {
+    Unspecified = 0,
+    Csv = 1,
+    Tdms = 2,
+    Ch10 = 3,
+    ParquetFlatdataset = 4,
+}
+impl DataTypeKey {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            DataTypeKey::Unspecified => "DATA_TYPE_KEY_UNSPECIFIED",
+            DataTypeKey::Csv => "DATA_TYPE_KEY_CSV",
+            DataTypeKey::Tdms => "DATA_TYPE_KEY_TDMS",
+            DataTypeKey::Ch10 => "DATA_TYPE_KEY_CH10",
+            DataTypeKey::ParquetFlatdataset => "DATA_TYPE_KEY_PARQUET_FLATDATASET",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DATA_TYPE_KEY_UNSPECIFIED" => Some(Self::Unspecified),
+            "DATA_TYPE_KEY_CSV" => Some(Self::Csv),
+            "DATA_TYPE_KEY_TDMS" => Some(Self::Tdms),
+            "DATA_TYPE_KEY_CH10" => Some(Self::Ch10),
+            "DATA_TYPE_KEY_PARQUET_FLATDATASET" => Some(Self::ParquetFlatdataset),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParquetComplexTypesImportMode {
+    Unspecified = 0,
+    Ignore = 1,
+    Both = 2,
+    String = 3,
+    Bytes = 4,
+}
+impl ParquetComplexTypesImportMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            ParquetComplexTypesImportMode::Unspecified => "PARQUET_COMPLEX_TYPES_IMPORT_MODE_UNSPECIFIED",
+            ParquetComplexTypesImportMode::Ignore => "PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE",
+            ParquetComplexTypesImportMode::Both => "PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH",
+            ParquetComplexTypesImportMode::String => "PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING",
+            ParquetComplexTypesImportMode::Bytes => "PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARQUET_COMPLEX_TYPES_IMPORT_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARQUET_COMPLEX_TYPES_IMPORT_MODE_IGNORE" => Some(Self::Ignore),
+            "PARQUET_COMPLEX_TYPES_IMPORT_MODE_BOTH" => Some(Self::Both),
+            "PARQUET_COMPLEX_TYPES_IMPORT_MODE_STRING" => Some(Self::String),
+            "PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES" => Some(Self::Bytes),
             _ => None,
         }
     }

@@ -14,9 +14,10 @@ _sym_db = _symbol_database.Default()
 
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
+from sift.metadata.v1 import metadata_pb2 as sift_dot_metadata_dot_v1_dot_metadata__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0sift/common/type/v1/user_defined_functions.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd4\x07\n\x13UserDefinedFunction\x12<\n\x18user_defined_function_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x15userDefinedFunctionId\x12\x17\n\x04name\x18\x03 \x01(\tB\x03\xe0\x41\x02R\x04name\x12I\n\rarchived_date\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x00R\x0c\x61rchivedDate\x88\x01\x01\x12K\n user_defined_function_version_id\x18\x05 \x01(\tB\x03\xe0\x41\x02R\x1cuserDefinedFunctionVersionId\x12\x1d\n\x07version\x18\x06 \x01(\rB\x03\xe0\x41\x02R\x07version\x12%\n\x0b\x64\x65scription\x18\x07 \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12*\n\x0e\x63hange_message\x18\x08 \x01(\tB\x03\xe0\x41\x02R\rchangeMessage\x12\"\n\nuser_notes\x18\t \x01(\tB\x03\xe0\x41\x02R\tuserNotes\x12#\n\nexpression\x18\n \x01(\tB\x03\xe0\x41\x02R\nexpression\x12P\n\x0f\x66unction_inputs\x18\x0c \x03(\x0b\x32\".sift.common.type.v1.FunctionInputB\x03\xe0\x41\x02R\x0e\x66unctionInputs\x12\\\n\x14\x66unction_output_type\x18\r \x01(\x0e\x32%.sift.common.type.v1.FunctionDataTypeB\x03\xe0\x41\x01R\x12\x66unctionOutputType\x12\x61\n\x15\x66unction_dependencies\x18\x0b \x03(\x0b\x32\'.sift.common.type.v1.FunctionDependencyB\x03\xe0\x41\x02R\x14\x66unctionDependencies\x12\x42\n\x0c\x63reated_date\x18\x0e \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\x0f \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x30\n\x12\x63reated_by_user_id\x18\x10 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\x11 \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserIdB\x10\n\x0e_archived_date\"a\n\x12\x46unctionDependency\x12K\n user_defined_function_version_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x1cuserDefinedFunctionVersionId\"\x9e\x01\n\rFunctionInput\x12#\n\nidentifier\x18\x01 \x01(\tB\x03\xe0\x41\x02R\nidentifier\x12G\n\tdata_type\x18\x02 \x01(\x0e\x32%.sift.common.type.v1.FunctionDataTypeB\x03\xe0\x41\x02R\x08\x64\x61taType\x12\x1f\n\x08\x63onstant\x18\x03 \x01(\x08\x42\x03\xe0\x41\x02R\x08\x63onstant*\x92\x01\n\x10\x46unctionDataType\x12\"\n\x1e\x46UNCTION_DATA_TYPE_UNSPECIFIED\x10\x00\x12\x1e\n\x1a\x46UNCTION_DATA_TYPE_NUMERIC\x10\x01\x12\x1d\n\x19\x46UNCTION_DATA_TYPE_STRING\x10\x02\x12\x1b\n\x17\x46UNCTION_DATA_TYPE_BOOL\x10\x03\x42\xa3\x01\n\x17\x63om.sift.common.type.v1B\x19UserDefinedFunctionsProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0sift/common/type/v1/user_defined_functions.proto\x12\x13sift.common.type.v1\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1fsift/metadata/v1/metadata.proto\"\x96\x08\n\x13UserDefinedFunction\x12<\n\x18user_defined_function_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x15userDefinedFunctionId\x12\x17\n\x04name\x18\x03 \x01(\tB\x03\xe0\x41\x02R\x04name\x12I\n\rarchived_date\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x00R\x0c\x61rchivedDate\x88\x01\x01\x12K\n user_defined_function_version_id\x18\x05 \x01(\tB\x03\xe0\x41\x02R\x1cuserDefinedFunctionVersionId\x12\x1d\n\x07version\x18\x06 \x01(\rB\x03\xe0\x41\x02R\x07version\x12%\n\x0b\x64\x65scription\x18\x07 \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12*\n\x0e\x63hange_message\x18\x08 \x01(\tB\x03\xe0\x41\x02R\rchangeMessage\x12\"\n\nuser_notes\x18\t \x01(\tB\x03\xe0\x41\x02R\tuserNotes\x12#\n\nexpression\x18\n \x01(\tB\x03\xe0\x41\x02R\nexpression\x12P\n\x0f\x66unction_inputs\x18\x0c \x03(\x0b\x32\".sift.common.type.v1.FunctionInputB\x03\xe0\x41\x02R\x0e\x66unctionInputs\x12\\\n\x14\x66unction_output_type\x18\r \x01(\x0e\x32%.sift.common.type.v1.FunctionDataTypeB\x03\xe0\x41\x01R\x12\x66unctionOutputType\x12\x61\n\x15\x66unction_dependencies\x18\x0b \x03(\x0b\x32\'.sift.common.type.v1.FunctionDependencyB\x03\xe0\x41\x02R\x14\x66unctionDependencies\x12\x42\n\x0c\x63reated_date\x18\x0e \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\x0f \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x30\n\x12\x63reated_by_user_id\x18\x10 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\x11 \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12@\n\x08metadata\x18\x12 \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x02R\x08metadataB\x10\n\x0e_archived_date\"a\n\x12\x46unctionDependency\x12K\n user_defined_function_version_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x1cuserDefinedFunctionVersionId\"\x9e\x01\n\rFunctionInput\x12#\n\nidentifier\x18\x01 \x01(\tB\x03\xe0\x41\x02R\nidentifier\x12G\n\tdata_type\x18\x02 \x01(\x0e\x32%.sift.common.type.v1.FunctionDataTypeB\x03\xe0\x41\x02R\x08\x64\x61taType\x12\x1f\n\x08\x63onstant\x18\x03 \x01(\x08\x42\x03\xe0\x41\x02R\x08\x63onstant*\x92\x01\n\x10\x46unctionDataType\x12\"\n\x1e\x46UNCTION_DATA_TYPE_UNSPECIFIED\x10\x00\x12\x1e\n\x1a\x46UNCTION_DATA_TYPE_NUMERIC\x10\x01\x12\x1d\n\x19\x46UNCTION_DATA_TYPE_STRING\x10\x02\x12\x1b\n\x17\x46UNCTION_DATA_TYPE_BOOL\x10\x03\x42\xa3\x01\n\x17\x63om.sift.common.type.v1B\x19UserDefinedFunctionsProtoP\x01\xa2\x02\x03SCT\xaa\x02\x13Sift.Common.Type.V1\xca\x02\x13Sift\\Common\\Type\\V1\xe2\x02\x1fSift\\Common\\Type\\V1\\GPBMetadata\xea\x02\x16Sift::Common::Type::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -56,6 +57,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_USERDEFINEDFUNCTION'].fields_by_name['created_by_user_id']._serialized_options = b'\340A\002'
   _globals['_USERDEFINEDFUNCTION'].fields_by_name['modified_by_user_id']._loaded_options = None
   _globals['_USERDEFINEDFUNCTION'].fields_by_name['modified_by_user_id']._serialized_options = b'\340A\002'
+  _globals['_USERDEFINEDFUNCTION'].fields_by_name['metadata']._loaded_options = None
+  _globals['_USERDEFINEDFUNCTION'].fields_by_name['metadata']._serialized_options = b'\340A\002'
   _globals['_FUNCTIONDEPENDENCY'].fields_by_name['user_defined_function_version_id']._loaded_options = None
   _globals['_FUNCTIONDEPENDENCY'].fields_by_name['user_defined_function_version_id']._serialized_options = b'\340A\002'
   _globals['_FUNCTIONINPUT'].fields_by_name['identifier']._loaded_options = None
@@ -64,12 +67,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_FUNCTIONINPUT'].fields_by_name['data_type']._serialized_options = b'\340A\002'
   _globals['_FUNCTIONINPUT'].fields_by_name['constant']._loaded_options = None
   _globals['_FUNCTIONINPUT'].fields_by_name['constant']._serialized_options = b'\340A\002'
-  _globals['_FUNCTIONDATATYPE']._serialized_start=1383
-  _globals['_FUNCTIONDATATYPE']._serialized_end=1529
-  _globals['_USERDEFINEDFUNCTION']._serialized_start=140
-  _globals['_USERDEFINEDFUNCTION']._serialized_end=1120
-  _globals['_FUNCTIONDEPENDENCY']._serialized_start=1122
-  _globals['_FUNCTIONDEPENDENCY']._serialized_end=1219
-  _globals['_FUNCTIONINPUT']._serialized_start=1222
-  _globals['_FUNCTIONINPUT']._serialized_end=1380
+  _globals['_FUNCTIONDATATYPE']._serialized_start=1482
+  _globals['_FUNCTIONDATATYPE']._serialized_end=1628
+  _globals['_USERDEFINEDFUNCTION']._serialized_start=173
+  _globals['_USERDEFINEDFUNCTION']._serialized_end=1219
+  _globals['_FUNCTIONDEPENDENCY']._serialized_start=1221
+  _globals['_FUNCTIONDEPENDENCY']._serialized_end=1318
+  _globals['_FUNCTIONINPUT']._serialized_start=1321
+  _globals['_FUNCTIONINPUT']._serialized_end=1479
 # @@protoc_insertion_point(module_scope)
