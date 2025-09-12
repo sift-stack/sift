@@ -42,7 +42,8 @@ class DataImport(BaseModel):
     source_url: str = ""
     status: Union[str, DataImportStatusType]
     error_message: str = ""
-    csv_config: dict
+    csv_config: Optional[dict]
+    parquet_config: Optional[dict]
 
     @field_validator("status", mode="before")
     @classmethod
