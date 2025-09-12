@@ -1,11 +1,11 @@
-import mimetypes
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Union
 from urllib.parse import urljoin
 
 from requests_toolbelt import MultipartEncoder
 
 from sift_py._internal.convert.json import to_json
+from sift_py.data_import._utils import mime_and_content_type_from_path
 from sift_py.file_attachment.entity import Entity
 from sift_py.file_attachment.metadata import Metadata
 from sift_py.rest import SiftRestConfig, _RestService
@@ -41,9 +41,7 @@ class UploadService(_RestService):
         if not posix_path.is_file():
             raise Exception(f"Provided path, '{path}', does not point to a regular file.")
 
-        file_name, mimetype, content_encoding = self.__class__._mime_and_content_type_from_path(
-            posix_path
-        )
+        file_name, mimetype, content_encoding = mime_and_content_type_from_path(posix_path)
 
         if not mimetype:
             raise Exception(f"The MIME-type of '{posix_path}' could not be computed.")
@@ -93,9 +91,3 @@ class UploadService(_RestService):
                 )
 
             return response.json().get("remoteFile").get("remoteFileId")
-
-    @staticmethod
-    def _mime_and_content_type_from_path(path: Path) -> Tuple[str, Optional[str], Optional[str]]:
-        file_name = path.name
-        mime, encoding = mimetypes.guess_type(path)
-        return file_name, mime, encoding

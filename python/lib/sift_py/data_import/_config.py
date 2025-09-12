@@ -7,6 +7,7 @@ from pydantic_core import PydanticCustomError
 from typing_extensions import Self
 
 from sift_py._internal.channel import channel_fqn
+from sift_py.data_import.parquet_complex_types import ParquetComplexTypesImportModeType
 from sift_py.data_import.time_format import TimeFormatType
 from sift_py.error import _component_deprecation_warning
 from sift_py.ingestion.channel import ChannelBitFieldElement, ChannelDataType, ChannelEnumType
@@ -239,3 +240,69 @@ class Hdf5DataCfg(ConfigDataModel):
     time_column: int = 1
     value_dataset: str
     value_column: int = 1
+
+
+class ParquetTimeColumn(ConfigTimeModel):
+    """
+    Defines a time column entry in the Parquet config.
+    """
+
+    path: str
+
+
+class ParquetDataColumn(ConfigBaseModel):
+    """
+    Defines a data column entry in the Parquet config.
+    """
+
+    path: str
+    channel_config: ConfigDataModel
+
+
+class ParquetFlatDatasetConfig(ConfigBaseModel):
+    """
+    Defines the flat dataset config for Parquet files.
+    """
+
+    time_column: ParquetTimeColumn
+    data_columns: List[ParquetDataColumn]
+
+
+class ParquetConfigImpl(ConfigBaseModel):
+    """
+    Defines the Parquet config spec.
+    """
+
+    asset_name: str
+    run_name: str = ""
+    run_id: str = ""
+    flat_dataset: Optional[ParquetFlatDatasetConfig] = None
+    footer_offset: int
+    footer_length: int
+    complex_types_import_mode: Union[str, ParquetComplexTypesImportModeType]
+
+    @model_validator(mode="after")
+    def validate_config(self) -> Self:
+        if self.run_name and self.run_id:
+            raise PydanticCustomError(
+                "invalid_config_error", "Only specify run_name or run_id, not both."
+            )
+        return self
+
+    @field_validator("complex_types_import_mode", mode="before")
+    @classmethod
+    def convert_complex_types_import_mode(cls, raw: Optional[str]) -> Optional[str]:
+        """
+        Converts the provided complex_types_import_mode value to a string.
+        """
+        if raw is None:
+            return None
+        if isinstance(raw, ParquetComplexTypesImportModeType):
+            return raw.as_human_str()
+        elif isinstance(raw, str):
+            value = ParquetComplexTypesImportModeType.from_str(raw)
+            if value is not None:
+                return value.as_human_str()
+        raise PydanticCustomError(
+            "invalid_config_error", f"Invalid complex_types_import_mode: {raw}."
+        )
