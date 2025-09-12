@@ -184,7 +184,7 @@ where
                                     total_bytes_written,
                                     total_files_written,
                                     max_backup_size = backup_info.max_size,
-                                    "Current backup file has reached max size. Closing out file"
+                                    "current backup file has reached max size. closing out file"
                                 );
 
                                 // Close out the current file
@@ -220,7 +220,7 @@ where
                             total_bytes_written,
                             total_files_written,
                             max_backup_size = backup_info.max_size,
-                            "Backup task received flush and sync signal. Closing out file"
+                            "backup task received flush and sync signal. closing out file"
                         );
 
                         if !message_buffer.is_empty() {
@@ -234,7 +234,7 @@ where
                             tracing::debug!(
                                 cur_backup_file = format!("{}", cur_backup_file_path.display()),
                                 cur_file_count = backup_files_guard.len(),
-                                "Adding unprocessed file"
+                                "adding unprocessed file"
                             );
 
                             backup_files_guard.push(cur_backup_file_path);
@@ -255,7 +255,7 @@ where
                             total_bytes_written,
                             total_files_written,
                             max_backup_size = backup_info.max_size,
-                            "Backup task complete. Closing file and shutting down"
+                            "backup task complete. closing file and shutting down"
                         );
 
                         // Close out current file and add to file list
@@ -267,7 +267,7 @@ where
                             tracing::debug!(
                                 cur_backup_file = format!("{}", cur_backup_file_path.display()),
                                 cur_file_count = backup_files_guard.len(),
-                                "Adding unprocessed file"
+                                "adding unprocessed file"
                             );
 
                             backup_files_guard.push(cur_backup_file_path);
@@ -317,13 +317,13 @@ where
             _ = self.flush_and_sync_notifier.notified() => {
                 #[cfg(feature = "tracing")]
                 tracing::debug!(
-                    "Saw flush notification for restart"
+                    "saw flush notification for restart"
                 );
             }
             _ = tokio::time::sleep(Duration::from_secs(1)) => {
                 #[cfg(feature = "tracing")]
                 tracing::debug!(
-                    "Timed out before flush could complete for restart"
+                    "timed out before flush could complete for restart"
                 );
             }
         }
@@ -333,7 +333,7 @@ where
         #[cfg(feature = "tracing")]
         tracing::info!(
             cur_file_count = backup_files_guard.len(),
-            "Restarting async backup. Clearing existing backup files"
+            "restarting async backup. Clearing existing backup files"
         );
         if !self.backup_config.retain_backups {
             for file_path in backup_files_guard.iter() {
@@ -341,7 +341,7 @@ where
                     #[cfg(feature = "tracing")]
                     tracing::warn!(
                         backup_file = file_path.display().to_string(),
-                        "Unable to delete backup file: {err:?}"
+                        "unable to delete backup file: {err:?}"
                     );
                 }
             }
@@ -355,7 +355,7 @@ where
             }
         } else {
             #[cfg(feature = "tracing")]
-            tracing::warn!("No backup task found. Restarting. Some backup data may have been lost");
+            tracing::warn!("no backup task found. Restarting. some backup data may have been lost");
 
             let (backup_tx, backup_rx) = unbounded_channel::<Message<T>>();
 
@@ -386,12 +386,12 @@ where
                 // Wait for notification that we've flushed the backup file
                 self.flush_and_sync_notifier.notified().await;
                 #[cfg(feature = "tracing")]
-                tracing::debug!("Got flush notification from backup task");
+                tracing::debug!("got flush notification from backup task");
             }
             Err(err) => {
                 // Skip the flush notification since we don't want to get stuck
                 #[cfg(feature = "tracing")]
-                tracing::warn!("Error sending flush command to backup task. {:?}", err);
+                tracing::warn!("error sending flush command to backup task. {:?}", err);
             }
         }
 
@@ -401,7 +401,7 @@ where
             #[cfg(feature = "tracing")]
             tracing::info!(
                 cur_file_count = backup_files_guard.len(),
-                "Adding backup files for ingest"
+                "adding backup files for ingest"
             );
 
             backup_files_guard.drain(..).collect()
@@ -417,7 +417,7 @@ where
             if let Err(err) = ingest_task.add(unprocessed_files.clone()) {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
-                    "Error trying to add files to ingest queue. Restarting ingest task. {:?}",
+                    "error trying to add files to ingest queue. Restarting ingest task. {:?}",
                     err
                 );
             } else {
@@ -435,7 +435,7 @@ where
         if let Err(err) = ingest_task.add(unprocessed_files) {
             #[cfg(feature = "tracing")]
             tracing::warn!(
-                "Saw error when trying to add files to ingest queue: {:?}",
+                "saw error when trying to add files to ingest queue: {:?}",
                 err
             );
         }
@@ -510,7 +510,7 @@ where
                     #[cfg(feature = "tracing")]
                     tracing::warn!(
                         backup_file = file_path.display().to_string(),
-                        "Unable to delete backup file: {:?}",
+                        "unable to delete backup file: {:?}",
                         err
                     );
                 }
@@ -556,7 +556,7 @@ impl BackupIngestTask {
                             backup_file = backup_file_path.display().to_string(),
                             err = format!("{err:?}"),
                             current_backup_retry = retries,
-                            "Retrying backup file ingestion after backoff: {} secs",
+                            "retrying backup file ingestion after backoff: {} secs",
                             current_wait.as_secs_f32()
                         );
                         tokio::time::sleep(current_wait).await;
@@ -571,7 +571,7 @@ impl BackupIngestTask {
                     tracing::info!(
                         backup_file = backup_file_path.display().to_string(),
                         files_ingested,
-                        "Backup file ingested",
+                        "backup file ingested",
                     );
                     break;
                 }
@@ -581,7 +581,7 @@ impl BackupIngestTask {
                     #[cfg(feature = "tracing")]
                     tracing::warn!(
                         backup_file = backup_file_path.display().to_string(),
-                        "Unable to delete ingested backup file: {err:?}"
+                        "unable to delete ingested backup file: {err:?}"
                     );
                 }
             }
@@ -617,7 +617,7 @@ impl BackupIngestTask {
                         #[cfg(feature = "tracing")]
                         tracing::info!(
                             backup_file = backup_file_path.display().to_string(),
-                            "Ingested backup file"
+                            "ingested backup file"
                         );
                         Ok(())
                     }
@@ -625,7 +625,7 @@ impl BackupIngestTask {
                         #[cfg(feature = "tracing")]
                         tracing::info!(
                             backup_file = backup_file_path.display().to_string(),
-                            "Encountered error from sift ingesting backup file: {:?}",
+                            "encountered error from sift ingesting backup file: {:?}",
                             err
                         );
                         Err(err)
