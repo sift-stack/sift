@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple, Union
 
-from alive_progress import alive_bar
+from alive_progress import alive_bar  # type: ignore
 
 
 def mime_and_content_type_from_path(path: Path) -> Tuple[str, Optional[str], Optional[str]]:
@@ -32,7 +32,7 @@ def validate_file_type(path: Union[str, Path], valid_file_types: List[str]) -> O
     return content_encoding
 
 
-def convert_keys_to_snake_case(obj):
+def convert_keys_to_snake_case(obj: dict) -> dict:
     """Recursively convert all dict keys from camelCase to snake_case."""
 
     def camel_to_snake(name: str) -> str:

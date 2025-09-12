@@ -5,7 +5,9 @@ from pytest_mock import MockFixture
 
 from sift_py.data_import.config import ParquetConfig
 from sift_py.data_import.parquet import ParquetUploadService, _extract_parquet_footer
+from sift_py.data_import.parquet_complex_types import ParquetComplexTypesImportModeType
 from sift_py.data_import.status import DataImportService
+from sift_py.data_import.time_format import TimeFormatType
 from sift_py.rest import SiftRestConfig
 
 
@@ -81,10 +83,7 @@ def test_upload_config_request_failed(mocker: MockFixture, parquet_config):
 
 def test_upload_invalid_config_response(mocker: MockFixture, parquet_config):
     mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
-    mock_requests_post.return_value = MockResponse(status_code=200, text="not json")
-    mock_requests_post.return_value.json = lambda: (_ for _ in ()).throw(
-        Exception("Invalid response")
-    )
+    mock_requests_post.return_value = MockResponse(status_code=200, json_data=None)
     svc = ParquetUploadService(rest_config)
     with pytest.raises(Exception, match="Invalid response"):
         svc.upload("file.parquet", parquet_config)
@@ -142,10 +141,7 @@ def test_upload_from_url_failed(mocker: MockFixture, parquet_config):
 
 def test_upload_from_url_invalid_response(mocker: MockFixture, parquet_config):
     mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
-    mock_requests_post.return_value = MockResponse(status_code=200, text="not json")
-    mock_requests_post.return_value.json = lambda: (_ for _ in ()).throw(
-        Exception("Invalid response")
-    )
+    mock_requests_post.return_value = MockResponse(status_code=200, json_data=None)
     svc = ParquetUploadService(rest_config)
     with pytest.raises(Exception, match="Invalid response"):
         svc.upload_from_url("http://file.parquet", parquet_config)
@@ -269,8 +265,8 @@ def test_flat_dataset_upload_overrides_success(mocker: MockFixture, parquet_conf
         "asset",
         "file.parquet",
         "time",
-        time_format="TIME_FORMAT_RELATIVE_SECONDS",
-        complex_types_import_mode="PARQUET_COMPLEX_TYPES_IMPORT_MODE_BYTES",
+        time_format=TimeFormatType.RELATIVE_SECONDS,
+        complex_types_import_mode=ParquetComplexTypesImportModeType.BYTES,
         run_id="run_42",
         relative_start_time="2024-01-01T00:00:00Z",
     )
@@ -388,8 +384,7 @@ def test_detect_config_flat_dataset_invalid_json(mocker: MockFixture):
         "sift_py.data_import.parquet._extract_parquet_footer", return_value=(b"footerbytes", 123)
     )
     mock_post = mocker.patch("sift_py.rest.requests.Session.post")
-    mock_post.return_value = MockResponse(status_code=200, text="not json")
-    mock_post.return_value.json = lambda: (_ for _ in ()).throw(Exception("Invalid response"))
+    mock_post.return_value = MockResponse(status_code=200, json_data=None)
     svc = ParquetUploadService(rest_config)
     svc._detect_config_uri = "http://detect.com"
     with pytest.raises(Exception, match="Invalid response"):

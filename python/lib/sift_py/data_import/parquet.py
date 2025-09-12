@@ -45,7 +45,7 @@ class ParquetUploadService(_RestService):
             parquet_config: The Parquet config.
             show_progress: Whether to show the status bar or not.
         """
-        if not path.endswith(".parquet"):
+        if not str(path).endswith(".parquet"):
             raise Exception("Must use an uncompressed parquet file")
 
         response = self._session.post(
@@ -154,7 +154,7 @@ class ParquetUploadService(_RestService):
         Override `run_id` to specify the id of the run to add this data to. Default is None.
         Override `relative_start_time` if a relative time format is used. Default is None.
         """
-        if not path.endswith(".parquet"):
+        if not str(path).endswith(".parquet"):
             raise Exception("Must use an uncompressed parquet file")
 
         config_info = self._detect_config_flat_dataset(path)
