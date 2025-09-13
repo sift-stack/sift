@@ -219,7 +219,7 @@
 //!
 //! This will initialize a [SiftStream] with retries configured with recommended defaults,
 //! however, users are able to set their own custom retry policies. For more information on
-//! that see [SiftStreamBuilder::recovery_strategy], [RecoveryStrategy], and [RetryPolicy].
+//! that see [SiftStreamBuilder::recovery_strategy], [RecoveryStrategy], [RetryPolicy], and [DiskBackupPolicy].
 //!
 //! ## Checkpoints
 //!
@@ -259,63 +259,44 @@
 //! While [checkpointing](#checkpoints) gives clients assurance that all data has been received up
 //! to a certain point, checkpointing alone doesn't protect against data loss between checkpoints.
 //!
-//! To protect against data-loss `sift_stream` offers two optional backups mechanisms depending on
-//! user-constraints:
-//! - In-memory-based backups
-//! - Disk-based backups
+//! To protect against data-loss `sift_stream` offers a backup mechanism providing async backups
+//! and reingestion of data.
 //!
-//! Both of these backup mechanisms are disabled by default as they introduce some overhead, but
-//! they can be enabled like so:
+//! This backup method is disabled by default as it introduces some overhead, but can be enabled
+//! like so:
 //!
 //! ```ignore
-//! // In-memory backups
+//! // Async Backups
 //! let mut sift_stream = SiftStreamBuilder::new(config)
 //!     .ingestion_config(ingestion_config)
-//!     .recovery_strategy(RecoveryStrategy::default_retry_policy_in_memory_backups())
-//!     .build()
-//!     .await?;
-//!
-//! // Disk backups
-//! let mut sift_stream = SiftStreamBuilder::new(config)
-//!     .ingestion_config(ingestion_config)
-//!     .recovery_strategy(RecoveryStrategy::default_retry_policy_disk_backups())
+//!     .recovery_strategy(RecoveryStrategy::default_retry_policy_with_backups())
 //!     .build()
 //!     .await?;
 //! ```
 //!
-//! Both of these examples initialize backup strategies with the recommended defaults. For
-//! in-memory backups this would be max buffer size; for disk backups this would be the backups
-//! directory and max size of the buffer file. If users wish to configure their own backup
-//! settings, see [RecoveryStrategy].
-//!
-//! ### In-memory backups
-//!
-//! The in-memory backup uses an in-memory buffer to create backups for all telemetry sent to Sift. Every call to
-//! [SiftStream::send] will result in the data being passed in to get backed up. If an error
-//! were to occur before a checkpoint is reached, then all the data within that buffer will be
-//! flushed and reingested into Sift. If the buffer were to reach the maximum specified capacity,
-//! then a checkpoint will be forced and the buffer will be reinitialized.
-//!
-//! ### Disk backups
-//!
-//! The disk-based backup strategy writes messages passed to [SiftStream::send] to a backup file on disk
-//! in a buffered manner until the configured file size limit is reached. Once that file size limit
-//! is reached then a checkpoint will be forced and the backup file will be reinitialized. If
-//! an error were to occur before a checkpoint is reached, then all the data within the backup file
-//! will be read into memory in a buffered manner, decoded, and reingested into Sift.
-//!
-//! If using the default feature flags (see the [tracing section](#tracing)), users will be
-//! able to see the location of the backup file when using `RUST_LOG=sift_stream=info` as well as
-//! the progress of reingestion.
-//!
-//! The backup file itself gets cleaned up when [SiftStream] is allowed to gracefully terminate,
-//! otherwise it may stack on disk.
+//! This example initializes backup strategies with the recommended defaults. This includes 
+//! the default retry policy, the backups directory, and a max individual backup file size with unlimited
+//! rolling backup files, which are deleted once a successful checkpoint is observed. If users wish to
+//! configure their own backup settings, see [RecoveryStrategy].
+//! 
+//! ### Retry with Backups
+//! 
+//! The [RecoveryStrategy::RetryWithBackups] writes messages passed to [SiftStream::send] to rolling backup
+//! files in a buffered manner. Once the file size is reached for a given file, that backup is closed out and
+//! the next file is created. If the maximum file count is reached, a checkpoint will be forced. Once a
+//! checkpoint is triggered, if passed, the backup file(s) are deleted unless the [DiskBackupPolicy] specifies
+//! to retain backups. If a checkpoint fails, the backup files(s) are sent to a separate ingestion task which
+//! re-ingests each file into Sift.
+//! 
+//! Backup file re-ingestion is performed on each file in the same order as the data was initially sent, with an
+//! indefinite number of retries on a file until a successful ingestion response is recieved by Sift. Files are
+//! deleted as specified per the [DiskBackupPolicy] retention policy only once re-ingestion has been confirmed.
 //!
 //! ### Data Integrity
 //!
 //! **Important Note**: This section only pertains to the disk-based-backup strategy.
 //!
-//! The backup file is periodically written to and synced. Each chunk of data written to the backup includes a checksum
+//! The backup files are periodically written to and synced. Each chunk of data written to the backup includes a checksum
 //! computed from the chunk itself. When chunks are read back into memory, their checksums are recomputed and compared against
 //! the stored values. If a mismatch is detected, the affected chunk and all subsequent chunks are considered corrupt and will be ignored.
 //! See the [tracing](#tracing) section for details on enabling logs that notify users when this occurs.
@@ -393,6 +374,35 @@
 //!
 //! This crate is compatible with both the current and multi-threaded Tokio runtimes. Performance
 //! is expected to be better generally using the multi-threaded runtime.
+//! 
+//! ## Deprecated
+//! The following backup strategies have been deprecated, and may be removed in a future version of SiftStream.
+//! The disk-based backup functionality has been expanded and improved upon with the new [RecoveryStrategy::RetryWithBackups]. 
+//! The in-memory backup strategy is believed to be generally not valuable to users. If a user considers
+//! either strategy to be valuable to maintain in future SiftStream releases, please contact the Sift team.
+//! 
+//! ### In-memory backups
+//!
+//! The in-memory backup uses an in-memory buffer to create backups for all telemetry sent to Sift. Every call to
+//! [SiftStream::send] will result in the data being passed in to get backed up. If an error
+//! were to occur before a checkpoint is reached, then all the data within that buffer will be
+//! flushed and reingested into Sift. If the buffer were to reach the maximum specified capacity,
+//! then a checkpoint will be forced and the buffer will be reinitialized.
+//!
+//! ### Disk backups
+//!
+//! The disk-based backup strategy writes messages passed to [SiftStream::send] to a backup file on disk
+//! in a buffered manner until the configured file size limit is reached. Once that file size limit
+//! is reached then a checkpoint will be forced and the backup file will be reinitialized. If
+//! an error were to occur before a checkpoint is reached, then all the data within the backup file
+//! will be read into memory in a buffered manner, decoded, and reingested into Sift.
+//!
+//! If using the default feature flags (see the [tracing section](#tracing)), users will be
+//! able to see the location of the backup file when using `RUST_LOG=sift_stream=info` as well as
+//! the progress of reingestion.
+//!
+//! The backup file itself gets cleaned up when [SiftStream] is allowed to gracefully terminate,
+//! otherwise it may stack on disk.
 
 /// Concerned with streaming telemetry into Sift.
 pub mod stream;
@@ -410,5 +420,6 @@ pub use stream::{
 
 /// Concerned with backing up data as its streamed to Sift and backups accessible.
 pub mod backup;
+pub use backup::DiskBackupPolicy;
 
 pub use sift_connect::grpc::{Credentials, SiftChannel};
