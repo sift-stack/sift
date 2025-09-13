@@ -274,20 +274,20 @@
 //!     .await?;
 //! ```
 //!
-//! This example initializes backup strategies with the recommended defaults. This includes 
+//! This example initializes backup strategies with the recommended defaults. This includes
 //! the default retry policy, the backups directory, and a max individual backup file size with unlimited
 //! rolling backup files, which are deleted once a successful checkpoint is observed. If users wish to
 //! configure their own backup settings, see [RecoveryStrategy].
-//! 
+//!
 //! ### Retry with Backups
-//! 
+//!
 //! The [RecoveryStrategy::RetryWithBackups] writes messages passed to [SiftStream::send] to rolling backup
 //! files in a buffered manner. Once the file size is reached for a given file, that backup is closed out and
 //! the next file is created. If the maximum file count is reached, a checkpoint will be forced. Once a
 //! checkpoint is triggered, if passed, the backup file(s) are deleted unless the [DiskBackupPolicy] specifies
 //! to retain backups. If a checkpoint fails, the backup files(s) are sent to a separate ingestion task which
 //! re-ingests each file into Sift.
-//! 
+//!
 //! Backup file re-ingestion is performed on each file in the same order as the data was initially sent, with an
 //! indefinite number of retries on a file until a successful ingestion response is recieved by Sift. Files are
 //! deleted as specified per the [DiskBackupPolicy] retention policy only once re-ingestion has been confirmed.
@@ -374,13 +374,13 @@
 //!
 //! This crate is compatible with both the current and multi-threaded Tokio runtimes. Performance
 //! is expected to be better generally using the multi-threaded runtime.
-//! 
+//!
 //! ## Deprecated
 //! The following backup strategies have been deprecated, and may be removed in a future version of SiftStream.
-//! The disk-based backup functionality has been expanded and improved upon with the new [RecoveryStrategy::RetryWithBackups]. 
+//! The disk-based backup functionality has been expanded and improved upon with the new [RecoveryStrategy::RetryWithBackups].
 //! The in-memory backup strategy is believed to be generally not valuable to users. If a user considers
 //! either strategy to be valuable to maintain in future SiftStream releases, please contact the Sift team.
-//! 
+//!
 //! ### In-memory backups
 //!
 //! The in-memory backup uses an in-memory buffer to create backups for all telemetry sent to Sift. Every call to
