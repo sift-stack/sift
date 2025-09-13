@@ -57,7 +57,7 @@ def generate_sync_api(cls: type[ResourceBase], sync_name: str) -> type:
 
     namespace = {
         "__module__": module,
-        "__doc__": f"Sync counterpart to `{name}`.\n\n{cls.__doc__ or ''}",
+        "__doc__": f"Sync counterpart to `{name}`.\n\n{(cls.__doc__ or '').strip()}",
         "__init__": __init__,
         "_run": _run,
         "__qualname__": sync_name,  # Add __qualname__ to help static analyzers
