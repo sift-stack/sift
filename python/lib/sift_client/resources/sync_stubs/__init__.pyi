@@ -25,12 +25,11 @@ class AssetsAPI:
 
     High-level API for interacting with assets.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
-        representation of an asset using standard Python data structures and types.
-
+    All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
+    representation of an asset using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -142,12 +141,11 @@ class CalculatedChannelsAPI:
 
     High-level API for interacting with calculated channels.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
-        representation of a calculated channel using standard Python data structures and types.
-
+    All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
+    representation of a calculated channel using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -332,12 +330,11 @@ class ChannelsAPI:
 
     High-level API for interacting with channels.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
-        representation of a channel using standard Python data structures and types.
-
+    All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
+    representation of a channel using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -478,12 +475,11 @@ class RulesAPI:
 
     High-level API for interacting with rules.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
-        representation of a rule using standard Python data structures and types.
-
+    All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
+    representation of a rule using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -638,12 +634,11 @@ class RunsAPI:
 
     High-level API for interacting with runs.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
-        representation of a run using standard Python data structures and types.
-
+    All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
+    representation of a run using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
