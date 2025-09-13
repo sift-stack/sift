@@ -1,12 +1,107 @@
-use super::{BackupsManager, DiskBackupsManager, InMemoryBackupsManager};
+use super::{BackupsManager, DiskBackupPolicy, DiskBackupsManager, InMemoryBackupsManager};
+use crate::SiftChannel;
 use crate::TimeValue;
+use crate::backup::disk::AsyncBackupsManager;
+use hyper_util::rt::TokioIo;
+use sift_connect::grpc::interceptor::AuthInterceptor;
 use sift_error::ErrorKind;
 use sift_rs::ingest::v1::{
     IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
     ingest_with_config_data_channel_value::Type,
 };
+use sift_rs::ingest::v1::{
+    IngestWithConfigDataStreamResponse,
+    ingest_service_server::{IngestService, IngestServiceServer},
+};
 use std::fs;
+use std::sync::{Arc, Mutex};
 use tempdir::TempDir;
+use tonic::transport::{Endpoint, Server, Uri};
+use tonic::{Request, Response, Status};
+use tower::{ServiceBuilder, service_fn};
+
+#[derive(Debug, Clone)]
+struct MockIngestService {
+    captured_data: Arc<Mutex<Vec<IngestWithConfigDataStreamRequest>>>,
+}
+
+impl MockIngestService {
+    fn new() -> Self {
+        Self {
+            captured_data: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    fn get_captured_data(&self) -> Vec<IngestWithConfigDataStreamRequest> {
+        self.captured_data.lock().unwrap().clone()
+    }
+}
+
+#[tonic::async_trait]
+impl IngestService for MockIngestService {
+    async fn ingest_with_config_data_stream(
+        &self,
+        request: Request<tonic::Streaming<IngestWithConfigDataStreamRequest>>,
+    ) -> Result<Response<IngestWithConfigDataStreamResponse>, Status> {
+        let mut stream = request.into_inner();
+
+        while let Some(data) = stream.message().await? {
+            self.captured_data.lock().unwrap().push(data);
+        }
+
+        Ok(Response::new(IngestWithConfigDataStreamResponse {}))
+    }
+
+    async fn ingest_arbitrary_protobuf_data_stream(
+        &self,
+        _request: Request<
+            tonic::Streaming<sift_rs::ingest::v1::IngestArbitraryProtobufDataStreamRequest>,
+        >,
+    ) -> Result<Response<sift_rs::ingest::v1::IngestArbitraryProtobufDataStreamResponse>, Status>
+    {
+        Err(Status::unimplemented("Not implemented for test"))
+    }
+}
+
+async fn create_mock_grpc_channel_with_service() -> (SiftChannel, Arc<MockIngestService>) {
+    let mock_service = Arc::new(MockIngestService::new());
+    let service_clone = mock_service.clone();
+
+    let (client, server) = tokio::io::duplex(1024);
+
+    tokio::spawn(async move {
+        Server::builder()
+            .add_service(IngestServiceServer::new(service_clone.as_ref().clone()))
+            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+            .await
+            .unwrap();
+    });
+
+    let mut client = Some(client);
+    let channel = Endpoint::try_from("http://[::]:50051")
+        .unwrap()
+        .connect_with_connector(service_fn(move |_: Uri| {
+            let client = client.take();
+
+            async move {
+                if let Some(client) = client {
+                    Ok(TokioIo::new(client))
+                } else {
+                    Err(std::io::Error::other("Client already taken"))
+                }
+            }
+        }))
+        .await
+        .unwrap();
+
+    let sift_channel = ServiceBuilder::new()
+        .layer(tonic::service::interceptor(AuthInterceptor {
+            apikey: "test-api-key".to_string(),
+        }))
+        .service(channel);
+
+    (sift_channel, mock_service)
+}
 
 #[tokio::test]
 async fn test_disk_backups_manager_retrieve_data_with_graceful_termination() {
@@ -109,4 +204,147 @@ async fn test_in_memory_backups_manager_retrieve_data() {
             .is_err_and(|e| e.kind() == ErrorKind::BackupLimitReached),
     );
     assert!(backups_manager.finish().await.is_ok());
+}
+
+#[tokio::test]
+async fn test_async_backups_manager_retrieve_data_with_graceful_termination() {
+    let backups_dir = uuid::Uuid::new_v4().to_string();
+    let backup_prefix = "test_async_backups_manager_retrieve_data_with_graceful_termination";
+
+    let tmp_dir = TempDir::new(&backups_dir).expect("failed to creat tempdir");
+    let tmp_dir_path = tmp_dir.path();
+
+    let test_data = (0..100).map(|i| IngestWithConfigDataStreamRequest {
+        ingestion_config_id: format!("{i}"),
+        flow: String::from("some_flow"),
+        timestamp: Some(*TimeValue::now()),
+        channel_values: vec![IngestWithConfigDataChannelValue {
+            r#type: Some(Type::Int32(i)),
+        }],
+        ..Default::default()
+    });
+
+    let disk_backup_policy = DiskBackupPolicy {
+        backups_dir: Some(tmp_dir_path.to_path_buf()),
+        ..Default::default()
+    };
+    let backup_retry_policy = crate::RetryPolicy::default();
+    let (grpc_channel, mock_service) = create_mock_grpc_channel_with_service().await;
+
+    let mut backups_manager = AsyncBackupsManager::<IngestWithConfigDataStreamRequest>::new(
+        &backups_dir,
+        backup_prefix,
+        disk_backup_policy,
+        backup_retry_policy,
+        grpc_channel,
+    )
+    .expect("failed to start backups manager");
+
+    let mut expected = Vec::new();
+
+    for data in test_data {
+        expected.push(data.clone());
+
+        backups_manager
+            .send(data)
+            .await
+            .expect("failed to send data to backup task");
+    }
+
+    let captured_data = mock_service.get_captured_data();
+    // No data should be sent prior to commanding start_backup_ingestion
+    assert!(captured_data.is_empty());
+
+    let file_count = backups_manager.start_backup_ingestion().await;
+
+    // We should have a single file for ingestion
+    assert_eq!(file_count, 1);
+
+    // Wait a bit for the ingestion to complete
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    // Verify that the mock service received the data via gRPC
+    let captured_data = mock_service.get_captured_data();
+    assert_eq!(
+        captured_data.len(),
+        expected.len(),
+        "gRPC should have received all sent data"
+    );
+
+    // Make sure the data sent via gRPC matches what we sent to the backup manager
+    for (lhs, rhs) in expected.into_iter().zip(captured_data) {
+        assert_eq!(lhs.ingestion_config_id, rhs.ingestion_config_id);
+        assert_eq!(lhs.flow, rhs.flow);
+        assert_eq!(lhs.channel_values, rhs.channel_values);
+    }
+
+    // Graceful termination
+    backups_manager
+        .finish()
+        .await
+        .expect("failed to finish backup manager");
+}
+
+#[tokio::test]
+async fn test_async_backups_manager_discard_data_with_graceful_termination() {
+    let backups_dir = uuid::Uuid::new_v4().to_string();
+    let backup_prefix = "test_async_backups_manager_discard_data_with_graceful_termination";
+
+    let tmp_dir = TempDir::new(&backups_dir).expect("failed to creat tempdir");
+    let tmp_dir_path = tmp_dir.path();
+
+    let test_data = (0..100).map(|i| IngestWithConfigDataStreamRequest {
+        ingestion_config_id: format!("{i}"),
+        flow: String::from("some_flow"),
+        timestamp: Some(*TimeValue::now()),
+        channel_values: vec![IngestWithConfigDataChannelValue {
+            r#type: Some(Type::Int32(i)),
+        }],
+        ..Default::default()
+    });
+
+    let disk_backup_policy = DiskBackupPolicy {
+        backups_dir: Some(tmp_dir_path.to_path_buf()),
+        ..Default::default()
+    };
+    let backup_retry_policy = crate::RetryPolicy::default();
+    let (grpc_channel, mock_service) = create_mock_grpc_channel_with_service().await;
+
+    let mut backups_manager = AsyncBackupsManager::<IngestWithConfigDataStreamRequest>::new(
+        &backups_dir,
+        backup_prefix,
+        disk_backup_policy,
+        backup_retry_policy,
+        grpc_channel,
+    )
+    .expect("failed to start backups manager");
+
+    let mut expected = Vec::new();
+
+    for data in test_data {
+        expected.push(data.clone());
+
+        backups_manager
+            .send(data)
+            .await
+            .expect("failed to send data to backup task");
+    }
+
+    backups_manager
+        .restart()
+        .await
+        .expect("Had error restarting");
+
+    // Wait a moment for any possible ingestion to complete
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    // Verify that the mock service recieved no data, since we didn't need to ingest
+    let captured_data = mock_service.get_captured_data();
+    assert!(captured_data.is_empty());
+
+    // Graceful termination
+    backups_manager
+        .finish()
+        .await
+        .expect("failed to finish backup manager");
 }
