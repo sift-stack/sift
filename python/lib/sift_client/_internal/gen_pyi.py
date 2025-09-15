@@ -143,7 +143,9 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
             raw_doc = inspect.getdoc(cls) or ""
             if raw_doc:
                 doc = (
-                    '    """\n' + "\n".join(f"    {l.strip()}" for l in raw_doc.splitlines()) + '\n    """'
+                    '    """\n'
+                    + "\n".join(f"    {l.strip()}" for l in raw_doc.splitlines())
+                    + '\n    """'
                 )
             else:
                 doc = "    ..."

@@ -35,8 +35,8 @@ async def main():
     asset = "ian-test-asset"
 
     # TODO:Get user id from current user
-    previously_created_runs = client.runs.list(
-        name_regex="test-run-.*", created_by_user_id="1eba461b-fa36-4e98-8fe8-ff32d3e43a6e"
+    previously_created_runs = client.runs.list_(
+        name_regex="test-run-.*", created_by="1eba461b-fa36-4e98-8fe8-ff32d3e43a6e"
     )
     if previously_created_runs:
         print(f"   Deleting previously created runs: {previously_created_runs}")
@@ -44,10 +44,10 @@ async def main():
             print(f"   Deleting run: {run.name}")
             client.runs.archive(run=run)
 
-    run = client.runs.create(
+    run = client.runs.create(dict(
         name=f"test-run-{datetime.now(tz=timezone.utc).timestamp()}",
-        description="A test run created via the API",
-        tags=["api-created", "test"],
+       description="A test run created via the API",
+        tags=["api-created", "test"],)
     )
 
     regular_flow = Flow(
