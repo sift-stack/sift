@@ -1,4 +1,206 @@
 // @generated
+impl serde::Serialize for ArchiveAssetRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.asset_id.is_empty() {
+            len += 1;
+        }
+        if self.archive_runs {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.assets.v1.ArchiveAssetRequest", len)?;
+        if !self.asset_id.is_empty() {
+            struct_ser.serialize_field("assetId", &self.asset_id)?;
+        }
+        if self.archive_runs {
+            struct_ser.serialize_field("archiveRuns", &self.archive_runs)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArchiveAssetRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "asset_id",
+            "assetId",
+            "archive_runs",
+            "archiveRuns",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AssetId,
+            ArchiveRuns,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
+                            "archiveRuns" | "archive_runs" => Ok(GeneratedField::ArchiveRuns),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArchiveAssetRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.assets.v1.ArchiveAssetRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ArchiveAssetRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut asset_id__ = None;
+                let mut archive_runs__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AssetId => {
+                            if asset_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetId"));
+                            }
+                            asset_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ArchiveRuns => {
+                            if archive_runs__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("archiveRuns"));
+                            }
+                            archive_runs__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ArchiveAssetRequest {
+                    asset_id: asset_id__.unwrap_or_default(),
+                    archive_runs: archive_runs__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.assets.v1.ArchiveAssetRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ArchiveAssetResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.archived_run_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.assets.v1.ArchiveAssetResponse", len)?;
+        if !self.archived_run_ids.is_empty() {
+            struct_ser.serialize_field("archivedRunIds", &self.archived_run_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArchiveAssetResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "archived_run_ids",
+            "archivedRunIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ArchivedRunIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "archivedRunIds" | "archived_run_ids" => Ok(GeneratedField::ArchivedRunIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArchiveAssetResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.assets.v1.ArchiveAssetResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ArchiveAssetResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut archived_run_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ArchivedRunIds => {
+                            if archived_run_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("archivedRunIds"));
+                            }
+                            archived_run_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ArchiveAssetResponse {
+                    archived_run_ids: archived_run_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.assets.v1.ArchiveAssetResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for Asset {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -37,6 +239,9 @@ impl serde::Serialize for Asset {
         if self.archived_date.is_some() {
             len += 1;
         }
+        if self.is_archived {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.assets.v1.Asset", len)?;
         if !self.asset_id.is_empty() {
             struct_ser.serialize_field("assetId", &self.asset_id)?;
@@ -68,6 +273,9 @@ impl serde::Serialize for Asset {
         if let Some(v) = self.archived_date.as_ref() {
             struct_ser.serialize_field("archivedDate", v)?;
         }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
+        }
         struct_ser.end()
     }
 }
@@ -95,6 +303,8 @@ impl<'de> serde::Deserialize<'de> for Asset {
             "metadata",
             "archived_date",
             "archivedDate",
+            "is_archived",
+            "isArchived",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -109,6 +319,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
             Tags,
             Metadata,
             ArchivedDate,
+            IsArchived,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -140,6 +351,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
                             "tags" => Ok(GeneratedField::Tags),
                             "metadata" => Ok(GeneratedField::Metadata),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -169,6 +381,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
                 let mut tags__ = None;
                 let mut metadata__ = None;
                 let mut archived_date__ = None;
+                let mut is_archived__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AssetId => {
@@ -231,6 +444,12 @@ impl<'de> serde::Deserialize<'de> for Asset {
                             }
                             archived_date__ = map_.next_value()?;
                         }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Asset {
@@ -244,6 +463,7 @@ impl<'de> serde::Deserialize<'de> for Asset {
                     tags: tags__.unwrap_or_default(),
                     metadata: metadata__.unwrap_or_default(),
                     archived_date: archived_date__,
+                    is_archived: is_archived__.unwrap_or_default(),
                 })
             }
         }

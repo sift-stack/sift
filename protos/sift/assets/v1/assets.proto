@@ -18,13 +18,15 @@ service AssetService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to programmatically interact with [assets](/glossary#asset)."
     external_docs: {
-      url: "/data-model",
-      description: "Read more about what assets are.";
+      url: "/data-model"
+      description: "Read more about what assets are."
     }
   };
 
   // Delete will archive an asset.
+  // Deprecated: Use ArchiveAsset instead.
   rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse) {
+    option deprecated = true;
     option (google.api.http) = {delete: "/api/v1/assets/{asset_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "DeleteAsset"
@@ -52,12 +54,21 @@ service AssetService {
 
   rpc UpdateAsset(UpdateAssetRequest) returns (UpdateAssetResponse) {
     option (google.api.http) = {
-      patch: "/api/v1/assets",
+      patch: "/api/v1/assets"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "UpdateAsset"
       description: "Update fields on an asset."
+    };
+  }
+
+  // Archive an asset.
+  rpc ArchiveAsset(ArchiveAssetRequest) returns (ArchiveAssetResponse) {
+    option (google.api.http) = {post: "/api/v1/assets/{asset_id}/archive"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchiveAsset"
+      description: "Archives an asset."
     };
   }
 }
@@ -79,6 +90,9 @@ message Asset {
 
   // The date the asset was archived.
   google.protobuf.Timestamp archived_date = 11 [(google.api.field_behavior) = OPTIONAL];
+
+  // Whether the asset is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 12 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `AssetService_ListAssets`.
@@ -97,7 +111,7 @@ message ListAssetsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
-  // `created_date`, `modified_date`, `name`, `tag_id`, `tag_name`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+  // `created_date`, `modified_date`, `name`, `tag_id`, `tag_name`, `is_archived`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/assets#asset). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -117,6 +131,7 @@ message ListAssetsResponse {
 }
 
 // The request for a call to `AssetService_DeleteAsset` to archive a single existing asset by its asset_id.
+// Deprecated: Use ArchiveAssetRequest instead.
 message DeleteAssetRequest {
   // The id of the asset to be archived. Required.
   string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
@@ -126,6 +141,7 @@ message DeleteAssetRequest {
 }
 
 // The response of a call to `AssetService_DeleteAsset`.
+// Deprecated: Use ArchiveAssetResponse instead.
 message DeleteAssetResponse {}
 
 // The request for a call to `AssetService_GetAsset` to retrieve a single existing asset by its asset_id.
@@ -144,11 +160,27 @@ message UpdateAssetRequest {
   // and is required.
   Asset asset = 1;
 
-  // The list of fields to be updated. The fields available to be updated are `tags`, `metadata`, and `archived_date`.
+  // The list of fields to be updated. The fields available to be updated are `tags`, `metadata`, `archived_date`, and `is_archived`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The response of a call to `AssetService_UpdateAsset`.
 message UpdateAssetResponse {
   Asset asset = 1;
+}
+
+// The request for a call to `AssetService_ArchiveAsset` to archive a single existing asset by its asset_id.
+message ArchiveAssetRequest {
+  // The id of the asset to be archived. Required.
+  string asset_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // If true, will archive all runs associated with the asset.
+  bool archive_runs = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response of a call to `AssetService_ArchiveAsset`.
+message ArchiveAssetResponse {
+  // List of run IDs that were archived when archive_runs was set to true.
+  // This field will be empty if archive_runs was false or if no runs were archived.
+  repeated string archived_run_ids = 1 [(google.api.field_behavior) = OPTIONAL];
 }

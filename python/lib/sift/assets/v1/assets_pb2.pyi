@@ -29,11 +29,14 @@ class Asset(google.protobuf.message.Message):
     TAGS_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     asset_id: builtins.str
     name: builtins.str
     organization_id: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
+    is_archived: builtins.bool
+    """Whether the asset is archived. This is inferred from whether archived_date is set."""
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -63,9 +66,10 @@ class Asset(google.protobuf.message.Message):
         tags: collections.abc.Iterable[builtins.str] | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_id", b"asset_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_id", b"asset_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "tags", b"tags"]) -> None: ...
 
 global___Asset = Asset
 
@@ -94,7 +98,7 @@ class ListAssetsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `asset_id`, `created_by_user_id`, `modified_by_user_id`,
-    `created_date`, `modified_date`, `name`, `tag_id`, `tag_name`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+    `created_date`, `modified_date`, `name`, `tag_id`, `tag_name`, `is_archived`, and `metadata`. Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/assets#asset). Optional.
     """
@@ -140,7 +144,9 @@ global___ListAssetsResponse = ListAssetsResponse
 
 @typing.final
 class DeleteAssetRequest(google.protobuf.message.Message):
-    """The request for a call to `AssetService_DeleteAsset` to archive a single existing asset by its asset_id."""
+    """The request for a call to `AssetService_DeleteAsset` to archive a single existing asset by its asset_id.
+    Deprecated: Use ArchiveAssetRequest instead.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -162,7 +168,9 @@ global___DeleteAssetRequest = DeleteAssetRequest
 
 @typing.final
 class DeleteAssetResponse(google.protobuf.message.Message):
-    """The response of a call to `AssetService_DeleteAsset`."""
+    """The response of a call to `AssetService_DeleteAsset`.
+    Deprecated: Use ArchiveAssetResponse instead.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -223,7 +231,7 @@ class UpdateAssetRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `tags`, `metadata`, and `archived_date`."""
+        """The list of fields to be updated. The fields available to be updated are `tags`, `metadata`, `archived_date`, and `is_archived`."""
 
     def __init__(
         self,
@@ -254,3 +262,47 @@ class UpdateAssetResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["asset", b"asset"]) -> None: ...
 
 global___UpdateAssetResponse = UpdateAssetResponse
+
+@typing.final
+class ArchiveAssetRequest(google.protobuf.message.Message):
+    """The request for a call to `AssetService_ArchiveAsset` to archive a single existing asset by its asset_id."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ASSET_ID_FIELD_NUMBER: builtins.int
+    ARCHIVE_RUNS_FIELD_NUMBER: builtins.int
+    asset_id: builtins.str
+    """The id of the asset to be archived. Required."""
+    archive_runs: builtins.bool
+    """If true, will archive all runs associated with the asset."""
+    def __init__(
+        self,
+        *,
+        asset_id: builtins.str = ...,
+        archive_runs: builtins.bool = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archive_runs", b"archive_runs", "asset_id", b"asset_id"]) -> None: ...
+
+global___ArchiveAssetRequest = ArchiveAssetRequest
+
+@typing.final
+class ArchiveAssetResponse(google.protobuf.message.Message):
+    """The response of a call to `AssetService_ArchiveAsset`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ARCHIVED_RUN_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def archived_run_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """List of run IDs that were archived when archive_runs was set to true.
+        This field will be empty if archive_runs was false or if no runs were archived.
+        """
+
+    def __init__(
+        self,
+        *,
+        archived_run_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archived_run_ids", b"archived_run_ids"]) -> None: ...
+
+global___ArchiveAssetResponse = ArchiveAssetResponse
