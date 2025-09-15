@@ -23,7 +23,9 @@ class AssetServiceStub:
         sift.assets.v1.assets_pb2.DeleteAssetRequest,
         sift.assets.v1.assets_pb2.DeleteAssetResponse,
     ]
-    """Delete will archive an asset."""
+    """Delete will archive an asset.
+    Deprecated: Use ArchiveAsset instead.
+    """
 
     GetAsset: grpc.UnaryUnaryMultiCallable[
         sift.assets.v1.assets_pb2.GetAssetRequest,
@@ -42,12 +44,20 @@ class AssetServiceStub:
         sift.assets.v1.assets_pb2.UpdateAssetResponse,
     ]
 
+    ArchiveAsset: grpc.UnaryUnaryMultiCallable[
+        sift.assets.v1.assets_pb2.ArchiveAssetRequest,
+        sift.assets.v1.assets_pb2.ArchiveAssetResponse,
+    ]
+    """Archive an asset."""
+
 class AssetServiceAsyncStub:
     DeleteAsset: grpc.aio.UnaryUnaryMultiCallable[
         sift.assets.v1.assets_pb2.DeleteAssetRequest,
         sift.assets.v1.assets_pb2.DeleteAssetResponse,
     ]
-    """Delete will archive an asset."""
+    """Delete will archive an asset.
+    Deprecated: Use ArchiveAsset instead.
+    """
 
     GetAsset: grpc.aio.UnaryUnaryMultiCallable[
         sift.assets.v1.assets_pb2.GetAssetRequest,
@@ -66,6 +76,12 @@ class AssetServiceAsyncStub:
         sift.assets.v1.assets_pb2.UpdateAssetResponse,
     ]
 
+    ArchiveAsset: grpc.aio.UnaryUnaryMultiCallable[
+        sift.assets.v1.assets_pb2.ArchiveAssetRequest,
+        sift.assets.v1.assets_pb2.ArchiveAssetResponse,
+    ]
+    """Archive an asset."""
+
 class AssetServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def DeleteAsset(
@@ -73,7 +89,9 @@ class AssetServiceServicer(metaclass=abc.ABCMeta):
         request: sift.assets.v1.assets_pb2.DeleteAssetRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.assets.v1.assets_pb2.DeleteAssetResponse, collections.abc.Awaitable[sift.assets.v1.assets_pb2.DeleteAssetResponse]]:
-        """Delete will archive an asset."""
+        """Delete will archive an asset.
+        Deprecated: Use ArchiveAsset instead.
+        """
 
     @abc.abstractmethod
     def GetAsset(
@@ -97,5 +115,13 @@ class AssetServiceServicer(metaclass=abc.ABCMeta):
         request: sift.assets.v1.assets_pb2.UpdateAssetRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.assets.v1.assets_pb2.UpdateAssetResponse, collections.abc.Awaitable[sift.assets.v1.assets_pb2.UpdateAssetResponse]]: ...
+
+    @abc.abstractmethod
+    def ArchiveAsset(
+        self,
+        request: sift.assets.v1.assets_pb2.ArchiveAssetRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.assets.v1.assets_pb2.ArchiveAssetResponse, collections.abc.Awaitable[sift.assets.v1.assets_pb2.ArchiveAssetResponse]]:
+        """Archive an asset."""
 
 def add_AssetServiceServicer_to_server(servicer: AssetServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

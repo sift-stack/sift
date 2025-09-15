@@ -184,6 +184,31 @@ pub mod asset_service_client {
                 .insert(GrpcMethod::new("sift.assets.v1.AssetService", "UpdateAsset"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn archive_asset(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ArchiveAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ArchiveAssetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.assets.v1.AssetService/ArchiveAsset",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.assets.v1.AssetService", "ArchiveAsset"));
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -219,6 +244,13 @@ pub mod asset_service_server {
             request: tonic::Request<super::UpdateAssetRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UpdateAssetResponse>,
+            tonic::Status,
+        >;
+        async fn archive_asset(
+            &self,
+            request: tonic::Request<super::ArchiveAssetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ArchiveAssetResponse>,
             tonic::Status,
         >;
     }
@@ -470,6 +502,52 @@ pub mod asset_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = UpdateAssetSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.assets.v1.AssetService/ArchiveAsset" => {
+                    #[allow(non_camel_case_types)]
+                    struct ArchiveAssetSvc<T: AssetService>(pub Arc<T>);
+                    impl<
+                        T: AssetService,
+                    > tonic::server::UnaryService<super::ArchiveAssetRequest>
+                    for ArchiveAssetSvc<T> {
+                        type Response = super::ArchiveAssetResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ArchiveAssetRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AssetService>::archive_asset(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ArchiveAssetSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

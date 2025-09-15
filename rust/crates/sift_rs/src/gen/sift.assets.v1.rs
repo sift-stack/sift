@@ -23,6 +23,8 @@ pub struct Asset {
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
     #[prost(message, optional, tag="11")]
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bool, tag="12")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -81,6 +83,20 @@ pub struct UpdateAssetRequest {
 pub struct UpdateAssetResponse {
     #[prost(message, optional, tag="1")]
     pub asset: ::core::option::Option<Asset>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ArchiveAssetRequest {
+    #[prost(string, tag="1")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(bool, tag="2")]
+    pub archive_runs: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ArchiveAssetResponse {
+    #[prost(string, repeated, tag="1")]
+    pub archived_run_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 include!("sift.assets.v1.tonic.rs");
 include!("sift.assets.v1.serde.rs");
