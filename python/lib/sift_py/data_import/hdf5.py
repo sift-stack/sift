@@ -1,10 +1,8 @@
-import json
 import uuid
 from collections import defaultdict
 from contextlib import ExitStack
 from pathlib import Path
 from typing import Dict, List, Tuple, Union, cast
-from urllib.parse import urljoin
 
 import numpy as np
 
@@ -37,7 +35,6 @@ class Hdf5UploadService:
     Service to upload HDF5 files.
     """
 
-    _RUN_PATH = "/api/v2/runs"
     _csv_upload_service: CsvUploadService
     _prev_run_id: str
 
@@ -96,7 +93,7 @@ class Hdf5UploadService:
             # Perform now instead of before the config split to avoid creating a run any problems arise before ready to upload
             # Active run_id copied to _prev_run_id for user reference
             if hdf5_config._hdf5_config.run_name != "":
-                run_id = self._create_run(hdf5_config._hdf5_config.run_name)
+                run_id = self._csv_upload_service._create_run(hdf5_config._hdf5_config.run_name)
                 for _, csv_config in csv_items:
                     csv_config._csv_config.run_name = ""
                     csv_config._csv_config.run_id = run_id
@@ -126,40 +123,6 @@ class Hdf5UploadService:
     def get_previous_upload_run_id(self) -> str:
         """Return the run_id used in the previous upload"""
         return self._prev_run_id
-
-    def _create_run(self, run_name: str) -> str:
-        """Create a new run using the REST service, and return a run_id"""
-        run_uri = urljoin(self._csv_upload_service._base_uri, self._RUN_PATH)
-
-        # Since CSVUploadService is already a RestService, we can utilize that
-        response = self._csv_upload_service._session.post(
-            url=run_uri,
-            headers={
-                "Content-Encoding": "application/json",
-            },
-            data=json.dumps(
-                {
-                    "name": run_name,
-                    "description": "",
-                }
-            ),
-        )
-        if response.status_code != 200:
-            raise Exception(
-                f"Run creation failed with status code {response.status_code}. {response.text}"
-            )
-
-        try:
-            run_info = response.json()
-        except (json.decoder.JSONDecodeError, KeyError):
-            raise Exception(f"Invalid response: {response.text}")
-
-        if "run" not in run_info:
-            raise Exception("Response missing key: run")
-        if "runId" not in run_info["run"]:
-            raise Exception("Response missing key: runId")
-
-        return run_info["run"]["runId"]
 
 
 def _convert_to_csv_file(

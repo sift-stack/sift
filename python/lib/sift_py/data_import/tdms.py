@@ -1,10 +1,12 @@
 import warnings
 from collections import namedtuple
 from csv import DictWriter
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, TextIO, Union
 
+import numpy as np
 from pandas import to_datetime
 
 try:
@@ -24,6 +26,7 @@ except ImportError as e:
     ) from e
 
 from sift_py._internal.channel import channel_fqn as _channel_fqn
+from sift_py._internal.metadata import metadata_dict_to_pb
 from sift_py.data_import._config import DataColumn, TimeColumn
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.csv import CsvUploadService
@@ -109,6 +112,7 @@ class TdmsUploadService:
         run_name: Optional[str] = None,
         run_id: Optional[str] = None,
         tdms_time_format: TdmsTimeFormat = TdmsTimeFormat.WAVEFORM,
+        include_metadata: bool = False,
     ) -> DataImportService:
         """
         Uploads the TDMS file pointed to by `path` to the specified asset.
@@ -124,6 +128,7 @@ class TdmsUploadService:
             tdms_time_format: Specify how timing information is encoded in the file. Default is WAVEFORM.
                 If using the TIME_CHANNEL format, timestamps should use the LabVIEW/TDMS epoch (number of
                 seconds since 01/01/1904 00:00:00.00 UTC).
+            include_metadata: Whether to include TDMS file metadata as Run metadata.
 
         Returns:
             The DataImportService used to get the status of the import.
@@ -142,6 +147,31 @@ class TdmsUploadService:
         if not posix_path.is_file():
             raise Exception(f"Provided path, '{path}', does not point to a regular file.")
 
+        # If metadata should be included, create the run first.
+        if include_metadata:
+            # Do not allow including metadata in existing runs since it could lead
+            # to overwriting metadata fields.
+            if run_id:
+                raise ValueError("Metadata can only be included in new runs")
+
+            if not run_name:
+                raise ValueError("Must provide a run_name to include metadata")
+
+            def parse_datetime(value):
+                """Convert datetime metadata to strings."""
+                if isinstance(value, np.datetime64):
+                    return str(value)
+                elif isinstance(value, datetime):
+                    return value.isoformat()
+                else:
+                    raise ValueError(f"Unable to parse value as metadata: {value}")
+
+            tdms_file = TdmsFile(path)
+            metadata = metadata_dict_to_pb(tdms_file.properties, parse_datetime)
+            run_id = self._csv_upload_service._create_run(run_name, metadata)
+            # Clear the run name since we are using run_id now.
+            run_name = None
+
         with NamedTemporaryFile(mode="wt", suffix=".csv.gz") as temp_file:
             csv_config = self._convert_to_csv(
                 path,
@@ -153,7 +183,9 @@ class TdmsUploadService:
                 run_id,
                 tdms_time_format,
             )
-            return self._csv_upload_service.upload(temp_file.name, csv_config)
+            data_import = self._csv_upload_service.upload(temp_file.name, csv_config)
+
+        return data_import
 
     def _convert_to_csv(
         self,
