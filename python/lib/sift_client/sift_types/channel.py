@@ -296,7 +296,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         if as_arrow:
             data = self.client.channels.get_data_as_arrow(
                 channels=[self],
-                run_id=run_id,
+                run=run_id,
                 start_time=start_time,
                 end_time=end_time,
                 limit=limit,  # type: ignore
@@ -304,7 +304,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         else:
             data = self.client.channels.get_data(
                 channels=[self],
-                run_id=run_id,
+                run=run_id,
                 start_time=start_time,
                 end_time=end_time,
                 limit=limit,  # type: ignore

@@ -115,7 +115,6 @@ class Run(BaseType[RunProto, "Run"]):
 class RunBase(ModelCreateUpdateBase):
     """Base class for Run create and update models with shared fields and validation."""
 
-    name: str | None = None
     description: str | None = None
     start_time: datetime | None = None
     stop_time: datetime | None = None
@@ -153,6 +152,8 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
 
 class RunUpdate(RunBase, ModelUpdate[RunProto]):
     """Update model for Run."""
+
+    name: str | None = None
 
     @model_validator(mode="after")
     def _validate_non_updatable_fields(self):

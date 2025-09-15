@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -44,6 +44,7 @@ class RunsAPIAsync(ResourceBase):
         Returns:
             The Run.
         """
+        run: Run | None
         if run_id is not None:
             run = await self._low_level_client.get_run(run_id=run_id)
         elif client_key is not None:
@@ -146,9 +147,11 @@ class RunsAPIAsync(ResourceBase):
             filter_parts.append(cel.in_("client_key", client_keys))
         if assets:
             if all(isinstance(s, str) for s in assets):
-                filter_parts.append(cel.in_("asset_ids", assets))
+                ids = cast("list[str]", assets)
+                filter_parts.append(cel.in_("asset_ids", ids))
             else:
-                filter_parts.append(cel.in_("asset_ids", [a.id_ for a in assets]))
+                asset = cast("list[Asset]", assets)
+                filter_parts.append(cel.in_("asset_ids", [a._id_or_error for a in asset]))
         if duration_less_than:
             raise NotImplementedError
         if duration_greater_than:
@@ -217,7 +220,7 @@ class RunsAPIAsync(ResourceBase):
         Returns:
             The updated Run.
         """
-        run_id = run.id_ or "" if isinstance(run, Run) else run
+        run_id = run._id_or_error if isinstance(run, Run) else run
         if isinstance(update, dict):
             update = RunUpdate.model_validate(update)
         update.resource_id = run_id
@@ -233,7 +236,7 @@ class RunsAPIAsync(ResourceBase):
         Args:
             run: The Run or run ID to archive.
         """
-        run_id = run.id_ if isinstance(run, Run) else run
+        run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.archive_run(run_id=run_id)
 
     # TODO: unarchive
@@ -247,7 +250,7 @@ class RunsAPIAsync(ResourceBase):
         Args:
             run: The Run or run ID to stop.
         """
-        run_id = run.id_ if isinstance(run, Run) else run
+        run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.stop_run(run_id=run_id or "")
 
     async def create_automatic_association_for_assets(
@@ -262,7 +265,7 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID.
             asset_names: List of asset names to associate.
         """
-        run_id = run.id_ or "" if isinstance(run, Run) else run
+        run_id = run._id_or_error or "" if isinstance(run, Run) else run
         await self._low_level_client.create_automatic_run_association_for_assets(
             run_id=run_id, asset_names=asset_names
         )

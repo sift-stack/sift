@@ -48,11 +48,11 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @property
     def runs(self) -> list[Run]:
         """Get the runs associated with this asset."""
-        return self.client.runs.list_(asset_id=self.id_)
+        return self.client.runs.list_(assets=[self])
 
-    def channels(self, run_id: str | None = None, limit: int | None = None) -> list[Channel]:
+    def channels(self, run: Run | str | None = None, limit: int | None = None) -> list[Channel]:
         """Get the channels for this asset."""
-        return self.client.channels.list_(asset_id=self.id_, run_id=run_id, limit=limit)
+        return self.client.channels.list_(asset=self, run=run, limit=limit)
 
     @property
     def rules(self):

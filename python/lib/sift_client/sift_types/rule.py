@@ -68,7 +68,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
     @property
     def assets(self) -> list[Asset]:
         """Get the assets that this rule applies to."""
-        return self.client.assets.list_(asset_ids=self.asset_ids, tag_ids=self.asset_tag_ids)
+        return self.client.assets.list_(asset_ids=self.asset_ids, _tag_ids=self.asset_tag_ids)
 
     @property
     def organization(self):

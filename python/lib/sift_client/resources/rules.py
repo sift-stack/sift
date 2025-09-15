@@ -222,7 +222,7 @@ class RulesAPIAsync(ResourceBase):
                 rule_id=rule_id, client_key=client_key
             )
         else:
-            rule_id = rule.id_ if isinstance(rule, Rule) else rule
+            rule_id = rule._id_or_error if isinstance(rule, Rule) else rule
             restored_rule = await self._low_level_client.restore_rule(rule_id=rule_id)
 
         return self._apply_client_to_instance(restored_rule)
