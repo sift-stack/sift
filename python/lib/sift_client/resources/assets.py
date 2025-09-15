@@ -48,6 +48,7 @@ class AssetsAPIAsync(ResourceBase):
         Returns:
             The Asset.
         """
+        asset: Asset | None
         if asset_id is not None:
             asset = await self._low_level_client.get_asset(asset_id)
         elif name is not None:
@@ -78,6 +79,7 @@ class AssetsAPIAsync(ResourceBase):
         modified_by: Any | str | None = None,
         # tags
         tags: list[Any] | list[str] | None = None,
+        _tag_ids: list[str] | None = None,
         # metadata
         metadata: list[Any] | None = None,
         # common filters
@@ -101,6 +103,7 @@ class AssetsAPIAsync(ResourceBase):
             created_by: Filter assets created by this User or user ID.
             modified_by: Filter assets last modified by this User or user ID.
             tags: Filter assets with any of these Tags or tag names.
+            _tag_ids: Filter assets with any of these Tag IDs.
             metadata: Filter assets by metadata criteria.
             description_contains: Partial description of the asset.
             include_archived: If True, include archived assets in results.
@@ -132,6 +135,8 @@ class AssetsAPIAsync(ResourceBase):
         ]
         if asset_ids:
             filter_parts.append(cel.in_("asset_id", asset_ids))
+        if _tag_ids:
+            filter_parts.append(cel.in_("tag_id", _tag_ids))
         filter_query = cel.and_(*filter_parts)
 
         assets = await self._low_level_client.list_all_assets(
@@ -169,7 +174,7 @@ class AssetsAPIAsync(ResourceBase):
             The updated Asset.
 
         """
-        asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
+        asset_id = asset._id_or_error if isinstance(asset, Asset) else asset
         if isinstance(update, dict):
             update = AssetUpdate.model_validate(update)
         update.resource_id = asset_id
@@ -186,9 +191,9 @@ class AssetsAPIAsync(ResourceBase):
         Returns:
              The archived Asset.
         """
-        asset_id = asset.id_ or "" if isinstance(asset, Asset) else asset
+        asset_id = asset._id_or_error if isinstance(asset, Asset) else asset
 
-        await self._low_level_client.delete_asset(asset_id or "", archive_runs=archive_runs)
+        await self._low_level_client.delete_asset(asset_id, archive_runs=archive_runs)
 
         return await self.get(asset_id=asset_id)
 

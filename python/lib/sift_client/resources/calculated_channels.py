@@ -152,10 +152,10 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         if client_keys:
             filter_parts.append(cel.in_("client_key", client_keys))
         if asset:
-            asset_id = asset.id_ if isinstance(asset, Asset) else asset
+            asset_id = asset._id_or_error if isinstance(asset, Asset) else asset
             filter_parts.append(cel.equals("asset_id", asset_id))
         if run:
-            run_id = run.id_ if isinstance(run, Run) else run
+            run_id = run._id_or_error if isinstance(run, Run) else run
             filter_parts.append(cel.equals("run_id", run_id))
         if version:
             filter_parts.append(cel.equals("version", version))

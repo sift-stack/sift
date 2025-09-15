@@ -17,7 +17,7 @@ SelfT = TypeVar("SelfT", bound="BaseType")
 class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     model_config = ConfigDict(frozen=True)
 
-    id_: str
+    id_: str | None = None
     _client: SiftClient | None = None
 
     @property
@@ -27,6 +27,13 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
                 "Sift client not set. Please retrieve with the SiftClient to use this method."
             )
         return self._client
+
+    @property
+    def _id_or_error(self) -> str:
+        """Get the ID of this instance or raise an error if it's not set for type safe usage."""
+        if self.id_ is None:
+            raise ValueError("ID is not set")
+        return self.id_
 
     @classmethod
     @abstractmethod
@@ -154,6 +161,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
 
 class ModelCreate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
     """Base class for Pydantic models that generate proto messages for creation."""
+
     @abstractmethod
     def _get_proto_class(self) -> type[ProtoT]:
         """Get the corresponding proto class - override in subclasses since typing is not strict."""
@@ -203,7 +211,6 @@ class ModelUpdate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
     def _get_proto_class(self) -> type[ProtoT]:
         """Get the corresponding proto class - override in subclasses since typing is not strict."""
         raise NotImplementedError("Subclasses must implement this")
-
 
     @abstractmethod
     def _add_resource_id_to_proto(self, proto_msg: ProtoT):

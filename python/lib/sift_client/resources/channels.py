@@ -175,7 +175,7 @@ class ChannelsAPIAsync(ResourceBase):
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
         """
-        run_id = run.id_ if isinstance(run, Run) else run
+        run_id = run._id_or_error if isinstance(run, Run) else run
         return await self._data_low_level_client.get_channel_data(
             channels=channels,
             run_id=run_id,
@@ -197,7 +197,7 @@ class ChannelsAPIAsync(ResourceBase):
         run_id = run.id_ if isinstance(run, Run) else run
         data = await self.get_data(
             channels=channels,
-            run_id=run_id,
+            run=run_id,
             start_time=start_time,
             end_time=end_time,
             limit=limit,
