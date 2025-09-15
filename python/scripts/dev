@@ -18,6 +18,7 @@ Subcommands:
   lint           Runs 'ruff check' to lint the lib directory
   mypy           Runs 'mypy lib' for static analysis
   pyright        Runs 'pyright lib' for type checking
+  check          Runs all python linting checks
   gen-stubs      Generates pyi stubs for sift_client synchronous wrappers
   mypy-stubs     Runs stubtest (mypy) on the generated pyi stubs
   pip-install    Install project dependencies
