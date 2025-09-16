@@ -69,11 +69,15 @@ def parquet_config():
 
 def test_upload_invalid_extension(mocker: MockFixture, parquet_config):
     svc = ParquetUploadService(rest_config)
-    with pytest.raises(Exception, match="Must use an uncompressed parquet file"):
+    mocker.patch("sift_py.data_import.parquet.open", mocker.mock_open(read_data=b"a" * 200))
+    with pytest.raises(Exception, match="Invalid Parquet file: missing magic bytes"):
         svc.upload("file.txt", parquet_config)
 
 
 def test_upload_config_request_failed(mocker: MockFixture, parquet_config):
+    mocker.patch(
+        "sift_py.data_import.parquet._extract_parquet_footer", return_value=(b"footerbytes", 8)
+    )
     mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse(status_code=400, text="Invalid request")
     svc = ParquetUploadService(rest_config)
@@ -82,6 +86,9 @@ def test_upload_config_request_failed(mocker: MockFixture, parquet_config):
 
 
 def test_upload_invalid_config_response(mocker: MockFixture, parquet_config):
+    mocker.patch(
+        "sift_py.data_import.parquet._extract_parquet_footer", return_value=(b"footerbytes", 8)
+    )
     mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse(status_code=200, json_data=None)
     svc = ParquetUploadService(rest_config)
@@ -90,6 +97,9 @@ def test_upload_invalid_config_response(mocker: MockFixture, parquet_config):
 
 
 def test_upload_missing_keys(mocker: MockFixture, parquet_config):
+    mocker.patch(
+        "sift_py.data_import.parquet._extract_parquet_footer", return_value=(b"footerbytes", 8)
+    )
     mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.return_value = MockResponse(status_code=200, json_data={})
     svc = ParquetUploadService(rest_config)
@@ -112,6 +122,9 @@ def test_upload_data_file_failed(mocker: MockFixture, parquet_config):
 
 
 def test_upload_success(mocker: MockFixture, parquet_config):
+    mocker.patch(
+        "sift_py.data_import.parquet._extract_parquet_footer", return_value=(b"footerbytes", 8)
+    )
     mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
     mock_requests_post.side_effect = [
         MockResponse(
@@ -166,12 +179,16 @@ def test_upload_from_url_success(mocker: MockFixture, parquet_config):
 
 
 def test_flat_dataset_upload_invalid_extension(mocker: MockFixture, parquet_config):
+    mocker.patch("sift_py.data_import.parquet.open", mocker.mock_open(read_data=b"a" * 200))
     svc = ParquetUploadService(rest_config)
-    with pytest.raises(Exception, match="Must use an uncompressed parquet file"):
+    with pytest.raises(Exception, match="Invalid Parquet file: missing magic bytes"):
         svc.flat_dataset_upload("asset", "file.txt", "time")
 
 
 def test_flat_dataset_upload_success(mocker: MockFixture, parquet_config):
+    mocker.patch(
+        "sift_py.data_import.parquet._extract_parquet_footer", return_value=(b"footerbytes", 8)
+    )
     svc = ParquetUploadService(rest_config)
     mock_detect = mocker.patch.object(svc, "_detect_config_flat_dataset")
     mock_detect.return_value = parquet_config.to_dict()
@@ -248,6 +265,10 @@ def test_flat_dataset_upload_success(mocker: MockFixture, parquet_config):
 
 
 def test_flat_dataset_upload_overrides_success(mocker: MockFixture, parquet_config):
+    mocker.patch(
+        "sift_py.data_import.parquet._extract_parquet_footer",
+        return_value=(b"parquetfooterbytes", 8),
+    )
     svc = ParquetUploadService(rest_config)
     mock_detect = mocker.patch.object(svc, "_detect_config_flat_dataset")
     mock_detect.return_value = parquet_config.to_dict()
@@ -342,12 +363,12 @@ def test_detect_config_flat_dataset_failed(mocker: MockFixture):
         svc._detect_config_flat_dataset("file.parquet")
 
 
-def test_extract_parquet_footer_invalid_magic(tmp_path):
-    file_path = tmp_path / "test.parquet"
-    with open(file_path, "wb") as f:
-        f.write(b"\x08\x00\x00\x00BADMAGIC")
-    with pytest.raises(Exception):
-        _extract_parquet_footer(str(file_path))
+def test_extract_parquet_footer_invalid_magic(mocker):
+    mocker.patch(
+        "sift_py.data_import.parquet.open", mocker.mock_open(read_data=b"\x08\x00\x00\x00BADMAGIC")
+    )
+    with pytest.raises(Exception, match="Invalid Parquet file: missing magic bytes"):
+        _extract_parquet_footer("test.parquet")
 
 
 def test_detect_config_flat_dataset_success(mocker: MockFixture):
@@ -401,3 +422,21 @@ def test_detect_config_flat_dataset_missing_parquet_config(mocker: MockFixture):
     svc._detect_config_uri = "http://detect.com"
     with pytest.raises(Exception, match="Parquet config missing from detect config response"):
         svc._detect_config_flat_dataset("file.parquet")
+
+
+def test_extract_parquet_footer_valid_parquet(mocker):
+    # Parquet files end with "PAR1" magic bytes
+    # Footer length is stored in the last 8 bytes before the final magic bytes
+    # We'll construct a valid parquet tailer file in memory
+    file_bytes = b"\x08\x00\x00\x00" + b"PAR1"
+    mocker.patch("sift_py.data_import.parquet.open", mocker.mock_open(read_data=file_bytes))
+    mocker.patch("sift_py.data_import.parquet.os.path.getsize", return_value=24)
+    result_footer, result_offset = _extract_parquet_footer("valid.parquet")
+    assert result_offset == 16
+
+
+def test_extract_parquet_footer_too_short(mocker):
+    # File too short to be a valid parquet file
+    mocker.patch("sift_py.data_import.parquet.open", mocker.mock_open(read_data=b"PAR1"))
+    with pytest.raises(Exception, match="Invalid Parquet file: missing magic bytes"):
+        _extract_parquet_footer("short.parquet")
