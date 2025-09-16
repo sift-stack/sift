@@ -1,7 +1,10 @@
 use super::ResourceIdentifier;
-use crate::runs::v2::{
-    CreateRunRequest, GetRunRequest, ListRunsRequest, Run, UpdateRunRequest,
-    run_service_client::RunServiceClient,
+use crate::{
+    metadata::v1::MetadataValue,
+    runs::v2::{
+        CreateRunRequest, GetRunRequest, ListRunsRequest, Run, UpdateRunRequest,
+        run_service_client::RunServiceClient,
+    },
 };
 use async_trait::async_trait;
 use pbjson_types::FieldMask;
@@ -25,6 +28,7 @@ pub trait RunServiceWrapper: Deref<Target = RunServiceClient<SiftChannel>> + Der
         client_key: &str,
         description: &str,
         tags: &[String],
+        metadata: &[MetadataValue],
     ) -> Result<Run>;
 
     /// Update a run. The `updated_run` is expected to contain the `run_id` or `client_key` used to
@@ -94,8 +98,10 @@ impl RunServiceWrapper for RunServiceWrapperImpl {
         client_key: &str,
         description: &str,
         tags: &[String],
+        metadata: &[MetadataValue],
     ) -> Result<Run> {
         let tags = tags.to_vec();
+        let metadata = metadata.to_vec();
 
         if name.is_empty() {
             return Err(Error::new_arg_error("run name cannot be blank"));
@@ -110,6 +116,7 @@ impl RunServiceWrapper for RunServiceWrapperImpl {
                 description: description.to_string(),
                 tags,
                 client_key: Some(client_key.to_string()),
+                metadata,
                 ..Default::default()
             })
             .await

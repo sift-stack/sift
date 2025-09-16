@@ -2,10 +2,11 @@ use super::builder::RunForm;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::{
+    metadata::v1::metadata_value::Value,
     runs::v2::Run,
     wrappers::runs::{RunServiceWrapper, new_run_service},
 };
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub enum RunSelector {
     ById(String),
@@ -39,6 +40,7 @@ pub(super) async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunFor
         name,
         description,
         tags,
+        metadata,
         client_key,
     } = run_form;
 
@@ -50,6 +52,7 @@ pub(super) async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunFor
                     &client_key,
                     &description.unwrap_or_default(),
                     tags.unwrap_or_default().as_slice(),
+                    metadata.unwrap_or_default().as_slice(),
                 )
                 .await?;
 
@@ -90,9 +93,52 @@ pub(super) async fn load_run_by_form(grpc_channel: SiftChannel, run_form: RunFor
                     let current_tags_set = HashSet::from_iter(run.tags.iter());
                     let difference = new_tags_set.difference(&current_tags_set);
 
-                    if difference.count() == 0 {
+                    if difference.count() > 0 {
                         update_mask.push("tags".to_string());
                         run.tags = new_tags;
+                    }
+                }
+                _ => (),
+            }
+            match metadata {
+                Some(new_metadata) if run.metadata.is_empty() => {
+                    update_mask.push("metadata".to_string());
+                    run.metadata = new_metadata;
+                }
+                Some(new_metadata) => {
+                    let new_metadata_map: HashMap<String, Value> = HashMap::from_iter(
+                        new_metadata
+                            .iter()
+                            .filter_map(|item| {
+                                if let Some(key) = &item.key
+                                    && let Some(value) = &item.value
+                                {
+                                    Some((key.name.clone(), value.clone()))
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<HashMap<String, Value>>(),
+                    );
+
+                    let current_metadata_map: HashMap<String, Value> = HashMap::from_iter(
+                        run.metadata
+                            .iter()
+                            .filter_map(|item| {
+                                if let Some(key) = &item.key
+                                    && let Some(value) = &item.value
+                                {
+                                    Some((key.name.clone(), value.clone()))
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<HashMap<String, Value>>(),
+                    );
+
+                    if new_metadata_map != current_metadata_map {
+                        update_mask.push("metadata".to_string());
+                        run.metadata = new_metadata;
                     }
                 }
                 _ => (),

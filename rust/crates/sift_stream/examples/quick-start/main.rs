@@ -1,3 +1,4 @@
+use sift_rs::metadata;
 use sift_stream::{
     ChannelConfig, ChannelDataType, ChannelValue, Credentials, Flow, FlowConfig,
     IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder, TimeValue,
@@ -53,12 +54,20 @@ async fn run() -> Result<(), Box<dyn Error>> {
         .map(|d| d.as_millis())
         .unwrap();
 
+    // Create metadata using the metadata macro
+    let metadata = metadata![
+        ("test_number", 5.0),
+        ("is_simulation", true),
+        ("location", "SiftHQ"),
+    ];
+
     // Define an optional run to group together data for this period of telemetry ingestion.
     let run = RunForm {
         name: format!("[MarsRover0].{ts}"),
         client_key: format!("mars-rover-sim-{ts}"),
         description: Some("simulation run".into()),
         tags: Some(vec!["simulation".into()]),
+        metadata: Some(metadata),
     };
 
     // Initialize your Sift Stream
