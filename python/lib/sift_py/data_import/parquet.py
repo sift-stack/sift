@@ -45,8 +45,8 @@ class ParquetUploadService(_RestService):
             parquet_config: The Parquet config.
             show_progress: Whether to show the status bar or not.
         """
-        if not str(path).endswith(".parquet"):
-            raise Exception("Must use an uncompressed parquet file")
+        # Verify this is a valid Parquet file.
+        _extract_parquet_footer(path)
 
         response = self._session.post(
             url=self._upload_uri,
@@ -147,16 +147,14 @@ class ParquetUploadService(_RestService):
         automatically generate the Parquet Config using the footer. See the options
         below for what parameters can be overridden. Use `upload` if you need to specify a custom Parquet config.
 
-        Override `time_path` to specify which column contains timestamp information. Default is 1.
-        Override `time_format` to specify the time data format. Default is `TimeFormatType.ABSOLUTE_DATETIME`.
+        Set `time_path` to specify which column contains timestamp information and `time_format`
+        to specify the time data format. Default is `TimeFormatType.ABSOLUTE_UNIX_NANOSECONDS`.
+
         Override `complex_types_import_mode` to specify how to import complex types (maps and list). Default is both strings and bytes.
         Override `run_name` to specify the name of the run to create for this data. Default is None.
         Override `run_id` to specify the id of the run to add this data to. Default is None.
         Override `relative_start_time` if a relative time format is used. Default is None.
         """
-        if not str(path).endswith(".parquet"):
-            raise Exception("Must use an uncompressed parquet file")
-
         config_info = self._detect_config_flat_dataset(path)
 
         config_info["asset_name"] = asset_name
