@@ -3,6 +3,23 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.9.0] - September 15, 2025
+### What's New
+#### Parquet Upload Service
+Adds support for uploading Parquet files to Sift for ingestion through the addition of the `ParquetUploadService`. See `examples/data_import/parquet` for an example of how to upload Parquet files.
+
+#### TDMS File Metadata Support
+Adds a flag to automatically import TDMS file metdadata into Sift Runs.
+
+#### Lazy Flow Creation
+Adds the ability to create flows lazily which reduces initialization time of the `IngestService`.
+
+### Full Changelog
+- [Lazy flow creation](https://github.com/sift-stack/sift/pull/296)
+- [Adds support for bytes](https://github.com/sift-stack/sift/pull/304)
+- [Add ParquetUploadService](https://github.com/sift-stack/sift/pull/315)
+- [Import TDMS file metadata to Sift Run](https://github.com/sift-stack/sift/pull/317)
+
 ## [v0.8.4] - August 18, 2025
 - [Add experimental protos for development](https://github.com/sift-stack/sift/pull/291)
 
