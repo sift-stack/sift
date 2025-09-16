@@ -7,7 +7,9 @@ from urllib.parse import urljoin, urlparse
 
 import pandas as pd
 from alive_progress import alive_bar  # type: ignore
+from sift.metadata.v1.metadata_pb2 import MetadataValue
 
+from sift_py._internal.metadata import metadata_pb_to_dict_api
 from sift_py.data_import.config import CsvConfig
 from sift_py.data_import.status import DataImportService
 from sift_py.data_import.time_format import TimeFormatType
@@ -18,6 +20,7 @@ from sift_py.rest import SiftRestConfig, _RestService
 class CsvUploadService(_RestService):
     UPLOAD_PATH = "/api/v1/data-imports:upload"
     URL_PATH = "/api/v1/data-imports:url"
+    RUN_PATH = "/api/v2/runs"
 
     _rest_conf: SiftRestConfig
     _upload_uri: str
@@ -257,6 +260,50 @@ class CsvUploadService(_RestService):
         file_name = path.name
         mime, encoding = mimetypes.guess_type(path)
         return file_name, mime, encoding
+
+    def _create_run(self, run_name: str, metadata: Optional[List[MetadataValue]] = None) -> str:
+        """Create a new run using the REST service, and return a run_id.
+
+        Args:
+            run_name: The name of the Run.
+            metadata: Optional metadata fields to add to the run.
+
+        Returns:
+            The run id.
+        """
+        run_uri = urljoin(self._base_uri, self.RUN_PATH)
+
+        req: Dict[str, Any] = {
+            "name": run_name,
+            "description": "",
+        }
+
+        if metadata:
+            req["metadata"] = metadata_pb_to_dict_api(metadata)
+
+        response = self._session.post(
+            url=run_uri,
+            headers={
+                "Content-Encoding": "application/json",
+            },
+            data=json.dumps(req),
+        )
+        if response.status_code != 200:
+            raise Exception(
+                f"Run creation failed with status code {response.status_code}. {response.text}"
+            )
+
+        try:
+            run_info = response.json()
+        except (json.decoder.JSONDecodeError, KeyError):
+            raise Exception(f"Invalid response: {response.text}")
+
+        if "run" not in run_info:
+            raise Exception("Response missing key: run")
+        if "runId" not in run_info["run"]:
+            raise Exception("Response missing key: runId")
+
+        return run_info["run"]["runId"]
 
 
 class _ProgressFile:

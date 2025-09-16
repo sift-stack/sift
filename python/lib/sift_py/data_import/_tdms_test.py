@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 from nptdms import TdmsFile, types  # type: ignore
 from pytest_mock import MockFixture
+from sift.metadata.v1.metadata_pb2 import MetadataKeyType
 
 from sift_py.data_import.tdms import TdmsTimeFormat, TdmsUploadService, sanitize_string
 from sift_py.rest import SiftRestConfig
@@ -40,7 +41,14 @@ class MockTdmsGroup:
 class MockTdmsFile:
     def __init__(self, groups: List[MockTdmsGroup]):
         self._groups: List[MockTdmsGroup] = groups
-        self.properties: Dict[str, str] = {}
+        # Example properties for each type
+        self.properties: Dict[str, Any] = {
+            "string_prop": "example",
+            "int_prop": 42,
+            "float_prop": 3.14,
+            "bool_prop": True,
+            "datetime_prop": pd.Timestamp("2024-01-01T12:00:00"),
+        }
 
     def groups(self) -> List[MockTdmsGroup]:
         return self._groups
@@ -50,9 +58,9 @@ class MockTdmsFile:
 
 
 class MockResponse:
-    def __init__(self):
-        self.status_code = 200
-        self.text = json.dumps({"uploadUrl": "some_url.com", "dataImportId": "123-123-123"})
+    def __init__(self, status_code=None, text=None):
+        self.status_code = status_code or 200
+        self.text = text or json.dumps({"uploadUrl": "some_url.com", "dataImportId": "123-123-123"})
 
     def json(self) -> dict:
         return json.loads(self.text)
@@ -730,3 +738,110 @@ def test_time_channel_tdms_different_lengths(
             tdms_time_format=TdmsTimeFormat.TIME_CHANNEL,
             ignore_errors=True,
         )
+
+
+def test_tdms_upload_service_upload_with_metadata(
+    mocker: MockFixture, mock_waveform_tdms_file: MockTdmsFile
+):
+    mock_path_is_file = mocker.patch("sift_py.data_import.tdms.Path.is_file")
+    mock_path_is_file.return_value = True
+
+    mock_path_getsize = mocker.patch("sift_py.data_import.csv.os.path.getsize")
+    mock_path_getsize.return_value = 10
+
+    # Patch TdmsFile to return our mock file
+    mocker.patch("sift_py.data_import.tdms.TdmsFile", return_value=mock_waveform_tdms_file)
+
+    # Patch requests.Session.post to simulate both run creation and data import
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
+
+    # The first call is for _create_run, second for config upload, third for file upload
+    def post_side_effect(*args, **kwargs):
+        url = kwargs.get("url") or (args[1] if len(args) > 1 else "")
+        if "run" in url:
+            # Simulate run creation response
+            return MockResponse(
+                status_code=200,
+                text=json.dumps({"run": {"runId": "new_run_id"}}),
+            )
+        elif "data-imports:upload" in url:
+            # Simulate config upload response
+            return MockResponse()
+        elif "some_url.com" in url:
+            # Simulate file upload response
+            return MockResponse()
+        else:
+            return MockResponse()
+
+    mock_requests_post.side_effect = post_side_effect
+
+    svc = TdmsUploadService(rest_config)
+
+    # Should raise if run_id is provided
+    with pytest.raises(ValueError, match="Metadata can only be included in new runs"):
+        svc.upload(
+            "some_tdms.tdms",
+            "asset_name",
+            include_metadata=True,
+            run_id="existing_run_id",
+            run_name="Run Name",
+        )
+
+    # Should raise if run_name is not provided
+    with pytest.raises(ValueError, match="Must provide a run_name to include metadata"):
+        svc.upload(
+            "some_tdms.tdms",
+            "asset_name",
+            include_metadata=True,
+            run_name=None,
+        )
+
+    # Should succeed and call _create_run via POST with metadata
+    svc.upload(
+        "some_tdms.tdms",
+        "asset_name",
+        include_metadata=True,
+        run_name="Run Name",
+    )
+
+    # Check that the first POST call was for run creation and included metadata
+    create_run_post_call = mock_requests_post.call_args_list[0]
+    create_run_post_data = json.loads(create_run_post_call.kwargs["data"])
+    assert create_run_post_data["name"] == "Run Name"
+
+    # Metadata should be present and contain expected keys
+    assert "metadata" in create_run_post_data
+    assert create_run_post_data["metadata"][0]["key"]["name"] == "string_prop"
+    assert (
+        create_run_post_data["metadata"][0]["key"]["type"]
+        == MetadataKeyType.METADATA_KEY_TYPE_STRING
+    )
+    assert create_run_post_data["metadata"][0]["string_value"] == "example"
+
+    assert create_run_post_data["metadata"][1]["key"]["name"] == "int_prop"
+    assert (
+        create_run_post_data["metadata"][1]["key"]["type"]
+        == MetadataKeyType.METADATA_KEY_TYPE_NUMBER
+    )
+    assert create_run_post_data["metadata"][1]["number_value"] == 42
+
+    assert create_run_post_data["metadata"][2]["key"]["name"] == "float_prop"
+    assert (
+        create_run_post_data["metadata"][2]["key"]["type"]
+        == MetadataKeyType.METADATA_KEY_TYPE_NUMBER
+    )
+    assert create_run_post_data["metadata"][2]["number_value"] == 3.14
+
+    assert create_run_post_data["metadata"][3]["key"]["name"] == "bool_prop"
+    assert (
+        create_run_post_data["metadata"][3]["key"]["type"]
+        == MetadataKeyType.METADATA_KEY_TYPE_BOOLEAN
+    )
+    assert create_run_post_data["metadata"][3]["boolean_value"] is True
+
+    assert create_run_post_data["metadata"][4]["key"]["name"] == "datetime_prop"
+    assert (
+        create_run_post_data["metadata"][4]["key"]["type"]
+        == MetadataKeyType.METADATA_KEY_TYPE_STRING
+    )
+    assert create_run_post_data["metadata"][4]["string_value"].startswith("2024-01-01T12:00:00")
