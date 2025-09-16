@@ -147,15 +147,14 @@ class TdmsUploadService:
         if not posix_path.is_file():
             raise Exception(f"Provided path, '{path}', does not point to a regular file.")
 
-        # If metadata should be included, create the run first.
         if include_metadata:
             # Do not allow including metadata in existing runs since it could lead
             # to overwriting metadata fields.
-            if run_id:
-                raise ValueError("Metadata can only be included in new runs")
+            if not (run_id or run_name):
+                raise ValueError("Metadata can only be included in Runs")
 
-            if not run_name:
-                raise ValueError("Must provide a run_name to include metadata")
+            if run_name and run_id:
+                raise ValueError("Must specify either run_name or run_id, not both")
 
             def parse_datetime(value):
                 """Convert datetime metadata to strings."""
@@ -168,9 +167,15 @@ class TdmsUploadService:
 
             tdms_file = TdmsFile(path)
             metadata = metadata_dict_to_pb(tdms_file.properties, parse_datetime)
-            run_id = self._csv_upload_service._create_run(run_name, metadata)
-            # Clear the run name since we are using run_id now.
-            run_name = None
+
+            # Create a new run with metadata fields.
+            if run_name:
+                run_id = self._csv_upload_service._create_run(run_name, metadata)
+                # Clear the run name since we are using run_id now.
+                run_name = None
+            # Add metadata to existing Run.
+            else:
+                self._csv_upload_service._add_metadata_to_run(run_id, metadata)  # type: ignore
 
         with NamedTemporaryFile(mode="wt", suffix=".csv.gz") as temp_file:
             csv_config = self._convert_to_csv(

@@ -305,6 +305,36 @@ class CsvUploadService(_RestService):
 
         return run_info["run"]["runId"]
 
+    def _add_metadata_to_run(self, run_id: str, metadata: List[MetadataValue]):
+        """
+        Updates metadata for the specified Run.
+
+        Args:
+            run_id: The ID of the run to update.
+            metadata: Metadata fields to update.
+        """
+        run_uri = urljoin(self._base_uri, self.RUN_PATH)
+
+        req: Dict[str, Any] = {
+            "run": {
+                "runId": run_id,
+                "metadata": metadata_pb_to_dict_api(metadata),
+            },
+            "updateMask": "metadata",
+        }
+
+        response = self._session.patch(
+            url=run_uri,
+            headers={
+                "Content-Type": "application/json",
+            },
+            data=json.dumps(req),
+        )
+        if response.status_code != 200:
+            raise Exception(
+                f"Run metadata update failed with status code {response.status_code}. {response.text}"
+            )
+
 
 class _ProgressFile:
     """Displays the status with alive_bar while reading the file."""

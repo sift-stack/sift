@@ -777,8 +777,8 @@ def test_tdms_upload_service_upload_with_metadata(
 
     svc = TdmsUploadService(rest_config)
 
-    # Should raise if run_id is provided
-    with pytest.raises(ValueError, match="Metadata can only be included in new runs"):
+    # Should raise if run_id and run_name is provided
+    with pytest.raises(ValueError, match="Must specify either run_name or run_id, not both"):
         svc.upload(
             "some_tdms.tdms",
             "asset_name",
@@ -788,7 +788,7 @@ def test_tdms_upload_service_upload_with_metadata(
         )
 
     # Should raise if run_name is not provided
-    with pytest.raises(ValueError, match="Must provide a run_name to include metadata"):
+    with pytest.raises(ValueError, match="Metadata can only be included in Runs"):
         svc.upload(
             "some_tdms.tdms",
             "asset_name",
@@ -845,3 +845,45 @@ def test_tdms_upload_service_upload_with_metadata(
         == MetadataKeyType.METADATA_KEY_TYPE_STRING
     )
     assert create_run_post_data["metadata"][4]["string_value"].startswith("2024-01-01T12:00:00")
+
+
+def test_tdms_upload_service_upload_with_metadata_run_id(
+    mocker: MockFixture, mock_waveform_tdms_file: MockTdmsFile
+):
+    mock_path_is_file = mocker.patch("sift_py.data_import.tdms.Path.is_file")
+    mock_path_is_file.return_value = True
+
+    mock_path_getsize = mocker.patch("sift_py.data_import.csv.os.path.getsize")
+    mock_path_getsize.return_value = 10
+
+    # Patch TdmsFile to return our mock file
+    mocker.patch("sift_py.data_import.tdms.TdmsFile", return_value=mock_waveform_tdms_file)
+
+    # Patch requests.Session.post and patch requests.Session.patch for metadata update
+    mock_requests_post = mocker.patch("sift_py.rest.requests.Session.post")
+    mock_requests_post.return_value = MockResponse()
+    mock_requests_patch = mocker.patch("sift_py.rest.requests.Session.patch")
+    mock_requests_patch.return_value = MockResponse(
+        status_code=200,
+        text=json.dumps({"run": {"runId": "existing_run_id"}}),
+    )
+
+    svc = TdmsUploadService(rest_config)
+
+    # Should succeed and call _add_metadata_to_run via PATCH with metadata if only run_id is provided
+    svc.upload(
+        "some_tdms.tdms",
+        "asset_name",
+        include_metadata=True,
+        run_id="existing_run_id",
+    )
+
+    # Check that PATCH was called for metadata update
+    patch_call = mock_requests_patch.call_args_list[0]
+    patch_data = json.loads(patch_call.kwargs["data"])
+    assert patch_data["run"]["runId"] == "existing_run_id"
+    assert "metadata" in patch_data["run"]
+    assert patch_data["updateMask"] == "metadata"
+    # Metadata keys should match those in the mock_tdms_file properties
+    keys = [md["key"]["name"] for md in patch_data["run"]["metadata"]]
+    assert set(keys) == set(mock_waveform_tdms_file.properties.keys())
