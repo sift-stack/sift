@@ -8,6 +8,14 @@
     }
   },
   {
+    "version": "v0.9.0",
+    "title": "v0.9.0",
+    "aliases": [],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "v0.8",
     "title": "v0.8",
     "aliases": [
