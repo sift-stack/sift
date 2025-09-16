@@ -1,8 +1,7 @@
 use crate::metadata::v1::{MetadataKey, MetadataKeyType};
 
-pub use crate::metadata::v1::metadata_value::Value as MetadataEnumValue;
 pub use crate::metadata::v1::MetadataValue;
-
+pub use crate::metadata::v1::metadata_value::Value as MetadataEnumValue;
 
 impl From<f64> for MetadataEnumValue {
     fn from(value: f64) -> Self {
@@ -57,9 +56,9 @@ impl<T: Into<MetadataEnumValue>> From<(&str, T)> for MetadataValue {
     }
 }
 
-/// A macro for easily creating an array of metadata to be provided to Sift. 
+/// A macro for easily creating an array of metadata to be provided to Sift.
 /// Returns a Vec<[MetadataValue]>
-/// 
+///
 ///  # Example
 /// ```
 /// let metadata = metadata![

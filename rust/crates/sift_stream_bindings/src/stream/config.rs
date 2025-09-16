@@ -85,7 +85,7 @@ impl From<RunFormPy> for RunForm {
             client_key: form.client_key,
             description: form.description,
             tags: form.tags,
-            metadata: None
+            metadata: None,
         }
     }
 }
