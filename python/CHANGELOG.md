@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.9.1] - August 18, 2025
+- [Allow importing TDMS metadata to existing Runs](https://github.com/sift-stack/sift/pull/320)
+
 ## [v0.9.0] - September 15, 2025
 ### What's New
 #### Parquet Upload Service
