@@ -196,7 +196,7 @@ mod tests {
     struct UpdateCall {
         #[allow(dead_code)]
         run_name: String,
-        field_mask: Vec<String>,
+        update_mask: Vec<String>,
         updated_run: Run,
     }
 
@@ -285,12 +285,12 @@ mod tests {
             let updated_run = req
                 .run
                 .ok_or_else(|| Status::invalid_argument("run is required"))?;
-            let field_mask = req.update_mask.unwrap_or_default();
+            let update_mask = req.update_mask.unwrap_or_default();
 
             // Capture the update call for verification
             let update_call = UpdateCall {
                 run_name: updated_run.name.clone(),
-                field_mask: field_mask.paths.clone(),
+                update_mask: update_mask.paths.clone(),
                 updated_run: updated_run.clone(),
             };
 
@@ -440,10 +440,10 @@ mod tests {
         // Verify update_run was called with correct field mask
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].field_mask.contains(&"tags".to_string()));
+        assert!(update_calls[0].update_mask.contains(&"tags".to_string()));
         assert!(
             update_calls[0]
-                .field_mask
+                .update_mask
                 .contains(&"description".to_string())
         );
         assert_eq!(update_calls[0].updated_run.tags, vec!["tag1", "tag2"]);
@@ -490,7 +490,7 @@ mod tests {
         // Verify update_run was called with correct field mask
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].field_mask.contains(&"metadata".to_string()));
+        assert!(update_calls[0].update_mask.contains(&"metadata".to_string()));
         assert_eq!(update_calls[0].updated_run.metadata.len(), 2);
 
         server.abort();
@@ -619,7 +619,7 @@ mod tests {
         // Verify update_run was called with correct field mask and data
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].field_mask.contains(&"tags".to_string()));
+        assert!(update_calls[0].update_mask.contains(&"tags".to_string()));
         assert_eq!(
             update_calls[0].updated_run.tags,
             vec!["new_tag1", "new_tag2", "new_tag3"]
@@ -684,7 +684,7 @@ mod tests {
         // Verify update_run was called with correct field mask and data
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].field_mask.contains(&"metadata".to_string()));
+        assert!(update_calls[0].update_mask.contains(&"metadata".to_string()));
         assert_eq!(update_calls[0].updated_run.metadata.len(), 3);
 
         server.abort();
@@ -752,7 +752,7 @@ mod tests {
         // Verify update_run was called due to different metadata
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].field_mask.contains(&"metadata".to_string()));
+        assert!(update_calls[0].update_mask.contains(&"metadata".to_string()));
 
         server.abort();
     }
@@ -798,11 +798,11 @@ mod tests {
         // Verify update_run was called with all three field masks
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].field_mask.contains(&"tags".to_string()));
-        assert!(update_calls[0].field_mask.contains(&"metadata".to_string()));
+        assert!(update_calls[0].update_mask.contains(&"tags".to_string()));
+        assert!(update_calls[0].update_mask.contains(&"metadata".to_string()));
         assert!(
             update_calls[0]
-                .field_mask
+                .update_mask
                 .contains(&"description".to_string())
         );
 
