@@ -200,7 +200,6 @@ class ReportsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(created_report)
 
-
     async def rerun(
         self,
         *,

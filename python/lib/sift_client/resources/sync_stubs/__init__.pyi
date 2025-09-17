@@ -931,6 +931,7 @@ class RunsAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        run_ids: list[str] | None = None,
         description: str | None = None,
         description_contains: str | None = None,
         duration_seconds: int | None = None,
@@ -958,6 +959,7 @@ class RunsAPI:
             name: Exact name of the run.
             name_contains: Partial name of the run.
             name_regex: Regular expression string to filter runs by name.
+            run_ids: List of run IDs to filter by.
             description: Exact description of the run.
             description_contains: Partial description of the run.
             duration_seconds: Duration of the run in seconds.

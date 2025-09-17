@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.tag import Tag, TagUpdate
 
+
 class TagsAPIAsync(ResourceBase):
     """High-level API for interacting with tags."""
 

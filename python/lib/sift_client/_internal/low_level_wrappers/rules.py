@@ -9,6 +9,7 @@ from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
     EvaluateRulesResponse,
     RunTimeRange,
 )
+from sift.rule_evaluation.v1.rule_evaluation_pb2_grpc import RuleEvaluationServiceStub
 from sift.rules.v1.rules_pb2 import (
     BatchDeleteRulesRequest,
     BatchGetRulesRequest,
@@ -457,7 +458,8 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             max_results=max_results,
         )
 
-    async def evaluate_rules(self,
+    async def evaluate_rules(
+        self,
         *,
         run_id: str | None = None,
         assets: list[str] | None = None,
@@ -486,15 +488,23 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The result of the rule execution.
         """
         if count_non_none(run_id, assets, run_start_time, run_end_time) > 1:
-            raise ValueError("Pick only one run_id, assets, or (run_start_time and run_end_time) to select what to evaluate against.")
+            raise ValueError(
+                "Pick only one run_id, assets, or (run_start_time and run_end_time) to select what to evaluate against."
+            )
 
-        all_applicable_rules = None if not all_applicable_rules else True # Cast to None if False so we don't count it against other filters if they aren't opting in.
+        all_applicable_rules = (
+            None if not all_applicable_rules else True
+        )  # Cast to None if False so we don't count it against other filters if they aren't opting in.
         if count_non_none(rule_ids, rule_version_ids, report_template_id, all_applicable_rules) > 1:
-            raise ValueError("Pick only one rule_ids, rule_version_ids, report_template_id, or all_applicable_rules to further filter which rules to evaluate.")
+            raise ValueError(
+                "Pick only one rule_ids, rule_version_ids, report_template_id, or all_applicable_rules to further filter which rules to evaluate."
+            )
 
         kwargs: dict[str, Any] = {}
         if run_start_time and run_end_time:
-            kwargs["run_time_range"] = RunTimeRange(run=run_id, start_time=run_start_time, end_time=run_end_time)
+            kwargs["run_time_range"] = RunTimeRange(
+                run=run_id, start_time=run_start_time, end_time=run_end_time
+            )
         if run_id:
             kwargs["run"] = ResourceIdentifier(id=run_id)
         if assets:
@@ -510,10 +520,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if tags:
             kwargs["tags"] = tags
 
-        print("kwargs: ", kwargs)
         request = EvaluateRulesRequest(**kwargs)
-        print("request: ", request)
-        response = await self._grpc_client.get_stub(RuleServiceStub).EvaluateRules(request)
+        response = await self._grpc_client.get_stub(RuleEvaluationServiceStub).EvaluateRules(
+            request
+        )
         response = cast("EvaluateRulesResponse", response)
         report_id = response.report_id
         report = await ReportsLowLevelClient(self._grpc_client).get_report(report_id=report_id)

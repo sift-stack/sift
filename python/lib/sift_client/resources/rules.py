@@ -276,7 +276,9 @@ class RulesAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(rules)
 
-    async def evaluate(self, *,
+    async def evaluate(
+        self,
+        *,
         run_id: str | None = None,
         assets: list[str] | None = None,
         all_applicable_rules: bool | None = None,
@@ -285,8 +287,8 @@ class RulesAPIAsync(ResourceBase):
         rule_ids: list[str] | None = None,
         rule_version_ids: list[str] | None = None,
         report_template_id: str | None = None,
-        tags: list[str] | None = None
-        ) -> Report:
+        tags: list[str] | None = None,
+    ) -> Report:
         """Evaluate a rule.
 
         Pick one of the following grouping of rules to evaluate against:
