@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
+from sift.common.type.v1.resource_identifier_pb2 import ResourceIdentifier
 from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
     EvaluateRulesRequest,
     EvaluateRulesResponse,
@@ -491,17 +492,27 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if count_non_none(rule_ids, rule_version_ids, report_template_id, all_applicable_rules) > 1:
             raise ValueError("Pick only one rule_ids, rule_version_ids, report_template_id, or all_applicable_rules to further filter which rules to evaluate.")
 
-        kwargs: dict[str, Any] = {
-            "run": run_id,
-            "assets": assets,
-            "all_applicable_rules": all_applicable_rules,
-            "run_time_range": RunTimeRange(run=run_id, start_time=run_start_time, end_time=run_end_time),
-            "rules": rule_ids,
-            "rule_versions": rule_version_ids,
-            "report_template": report_template_id,
-            "tags": tags,
-        }
+        kwargs: dict[str, Any] = {}
+        if run_start_time and run_end_time:
+            kwargs["run_time_range"] = RunTimeRange(run=run_id, start_time=run_start_time, end_time=run_end_time)
+        if run_id:
+            kwargs["run"] = ResourceIdentifier(id=run_id)
+        if assets:
+            kwargs["assets"] = assets
+        if all_applicable_rules:
+            kwargs["all_applicable_rules"] = all_applicable_rules
+        if rule_ids:
+            kwargs["rules"] = rule_ids
+        if rule_version_ids:
+            kwargs["rule_versions"] = rule_version_ids
+        if report_template_id:
+            kwargs["report_template"] = report_template_id
+        if tags:
+            kwargs["tags"] = tags
+
+        print("kwargs: ", kwargs)
         request = EvaluateRulesRequest(**kwargs)
+        print("request: ", request)
         response = await self._grpc_client.get_stub(RuleServiceStub).EvaluateRules(request)
         response = cast("EvaluateRulesResponse", response)
         report_id = response.report_id
