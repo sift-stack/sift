@@ -490,7 +490,11 @@ mod tests {
         // Verify update_run was called with correct field mask
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].update_mask.contains(&"metadata".to_string()));
+        assert!(
+            update_calls[0]
+                .update_mask
+                .contains(&"metadata".to_string())
+        );
         assert_eq!(update_calls[0].updated_run.metadata.len(), 2);
 
         server.abort();
@@ -684,7 +688,11 @@ mod tests {
         // Verify update_run was called with correct field mask and data
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].update_mask.contains(&"metadata".to_string()));
+        assert!(
+            update_calls[0]
+                .update_mask
+                .contains(&"metadata".to_string())
+        );
         assert_eq!(update_calls[0].updated_run.metadata.len(), 3);
 
         server.abort();
@@ -752,7 +760,11 @@ mod tests {
         // Verify update_run was called due to different metadata
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
-        assert!(update_calls[0].update_mask.contains(&"metadata".to_string()));
+        assert!(
+            update_calls[0]
+                .update_mask
+                .contains(&"metadata".to_string())
+        );
 
         server.abort();
     }
@@ -799,7 +811,11 @@ mod tests {
         let update_calls = mock_service.get_update_calls();
         assert_eq!(update_calls.len(), 1);
         assert!(update_calls[0].update_mask.contains(&"tags".to_string()));
-        assert!(update_calls[0].update_mask.contains(&"metadata".to_string()));
+        assert!(
+            update_calls[0]
+                .update_mask
+                .contains(&"metadata".to_string())
+        );
         assert!(
             update_calls[0]
                 .update_mask
