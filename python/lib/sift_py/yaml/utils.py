@@ -1,5 +1,7 @@
 from pathlib import Path
-from typing import Callable, Type
+from typing import Any, Callable, Dict, Type, cast
+
+import yaml
 
 
 def _handle_subdir(path: Path, file_handler: Callable):
@@ -13,3 +15,16 @@ def _handle_subdir(path: Path, file_handler: Callable):
 
 def _type_fqn(typ: Type) -> str:
     return f"{typ.__module__}.{typ.__name__}"
+
+
+def try_fast_yaml_load(path: Path) -> Dict[Any, Any]:
+    """
+    Try to load the YAML file using the CSafeLoader, which is faster than the pyyaml safe loader but not built into the wheel for earlier versions of python..
+    If the CSafeLoader is not available, use the pyyaml safe loader.
+    """
+    with open(path, "r") as f:
+        try:
+            loader = yaml.CSafeLoader
+            return cast(Dict[Any, Any], yaml.load(f.read(), Loader=loader))
+        except AttributeError:
+            return cast(Dict[Any, Any], yaml.safe_load(f.read()))
