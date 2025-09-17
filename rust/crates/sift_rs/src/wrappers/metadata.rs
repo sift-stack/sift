@@ -4,37 +4,37 @@ pub use crate::metadata::v1::MetadataValue;
 pub use crate::metadata::v1::metadata_value::Value as MetadataEnumValue;
 
 impl From<f64> for MetadataEnumValue {
-    fn from(value: f64) -> Self {
+    fn from(value: f64) -> MetadataEnumValue {
         MetadataEnumValue::NumberValue(value)
     }
 }
 
 impl From<bool> for MetadataEnumValue {
-    fn from(value: bool) -> Self {
+    fn from(value: bool) -> MetadataEnumValue {
         MetadataEnumValue::BooleanValue(value)
     }
 }
 
 impl From<String> for MetadataEnumValue {
-    fn from(value: String) -> Self {
+    fn from(value: String) -> MetadataEnumValue {
         MetadataEnumValue::StringValue(value)
     }
 }
 
 impl From<&str> for MetadataEnumValue {
-    fn from(value: &str) -> Self {
+    fn from(value: &str) -> MetadataEnumValue {
         MetadataEnumValue::StringValue(value.to_string())
     }
 }
 
 impl<T: Into<MetadataEnumValue>> From<(String, T)> for MetadataValue {
-    fn from((name, value): (String, T)) -> Self {
+    fn from((name, value): (String, T)) -> MetadataValue {
         MetadataValue::from((name.as_str(), value))
     }
 }
 
 impl<T: Into<MetadataEnumValue>> From<(&str, T)> for MetadataValue {
-    fn from((name, value): (&str, T)) -> Self {
+    fn from((name, value): (&str, T)) -> MetadataValue {
         let enum_value: MetadataEnumValue = value.into();
         let key_type = match enum_value {
             MetadataEnumValue::NumberValue(_) => MetadataKeyType::Number,

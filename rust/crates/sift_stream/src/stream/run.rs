@@ -201,8 +201,8 @@ mod tests {
     }
 
     impl MockRunService {
-        fn new() -> Self {
-            Self {
+        fn new() -> MockRunService {
+            MockRunService {
                 runs: Arc::new(Mutex::new(HashMap::new())),
                 update_calls: Arc::new(Mutex::new(Vec::new())),
             }
