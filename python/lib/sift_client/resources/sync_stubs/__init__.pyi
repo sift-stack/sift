@@ -720,7 +720,7 @@ class RulesAPI:
         rule_version_ids: list[str] | None = None,
         report_template_id: str | None = None,
         tags: list[str] | None = None,
-    ) -> Report:
+    ) -> Report | None:
         """Evaluate a rule.
 
         Pick one of the following grouping of rules to evaluate against:

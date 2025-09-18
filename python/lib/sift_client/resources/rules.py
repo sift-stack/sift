@@ -288,7 +288,7 @@ class RulesAPIAsync(ResourceBase):
         rule_version_ids: list[str] | None = None,
         report_template_id: str | None = None,
         tags: list[str] | None = None,
-    ) -> Report:
+    ) -> Report | None:
         """Evaluate a rule.
 
         Pick one of the following grouping of rules to evaluate against:
@@ -326,5 +326,5 @@ class RulesAPIAsync(ResourceBase):
             report_template_id=report_template_id,
             tags=tags,
         )
-
-        return self._apply_client_to_instance(report)
+        if report:
+            return self._apply_client_to_instance(report)

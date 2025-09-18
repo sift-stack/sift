@@ -470,7 +470,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         rule_version_ids: list[str] | None = None,
         report_template_id: str | None = None,
         tags: list[str] | None = None,
-    ) -> Report:
+    ) -> Report | None:
         """Evaluate a rule.
 
         Args:
@@ -526,5 +526,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
         response = cast("EvaluateRulesResponse", response)
         report_id = response.report_id
-        report = await ReportsLowLevelClient(self._grpc_client).get_report(report_id=report_id)
-        return report
+        if report_id:
+            report = await ReportsLowLevelClient(self._grpc_client).get_report(report_id=report_id)
+            return report
+        return None
