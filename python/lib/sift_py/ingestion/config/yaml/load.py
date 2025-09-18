@@ -1,8 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict, List, cast
 
-import yaml
-
 import sift_py.yaml.rule as rule_yaml
 from sift_py.ingestion.config.yaml.error import YamlConfigError
 from sift_py.ingestion.config.yaml.spec import (
@@ -11,7 +9,7 @@ from sift_py.ingestion.config.yaml.spec import (
 )
 from sift_py.yaml.channel import ChannelConfigYamlSpec, _validate_channel, _validate_channel_anchor
 from sift_py.yaml.rule import RuleYamlSpec
-from sift_py.yaml.utils import _type_fqn
+from sift_py.yaml.utils import _type_fqn, try_fast_yaml_load
 
 load_named_expression_modules = rule_yaml.load_named_expression_modules
 
@@ -22,7 +20,7 @@ def read_and_validate(path: Path) -> TelemetryConfigYamlSpec:
     step will return an error whose source is the `yaml` package. Any errors that may occur during the
     validation step will return a `sift_py.ingestion.config.yaml.error.YamlConfigError`.
     """
-    raw_config = _read_yaml(path)
+    raw_config = try_fast_yaml_load(path)
     return _validate_yaml(raw_config)
 
 
@@ -86,11 +84,6 @@ def _validate_yaml(raw_config: Dict[Any, Any]) -> TelemetryConfigYamlSpec:
             _validate_flow(flow)
 
     return cast(TelemetryConfigYamlSpec, raw_config)
-
-
-def _read_yaml(path: Path) -> Dict[Any, Any]:
-    with open(path, "r") as f:
-        return cast(Dict[Any, Any], yaml.safe_load(f.read()))
 
 
 def _validate_flow(val: Any):
