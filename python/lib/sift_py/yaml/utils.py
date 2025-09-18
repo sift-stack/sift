@@ -23,8 +23,7 @@ def try_fast_yaml_load(path: Path) -> Dict[Any, Any]:
     If the CSafeLoader is not available, use the pyyaml safe loader.
     """
     with open(path, "r") as f:
-        try:
-            loader = yaml.CSafeLoader
-            return cast(Dict[Any, Any], yaml.load(f.read(), Loader=loader))
-        except AttributeError:
+        if hasattr(yaml, "CSafeLoader"):
+            return cast(Dict[Any, Any], yaml.load(f.read(), Loader=yaml.CSafeLoader))
+        else:
             return cast(Dict[Any, Any], yaml.safe_load(f.read()))

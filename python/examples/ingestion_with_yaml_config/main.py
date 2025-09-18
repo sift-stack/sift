@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    apikey = os.getenv("SIFT_API_KEY")
+    apikey = os.getenv("SIFT_LOCAL_API_KEY")
 
     if apikey is None:
         raise Exception("Missing 'SIFT_API_KEY' environment variable.")
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     telemetry_config = nostromos_lv_426()
 
     # Create a gRPC transport channel configured specifically for the Sift API
-    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey)
+    sift_channel_config = SiftChannelConfig(uri=base_uri, apikey=apikey, use_ssl=False)
 
     with use_sift_channel(sift_channel_config) as channel:
         # Create ingestion service using the telemetry config we loaded in
