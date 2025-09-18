@@ -325,15 +325,14 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             }
         };
 
-        if self.asset_tags.is_some() || self.asset_metadata.is_some() {
-            Self::update_asset_tags_and_metadata(
-                asset,
-                self.asset_tags,
-                self.asset_metadata,
-                channel.clone(),
-            )
-            .await?;
-        }
+        // Try updating tags or metadata. Update only occurs if either asset_tags or asset_metadata is Some
+        Self::update_asset_tags_and_metadata(
+            asset,
+            self.asset_tags,
+            self.asset_metadata,
+            channel.clone(),
+        )
+        .await?;
 
         let mut backups_manager = None;
         let mut policy = None;
