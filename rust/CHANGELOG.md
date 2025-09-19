@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.6.0] - September 19, 2025
+### What's New
+#### SiftStream Async Backup Manager
+A new recovery strategy `RecoveryStrategy::RetryWithBackups` has been developed for SiftStream which is designed to be a more robust backup method than the existing `RetryWithDiskBackups` method.
+- Uses rolling backup files (default to 500 MiB and an unlimited file count). By default these files are removed once a checkpoint passes, indicating that Sift has successfully recieved all incoming data, but can also be retained indefinitely with the `retain_backups` option
+- Backup file ingestion if the checkpoint fails is performed asynchronously and will not block live ingestion
+- The existing `RecoveryStrategy::RetryWithDiskBackups` is being marked deprecated due to the new recovery strategy being considered a more robust method
+- `RecoveryStrategy::RetryWithInMemoryBackups` is also being deprecated due to the lack of a known use case
+#### SiftStream Asset/Run Tags and Metadata
+Users now have the ability to add both tags and metadata when specifying a run, or for an asset during initilization of SiftStream.
+- `RunForm` now includes the `metadata` field. Metadata can be easily defined using the `sift_rs::metadata` macro. 
+- `SiftStreamBuilder` now includes `add_asset_metadata` and `add_asset_tags`
+- See the [SiftStream example](https://github.com/sift-stack/sift/blob/main/rust/crates/sift_stream/examples/quick-start/main.rs) for how tags and metadata can be added.
+
+### Full Changelog
+- [Sift stream async backup manager](https://github.com/sift-stack/sift/pull/307)
+- [Run and Asset Tags and Metadata](https://github.com/sift-stack/sift/pull/319)
+- Protobuf updates [#310](https://github.com/sift-stack/sift/pull/310) [#311](https://github.com/sift-stack/sift/pull/311) [#314](https://github.com/sift-stack/sift/pull/314) [#316](https://github.com/sift-stack/sift/pull/316)
+
 ## [v0.5.0] - August 14, 2025
 
 - [Add ability to attach and detach runs to SiftStream](https://github.com/sift-stack/sift/pull/293)
