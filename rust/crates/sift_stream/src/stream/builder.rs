@@ -12,7 +12,9 @@ use crate::backup::{
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
 use sift_rs::{
+    assets::v1::Asset,
     ingestion_configs::v2::{FlowConfig, IngestionConfig as IngestionConfigPb},
+    metadata::v1::MetadataValue,
     ping::v1::{PingRequest, ping_service_client::PingServiceClient},
     wrappers::{
         assets::{AssetServiceWrapper, new_asset_service},
@@ -50,6 +52,8 @@ pub struct SiftStreamBuilder<C> {
     ingestion_config: Option<IngestionConfigForm>,
     enable_tls: bool,
     kind: PhantomData<C>,
+    asset_tags: Option<Vec<String>>,
+    asset_metadata: Option<Vec<MetadataValue>>,
 
     // Either `run` or `run_id`. If both are provided then the `run_id` will be prioritized.
     run: Option<RunForm>,
@@ -127,6 +131,7 @@ pub struct RunForm {
     pub client_key: String,
     pub description: Option<String>,
     pub tags: Option<Vec<String>>,
+    pub metadata: Option<Vec<MetadataValue>>,
 }
 
 impl Default for RecoveryStrategy {
@@ -208,6 +213,23 @@ where
         self.enable_tls = false;
         self
     }
+
+    /// Creates or updates the asset tags. If Some is provided, asset tags will be replaced
+    /// with the tags provided. If None, no update to tags will occur.
+    pub fn add_asset_tags(mut self, tags: Option<Vec<String>>) -> SiftStreamBuilder<C> {
+        self.asset_tags = tags;
+        self
+    }
+
+    /// Creates or updates the asset metadata. If Some is provided, asset metadata will be replaced
+    /// with the key:value pairs provided. If None, no update to metadata will occur.
+    pub fn add_asset_metadata(
+        mut self,
+        metadata: Option<Vec<MetadataValue>>,
+    ) -> SiftStreamBuilder<C> {
+        self.asset_metadata = metadata;
+        self
+    }
 }
 
 /// Builds a [SiftStream] specifically for ingestion-config based streaming.
@@ -224,6 +246,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             kind: PhantomData,
             checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
+            asset_tags: None,
+            asset_metadata: None,
         }
     }
 
@@ -239,6 +263,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             kind: PhantomData,
             checkpoint_interval: DEFAULT_CHECKPOINT_INTERVAL,
             recovery_strategy: None,
+            asset_tags: None,
+            asset_metadata: None,
         }
     }
 
@@ -286,7 +312,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             .context("failed to connect to Sift")
             .help("ensure that your API key and Sift gRPC API URL is correct and TLS is configured properly")?;
 
-        let (ingestion_config, flows) =
+        let (ingestion_config, flows, asset) =
             Self::load_ingestion_config(channel.clone(), ingestion_config).await?;
 
         let run = {
@@ -298,6 +324,15 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                 None
             }
         };
+
+        // Try updating tags or metadata. Update only occurs if either asset_tags or asset_metadata is Some
+        Self::update_asset_tags_and_metadata(
+            asset,
+            self.asset_tags,
+            self.asset_metadata,
+            channel.clone(),
+        )
+        .await?;
 
         let mut backups_manager = None;
         let mut policy = None;
@@ -388,7 +423,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
     async fn load_ingestion_config(
         grpc_channel: SiftChannel,
         ingestion_config: IngestionConfigForm,
-    ) -> Result<(IngestionConfigPb, Vec<FlowConfig>)> {
+    ) -> Result<(IngestionConfigPb, Vec<FlowConfig>, Asset)> {
         #[cfg(feature = "tracing")]
         tracing::info_span!("load_ingestion_config");
 
@@ -420,6 +455,11 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     }
                 };
 
+                let asset = asset_service
+                    .try_get_asset_by_id(&ingestion_config.asset_id)
+                    .await
+                    .context("failed to retrieve asset specified by ingestion config")?;
+
                 #[cfg(feature = "tracing")]
                 {
                     if !new_flows.is_empty() {
@@ -435,7 +475,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                         );
                     }
                 }
-                Ok((ingestion_config, flows))
+                Ok((ingestion_config, flows, asset))
             }
             Err(err) => Err(err),
 
@@ -528,9 +568,37 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     flows = sift_flows;
                 }
 
-                Ok((ingestion_config, flows))
+                Ok((ingestion_config, flows, asset))
             }
         }
+    }
+
+    async fn update_asset_tags_and_metadata(
+        mut asset: Asset,
+        asset_tags: Option<Vec<String>>,
+        asset_metadata: Option<Vec<MetadataValue>>,
+        channel: SiftChannel,
+    ) -> Result<()> {
+        let mut update_mask = Vec::new();
+
+        if let Some(asset_tags) = asset_tags {
+            asset.tags = asset_tags;
+            update_mask.push("tags".to_string());
+        }
+
+        if let Some(asset_metadata) = asset_metadata {
+            asset.metadata = asset_metadata;
+            update_mask.push("metadata".to_string());
+        }
+
+        if update_mask.is_empty() {
+            return Ok(());
+        }
+
+        let mut asset_service = new_asset_service(channel);
+        let _ = asset_service.try_update_asset(asset, update_mask).await?;
+
+        Ok(())
     }
 }
 

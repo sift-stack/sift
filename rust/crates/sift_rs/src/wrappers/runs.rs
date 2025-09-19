@@ -1,7 +1,10 @@
 use super::ResourceIdentifier;
-use crate::runs::v2::{
-    CreateRunRequest, GetRunRequest, ListRunsRequest, Run, UpdateRunRequest,
-    run_service_client::RunServiceClient,
+use crate::{
+    metadata::v1::MetadataValue,
+    runs::v2::{
+        CreateRunRequest, GetRunRequest, ListRunsRequest, Run, UpdateRunRequest,
+        run_service_client::RunServiceClient,
+    },
 };
 use async_trait::async_trait;
 use pbjson_types::FieldMask;
@@ -25,16 +28,17 @@ pub trait RunServiceWrapper: Deref<Target = RunServiceClient<SiftChannel>> + Der
         client_key: &str,
         description: &str,
         tags: &[String],
+        metadata: &[MetadataValue],
     ) -> Result<Run>;
 
     /// Update a run. The `updated_run` is expected to contain the `run_id` or `client_key` used to
-    /// identify the run to update. The `field_mask` is a list of snake_cased field names used to
+    /// identify the run to update. The `update_mask` is a list of snake_cased field names used to
     /// indicate which fields should actually be updated. A list of valid field names can be found
-    /// at [`this link`]. The [Run] returned is the updated run. If `field_masks` is empty, then no
+    /// at [`this link`]. The [Run] returned is the updated run. If `update_mask` is empty, then no
     /// update is required and the `updated_run` is simply returned.
     ///
     /// [`this link`]: https://docs.siftstack.com/docs/api/grpc/protocol-buffers/runs#updaterunrequest
-    async fn try_update_run(&mut self, updated_run: Run, field_masks: &[String]) -> Result<Run>;
+    async fn try_update_run(&mut self, updated_run: Run, update_mask: &[String]) -> Result<Run>;
 
     /// Retrieve a run by ID.
     async fn try_get_run_by_id(&mut self, run_id: &str) -> Result<Run>;
@@ -94,8 +98,10 @@ impl RunServiceWrapper for RunServiceWrapperImpl {
         client_key: &str,
         description: &str,
         tags: &[String],
+        metadata: &[MetadataValue],
     ) -> Result<Run> {
         let tags = tags.to_vec();
+        let metadata = metadata.to_vec();
 
         if name.is_empty() {
             return Err(Error::new_arg_error("run name cannot be blank"));
@@ -110,6 +116,7 @@ impl RunServiceWrapper for RunServiceWrapperImpl {
                 description: description.to_string(),
                 tags,
                 client_key: Some(client_key.to_string()),
+                metadata,
                 ..Default::default()
             })
             .await
@@ -123,21 +130,21 @@ impl RunServiceWrapper for RunServiceWrapperImpl {
     }
 
     /// Update a run. The `updated_run` is expected to contain the `run_id` or `client_key` used to
-    /// identify the run to update. The `field_mask` is a list of snake_cased field names used to
+    /// identify the run to update. The `update_mask` is a list of snake_cased field names used to
     /// indicate which fields should actually be updated. A list of valid field names can be found
-    /// at [`this link`]. The [Run] returned is the updated run. If `field_masks` is empty, then no
+    /// at [`this link`]. The [Run] returned is the updated run. If `update_mask` is empty, then no
     /// update is required and the `updated_run` is simply returned.
     ///
     /// [`this link`]: https://docs.siftstack.com/docs/api/grpc/protocol-buffers/runs#updaterunrequest
-    async fn try_update_run(&mut self, updated_run: Run, field_masks: &[String]) -> Result<Run> {
-        if field_masks.is_empty() {
+    async fn try_update_run(&mut self, updated_run: Run, update_mask: &[String]) -> Result<Run> {
+        if update_mask.is_empty() {
             return Ok(updated_run);
         }
 
         let run = self
             .update_run(UpdateRunRequest {
                 update_mask: Some(FieldMask {
-                    paths: field_masks.to_vec(),
+                    paths: update_mask.to_vec(),
                 }),
                 run: Some(updated_run),
             })
