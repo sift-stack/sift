@@ -8,6 +8,11 @@ on:
     branches:
       - main
   workflow_call:
+    inputs:
+        ref:
+          description: "Git ref (tag or sha) to check out and test"
+          required: false
+          type: string
 
 jobs:
   lint-rust:
@@ -15,6 +20,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1

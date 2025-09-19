@@ -2,12 +2,17 @@ name: Crates Publish (Dry Run)
 
 on:
   workflow_dispatch:
-  workflow_call:
+    inputs:
+      tag:
+        description: "Git tag to publish from"
+        type: string
+        required: true
 
 jobs:
   rust-ci:
-    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/rust_ci.yaml
+    with:
+      ref: ${{ github.event.inputs.tag }}
   
   publish-to-crates-io-dry-run:
     runs-on: ubuntu-latest
@@ -16,7 +21,10 @@ jobs:
     environment:
       name: crates.io (dry run)
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout the specified tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Publish crates (dry run)
