@@ -26,3 +26,6 @@ sift_stream = { workspace = true }
 sift_error = { workspace = true }
 pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
 pbjson-types = { workspace = true }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
+tracing-appender = "0.2.3"
