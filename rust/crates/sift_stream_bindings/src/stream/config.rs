@@ -2,7 +2,7 @@ use crate::stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, Channe
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
-use sift_stream::{IngestionConfigForm, RunForm};
+use sift_stream::{stream::run::RunSelector, IngestionConfigForm, RunForm};
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -86,6 +86,23 @@ impl From<RunFormPy> for RunForm {
             description: form.description,
             tags: form.tags,
             metadata: None,
+        }
+    }
+}
+
+#[gen_stub_pyclass_enum]
+#[pyclass]
+#[derive(Clone)]
+pub enum RunSelectorPy {
+    ById(String),
+    ByForm(RunFormPy),
+}
+
+impl From<RunSelectorPy> for RunSelector {
+    fn from(selector: RunSelectorPy) -> Self {
+        match selector {
+            RunSelectorPy::ById(id) => RunSelector::ById(id),
+            RunSelectorPy::ByForm(run_form_py) => RunSelector::ByForm(run_form_py.into()),
         }
     }
 }

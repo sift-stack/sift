@@ -72,6 +72,7 @@ fn init_tracing_with_file() -> PyResult<()> {
     Ok(())
 }
 
+// TODO: Organize module with submodules
 #[pymodule]
 fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::SiftStreamPy>()?;
@@ -87,6 +88,7 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::retry::RecoveryStrategyPy>()?;
     m.add_class::<stream::retry::RetryPolicyPy>()?;
     m.add_class::<stream::config::RunFormPy>()?;
+    m.add_class::<stream::config::RunSelectorPy>()?;
     m.add_class::<stream::time::TimeValuePy>()?;
     m.add_class::<stream::channel::ChannelValuePy>()?;
     m.add_class::<stream::channel::ChannelValueTypePy>()?;

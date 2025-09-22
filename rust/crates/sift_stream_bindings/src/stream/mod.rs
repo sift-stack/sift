@@ -6,6 +6,7 @@ pub mod retry;
 pub mod time;
 
 use crate::stream::channel::ChannelValuePy;
+use crate::stream::config::RunSelectorPy;
 use crate::stream::time::TimeValuePy;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
@@ -146,6 +147,38 @@ impl SiftStreamPy {
         let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
             match inner.finish().await {
                 Ok(_) => Ok(()),
+                Err(e) => Err(crate::error::SiftErrorWrapper(e).into()),
+            }
+        })?;
+        Ok(awaitable.into())
+    }
+
+    pub fn attach_run(&mut self, py: Python, run_selector: RunSelectorPy) -> PyResult<Py<PyAny>> {
+        let run_selector = run_selector.into();
+
+        let mut inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        let mut inner = match inner_guard.take() {
+            Some(stream) => stream,
+            None => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream was already consumed",
+                ));
+            }
+        };
+
+        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            match inner.attach_run(run_selector).await {
+                Ok(_) => Ok(SiftStreamPy {
+                    inner: Arc::new(Mutex::new(Some(inner))),
+                }),
                 Err(e) => Err(crate::error::SiftErrorWrapper(e).into()),
             }
         })?;
