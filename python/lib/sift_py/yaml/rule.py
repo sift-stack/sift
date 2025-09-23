@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union, cast
 
-import yaml
 from typing_extensions import NotRequired, TypedDict
 
 from sift_py.ingestion.config.yaml.error import YamlConfigError
@@ -13,7 +12,7 @@ from sift_py.yaml.channel import (
     ChannelConfigYamlSpec,
     _validate_channel_reference,
 )
-from sift_py.yaml.utils import _handle_subdir, _type_fqn
+from sift_py.yaml.utils import _handle_subdir, _type_fqn, try_fast_yaml_load
 
 _SUB_EXPRESSION_REGEX = re.compile(r"^\$[a-zA-Z_]+$")
 
@@ -63,36 +62,34 @@ def load_rule_modules(paths: List[Path]) -> List[RuleYamlSpec]:
 
 
 def _read_named_expression_module_yaml(path: Path) -> Dict[str, str]:
-    with open(path, "r") as f:
-        named_expressions = cast(Dict[Any, Any], yaml.safe_load(f.read()))
+    named_expressions = try_fast_yaml_load(path)
 
-        for key, value in named_expressions.items():
-            if not isinstance(key, str):
-                raise YamlConfigError(
-                    f"Expected '{key}' to be a string in named expression module '{path}'."
-                )
-            if not isinstance(value, str):
-                raise YamlConfigError(
-                    f"Expected expression of '{key}' to be a string in named expression module '{path}'."
-                )
+    for key, value in named_expressions.items():
+        if not isinstance(key, str):
+            raise YamlConfigError(
+                f"Expected '{key}' to be a string in named expression module '{path}'."
+            )
+        if not isinstance(value, str):
+            raise YamlConfigError(
+                f"Expected expression of '{key}' to be a string in named expression module '{path}'."
+            )
 
-        return cast(Dict[str, str], named_expressions)
+    return cast(Dict[str, str], named_expressions)
 
 
 def _read_rule_module_yaml(path: Path) -> List[RuleYamlSpec]:
-    with open(path, "r") as f:
-        module_rules = cast(Dict[Any, Any], yaml.safe_load(f.read()))
-        rules = module_rules.get("rules")
-        if not isinstance(rules, list):
-            raise YamlConfigError(
-                f"Expected '{rules}' to be a list in rule module yaml: '{path}'"
-                f"{_type_fqn(RuleYamlSpec)}"
-            )
+    module_rules = try_fast_yaml_load(path)
+    rules = module_rules.get("rules")
+    if not isinstance(rules, list):
+        raise YamlConfigError(
+            f"Expected '{rules}' to be a list in rule module yaml: '{path}'"
+            f"{_type_fqn(RuleYamlSpec)}"
+        )
 
-        for rule in cast(List[Any], rules):
-            _validate_rule(rule)
+    for rule in cast(List[Any], rules):
+        _validate_rule(rule)
 
-        return cast(List[RuleYamlSpec], rules)
+    return cast(List[RuleYamlSpec], rules)
 
 
 def _validate_rule(val: Any):

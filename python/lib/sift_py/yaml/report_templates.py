@@ -1,13 +1,12 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, cast
+from typing import List
 
-import yaml
 from typing_extensions import NotRequired, TypedDict
 
 from sift_py.ingestion.config.yaml.error import YamlConfigError
 from sift_py.report_templates.config import ReportTemplateConfig
-from sift_py.yaml.utils import _handle_subdir
+from sift_py.yaml.utils import _handle_subdir, try_fast_yaml_load
 
 
 def load_report_templates(paths: List[Path]) -> List[ReportTemplateConfig]:
@@ -31,23 +30,22 @@ def load_report_templates(paths: List[Path]) -> List[ReportTemplateConfig]:
 
 def _read_report_template_yaml(path: Path) -> List[ReportTemplateConfig]:
     report_templates = []
-    with open(path, "r") as f:
-        report_templates_yaml = cast(Dict[str, Any], yaml.safe_load(f.read()))
+    report_templates_yaml = try_fast_yaml_load(path)
 
-        report_template_list = report_templates_yaml.get("report_templates")
-        if not isinstance(report_template_list, list):
-            raise YamlConfigError(
-                f"Expected 'report_templates' to be a list in report template yaml: '{path}'"
-            )
+    report_template_list = report_templates_yaml.get("report_templates")
+    if not isinstance(report_template_list, list):
+        raise YamlConfigError(
+            f"Expected 'report_templates' to be a list in report template yaml: '{path}'"
+        )
 
-        for report_template in report_template_list:
-            try:
-                report_template_config = ReportTemplateConfig(**report_template)
-                report_templates.append(report_template_config)
-            except Exception as e:
-                raise YamlConfigError(f"Error parsing report template '{report_template}'") from e
+    for report_template in report_template_list:
+        try:
+            report_template_config = ReportTemplateConfig(**report_template)
+            report_templates.append(report_template_config)
+        except Exception as e:
+            raise YamlConfigError(f"Error parsing report template '{report_template}'") from e
 
-        return report_templates
+    return report_templates
 
 
 class ReportTemplateYamlSpec(TypedDict):

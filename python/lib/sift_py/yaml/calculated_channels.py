@@ -1,11 +1,9 @@
 from pathlib import Path
-from typing import Any, Dict, List, cast
-
-import yaml
+from typing import List
 
 from sift_py.calculated_channels.config import CalculatedChannelConfig
 from sift_py.ingestion.config.yaml.error import YamlConfigError
-from sift_py.yaml.utils import _handle_subdir
+from sift_py.yaml.utils import _handle_subdir, try_fast_yaml_load
 
 
 def load_calculated_channels(paths: List[Path]) -> List[CalculatedChannelConfig]:
@@ -29,36 +27,35 @@ def load_calculated_channels(paths: List[Path]) -> List[CalculatedChannelConfig]
 
 def _read_calculated_channels_yaml(path: Path) -> List[CalculatedChannelConfig]:
     calculated_channel_configs = []
-    with open(path, "r") as f:
-        channel_config_yaml = cast(Dict[str, Any], yaml.safe_load(f.read()))
+    channel_config_yaml = try_fast_yaml_load(path)
 
-        calculated_channel_list = channel_config_yaml.get("calculated_channels", [])
-        for calc_channel in calculated_channel_list:
-            if not isinstance(calc_channel, dict):
+    calculated_channel_list = channel_config_yaml.get("calculated_channels", [])
+    for calc_channel in calculated_channel_list:
+        if not isinstance(calc_channel, dict):
+            raise YamlConfigError(
+                f"Expected 'calculated_channels' to be a list of dictionaries in yaml: '{path}'"
+            )
+        for channel_ref in calc_channel.get("channel_references", []):
+            parsed_channel_refs = []
+            if not isinstance(channel_ref, dict):
                 raise YamlConfigError(
-                    f"Expected 'calculated_channels' to be a list of dictionaries in yaml: '{path}'"
+                    f"Expected 'channel_references' to be a list of dictionaries in yaml: '{path}'"
                 )
-            for channel_ref in calc_channel.get("channel_references", []):
-                parsed_channel_refs = []
-                if not isinstance(channel_ref, dict):
-                    raise YamlConfigError(
-                        f"Expected 'channel_references' to be a list of dictionaries in yaml: '{path}'"
-                    )
-                if "channel_reference" not in channel_ref:
-                    for k, v in channel_ref.items():
-                        parsed_channel_refs.append(dict(channel_reference=k, channel_identifier=v))
-                else:
-                    parsed_channel_refs.append(channel_ref)
-                calc_channel["channel_references"] = parsed_channel_refs
+            if "channel_reference" not in channel_ref:
+                for k, v in channel_ref.items():
+                    parsed_channel_refs.append(dict(channel_reference=k, channel_identifier=v))
+            else:
+                parsed_channel_refs.append(channel_ref)
+            calc_channel["channel_references"] = parsed_channel_refs
 
-        if not isinstance(calculated_channel_list, list):
-            raise YamlConfigError(f"Expected 'calculated_channels' to be a list in yaml: '{path}'")
+    if not isinstance(calculated_channel_list, list):
+        raise YamlConfigError(f"Expected 'calculated_channels' to be a list in yaml: '{path}'")
 
-        for calc_channel in calculated_channel_list:
-            try:
-                calc_channel_cfg = CalculatedChannelConfig(**calc_channel)
-                calculated_channel_configs.append(calc_channel_cfg)
-            except Exception as e:
-                raise YamlConfigError(f"Error parsing calculated channel '{calc_channel}'") from e
+    for calc_channel in calculated_channel_list:
+        try:
+            calc_channel_cfg = CalculatedChannelConfig(**calc_channel)
+            calculated_channel_configs.append(calc_channel_cfg)
+        except Exception as e:
+            raise YamlConfigError(f"Error parsing calculated channel '{calc_channel}'") from e
 
-        return calculated_channel_configs
+    return calculated_channel_configs
