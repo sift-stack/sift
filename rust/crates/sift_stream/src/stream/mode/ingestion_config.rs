@@ -941,7 +941,7 @@ impl Stream for DataStream {
                     self.metrics.messages_sent.increment();
                     self.metrics.checkpoint.cur_messages_sent.increment();
                     self.metrics.bytes_sent.add(message_size);
-                    self.metrics.checkpoint.cur_bytes_sent.increment();
+                    self.metrics.checkpoint.cur_bytes_sent.add(message_size);
                     Poll::Ready(Some(req))
                 }
                 StreamMessage::CheckpointSignal => {
