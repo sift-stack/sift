@@ -34,7 +34,7 @@ impl StreamingStats {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct U64Counter(AtomicU64);
 
 impl U64Counter {
@@ -55,7 +55,7 @@ impl U64Counter {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct U64Signal(AtomicU64);
 
 impl U64Signal {
@@ -72,7 +72,7 @@ impl U64Signal {
     // }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct BackupMetrics {
     pub cur_checkpoint_file_count: U64Counter,
     pub cur_checkpoint_cur_file_size: U64Counter,
@@ -110,7 +110,7 @@ impl BackupMetrics {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct CheckpointMetrics {
     pub checkpoint_count: U64Counter,
     pub failed_checkpoint_count: U64Counter,
@@ -140,7 +140,7 @@ impl CheckpointMetrics {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct SiftStreamMetrics {
     creation_time_epoch_ms: u64,
     pub(crate) loaded_flows: U64Counter,
