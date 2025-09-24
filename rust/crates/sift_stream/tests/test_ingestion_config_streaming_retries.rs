@@ -6,6 +6,7 @@ use sift_rs::{
 use sift_stream::{
     ChannelValue, Flow, IngestionConfigMode, RetryPolicy, SiftStream, TimeValue,
     stream::mode::ingestion_config::IngestionConfigModeBackupsManager,
+    SiftStreamMetrics
 };
 use std::{
     sync::{
@@ -97,6 +98,7 @@ async fn test_retries_succeed() {
         Duration::from_secs(60),
         Some(RetryPolicy::default()),
         Some(IngestionConfigModeBackupsManager::default()),
+        Arc::new(SiftStreamMetrics::new())
     );
 
     tokio::spawn(async move {
@@ -107,7 +109,7 @@ async fn test_retries_succeed() {
         return_error.swap(false, Ordering::Relaxed);
     });
 
-    let _ = sift_stream.send(messages.next().unwrap()).await.unwrap();
+    sift_stream.send(messages.next().unwrap()).await.unwrap();
 
     loop {
         if let Some(msg) = messages.next() {
@@ -121,7 +123,7 @@ async fn test_retries_succeed() {
         break;
     }
 
-    let _ = sift_stream.finish().await.unwrap();
+    sift_stream.finish().await.unwrap();
 
     assert_eq!(
         num_messages + 1, // We add 1 because 1 redundant request will be sent when trying to
@@ -189,6 +191,7 @@ pub async fn test_retries_exhausted() {
             max_backoff: Duration::from_millis(100),
         }),
         None,
+        Arc::new(SiftStreamMetrics::new())
     );
 
     let mut error = None;

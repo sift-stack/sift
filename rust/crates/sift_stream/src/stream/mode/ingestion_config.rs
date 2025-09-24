@@ -5,6 +5,7 @@ use crate::{
     backup::{
         BackupsManager, DiskBackupsManager, InMemoryBackupsManager, disk::AsyncBackupsManager,
     },
+    metrics::SiftStreamMetrics,
     stream::run::{RunSelector, load_run_by_form, load_run_by_id},
 };
 use futures_core::Stream;
@@ -107,9 +108,8 @@ struct DataStream {
     drain_tx: StdSender<IngestWithConfigDataStreamRequest>,
     sift_stream_id: Uuid,
     heartbeat_task: JoinHandle<()>,
-    messages_processed: usize,
-    bytes_processed: usize,
     started_at: Instant,
+    metrics: Arc<SiftStreamMetrics>,
 }
 
 type DataStreamTask = JoinHandle<Result<IngestWithConfigDataStreamResponse>>;
@@ -138,6 +138,7 @@ impl SiftStream<IngestionConfigMode> {
     /// prefer to use [`SiftStreamBuilder`].
     ///
     /// [`SiftStreamBuilder`]: crate::stream::builder::SiftStreamBuilder
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         grpc_channel: SiftChannel,
         ingestion_config: IngestionConfig,
@@ -146,6 +147,7 @@ impl SiftStream<IngestionConfigMode> {
         checkpoint_interval: Duration,
         retry_policy: Option<RetryPolicy>,
         backups_manager: Option<IngestionConfigModeBackupsManager>,
+        metrics: Arc<SiftStreamMetrics>,
     ) -> Self {
         let mut flows_by_name = HashMap::<String, Vec<FlowConfig>>::new();
 
@@ -162,7 +164,9 @@ impl SiftStream<IngestionConfigMode> {
         let begin_checkpoint_notifier = Arc::new(Notify::new());
         let sift_stream_id = Uuid::new_v4();
 
-        let data_stream = DataStream::new(sift_stream_id, data_rx, drain_tx);
+        metrics.loaded_flows.add(flows_by_name.len() as u64);
+
+        let data_stream = DataStream::new(sift_stream_id, data_rx, drain_tx, metrics.clone());
 
         let streaming_task = Self::init_streaming_task(
             grpc_channel.clone(),
@@ -172,6 +176,7 @@ impl SiftStream<IngestionConfigMode> {
             data_tx.clone(),
             shutdown_rx,
             begin_checkpoint_notifier.clone(),
+            metrics.clone()
         );
 
         // Begin checkpoint immediately upon starting
@@ -199,6 +204,7 @@ impl SiftStream<IngestionConfigMode> {
                 retry_policy,
                 backups_manager,
             },
+            metrics,
         }
     }
 
@@ -218,6 +224,8 @@ impl SiftStream<IngestionConfigMode> {
     /// Lastly, if the underlying stream was gracefully closed due to a checkpoint, this method
     /// will automatically establish a new connection.
     pub async fn send(&mut self, message: Flow) -> Result<()> {
+        self.metrics.messages_received.increment();
+
         let ingestion_config_id = &self.mode.ingestion_config.ingestion_config_id;
         let run_id = self.mode.run.as_ref().map(|r| r.run_id.clone());
 
@@ -264,6 +272,7 @@ impl SiftStream<IngestionConfigMode> {
         I: IntoIterator<Item = IngestWithConfigDataStreamRequest>,
     {
         for req in requests {
+            self.metrics.messages_received.increment();
             self.send_impl(req).await?;
         }
         Ok(())
@@ -275,6 +284,7 @@ impl SiftStream<IngestionConfigMode> {
         #[cfg(feature = "tracing")]
         {
             if !self.mode.flows_seen.contains(&req.flow) {
+                self.metrics.unique_flows_received.increment();
                 self.mode.flows_seen.insert(req.flow.clone());
                 tracing::info!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
@@ -404,6 +414,8 @@ impl SiftStream<IngestionConfigMode> {
             .await
             .context("SiftStream::add_new_flows")?;
 
+        self.metrics.loaded_flows.add(flow_configs.len() as u64);
+
         for flow_config in flow_configs {
             self.mode
                 .flows_by_name
@@ -471,6 +483,7 @@ impl SiftStream<IngestionConfigMode> {
         let mut current_wait = retry_policy.initial_backoff;
 
         for i in 1..=retry_policy.max_attempts {
+            self.metrics.cur_retry_count.set(i as u64);
             #[cfg(feature = "tracing")]
             tracing::info!(
                 sift_stream_id = self.mode.sift_stream_id.to_string(),
@@ -495,6 +508,8 @@ impl SiftStream<IngestionConfigMode> {
                     );
 
                     self.restart_stream_and_backups_manager(true).await?;
+
+                    self.metrics.cur_retry_count.set(0);
 
                     return Ok(());
                 }
@@ -533,7 +548,7 @@ impl SiftStream<IngestionConfigMode> {
         let (drain_tx, drain_rx) = std::sync::mpsc::channel::<IngestWithConfigDataStreamRequest>();
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
         let begin_checkpoint_notifier = Arc::new(Notify::new());
-        let data_stream = DataStream::new(self.mode.sift_stream_id, data_rx, drain_tx);
+        let data_stream = DataStream::new(self.mode.sift_stream_id, data_rx, drain_tx, self.metrics.clone());
 
         self.mode.data_tx = Some(data_tx.clone());
         self.mode.shutdown_tx = Some(shutdown_tx);
@@ -546,6 +561,7 @@ impl SiftStream<IngestionConfigMode> {
             data_tx.clone(),
             shutdown_rx,
             begin_checkpoint_notifier.clone(),
+            self.metrics.clone()
         );
         self.mode.streaming_task = Some(streaming_task);
 
@@ -882,6 +898,7 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn init_streaming_task(
         grpc_channel: SiftChannel,
         sift_stream_id: Uuid,
@@ -890,13 +907,17 @@ impl SiftStream<IngestionConfigMode> {
         data_tx: BoundedSender<StreamMessage>,
         shutdown_rx: Receiver<()>,
         begin_checkpoint_notifier: Arc<Notify>,
+        metrics: Arc<SiftStreamMetrics>,
     ) -> DataStreamTask {
         tokio::spawn(async move {
+            metrics.checkpoint.next_checkpoint();
+
             let mut client = IngestServiceClient::new(grpc_channel);
             let force_checkpoint = Arc::new(Notify::new());
             let force_checkpoint_c = force_checkpoint.clone();
 
             let data_tx_c = data_tx.clone();
+            let metrics_c = metrics.clone();
             let checkpoint_task = tokio::spawn(async move {
                 let mut checkpoint_timer = {
                     let mut timer = tokio::time::interval(checkpoint_interval);
@@ -913,10 +934,12 @@ impl SiftStream<IngestionConfigMode> {
 
                 tokio::select! {
                     _ = checkpoint_timer.tick() => {
+                        metrics_c.checkpoint.checkpoint_timer_reached_cnt.increment();
                         #[cfg(feature = "tracing")]
                         tracing::info!(sift_stream_id = sift_stream_id.to_string(), "checkpoint timer elapsed - initiating checkpoint");
                     }
                     _ = shutdown_rx => {
+                        metrics_c.checkpoint.checkpoint_manually_reached_cnt.increment();
                         #[cfg(feature = "tracing")]
                         tracing::info!(sift_stream_id = sift_stream_id.to_string(), "manually initiating checkpoint");
                     }
@@ -953,6 +976,7 @@ impl SiftStream<IngestionConfigMode> {
                             Ok(res)
                         }
                         Err(err) => {
+                            metrics.checkpoint.failed_checkpoint_count.increment();
                             #[cfg(feature = "tracing")]
                             tracing::info!(
                                 sift_stream_id = sift_stream_id.to_string(),
@@ -1058,6 +1082,7 @@ impl DataStream {
         sift_stream_id: Uuid,
         data_rx: BoundedReceiver<StreamMessage>,
         drain_tx: StdSender<IngestWithConfigDataStreamRequest>,
+        metrics: Arc<SiftStreamMetrics>
     ) -> Self {
         let heartbeat_task = tokio::spawn(async move {
             loop {
@@ -1074,9 +1099,8 @@ impl DataStream {
             data_rx,
             sift_stream_id,
             heartbeat_task,
-            messages_processed: 0,
-            bytes_processed: 0,
             started_at: Instant::now(),
+            metrics,
         }
     }
 }
@@ -1088,8 +1112,11 @@ impl Stream for DataStream {
         match self.data_rx.poll_recv(ctx) {
             Poll::Ready(Some(msg)) => match msg {
                 StreamMessage::Request(req) => {
-                    self.messages_processed += 1;
-                    self.bytes_processed += req.encode_length_delimited_to_vec().len();
+                    let message_size = req.encode_length_delimited_to_vec().len() as u64;
+                    self.metrics.messages_sent.increment();
+                    self.metrics.checkpoint.cur_messages_sent.increment();
+                    self.metrics.bytes_sent.add(message_size);
+                    self.metrics.checkpoint.cur_bytes_sent.increment();
                     Poll::Ready(Some(req))
                 }
                 StreamMessage::CheckpointSignal => {
@@ -1132,21 +1159,17 @@ impl Drop for DataStream {
     fn drop(&mut self) {
         #[cfg(feature = "tracing")]
         {
-            let elapsed = self.started_at.elapsed();
-            let elapsed_secs = elapsed.as_secs();
-            let elapsed_secs_f64 = elapsed_secs as f64;
-            let message_rate = (self.messages_processed as f64) / elapsed_secs_f64;
-            let bytes_processed_pretty = bytesize::ByteSize::b(self.bytes_processed as u64)
+            let checkpoint_stats = self.metrics.get_checkpoint_stats();
+            let bytes_processed_pretty = bytesize::ByteSize::b(checkpoint_stats.bytes_sent)
                 .display()
                 .iec();
-            let byte_rate = ((self.bytes_processed as f64) / elapsed_secs_f64).ceil() as u64;
-            let byte_rate_pretty = bytesize::ByteSize::b(byte_rate).display().iec();
+            let byte_rate_pretty = bytesize::ByteSize::b(checkpoint_stats.byte_rate.ceil() as u64).display().iec();
 
             tracing::info!(
                 sift_stream_id = self.sift_stream_id.to_string(),
-                stream_duration = format!("{elapsed_secs}s"),
-                messages_processed = self.messages_processed,
-                message_rate = format!("{message_rate} messages/s"),
+                stream_duration = format!("{:.1}s", checkpoint_stats.elapsed_secs),
+                messages_processed = checkpoint_stats.messages_sent,
+                message_rate = format!("{} messages/s", checkpoint_stats.message_rate),
                 bytes_processed = format!("{bytes_processed_pretty}"),
                 byte_rate = format!("{byte_rate_pretty}/s"),
             );

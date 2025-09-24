@@ -423,3 +423,7 @@ pub mod backup;
 pub use backup::DiskBackupPolicy;
 
 pub use sift_connect::grpc::{Credentials, SiftChannel};
+
+/// Concerned with metrics for SiftStream
+pub mod metrics;
+pub use metrics::SiftStreamMetrics;
