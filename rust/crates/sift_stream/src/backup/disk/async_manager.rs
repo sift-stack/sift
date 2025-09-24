@@ -181,8 +181,6 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
                             cur_bytes_processed += CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN;
 
                             if cur_bytes_processed >= backup_info.max_size {
-                                metrics.backups.log_new_file();
-
                                 #[cfg(feature = "tracing")]
                                 tracing::debug!(
                                     cur_backup_file = format!("{}", cur_backup_file_path.display()),
@@ -212,12 +210,11 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
                                 cur_bytes_processed = 0;
                                 (cur_backup_file_path, cur_backup_file) =
                                     Self::create_backup_file(&backup_info)?;
+                                metrics.backups.log_new_file();
                             }
                         }
                     }
                     Message::Flush => {
-                        metrics.backups.log_new_file();
-
                         #[cfg(feature = "tracing")]
                         tracing::debug!(
                             cur_backup_file = format!("{}", cur_backup_file_path.display()),
@@ -248,10 +245,9 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
                         cur_bytes_processed = 0;
                         (cur_backup_file_path, cur_backup_file) =
                             Self::create_backup_file(&backup_info)?;
+                        metrics.backups.log_new_file();
                     }
                     Message::Complete => {
-                        metrics.backups.log_new_file();
-
                         #[cfg(feature = "tracing")]
                         tracing::debug!(
                             cur_backup_file = format!("{}", cur_backup_file_path.display()),
