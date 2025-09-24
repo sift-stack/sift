@@ -1,10 +1,12 @@
 use super::DiskBackupPolicy;
+use crate::metrics::SiftStreamMetrics;
 use crate::backup::disk::AsyncBackupsManager;
 use crate::{TimeValue, backup::sanitize_name};
 use sift_rs::ingest::v1::{
     IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
     ingest_with_config_data_channel_value::Type,
 };
+use std::{fs, sync::Arc};
 use tempdir::TempDir;
 
 #[test]
@@ -55,6 +57,7 @@ async fn test_async_backups_manager_retrieve_data_with_graceful_termination() {
         disk_backup_policy,
         backup_retry_policy,
         grpc_channel,
+        Arc::new(SiftStreamMetrics::new())
     )
     .expect("failed to start backups manager");
 
@@ -134,6 +137,7 @@ async fn test_async_backups_manager_discard_data_with_graceful_termination() {
         disk_backup_policy,
         backup_retry_policy,
         grpc_channel,
+        Arc::new(SiftStreamMetrics::new())
     )
     .expect("failed to start backups manager");
 

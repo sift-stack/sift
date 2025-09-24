@@ -1,4 +1,5 @@
 use super::Message;
+use crate::metrics::SiftStreamMetrics;
 use crate::RetryPolicy;
 use crate::backup::DiskBackupPolicy;
 use crate::backup::disk::decode_backup;
@@ -56,6 +57,7 @@ pub struct AsyncBackupsManager<T> {
     flush_and_sync_notifier: Arc<Notify>,
     restart_backup_notifier: Arc<Notify>,
     grpc_channel: SiftChannel,
+    metrics: Arc<SiftStreamMetrics>,
 }
 
 impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
@@ -77,6 +79,7 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
         disk_backup_policy: DiskBackupPolicy,
         backup_retry_policy: RetryPolicy,
         grpc_channel: SiftChannel,
+        metrics: Arc<SiftStreamMetrics>,
     ) -> Result<Self> {
         let (backup_tx, backup_rx) =
             unbounded_channel::<Message<IngestWithConfigDataStreamRequest>>();
@@ -117,6 +120,7 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
             backup_full.clone(),
             flush_and_sync_notifier.clone(),
             restart_backup_notifier.clone(),
+            metrics.clone(),
         )
         .context("failed to start backup task")?;
 
@@ -131,6 +135,7 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
             flush_and_sync_notifier,
             restart_backup_notifier,
             grpc_channel,
+            metrics
         })
     }
 
@@ -147,22 +152,26 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
         backup_full: Arc<AtomicBool>,
         flush_and_sync_notifier: Arc<Notify>,
         restart_backup_notifier: Arc<Notify>,
+        metrics: Arc<SiftStreamMetrics>,
     ) -> Result<JoinHandle<Result<()>>> {
         let handle = Handle::current();
 
         let join_handle = tokio::task::spawn_blocking(move || -> Result<()> {
             let mut message_buffer = Vec::with_capacity(CHANNEL_BUFFER_SIZE);
 
-            let mut total_bytes_written = 0;
-            let mut total_files_written = 0;
             let mut cur_bytes_processed = 0;
             let (mut cur_backup_file_path, mut cur_backup_file) =
                 Self::create_backup_file(&backup_info)?;
+            metrics.backups.log_new_file();
 
             while let Some(message) = backup_rx.blocking_recv() {
                 match message {
                     Message::Data(data) => {
-                        cur_bytes_processed += data.encoded_len() + MESSAGE_LENGTH_PREFIX_LEN;
+                        let message_bytes = data.encoded_len() + MESSAGE_LENGTH_PREFIX_LEN;
+
+                        metrics.backups.log_message(message_bytes as u64);
+
+                        cur_bytes_processed += message_bytes;
                         message_buffer.push(data);
 
                         if cur_bytes_processed >= backup_info.max_size
@@ -172,15 +181,14 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
                             cur_bytes_processed += CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN;
 
                             if cur_bytes_processed >= backup_info.max_size {
-                                total_bytes_written += cur_bytes_processed;
-                                total_files_written += 1;
+                                metrics.backups.log_new_file();
 
                                 #[cfg(feature = "tracing")]
                                 tracing::debug!(
                                     cur_backup_file = format!("{}", cur_backup_file_path.display()),
                                     cur_bytes_processed,
-                                    total_bytes_written,
-                                    total_files_written,
+                                    total_bytes_written = metrics.backups.total_bytes.get(),
+                                    total_files_written = metrics.backups.total_file_count.get(),
                                     max_backup_size = backup_info.max_size,
                                     "current backup file has reached max size - closing out file"
                                 );
@@ -208,15 +216,14 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
                         }
                     }
                     Message::Flush => {
-                        total_bytes_written += cur_bytes_processed;
-                        total_files_written += 1;
+                        metrics.backups.log_new_file();
 
                         #[cfg(feature = "tracing")]
                         tracing::debug!(
                             cur_backup_file = format!("{}", cur_backup_file_path.display()),
                             cur_bytes_processed,
-                            total_bytes_written,
-                            total_files_written,
+                            total_bytes_written = metrics.backups.total_bytes.get(),
+                            total_files_written = metrics.backups.total_file_count.get(),
                             max_backup_size = backup_info.max_size,
                             "backup task received flush and sync signal - closing out file"
                         );
@@ -243,15 +250,14 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
                             Self::create_backup_file(&backup_info)?;
                     }
                     Message::Complete => {
-                        total_bytes_written += cur_bytes_processed;
-                        total_files_written += 1;
+                        metrics.backups.log_new_file();
 
                         #[cfg(feature = "tracing")]
                         tracing::debug!(
                             cur_backup_file = format!("{}", cur_backup_file_path.display()),
                             cur_bytes_processed,
-                            total_bytes_written,
-                            total_files_written,
+                            total_bytes_written = metrics.backups.total_bytes.get(),
+                            total_files_written = metrics.backups.total_file_count.get(),
                             max_backup_size = backup_info.max_size,
                             "backup task complete - closing file and shutting down"
                         );
@@ -349,6 +355,8 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
         }
         backup_files_guard.clear();
 
+        self.metrics.backups.log_restart();
+
         if self.backup_task.is_some() {
             if self.backup_full.swap(false, Ordering::Relaxed) {
                 // Was previously full. Need to restart backup
@@ -370,6 +378,7 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
                 self.backup_full.clone(),
                 self.flush_and_sync_notifier.clone(),
                 self.restart_backup_notifier.clone(),
+                self.metrics.clone(),
             )
             .context("failed to start backup task")?;
 
@@ -417,6 +426,8 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
             return file_count;
         }
 
+        self.metrics.backups.files_pending_ingestion.add(file_count as u64);
+
         if let Some(ingest_task) = self.ingest_task.as_mut() {
             if let Err(err) = ingest_task.add(unprocessed_files.clone()) {
                 #[cfg(feature = "tracing")]
@@ -435,6 +446,7 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
             self.grpc_channel.clone(),
             self.backup_retry_policy.clone(),
             self.backup_config.retain_backups,
+            self.metrics.clone(),
         );
         if let Err(err) = ingest_task.add(unprocessed_files) {
             #[cfg(feature = "tracing")]
@@ -458,7 +470,10 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
         }
 
         match self.backup_tx.send(Message::Data(msg)) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                self.metrics.messages_sent_to_backup.increment();
+                Ok(())
+            },
 
             // data_rx must be dropped, indicating backup task has shutdown
             Err(_) => {
@@ -535,12 +550,10 @@ struct BackupIngestTask<T> {
 }
 
 impl BackupIngestTask<IngestWithConfigDataStreamRequest> {
-    fn new(grpc_channel: SiftChannel, retry_policy: RetryPolicy, retain_ingested: bool) -> Self {
+    fn new(grpc_channel: SiftChannel, retry_policy: RetryPolicy, retain_ingested: bool, metrics: Arc<SiftStreamMetrics>) -> Self {
         let (ingest_tx, mut ingest_rx) = unbounded_channel::<PathBuf>();
 
         let task_handle = tokio::spawn(async move {
-            let mut files_ingested = 0;
-
             // Will sleep, waiting for more files until BackupIngestTask is dropped
             while let Some(backup_file_path) = ingest_rx.recv().await {
                 let mut retries = 0;
@@ -555,6 +568,7 @@ impl BackupIngestTask<IngestWithConfigDataStreamRequest> {
                         Self::ingest_file(grpc_channel.clone(), &backup_file_path).await
                     {
                         retries += 1;
+                        metrics.backups.cur_ingest_retries.set(retries);
 
                         #[cfg(feature = "tracing")]
                         tracing::warn!(
@@ -570,7 +584,10 @@ impl BackupIngestTask<IngestWithConfigDataStreamRequest> {
 
                         continue;
                     }
-                    files_ingested += 1;
+
+                    let files_ingested = metrics.backups.files_ingested.increment();
+                    metrics.backups.files_pending_ingestion.set(ingest_rx.len() as u64);
+                    metrics.backups.cur_ingest_retries.set(0);
 
                     #[cfg(feature = "tracing")]
                     tracing::info!(

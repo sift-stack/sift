@@ -3,7 +3,7 @@ use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
-use sift_stream::{ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue};
+use sift_stream::{ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue, SiftStreamMetrics};
 use std::{
     sync::{
         Arc,
@@ -95,6 +95,7 @@ async fn test_sending_data() {
         Duration::from_secs(30),
         None,
         None,
+        Arc::new(SiftStreamMetrics::new())
     );
 
     let num_messages = 100;
@@ -168,6 +169,7 @@ async fn test_checkpointing() {
         checkpoint_interval,
         None,
         None,
+        Arc::new(SiftStreamMetrics::new())
     );
 
     let (terminate_streaming_tx, mut terminate_streaming_rx) = oneshot::channel::<()>();
