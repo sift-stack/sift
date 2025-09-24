@@ -192,6 +192,10 @@ impl SiftStream<IngestionConfigMode> {
         }
     }
 
+    pub fn get_metrics(&self) -> Arc<SiftStreamMetrics> {
+        self.metrics.clone()
+    }
+
     /// The entry-point to send actual telemetry to Sift in the form of [Flow]s. If a `message` is
     /// sent that doesn't match any flows that [SiftStream] catches locally, the message will
     /// still be transmitted and a warning log emitted. If users are certain that the message
