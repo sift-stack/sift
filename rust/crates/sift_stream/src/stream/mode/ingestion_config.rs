@@ -3,10 +3,10 @@ use super::super::{
 };
 use crate::{
     backup::{
-        BackupsManager, DiskBackupsManager, InMemoryBackupsManager, disk::AsyncBackupsManager,
+        disk::AsyncBackupsManager, BackupsManager, DiskBackupsManager, InMemoryBackupsManager
     },
-    metrics::SiftStreamMetrics,
-    stream::run::{RunSelector, load_run_by_form, load_run_by_id},
+    metrics::{register_metrics, SiftStreamMetrics},
+    stream::run::{load_run_by_form, load_run_by_id, RunSelector},
 };
 use futures_core::Stream;
 use prost::Message;
@@ -163,6 +163,14 @@ impl SiftStream<IngestionConfigMode> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
         let begin_checkpoint_notifier = Arc::new(Notify::new());
         let sift_stream_id = Uuid::new_v4();
+        
+        // Spawn a task to register metrics without blocking
+        {
+            let uuid = sift_stream_id.to_string();
+            let metrics = metrics.clone();
+            tokio::spawn(async move {register_metrics(uuid, metrics).await;});
+        }
+        
 
         metrics.loaded_flows.add(flows_by_name.len() as u64);
 

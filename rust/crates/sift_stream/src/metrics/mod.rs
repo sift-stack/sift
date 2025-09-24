@@ -1,3 +1,8 @@
+mod server;
+pub use server::start_metrics_server;
+pub(crate) use server::register_metrics;
+
+use serde::Serialize;
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -34,7 +39,7 @@ impl StreamingStats {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 pub(crate) struct U64Counter(AtomicU64);
 
 impl U64Counter {
@@ -55,7 +60,7 @@ impl U64Counter {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 pub(crate) struct U64Signal(AtomicU64);
 
 impl U64Signal {
@@ -72,7 +77,7 @@ impl U64Signal {
     // }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 pub(crate) struct BackupMetrics {
     pub cur_checkpoint_file_count: U64Counter,
     pub cur_checkpoint_cur_file_size: U64Counter,
@@ -110,7 +115,7 @@ impl BackupMetrics {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 pub(crate) struct CheckpointMetrics {
     pub checkpoint_count: U64Counter,
     pub failed_checkpoint_count: U64Counter,
@@ -140,7 +145,7 @@ impl CheckpointMetrics {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 pub struct SiftStreamMetrics {
     creation_time_epoch_ms: u64,
     pub(crate) loaded_flows: U64Counter,
