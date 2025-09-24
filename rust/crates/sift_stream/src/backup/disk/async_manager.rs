@@ -312,6 +312,8 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
     /// Restart the backup task. Clears the current list of unprocessed backup files, and deleting them
     /// if allowed by the retain policy. Unpauses the backup task if the backups were full.
     pub(crate) async fn restart(&mut self) -> Result<()> {
+        self.metrics.backups.log_restart();
+        
         // Flush the current file
         // We don't want to get stuck here, and proceeding before the flush is complete won't cause any harm
         // so keep the timeout small
@@ -350,8 +352,6 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
             }
         }
         backup_files_guard.clear();
-
-        self.metrics.backups.log_restart();
 
         if self.backup_task.is_some() {
             if self.backup_full.swap(false, Ordering::Relaxed) {
