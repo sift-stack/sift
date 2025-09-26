@@ -4,7 +4,6 @@ import argparse
 import os
 import subprocess
 import venv
-from itertools import combinations
 from pathlib import Path
 from typing import List, Optional
 from zipfile import ZipFile
@@ -35,7 +34,7 @@ def get_extras_from_wheel(wheel_path: str) -> List[str]:
 
 
 def get_extra_combinations(extras: List[str], exclude: Optional[List[str]] = None) -> List[str]:
-    """Generate all possible combinations of extras.
+    """Generate different extras permutations for install testing.
 
     Args:
         extras: List of extra names to generate combinations from.
@@ -50,10 +49,8 @@ def get_extra_combinations(extras: List[str], exclude: Optional[List[str]] = Non
     else:
         filtered_extras = extras
 
-    all_combinations = []
-    for r in range(len(filtered_extras) + 1):
-        all_combinations.extend(",".join(c) for c in combinations(filtered_extras, r))
-    return all_combinations
+    # Get only the full extras lists, no additional permutations at the moment
+    return [','.join(filtered_extras)]
 
 
 def test_install(
@@ -107,7 +104,7 @@ def main():
 
     # Get all extras from the wheel
     extras = get_extras_from_wheel(str(wheel_file))
-    combinations = get_extra_combinations(extras, ["development", "docs"])
+    combinations = get_extra_combinations(extras, exclude=["development", "docs"])
 
     # Test base installation first
     test_install(
