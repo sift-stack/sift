@@ -19,40 +19,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.sha }}
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
+          components: clippy, rustfmt
 
       - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --manifest-path rust/Cargo.toml --all-features
+        run: cargo check --locked --manifest-path rust/Cargo.toml --all-features
 
       - name: Run cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --manifest-path rust/Cargo.toml --all-features
+        run: cargo clippy --locked --manifest-path rust/Cargo.toml --all-features
 
-      - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --check --all --manifest-path rust/Cargo.toml
+      - name: Run cargo fmt --locked --manifest-path rust/Cargo.toml --all-features
+        run: cargo fmt 
 
       - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: test --lib --manifest-path rust/Cargo.toml --all-features
+        run: cargo test --locked --lib --manifest-path rust/Cargo.toml --all-features
+
       - name: Run sift-stream-bindings lint & test
         shell: bash
         run: |
