@@ -981,40 +981,32 @@ impl SiftStream<IngestionConfigMode> {
         run_id: Option<String>,
         flows: &[FlowConfig],
     ) -> Option<IngestWithConfigDataStreamRequest> {
-        let mut maybe_channel_values = None;
+        // Find the flow config for the given flow name.
+        let found_flow = flows.iter().find(|f| f.name == message.flow_name)?;
 
-        for flow in flows {
-            let mut ordered_values = flow
-                .channels
-                .iter()
-                .map(|_| None)
-                .collect::<Vec<Option<ChannelValue>>>();
-            let mut num_channels_accounted_for = 0;
+        // Create a vector of empty channel values. If the provided channel values
+        // have a matching channel name and data type, the value will be updated.
+        let mut channel_values = found_flow
+            .channels
+            .iter()
+            .map(|_| IngestWithConfigDataChannelValue {
+                r#type: Some(ChannelValue::empty_pb()),
+            })
+            .collect::<Vec<IngestWithConfigDataChannelValue>>();
 
-            'outer: for v in &message.values {
-                for (i, conf) in flow.channels.iter().enumerate() {
-                    if v.name == conf.name && v.pb_data_type() == conf.data_type {
-                        num_channels_accounted_for += 1;
-                        ordered_values[i] = Some(v.clone());
-                        continue 'outer;
-                    }
-                }
-            }
+        // Create a map of channel name and data type to the index of the channel in the vector
+        // so we can update the channel value if it matches.
+        let channel_map: HashMap<(&str, i32), usize> = found_flow
+            .channels
+            .iter()
+            .enumerate()
+            .map(|(i, channel)| ((channel.name.as_str(), channel.data_type), i))
+            .collect();
 
-            // All channel values accounted for in this flow
-            if num_channels_accounted_for == message.values.len() {
-                maybe_channel_values = Some(ordered_values);
-                break;
-            }
+        for v in &message.values {
+            let i = channel_map.get(&(v.name.as_str(), v.pb_data_type()))?;
+            channel_values[*i].r#type = Some(v.pb_value());
         }
-
-        let channel_values = maybe_channel_values.map(|vals| {
-            vals.into_iter()
-                .map(|v| IngestWithConfigDataChannelValue {
-                    r#type: Some(v.map_or_else(ChannelValue::empty_pb, |val| val.pb_value())),
-                })
-                .collect::<Vec<IngestWithConfigDataChannelValue>>()
-        })?;
 
         let request = IngestWithConfigDataStreamRequest {
             flow: message.flow_name.to_string(),
