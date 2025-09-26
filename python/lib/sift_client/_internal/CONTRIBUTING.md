@@ -104,6 +104,9 @@ Resource classes should implement consistent patterns for common operations. Use
 
 **Important:** Arguments that represent another Sift Type should always accept both the object instance and its ID string. This provides flexibility for users who may have either form.
 
+
+**Note**: If the proto API does not support filters for a resource, the API should be updated to make the resource filterable in a consistent way with other resources.
+
 Examples:
 ```python
 # Accept either Asset object or asset ID string
@@ -144,59 +147,6 @@ async def update(self, asset: Asset | str, ...) -> Asset:
 ##### Using ResourceBase Helper Methods
 
 The `ResourceBase` class provides helper methods to build consistent CEL filter expressions:
-
-```python
-def list_(
-    self,
-    *,
-    asset_ids: list[str] | None = None,
-    name: str | None = None,
-    name_contains: str | None = None,
-    name_regex: str | re.Pattern | None = None,
-    created_after: datetime | None = None,
-    created_before: datetime | None = None,
-    modified_after: datetime | None = None,
-    modified_before: datetime | None = None,
-    created_by: str | None = None,
-    modified_by: str | None = None,
-    description_contains: str | None = None,
-    tags: list[str] | None = None,
-    metadata: list[Any] | None = None,
-    include_archived: bool = False,
-    filter_query: str | None = None,
-    page_size: int | None = None,
-    page_token: str | None = None,
-) -> list[Asset]:
-    filter_parts = [
-        *self._build_name_cel_filters(
-            name=name,
-            name_contains=name_contains,
-            name_regex=name_regex,
-        ),
-        *self._build_time_cel_filters(
-            created_after=created_after,
-            created_before=created_before,
-            modified_after=modified_after,
-            modified_before=modified_before,
-            created_by=created_by,
-            modified_by=modified_by,
-        ),
-        *self._build_tags_metadata_cel_filters(tags=tags, metadata=metadata),
-        *self._build_common_cel_filters(
-            description_contains=description_contains,
-            include_archived=include_archived,
-            filter_query=filter_query,
-        ),
-    ]
-    if asset_ids:
-        filter_parts.append(cel.in_("asset_id", asset_ids))
-    
-    # Build filter and call low-level client
-    filter_expr = cel.and_(*filter_parts) if filter_parts else None
-    # ... rest of implementation
-```
-
-##### Available Helper Methods
 
 - `_build_name_cel_filters()`: Handles `name`, `name_contains`, `name_regex`
 - `_build_time_cel_filters()`: Handles time-based filters and user filters
