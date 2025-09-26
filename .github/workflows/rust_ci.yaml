@@ -35,7 +35,7 @@ jobs:
         run: cargo clippy --locked --manifest-path rust/Cargo.toml --all-features
 
       - name: Run cargo fmt
-        run: cargo fmt --locked --manifest-path rust/Cargo.toml --all-features
+        run: cargo fmt --check --all --manifest-path rust/Cargo.toml
 
       - name: Run cargo test
         run: cargo test --locked --lib --manifest-path rust/Cargo.toml --all-features
