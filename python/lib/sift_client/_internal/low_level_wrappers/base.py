@@ -22,7 +22,7 @@ class LowLevelClientBase(ABC):
             page_size: The number of results to return per page.
             page_token: The token to use for the next page.
             order_by: How to order the retrieved results.
-            max_results: Maximum number of results to return.  NOTE: Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+            max_results: Maximum number of results to return.
 
         Returns:
             A list of all matching results.
@@ -31,6 +31,8 @@ class LowLevelClientBase(ABC):
             kwargs = {}
 
         results: list[Any] = []
+        if max_results == 0:
+            return results
         if page_token is None:
             page_token = ""
         while True:
@@ -45,4 +47,6 @@ class LowLevelClientBase(ABC):
             results.extend(response)
             if page_token == "":
                 break
+        if max_results and len(results) > max_results:
+            results = results[:max_results]
         return results
