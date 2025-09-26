@@ -423,3 +423,6 @@ pub mod backup;
 pub use backup::DiskBackupPolicy;
 
 pub use sift_connect::grpc::{Credentials, SiftChannel};
+
+#[cfg(test)]
+mod test;

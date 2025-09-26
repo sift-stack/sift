@@ -8,6 +8,7 @@ use super::{
 use crate::backup::{
     DiskBackupsManager, InMemoryBackupsManager,
     disk::{AsyncBackupsManager, DiskBackupPolicy},
+    sanitize_name,
 };
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
@@ -325,6 +326,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             }
         };
 
+        let asset_name = asset.name.clone();
+
         // Try updating tags or metadata. Update only occurs if either asset_tags or asset_metadata is Some
         Self::update_asset_tags_and_metadata(
             asset,
@@ -376,10 +379,14 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     retry_policy,
                     disk_backup_policy,
                 } => {
+                    let mut dir_name = sanitize_name(&asset_name);
+                    if let Some(run) = run.as_ref() {
+                        dir_name.push_str(&format!("/{}", sanitize_name(&run.name)));
+                    }
                     policy = Some(retry_policy.clone());
                     let manager = AsyncBackupsManager::new(
-                        &ingestion_config.asset_id,
-                        &ingestion_config.ingestion_config_id,
+                        &dir_name,
+                        &ingestion_config.client_key,
                         disk_backup_policy,
                         retry_policy,
                         channel.clone(),
