@@ -100,7 +100,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[CalculatedChannel]:
-        """List calculated channels with optional filtering.
+        """List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
 
         Args:
             name: Exact name of the calculated channel.
