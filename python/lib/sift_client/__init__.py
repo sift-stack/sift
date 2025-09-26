@@ -203,7 +203,6 @@ recent_assets = client.assets.list_(
 """
 
 import logging
-import sys
 
 from sift_client.client import SiftClient
 from sift_client.transport import SiftConnectionConfig
@@ -213,11 +212,4 @@ __all__ = [
     "SiftConnectionConfig",
 ]
 
-logger = logging.getLogger("sift_client")
-logging.basicConfig(
-    level=logging.ERROR, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
-
-handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(handler)
+logging.getLogger(__name__).addHandler(logging.NullHandler())

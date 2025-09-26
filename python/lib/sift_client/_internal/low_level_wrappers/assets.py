@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any, cast
 
 from sift.assets.v1.assets_pb2 import (
@@ -19,9 +18,6 @@ from sift_client._internal.low_level_wrappers.base import (
 )
 from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.transport import GrpcClient, WithGrpcClient
-
-# Configure logging
-logger = logging.getLogger(__name__)
 
 
 class AssetsLowLevelClient(LowLevelClientBase, WithGrpcClient):
