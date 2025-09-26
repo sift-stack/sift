@@ -2,7 +2,7 @@ use crate::stream::mode::ingestion_config::Flow;
 use crate::{IngestionConfigMode, SiftStream};
 use sift_rs::ingestion_configs::v2::FlowConfig;
 
-/// TODO: Remove me. Used only for benchmarking purposes.
+/// Unstable wrapper around [SiftStream::message_to_ingest_req] used for benchmarking purposes.
 #[inline]
 pub fn message_to_ingest_req(
     message: &Flow,
@@ -17,7 +17,8 @@ pub fn message_to_ingest_req(
         flows,
     )
 }
-/// TODO: Remove me. Used only for benchmarking purposes.
+
+/// Unstable wrapper around [SiftStream::message_to_ingest_req_direct] used for benchmarking purposes.
 #[inline]
 pub fn message_to_ingest_req_direct(
     message: &Flow,
