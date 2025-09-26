@@ -30,6 +30,7 @@ uuid = { version = "1.16.0", features = ["v4"] }
 [features]
 default = ["tracing"]
 tracing = ["dep:tracing", "dep:bytesize"]
+unstable = []
 
 [dev-dependencies]
 async-trait = "^0.1"
@@ -42,3 +43,10 @@ tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
 tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "sync", "time"] }
 uuid = { version = "1.16.0", features = ["v4"] }
 tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+rand = "0.8"
+
+[[bench]]
+name = "message_to_ingest_req"
+harness = false
+required-features = ["unstable"]

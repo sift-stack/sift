@@ -1,3 +1,6 @@
+#[cfg(feature = "unstable")]
+pub mod bench;
+
 #[cfg(test)]
 mod test;
 
