@@ -35,6 +35,7 @@ theme:
     code: IBM Plex Mono
   features:
     - navigation.instant
+    - navigation.instant.progress
     - navigation.tabs
     - navigation.sections
     - navigation.tracking
@@ -52,12 +53,21 @@ extra:
 
 nav:
   - Home: index.md
+  - Examples:
+      - examples/sift_client.ipynb
+  - Sift Py API
+  - Sift Client API (New)
+#  - Guides:
+#      - Logging
+#      - Error Handling
 
 plugins:
   - search
   - autorefs
   - mike: # For docs versioning
       deploy_prefix: 'python' # In case we want to use doc sites for other client libs too
+  - mkdocs-jupyter:
+      include_source: True
   - mkdocstrings:
       default_handler: python
       handlers:
