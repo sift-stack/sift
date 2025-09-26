@@ -40,7 +40,7 @@ impl StreamingStats {
 }
 
 #[derive(Default, Debug, Serialize)]
-pub(crate) struct U64Counter(AtomicU64);
+pub struct U64Counter(pub AtomicU64);
 
 impl U64Counter {
     pub fn increment(&self) -> u64 {
@@ -61,7 +61,7 @@ impl U64Counter {
 }
 
 #[derive(Default, Debug, Serialize)]
-pub(crate) struct U64Signal(AtomicU64);
+pub struct U64Signal(pub AtomicU64);
 
 impl U64Signal {
     pub fn set(&self, val: u64) {
@@ -78,7 +78,7 @@ impl U64Signal {
 }
 
 #[derive(Default, Debug, Serialize)]
-pub(crate) struct BackupMetrics {
+pub struct BackupMetrics {
     pub cur_checkpoint_file_count: U64Counter,
     pub cur_checkpoint_cur_file_size: U64Counter,
     pub cur_checkpoint_bytes: U64Counter,
@@ -116,7 +116,7 @@ impl BackupMetrics {
 }
 
 #[derive(Default, Debug, Serialize)]
-pub(crate) struct CheckpointMetrics {
+pub struct CheckpointMetrics {
     pub checkpoint_count: U64Counter,
     pub failed_checkpoint_count: U64Counter,
     pub checkpoint_timer_reached_cnt: U64Counter,
@@ -148,15 +148,15 @@ impl CheckpointMetrics {
 #[derive(Default, Debug, Serialize)]
 pub struct SiftStreamMetrics {
     creation_time_epoch_ms: u64,
-    pub(crate) loaded_flows: U64Counter,
-    pub(crate) unique_flows_received: U64Counter,
-    pub(crate) messages_received: U64Counter,
-    pub(crate) messages_sent: U64Counter,
-    pub(crate) bytes_sent: U64Counter,
-    pub(crate) checkpoint: CheckpointMetrics,
-    pub(crate) messages_sent_to_backup: U64Counter,
-    pub(crate) cur_retry_count: U64Signal,
-    pub(crate) backups: BackupMetrics,
+    pub loaded_flows: U64Counter,
+    pub unique_flows_received: U64Counter,
+    pub messages_received: U64Counter,
+    pub messages_sent: U64Counter,
+    pub bytes_sent: U64Counter,
+    pub checkpoint: CheckpointMetrics,
+    pub messages_sent_to_backup: U64Counter,
+    pub cur_retry_count: U64Signal,
+    pub backups: BackupMetrics,
 }
 
 
