@@ -8,6 +8,7 @@ use super::{
 use crate::backup::{
     DiskBackupsManager, InMemoryBackupsManager,
     disk::{AsyncBackupsManager, DiskBackupPolicy},
+    sanitize_name,
 };
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
@@ -378,9 +379,9 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     retry_policy,
                     disk_backup_policy,
                 } => {
-                    let mut dir_name = asset_name;
+                    let mut dir_name = sanitize_name(&asset_name);
                     if let Some(run) = run.as_ref() {
-                        dir_name.push_str(&format!("/{}", run.name));
+                        dir_name.push_str(&format!("/{}", sanitize_name(&run.name)));
                     }
                     policy = Some(retry_policy.clone());
                     let manager = AsyncBackupsManager::new(

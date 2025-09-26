@@ -1,6 +1,6 @@
 use super::{BackupsManager, DiskBackupPolicy, DiskBackupsManager, InMemoryBackupsManager};
-use crate::TimeValue;
 use crate::backup::disk::AsyncBackupsManager;
+use crate::{TimeValue, backup::sanitize_name};
 use sift_error::ErrorKind;
 use sift_rs::ingest::v1::{
     IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
@@ -8,6 +8,23 @@ use sift_rs::ingest::v1::{
 };
 use std::fs;
 use tempdir::TempDir;
+
+#[test]
+fn test_sanitize_name_with_illegal_chars() {
+    let illegal_chars = vec![
+        ':', '/', '\\', '*', '?', '"', '<', '>', '|', '.', ' ', '\t', '\n', '\r',
+    ];
+    for char in illegal_chars {
+        assert_eq!(sanitize_name(&format!("test{}test", char)), "test_test");
+    }
+}
+
+#[test]
+fn test_sanitize_name_with_legal_chars() {
+    assert_eq!(sanitize_name("test"), "test");
+    assert_eq!(sanitize_name("test_test"), "test_test");
+    assert_eq!(sanitize_name("test-test"), "test-test");
+}
 
 #[tokio::test]
 async fn test_disk_backups_manager_retrieve_data_with_graceful_termination() {
