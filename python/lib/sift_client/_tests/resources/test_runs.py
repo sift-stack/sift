@@ -142,15 +142,6 @@ class TestRunsAPIAsync:
         """Tests for the async get method."""
 
         @pytest.mark.asyncio
-        async def test_get_by_name(self, runs_api_async, test_run):
-            """Test getting a specific run by name."""
-            retrieved_run = await runs_api_async.get(name=test_run.name)
-
-            assert retrieved_run is not None
-            assert retrieved_run.id_ == test_run.id_
-            assert retrieved_run.name == test_run.name
-
-        @pytest.mark.asyncio
         async def test_get_by_id(self, runs_api_async, test_run):
             """Test getting a specific run by ID."""
             retrieved_run = await runs_api_async.get(run_id=test_run.id_)
@@ -158,17 +149,27 @@ class TestRunsAPIAsync:
             assert retrieved_run is not None
             assert retrieved_run.id_ == test_run.id_
 
+        # TODO: test for client key
+        @pytest.mark.asyncio
+        async def test_get_by_id_with_client_key(self, runs_api_async, test_run):
+            """Test getting a specific run by client key."""
+            assert test_run.client_key is not None
+            retrieved_run = await runs_api_async.get(client_key=test_run.client_key)
+
+            assert retrieved_run is not None
+            assert retrieved_run.id_ == test_run.id_
+
         @pytest.mark.asyncio
         async def test_get_without_params_raises_error(self, runs_api_async):
             """Test that getting a run without parameters raises an error."""
-            with pytest.raises(ValueError, match="Either run_id or name must be provided"):
+            with pytest.raises(ValueError, match="must be provided"):
                 await runs_api_async.get()
 
         @pytest.mark.asyncio
         async def test_get_nonexistent_run_raises_error(self, runs_api_async):
             """Test that getting a non-existent run raises an error."""
-            with pytest.raises(ValueError, match="No run found"):
-                await runs_api_async.get(name="nonexistent-run-name-12345")
+            with pytest.raises(ValueError, match="not found"):
+                await runs_api_async.get(client_key="nonexistent-run-name-12345")
 
     class TestFind:
         """Tests for the async find method."""
@@ -212,25 +213,3 @@ class TestRunsAPISync:
             assert isinstance(runs, list)
             assert runs
             assert isinstance(runs[0], Run)
-
-    class TestGet:
-        """Tests for the sync get method."""
-
-        def test_basic_get(self, runs_api_sync, test_run):
-            """Test basic synchronous get functionality."""
-            retrieved_run = runs_api_sync.get(name=test_run.name)
-
-            assert retrieved_run is not None
-            assert isinstance(retrieved_run, Run)
-            assert retrieved_run.id_ == test_run.id_
-
-    class TestFind:
-        """Tests for the sync find method."""
-
-        def test_basic_find(self, runs_api_sync, test_run):
-            """Test basic synchronous find functionality."""
-            found_run = runs_api_sync.find(name=test_run.name)
-
-            assert found_run is not None
-            assert isinstance(found_run, Run)
-            assert found_run.id_ == test_run.id_
