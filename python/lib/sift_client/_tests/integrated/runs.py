@@ -213,15 +213,17 @@ async def main():
             print(f"   Deleting run: {run.name}")
             client.runs.archive(run=run)
 
-    new_run = client.runs.create(dict(
-        name=f"Example Test Run {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
-        description="A test run created via the API",
-        tags=["api-created", "test"],
-        start_time=start_time,
-        stop_time=stop_time,
-        # Use a unique client key for each run
-        client_key=f"example-run-key-{datetime.now(tz=timezone.utc).timestamp()}",
-        metadata=metadata,)
+    new_run = client.runs.create(
+        dict(
+            name=f"Example Test Run {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
+            description="A test run created via the API",
+            tags=["api-created", "test"],
+            start_time=start_time,
+            stop_time=stop_time,
+            # Use a unique client key for each run
+            client_key=f"example-run-key-{datetime.now(tz=timezone.utc).timestamp()}",
+            metadata=metadata,
+        )
     )
     print(f"   Created run: {new_run.name} (ID: {new_run.id_})")
     print(f"   Client key: {new_run.client_key}")
