@@ -9,6 +9,7 @@ These tests demonstrate and validate the usage of the Runs API including:
 
 import os
 
+import grpc.aio._call
 import pytest
 
 from sift_client import SiftClient
@@ -211,7 +212,9 @@ class TestRunsAPIAsync:
             runs_api = invalid_client.async_.runs
 
             # This should raise an appropriate error, not crash
-            with pytest.raises(Exception):  # Could be connection error, auth error, etc.
+            with pytest.raises(
+                grpc.aio._call.AioRpcError
+            ):  # Could be connection error, auth error, etc.
                 await runs_api.list_(limit=1)
 
         @pytest.mark.asyncio
