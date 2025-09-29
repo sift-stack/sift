@@ -44,9 +44,13 @@ jobs:
         run: |
           pyright lib
 
-      - name: Pytest
+      - name: Pytest Unit Tests
         run: |
-          pytest
+          pytest -m "not integration"
+
+      - name: Pytest Integration Tests
+        run: |
+          pytest -m "integration"
 
       - name: Sync Stubs Mypy
         working-directory: python/lib
