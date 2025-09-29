@@ -10,59 +10,165 @@ on:
   workflow_call:
 
 jobs:
-  test-python:
+  setup:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: python
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.8"
 
-      - name: Pip install
-        id: install
+      - name: Install dependencies
         run: |
+          python -m venv venv
+          source venv/bin/activate
           python -m pip install --upgrade pip
           pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
-      - name: Lint
-        if: steps.install.outcome == 'success'
-        run: |
+
+      - name: Upload venv
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-venv
+          path: python/venv
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-venv
+          path: python/venv
+      - run: |
+          source venv/bin/activate
           ruff check
 
-      - name: Format
-        if: steps.install.outcome == 'success'
-        run: |
+  format:
+    runs-on: ubuntu-latest
+    needs: setup
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-venv
+          path: python/venv
+      - run: |
+          source venv/bin/activate
           ruff format --check
 
-      - name: MyPy
-        if: steps.install.outcome == 'success'
-        run: |
+  mypy:
+    runs-on: ubuntu-latest
+    needs: setup
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-venv
+          path: python/venv
+      - run: |
+          source venv/bin/activate
           mypy lib
 
-      - name: Pyright
-        if: steps.install.outcome == 'success'
-        run: |
+  pyright:
+    runs-on: ubuntu-latest
+    needs: setup
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-venv
+          path: python/venv
+      - run: |
+          source venv/bin/activate
           pyright lib
 
-      - name: Pytest Unit Tests
-        if: steps.install.outcome == 'success'
-        run: |
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: setup
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-venv
+          path: python/venv
+      - run: |
+          source venv/bin/activate
           pytest -m "not integration"
 
-      - name: Pytest Integration Tests
-        if: steps.install.outcome == 'success'
-        run: |
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: setup
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-venv
+          path: python/venv
+      - run: |
+          source venv/bin/activate
           pytest -m "integration"
 
-      - name: Sync Stubs Mypy
-        if: steps.install.outcome == 'success'
-        working-directory: python/lib
-        run: |
+  sync-stubs-mypy:
+    runs-on: ubuntu-latest
+    needs: setup
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-venv
+          path: python/venv
+      - run: |
+          source venv/bin/activate
+          cd lib
           stubtest \
-          --mypy-config-file ../pyproject.toml \
-          sift_client.resources.sync_stubs
+            --mypy-config-file ../pyproject.toml \
+            sift_client.resources.sync_stubs
