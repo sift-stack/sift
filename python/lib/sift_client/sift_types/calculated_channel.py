@@ -51,12 +51,10 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     modified_by_user_id: str | None
 
     @property
-    def latest_version(self):
-        ...
+    def latest_version(self): ...
 
     @property
-    def is_latest_version(self):
-        ...
+    def is_latest_version(self): ...
 
     @property
     def is_archived(self):

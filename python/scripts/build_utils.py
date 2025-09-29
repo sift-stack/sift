@@ -50,7 +50,7 @@ def get_extra_combinations(extras: List[str], exclude: Optional[List[str]] = Non
         filtered_extras = extras
 
     # Get only the full extras lists, no additional permutations at the moment
-    return [','.join(filtered_extras)]
+    return [",".join(filtered_extras)]
 
 
 def test_install(

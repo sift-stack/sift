@@ -44,10 +44,12 @@ async def main():
             print(f"   Deleting run: {run.name}")
             client.runs.archive(run=run)
 
-    run = client.runs.create(dict(
-        name=f"test-run-{datetime.now(tz=timezone.utc).timestamp()}",
-       description="A test run created via the API",
-        tags=["api-created", "test"],)
+    run = client.runs.create(
+        dict(
+            name=f"test-run-{datetime.now(tz=timezone.utc).timestamp()}",
+            description="A test run created via the API",
+            tags=["api-created", "test"],
+        )
     )
 
     regular_flow = Flow(

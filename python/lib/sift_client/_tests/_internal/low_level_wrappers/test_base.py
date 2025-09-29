@@ -28,11 +28,7 @@ class TestLowLevelClientBase:
             results = await LowLevelClientBase._handle_pagination(mock_func)
 
             assert results == [1, 2, 3]
-            mock_func.assert_called_once_with(
-                page_size=None,
-                page_token="",
-                order_by=None
-            )
+            mock_func.assert_called_once_with(page_size=None, page_token="", order_by=None)
 
         @pytest.mark.asyncio
         async def test_pagination_multiple_pages(self):
@@ -42,7 +38,7 @@ class TestLowLevelClientBase:
             mock_func.side_effect = [
                 ([1, 2, 3], "token1"),  # First page
                 ([4, 5, 6], "token2"),  # Second page
-                ([7, 8, 9], ""),        # Last page (empty token)
+                ([7, 8, 9], ""),  # Last page (empty token)
             ]
 
             results = await LowLevelClientBase._handle_pagination(mock_func)
@@ -61,34 +57,20 @@ class TestLowLevelClientBase:
             """Test pagination with specified page size."""
             mock_func = AsyncMock(return_value=([1, 2], ""))
 
-            results = await LowLevelClientBase._handle_pagination(
-                mock_func,
-                page_size=2
-            )
+            results = await LowLevelClientBase._handle_pagination(mock_func, page_size=2)
 
             assert results == [1, 2]
-            mock_func.assert_called_once_with(
-                page_size=2,
-                page_token="",
-                order_by=None
-            )
+            mock_func.assert_called_once_with(page_size=2, page_token="", order_by=None)
 
         @pytest.mark.asyncio
         async def test_pagination_with_order_by(self):
             """Test pagination with order_by parameter."""
             mock_func = AsyncMock(return_value=([1, 2, 3], ""))
 
-            results = await LowLevelClientBase._handle_pagination(
-                mock_func,
-                order_by="name asc"
-            )
+            results = await LowLevelClientBase._handle_pagination(mock_func, order_by="name asc")
 
             assert results == [1, 2, 3]
-            mock_func.assert_called_once_with(
-                page_size=None,
-                page_token="",
-                order_by="name asc"
-            )
+            mock_func.assert_called_once_with(page_size=None, page_token="", order_by="name asc")
 
         @pytest.mark.asyncio
         async def test_pagination_with_initial_page_token(self):
@@ -96,15 +78,12 @@ class TestLowLevelClientBase:
             mock_func = AsyncMock(return_value=([4, 5, 6], ""))
 
             results = await LowLevelClientBase._handle_pagination(
-                mock_func,
-                page_token="start_token"
+                mock_func, page_token="start_token"
             )
 
             assert results == [4, 5, 6]
             mock_func.assert_called_once_with(
-                page_size=None,
-                page_token="start_token",
-                order_by=None
+                page_size=None, page_token="start_token", order_by=None
             )
 
         @pytest.mark.asyncio
@@ -113,10 +92,7 @@ class TestLowLevelClientBase:
             mock_func = AsyncMock(return_value=([1, 2, 3], ""))
             kwargs = {"filter": "active", "include_archived": False}
 
-            results = await LowLevelClientBase._handle_pagination(
-                mock_func,
-                kwargs=kwargs
-            )
+            results = await LowLevelClientBase._handle_pagination(mock_func, kwargs=kwargs)
 
             assert results == [1, 2, 3]
             mock_func.assert_called_once_with(
@@ -124,7 +100,7 @@ class TestLowLevelClientBase:
                 page_token="",
                 order_by=None,
                 filter="active",
-                include_archived=False
+                include_archived=False,
             )
 
         @pytest.mark.asyncio
@@ -132,10 +108,7 @@ class TestLowLevelClientBase:
             """Test pagination with max_results that fits in a single page."""
             mock_func = AsyncMock(return_value=([1, 2, 3, 4, 5], ""))
 
-            results = await LowLevelClientBase._handle_pagination(
-                mock_func,
-                max_results=3
-            )
+            results = await LowLevelClientBase._handle_pagination(mock_func, max_results=3)
 
             # Should return only the max results
             assert results == [1, 2, 3]
@@ -150,10 +123,7 @@ class TestLowLevelClientBase:
                 ([4, 5, 6], "token2"),  # Second page (6 total items, exceeds max_results=5)
             ]
 
-            results = await LowLevelClientBase._handle_pagination(
-                mock_func,
-                max_results=5
-            )
+            results = await LowLevelClientBase._handle_pagination(mock_func, max_results=5)
 
             # Should include 2 pages and return the full first page but limited 2nd page
             assert results == [1, 2, 3, 4, 5]
@@ -165,13 +135,10 @@ class TestLowLevelClientBase:
             mock_func = AsyncMock()
             mock_func.side_effect = [
                 ([1, 2, 3], "token1"),  # First page
-                ([4, 5], ""),           # Second page, total = 5
+                ([4, 5], ""),  # Second page, total = 5
             ]
 
-            results = await LowLevelClientBase._handle_pagination(
-                mock_func,
-                max_results=5
-            )
+            results = await LowLevelClientBase._handle_pagination(mock_func, max_results=5)
 
             assert results == [1, 2, 3, 4, 5]
             assert mock_func.call_count == 2
@@ -186,18 +153,13 @@ class TestLowLevelClientBase:
             assert results == []
             mock_func.assert_called_once()
 
-
         @pytest.mark.asyncio
         async def test_pagination_max_results_zero(self):
             """Test pagination with max_results=0."""
             mock_func = AsyncMock(return_value=([1, 2, 3], ""))
 
-            results = await LowLevelClientBase._handle_pagination(
-                mock_func,
-                max_results=0
-            )
+            results = await LowLevelClientBase._handle_pagination(mock_func, max_results=0)
 
             # Should return empty list without calling the function
             assert results == []
             mock_func.assert_not_called()
-
