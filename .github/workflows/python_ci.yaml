@@ -1,8 +1,5 @@
 name: python-ci
 
-permissions:
-  contents: read
-
 on:
   release:
     types: [ created ]
@@ -13,154 +10,53 @@ on:
   workflow_call:
 
 jobs:
-  lint:
+  test-python:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: python
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
           python-version: "3.8"
 
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - run: |
+      - name: Pip install
+        id: install
+        run: |
           python -m pip install --upgrade pip
           pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+
+      - name: Lint
+        run: |
           ruff check
 
-  format:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - run: |
-          python -m pip install --upgrade pip
-          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+      - name: Format
+        run: |
           ruff format --check
 
-  mypy:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - run: |
-          python -m pip install --upgrade pip
-          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+      - name: MyPy
+        run: |
           mypy lib
 
-  pyright:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - run: |
-          python -m pip install --upgrade pip
-          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+      - name: Pyright
+        run: |
           pyright lib
 
-  unit-tests:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - run: |
-          python -m pip install --upgrade pip
-          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+      - name: Pytest Unit Tests
+        run: |
           pytest -m "not integration"
 
-  integration-tests:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - run: |
-          python -m pip install --upgrade pip
-          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+      - name: Pytest Integration Tests
+        run: |
           pytest -m "integration"
 
-  sync-stubs-mypy:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
+      - name: Sync Stubs Mypy
         working-directory: python/lib
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - run: |
-          python -m pip install --upgrade pip
-          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+        run: |
           stubtest \
-            --mypy-config-file ../pyproject.toml \
-            sift_client.resources.sync_stubs
+          --mypy-config-file ../pyproject.toml \
+          sift_client.resources.sync_stubs
