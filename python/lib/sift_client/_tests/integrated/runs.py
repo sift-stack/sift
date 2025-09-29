@@ -11,8 +11,6 @@ import asyncio
 import os
 from datetime import datetime, timedelta, timezone
 
-import dotenv
-
 from sift_client import SiftClient
 
 
@@ -285,5 +283,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    dotenv.load_dotenv()
     asyncio.run(main())
