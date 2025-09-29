@@ -12,6 +12,7 @@ on:
 jobs:
   test-python:
     runs-on: ubuntu-latest
+    environment: python-integration-tests
     defaults:
       run:
         working-directory: python
@@ -51,6 +52,10 @@ jobs:
           pytest -m "not integration"
 
       - name: Pytest Integration Tests
+        env:
+          SIFT_GRPC_URI: ${{ secrets.SIFT_GRPC_URI }}
+          SIFT_REST_URI: ${{ secrets.SIFT_REST_URI }}
+          SIFT_API_KEY: ${{ secrets.SIFT_API_KEY }}
         run: |
           pytest -m "integration"
 
