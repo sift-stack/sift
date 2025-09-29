@@ -1,5 +1,8 @@
 name: python-ci
 
+permissions:
+  contents: read
+
 on:
   release:
     types: [ created ]
@@ -10,55 +13,32 @@ on:
   workflow_call:
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-
-      - name: Install dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
-
-      - name: Upload venv
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-venv
-          path: python/venv
-
   lint:
     runs-on: ubuntu-latest
-    needs: setup
     defaults:
       run:
         working-directory: python
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - uses: actions/download-artifact@v4
+
+      - uses: actions/cache@v3
         with:
-          name: python-venv
-          path: python/venv
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - run: |
-          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
           ruff check
 
   format:
     runs-on: ubuntu-latest
-    needs: setup
     defaults:
       run:
         working-directory: python
@@ -67,17 +47,19 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v3
         with:
-          name: python-venv
-          path: python/venv
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - run: |
-          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
           ruff format --check
 
   mypy:
     runs-on: ubuntu-latest
-    needs: setup
     defaults:
       run:
         working-directory: python
@@ -86,17 +68,19 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v3
         with:
-          name: python-venv
-          path: python/venv
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - run: |
-          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
           mypy lib
 
   pyright:
     runs-on: ubuntu-latest
-    needs: setup
     defaults:
       run:
         working-directory: python
@@ -105,17 +89,19 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v3
         with:
-          name: python-venv
-          path: python/venv
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - run: |
-          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
           pyright lib
 
   unit-tests:
     runs-on: ubuntu-latest
-    needs: setup
     defaults:
       run:
         working-directory: python
@@ -124,17 +110,19 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v3
         with:
-          name: python-venv
-          path: python/venv
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - run: |
-          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
           pytest -m "not integration"
 
   integration-tests:
     runs-on: ubuntu-latest
-    needs: setup
     defaults:
       run:
         working-directory: python
@@ -143,32 +131,36 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v3
         with:
-          name: python-venv
-          path: python/venv
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - run: |
-          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
           pytest -m "integration"
 
   sync-stubs-mypy:
     runs-on: ubuntu-latest
-    needs: setup
     defaults:
       run:
-        working-directory: python
+        working-directory: python/lib
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v3
         with:
-          name: python-venv
-          path: python/venv
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('python/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - run: |
-          source venv/bin/activate
-          cd lib
+          python -m pip install --upgrade pip
+          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
           stubtest \
             --mypy-config-file ../pyproject.toml \
             sift_client.resources.sync_stubs
