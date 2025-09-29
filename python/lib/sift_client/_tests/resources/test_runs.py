@@ -31,11 +31,13 @@ def sift_client() -> SiftClient:
         rest_url=rest_url,
     )
 
+
 def test_client_binding(sift_client):
     assert sift_client.runs
     assert isinstance(sift_client.runs, RunsAPI)
     assert sift_client.async_.runs
     assert isinstance(sift_client.async_.runs, RunsAPIAsync)
+
 
 @pytest.fixture
 def runs_api_async(sift_client: SiftClient):
@@ -191,7 +193,6 @@ class TestRunsAPIAsync:
             """Test finding multiple runs raises an error."""
             with pytest.raises(ValueError, match="Multiple"):
                 await runs_api_async.find(name_contains="a")
-
 
     class TestErrorHandling:
         """Tests for error handling scenarios."""

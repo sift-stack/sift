@@ -31,12 +31,12 @@ def sift_client() -> SiftClient:
         rest_url=rest_url,
     )
 
+
 def test_client_binding(sift_client):
     assert sift_client.assets
     assert isinstance(sift_client.assets, AssetsAPI)
     assert sift_client.async_.assets
     assert isinstance(sift_client.async_.assets, AssetsAPIAsync)
-
 
 
 @pytest.fixture
@@ -49,6 +49,7 @@ def assets_api_async(sift_client: SiftClient):
 def assets_api_sync(sift_client: SiftClient):
     """Get the synchronous assets API instance."""
     return sift_client.assets
+
 
 @pytest.fixture
 def test_asset(assets_api_sync):
@@ -211,5 +212,3 @@ class TestAssetsAPISync:
             assert isinstance(assets, list)
             assert assets
             assert isinstance(assets[0], Asset)
-
-
