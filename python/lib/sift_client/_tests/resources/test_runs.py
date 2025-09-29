@@ -195,7 +195,6 @@ class TestRunsAPIAsync:
                 await runs_api_async.find(name_contains="a")
 
 
-
 class TestRunsAPISync:
     """Test suite for the synchronous Runs API functionality.
 
