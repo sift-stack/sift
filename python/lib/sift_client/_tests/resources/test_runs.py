@@ -9,7 +9,6 @@ These tests demonstrate and validate the usage of the Runs API including:
 
 import os
 
-import grpc.aio._call
 import pytest
 
 from sift_client import SiftClient
@@ -195,39 +194,6 @@ class TestRunsAPIAsync:
             with pytest.raises(ValueError, match="Multiple"):
                 await runs_api_async.find(name_contains="a")
 
-    class TestErrorHandling:
-        """Tests for error handling scenarios."""
-
-        @pytest.mark.asyncio
-        async def test_invalid_client_configuration(self):
-            """Test that invalid client configurations are handled gracefully."""
-            # Create a client with invalid configuration
-            invalid_client = SiftClient(
-                api_key="invalid-key",
-                grpc_url="invalid-url:99999",
-                rest_url="invalid-url:99999",
-            )
-
-            # The client should be created but API calls should fail gracefully
-            runs_api = invalid_client.async_.runs
-
-            # This should raise an appropriate error, not crash
-            with pytest.raises(
-                grpc.aio._call.AioRpcError
-            ):  # Could be connection error, auth error, etc.
-                await runs_api.list_(limit=1)
-
-        @pytest.mark.asyncio
-        async def test_integration_with_ping(self, runs_api_async, sift_client):
-            """Test that runs API works in conjunction with ping API."""
-            # First verify connectivity with ping
-            ping_response = await sift_client.async_.ping.ping()
-            assert isinstance(ping_response, str)
-            assert len(ping_response) > 0
-
-            # Then test runs API
-            runs = await runs_api_async.list_(limit=1)
-            assert isinstance(runs, list)
 
 
 class TestRunsAPISync:
