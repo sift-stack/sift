@@ -56,16 +56,18 @@ async def main():
 
     created_channels = []
     for i in range(num_channels):
-        new_chan = CalculatedChannelCreate(name=f"test_channel_{unique_name_suffix}_{i}",
-                                           description=f"Test calculated channel {i} - initial description",
-                                           expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
-                                           expression_channel_references=[
-                                               ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
-                                               ChannelReference(channel_reference="$2", channel_identifier="voltage"),
-                                           ],
-                                           units="velocity/voltage",
-                                           asset_ids=[asset_id],
-                                           user_notes=f"Created for testing update fields - channel {i}",)
+        new_chan = CalculatedChannelCreate(
+            name=f"test_channel_{unique_name_suffix}_{i}",
+            description=f"Test calculated channel {i} - initial description",
+            expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
+            expression_channel_references=[
+                ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
+                ChannelReference(channel_reference="$2", channel_identifier="voltage"),
+            ],
+            units="velocity/voltage",
+            asset_ids=[asset_id],
+            user_notes=f"Created for testing update fields - channel {i}",
+        )
         calculated_channel = client.calculated_channels.create(new_chan)
         created_channels.append(calculated_channel)
         print(

@@ -48,17 +48,21 @@ async def main():
     else:
         # Create a calculated channel that divides mainmotor.velocity by voltage
         print("\nCreating calculated channel...")
-        calculated_channel = client.calculated_channels.create(dict(
-            name="velocity_per_voltage",
-            description="Ratio of mainmotor velocity to voltage",
-            expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
-            channel_references=[
-                ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
-                ChannelReference(channel_reference="$2", channel_identifier="voltage"),
-            ],
-            units="velocity/voltage",
-            asset_ids=[asset_id],
-            user_notes="Created to monitor velocity-to-voltage ratio",)
+        calculated_channel = client.calculated_channels.create(
+            dict(
+                name="velocity_per_voltage",
+                description="Ratio of mainmotor velocity to voltage",
+                expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
+                channel_references=[
+                    ChannelReference(
+                        channel_reference="$1", channel_identifier="mainmotor.velocity"
+                    ),
+                    ChannelReference(channel_reference="$2", channel_identifier="voltage"),
+                ],
+                units="velocity/voltage",
+                asset_ids=[asset_id],
+                user_notes="Created to monitor velocity-to-voltage ratio",
+            )
         )
         print(
             f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.calculated_channel_id})"

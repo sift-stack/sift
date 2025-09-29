@@ -51,14 +51,6 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
     modified_by_user_id: str | None
 
     @property
-    def latest_version(self):
-        ...
-
-    @property
-    def is_latest_version(self):
-        ...
-
-    @property
     def is_archived(self):
         """Whether the calculated channel is archived."""
         return self.archived_date is not None and self.archived_date > datetime(

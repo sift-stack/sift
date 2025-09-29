@@ -57,7 +57,13 @@ development = [
     "ruff~=0.12.10",
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
-docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdocs-include-markdown-plugin", "mkdocs-api-autonav", "mike"]
+docs = ["mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-include-markdown-plugin",
+    "mkdocs-api-autonav",
+    "mike",
+    "griffe-pydantic"]
 
 # May be required for certain library functionality
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
