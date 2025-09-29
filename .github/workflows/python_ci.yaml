@@ -53,8 +53,8 @@ jobs:
 
       - name: Pytest Integration Tests
         env:
-          SIFT_GRPC_URI: ${{ env.SIFT_GRPC_URI }}
-          SIFT_REST_URI: ${{ env.SIFT_REST_URI }}
+          SIFT_GRPC_URI: ${{ vars.SIFT_GRPC_URI }}
+          SIFT_REST_URI: ${{ vars.SIFT_REST_URI }}
           SIFT_API_KEY: ${{ secrets.SIFT_API_KEY }}
         run: |
           pytest -m "integration"
