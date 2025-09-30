@@ -230,7 +230,7 @@ class RunsAPIAsync(ResourceBase):
     async def archive(
         self,
         run: str | Run,
-    ) -> None:
+    ) -> Run:
         """Archive a run.
 
         Args:
@@ -238,6 +238,7 @@ class RunsAPIAsync(ResourceBase):
         """
         run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.archive_run(run_id=run_id)
+        return await self.get(run_id=run_id)
 
     # TODO: unarchive
 
@@ -251,7 +252,7 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID to stop.
         """
         run_id = run._id_or_error if isinstance(run, Run) else run
-        await self._low_level_client.stop_run(run_id=run_id or "")
+        await self._low_level_client.stop_run(run_id=run_id)
         return await self.get(run_id=run_id)
 
     async def create_automatic_association_for_assets(
@@ -266,7 +267,7 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID.
             asset_names: List of asset names to associate.
         """
-        run_id = run._id_or_error or "" if isinstance(run, Run) else run
+        run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.create_automatic_run_association_for_assets(
             run_id=run_id, asset_names=asset_names
         )
