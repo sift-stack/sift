@@ -155,7 +155,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                 try:
                     setattr(proto_msg, field_name, value)
                     paths.append(path)
-                except TypeError as e:
+                except (TypeError, AttributeError) as e:
                     raise TypeError(
                         f"Can't set {field_name} to {value} on {proto_msg.__class__.__name__}"
                     ) from e
@@ -178,7 +178,7 @@ class ModelCreate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
         proto_msg = proto_cls()
 
         # Get all fields
-        data = self.model_dump(exclude_none=False)
+        data = self.model_dump(exclude_unset=True)
         self._build_proto_and_paths(proto_msg, data)
 
         return proto_msg

@@ -252,7 +252,7 @@ class RunsAPIAsync(ResourceBase):
     async def stop(
         self,
         run: str | Run,
-    ) -> None:
+    ) -> Run:
         """Stop a run by setting its stop time to the current time.
 
         Args:
@@ -260,6 +260,7 @@ class RunsAPIAsync(ResourceBase):
         """
         run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.stop_run(run_id=run_id or "")
+        return await self.get(run_id=run_id)
 
     async def create_automatic_association_for_assets(
         self,
