@@ -155,13 +155,6 @@ class RunUpdate(RunBase, ModelUpdate[RunProto]):
 
     name: str | None = None
 
-    @model_validator(mode="after")
-    def _validate_non_updatable_fields(self):
-        """Validate that the fields that cannot be updated are not set."""
-        if self.client_key is not None:
-            raise ValueError("Cannot update client key")
-        return self
-
     def _get_proto_class(self) -> type[RunProto]:
         return RunProto
 
