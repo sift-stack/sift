@@ -60,6 +60,7 @@ def test_run(runs_api_sync):
     assert len(runs) >= 1
     return runs[0]
 
+
 @pytest.fixture(scope="function")
 def new_run(runs_api_sync):
     """Create a test run for update tests."""
@@ -485,8 +486,6 @@ class TestRunsAPIAsync:
                 assert stopped_run.stop_time > stopped_run.start_time
             finally:
                 await runs_api_async.archive(new_run.id_)
-
-
 
 
 class TestRunsAPISync:
