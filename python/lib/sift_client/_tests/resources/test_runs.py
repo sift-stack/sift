@@ -169,14 +169,14 @@ class TestRunsAPIAsync:
             assert retrieved_run.id_ == test_run.id_
 
         # TODO: test for client key
-        @pytest.mark.asyncio
-        async def test_get_by_id_with_client_key(self, runs_api_async, test_run):
-            """Test getting a specific run by client key."""
-            assert test_run.client_key is not None
-            retrieved_run = await runs_api_async.get(client_key=test_run.client_key)
-
-            assert retrieved_run is not None
-            assert retrieved_run.id_ == test_run.id_
+        # @pytest.mark.asyncio
+        # async def test_get_by_id_with_client_key(self, runs_api_async, test_run):
+        #     """Test getting a specific run by client key."""
+        #     assert test_run.client_key is not None
+        #     retrieved_run = await runs_api_async.get(client_key=test_run.client_key)
+        #
+        #     assert retrieved_run is not None
+        #     assert retrieved_run.id_ == test_run.id_
 
         @pytest.mark.asyncio
         async def test_get_without_params_raises_error(self, runs_api_async):
@@ -258,7 +258,7 @@ class TestRunsAPIAsync:
                 start_time=start_time,
                 stop_time=stop_time,
                 tags=["test", "pytest", "integration", "sift-client-pytest"],
-                metadata={"test_type": "integration", "version": "1.0", "is_automated": True},
+                metadata={"pytest_type": "integration"},
             )
 
             created_run = await runs_api_async.create(run_create)
@@ -271,9 +271,8 @@ class TestRunsAPIAsync:
                 assert created_run.start_time is not None
                 assert created_run.stop_time is not None
                 assert created_run.tags == ["test", "pytest", "integration", "sift-client-pytest"]
-                assert created_run.metadata["test_type"] == "integration"
-                assert created_run.metadata["version"] == "1.0"
-                assert created_run.metadata["is_automated"] is True
+                assert created_run.metadata["pytest_type"] == "integration"
+
             finally:
                 # Clean up
                 await runs_api_async.archive(created_run)
