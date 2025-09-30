@@ -1,106 +1,29 @@
 use super::{BackupsManager, DiskBackupPolicy, DiskBackupsManager, InMemoryBackupsManager};
-use crate::SiftChannel;
-use crate::TimeValue;
 use crate::backup::disk::AsyncBackupsManager;
-use hyper_util::rt::TokioIo;
-use sift_connect::grpc::interceptor::AuthInterceptor;
+use crate::{TimeValue, backup::sanitize_name};
 use sift_error::ErrorKind;
 use sift_rs::ingest::v1::{
     IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
     ingest_with_config_data_channel_value::Type,
 };
-use sift_rs::ingest::v1::{
-    IngestWithConfigDataStreamResponse,
-    ingest_service_server::{IngestService, IngestServiceServer},
-};
 use std::fs;
-use std::sync::{Arc, Mutex};
 use tempdir::TempDir;
-use tonic::transport::{Endpoint, Server, Uri};
-use tonic::{Request, Response, Status};
-use tower::{ServiceBuilder, service_fn};
 
-#[derive(Debug, Clone)]
-struct MockIngestService {
-    captured_data: Arc<Mutex<Vec<IngestWithConfigDataStreamRequest>>>,
-}
-
-impl MockIngestService {
-    fn new() -> Self {
-        Self {
-            captured_data: Arc::new(Mutex::new(Vec::new())),
-        }
-    }
-
-    fn get_captured_data(&self) -> Vec<IngestWithConfigDataStreamRequest> {
-        self.captured_data.lock().unwrap().clone()
+#[test]
+fn test_sanitize_name_with_illegal_chars() {
+    let illegal_chars = vec![
+        ':', '/', '\\', '*', '?', '"', '<', '>', '|', '.', ' ', '\t', '\n', '\r',
+    ];
+    for char in illegal_chars {
+        assert_eq!(sanitize_name(&format!("test{}test", char)), "test_test");
     }
 }
 
-#[tonic::async_trait]
-impl IngestService for MockIngestService {
-    async fn ingest_with_config_data_stream(
-        &self,
-        request: Request<tonic::Streaming<IngestWithConfigDataStreamRequest>>,
-    ) -> Result<Response<IngestWithConfigDataStreamResponse>, Status> {
-        let mut stream = request.into_inner();
-
-        while let Some(data) = stream.message().await? {
-            self.captured_data.lock().unwrap().push(data);
-        }
-
-        Ok(Response::new(IngestWithConfigDataStreamResponse {}))
-    }
-
-    async fn ingest_arbitrary_protobuf_data_stream(
-        &self,
-        _request: Request<
-            tonic::Streaming<sift_rs::ingest::v1::IngestArbitraryProtobufDataStreamRequest>,
-        >,
-    ) -> Result<Response<sift_rs::ingest::v1::IngestArbitraryProtobufDataStreamResponse>, Status>
-    {
-        Err(Status::unimplemented("Not implemented for test"))
-    }
-}
-
-async fn create_mock_grpc_channel_with_service() -> (SiftChannel, Arc<MockIngestService>) {
-    let mock_service = Arc::new(MockIngestService::new());
-    let service_clone = mock_service.clone();
-
-    let (client, server) = tokio::io::duplex(1024);
-
-    tokio::spawn(async move {
-        Server::builder()
-            .add_service(IngestServiceServer::new(service_clone.as_ref().clone()))
-            .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
-            .await
-            .unwrap();
-    });
-
-    let mut client = Some(client);
-    let channel = Endpoint::try_from("http://[::]:50051")
-        .unwrap()
-        .connect_with_connector(service_fn(move |_: Uri| {
-            let client = client.take();
-
-            async move {
-                if let Some(client) = client {
-                    Ok(TokioIo::new(client))
-                } else {
-                    Err(std::io::Error::other("Client already taken"))
-                }
-            }
-        }))
-        .await
-        .unwrap();
-
-    let sift_channel = ServiceBuilder::new()
-        .layer(tonic::service::interceptor(AuthInterceptor {
-            apikey: "test-api-key".to_string(),
-        }))
-        .service(channel);
-
-    (sift_channel, mock_service)
+#[test]
+fn test_sanitize_name_with_legal_chars() {
+    assert_eq!(sanitize_name("test"), "test");
+    assert_eq!(sanitize_name("test_test"), "test_test");
+    assert_eq!(sanitize_name("test-test"), "test-test");
 }
 
 #[tokio::test]
@@ -229,7 +152,7 @@ async fn test_async_backups_manager_retrieve_data_with_graceful_termination() {
         ..Default::default()
     };
     let backup_retry_policy = crate::RetryPolicy::default();
-    let (grpc_channel, mock_service) = create_mock_grpc_channel_with_service().await;
+    let (grpc_channel, mock_service) = crate::test::create_mock_grpc_channel_with_service().await;
 
     let mut backups_manager = AsyncBackupsManager::<IngestWithConfigDataStreamRequest>::new(
         &backups_dir,
@@ -308,7 +231,7 @@ async fn test_async_backups_manager_discard_data_with_graceful_termination() {
         ..Default::default()
     };
     let backup_retry_policy = crate::RetryPolicy::default();
-    let (grpc_channel, mock_service) = create_mock_grpc_channel_with_service().await;
+    let (grpc_channel, mock_service) = crate::test::create_mock_grpc_channel_with_service().await;
 
     let mut backups_manager = AsyncBackupsManager::<IngestWithConfigDataStreamRequest>::new(
         &backups_dir,

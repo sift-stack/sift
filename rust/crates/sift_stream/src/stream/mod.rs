@@ -25,6 +25,9 @@ pub mod time;
 /// in a manner that isn't backwards compatible.
 pub(crate) mod flow;
 
+#[cfg(test)]
+mod test;
+
 /// [SiftStream] is a smart wrapper over an actual gRPC stream that makes it robust and more
 /// ergonomic to work with. Some additional behaviors that [SiftStream] supports are:
 /// - Checkpointing
