@@ -21,15 +21,25 @@ use serde::Serialize;
 #[derive(Clone, Copy, Debug, Serialize)]
 #[non_exhaustive]
 pub struct CheckpointMetricsSnapshot {
+    /// Total number of checkpoints completed
     pub checkpoint_count: u64,
+    /// Number of checkpoints that failed, typically from connection issues
     pub failed_checkpoint_count: u64,
+    /// Number of checkpoints triggered by timer
     pub checkpoint_timer_reached_cnt: u64,
+    /// Number of checkpoints triggered by other Sift Stream events, such as reaching the max
+    /// backup size
     pub checkpoint_manually_reached_cnt: u64,
 
+    /// Elapsed time since current checkpoint started (seconds)
     pub cur_elapsed_secs: f64,
+    /// Messages sent in current checkpoint
     pub cur_messages_sent: u64,
+    /// Message rate for current checkpoint (messages/sec)
     pub cur_message_rate: f64,
+    /// Bytes sent in current checkpoint
     pub cur_bytes_sent: u64,
+    /// Byte rate for current checkpoint (bytes/sec)
     pub cur_byte_rate: f64,
 }
 
@@ -42,16 +52,26 @@ pub struct CheckpointMetricsSnapshot {
 #[derive(Clone, Copy, Debug, Serialize)]
 #[non_exhaustive]
 pub struct BackupMetricsSnapshot {
+    /// Number of files written in current checkpoint
     pub cur_checkpoint_file_count: u64,
+    /// Current file size being written (bytes)
     pub cur_checkpoint_cur_file_size: u64,
+    /// Total bytes written in current checkpoint
     pub cur_checkpoint_bytes: u64,
+    /// Total messages written in current checkpoint
     pub cur_checkpoint_messages: u64,
+    /// Total number of backup files created
     pub total_file_count: u64,
+    /// Total bytes written to backup files
     pub total_bytes: u64,
+    /// Total messages written to backup files
     pub total_messages: u64,
 
+    /// Number of files waiting to be ingested
     pub files_pending_ingestion: u64,
+    /// Number of files successfully ingested
     pub files_ingested: u64,
+    /// Current number of ingestion retries
     pub cur_ingest_retries: u64,
 }
 
@@ -64,17 +84,29 @@ pub struct BackupMetricsSnapshot {
 #[derive(Clone, Copy, Debug, Serialize)]
 #[non_exhaustive]
 pub struct SiftStreamMetricsSnapshot {
+    /// Total elapsed time since SiftStream started (seconds)
     pub elapsed_secs: f64,
+    /// Number of flows loaded from configuration
     pub loaded_flows: u64,
+    /// Number of unique flows that have received data
     pub unique_flows_received: u64,
+    /// Total messages received from data sources
     pub messages_received: u64,
+    /// Total messages sent to destinations
     pub messages_sent: u64,
+    /// Overall message throughput rate (messages/sec)
     pub message_rate: f64,
+    /// Total bytes sent to destinations
     pub bytes_sent: u64,
+    /// Overall byte throughput rate (bytes/sec)
     pub byte_rate: f64,
+    /// Total messages written to backup storage
     pub messages_sent_to_backup: u64,
+    /// Current retry attempt count
     pub cur_retry_count: u64,
+    /// Checkpoint-specific metrics
     pub checkpoint: CheckpointMetricsSnapshot,
+    /// Backup-specific metrics
     pub backups: BackupMetricsSnapshot,
 }
 
