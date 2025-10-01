@@ -1,5 +1,4 @@
 use super::Message;
-use crate::metrics::SiftStreamMetrics;
 use crate::RetryPolicy;
 use crate::backup::DiskBackupPolicy;
 use crate::backup::disk::decode_backup;
@@ -7,6 +6,7 @@ use crate::backup::disk::pbfs::BackupsDecoder;
 use crate::backup::disk::pbfs::{
     BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, PbfsChunk, chunk::MESSAGE_LENGTH_PREFIX_LEN,
 };
+use crate::metrics::SiftStreamMetrics;
 use chrono::Utc;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
@@ -135,7 +135,7 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
             flush_and_sync_notifier,
             restart_backup_notifier,
             grpc_channel,
-            metrics
+            metrics,
         })
     }
 
@@ -313,7 +313,7 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
     /// if allowed by the retain policy. Unpauses the backup task if the backups were full.
     pub(crate) async fn restart(&mut self) -> Result<()> {
         self.metrics.backups.log_restart();
-        
+
         // Flush the current file
         // We don't want to get stuck here, and proceeding before the flush is complete won't cause any harm
         // so keep the timeout small
@@ -422,7 +422,10 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
             return file_count;
         }
 
-        self.metrics.backups.files_pending_ingestion.add(file_count as u64);
+        self.metrics
+            .backups
+            .files_pending_ingestion
+            .add(file_count as u64);
 
         if let Some(ingest_task) = self.ingest_task.as_mut() {
             if let Err(err) = ingest_task.add(unprocessed_files.clone()) {
@@ -469,7 +472,7 @@ impl AsyncBackupsManager<IngestWithConfigDataStreamRequest> {
             Ok(_) => {
                 self.metrics.messages_sent_to_backup.increment();
                 Ok(())
-            },
+            }
 
             // data_rx must be dropped, indicating backup task has shutdown
             Err(_) => {
@@ -546,7 +549,12 @@ struct BackupIngestTask<T> {
 }
 
 impl BackupIngestTask<IngestWithConfigDataStreamRequest> {
-    fn new(grpc_channel: SiftChannel, retry_policy: RetryPolicy, retain_ingested: bool, metrics: Arc<SiftStreamMetrics>) -> Self {
+    fn new(
+        grpc_channel: SiftChannel,
+        retry_policy: RetryPolicy,
+        retain_ingested: bool,
+        metrics: Arc<SiftStreamMetrics>,
+    ) -> Self {
         let (ingest_tx, mut ingest_rx) = unbounded_channel::<PathBuf>();
 
         let task_handle = tokio::spawn(async move {
@@ -582,7 +590,10 @@ impl BackupIngestTask<IngestWithConfigDataStreamRequest> {
                     }
 
                     let files_ingested = metrics.backups.files_ingested.increment();
-                    metrics.backups.files_pending_ingestion.set(ingest_rx.len() as u64);
+                    metrics
+                        .backups
+                        .files_pending_ingestion
+                        .set(ingest_rx.len() as u64);
                     metrics.backups.cur_ingest_retries.set(0);
 
                     #[cfg(feature = "tracing")]

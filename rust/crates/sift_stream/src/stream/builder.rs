@@ -7,7 +7,7 @@ use super::{
 use crate::{
     backup::{
         disk::{AsyncBackupsManager, DiskBackupPolicy},
-        sanitize_name
+        sanitize_name,
     },
     metrics::SiftStreamMetrics,
 };

@@ -7,7 +7,7 @@ use sift_stream::backup::DiskBackupPolicy;
 use sift_stream::{
     ChannelValue, Flow, IngestionConfigForm, IngestionConfigMode, RecoveryStrategy, RetryPolicy,
     SiftStream, SiftStreamBuilder, TimeValue,
-    SiftStreamMetrics
+    metrics::SiftStreamMetrics
 };
 use std::{
     sync::{
@@ -199,7 +199,7 @@ pub async fn test_retries_exhausted() {
             max_backoff: Duration::from_millis(100),
         }),
         None,
-        Arc::new(SiftStreamMetrics::new())
+        Arc::new(SiftStreamMetrics::new()),
     );
 
     let mut error = None;

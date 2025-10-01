@@ -1,7 +1,10 @@
+use crate::metrics::SiftStreamMetrics;
 use sift_connect::SiftChannel;
 use sift_rs::runs::v2::Run;
 use std::sync::Arc;
-use crate::metrics::SiftStreamMetrics;
+
+#[cfg(feature = "metrics-unstable")]
+use crate::metrics::SiftStreamMetricsSnapshot;
 
 /// Concerned with building and configuring and instance of [SiftStream].
 pub mod builder;
@@ -42,7 +45,15 @@ mod test;
 pub struct SiftStream<M: SiftStreamMode> {
     grpc_channel: SiftChannel,
     mode: M,
-    metrics: Arc<SiftStreamMetrics>
+    metrics: Arc<SiftStreamMetrics>,
+}
+
+impl<M: SiftStreamMode> SiftStream<M> {
+    #[cfg(feature = "metrics-unstable")]
+    /// Retrieve a snapshot of the current metrics for this stream.
+    pub fn metrics(&self) -> SiftStreamMetricsSnapshot {
+        self.metrics.snapshot()
+    }
 }
 
 /// A trait that defines a particular mode of streaming. Only one more is currently supported.

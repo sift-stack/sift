@@ -6,7 +6,9 @@ use sift_rs::{
     },
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
-use sift_stream::{ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue, SiftStreamMetrics};
+use sift_stream::{
+    ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue, metrics::SiftStreamMetrics,
+};
 use std::{
     sync::{
         Arc,
@@ -107,7 +109,7 @@ async fn test_sending_raw_ingest_request() {
         Duration::from_secs(30),
         None,
         None,
-        Arc::new(SiftStreamMetrics::new())
+        Arc::new(SiftStreamMetrics::new()),
     );
 
     let num_messages = 100;
@@ -198,7 +200,7 @@ async fn test_sending_flow() {
         Duration::from_secs(30),
         None,
         None,
-        Arc::new(SiftStreamMetrics::new())
+        Arc::new(SiftStreamMetrics::new()),
     );
 
     let num_messages = 100;
@@ -286,7 +288,7 @@ async fn test_sending_flow_not_in_flow_cache() {
         Duration::from_secs(30),
         None,
         None,
-        Arc::new(SiftStreamMetrics::new())
+        Arc::new(SiftStreamMetrics::new()),
     );
 
     let num_messages = 100;

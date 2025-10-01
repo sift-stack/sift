@@ -147,14 +147,15 @@ impl SiftStream<IngestionConfigMode> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
         let begin_checkpoint_notifier = Arc::new(Notify::new());
         let sift_stream_id = Uuid::new_v4();
-        
+
         // Spawn a task to register metrics without blocking
         {
             let uuid = sift_stream_id.to_string();
             let metrics = metrics.clone();
-            tokio::spawn(async move {register_metrics(uuid, metrics).await;});
+            tokio::spawn(async move {
+                register_metrics(uuid, metrics).await;
+            });
         }
-        
 
         metrics.loaded_flows.add(flows_by_name.len() as u64);
 
@@ -168,7 +169,7 @@ impl SiftStream<IngestionConfigMode> {
             data_tx.clone(),
             shutdown_rx,
             begin_checkpoint_notifier.clone(),
-            metrics.clone()
+            metrics.clone(),
         );
 
         // Begin checkpoint immediately upon starting
@@ -530,7 +531,12 @@ impl SiftStream<IngestionConfigMode> {
         let (drain_tx, drain_rx) = std::sync::mpsc::channel::<IngestWithConfigDataStreamRequest>();
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
         let begin_checkpoint_notifier = Arc::new(Notify::new());
-        let data_stream = DataStream::new(self.mode.sift_stream_id, data_rx, drain_tx, self.metrics.clone());
+        let data_stream = DataStream::new(
+            self.mode.sift_stream_id,
+            data_rx,
+            drain_tx,
+            self.metrics.clone(),
+        );
 
         self.mode.data_tx = Some(data_tx.clone());
         self.mode.shutdown_tx = Some(shutdown_tx);
@@ -543,7 +549,7 @@ impl SiftStream<IngestionConfigMode> {
             data_tx.clone(),
             shutdown_rx,
             begin_checkpoint_notifier.clone(),
-            self.metrics.clone()
+            self.metrics.clone(),
         );
         self.mode.streaming_task = Some(streaming_task);
 
@@ -915,7 +921,7 @@ impl DataStream {
         sift_stream_id: Uuid,
         data_rx: BoundedReceiver<StreamMessage>,
         drain_tx: StdSender<IngestWithConfigDataStreamRequest>,
-        metrics: Arc<SiftStreamMetrics>
+        metrics: Arc<SiftStreamMetrics>,
     ) -> Self {
         let heartbeat_task = tokio::spawn(async move {
             loop {
@@ -996,7 +1002,9 @@ impl Drop for DataStream {
             let bytes_processed_pretty = bytesize::ByteSize::b(checkpoint_stats.bytes_sent)
                 .display()
                 .iec();
-            let byte_rate_pretty = bytesize::ByteSize::b(checkpoint_stats.byte_rate.ceil() as u64).display().iec();
+            let byte_rate_pretty = bytesize::ByteSize::b(checkpoint_stats.byte_rate.ceil() as u64)
+                .display()
+                .iec();
 
             tracing::info!(
                 sift_stream_id = self.sift_stream_id.to_string(),
