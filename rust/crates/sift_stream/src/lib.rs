@@ -379,7 +379,7 @@
 //! - Enable the light weight HTTP metrics server using [metrics::start_metrics_server], which exposes the `/` and `/metrics`
 //!   endpoints, providing a JSON formatted struct of each sift-stream-id and its [SiftStreamMetricsSnapshot]
 //! 
-//! Snapshots of the metrics are taken at any time the user calls [SiftStream::metrics] or sends a GET request to the metrics
+//! Snapshots of the metrics are taken at any time the user calls [SiftStream::get_metrics_snapshot] or sends a GET request to the metrics
 //! server endpoints. Metrics are internally updated atomically, and calls to get metric snapshots are non-blocking to SiftStream
 //! operaration.
 //! 
