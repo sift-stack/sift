@@ -14,6 +14,16 @@ pub(crate) async fn register_metrics(uuid: String, metrics: Arc<SiftStreamMetric
 }
 
 #[cfg(feature = "metrics-unstable")]
+/// Starts a light weight HTTP metrics server on the specified port.
+///
+/// The server exposes metrics as JSON at the `/` and `/metrics` endpoints.
+/// On a GET request, a snapshot metrics for all SiftStream instances are returned
+/// in a JSON format, organized by sift_stream_id
+/// 
+/// Metric snapshots are taken at the moment the GET request is receieved.
+///
+/// # Arguments
+/// * `port` - The port number to bind the HTTP server to
 pub async fn start_metrics_server(port: u16) {
     use hyper::{Method, Request, Response};
     use hyper::{server::conn::http1, service::service_fn};

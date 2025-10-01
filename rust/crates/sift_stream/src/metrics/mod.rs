@@ -13,6 +13,11 @@ use std::{
 use serde::Serialize;
 
 #[cfg(feature = "metrics-unstable")]
+/// **Unstable Feature:** API may change at any time
+/// 
+/// Snapshot of checkpoint-related metrics.
+///
+/// Tracks checkpoint operations, success/failure rates, and current checkpoint performance.
 #[derive(Clone, Copy, Debug, Serialize)]
 #[non_exhaustive]
 pub struct CheckpointMetricsSnapshot {
@@ -29,6 +34,11 @@ pub struct CheckpointMetricsSnapshot {
 }
 
 #[cfg(feature = "metrics-unstable")]
+/// **Unstable Feature:** API may change at any time
+/// 
+/// Snapshot of backup-related metrics.
+///
+/// Tracks file counts, byte totals, and ingestion status if backups are enabled.
 #[derive(Clone, Copy, Debug, Serialize)]
 #[non_exhaustive]
 pub struct BackupMetricsSnapshot {
@@ -46,6 +56,11 @@ pub struct BackupMetricsSnapshot {
 }
 
 #[cfg(feature = "metrics-unstable")]
+/// **Unstable Feature:** API may change at any time
+/// 
+/// Snapshot of all sift stream metrics at a point in time.
+///
+/// Contains performance and operational metrics for a given SiftStream instance
 #[derive(Clone, Copy, Debug, Serialize)]
 #[non_exhaustive]
 pub struct SiftStreamMetricsSnapshot {
@@ -249,6 +264,10 @@ impl CheckpointMetrics {
     }
 }
 
+/// Primary metrics collection struct for sift stream operations.
+///
+/// This struct is managed internally and users should never need to create this,
+/// instead using the [crate::SiftStreamBuilder]
 #[derive(Default, Debug)]
 pub struct SiftStreamMetrics {
     creation_time_epoch_ms: u64,
@@ -264,6 +283,8 @@ pub struct SiftStreamMetrics {
 }
 
 impl SiftStreamMetrics {
+    /// Creates a new SiftStreamMetrics instance with current timestamp. Users should
+    /// never need to call this and should instead use [crate::SiftStreamBuilder]
     pub fn new() -> SiftStreamMetrics {
         SiftStreamMetrics {
             creation_time_epoch_ms: SystemTime::now()
@@ -307,17 +328,7 @@ impl SiftStreamMetrics {
         }
     }
 
-    // pub(crate) fn get_stream_stats(&self) -> StreamingStats {
-    //     // TODO: Look into other ordering to try and avoid atomics writes until all three of these are complete
-    //     let start_time_ms = self.creation_time_epoch_ms;
-    //     let messages_sent = self.messages_sent.0.load(Ordering::Relaxed);
-    //     let bytes_sent = self.bytes_sent.0.load(Ordering::Relaxed);
-
-    //     StreamingStats::calculate(start_time_ms, messages_sent, bytes_sent)
-    // }
-
     pub(crate) fn get_checkpoint_stats(&self) -> StreamingStats {
-        // TODO: Look into other ordering to try and avoid atomics writes until all three of these are complete
         let start_time_ms = self
             .checkpoint
             .checkpoint_start_time_epoch_ms
