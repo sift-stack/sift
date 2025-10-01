@@ -2,11 +2,9 @@ use super::{
     RetryPolicy, SiftStream, SiftStreamMode,
     flow::validate_flows,
     mode::ingestion_config::IngestionConfigMode,
-    mode::ingestion_config::IngestionConfigModeBackupsManager,
     run::{load_run_by_form, load_run_by_id},
 };
 use crate::backup::{
-    DiskBackupsManager, InMemoryBackupsManager,
     disk::{AsyncBackupsManager, DiskBackupPolicy},
     sanitize_name,
 };
@@ -22,7 +20,7 @@ use sift_rs::{
         ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
     },
 };
-use std::{marker::PhantomData, path::PathBuf, time::Duration};
+use std::{marker::PhantomData, time::Duration};
 
 /// The default checkpoint interval (1 minute) to use if left unspecified.
 pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
@@ -69,41 +67,10 @@ pub enum RecoveryStrategy {
     ///   recommended settings via [RetryPolicy::default].
     RetryOnly(RetryPolicy),
 
-    /// - Enables retries as well as in-memory backups. Users can provide their own custom retry
-    ///   policy or use the default recommended settings via [RetryPolicy::default].
-    ///
-    /// - `max_buffer_size` specifies the capacity of the underlying buffer. If `None`, then the
-    ///   default [crate::backup::memory::DEFAULT_MAX_BUFFER_SIZE] is used.
-    #[deprecated(since = "0.6.0", note = "deprecated due to lack of expected use")]
-    RetryWithInMemoryBackups {
-        retry_policy: RetryPolicy,
-        max_buffer_size: Option<usize>,
-    },
-
     /// - Enables retries as well as disk backups. Users can provide their own custom retry
-    ///   policy or use the default recommended settings via [RetryPolicy::default].
-    ///
-    /// - `backups_dir` is the directory where the backups will get created. If `backups_dir` is
-    ///   `None`, then the user's [data
-    ///   directory](https://docs.rs/dirs/latest/dirs/fn.data_dir.html) is used. If `backups_dir` is provided but
-    ///   doesn't exist, then there will be an attempt to create that directory.
-    ///
-    /// - `max_backups_file_size` is the maximum size that a backup file is allowed to be before a
-    ///   checkpoint is forced. Once a checkpoint is forced, a new backup file will be created.
-    ///
-    /// **Important Note**: The `max_backups_file_size` does not represent that actual amount of
-    /// space on disk which is affected by operating system-level compression and block allocation;
-    /// instead the byte-length is the actual measure.
-    #[deprecated(
-        since = "0.6.0",
-        note = "users should use the more robust RetryWithBackups"
-    )]
-    RetryWithDiskBackups {
-        retry_policy: RetryPolicy,
-        backups_dir: Option<PathBuf>,
-        max_backups_file_size: Option<usize>,
-    },
-
+    ///   policy or use the default recommended settings via [RetryPolicy::default]. Similarly,
+    ///   users can provide their own custom disk backup policy or use the default recommended
+    ///   settings via [DiskBackupPolicy::default].
     RetryWithBackups {
         retry_policy: RetryPolicy,
         disk_backup_policy: DiskBackupPolicy,
@@ -143,32 +110,6 @@ impl Default for RecoveryStrategy {
 }
 
 impl RecoveryStrategy {
-    /// Initializes a retry with in-memory backups recovery strategy using the default recommended
-    /// configurations.
-    #[deprecated(since = "0.6.0", note = "deprecated due to lack of expected use")]
-    #[allow(deprecated)]
-    pub fn default_retry_policy_in_memory_backups() -> Self {
-        Self::RetryWithInMemoryBackups {
-            retry_policy: RetryPolicy::default(),
-            max_buffer_size: None,
-        }
-    }
-
-    /// Initializes a retry with disk backups recovery strategy using the default recommended
-    /// configurations.
-    #[deprecated(
-        since = "0.6.0",
-        note = "users should use the more robust RetryWithBackups"
-    )]
-    #[allow(deprecated)]
-    pub fn default_retry_policy_disk_backups() -> Self {
-        Self::RetryWithDiskBackups {
-            retry_policy: RetryPolicy::default(),
-            backups_dir: None,
-            max_backups_file_size: None,
-        }
-    }
-
     /// Initializes a retry with disk backups recovery strategy using the default recommended
     /// configurations.
     pub fn default_retry_policy_with_backups() -> Self {
@@ -345,36 +286,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                 RecoveryStrategy::RetryOnly(retry_policy) => {
                     policy = Some(retry_policy);
                 }
-                #[allow(deprecated)]
-                RecoveryStrategy::RetryWithInMemoryBackups {
-                    retry_policy,
-                    max_buffer_size,
-                } => {
-                    policy = Some(retry_policy);
-                    let manager = IngestionConfigModeBackupsManager::InMemory(
-                        InMemoryBackupsManager::new(max_buffer_size),
-                    );
-
-                    backups_manager = Some(manager);
-                }
-                #[allow(deprecated)]
-                RecoveryStrategy::RetryWithDiskBackups {
-                    retry_policy,
-                    backups_dir,
-                    max_backups_file_size,
-                } => {
-                    policy = Some(retry_policy);
-                    let manager = DiskBackupsManager::new(
-                        backups_dir,
-                        &ingestion_config.asset_id,
-                        &ingestion_config.ingestion_config_id,
-                        max_backups_file_size,
-                    )
-                    .map(IngestionConfigModeBackupsManager::Disk)
-                    .context("failed to build backups manager")?;
-
-                    backups_manager = Some(manager);
-                }
                 RecoveryStrategy::RetryWithBackups {
                     retry_policy,
                     disk_backup_policy,
@@ -391,7 +302,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                         retry_policy,
                         channel.clone(),
                     )
-                    .map(IngestionConfigModeBackupsManager::AsyncStream)
                     .context("failed to build backups manager")?;
 
                     backups_manager = Some(manager);

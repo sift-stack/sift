@@ -3,9 +3,10 @@ use sift_rs::{
     common::r#type::v1::ChannelDataType,
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
+use sift_stream::backup::DiskBackupPolicy;
 use sift_stream::{
-    ChannelValue, Flow, IngestionConfigMode, RetryPolicy, SiftStream, TimeValue,
-    stream::mode::ingestion_config::IngestionConfigModeBackupsManager,
+    ChannelValue, Flow, IngestionConfigForm, IngestionConfigMode, RecoveryStrategy, RetryPolicy,
+    SiftStream, SiftStreamBuilder, TimeValue,
 };
 use std::{
     sync::{
@@ -14,6 +15,7 @@ use std::{
     },
     time::Duration,
 };
+use tempdir::TempDir;
 
 mod common;
 use common::prelude::*;
@@ -75,29 +77,36 @@ async fn test_retries_succeed() {
 
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
-    let ingestion_config = IngestionConfig {
-        ingestion_config_id: "ingestion-config-id".to_string(),
-        client_key: "ingestion-config-client-key".to_string(),
-        asset_id: "asset-id".to_string(),
-    };
     let flows = vec![FlowConfig {
-        name: "flow".to_string(),
+        name: "123".to_string(),
         channels: vec![ChannelConfig {
             name: "generator".to_string(),
             data_type: ChannelDataType::Double.into(),
             ..Default::default()
         }],
     }];
-
-    let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
-        client,
-        ingestion_config,
+    let ingestion_config = IngestionConfigForm {
+        asset_name: "test_asset".to_string(),
+        client_key: "test_client_key".to_string(),
         flows,
-        None,
-        Duration::from_secs(60),
-        Some(RetryPolicy::default()),
-        Some(IngestionConfigModeBackupsManager::default()),
-    );
+    };
+
+    let tmp_dir = TempDir::new("test_retries_succeed").expect("failed to creat tempdir");
+    let tmp_dir_path = tmp_dir.path();
+
+    let disk_backup_policy = DiskBackupPolicy {
+        backups_dir: Some(tmp_dir_path.to_path_buf()),
+        ..Default::default()
+    };
+    let mut sift_stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(ingestion_config)
+        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
+            retry_policy: RetryPolicy::default(),
+            disk_backup_policy,
+        })
+        .build()
+        .await
+        .expect("failed to build sift stream");
 
     tokio::spawn(async move {
         // let streams fail a few times
