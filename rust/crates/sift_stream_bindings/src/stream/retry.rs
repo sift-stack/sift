@@ -1,7 +1,6 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{RecoveryStrategy, RetryPolicy};
-use std::path::PathBuf;
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -66,21 +65,6 @@ impl From<RecoveryStrategyPy> for RecoveryStrategy {
             "RetryOnly" => match strategy.retry_policy {
                 Some(policy) => RecoveryStrategy::RetryOnly(policy.into()),
                 None => panic!("RetryOnly strategy requires retry policy"),
-            },
-            "RetryWithInMemoryBackups" => match strategy.retry_policy {
-                Some(policy) => RecoveryStrategy::RetryWithInMemoryBackups {
-                    retry_policy: policy.into(),
-                    max_buffer_size: strategy.max_buffer_size,
-                },
-                None => panic!("RetryWithInMemoryBackups strategy requires retry policy"),
-            },
-            "RetryWithDiskBackups" => match strategy.retry_policy {
-                Some(policy) => RecoveryStrategy::RetryWithDiskBackups {
-                    retry_policy: policy.into(),
-                    backups_dir: strategy.backups_dir.map(PathBuf::from),
-                    max_backups_file_size: strategy.max_backups_file_size,
-                },
-                None => panic!("RetryWithDiskBackups strategy requires retry policy"),
             },
             _ => panic!("Invalid strategy type"),
         }

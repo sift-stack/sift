@@ -13,9 +13,6 @@ pub use policy::{DiskBackupPolicy, RollingFilePolicy};
 mod pbfs;
 use pbfs::BackupsDecoder;
 
-/// Default maximum backup file size - 100 MiB.
-pub const DEFAULT_MAX_BACKUP_SIZE: usize = 100 * 2_usize.pow(20);
-
 /// Takes in a path to a backup file and returns an instance of [BackupsDecoder] which is an
 /// iterator over the protobuf messages found in the backup file. The iterator will terminate when
 /// reaching an EOF or it hits a corrupt message; in this case the error returned by the item will
