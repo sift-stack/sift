@@ -19,7 +19,7 @@ pub(crate) async fn register_metrics(uuid: String, metrics: Arc<SiftStreamMetric
 /// The server exposes metrics as JSON at the `/` and `/metrics` endpoints.
 /// On a GET request, a snapshot metrics for all SiftStream instances are returned
 /// in a JSON format, organized by sift_stream_id
-/// 
+///
 /// Metric snapshots are taken at the moment the GET request is receieved.
 ///
 /// # Arguments

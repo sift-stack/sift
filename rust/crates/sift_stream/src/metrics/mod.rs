@@ -14,7 +14,7 @@ use serde::Serialize;
 
 #[cfg(feature = "metrics-unstable")]
 /// **Unstable Feature:** API may change at any time
-/// 
+///
 /// Snapshot of checkpoint-related metrics.
 ///
 /// Tracks checkpoint operations, success/failure rates, and current checkpoint performance.
@@ -35,7 +35,7 @@ pub struct CheckpointMetricsSnapshot {
 
 #[cfg(feature = "metrics-unstable")]
 /// **Unstable Feature:** API may change at any time
-/// 
+///
 /// Snapshot of backup-related metrics.
 ///
 /// Tracks file counts, byte totals, and ingestion status if backups are enabled.
@@ -57,7 +57,7 @@ pub struct BackupMetricsSnapshot {
 
 #[cfg(feature = "metrics-unstable")]
 /// **Unstable Feature:** API may change at any time
-/// 
+///
 /// Snapshot of all sift stream metrics at a point in time.
 ///
 /// Contains performance and operational metrics for a given SiftStream instance
