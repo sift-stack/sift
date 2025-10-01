@@ -366,6 +366,22 @@
 //! cargo add sift_stream --no-default-features
 //! ```
 //!
+//! ## Metrics
+//! SiftStream records metrics related to the performance and operational status separately for each SiftStream instance.
+//! While some metrics are provided through [tracing](#tracing), users may expose the ability to access these metrics
+//! by enabled the optional `metrics-unstable` feature flag.
+//! 
+//! Metrics are currently considered an unstable feature, and future updates may break the existing metrics API.
+//! 
+//! When the `metrics-unstable` feature flag is enabled, users may currently access metrics through one of two methods:
+//! - [SiftStream::metrics] returns a [SiftStreamMetricsSnapshot]
+//! - Enable the light weight HTTP metrics server using [metrics::start_metrics_server], which exposes the `/` and `/metrics`
+//!   endpoints, providing a JSON formatted struct of each sift-stream-id and its [SiftStreamMetricsSnapshot]
+//! 
+//! Snapshots of the metrics are taken at any time the user calls [SiftStream::metrics] or sends a GET request to the metrics
+//! server endpoints. Metrics are internally updated atomically, and calls to get metric snapshots are non-blocking to SiftStream
+//! operaration.
+//! 
 //! ## Tokio
 //!
 //! Because [tonic](https://docs.rs/tonic/latest/tonic/) is an underlying dependency, the
