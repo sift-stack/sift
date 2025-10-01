@@ -11,6 +11,10 @@ license = { workspace = true }
 categories = { workspace = true }
 readme = "README.md"
 
+[package.metadata.docs.rs]
+features = ["metrics-unstable"]
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
 sift_connect = { workspace = true }
 sift_error = { workspace = true }

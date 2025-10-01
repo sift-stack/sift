@@ -51,7 +51,7 @@ pub struct SiftStream<M: SiftStreamMode> {
 impl<M: SiftStreamMode> SiftStream<M> {
     #[cfg(feature = "metrics-unstable")]
     /// Retrieve a snapshot of the current metrics for this stream.
-    pub fn metrics(&self) -> SiftStreamMetricsSnapshot {
+    pub fn get_metrics_snapshot(&self) -> SiftStreamMetricsSnapshot {
         self.metrics.snapshot()
     }
 }

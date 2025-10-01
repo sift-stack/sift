@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! The `sift_stream` crate is primarily focused on streaming telemetry to Sift in a robust manner.
 //!
 //! Here are some features highlights:
@@ -374,7 +375,7 @@
 //! Metrics are currently considered an unstable feature, and future updates may break the existing metrics API.
 //! 
 //! When the `metrics-unstable` feature flag is enabled, users may currently access metrics through one of two methods:
-//! - [SiftStream::metrics] returns a [SiftStreamMetricsSnapshot]
+//! - [SiftStream::get_metrics_snapshot] returns a [SiftStreamMetricsSnapshot]
 //! - Enable the light weight HTTP metrics server using [metrics::start_metrics_server], which exposes the `/` and `/metrics`
 //!   endpoints, providing a JSON formatted struct of each sift-stream-id and its [SiftStreamMetricsSnapshot]
 //! 
@@ -390,6 +391,13 @@
 //!
 //! This crate is compatible with both the current and multi-threaded Tokio runtimes. Performance
 //! is expected to be better generally using the multi-threaded runtime.
+//! 
+//! ## Feature flags
+//! 
+//! - `default`: Includes the `tracing` feature flag
+//! - `tracing`: Enables logging of SiftStream through the Tracing crate. See [tracing](#tracing)
+//! - `metrics-unstable`: Enables the ability for the user to access SiftStream metrics from each [SiftStream] instance,
+//!   or through a light-weight HTML metrics server, if enabled. See [metrics](#metrics)
 
 /// Concerned with streaming telemetry into Sift.
 pub mod stream;
