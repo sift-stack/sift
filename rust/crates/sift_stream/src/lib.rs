@@ -374,35 +374,6 @@
 //!
 //! This crate is compatible with both the current and multi-threaded Tokio runtimes. Performance
 //! is expected to be better generally using the multi-threaded runtime.
-//!
-//! ## Deprecated
-//! The following backup strategies have been deprecated, and may be removed in a future version of SiftStream.
-//! The disk-based backup functionality has been expanded and improved upon with the new [RecoveryStrategy::RetryWithBackups].
-//! The in-memory backup strategy is believed to be generally not valuable to users. If a user considers
-//! either strategy to be valuable to maintain in future SiftStream releases, please contact the Sift team.
-//!
-//! ### In-memory backups
-//!
-//! The in-memory backup uses an in-memory buffer to create backups for all telemetry sent to Sift. Every call to
-//! [SiftStream::send] will result in the data being passed in to get backed up. If an error
-//! were to occur before a checkpoint is reached, then all the data within that buffer will be
-//! flushed and reingested into Sift. If the buffer were to reach the maximum specified capacity,
-//! then a checkpoint will be forced and the buffer will be reinitialized.
-//!
-//! ### Disk backups
-//!
-//! The disk-based backup strategy writes messages passed to [SiftStream::send] to a backup file on disk
-//! in a buffered manner until the configured file size limit is reached. Once that file size limit
-//! is reached then a checkpoint will be forced and the backup file will be reinitialized. If
-//! an error were to occur before a checkpoint is reached, then all the data within the backup file
-//! will be read into memory in a buffered manner, decoded, and reingested into Sift.
-//!
-//! If using the default feature flags (see the [tracing section](#tracing)), users will be
-//! able to see the location of the backup file when using `RUST_LOG=sift_stream=info` as well as
-//! the progress of reingestion.
-//!
-//! The backup file itself gets cleaned up when [SiftStream] is allowed to gracefully terminate,
-//! otherwise it may stack on disk.
 
 /// Concerned with streaming telemetry into Sift.
 pub mod stream;
