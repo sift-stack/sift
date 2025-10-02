@@ -2,7 +2,7 @@ mod server;
 pub(crate) use server::register_metrics;
 
 #[cfg(feature = "metrics-unstable")]
-pub use server::start_metrics_server;
+pub use server::MetricsServerBuilder;
 
 use std::{
     sync::atomic::{AtomicU64, Ordering},

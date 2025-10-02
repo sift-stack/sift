@@ -148,6 +148,8 @@ pub enum ErrorKind {
     BackupIntegrityError,
     /// When backup file/buffer limit has been reached.
     BackupLimitReached,
+    /// Errors with the SiftStream Metrics Server
+    SiftStreamMetricsServerError,
     /// General errors that are rarely returned.
     GeneralError,
 }
@@ -219,6 +221,7 @@ impl fmt::Display for ErrorKind {
             Self::IncompatibleIngestionConfigChange => {
                 write!(f, "IncompatibleIngestionConfigChange")
             }
+            Self::SiftStreamMetricsServerError => write!(f, "SiftStreamMetricsServerError"),
         }
     }
 }
