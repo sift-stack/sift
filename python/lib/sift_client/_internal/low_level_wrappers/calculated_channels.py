@@ -1,15 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 from sift.calculated_channels.v2.calculated_channels_pb2 import (
-    CalculatedChannelAbstractChannelReference,
-    CalculatedChannelAssetConfiguration,
-    CalculatedChannelConfiguration,
-    CalculatedChannelQueryConfiguration,
     CalculatedChannelValidationResult,
-    CreateCalculatedChannelRequest,
     CreateCalculatedChannelResponse,
     GetCalculatedChannelRequest,
     GetCalculatedChannelResponse,
@@ -25,12 +20,10 @@ from sift.calculated_channels.v2.calculated_channels_pb2_grpc import CalculatedC
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
+    CalculatedChannelCreate,
     CalculatedChannelUpdate,
 )
 from sift_client.transport import GrpcClient, WithGrpcClient
-
-if TYPE_CHECKING:
-    from sift_client.sift_types.channel import ChannelReference
 
 logger = logging.getLogger(__name__)
 
@@ -79,72 +72,9 @@ class CalculatedChannelsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return CalculatedChannel._from_proto(grpc_calculated_channel)
 
     async def create_calculated_channel(
-        self,
-        *,
-        name: str,
-        all_assets: bool = False,
-        asset_ids: list[str] | None = None,
-        tag_ids: list[str] | None = None,
-        expression: str = "",
-        channel_references: list[ChannelReference] | None = None,
-        description: str = "",
-        user_notes: str = "",
-        units: str | None = None,
-        client_key: str | None = None,
+        self, *, create: CalculatedChannelCreate
     ) -> tuple[CalculatedChannel, list[Any]]:
-        """Create a calculated channel.
-
-        Args:
-            name: The name of the calculated channel.
-            all_assets: Whether to include all assets in the calculated channel.
-            asset_ids: The IDs of the assets to include in the calculated channel.
-            tag_ids: The IDs of the tags to include in the calculated channel.
-            expression: The CEL expression for the calculated channel.
-            channel_references: The channel references to include in the calculated channel.
-            description: The description of the calculated channel.
-            user_notes: User notes for the calculated channel.
-            units: The units for the calculated channel.
-            client_key: A user-defined unique identifier for the calculated channel.
-
-        Returns:
-            A tuple of (CalculatedChannel, list of inapplicable assets).
-        """
-        if channel_references is None:
-            channel_references = []
-
-        asset_config = CalculatedChannelAssetConfiguration(
-            all_assets=all_assets,
-            selection=CalculatedChannelAssetConfiguration.AssetSelection(
-                asset_ids=asset_ids,
-                tag_ids=tag_ids,
-            ),
-        )
-        request_kwargs: dict[str, Any] = {
-            "name": name,
-            "description": description,
-            "user_notes": user_notes,
-            "calculated_channel_configuration": CalculatedChannelConfiguration(
-                asset_configuration=asset_config,
-                query_configuration=CalculatedChannelQueryConfiguration(
-                    sel=CalculatedChannelQueryConfiguration.Sel(
-                        expression=expression,
-                        expression_channel_references=[
-                            CalculatedChannelAbstractChannelReference(
-                                channel_identifier=ref.channel_identifier,
-                                channel_reference=ref.channel_reference,
-                            )
-                            for ref in channel_references
-                        ],
-                    ),
-                ),
-            ),
-        }
-        if units is not None:
-            request_kwargs["units"] = units
-        if client_key is not None:
-            request_kwargs["client_key"] = client_key
-
-        request = CreateCalculatedChannelRequest(**request_kwargs)
+        request = create.to_proto()
         response = await self._grpc_client.get_stub(
             CalculatedChannelServiceStub
         ).CreateCalculatedChannel(request)
