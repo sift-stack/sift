@@ -8,7 +8,7 @@ pub use server::MetricsServerBuilder;
 
 use std::{
     sync::atomic::{AtomicU64, Ordering},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant},
 };
 
 #[cfg(feature = "metrics-unstable")]
@@ -122,20 +122,11 @@ pub(crate) struct StreamingStats {
 
 impl StreamingStats {
     pub(crate) fn calculate(
-        start_time_ms: u64,
+        start_time: Instant,
         messages_sent: u64,
         bytes_sent: u64,
     ) -> StreamingStats {
-        let cur_time_ms = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_else(|_| {
-                #[cfg(feature = "tracing")]
-                tracing::warn!("System time was before unix epoch");
-                Duration::default()
-            })
-            .as_millis() as u64;
-
-        let elapsed_secs = (cur_time_ms.saturating_sub(start_time_ms) as f64) / 1000.0;
+        let elapsed_secs = start_time.elapsed().as_secs_f64();
 
         StreamingStats {
             elapsed_secs,
@@ -182,6 +173,31 @@ impl U64Signal {
 
     pub fn get(&self) -> u64 {
         self.0.load(Ordering::Relaxed)
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct AtomicInstant {
+    init_instant: Instant,
+    offset_ns: AtomicU64,
+}
+
+impl AtomicInstant {
+    pub fn new(init: Instant) -> AtomicInstant {
+        AtomicInstant {
+            init_instant: init,
+            offset_ns: AtomicU64::new(0)
+        }
+    }
+
+    pub fn get(&self) -> Instant {
+        self.init_instant + Duration::from_nanos(self.offset_ns.load(Ordering::Relaxed))
+    }
+
+    pub fn set(&self, val: Instant) {
+        let duration_since = val.duration_since(self.init_instant);
+        let new_offset_ns = duration_since.as_nanos() as u64;
+        self.offset_ns.store(new_offset_ns, Ordering::Relaxed);
     }
 }
 
@@ -239,14 +255,14 @@ impl BackupMetrics {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub(crate) struct CheckpointMetrics {
     pub checkpoint_count: U64Counter,
     pub failed_checkpoint_count: U64Counter,
     pub checkpoint_timer_reached_cnt: U64Counter,
     pub checkpoint_manually_reached_cnt: U64Counter,
 
-    checkpoint_start_time_epoch_ms: AtomicU64,
+    checkpoint_start_time: AtomicInstant,
     pub cur_messages_sent: U64Counter,
     pub cur_bytes_sent: U64Counter,
 }
@@ -262,7 +278,7 @@ impl CheckpointMetrics {
         let cur_bytes_sent = self.cur_bytes_sent.get();
 
         let stats = StreamingStats::calculate(
-            self.checkpoint_start_time_epoch_ms.load(Ordering::Relaxed),
+            self.checkpoint_start_time.get(),
             cur_messages_sent,
             cur_bytes_sent,
         );
@@ -284,17 +300,21 @@ impl CheckpointMetrics {
         self.checkpoint_count.increment();
         self.cur_bytes_sent.reset();
         self.cur_messages_sent.reset();
-        self.checkpoint_start_time_epoch_ms.store(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_else(|_| {
-                    #[cfg(feature = "tracing")]
-                    tracing::warn!("System time was before unix epoch");
-                    Duration::default()
-                })
-                .as_millis() as u64,
-            Ordering::Relaxed,
-        );
+        self.checkpoint_start_time.set(Instant::now());
+    }
+}
+
+impl Default for CheckpointMetrics {
+    fn default() -> CheckpointMetrics {
+        CheckpointMetrics {
+            checkpoint_count: U64Counter::default(),
+            failed_checkpoint_count: U64Counter::default(),
+            checkpoint_timer_reached_cnt: U64Counter::default(),
+            checkpoint_manually_reached_cnt: U64Counter::default(),
+            checkpoint_start_time: AtomicInstant::new(Instant::now()),
+            cur_messages_sent: U64Counter::default(),
+            cur_bytes_sent: U64Counter::default(),
+        }
     }
 }
 
@@ -302,9 +322,9 @@ impl CheckpointMetrics {
 ///
 /// This struct is managed internally and users should never need to create this,
 /// instead using the [crate::SiftStreamBuilder]
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct SiftStreamMetrics {
-    creation_time_epoch_ms: u64,
+    creation_time: Instant,
     pub(crate) loaded_flows: U64Counter,
     pub(crate) unique_flows_received: U64Counter,
     pub(crate) messages_received: U64Counter,
@@ -321,14 +341,7 @@ impl SiftStreamMetrics {
     /// never need to call this and should instead use [crate::SiftStreamBuilder]
     pub fn new() -> SiftStreamMetrics {
         SiftStreamMetrics {
-            creation_time_epoch_ms: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_else(|_| {
-                    #[cfg(feature = "tracing")]
-                    tracing::warn!("System time was before unix epoch");
-                    Duration::default()
-                })
-                .as_millis() as u64,
+            creation_time: Instant::now(),
             ..Default::default()
         }
     }
@@ -344,7 +357,7 @@ impl SiftStreamMetrics {
         let cur_retry_count = self.cur_retry_count.get();
 
         let stats =
-            StreamingStats::calculate(self.creation_time_epoch_ms, messages_sent, bytes_sent);
+            StreamingStats::calculate(self.creation_time, messages_sent, bytes_sent);
 
         SiftStreamMetricsSnapshot {
             elapsed_secs: stats.elapsed_secs,
@@ -363,13 +376,30 @@ impl SiftStreamMetrics {
     }
 
     pub(crate) fn get_checkpoint_stats(&self) -> StreamingStats {
-        let start_time_ms = self
+        let start_time = self
             .checkpoint
-            .checkpoint_start_time_epoch_ms
-            .load(Ordering::Relaxed);
+            .checkpoint_start_time
+            .get();
         let messages_sent = self.checkpoint.cur_messages_sent.0.load(Ordering::Relaxed);
         let bytes_sent = self.checkpoint.cur_bytes_sent.0.load(Ordering::Relaxed);
 
-        StreamingStats::calculate(start_time_ms, messages_sent, bytes_sent)
+        StreamingStats::calculate(start_time, messages_sent, bytes_sent)
+    }
+}
+
+impl Default for SiftStreamMetrics {
+    fn default() -> SiftStreamMetrics {
+        SiftStreamMetrics {
+            creation_time: Instant::now(),
+            loaded_flows: U64Counter::default(),
+            unique_flows_received: U64Counter::default(),
+            messages_received: U64Counter::default(),
+            messages_sent: U64Counter::default(),
+            bytes_sent: U64Counter::default(),
+            messages_sent_to_backup: U64Counter::default(),
+            cur_retry_count: U64Signal::default(),
+            checkpoint: CheckpointMetrics::default(),
+            backups: BackupMetrics::default(),
+        }
     }
 }
