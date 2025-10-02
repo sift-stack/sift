@@ -6,7 +6,7 @@ use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 pub fn test_error_formatting() {
     let inner_error = IoError::new(IoErrorKind::NotFound, "I am the root cause");
     let sift_error: Result<()> = Err(Error::new(ErrorKind::IoError, inner_error));
-    let actual = format!("{}", sift_error.unwrap_err());
+    let actual = format!("{}", sift_error.err().unwrap());
     let expected = indoc! {"
         [IoError]
 
