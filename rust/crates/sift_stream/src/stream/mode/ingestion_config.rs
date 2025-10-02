@@ -3,9 +3,13 @@ use super::super::{
 };
 use crate::{
     backup::disk::AsyncBackupsManager,
-    metrics::{SiftStreamMetrics, register_metrics},
+    metrics::SiftStreamMetrics,
     stream::run::{RunSelector, load_run_by_form, load_run_by_id},
 };
+
+#[cfg(feature = "metrics-unstable")]
+use crate::metrics::register_metrics;
+
 use futures_core::Stream;
 use prost::Message;
 use sift_connect::SiftChannel;
@@ -149,6 +153,7 @@ impl SiftStream<IngestionConfigMode> {
         let sift_stream_id = Uuid::new_v4();
 
         // Spawn a task to register metrics without blocking
+        #[cfg(feature = "metrics-unstable")]
         {
             let uuid = sift_stream_id.to_string();
             let metrics = metrics.clone();

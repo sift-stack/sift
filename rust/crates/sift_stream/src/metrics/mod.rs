@@ -1,4 +1,6 @@
 mod server;
+
+#[cfg(feature = "metrics-unstable")]
 pub(crate) use server::register_metrics;
 
 #[cfg(feature = "metrics-unstable")]

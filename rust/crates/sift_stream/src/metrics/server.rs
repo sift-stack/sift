@@ -9,9 +9,11 @@ use tokio::sync::RwLock;
 #[cfg(feature = "metrics-unstable")]
 use std::net::SocketAddr;
 
+#[cfg(feature = "metrics-unstable")]
 static METRICS: LazyLock<RwLock<HashMap<String, Arc<SiftStreamMetrics>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
+#[cfg(feature = "metrics-unstable")]
 pub(crate) async fn register_metrics(uuid: String, metrics: Arc<SiftStreamMetrics>) {
     let mut global_metrics_guard = METRICS.write().await;
     global_metrics_guard.insert(uuid, metrics);
@@ -31,6 +33,7 @@ pub struct MetricsServerBuilder {
     socket_addr: SocketAddr,
 }
 
+#[cfg(feature = "metrics-unstable")]
 impl MetricsServerBuilder {
     /// Create a new MetricsServerBuilder, with a default address of 127.0.0.1:8080
     pub fn new() -> MetricsServerBuilder {
@@ -125,6 +128,7 @@ impl MetricsServerBuilder {
     }
 }
 
+#[cfg(feature = "metrics-unstable")]
 impl Default for MetricsServerBuilder {
     fn default() -> Self {
         Self::new()
