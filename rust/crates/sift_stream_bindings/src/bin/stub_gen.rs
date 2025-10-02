@@ -25,16 +25,17 @@ fn extract_exported_classes() -> Result<Vec<String>> {
     // Look for lines containing m.add_class::<...>
     for line in lib_content.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with("m.add_class::<") && trimmed.ends_with(">()?;") {
-            // Extract the part between ::< and >
-            if let Some(start) = trimmed.find("::<") {
-                if let Some(end) = trimmed.find(">()?;") {
-                    let class_path = &trimmed[start + 3..end];
-                    // Get the last part after the final ::
-                    let class_name = class_path.split("::").last().unwrap_or(class_path);
-                    classes.push(class_name.to_string());
-                }
-            }
+
+        // Extract the part between ::< and >
+        if trimmed.starts_with("m.add_class::<")
+            && trimmed.ends_with(">()?;")
+            && let Some(start) = trimmed.find("::<")
+            && let Some(end) = trimmed.find(">()?;")
+        {
+            let class_path = &trimmed[start + 3..end];
+            // Get the last part after the final ::
+            let class_name = class_path.split("::").last().unwrap_or(class_path);
+            classes.push(class_name.to_string());
         }
     }
 
