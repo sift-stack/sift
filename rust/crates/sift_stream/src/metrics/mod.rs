@@ -186,7 +186,7 @@ impl AtomicInstant {
     pub fn new(init: Instant) -> AtomicInstant {
         AtomicInstant {
             init_instant: init,
-            offset_ns: AtomicU64::new(0)
+            offset_ns: AtomicU64::new(0),
         }
     }
 
@@ -356,8 +356,7 @@ impl SiftStreamMetrics {
         let messages_sent_to_backup = self.messages_sent_to_backup.get();
         let cur_retry_count = self.cur_retry_count.get();
 
-        let stats =
-            StreamingStats::calculate(self.creation_time, messages_sent, bytes_sent);
+        let stats = StreamingStats::calculate(self.creation_time, messages_sent, bytes_sent);
 
         SiftStreamMetricsSnapshot {
             elapsed_secs: stats.elapsed_secs,
@@ -376,10 +375,7 @@ impl SiftStreamMetrics {
     }
 
     pub(crate) fn get_checkpoint_stats(&self) -> StreamingStats {
-        let start_time = self
-            .checkpoint
-            .checkpoint_start_time
-            .get();
+        let start_time = self.checkpoint.checkpoint_start_time.get();
         let messages_sent = self.checkpoint.cur_messages_sent.0.load(Ordering::Relaxed);
         let bytes_sent = self.checkpoint.cur_bytes_sent.0.load(Ordering::Relaxed);
 

@@ -6,8 +6,7 @@ use sift_rs::{
 use sift_stream::backup::DiskBackupPolicy;
 use sift_stream::{
     ChannelValue, Flow, IngestionConfigForm, IngestionConfigMode, RecoveryStrategy, RetryPolicy,
-    SiftStream, SiftStreamBuilder, TimeValue,
-    metrics::SiftStreamMetrics
+    SiftStream, SiftStreamBuilder, TimeValue, metrics::SiftStreamMetrics,
 };
 use std::{
     sync::{
