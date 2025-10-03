@@ -40,6 +40,9 @@ class RestConfig:
             cert_via_openssl: Whether to use OpenSSL for SSL/TLS.
             retry: The retry configuration for requests.
         """
+        if not base_url.startswith("http"):
+            # urljoin (used when executing requests) requires URL starting with http or https
+            base_url = f"https://{base_url}" if use_ssl else f"http://{base_url}"
         self.base_url = base_url
         self.api_key = api_key
         self.use_ssl = use_ssl
@@ -116,6 +119,8 @@ class RestClient:
         **kwargs,
     ) -> requests.Response:
         full_url = urljoin(self.base_url, endpoint)
+        print(f"base_url: {self.base_url}")
+        print(f"Executing {method} request to {full_url}")
         return self._client._session.request(method, full_url, headers=headers, data=data, **kwargs)
 
     def get(self, endpoint: str, headers: dict | None = None, **kwargs) -> requests.Response:

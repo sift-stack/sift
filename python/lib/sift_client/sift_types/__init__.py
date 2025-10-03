@@ -21,6 +21,16 @@ from sift_client.sift_types.rule import (
     RuleVersion,
 )
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
+from sift_client.sift_types.test_report import (
+    TestMeasurementCreate,
+    TestMeasurementType,
+    TestReport,
+    TestReportCreate,
+    TestReportUpdate,
+    TestStatus,
+    TestStepCreate,
+    TestStepType,
+)
 
 __all__ = [
     "Asset",
@@ -45,4 +55,12 @@ __all__ = [
     "Run",
     "RunCreate",
     "RunUpdate",
+    "TestMeasurementCreate",
+    "TestMeasurementType",
+    "TestReport",
+    "TestReportCreate",
+    "TestReportUpdate",
+    "TestStatus",
+    "TestStepCreate",
+    "TestStepType",
 ]

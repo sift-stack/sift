@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -19,6 +20,20 @@ from sift_client.sift_types.calculated_channel import (
 from sift_client.sift_types.channel import Channel
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
+from sift_client.sift_types.test_report import (
+    TestMeasurement,
+    TestMeasurementCreate,
+    TestMeasurementType,
+    TestMeasurementUpdate,
+    TestReport,
+    TestReportCreate,
+    TestReportUpdate,
+    TestStatus,
+    TestStep,
+    TestStepCreate,
+    TestStepType,
+    TestStepUpdate,
+)
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
@@ -807,5 +822,308 @@ class RunsAPI:
 
         Returns:
             The updated Run.
+        """
+        ...
+
+class TestResultsAPI:
+    """Sync counterpart to `TestResultsAPIAsync`.
+
+    High-level API for interacting with test reports, steps, and measurements.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the TestResultsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive_report(self, *, test_report: str | TestReport) -> TestReport:
+        """Archive a test report.
+
+        Args:
+            test_report: The TestReport or test report ID to archive.
+        """
+        ...
+
+    def create_measurement(
+        self, test_measurement: TestMeasurementCreate | dict, update_step: bool = False
+    ) -> TestMeasurement:
+        """Create a new test measurement.
+
+        Args:
+            test_measurement: The test measurement to create (can be TestMeasurement or TestMeasurementCreate).
+            update_step: Whether to update the step to failed if the measurement is being created is failed.
+
+        Returns:
+            The created TestMeasurement.
+        """
+        ...
+
+    def create_measurements(
+        self, test_measurements: list[TestMeasurement | TestMeasurementCreate]
+    ) -> tuple[int, list[str]]:
+        """Create multiple test measurements in a single request.
+
+        Args:
+            test_measurements: The test measurements to create (can be TestMeasurement or TestMeasurementCreate).
+
+        Returns:
+            A tuple of (measurements_created_count, measurement_ids).
+        """
+        ...
+
+    def create_report(self, test_report: TestReportCreate | dict) -> TestReport:
+        """Create a new test report.
+
+        Args:
+            test_report: The test report to create (can be TestReport or TestReportCreate).
+
+        Returns:
+            The created TestReport.
+        """
+        ...
+
+    def create_step(self, test_step: TestStepCreate | dict) -> TestStep:
+        """Create a new test step.
+
+        Args:
+            test_step: The test step to create (can be TestStep or TestStepCreate).
+
+        Returns:
+            The created TestStep.
+        """
+        ...
+
+    def delete_measurement(self, *, test_measurement: str | TestMeasurement) -> None:
+        """Delete a test measurement.
+
+        Args:
+            test_measurement: The TestMeasurement or measurement ID to delete.
+        """
+        ...
+
+    def delete_report(self, *, test_report: str | TestReport) -> None:
+        """Delete a test report.
+
+        Args:
+            test_report: The TestReport or test report ID to delete.
+        """
+        ...
+
+    def delete_step(self, *, test_step: str | TestStep) -> None:
+        """Delete a test step.
+
+        Args:
+            test_step: The TestStep or test step ID to delete.
+        """
+        ...
+
+    def find_report(self, **kwargs) -> TestReport | None:
+        """Find a single test report matching the given query. Takes the same arguments as `list_`. If more than one test report is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_reports`.
+
+        Returns:
+            The TestReport found or None.
+        """
+        ...
+
+    def get_report(self, *, test_report_id: str) -> TestReport:
+        """Get a TestReport.
+
+        Args:
+            test_report_id: The ID of the test report.
+
+        Returns:
+            The TestReport.
+        """
+        ...
+
+    def get_step(self, test_step_id: str) -> TestStep:
+        """Get a TestStep.
+
+        Args:
+            test_step_id: The ID of the test step.
+        """
+        ...
+
+    def import_test_report(self, test_file: str | Path) -> TestReport:
+        """Import a test report from an already-uploaded file.
+
+        Args:
+            test_file: The path to the test report file to import.
+
+        Returns:
+            The imported TestReport.
+        """
+        ...
+
+    def list_measurements(
+        self,
+        *,
+        measurement_id: str | None = None,
+        test_step_id: str | None = None,
+        test_report_id: str | None = None,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        measurement_type: TestMeasurementType | None = None,
+        passed: bool | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[TestMeasurement]:
+        """List test measurements with optional filtering.
+
+        Args:
+            measurement_id: Measurement ID to filter by.
+            test_step_id: Test step ID to filter by.
+            test_report_id: Test report ID to filter by.
+            name: Exact name of the test measurement.
+            name_contains: Partial name of the test measurement.
+            name_regex: Regular expression string to filter test measurements by name.
+            measurement_type: Measurement type to filter by (TestMeasurementType enum).
+            passed: Whether the measurement passed.
+            order_by: How to order the retrieved test measurements.
+            limit: How many test measurements to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of TestMeasurements that matches the filter.
+        """
+        ...
+
+    def list_reports(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        test_report_ids: list[str] | None = None,
+        status: TestStatus | None = None,
+        test_system_name: str | None = None,
+        test_case: str | None = None,
+        serial_number: str | None = None,
+        part_number: str | None = None,
+        system_operator: str | None = None,
+        created_by_user_id: str | None = None,
+        modified_by_user_id: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        metadata: list[Any] | dict[str, Any] | None = None,
+        include_archived: bool = False,
+        custom_filter: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[TestReport]:
+        """List test reports with optional filtering.
+
+        Args:
+            name: Exact name of the test report.
+            name_contains: Partial name of the test report.
+            name_regex: Regular expression string to filter test reports by name.
+            test_report_ids: Test report IDs to filter by.
+            status: Status to filter by (TestStatus enum).
+            test_system_name: Test system name to filter by.
+            test_case: Test case to filter by.
+            serial_number: Serial number to filter by.
+            part_number: Part number to filter by.
+            system_operator: System operator to filter by.
+            created_by_user_id: User ID who created the test report.
+            modified_by_user_id: User ID who last modified the test report.
+            created_after: Filter test reports created after this datetime.
+            created_before: Filter test reports created before this datetime.
+            modified_after: Filter test reports modified after this datetime.
+            modified_before: Filter test reports modified before this datetime.
+            metadata: Filter test reports by metadata criteria.
+            include_archived: Whether to include only archived or non-archived reports.
+            custom_filter: Custom filter to apply to the test reports.
+            order_by: How to order the retrieved test reports. If used, this will override the other filters.
+            limit: How many test reports to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of TestReports that matches the filter.
+        """
+        ...
+
+    def list_steps(
+        self,
+        *,
+        test_step_id: str | None = None,
+        test_report_id: str | None = None,
+        parent_step_id: str | None = None,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        status: TestStatus | None = None,
+        step_type: TestStepType | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[TestStep]:
+        """List test steps with optional filtering.
+
+        Args:
+            test_step_id: Test step ID to filter by.
+            test_report_id: Test report ID to filter by.
+            parent_step_id: Parent step ID to filter by.
+            name: Exact name of the test step.
+            name_contains: Partial name of the test step.
+            name_regex: Regular expression string to filter test steps by name.
+            status: Status to filter by (TestStatus enum).
+            step_type: Step type to filter by (TestStepType enum).
+            order_by: How to order the retrieved test steps.
+            limit: How many test steps to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of TestSteps that matches the filter.
+        """
+        ...
+
+    def update_measurement(
+        self,
+        test_measurement: TestMeasurement,
+        update: TestMeasurementUpdate | dict,
+        update_step: bool = False,
+    ) -> TestMeasurement:
+        """Update a TestMeasurement.
+
+        Args:
+            test_measurement: The TestMeasurement or measurement ID to update.
+            update: Updates to apply to the TestMeasurement.
+            update_step: Whether to update the step to failed if the measurement is being updated to failed.
+
+        Returns:
+            The updated TestMeasurement.
+        """
+        ...
+
+    def update_report(
+        self, test_report: str | TestReport, update: TestReportUpdate | dict
+    ) -> TestReport:
+        """Update a TestReport.
+
+        Args:
+            test_report: The TestReport or test report ID to update.
+            update: Updates to apply to the TestReport.
+
+        Returns:
+            The updated TestReport.
+        """
+        ...
+
+    def update_step(self, test_step: str | TestStep, update: TestStepUpdate | dict) -> TestStep:
+        """Update a TestStep.
+
+        Args:
+            test_step: The TestStep or test step ID to update.
+            update: Updates to apply to the TestStep.
+
+        Returns:
+            The updated TestStep.
         """
         ...

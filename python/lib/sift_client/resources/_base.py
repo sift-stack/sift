@@ -90,6 +90,23 @@ class ResourceBase(ABC):
                 raise NotImplementedError
         return filter_parts
 
+    def _build_metadata_cel_filters(
+        self, metadata: list[Any] | dict[str, Any] | None = None
+    ) -> list[str]:
+        filter_parts = []
+        if metadata:
+            if isinstance(metadata, list):
+                raise NotImplementedError
+            if isinstance(metadata, dict):
+                for key, value in metadata.items():
+                    cast_value = value
+                    if isinstance(value, str):
+                        cast_value = f"'{value}'"
+                    elif isinstance(value, (int, float)):
+                        cast_value = f"double({value})"
+                    filter_parts.append(cel.equals(f"metadata[{key}]", cast_value))
+        return filter_parts
+
     def _build_tags_metadata_cel_filters(
         self, tags: list[Any] | list[str] | None = None, metadata: list[Any] | None = None
     ) -> list[str]:
@@ -100,11 +117,12 @@ class ResourceBase(ABC):
             else:
                 raise NotImplementedError
         if metadata:
-            raise NotImplementedError
+            filter_parts.extend(self._build_metadata_cel_filters(metadata))
         return filter_parts
 
     def _build_common_cel_filters(
         self,
+        *,
         description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
