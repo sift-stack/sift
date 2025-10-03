@@ -10,7 +10,6 @@ import "sift/common/type/v1/user.proto";
 import "sift/user_groups/v2/user_groups.proto";
 
 
-
 service ExternalSyncService {
   rpc SyncOrganization(SyncOrganizationRequest) returns (SyncOrganizationResponse) {
     option (google.api.http) = {

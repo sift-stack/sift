@@ -11,7 +11,6 @@ import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
 import "sift/metadata/v1/metadata.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Channel service"}
 };

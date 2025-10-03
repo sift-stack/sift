@@ -10,7 +10,6 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
 
-
 service WebhookService {
   // Retrieve a webhook by ID.
   rpc GetWebhook(GetWebhookRequest) returns (GetWebhookResponse) {

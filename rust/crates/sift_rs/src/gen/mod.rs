@@ -199,13 +199,6 @@ pub mod sift {
             // @@protoc_insertion_point(sift.options.v1)
         }
     }
-    pub mod panel_configurations {
-        // @@protoc_insertion_point(attribute:sift.panel_configurations.v1)
-        pub mod v1 {
-            include!("sift.panel_configurations.v1.rs");
-            // @@protoc_insertion_point(sift.panel_configurations.v1)
-        }
-    }
     pub mod ping {
         // @@protoc_insertion_point(attribute:sift.ping.v1)
         pub mod v1 {

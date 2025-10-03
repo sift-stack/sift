@@ -13,7 +13,6 @@ import "sift/metadata/v1/metadata.proto";
 import "sift/rules/v1/rules.proto";
 
 
-
 service UserDefinedFunctionService {
   // Retrieve the latest version of a user defined function
   rpc GetUserDefinedFunction(GetUserDefinedFunctionRequest) returns (GetUserDefinedFunctionResponse) {

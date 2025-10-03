@@ -24,11 +24,6 @@ class ChannelServiceStub(object):
                 request_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsRequest.SerializeToString,
                 response_deserializer=sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsResponse.FromString,
                 )
-        self.FilterChannels = channel.unary_unary(
-                '/sift.channels.v3.ChannelService/FilterChannels',
-                request_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.FilterChannelsRequest.SerializeToString,
-                response_deserializer=sift_dot_channels_dot_v3_dot_channels__pb2.FilterChannelsResponse.FromString,
-                )
         self.UpdateChannel = channel.unary_unary(
                 '/sift.channels.v3.ChannelService/UpdateChannel',
                 request_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.UpdateChannelRequest.SerializeToString,
@@ -53,15 +48,10 @@ class ChannelServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def FilterChannels(self, request, context):
-        """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def UpdateChannel(self, request, context):
-        """Update a channel
+        """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
+
+        Update a channel
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -79,11 +69,6 @@ def add_ChannelServiceServicer_to_server(servicer, server):
                     servicer.ListChannels,
                     request_deserializer=sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsRequest.FromString,
                     response_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsResponse.SerializeToString,
-            ),
-            'FilterChannels': grpc.unary_unary_rpc_method_handler(
-                    servicer.FilterChannels,
-                    request_deserializer=sift_dot_channels_dot_v3_dot_channels__pb2.FilterChannelsRequest.FromString,
-                    response_serializer=sift_dot_channels_dot_v3_dot_channels__pb2.FilterChannelsResponse.SerializeToString,
             ),
             'UpdateChannel': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateChannel,
@@ -131,23 +116,6 @@ class ChannelService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.channels.v3.ChannelService/ListChannels',
             sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsRequest.SerializeToString,
             sift_dot_channels_dot_v3_dot_channels__pb2.ListChannelsResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def FilterChannels(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift.channels.v3.ChannelService/FilterChannels',
-            sift_dot_channels_dot_v3_dot_channels__pb2.FilterChannelsRequest.SerializeToString,
-            sift_dot_channels_dot_v3_dot_channels__pb2.FilterChannelsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

@@ -12,7 +12,6 @@ import "sift/common/type/v1/resource_identifier.proto";
 import "sift/metadata/v1/metadata.proto";
 import "sift/tags/v1/tags.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Campaign service"}
 };

@@ -874,8 +874,6 @@ type ChannelServiceClient interface {
 	GetChannel(ctx context.Context, in *GetChannelRequest, opts ...grpc.CallOption) (*GetChannelResponse, error)
 	// Retrieve channels using an optional filter.
 	ListChannels(ctx context.Context, in *ListChannelsRequest, opts ...grpc.CallOption) (*ListChannelsResponse, error)
-	// EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
-	FilterChannels(ctx context.Context, in *FilterChannelsRequest, opts ...grpc.CallOption) (*FilterChannelsResponse, error)
 	// Update a channel
 	UpdateChannel(ctx context.Context, in *UpdateChannelRequest, opts ...grpc.CallOption) (*UpdateChannelResponse, error)
 }
@@ -906,15 +904,6 @@ func (c *channelServiceClient) ListChannels(ctx context.Context, in *ListChannel
 	return out, nil
 }
 
-func (c *channelServiceClient) FilterChannels(ctx context.Context, in *FilterChannelsRequest, opts ...grpc.CallOption) (*FilterChannelsResponse, error) {
-	out := new(FilterChannelsResponse)
-	err := c.cc.Invoke(ctx, "/sift.channels.v3.ChannelService/FilterChannels", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *channelServiceClient) UpdateChannel(ctx context.Context, in *UpdateChannelRequest, opts ...grpc.CallOption) (*UpdateChannelResponse, error) {
 	out := new(UpdateChannelResponse)
 	err := c.cc.Invoke(ctx, "/sift.channels.v3.ChannelService/UpdateChannel", in, out, opts...)
@@ -932,8 +921,6 @@ type ChannelServiceServer interface {
 	GetChannel(context.Context, *GetChannelRequest) (*GetChannelResponse, error)
 	// Retrieve channels using an optional filter.
 	ListChannels(context.Context, *ListChannelsRequest) (*ListChannelsResponse, error)
-	// EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
-	FilterChannels(context.Context, *FilterChannelsRequest) (*FilterChannelsResponse, error)
 	// Update a channel
 	UpdateChannel(context.Context, *UpdateChannelRequest) (*UpdateChannelResponse, error)
 	mustEmbedUnimplementedChannelServiceServer()
@@ -948,9 +935,6 @@ func (UnimplementedChannelServiceServer) GetChannel(context.Context, *GetChannel
 }
 func (UnimplementedChannelServiceServer) ListChannels(context.Context, *ListChannelsRequest) (*ListChannelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListChannels not implemented")
-}
-func (UnimplementedChannelServiceServer) FilterChannels(context.Context, *FilterChannelsRequest) (*FilterChannelsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FilterChannels not implemented")
 }
 func (UnimplementedChannelServiceServer) UpdateChannel(context.Context, *UpdateChannelRequest) (*UpdateChannelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateChannel not implemented")
@@ -1004,24 +988,6 @@ func _ChannelService_ListChannels_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChannelService_FilterChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FilterChannelsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ChannelServiceServer).FilterChannels(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sift.channels.v3.ChannelService/FilterChannels",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChannelServiceServer).FilterChannels(ctx, req.(*FilterChannelsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _ChannelService_UpdateChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateChannelRequest)
 	if err := dec(in); err != nil {
@@ -1054,10 +1020,6 @@ var ChannelService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListChannels",
 			Handler:    _ChannelService_ListChannels_Handler,
-		},
-		{
-			MethodName: "FilterChannels",
-			Handler:    _ChannelService_FilterChannels_Handler,
 		},
 		{
 			MethodName: "UpdateChannel",

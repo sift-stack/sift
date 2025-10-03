@@ -10,7 +10,6 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/user.proto";
 import "sift/metadata/v1/metadata.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Annotation Service"}
 };

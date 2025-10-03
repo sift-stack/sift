@@ -8,7 +8,6 @@ import "google/protobuf/timestamp.proto";
 import "sift/metadata/v1/metadata.proto";
 
 
-
 enum FunctionDataType {
   FUNCTION_DATA_TYPE_UNSPECIFIED = 0;
   FUNCTION_DATA_TYPE_NUMERIC = 1;

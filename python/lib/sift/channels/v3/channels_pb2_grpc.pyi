@@ -31,17 +31,14 @@ class ChannelServiceStub:
     ]
     """Retrieve channels using an optional filter."""
 
-    FilterChannels: grpc.UnaryUnaryMultiCallable[
-        sift.channels.v3.channels_pb2.FilterChannelsRequest,
-        sift.channels.v3.channels_pb2.FilterChannelsResponse,
-    ]
-    """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users."""
-
     UpdateChannel: grpc.UnaryUnaryMultiCallable[
         sift.channels.v3.channels_pb2.UpdateChannelRequest,
         sift.channels.v3.channels_pb2.UpdateChannelResponse,
     ]
-    """Update a channel"""
+    """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
+
+    Update a channel
+    """
 
 class ChannelServiceAsyncStub:
     GetChannel: grpc.aio.UnaryUnaryMultiCallable[
@@ -56,17 +53,14 @@ class ChannelServiceAsyncStub:
     ]
     """Retrieve channels using an optional filter."""
 
-    FilterChannels: grpc.aio.UnaryUnaryMultiCallable[
-        sift.channels.v3.channels_pb2.FilterChannelsRequest,
-        sift.channels.v3.channels_pb2.FilterChannelsResponse,
-    ]
-    """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users."""
-
     UpdateChannel: grpc.aio.UnaryUnaryMultiCallable[
         sift.channels.v3.channels_pb2.UpdateChannelRequest,
         sift.channels.v3.channels_pb2.UpdateChannelResponse,
     ]
-    """Update a channel"""
+    """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
+
+    Update a channel
+    """
 
 class ChannelServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -86,19 +80,14 @@ class ChannelServiceServicer(metaclass=abc.ABCMeta):
         """Retrieve channels using an optional filter."""
 
     @abc.abstractmethod
-    def FilterChannels(
-        self,
-        request: sift.channels.v3.channels_pb2.FilterChannelsRequest,
-        context: _ServicerContext,
-    ) -> typing.Union[sift.channels.v3.channels_pb2.FilterChannelsResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.FilterChannelsResponse]]:
-        """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users."""
-
-    @abc.abstractmethod
     def UpdateChannel(
         self,
         request: sift.channels.v3.channels_pb2.UpdateChannelRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.channels.v3.channels_pb2.UpdateChannelResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.UpdateChannelResponse]]:
-        """Update a channel"""
+        """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
+
+        Update a channel
+        """
 
 def add_ChannelServiceServicer_to_server(servicer: ChannelServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

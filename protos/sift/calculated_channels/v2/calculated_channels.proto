@@ -14,7 +14,6 @@ import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
 
 
-
 service CalculatedChannelService {
   // Retrieve the latest version of a calculated channel
   rpc GetCalculatedChannel(GetCalculatedChannelRequest) returns (GetCalculatedChannelResponse) {
