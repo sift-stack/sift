@@ -10,6 +10,7 @@ import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.exports.v1.exports_pb2
 import sys
 import typing
 
@@ -29,12 +30,14 @@ class _JobTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTy
     JOB_TYPE_UNSPECIFIED: _JobType.ValueType  # 0
     JOB_TYPE_RULE_EVALUATION: _JobType.ValueType  # 1
     JOB_TYPE_DATA_IMPORT: _JobType.ValueType  # 2
+    JOB_TYPE_DATA_EXPORT: _JobType.ValueType  # 3
 
 class JobType(_JobType, metaclass=_JobTypeEnumTypeWrapper): ...
 
 JOB_TYPE_UNSPECIFIED: JobType.ValueType  # 0
 JOB_TYPE_RULE_EVALUATION: JobType.ValueType  # 1
 JOB_TYPE_DATA_IMPORT: JobType.ValueType  # 2
+JOB_TYPE_DATA_EXPORT: JobType.ValueType  # 3
 global___JobType = JobType
 
 class _JobStatus:
@@ -76,6 +79,8 @@ class Job(google.protobuf.message.Message):
     COMPLETED_DATE_FIELD_NUMBER: builtins.int
     JOB_TYPE_FIELD_NUMBER: builtins.int
     JOB_STATUS_FIELD_NUMBER: builtins.int
+    JOB_STATUS_DETAILS_FIELD_NUMBER: builtins.int
+    JOB_DETAILS_FIELD_NUMBER: builtins.int
     job_id: builtins.str
     organization_id: builtins.str
     created_by_user_id: builtins.str
@@ -90,6 +95,10 @@ class Job(google.protobuf.message.Message):
     def started_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def completed_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def job_status_details(self) -> global___JobStatusDetails: ...
+    @property
+    def job_details(self) -> global___JobDetails: ...
     def __init__(
         self,
         *,
@@ -103,11 +112,158 @@ class Job(google.protobuf.message.Message):
         completed_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         job_type: global___JobType.ValueType = ...,
         job_status: global___JobStatus.ValueType = ...,
+        job_status_details: global___JobStatusDetails | None = ...,
+        job_details: global___JobDetails | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["completed_date", b"completed_date", "created_date", b"created_date", "modified_date", b"modified_date", "started_date", b"started_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["completed_date", b"completed_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "job_id", b"job_id", "job_status", b"job_status", "job_type", b"job_type", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "organization_id", b"organization_id", "started_date", b"started_date"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["completed_date", b"completed_date", "created_date", b"created_date", "job_details", b"job_details", "job_status_details", b"job_status_details", "modified_date", b"modified_date", "started_date", b"started_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["completed_date", b"completed_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "job_details", b"job_details", "job_id", b"job_id", "job_status", b"job_status", "job_status_details", b"job_status_details", "job_type", b"job_type", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "organization_id", b"organization_id", "started_date", b"started_date"]) -> None: ...
 
 global___Job = Job
+
+@typing.final
+class JobStatusDetails(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_EVALUATION_FIELD_NUMBER: builtins.int
+    DATA_IMPORT_FIELD_NUMBER: builtins.int
+    DATA_EXPORT_FIELD_NUMBER: builtins.int
+    @property
+    def rule_evaluation(self) -> global___RuleEvaluationStatusDetails: ...
+    @property
+    def data_import(self) -> global___DataImportStatusDetails: ...
+    @property
+    def data_export(self) -> global___DataExportStatusDetails: ...
+    def __init__(
+        self,
+        *,
+        rule_evaluation: global___RuleEvaluationStatusDetails | None = ...,
+        data_import: global___DataImportStatusDetails | None = ...,
+        data_export: global___DataExportStatusDetails | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["data_export", b"data_export", "data_import", b"data_import", "rule_evaluation", b"rule_evaluation", "status", b"status"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["data_export", b"data_export", "data_import", b"data_import", "rule_evaluation", b"rule_evaluation", "status", b"status"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["status", b"status"]) -> typing.Literal["rule_evaluation", "data_import", "data_export"] | None: ...
+
+global___JobStatusDetails = JobStatusDetails
+
+@typing.final
+class RuleEvaluationStatusDetails(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___RuleEvaluationStatusDetails = RuleEvaluationStatusDetails
+
+@typing.final
+class DataImportStatusDetails(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    POINTS_PROCESSED_FIELD_NUMBER: builtins.int
+    POINTS_TOTAL_FIELD_NUMBER: builtins.int
+    points_processed: builtins.int
+    points_total: builtins.int
+    def __init__(
+        self,
+        *,
+        points_processed: builtins.int = ...,
+        points_total: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["points_processed", b"points_processed", "points_total", b"points_total"]) -> None: ...
+
+global___DataImportStatusDetails = DataImportStatusDetails
+
+@typing.final
+class DataExportStatusDetails(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ERROR_MESSAGE_FIELD_NUMBER: builtins.int
+    error_message: builtins.str
+    def __init__(
+        self,
+        *,
+        error_message: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["error_message", b"error_message"]) -> None: ...
+
+global___DataExportStatusDetails = DataExportStatusDetails
+
+@typing.final
+class DataExportJobDetails(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REQUEST_FIELD_NUMBER: builtins.int
+    STORAGE_KEY_FIELD_NUMBER: builtins.int
+    storage_key: builtins.str
+    @property
+    def request(self) -> sift.exports.v1.exports_pb2.ExportDataRequest: ...
+    def __init__(
+        self,
+        *,
+        request: sift.exports.v1.exports_pb2.ExportDataRequest | None = ...,
+        storage_key: builtins.str = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["request", b"request"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["request", b"request", "storage_key", b"storage_key"]) -> None: ...
+
+global___DataExportJobDetails = DataExportJobDetails
+
+@typing.final
+class JobDetails(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RULE_EVALUATION_FIELD_NUMBER: builtins.int
+    DATA_IMPORT_FIELD_NUMBER: builtins.int
+    DATA_EXPORT_FIELD_NUMBER: builtins.int
+    @property
+    def rule_evaluation(self) -> global___RuleEvaluationJobDetails: ...
+    @property
+    def data_import(self) -> global___DataImportJobDetails: ...
+    @property
+    def data_export(self) -> global___DataExportJobDetails: ...
+    def __init__(
+        self,
+        *,
+        rule_evaluation: global___RuleEvaluationJobDetails | None = ...,
+        data_import: global___DataImportJobDetails | None = ...,
+        data_export: global___DataExportJobDetails | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["data_export", b"data_export", "data_import", b"data_import", "details", b"details", "rule_evaluation", b"rule_evaluation"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["data_export", b"data_export", "data_import", b"data_import", "details", b"details", "rule_evaluation", b"rule_evaluation"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["details", b"details"]) -> typing.Literal["rule_evaluation", "data_import", "data_export"] | None: ...
+
+global___JobDetails = JobDetails
+
+@typing.final
+class RuleEvaluationJobDetails(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    REPORT_ID_FIELD_NUMBER: builtins.int
+    report_id: builtins.str
+    def __init__(
+        self,
+        *,
+        report_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["report_id", b"report_id"]) -> None: ...
+
+global___RuleEvaluationJobDetails = RuleEvaluationJobDetails
+
+@typing.final
+class DataImportJobDetails(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    DATA_IMPORT_ID_FIELD_NUMBER: builtins.int
+    data_import_id: builtins.str
+    def __init__(
+        self,
+        *,
+        data_import_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["data_import_id", b"data_import_id"]) -> None: ...
+
+global___DataImportJobDetails = DataImportJobDetails
 
 @typing.final
 class ListJobsRequest(google.protobuf.message.Message):
@@ -132,7 +288,7 @@ class ListJobsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are:
-    `job_id`, `created_by_user_id`, `modified_by_user_id`, `created_date`, `modified_date`, `started_date`, `completed_date`
+    `job_id`, `created_by_user_id`, `modified_by_user_id`, `created_date`, `modified_date`, `started_date`, `completed_date`, and `job_status`
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to this definition. Optional.
     """
@@ -201,3 +357,35 @@ class CancelJobResponse(google.protobuf.message.Message):
     ) -> None: ...
 
 global___CancelJobResponse = CancelJobResponse
+
+@typing.final
+class RetryJobRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    JOB_ID_FIELD_NUMBER: builtins.int
+    job_id: builtins.str
+    def __init__(
+        self,
+        *,
+        job_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["job_id", b"job_id"]) -> None: ...
+
+global___RetryJobRequest = RetryJobRequest
+
+@typing.final
+class RetryJobResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    JOB_FIELD_NUMBER: builtins.int
+    @property
+    def job(self) -> global___Job: ...
+    def __init__(
+        self,
+        *,
+        job: global___Job | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["job", b"job"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["job", b"job"]) -> None: ...
+
+global___RetryJobResponse = RetryJobResponse

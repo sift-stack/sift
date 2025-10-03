@@ -19,17 +19,20 @@ class Role(google.protobuf.message.Message):
     ROLE_ID_FIELD_NUMBER: builtins.int
     NAME_FIELD_NUMBER: builtins.int
     DESCRIPTION_FIELD_NUMBER: builtins.int
+    ROLE_ORDER_FIELD_NUMBER: builtins.int
     role_id: builtins.str
     name: builtins.str
     description: builtins.str
+    role_order: builtins.int
     def __init__(
         self,
         *,
         role_id: builtins.str = ...,
         name: builtins.str = ...,
         description: builtins.str = ...,
+        role_order: builtins.int = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["description", b"description", "name", b"name", "role_id", b"role_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["description", b"description", "name", b"name", "role_id", b"role_id", "role_order", b"role_order"]) -> None: ...
 
 global___Role = Role
 
@@ -50,7 +53,6 @@ class ListRolesRequest(google.protobuf.message.Message):
     page_token: builtins.str
     """A page token, received from a previous `ListRoles` call.
     Provide this to retrieve the subsequent page.
-
     When paginating, all other parameters provided to `ListRoles` must match
     the call that provided the page token.
     """

@@ -53,8 +53,11 @@ class MetadataKey(google.protobuf.message.Message):
     NAME_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     name: builtins.str
     type: global___MetadataKeyType.ValueType
+    is_archived: builtins.bool
+    """Whether the metadata key is archived. This is inferred from whether archived_date is set."""
     @property
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
@@ -63,9 +66,10 @@ class MetadataKey(google.protobuf.message.Message):
         name: builtins.str = ...,
         type: global___MetadataKeyType.ValueType = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["archived_date", b"archived_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "name", b"name", "type", b"type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "is_archived", b"is_archived", "name", b"name", "type", b"type"]) -> None: ...
 
 global___MetadataKey = MetadataKey
 
@@ -78,9 +82,12 @@ class MetadataValue(google.protobuf.message.Message):
     NUMBER_VALUE_FIELD_NUMBER: builtins.int
     BOOLEAN_VALUE_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     string_value: builtins.str
     number_value: builtins.float
     boolean_value: builtins.bool
+    is_archived: builtins.bool
+    """Whether the metadata value is archived. This is inferred from whether archived_date is set."""
     @property
     def key(self) -> global___MetadataKey: ...
     @property
@@ -93,9 +100,10 @@ class MetadataValue(google.protobuf.message.Message):
         number_value: builtins.float = ...,
         boolean_value: builtins.bool = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "boolean_value", b"boolean_value", "is_archived", b"is_archived", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["value", b"value"]) -> typing.Literal["string_value", "number_value", "boolean_value"] | None: ...
 
 global___MetadataValue = MetadataValue
@@ -200,7 +208,7 @@ class ListMetadataKeysRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are:
-    `name`.
+    `name`, `archived_date`, and `is_archived`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to this definition. Optional.
     """
@@ -267,7 +275,7 @@ class ListMetadataValuesRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are:
-    `value_string`, `value_number`, and `value_boolean`.
+    `value_string`, `value_number`, `value_boolean`, `archived_date`, and `is_archived`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to this definition. Optional.
     """
