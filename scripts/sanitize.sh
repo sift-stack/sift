@@ -12,6 +12,12 @@ for file in $(find protos/sift -name "*.proto"); do
     continue
   fi
 
+  # Remove entire files marked with unstable_file option
+  if grep -q "option.*sift\.options\.v1\.unstable_file.*=.*true" "$file"; then
+    rm "$file"
+    continue
+  fi
+
   # Remove messages marked as unstable
   awk '/^message/{p=$0;next} /option.*unstable_message.*true/{printf "/%s/,/^}/d\n", p}' "$file" | sed -i.bak -f - "$file" && rm -f "$file.bak"
 
