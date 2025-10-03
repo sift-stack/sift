@@ -142,7 +142,7 @@ class ListChannelsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `channel_id`, `asset_id`, `name`, `description`, `active`,
-    `run_id`, `run_name`, `run_client_key`, `created_date`, and `modified_date`.
+    `run_id`, `run_name`, `run_client_key`, `created_date`, `modified_date`, `created_by_user_id`, and `modified_by_user_id`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
     """
@@ -185,6 +185,159 @@ class ListChannelsResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["channels", b"channels", "next_page_token", b"next_page_token"]) -> None: ...
 
 global___ListChannelsResponse = ListChannelsResponse
+
+@typing.final
+class FilterChannel(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNEL_ID_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    ORGANIZATION_ID_FIELD_NUMBER: builtins.int
+    ASSET_ID_FIELD_NUMBER: builtins.int
+    ASSET_NAME_FIELD_NUMBER: builtins.int
+    DESCRIPTION_FIELD_NUMBER: builtins.int
+    DISPLAY_DESCRIPTION_FIELD_NUMBER: builtins.int
+    UNIT_ID_FIELD_NUMBER: builtins.int
+    DISPLAY_UNIT_ID_FIELD_NUMBER: builtins.int
+    UNIT_FIELD_NUMBER: builtins.int
+    DISPLAY_UNIT_FIELD_NUMBER: builtins.int
+    DATA_TYPE_FIELD_NUMBER: builtins.int
+    ENUM_TYPES_FIELD_NUMBER: builtins.int
+    BIT_FIELD_ELEMENTS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
+    channel_id: builtins.str
+    name: builtins.str
+    organization_id: builtins.str
+    asset_id: builtins.str
+    asset_name: builtins.str
+    description: builtins.str
+    display_description: builtins.str
+    unit_id: builtins.str
+    display_unit_id: builtins.str
+    unit: builtins.str
+    display_unit: builtins.str
+    data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType
+    @property
+    def enum_types(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.channel_enum_type_pb2.ChannelEnumType]: ...
+    @property
+    def bit_field_elements(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.channel_bit_field_element_pb2.ChannelBitFieldElement]: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
+    def __init__(
+        self,
+        *,
+        channel_id: builtins.str = ...,
+        name: builtins.str = ...,
+        organization_id: builtins.str = ...,
+        asset_id: builtins.str = ...,
+        asset_name: builtins.str = ...,
+        description: builtins.str = ...,
+        display_description: builtins.str = ...,
+        unit_id: builtins.str = ...,
+        display_unit_id: builtins.str = ...,
+        unit: builtins.str = ...,
+        display_unit: builtins.str = ...,
+        data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType = ...,
+        enum_types: collections.abc.Iterable[sift.common.type.v1.channel_enum_type_pb2.ChannelEnumType] | None = ...,
+        bit_field_elements: collections.abc.Iterable[sift.common.type.v1.channel_bit_field_element_pb2.ChannelBitFieldElement] | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "asset_name", b"asset_name", "bit_field_elements", b"bit_field_elements", "channel_id", b"channel_id", "data_type", b"data_type", "description", b"description", "display_description", b"display_description", "display_unit", b"display_unit", "display_unit_id", b"display_unit_id", "enum_types", b"enum_types", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "unit", b"unit", "unit_id", b"unit_id"]) -> None: ...
+
+global___FilterChannel = FilterChannel
+
+@typing.final
+class FilterChannelsRequest(google.protobuf.message.Message):
+    """The request for a call to ChannelService_FilterChannels."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PAGE_SIZE_FIELD_NUMBER: builtins.int
+    PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    SEARCH_TERM_FIELD_NUMBER: builtins.int
+    IS_SEARCH_CASE_SENSITIVE_FIELD_NUMBER: builtins.int
+    IS_SEARCH_REGEXP_FIELD_NUMBER: builtins.int
+    ASSET_IDS_FIELD_NUMBER: builtins.int
+    RUN_IDS_FIELD_NUMBER: builtins.int
+    CHANNEL_IDS_FIELD_NUMBER: builtins.int
+    ASSET_TAG_IDS_FIELD_NUMBER: builtins.int
+    DATA_TYPES_FIELD_NUMBER: builtins.int
+    METADATA_KEYS_FIELD_NUMBER: builtins.int
+    METADATA_VALUES_FIELD_NUMBER: builtins.int
+    page_size: builtins.int
+    page_token: builtins.str
+    search_term: builtins.str
+    """The search term to match against channel names, components and descriptions. Optional."""
+    is_search_case_sensitive: builtins.bool
+    """If true, the search term is case sensitive. Optional, default false."""
+    is_search_regexp: builtins.bool
+    """If true, the search term is treated as a regular expression. Optional, default false."""
+    @property
+    def asset_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """If provided, only channels matching these asset_ids are returned. Optional"""
+
+    @property
+    def run_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Only channels for these runs are returned. Optional"""
+
+    @property
+    def channel_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """If provided, only channels matching these channel_ids are returned. Optional"""
+
+    @property
+    def asset_tag_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """If provided, only channels with assets with these tag_ids are returned. Optional"""
+
+    @property
+    def data_types(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType]:
+        """If provide, only channels with these data types are returned. Optional."""
+
+    @property
+    def metadata_keys(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """If provided, only channels with this metadata are returned. Optional."""
+
+    @property
+    def metadata_values(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
+    def __init__(
+        self,
+        *,
+        page_size: builtins.int = ...,
+        page_token: builtins.str = ...,
+        search_term: builtins.str = ...,
+        is_search_case_sensitive: builtins.bool = ...,
+        is_search_regexp: builtins.bool = ...,
+        asset_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        run_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        channel_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        asset_tag_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        data_types: collections.abc.Iterable[sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType] | None = ...,
+        metadata_keys: collections.abc.Iterable[builtins.str] | None = ...,
+        metadata_values: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_ids", b"asset_ids", "asset_tag_ids", b"asset_tag_ids", "channel_ids", b"channel_ids", "data_types", b"data_types", "is_search_case_sensitive", b"is_search_case_sensitive", "is_search_regexp", b"is_search_regexp", "metadata_keys", b"metadata_keys", "metadata_values", b"metadata_values", "page_size", b"page_size", "page_token", b"page_token", "run_ids", b"run_ids", "search_term", b"search_term"]) -> None: ...
+
+global___FilterChannelsRequest = FilterChannelsRequest
+
+@typing.final
+class FilterChannelsResponse(google.protobuf.message.Message):
+    """The result of a call to ChannelService_FilterChannels."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CHANNELS_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
+    @property
+    def channels(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___FilterChannel]: ...
+    def __init__(
+        self,
+        *,
+        channels: collections.abc.Iterable[global___FilterChannel] | None = ...,
+        next_page_token: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channels", b"channels", "next_page_token", b"next_page_token"]) -> None: ...
+
+global___FilterChannelsResponse = FilterChannelsResponse
 
 @typing.final
 class UpdateChannelRequest(google.protobuf.message.Message):

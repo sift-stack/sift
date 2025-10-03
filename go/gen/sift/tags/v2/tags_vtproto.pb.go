@@ -89,6 +89,7 @@ func (m *ListTagsRequest) CloneVT() *ListTagsRequest {
 	r.PageToken = m.PageToken
 	r.Filter = m.Filter
 	r.OrderBy = m.OrderBy
+	r.TagType = m.TagType
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -206,6 +207,9 @@ func (this *ListTagsRequest) EqualVT(that *ListTagsRequest) bool {
 		return false
 	}
 	if this.OrderBy != that.OrderBy {
+		return false
+	}
+	if this.TagType != that.TagType {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -563,6 +567,11 @@ func (m *ListTagsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.TagType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TagType))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.OrderBy) > 0 {
 		i -= len(m.OrderBy)
 		copy(dAtA[i:], m.OrderBy)
@@ -821,6 +830,11 @@ func (m *ListTagsRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.TagType != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TagType))
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.OrderBy) > 0 {
 		i -= len(m.OrderBy)
 		copy(dAtA[i:], m.OrderBy)
@@ -976,6 +990,9 @@ func (m *ListTagsRequest) SizeVT() (n int) {
 	l = len(m.OrderBy)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.TagType != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.TagType))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1498,6 +1515,25 @@ func (m *ListTagsRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.OrderBy = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TagType", wireType)
+			}
+			m.TagType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TagType |= TagType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -2162,6 +2198,25 @@ func (m *ListTagsRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.OrderBy = stringValue
 			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TagType", wireType)
+			}
+			m.TagType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TagType |= TagType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

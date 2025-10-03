@@ -31,6 +31,12 @@ class ChannelServiceStub:
     ]
     """Retrieve channels using an optional filter."""
 
+    FilterChannels: grpc.UnaryUnaryMultiCallable[
+        sift.channels.v3.channels_pb2.FilterChannelsRequest,
+        sift.channels.v3.channels_pb2.FilterChannelsResponse,
+    ]
+    """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users."""
+
     UpdateChannel: grpc.UnaryUnaryMultiCallable[
         sift.channels.v3.channels_pb2.UpdateChannelRequest,
         sift.channels.v3.channels_pb2.UpdateChannelResponse,
@@ -49,6 +55,12 @@ class ChannelServiceAsyncStub:
         sift.channels.v3.channels_pb2.ListChannelsResponse,
     ]
     """Retrieve channels using an optional filter."""
+
+    FilterChannels: grpc.aio.UnaryUnaryMultiCallable[
+        sift.channels.v3.channels_pb2.FilterChannelsRequest,
+        sift.channels.v3.channels_pb2.FilterChannelsResponse,
+    ]
+    """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users."""
 
     UpdateChannel: grpc.aio.UnaryUnaryMultiCallable[
         sift.channels.v3.channels_pb2.UpdateChannelRequest,
@@ -72,6 +84,14 @@ class ChannelServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.channels.v3.channels_pb2.ListChannelsResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.ListChannelsResponse]]:
         """Retrieve channels using an optional filter."""
+
+    @abc.abstractmethod
+    def FilterChannels(
+        self,
+        request: sift.channels.v3.channels_pb2.FilterChannelsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.channels.v3.channels_pb2.FilterChannelsResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.FilterChannelsResponse]]:
+        """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users."""
 
     @abc.abstractmethod
     def UpdateChannel(

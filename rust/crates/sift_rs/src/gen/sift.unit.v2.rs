@@ -28,6 +28,18 @@ pub struct ListUnitsResponse {
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateUnitRequest {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateUnitResponse {
+    #[prost(message, optional, tag="1")]
+    pub unit: ::core::option::Option<Unit>,
+}
 include!("sift.unit.v2.tonic.rs");
 include!("sift.unit.v2.serde.rs");
 // @@protoc_insertion_point(module)

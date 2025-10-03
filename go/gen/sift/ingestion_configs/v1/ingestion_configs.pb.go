@@ -332,7 +332,7 @@ func (x *GetIngestionConfigResponse) GetIngestionConfig() *IngestionConfig {
 	return nil
 }
 
-// The request for a call to `IngestionConfigService_ListIngestionConfigs` to retrieve ingestion configs.
+// The request for a call to `IngestionConfigService_CreateIngestionConfig` to create an ingestion configs.
 type CreateIngestionConfigRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

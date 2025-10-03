@@ -1051,6 +1051,9 @@ impl serde::Serialize for ReportTemplate {
         if !self.metadata.is_empty() {
             len += 1;
         }
+        if self.is_archived {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.report_templates.v1.ReportTemplate", len)?;
         if !self.report_template_id.is_empty() {
             struct_ser.serialize_field("reportTemplateId", &self.report_template_id)?;
@@ -1091,6 +1094,9 @@ impl serde::Serialize for ReportTemplate {
         if !self.metadata.is_empty() {
             struct_ser.serialize_field("metadata", &self.metadata)?;
         }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
+        }
         struct_ser.end()
     }
 }
@@ -1122,6 +1128,8 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
             "rules",
             "tags",
             "metadata",
+            "is_archived",
+            "isArchived",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1139,6 +1147,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
             Rules,
             Tags,
             Metadata,
+            IsArchived,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1173,6 +1182,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
                             "rules" => Ok(GeneratedField::Rules),
                             "tags" => Ok(GeneratedField::Tags),
                             "metadata" => Ok(GeneratedField::Metadata),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1205,6 +1215,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
                 let mut rules__ = None;
                 let mut tags__ = None;
                 let mut metadata__ = None;
+                let mut is_archived__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ReportTemplateId => {
@@ -1285,6 +1296,12 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
                             }
                             metadata__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ReportTemplate {
@@ -1301,6 +1318,7 @@ impl<'de> serde::Deserialize<'de> for ReportTemplate {
                     rules: rules__.unwrap_or_default(),
                     tags: tags__.unwrap_or_default(),
                     metadata: metadata__.unwrap_or_default(),
+                    is_archived: is_archived__.unwrap_or_default(),
                 })
             }
         }

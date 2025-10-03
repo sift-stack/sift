@@ -24,6 +24,11 @@ class JobServiceStub(object):
                 request_serializer=sift_dot_jobs_dot_v1_dot_jobs__pb2.CancelJobRequest.SerializeToString,
                 response_deserializer=sift_dot_jobs_dot_v1_dot_jobs__pb2.CancelJobResponse.FromString,
                 )
+        self.RetryJob = channel.unary_unary(
+                '/sift.jobs.v1.JobService/RetryJob',
+                request_serializer=sift_dot_jobs_dot_v1_dot_jobs__pb2.RetryJobRequest.SerializeToString,
+                response_deserializer=sift_dot_jobs_dot_v1_dot_jobs__pb2.RetryJobResponse.FromString,
+                )
 
 
 class JobServiceServicer(object):
@@ -45,6 +50,14 @@ class JobServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def RetryJob(self, request, context):
+        """Requests a retry of a job.
+        Jobs that are finished, in progress or in the process of being cancelled are not affected.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_JobServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -57,6 +70,11 @@ def add_JobServiceServicer_to_server(servicer, server):
                     servicer.CancelJob,
                     request_deserializer=sift_dot_jobs_dot_v1_dot_jobs__pb2.CancelJobRequest.FromString,
                     response_serializer=sift_dot_jobs_dot_v1_dot_jobs__pb2.CancelJobResponse.SerializeToString,
+            ),
+            'RetryJob': grpc.unary_unary_rpc_method_handler(
+                    servicer.RetryJob,
+                    request_deserializer=sift_dot_jobs_dot_v1_dot_jobs__pb2.RetryJobRequest.FromString,
+                    response_serializer=sift_dot_jobs_dot_v1_dot_jobs__pb2.RetryJobResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -99,5 +117,22 @@ class JobService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.jobs.v1.JobService/CancelJob',
             sift_dot_jobs_dot_v1_dot_jobs__pb2.CancelJobRequest.SerializeToString,
             sift_dot_jobs_dot_v1_dot_jobs__pb2.CancelJobResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def RetryJob(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.jobs.v1.JobService/RetryJob',
+            sift_dot_jobs_dot_v1_dot_jobs__pb2.RetryJobRequest.SerializeToString,
+            sift_dot_jobs_dot_v1_dot_jobs__pb2.RetryJobResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

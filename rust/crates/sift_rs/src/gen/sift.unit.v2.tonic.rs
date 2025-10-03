@@ -84,6 +84,31 @@ pub mod unit_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
+        pub async fn create_unit(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CreateUnitRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateUnitResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.unit.v2.UnitService/CreateUnit",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.unit.v2.UnitService", "CreateUnit"));
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn list_units(
             &mut self,
             request: impl tonic::IntoRequest<super::ListUnitsRequest>,
@@ -118,6 +143,13 @@ pub mod unit_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with UnitServiceServer.
     #[async_trait]
     pub trait UnitService: Send + Sync + 'static {
+        async fn create_unit(
+            &self,
+            request: tonic::Request<super::CreateUnitRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateUnitResponse>,
+            tonic::Status,
+        >;
         async fn list_units(
             &self,
             request: tonic::Request<super::ListUnitsRequest>,
@@ -205,6 +237,52 @@ pub mod unit_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
+                "/sift.unit.v2.UnitService/CreateUnit" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateUnitSvc<T: UnitService>(pub Arc<T>);
+                    impl<
+                        T: UnitService,
+                    > tonic::server::UnaryService<super::CreateUnitRequest>
+                    for CreateUnitSvc<T> {
+                        type Response = super::CreateUnitResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateUnitRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as UnitService>::create_unit(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = CreateUnitSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/sift.unit.v2.UnitService/ListUnits" => {
                     #[allow(non_camel_case_types)]
                     struct ListUnitsSvc<T: UnitService>(pub Arc<T>);

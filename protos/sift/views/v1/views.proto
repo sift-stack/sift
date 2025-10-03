@@ -17,8 +17,8 @@ service ViewService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to programmatically interact with views."
     external_docs: {
-      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/298188809";
-      description: "Read more about what views are.";
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/298188809"
+      description: "Read more about what views are."
     }
   };
 
@@ -88,8 +88,8 @@ service ViewService {
       summary: "PinView"
       description: "Pins a view."
       external_docs: {
-        url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/295436289";
-        description: "Learn more about pinning views.";
+        url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/295436289"
+        description: "Learn more about pinning views."
       }
     };
   }
@@ -104,8 +104,8 @@ service ViewService {
       summary: "UnpinView"
       description: "Unpins a view."
       external_docs: {
-        url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/295436289";
-        description: "Learn more about pinning views.";
+        url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/295436289"
+        description: "Learn more about pinning views."
       }
     };
   }

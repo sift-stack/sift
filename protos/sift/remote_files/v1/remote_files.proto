@@ -18,12 +18,12 @@ service RemoteFileService {
   rpc GetRemoteFile(GetRemoteFileRequest) returns (GetRemoteFileResponse) {
     option (google.api.http) = {get: "/api/v1/remote-files/{remote_file_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetRemoteFile",
+      summary: "GetRemoteFile"
       description: "Retrieve a remote file."
     };
   }
 
-  // Create a remote file.
+  // Create a remote file. Note that this does not perform the actual file upload.
   rpc CreateRemoteFile(CreateRemoteFileRequest) returns (CreateRemoteFileResponse) {
     option (google.api.http) = {
       post: "/api/v1/remote-files"
@@ -68,7 +68,7 @@ service RemoteFileService {
   // Batch deletes remote files. Each batch is limited to 1000 records.
   rpc BatchDeleteRemoteFiles(BatchDeleteRemoteFilesRequest) returns (BatchDeleteRemoteFilesResponse) {
     option (google.api.http) = {
-      post: "/api/v1/remote-files:batchDelete",
+      post: "/api/v1/remote-files:batchDelete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -81,7 +81,7 @@ service RemoteFileService {
   rpc GetRemoteFileDownloadUrl(GetRemoteFileDownloadUrlRequest) returns (GetRemoteFileDownloadUrlResponse) {
     option (google.api.http) = {get: "/api/v1/remote-files/{remote_file_id}/download-url"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetRemoteFileUrl",
+      summary: "GetRemoteFileUrl"
       description: "Gets a download URL for the remote file."
     };
   }
@@ -132,6 +132,7 @@ enum EntityType {
   ENTITY_TYPE_ANNOTATION = 2;
   ENTITY_TYPE_ASSET = 3;
   ENTITY_TYPE_ANNOTATION_LOG = 4;
+  ENTITY_TYPE_TEST_REPORT = 5;
 }
 
 // The request for a call to `RemoteFileService_GetRemoteFile` to retrieve a remote file;

@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package sift.external_sync.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/common/type/v1/user.proto";
+import "sift/user_groups/v2/user_groups.proto";
+
+
+
+service ExternalSyncService {
+  rpc SyncOrganization(SyncOrganizationRequest) returns (SyncOrganizationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/external-sync"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "SyncOrganization"
+      description: "Synchronizes an organization's users and groups"
+    };
+  }
+
+  rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/external-sync:generate-token"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GenerateToken"
+      description: "Generates a token for synchronizing an organization's users and groups"
+    };
+  }
+
+  rpc GetExternalSync(GetExternalSyncRequest) returns (GetExternalSyncResponse) {
+    option (google.api.http) = {get: "/api/v1/external-sync"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetTokenDetails"
+      description: "Get details about the most recent token generated, does not include the token itself"
+    };
+  }
+
+  rpc ListExternalSyncTokens(ListExternalSyncTokensRequest) returns (ListExternalSyncTokensResponse) {
+    option (google.api.http) = {get: "/api/v1/external-sync:list-tokens"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListExternalSyncTokens"
+      description: "List all tokens created by org"
+    };
+  }
+}
+
+message ExternalSync {
+  string organization_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  optional google.protobuf.Timestamp most_recent_sync_date = 2 [(google.api.field_behavior) = OPTIONAL];
+  optional string most_recent_sync_by_user_id = 3 [(google.api.field_behavior) = OPTIONAL];
+  string scim_server_url = 4 [(google.api.field_behavior) = REQUIRED];
+  optional google.protobuf.Timestamp token_created_date = 5 [(google.api.field_behavior) = OPTIONAL];
+  uint32 token_lifetime_seconds = 6 [(google.api.field_behavior) = REQUIRED];
+  optional string most_recent_token_by_user_id = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The actual token value is not returned after it is first generated.
+message ExternalSyncToken {
+  string token_id = 1 [(google.api.field_behavior) = REQUIRED];
+  uint32 lifetime_seconds = 2 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 3 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+message SyncOrganizationRequest {}
+
+message SyncOrganizationResponse {
+  ExternalSync external_sync = 1 [(google.api.field_behavior) = REQUIRED];
+  uint32 existing_user_count = 2 [(google.api.field_behavior) = REQUIRED];
+  repeated string added_to_organization_user_ids = 3 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.User created_users = 4 [(google.api.field_behavior) = REQUIRED];
+  repeated string deactivated_user_ids = 5 [(google.api.field_behavior) = REQUIRED];
+  uint32 existing_group_count = 6 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.user_groups.v2.UserGroup created_user_groups = 7 [(google.api.field_behavior) = REQUIRED];
+  repeated string deleted_user_group_names = 8 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GenerateTokenRequest {}
+
+message GenerateTokenResponse {
+  ExternalSync external_sync = 1 [(google.api.field_behavior) = REQUIRED];
+  string token = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetExternalSyncRequest {}
+
+message GetExternalSyncResponse {
+  bool success = 1 [(google.api.field_behavior) = REQUIRED];
+  ExternalSync external_sync = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListExternalSyncTokensRequest {
+  // The maximum number of tokens to return. The service may return fewer than this value.
+  // If unspecified, at most 50 tokens will be returned. The maximum value is 1000; values above
+  // 1000 will be coerced to 1000. Optional.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListExternalSyncTokens` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListExternalSyncTokens` must match
+  // the call that provided the page token. Optional.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // There are currently no available fields.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved user defined functions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available field to order_by is `created_date`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date asc".
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListExternalSyncTokensResponse {
+  repeated ExternalSyncToken external_sync_tokens = 1 [(google.api.field_behavior) = REQUIRED];
+  string next_page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}

@@ -59,6 +59,7 @@ func (m *UserGroup) CloneVT() *UserGroup {
 	r.RoleId = m.RoleId
 	r.IsDefault = m.IsDefault
 	r.Resources = m.Resources.CloneVT()
+	r.IsExternal = m.IsExternal
 	if rhs := m.UserIds; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -473,6 +474,9 @@ func (this *UserGroup) EqualVT(that *UserGroup) bool {
 		if vx != vy {
 			return false
 		}
+	}
+	if this.IsExternal != that.IsExternal {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1360,6 +1364,16 @@ func (m *UserGroup) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsExternal {
+		i--
+		if m.IsExternal {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
 	}
 	if len(m.UserIds) > 0 {
 		for iNdEx := len(m.UserIds) - 1; iNdEx >= 0; iNdEx-- {
@@ -2298,6 +2312,16 @@ func (m *UserGroup) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsExternal {
+		i--
+		if m.IsExternal {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
+	}
 	if len(m.UserIds) > 0 {
 		for iNdEx := len(m.UserIds) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.UserIds[iNdEx])
@@ -3203,6 +3227,9 @@ func (m *UserGroup) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.IsExternal {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3810,6 +3837,26 @@ func (m *UserGroup) UnmarshalVT(dAtA []byte) error {
 			}
 			m.UserIds = append(m.UserIds, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsExternal", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsExternal = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5847,6 +5894,26 @@ func (m *UserGroup) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.UserIds = append(m.UserIds, stringValue)
 			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsExternal", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsExternal = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

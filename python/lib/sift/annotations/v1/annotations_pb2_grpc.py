@@ -24,10 +24,30 @@ class AnnotationServiceStub(object):
                 request_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.DeleteAnnotationRequest.SerializeToString,
                 response_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.DeleteAnnotationResponse.FromString,
                 )
+        self.ArchiveAnnotation = channel.unary_unary(
+                '/sift.annotations.v1.AnnotationService/ArchiveAnnotation',
+                request_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.ArchiveAnnotationRequest.SerializeToString,
+                response_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.ArchiveAnnotationResponse.FromString,
+                )
+        self.UnarchiveAnnotation = channel.unary_unary(
+                '/sift.annotations.v1.AnnotationService/UnarchiveAnnotation',
+                request_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.UnarchiveAnnotationRequest.SerializeToString,
+                response_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.UnarchiveAnnotationResponse.FromString,
+                )
         self.BatchDeleteAnnotations = channel.unary_unary(
                 '/sift.annotations.v1.AnnotationService/BatchDeleteAnnotations',
                 request_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchDeleteAnnotationsRequest.SerializeToString,
                 response_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchDeleteAnnotationsResponse.FromString,
+                )
+        self.BatchArchiveAnnotations = channel.unary_unary(
+                '/sift.annotations.v1.AnnotationService/BatchArchiveAnnotations',
+                request_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchArchiveAnnotationsRequest.SerializeToString,
+                response_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchArchiveAnnotationsResponse.FromString,
+                )
+        self.BatchUnarchiveAnnotations = channel.unary_unary(
+                '/sift.annotations.v1.AnnotationService/BatchUnarchiveAnnotations',
+                request_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchUnarchiveAnnotationsRequest.SerializeToString,
+                response_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchUnarchiveAnnotationsResponse.FromString,
                 )
         self.ListAnnotations = channel.unary_unary(
                 '/sift.annotations.v1.AnnotationService/ListAnnotations',
@@ -57,17 +77,48 @@ class AnnotationServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def DeleteAnnotation(self, request, context):
-        """Delete Annotation is deprecated. Calling this will archive the annotation, which should be done using the
-        UpdateAnnotation method with the delete date set to a non-null value. Restoring an annotation can be done
-        by calling UpdateAnnotation with the delete date set to a null value.
+        """Delete Annotation is deprecated. Use ArchiveAnnotation instead.
+        Calling this will archive the annotation, which should be done using the
+        ArchiveAnnotation method or the UpdateAnnotation method with the delete date set to a non-null value.
+        Restoring an annotation can be done using the UnarchiveAnnotation method or by calling
+        UpdateAnnotation with the delete date set to a null value.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ArchiveAnnotation(self, request, context):
+        """Archives an annotation.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UnarchiveAnnotation(self, request, context):
+        """Unarchives an annotation.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def BatchDeleteAnnotations(self, request, context):
-        """BatchDeleteAnnotations will archive the annotations specified in the request. These can be restored
-        by calling UpdateAnnotation with the delete date set to a null value.
+        """BatchDeleteAnnotations is deprecated. Use BatchArchiveAnnotations instead.
+        BatchDeleteAnnotations will archive the annotations specified in the request. These can be restored
+        by calling UnarchiveAnnotation or UpdateAnnotation with the delete date set to a null value.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchArchiveAnnotations(self, request, context):
+        """Batch archives annotations.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchUnarchiveAnnotations(self, request, context):
+        """Batch unarchives annotations.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -107,10 +158,30 @@ def add_AnnotationServiceServicer_to_server(servicer, server):
                     request_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.DeleteAnnotationRequest.FromString,
                     response_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.DeleteAnnotationResponse.SerializeToString,
             ),
+            'ArchiveAnnotation': grpc.unary_unary_rpc_method_handler(
+                    servicer.ArchiveAnnotation,
+                    request_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.ArchiveAnnotationRequest.FromString,
+                    response_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.ArchiveAnnotationResponse.SerializeToString,
+            ),
+            'UnarchiveAnnotation': grpc.unary_unary_rpc_method_handler(
+                    servicer.UnarchiveAnnotation,
+                    request_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.UnarchiveAnnotationRequest.FromString,
+                    response_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.UnarchiveAnnotationResponse.SerializeToString,
+            ),
             'BatchDeleteAnnotations': grpc.unary_unary_rpc_method_handler(
                     servicer.BatchDeleteAnnotations,
                     request_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchDeleteAnnotationsRequest.FromString,
                     response_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchDeleteAnnotationsResponse.SerializeToString,
+            ),
+            'BatchArchiveAnnotations': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchArchiveAnnotations,
+                    request_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchArchiveAnnotationsRequest.FromString,
+                    response_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchArchiveAnnotationsResponse.SerializeToString,
+            ),
+            'BatchUnarchiveAnnotations': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchUnarchiveAnnotations,
+                    request_deserializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchUnarchiveAnnotationsRequest.FromString,
+                    response_serializer=sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchUnarchiveAnnotationsResponse.SerializeToString,
             ),
             'ListAnnotations': grpc.unary_unary_rpc_method_handler(
                     servicer.ListAnnotations,
@@ -172,6 +243,40 @@ class AnnotationService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def ArchiveAnnotation(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.annotations.v1.AnnotationService/ArchiveAnnotation',
+            sift_dot_annotations_dot_v1_dot_annotations__pb2.ArchiveAnnotationRequest.SerializeToString,
+            sift_dot_annotations_dot_v1_dot_annotations__pb2.ArchiveAnnotationResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UnarchiveAnnotation(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.annotations.v1.AnnotationService/UnarchiveAnnotation',
+            sift_dot_annotations_dot_v1_dot_annotations__pb2.UnarchiveAnnotationRequest.SerializeToString,
+            sift_dot_annotations_dot_v1_dot_annotations__pb2.UnarchiveAnnotationResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def BatchDeleteAnnotations(request,
             target,
             options=(),
@@ -185,6 +290,40 @@ class AnnotationService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.annotations.v1.AnnotationService/BatchDeleteAnnotations',
             sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchDeleteAnnotationsRequest.SerializeToString,
             sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchDeleteAnnotationsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchArchiveAnnotations(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.annotations.v1.AnnotationService/BatchArchiveAnnotations',
+            sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchArchiveAnnotationsRequest.SerializeToString,
+            sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchArchiveAnnotationsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchUnarchiveAnnotations(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.annotations.v1.AnnotationService/BatchUnarchiveAnnotations',
+            sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchUnarchiveAnnotationsRequest.SerializeToString,
+            sift_dot_annotations_dot_v1_dot_annotations__pb2.BatchUnarchiveAnnotationsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

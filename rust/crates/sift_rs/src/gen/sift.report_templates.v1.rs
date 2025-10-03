@@ -29,6 +29,8 @@ pub struct ReportTemplate {
     pub tags: ::prost::alloc::vec::Vec<ReportTemplateTag>,
     #[prost(message, repeated, tag="13")]
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(bool, tag="14")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package sift.options.v1;
+
+import "google/protobuf/descriptor.proto";
+
+
+
+// Indicates that the request message does not contain any sensitive information and
+// is safe to log in access logs. Whitelist approach for safety.
+extend google.protobuf.MessageOptions {
+  bool safe_to_log = 70000;
+}

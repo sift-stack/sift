@@ -17,6 +17,8 @@ pub struct ExpressionRequest {
     pub expression: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="3")]
     pub expression_channel_references: ::prost::alloc::vec::Vec<ExpressionChannelReference>,
+    #[prost(message, repeated, tag="4")]
+    pub function_dependencies: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::FunctionDependency>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -33,6 +35,8 @@ pub struct ListExpressionIdentifiersRequest {
 pub struct ListExpressionIdentifiersResponse {
     #[prost(message, repeated, tag="1")]
     pub identifiers: ::prost::alloc::vec::Vec<ExpressionIdentifier>,
+    #[prost(string, optional, tag="2")]
+    pub next_page_token: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -124,6 +128,7 @@ pub enum ExpressionIdentifierLibrary {
     Iter = 4,
     Stateful = 5,
     Summary = 6,
+    UserDefinedFunctions = 7,
 }
 impl ExpressionIdentifierLibrary {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -139,6 +144,7 @@ impl ExpressionIdentifierLibrary {
             ExpressionIdentifierLibrary::Iter => "EXPRESSION_IDENTIFIER_LIBRARY_ITER",
             ExpressionIdentifierLibrary::Stateful => "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL",
             ExpressionIdentifierLibrary::Summary => "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY",
+            ExpressionIdentifierLibrary::UserDefinedFunctions => "EXPRESSION_IDENTIFIER_LIBRARY_USER_DEFINED_FUNCTIONS",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -151,6 +157,7 @@ impl ExpressionIdentifierLibrary {
             "EXPRESSION_IDENTIFIER_LIBRARY_ITER" => Some(Self::Iter),
             "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL" => Some(Self::Stateful),
             "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY" => Some(Self::Summary),
+            "EXPRESSION_IDENTIFIER_LIBRARY_USER_DEFINED_FUNCTIONS" => Some(Self::UserDefinedFunctions),
             _ => None,
         }
     }

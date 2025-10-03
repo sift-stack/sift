@@ -76,6 +76,94 @@ impl ChannelDataType {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UserDefinedFunction {
+    #[prost(string, tag="1")]
+    pub user_defined_function_id: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="4")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(string, tag="5")]
+    pub user_defined_function_version_id: ::prost::alloc::string::String,
+    #[prost(uint32, tag="6")]
+    pub version: u32,
+    #[prost(string, tag="7")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag="8")]
+    pub change_message: ::prost::alloc::string::String,
+    #[prost(string, tag="9")]
+    pub user_notes: ::prost::alloc::string::String,
+    #[prost(string, tag="10")]
+    pub expression: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="12")]
+    pub function_inputs: ::prost::alloc::vec::Vec<FunctionInput>,
+    #[prost(enumeration="FunctionDataType", tag="13")]
+    pub function_output_type: i32,
+    #[prost(message, repeated, tag="11")]
+    pub function_dependencies: ::prost::alloc::vec::Vec<FunctionDependency>,
+    #[prost(message, optional, tag="14")]
+    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, optional, tag="15")]
+    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(string, tag="16")]
+    pub created_by_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag="17")]
+    pub modified_by_user_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag="18")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::super::metadata::v1::MetadataValue>,
+    #[prost(bool, tag="19")]
+    pub is_archived: bool,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FunctionDependency {
+    #[prost(string, tag="1")]
+    pub user_defined_function_version_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FunctionInput {
+    #[prost(string, tag="1")]
+    pub identifier: ::prost::alloc::string::String,
+    #[prost(enumeration="FunctionDataType", tag="2")]
+    pub data_type: i32,
+    #[prost(bool, tag="3")]
+    pub constant: bool,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum FunctionDataType {
+    Unspecified = 0,
+    Numeric = 1,
+    String = 2,
+    Bool = 3,
+}
+impl FunctionDataType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            FunctionDataType::Unspecified => "FUNCTION_DATA_TYPE_UNSPECIFIED",
+            FunctionDataType::Numeric => "FUNCTION_DATA_TYPE_NUMERIC",
+            FunctionDataType::String => "FUNCTION_DATA_TYPE_STRING",
+            FunctionDataType::Bool => "FUNCTION_DATA_TYPE_BOOL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "FUNCTION_DATA_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "FUNCTION_DATA_TYPE_NUMERIC" => Some(Self::Numeric),
+            "FUNCTION_DATA_TYPE_STRING" => Some(Self::String),
+            "FUNCTION_DATA_TYPE_BOOL" => Some(Self::Bool),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResourceIdentifier {
     #[prost(oneof="resource_identifier::Identifier", tags="1, 2")]
     pub identifier: ::core::option::Option<resource_identifier::Identifier>,
@@ -159,92 +247,6 @@ pub struct ClientKeys {
 pub struct Names {
     #[prost(string, repeated, tag="1")]
     pub names: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UserDefinedFunction {
-    #[prost(string, tag="1")]
-    pub user_defined_function_id: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="4")]
-    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
-    #[prost(string, tag="5")]
-    pub user_defined_function_version_id: ::prost::alloc::string::String,
-    #[prost(uint32, tag="6")]
-    pub version: u32,
-    #[prost(string, tag="7")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(string, tag="8")]
-    pub change_message: ::prost::alloc::string::String,
-    #[prost(string, tag="9")]
-    pub user_notes: ::prost::alloc::string::String,
-    #[prost(string, tag="10")]
-    pub expression: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag="12")]
-    pub function_inputs: ::prost::alloc::vec::Vec<FunctionInput>,
-    #[prost(enumeration="FunctionDataType", tag="13")]
-    pub function_output_type: i32,
-    #[prost(message, repeated, tag="11")]
-    pub function_dependencies: ::prost::alloc::vec::Vec<FunctionDependency>,
-    #[prost(message, optional, tag="14")]
-    pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
-    #[prost(message, optional, tag="15")]
-    pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
-    #[prost(string, tag="16")]
-    pub created_by_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag="17")]
-    pub modified_by_user_id: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag="18")]
-    pub metadata: ::prost::alloc::vec::Vec<super::super::super::metadata::v1::MetadataValue>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FunctionDependency {
-    #[prost(string, tag="1")]
-    pub user_defined_function_version_id: ::prost::alloc::string::String,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FunctionInput {
-    #[prost(string, tag="1")]
-    pub identifier: ::prost::alloc::string::String,
-    #[prost(enumeration="FunctionDataType", tag="2")]
-    pub data_type: i32,
-    #[prost(bool, tag="3")]
-    pub constant: bool,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum FunctionDataType {
-    Unspecified = 0,
-    Numeric = 1,
-    String = 2,
-    Bool = 3,
-}
-impl FunctionDataType {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            FunctionDataType::Unspecified => "FUNCTION_DATA_TYPE_UNSPECIFIED",
-            FunctionDataType::Numeric => "FUNCTION_DATA_TYPE_NUMERIC",
-            FunctionDataType::String => "FUNCTION_DATA_TYPE_STRING",
-            FunctionDataType::Bool => "FUNCTION_DATA_TYPE_BOOL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "FUNCTION_DATA_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "FUNCTION_DATA_TYPE_NUMERIC" => Some(Self::Numeric),
-            "FUNCTION_DATA_TYPE_STRING" => Some(Self::String),
-            "FUNCTION_DATA_TYPE_BOOL" => Some(Self::Bool),
-            _ => None,
-        }
-    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

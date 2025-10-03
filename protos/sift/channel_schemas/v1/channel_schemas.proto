@@ -20,7 +20,7 @@ service ChannelSchemaService {
   // Create a channel schema
   rpc CreateChannelSchema(CreateChannelSchemaRequest) returns (CreateChannelSchemaResponse) {
     option (google.api.http) = {
-      post: "/api/v1/channel-schemas",
+      post: "/api/v1/channel-schemas"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {

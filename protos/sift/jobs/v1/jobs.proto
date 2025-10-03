@@ -6,6 +6,7 @@ import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/exports/v1/exports.proto";
 
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -28,8 +29,18 @@ service JobService {
   rpc CancelJob(CancelJobRequest) returns (CancelJobResponse) {
     option (google.api.http) = {post: "/api/v1/jobs/{job_id}:cancel"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CancelJob",
+      summary: "CancelJob"
       description: "Requests cancellation of a job."
+    };
+  }
+
+  // Requests a retry of a job.
+  // Jobs that are finished, in progress or in the process of being cancelled are not affected.
+  rpc RetryJob(RetryJobRequest) returns (RetryJobResponse) {
+    option (google.api.http) = {post: "/api/v1/jobs/{job_id}:retry"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "RetryJob"
+      description: "Manually retries a job."
     };
   }
 }
@@ -37,20 +48,41 @@ service JobService {
 message Job {
   string job_id = 1 [(google.api.field_behavior) = REQUIRED];
   string organization_id = 2 [(google.api.field_behavior) = IMMUTABLE];
-  string created_by_user_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
-  string modified_by_user_id = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
-  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
-  google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string created_by_user_id = 4 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  string modified_by_user_id = 5 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp created_date = 6 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  google.protobuf.Timestamp modified_date = 7 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
   google.protobuf.Timestamp started_date = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp completed_date = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
-  JobType job_type = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
-  JobStatus job_status = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  JobType job_type = 10 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  JobStatus job_status = 11 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  JobStatusDetails job_status_details = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  JobDetails job_details = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 enum JobType {
   JOB_TYPE_UNSPECIFIED = 0 [deprecated = true];
   JOB_TYPE_RULE_EVALUATION = 1;
   JOB_TYPE_DATA_IMPORT = 2;
+  JOB_TYPE_DATA_EXPORT = 3;
 }
 
 enum JobStatus {
@@ -61,6 +93,46 @@ enum JobStatus {
   JOB_STATUS_FAILED = 4;
   JOB_STATUS_CANCELLED = 5;
   JOB_STATUS_CANCEL_REQUESTED = 6;
+}
+
+message JobStatusDetails {
+  oneof status {
+    RuleEvaluationStatusDetails rule_evaluation = 1;
+    DataImportStatusDetails data_import = 2;
+    DataExportStatusDetails data_export = 3;
+  }
+}
+
+message RuleEvaluationStatusDetails {}
+
+message DataImportStatusDetails {
+  uint64 points_processed = 1 [(google.api.field_behavior) = REQUIRED];
+  uint64 points_total = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DataExportStatusDetails {
+  string error_message = 1 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message DataExportJobDetails {
+  sift.exports.v1.ExportDataRequest request = 1;
+  string storage_key = 2;
+}
+
+message JobDetails {
+  oneof details {
+    RuleEvaluationJobDetails rule_evaluation = 1;
+    DataImportJobDetails data_import = 2;
+    DataExportJobDetails data_export = 3;
+  }
+}
+
+message RuleEvaluationJobDetails {
+  string report_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DataImportJobDetails {
+  string data_import_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ListJobsRequest {
@@ -77,7 +149,7 @@ message ListJobsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are:
-  // `job_id`, `created_by_user_id`, `modified_by_user_id`, `created_date`, `modified_date`, `started_date`, `completed_date`
+  // `job_id`, `created_by_user_id`, `modified_by_user_id`, `created_date`, `modified_date`, `started_date`, `completed_date`, and `job_status`
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to this definition. Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -102,3 +174,11 @@ message CancelJobRequest {
   string job_id = 1 [(google.api.field_behavior) = REQUIRED];
 }
 message CancelJobResponse {}
+
+message RetryJobRequest {
+  string job_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message RetryJobResponse {
+  Job job = 1;
+}

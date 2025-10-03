@@ -128,7 +128,7 @@ global___GetIngestionConfigResponse = GetIngestionConfigResponse
 
 @typing.final
 class CreateIngestionConfigRequest(google.protobuf.message.Message):
-    """The request for a call to `IngestionConfigService_ListIngestionConfigs` to retrieve ingestion configs."""
+    """The request for a call to `IngestionConfigService_CreateIngestionConfig` to create an ingestion configs."""
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 

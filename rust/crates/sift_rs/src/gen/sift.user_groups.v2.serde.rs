@@ -1759,6 +1759,9 @@ impl serde::Serialize for UserGroup {
         if !self.user_ids.is_empty() {
             len += 1;
         }
+        if self.is_external {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.user_groups.v2.UserGroup", len)?;
         if !self.user_group_id.is_empty() {
             struct_ser.serialize_field("userGroupId", &self.user_group_id)?;
@@ -1777,6 +1780,9 @@ impl serde::Serialize for UserGroup {
         }
         if !self.user_ids.is_empty() {
             struct_ser.serialize_field("userIds", &self.user_ids)?;
+        }
+        if self.is_external {
+            struct_ser.serialize_field("isExternal", &self.is_external)?;
         }
         struct_ser.end()
     }
@@ -1798,6 +1804,8 @@ impl<'de> serde::Deserialize<'de> for UserGroup {
             "resources",
             "user_ids",
             "userIds",
+            "is_external",
+            "isExternal",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1808,6 +1816,7 @@ impl<'de> serde::Deserialize<'de> for UserGroup {
             IsDefault,
             Resources,
             UserIds,
+            IsExternal,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1835,6 +1844,7 @@ impl<'de> serde::Deserialize<'de> for UserGroup {
                             "isDefault" | "is_default" => Ok(GeneratedField::IsDefault),
                             "resources" => Ok(GeneratedField::Resources),
                             "userIds" | "user_ids" => Ok(GeneratedField::UserIds),
+                            "isExternal" | "is_external" => Ok(GeneratedField::IsExternal),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1860,6 +1870,7 @@ impl<'de> serde::Deserialize<'de> for UserGroup {
                 let mut is_default__ = None;
                 let mut resources__ = None;
                 let mut user_ids__ = None;
+                let mut is_external__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::UserGroupId => {
@@ -1898,6 +1909,12 @@ impl<'de> serde::Deserialize<'de> for UserGroup {
                             }
                             user_ids__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::IsExternal => {
+                            if is_external__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isExternal"));
+                            }
+                            is_external__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(UserGroup {
@@ -1907,6 +1924,7 @@ impl<'de> serde::Deserialize<'de> for UserGroup {
                     is_default: is_default__.unwrap_or_default(),
                     resources: resources__,
                     user_ids: user_ids__.unwrap_or_default(),
+                    is_external: is_external__.unwrap_or_default(),
                 })
             }
         }

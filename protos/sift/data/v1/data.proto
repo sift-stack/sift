@@ -24,7 +24,7 @@ service DataService {
   rpc GetData(GetDataRequest) returns (GetDataResponse) {
     option (google.api.http) = {
       post: "/api/v1/data"
-      body: "*",
+      body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "GetData"

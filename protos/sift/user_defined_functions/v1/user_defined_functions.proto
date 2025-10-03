@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package sift.user_defined_functions.v1;
 
+import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/field_mask.proto";
@@ -18,7 +19,7 @@ service UserDefinedFunctionService {
   rpc GetUserDefinedFunction(GetUserDefinedFunctionRequest) returns (GetUserDefinedFunctionResponse) {
     option (google.api.http) = {get: "/api/v1/user-defined-functions/{user_defined_function_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetUserDefinedFunction",
+      summary: "GetUserDefinedFunction"
       description: "Retrieve the latest version of a user defined function."
     };
   }
@@ -27,7 +28,7 @@ service UserDefinedFunctionService {
   rpc GetUserDefinedFunctionVersion(GetUserDefinedFunctionVersionRequest) returns (GetUserDefinedFunctionVersionResponse) {
     option (google.api.http) = {get: "/api/v1/user-defined-functions/versions/{user_defined_function_version_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetUserDefinedFunctionVersion",
+      summary: "GetUserDefinedFunctionVersion"
       description: "Retrieve a specific version of a user defined function."
     };
   }
@@ -36,7 +37,7 @@ service UserDefinedFunctionService {
   rpc GetUserDefinedFunctionVersions(GetUserDefinedFunctionVersionsRequest) returns (GetUserDefinedFunctionVersionsResponse) {
     option (google.api.http) = {get: "/api/v1/user-defined-functions/versions"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetUserDefinedFunctionVersions",
+      summary: "GetUserDefinedFunctionVersions"
       description: "Retrieve versions of user defined functions."
     };
   }
@@ -45,7 +46,7 @@ service UserDefinedFunctionService {
   rpc GetUserDefinedFunctionDependents(GetUserDefinedFunctionDependentsRequest) returns (GetUserDefinedFunctionDependentsResponse) {
     option (google.api.http) = {get: "/api/v1/user-defined-functions/dependents"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetUserDefinedFunctionDependents",
+      summary: "GetUserDefinedFunctionDependents"
       description: "Retrieve dependents of a user defined function."
     };
   }
@@ -57,7 +58,7 @@ service UserDefinedFunctionService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CreateUserDefinedFunction",
+      summary: "CreateUserDefinedFunction"
       description: "Create a user defined function."
     };
   }
@@ -69,7 +70,7 @@ service UserDefinedFunctionService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ValidateUserDefinedFunction",
+      summary: "ValidateUserDefinedFunction"
       description: "Validates a potential user defined function."
     };
   }
@@ -81,7 +82,7 @@ service UserDefinedFunctionService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "UpdateUserDefinedFunction",
+      summary: "UpdateUserDefinedFunction"
       description: "Update and create a new version of a user defined function."
     };
   }
@@ -90,7 +91,7 @@ service UserDefinedFunctionService {
   rpc CheckUpdatableFields(CheckUpdatableFieldsRequest) returns (CheckUpdatableFieldsResponse) {
     option (google.api.http) = {post: "/api/v1/user-defined-functions/updatable-fields"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CheckUpdatableFields",
+      summary: "CheckUpdatableFields"
       description: "Check if given update paths are allowed to update for the user defined function"
     };
   }
@@ -99,7 +100,7 @@ service UserDefinedFunctionService {
   rpc ListUserDefinedFunctions(ListUserDefinedFunctionsRequest) returns (ListUserDefinedFunctionsResponse) {
     option (google.api.http) = {get: "/api/v1/user-defined-functions"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ListUserDefinedFunctions",
+      summary: "ListUserDefinedFunctions"
       description: "Retrieve the latest versions of user defined functions based on an optional filter."
     };
   }
@@ -108,7 +109,7 @@ service UserDefinedFunctionService {
   rpc ListUserDefinedFunctionVersions(ListUserDefinedFunctionVersionsRequest) returns (ListUserDefinedFunctionVersionsResponse) {
     option (google.api.http) = {get: "/api/v1/user-defined-functions/{user_defined_function_id}/versions"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ListUserDefinedFunctionVersions",
+      summary: "ListUserDefinedFunctionVersions"
       description: "List versions of a particular user defined function with an optional filter."
     };
   }
@@ -118,7 +119,10 @@ service UserDefinedFunctionService {
 // If `user_defined_function_id` is provided then all other arguments will be ignored. The argument `user_defined_function_id`
 // should not be used together with `name`.
 message GetUserDefinedFunctionRequest {
-  string user_defined_function_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string user_defined_function_id = 1 [
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string.uuid = true
+  ];
   string name = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 
@@ -128,7 +132,10 @@ message GetUserDefinedFunctionResponse {
 
 // The request for a call to `UserDefinedFunctionService_GetUserDefinedFunctionVersion` to retrieve a specific version of a user defined function.
 message GetUserDefinedFunctionVersionRequest {
-  string user_defined_function_version_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string user_defined_function_version_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
 }
 
 message GetUserDefinedFunctionVersionResponse {
@@ -139,9 +146,15 @@ message GetUserDefinedFunctionVersionResponse {
 message GetUserDefinedFunctionDependentsRequest {
   uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
   oneof user_defined_function {
-    string user_defined_function_id = 2 [(google.api.field_behavior) = OPTIONAL];
+    string user_defined_function_id = 2 [
+      (buf.validate.field).string.uuid = true,
+      (google.api.field_behavior) = OPTIONAL
+    ];
     string user_defined_function_name = 3 [(google.api.field_behavior) = OPTIONAL];
-    string user_defined_function_version_id = 4 [(google.api.field_behavior) = OPTIONAL];
+    string user_defined_function_version_id = 4 [
+      (buf.validate.field).string.uuid = true,
+      (google.api.field_behavior) = OPTIONAL
+    ];
   }
 }
 
@@ -156,7 +169,10 @@ message GetUserDefinedFunctionDependentsResponse {
 
 // The request for a call to `UserDefinedFunctionService_GetUserDefinedFunctionVersions` to retrieve versions of user defined functions.
 message GetUserDefinedFunctionVersionsRequest {
-  repeated string user_defined_function_version_ids = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated string user_defined_function_version_ids = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated.items.string.uuid = true
+  ];
 }
 
 message GetUserDefinedFunctionVersionsResponse {
@@ -164,7 +180,14 @@ message GetUserDefinedFunctionVersionsResponse {
 }
 
 message CreateUserDefinedFunctionRequest {
-  string name = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).cel = {
+      id: "invalid_name"
+      message: "name must be 3-128 characters, start and end with an alphanumeric, and contain only [a-zA-Z0-9_~.-]."
+      expression: "this.matches('^[a-zA-Z0-9][a-zA-Z0-9_~.-]{0,126}[a-zA-Z0-9]$')"
+    }
+  ];
   optional string description = 2 [(google.api.field_behavior) = OPTIONAL];
   string expression = 3 [(google.api.field_behavior) = REQUIRED];
   repeated sift.common.type.v1.FunctionInput function_inputs = 4 [(google.api.field_behavior) = REQUIRED];
@@ -201,15 +224,16 @@ message ValidateUserDefinedFunctionResponse {
 // the current version is returned. If name is changed then only name will be changed. If archive date is changed then only archive date will be changed.
 // To archive user defined function, specify `archived_date` in the `update mask` as well as a non-null value for `archived_date` in the
 // `user_defined_function` object. To unarchive a user defined function, specify `archived_date` in the `update mask` and a `null` value for `archived_date`
-// in the `user_defined_function` object.
+// in the `user_defined_function` object. Alternatively, use `is_archived` with a boolean value to archive/unarchive.
 message UpdateUserDefinedFunctionRequest {
   // The user defined function to update.
   sift.common.type.v1.UserDefinedFunction user_defined_function = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `expression`, and `function_inputs`.
+  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `is_archived`, `description`, `expression`, `function_inputs`, and `metadata`.
   //  -- `name` can't be updated if the function has ever had any dependencies
   //  -- `function_inputs` inputs can't be updated if the function has any dependents (functions or calculated channels with a dependency on this function).
   //  -- `expression` can't be updated if the function has dependents and the expression changes the output type.
+  //  -- `metadata` updates metadata associated with the function
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
@@ -242,7 +266,7 @@ message ListUserDefinedFunctionsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // There are currently no available fields.
+  // Available fields to filter by are `user_defined_function_id`, `name`, `archived_date`, and `is_archived`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
@@ -277,7 +301,7 @@ message ListUserDefinedFunctionVersionsRequest {
   string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // There are currently no available fields.
+  // Available fields to filter by are `user_defined_function_id`, `name`, `version`, `archived_date`, and `is_archived`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   string filter = 5 [(google.api.field_behavior) = OPTIONAL];
 

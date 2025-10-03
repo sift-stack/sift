@@ -8,6 +8,7 @@ import (
 	context "context"
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	durationpb1 "github.com/planetscale/vtprotobuf/types/known/durationpb"
 	fieldmaskpb1 "github.com/planetscale/vtprotobuf/types/known/fieldmaskpb"
 	timestamppb1 "github.com/planetscale/vtprotobuf/types/known/timestamppb"
 	v1 "github.com/sift-stack/sift/go/gen/sift/metadata/v1"
@@ -16,6 +17,7 @@ import (
 	status "google.golang.org/grpc/status"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	io "io"
@@ -48,6 +50,8 @@ func (m *Run) CloneVT() *Run {
 	r.DefaultReportId = m.DefaultReportId
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
 	r.IsAdhoc = m.IsAdhoc
+	r.IsArchived = m.IsArchived
+	r.Duration = (*durationpb.Duration)((*durationpb1.Duration)(m.Duration).CloneVT())
 	if rhs := m.Tags; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -511,6 +515,12 @@ func (this *Run) EqualVT(that *Run) bool {
 	if this.IsAdhoc != that.IsAdhoc {
 		return false
 	}
+	if this.IsArchived != that.IsArchived {
+		return false
+	}
+	if !(*durationpb1.Duration)(this.Duration).EqualVT((*durationpb1.Duration)(that.Duration)) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -970,7 +980,9 @@ type RunServiceClient interface {
 	CreateAdhocRun(ctx context.Context, in *CreateAdhocRunRequest, opts ...grpc.CallOption) (*CreateAdhocRunResponse, error)
 	// Updates an existing run using using the list of fields specified in `update_mask`.
 	UpdateRun(ctx context.Context, in *UpdateRunRequest, opts ...grpc.CallOption) (*UpdateRunResponse, error)
+	// Deprecated: Do not use.
 	// Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.
+	// Deprecated: Use update with is_archived.
 	DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*DeleteRunResponse, error)
 	// Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`.
 	StopRun(ctx context.Context, in *StopRunRequest, opts ...grpc.CallOption) (*StopRunResponse, error)
@@ -1031,6 +1043,7 @@ func (c *runServiceClient) UpdateRun(ctx context.Context, in *UpdateRunRequest, 
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *runServiceClient) DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*DeleteRunResponse, error) {
 	out := new(DeleteRunResponse)
 	err := c.cc.Invoke(ctx, "/sift.runs.v2.RunService/DeleteRun", in, out, opts...)
@@ -1072,7 +1085,9 @@ type RunServiceServer interface {
 	CreateAdhocRun(context.Context, *CreateAdhocRunRequest) (*CreateAdhocRunResponse, error)
 	// Updates an existing run using using the list of fields specified in `update_mask`.
 	UpdateRun(context.Context, *UpdateRunRequest) (*UpdateRunResponse, error)
+	// Deprecated: Do not use.
 	// Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.
+	// Deprecated: Use update with is_archived.
 	DeleteRun(context.Context, *DeleteRunRequest) (*DeleteRunResponse, error)
 	// Set the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`.
 	StopRun(context.Context, *StopRunRequest) (*StopRunResponse, error)
@@ -1339,6 +1354,30 @@ func (m *Run) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Duration != nil {
+		size, err := (*durationpb1.Duration)(m.Duration).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
 	}
 	if m.IsAdhoc {
 		i--
@@ -2380,6 +2419,30 @@ func (m *Run) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Duration != nil {
+		size, err := (*durationpb1.Duration)(m.Duration).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
 	}
 	if m.IsAdhoc {
 		i--
@@ -3480,6 +3543,13 @@ func (m *Run) SizeVT() (n int) {
 	if m.IsAdhoc {
 		n += 3
 	}
+	if m.IsArchived {
+		n += 3
+	}
+	if m.Duration != nil {
+		l = (*durationpb1.Duration)(m.Duration).SizeVT()
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4413,6 +4483,62 @@ func (m *Run) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsAdhoc = bool(v != 0)
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Duration", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Duration == nil {
+				m.Duration = &durationpb.Duration{}
+			}
+			if err := (*durationpb1.Duration)(m.Duration).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7010,6 +7136,62 @@ func (m *Run) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsAdhoc = bool(v != 0)
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Duration", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Duration == nil {
+				m.Duration = &durationpb.Duration{}
+			}
+			if err := (*durationpb1.Duration)(m.Duration).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

@@ -31,6 +31,8 @@ pub struct Campaign {
     pub created_from_campaign_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, repeated, tag="14")]
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(bool, tag="15")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

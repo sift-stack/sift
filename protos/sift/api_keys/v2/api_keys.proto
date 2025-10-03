@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package sift.api_keys.v2;
 
+import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
@@ -113,12 +114,18 @@ message ListApiKeysResponse {
 message CreateApiKeyRequest {
   // The name for the new ApiKey. Required.
   string name = 1 [(google.api.field_behavior) = REQUIRED];
-  string user_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string user_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
 }
 
 // The request for a call to ApiKeyService.DeleteApiKey.
 message DeleteApiKeyRequest {
-  string api_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string api_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
 }
 
 message DeleteApiKeyResponse {}

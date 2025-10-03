@@ -12,6 +12,7 @@ import google.protobuf.timestamp_pb2
 import sift.common.type.v1.channel_bit_field_element_pb2
 import sift.common.type.v1.channel_data_type_pb2
 import sift.common.type.v1.channel_enum_type_pb2
+import sift.metadata.v1.metadata_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -34,6 +35,7 @@ class Channel(google.protobuf.message.Message):
     DATA_TYPE_FIELD_NUMBER: builtins.int
     ENUM_TYPES_FIELD_NUMBER: builtins.int
     BIT_FIELD_ELEMENTS_FIELD_NUMBER: builtins.int
+    METADATA_FIELD_NUMBER: builtins.int
     channel_id: builtins.str
     name: builtins.str
     component: builtins.str
@@ -52,6 +54,8 @@ class Channel(google.protobuf.message.Message):
     def enum_types(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.channel_enum_type_pb2.ChannelEnumType]: ...
     @property
     def bit_field_elements(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.channel_bit_field_element_pb2.ChannelBitFieldElement]: ...
+    @property
+    def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -69,9 +73,10 @@ class Channel(google.protobuf.message.Message):
         data_type: sift.common.type.v1.channel_data_type_pb2.ChannelDataType.ValueType = ...,
         enum_types: collections.abc.Iterable[sift.common.type.v1.channel_enum_type_pb2.ChannelEnumType] | None = ...,
         bit_field_elements: collections.abc.Iterable[sift.common.type.v1.channel_bit_field_element_pb2.ChannelBitFieldElement] | None = ...,
+        metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["created_date", b"created_date", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "bit_field_elements", b"bit_field_elements", "channel_id", b"channel_id", "component", b"component", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "data_type", b"data_type", "description", b"description", "enum_types", b"enum_types", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "unit_id", b"unit_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["asset_id", b"asset_id", "bit_field_elements", b"bit_field_elements", "channel_id", b"channel_id", "component", b"component", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "data_type", b"data_type", "description", b"description", "enum_types", b"enum_types", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "unit_id", b"unit_id"]) -> None: ...
 
 global___Channel = Channel
 

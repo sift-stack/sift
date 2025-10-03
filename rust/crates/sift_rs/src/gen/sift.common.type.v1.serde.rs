@@ -2139,6 +2139,9 @@ impl serde::Serialize for UserDefinedFunction {
         if !self.metadata.is_empty() {
             len += 1;
         }
+        if self.is_archived {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.common.r#type.v1.UserDefinedFunction", len)?;
         if !self.user_defined_function_id.is_empty() {
             struct_ser.serialize_field("userDefinedFunctionId", &self.user_defined_function_id)?;
@@ -2193,6 +2196,9 @@ impl serde::Serialize for UserDefinedFunction {
         if !self.metadata.is_empty() {
             struct_ser.serialize_field("metadata", &self.metadata)?;
         }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
+        }
         struct_ser.end()
     }
 }
@@ -2232,6 +2238,8 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
             "modified_by_user_id",
             "modifiedByUserId",
             "metadata",
+            "is_archived",
+            "isArchived",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -2253,6 +2261,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
             CreatedByUserId,
             ModifiedByUserId,
             Metadata,
+            IsArchived,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -2291,6 +2300,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
                             "createdByUserId" | "created_by_user_id" => Ok(GeneratedField::CreatedByUserId),
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
                             "metadata" => Ok(GeneratedField::Metadata),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -2327,6 +2337,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
                 let mut created_by_user_id__ = None;
                 let mut modified_by_user_id__ = None;
                 let mut metadata__ = None;
+                let mut is_archived__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::UserDefinedFunctionId => {
@@ -2433,6 +2444,12 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
                             }
                             metadata__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(UserDefinedFunction {
@@ -2453,6 +2470,7 @@ impl<'de> serde::Deserialize<'de> for UserDefinedFunction {
                     created_by_user_id: created_by_user_id__.unwrap_or_default(),
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
                     metadata: metadata__.unwrap_or_default(),
+                    is_archived: is_archived__.unwrap_or_default(),
                 })
             }
         }

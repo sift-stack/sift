@@ -19,7 +19,7 @@ service ReportService {
   rpc GetReport(GetReportRequest) returns (GetReportResponse) {
     option (google.api.http) = {get: "/api/v1/reports/{report_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetReport",
+      summary: "GetReport"
       description: "Retrieve a report."
     };
   }
@@ -31,7 +31,7 @@ service ReportService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CreateReport",
+      summary: "CreateReport"
       description: "Create a report."
     };
   }
@@ -43,7 +43,7 @@ service ReportService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "UpdateReport",
+      summary: "UpdateReport"
       description: "Update a report."
     };
   }
@@ -52,7 +52,7 @@ service ReportService {
   rpc ListReports(ListReportsRequest) returns (ListReportsResponse) {
     option (google.api.http) = {get: "/api/v1/reports"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ListReports",
+      summary: "ListReports"
       description: "List reports."
     };
   }
@@ -62,7 +62,7 @@ service ReportService {
   rpc RerunReport(RerunReportRequest) returns (RerunReportResponse) {
     option (google.api.http) = {post: "/api/v1/reports/{report_id}:rerun"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "RerunReport",
+      summary: "RerunReport"
       description: "Rerunning a report will create a new report with the same rule versions and run as the original report and run the evaluation again using the most up-to-date set of data."
     };
   }
@@ -72,7 +72,7 @@ service ReportService {
   rpc CancelReport(CancelReportRequest) returns (CancelReportResponse) {
     option (google.api.http) = {post: "/api/v1/reports/{report_id}:cancel"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CancelReport",
+      summary: "CancelReport"
       description: "Canceling a report will stop the evaluation of the report and mark it as canceled. Any results that have been calculated up to the point of cancellation will be saved."
     };
   }
@@ -95,6 +95,7 @@ message Report {
   optional string job_id = 14 [(google.api.field_behavior) = OPTIONAL];
   optional google.protobuf.Timestamp archived_date = 15 [(google.api.field_behavior) = OPTIONAL];
   repeated sift.metadata.v1.MetadataValue metadata = 16 [(google.api.field_behavior) = REQUIRED];
+  bool is_archived = 17 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ReportRuleSummary {
@@ -228,7 +229,7 @@ message ListReportsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, and `archived_date`.
+  // Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, and `archived_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -271,7 +272,7 @@ message UpdateReportRequest {
   // The report to update.
   Report report = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // The list of fields to be updated. The fields available to be updated are `archived_date` and `metadata`.
+  // The list of fields to be updated. The fields available to be updated are `archived_date`, `is_archived`, and `metadata`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 

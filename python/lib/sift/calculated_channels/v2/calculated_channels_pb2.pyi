@@ -41,6 +41,7 @@ class CalculatedChannel(google.protobuf.message.Message):
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
     FUNCTION_DEPENDENCIES_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     calculated_channel_id: builtins.str
     organization_id: builtins.str
     client_key: builtins.str
@@ -53,6 +54,8 @@ class CalculatedChannel(google.protobuf.message.Message):
     units: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
+    is_archived: builtins.bool
+    """Whether the calculated channel is archived. This is inferred from whether archived_date is set."""
     @property
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -86,9 +89,10 @@ class CalculatedChannel(google.protobuf.message.Message):
         modified_by_user_id: builtins.str = ...,
         function_dependencies: collections.abc.Iterable[sift.common.type.v1.user_defined_functions_pb2.FunctionDependency] | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "client_key", b"client_key", "created_date", b"created_date", "modified_date", b"modified_date", "units", b"units"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "calculated_channel_id", b"calculated_channel_id", "change_message", b"change_message", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "function_dependencies", b"function_dependencies", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "units", b"units", "user_notes", b"user_notes", "version", b"version", "version_id", b"version_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_units", b"_units", "archived_date", b"archived_date", "calculated_channel_configuration", b"calculated_channel_configuration", "calculated_channel_id", b"calculated_channel_id", "change_message", b"change_message", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "function_dependencies", b"function_dependencies", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "units", b"units", "user_notes", b"user_notes", "version", b"version", "version_id", b"version_id"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -375,7 +379,9 @@ class ListCalculatedChannelsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, and `archived_date.
+    Available fields to filter by are `calculated_channel_id`, `organization_id`, `client_key`, `name`, `description`,
+    `asset_id`, `asset_name`, `tag_id`, `tag_name`, `units`, `calculated_channel_version_id`,
+    `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
     """
@@ -383,7 +389,7 @@ class ListCalculatedChannelsRequest(google.protobuf.message.Message):
     """This field is only required if your user belongs to multiple organizations."""
     order_by: builtins.str
     """How to order the retrieved calculated channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `created_date` and `modified_date`.
+    Available fields to order_by are `created_date`, `modified_date`, `name`, `description`, `units`, and `archived_date`.
     If left empty, items are ordered by `created_date` in descending order (newest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date"
@@ -445,7 +451,7 @@ class UpdateCalculatedChannelRequest(google.protobuf.message.Message):
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
         """The list of fields to be updated. The fields available to be updated are `name`, `description`, `units`, `metadata`,
-        `query_configuration`, `archived_date`, and `asset_configuration`.
+        `query_configuration`, `archived_date`, `is_archived`, and `asset_configuration`.
         """
 
     def __init__(
@@ -514,7 +520,9 @@ class ListCalculatedChannelVersionsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, `archived_date`, and `metadata`.
+    Available fields to filter by are `calculated_channel_id`, `organization_id`, `client_key`, `name`, `description`,
+    `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, `units`, `calculated_channel_version_id`,
+    `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
     """
@@ -522,7 +530,7 @@ class ListCalculatedChannelVersionsRequest(google.protobuf.message.Message):
     """This field is only required if your user belongs to multiple organizations."""
     order_by: builtins.str
     """How to order the retrieved calculated channel versions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `created_date`, `modified_date`, and `version`.
+    Available fields to order_by are 'version', `created_date`, `modified_date`, `name`, `description`, `units`, and `archived_date`.
     If left empty, items are ordered by `created_date` in ascending order (oldest-first).
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,modified_date".
@@ -767,7 +775,9 @@ class ListResolvedCalculatedChannelsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, and `archived_date.
+    Available fields to filter by are `calculated_channel_id`, `organization_id`, `client_key`, `name`, `description`,
+    `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, `units`, `calculated_channel_version_id`,
+    `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
     """

@@ -96,6 +96,7 @@ class RunServiceServicer(object):
 
     def DeleteRun(self, request, context):
         """Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.
+        Deprecated: Use update with is_archived.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

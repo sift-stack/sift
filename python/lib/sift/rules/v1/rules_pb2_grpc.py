@@ -49,10 +49,30 @@ class RuleServiceStub(object):
                 request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.DeleteRuleRequest.SerializeToString,
                 response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.DeleteRuleResponse.FromString,
                 )
+        self.ArchiveRule = channel.unary_unary(
+                '/sift.rules.v1.RuleService/ArchiveRule',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ArchiveRuleRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ArchiveRuleResponse.FromString,
+                )
         self.BatchDeleteRules = channel.unary_unary(
                 '/sift.rules.v1.RuleService/BatchDeleteRules',
                 request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchDeleteRulesRequest.SerializeToString,
                 response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchDeleteRulesResponse.FromString,
+                )
+        self.BatchArchiveRules = channel.unary_unary(
+                '/sift.rules.v1.RuleService/BatchArchiveRules',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchArchiveRulesRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchArchiveRulesResponse.FromString,
+                )
+        self.UnarchiveRule = channel.unary_unary(
+                '/sift.rules.v1.RuleService/UnarchiveRule',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UnarchiveRuleRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UnarchiveRuleResponse.FromString,
+                )
+        self.BatchUnarchiveRules = channel.unary_unary(
+                '/sift.rules.v1.RuleService/BatchUnarchiveRules',
+                request_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchUnarchiveRulesRequest.SerializeToString,
+                response_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchUnarchiveRulesResponse.FromString,
                 )
         self.UndeleteRule = channel.unary_unary(
                 '/sift.rules.v1.RuleService/UndeleteRule',
@@ -162,28 +182,60 @@ class RuleServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def DeleteRule(self, request, context):
-        """Deletes a rule
+        """Deprecated - use ArchiveRule instead.
+        Archives a rule.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ArchiveRule(self, request, context):
+        """Archives a rule.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def BatchDeleteRules(self, request, context):
-        """Deletes multiple rules
+        """Deprecated - use BatchArchiveRules instead.
+        Archives multiple rules.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchArchiveRules(self, request, context):
+        """Batch archives rules.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UnarchiveRule(self, request, context):
+        """Unarchives a rule.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchUnarchiveRules(self, request, context):
+        """Batch unarchives rules.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UndeleteRule(self, request, context):
-        """Undeletes a rule
+        """Deprecated - use UnarchiveRule instead.
+        Unarchives a rule
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def BatchUndeleteRules(self, request, context):
-        """Undeletes multiple rules
+        """Deprecated - use BatchUnarchiveRules instead.
+        Unarchives multiple rules
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -296,10 +348,30 @@ def add_RuleServiceServicer_to_server(servicer, server):
                     request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.DeleteRuleRequest.FromString,
                     response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.DeleteRuleResponse.SerializeToString,
             ),
+            'ArchiveRule': grpc.unary_unary_rpc_method_handler(
+                    servicer.ArchiveRule,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.ArchiveRuleRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.ArchiveRuleResponse.SerializeToString,
+            ),
             'BatchDeleteRules': grpc.unary_unary_rpc_method_handler(
                     servicer.BatchDeleteRules,
                     request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchDeleteRulesRequest.FromString,
                     response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchDeleteRulesResponse.SerializeToString,
+            ),
+            'BatchArchiveRules': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchArchiveRules,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchArchiveRulesRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchArchiveRulesResponse.SerializeToString,
+            ),
+            'UnarchiveRule': grpc.unary_unary_rpc_method_handler(
+                    servicer.UnarchiveRule,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.UnarchiveRuleRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.UnarchiveRuleResponse.SerializeToString,
+            ),
+            'BatchUnarchiveRules': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchUnarchiveRules,
+                    request_deserializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchUnarchiveRulesRequest.FromString,
+                    response_serializer=sift_dot_rules_dot_v1_dot_rules__pb2.BatchUnarchiveRulesResponse.SerializeToString,
             ),
             'UndeleteRule': grpc.unary_unary_rpc_method_handler(
                     servicer.UndeleteRule,
@@ -491,6 +563,23 @@ class RuleService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def ArchiveRule(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/ArchiveRule',
+            sift_dot_rules_dot_v1_dot_rules__pb2.ArchiveRuleRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.ArchiveRuleResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def BatchDeleteRules(request,
             target,
             options=(),
@@ -504,6 +593,57 @@ class RuleService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/BatchDeleteRules',
             sift_dot_rules_dot_v1_dot_rules__pb2.BatchDeleteRulesRequest.SerializeToString,
             sift_dot_rules_dot_v1_dot_rules__pb2.BatchDeleteRulesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchArchiveRules(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/BatchArchiveRules',
+            sift_dot_rules_dot_v1_dot_rules__pb2.BatchArchiveRulesRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.BatchArchiveRulesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UnarchiveRule(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/UnarchiveRule',
+            sift_dot_rules_dot_v1_dot_rules__pb2.UnarchiveRuleRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.UnarchiveRuleResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchUnarchiveRules(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.rules.v1.RuleService/BatchUnarchiveRules',
+            sift_dot_rules_dot_v1_dot_rules__pb2.BatchUnarchiveRulesRequest.SerializeToString,
+            sift_dot_rules_dot_v1_dot_rules__pb2.BatchUnarchiveRulesResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

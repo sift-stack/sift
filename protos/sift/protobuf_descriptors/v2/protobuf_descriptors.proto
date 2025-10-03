@@ -16,14 +16,17 @@ service ProtobufDescriptorService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to programmatically interact with protobuf descriptors used for protobuf ingestion."
     external_docs: {
-      url: "/ingestion/protobuf_ingestion";
-      description: "Read more about what protobuf ingestion.";
+      url: "/ingestion/protobuf_ingestion"
+      description: "Read more about what protobuf ingestion."
     }
   };
 
   // Used to register a protobuf message to be ingested.
   rpc AddProtobufDescriptor(AddProtobufDescriptorRequest) returns (AddProtobufDescriptorResponse) {
-    option (google.api.http) = {post: "/api/v2/protobuf-descriptors:add"};
+    option (google.api.http) = {
+      post: "/api/v2/protobuf-descriptors:add",
+      body: "*"
+    };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "AddProtobufDescriptor"
       description: "Used to register a protobuf message to be ingested."
@@ -33,7 +36,10 @@ service ProtobufDescriptorService {
 
   // Used to check if a protobuf descriptor is compatible with the existing descriptors.
   rpc CheckProtobufDescriptorCompatibility(CheckProtobufDescriptorCompatibilityRequest) returns (CheckProtobufDescriptorCompatibilityResponse) {
-    option (google.api.http) = {post: "/api/v2/protobuf-descriptors:check-compatibility"};
+    option (google.api.http) = {
+      post: "/api/v2/protobuf-descriptors:check-compatibility",
+      body: "*"
+    };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "CheckProtobufDescriptorCompatibility"
       description: "Used to check if a protobuf descriptor is compatible with the existing descriptors."
@@ -96,7 +102,7 @@ message IncompatibleProtobufField {
   string reason = 6;
   string details = 7;
   string field_kind = 8;
-} 
+}
 
 message CheckProtobufDescriptorCompatibilityResponse {
   bool is_valid = 1;

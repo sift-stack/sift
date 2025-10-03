@@ -10,6 +10,7 @@ import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import sift.common.type.v1.channel_data_type_pb2
+import sift.common.type.v1.user_defined_functions_pb2
 import sys
 import typing
 
@@ -50,6 +51,7 @@ class _ExpressionIdentifierLibraryEnumTypeWrapper(google.protobuf.internal.enum_
     EXPRESSION_IDENTIFIER_LIBRARY_ITER: _ExpressionIdentifierLibrary.ValueType  # 4
     EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL: _ExpressionIdentifierLibrary.ValueType  # 5
     EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY: _ExpressionIdentifierLibrary.ValueType  # 6
+    EXPRESSION_IDENTIFIER_LIBRARY_USER_DEFINED_FUNCTIONS: _ExpressionIdentifierLibrary.ValueType  # 7
 
 class ExpressionIdentifierLibrary(_ExpressionIdentifierLibrary, metaclass=_ExpressionIdentifierLibraryEnumTypeWrapper): ...
 
@@ -60,6 +62,7 @@ EXPRESSION_IDENTIFIER_LIBRARY_LIST: ExpressionIdentifierLibrary.ValueType  # 3
 EXPRESSION_IDENTIFIER_LIBRARY_ITER: ExpressionIdentifierLibrary.ValueType  # 4
 EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL: ExpressionIdentifierLibrary.ValueType  # 5
 EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY: ExpressionIdentifierLibrary.ValueType  # 6
+EXPRESSION_IDENTIFIER_LIBRARY_USER_DEFINED_FUNCTIONS: ExpressionIdentifierLibrary.ValueType  # 7
 global___ExpressionIdentifierLibrary = ExpressionIdentifierLibrary
 
 class _ExpressionMode:
@@ -124,6 +127,7 @@ class ExpressionRequest(google.protobuf.message.Message):
     CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
     EXPRESSION_FIELD_NUMBER: builtins.int
     EXPRESSION_CHANNEL_REFERENCES_FIELD_NUMBER: builtins.int
+    FUNCTION_DEPENDENCIES_FIELD_NUMBER: builtins.int
     expression: builtins.str
     @property
     def channel_references(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]:
@@ -133,14 +137,17 @@ class ExpressionRequest(google.protobuf.message.Message):
 
     @property
     def expression_channel_references(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExpressionChannelReference]: ...
+    @property
+    def function_dependencies(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.common.type.v1.user_defined_functions_pb2.FunctionDependency]: ...
     def __init__(
         self,
         *,
         channel_references: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
         expression: builtins.str = ...,
         expression_channel_references: collections.abc.Iterable[global___ExpressionChannelReference] | None = ...,
+        function_dependencies: collections.abc.Iterable[sift.common.type.v1.user_defined_functions_pb2.FunctionDependency] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["channel_references", b"channel_references", "expression", b"expression", "expression_channel_references", b"expression_channel_references"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["channel_references", b"channel_references", "expression", b"expression", "expression_channel_references", b"expression_channel_references", "function_dependencies", b"function_dependencies"]) -> None: ...
 
 global___ExpressionRequest = ExpressionRequest
 
@@ -171,14 +178,19 @@ class ListExpressionIdentifiersResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     IDENTIFIERS_FIELD_NUMBER: builtins.int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: builtins.int
+    next_page_token: builtins.str
     @property
     def identifiers(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ExpressionIdentifier]: ...
     def __init__(
         self,
         *,
         identifiers: collections.abc.Iterable[global___ExpressionIdentifier] | None = ...,
+        next_page_token: builtins.str | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["identifiers", b"identifiers"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_next_page_token", b"_next_page_token", "next_page_token", b"next_page_token"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_next_page_token", b"_next_page_token", "identifiers", b"identifiers", "next_page_token", b"next_page_token"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_next_page_token", b"_next_page_token"]) -> typing.Literal["next_page_token"] | None: ...
 
 global___ListExpressionIdentifiersResponse = ListExpressionIdentifiersResponse
 

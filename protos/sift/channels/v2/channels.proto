@@ -9,6 +9,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/common/type/v1/channel_bit_field_element.proto";
 import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
+import "sift/metadata/v1/metadata.proto";
 
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -19,8 +20,8 @@ service ChannelService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to programmatically interact with [channels](/glossary#channel)."
     external_docs: {
-      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265453943";
-      description: "Read more about what channels are.";
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265453943"
+      description: "Read more about what channels are."
     }
   };
 
@@ -58,6 +59,7 @@ message Channel {
   sift.common.type.v1.ChannelDataType data_type = 12 [(google.api.field_behavior) = REQUIRED];
   repeated sift.common.type.v1.ChannelEnumType enum_types = 13;
   repeated sift.common.type.v1.ChannelBitFieldElement bit_field_elements = 14;
+  repeated sift.metadata.v1.MetadataValue metadata = 15 [(google.api.field_behavior) = REQUIRED];
 }
 
 // The request for a call to `ChannelService_GetChannel`.

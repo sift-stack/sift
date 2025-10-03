@@ -134,6 +134,31 @@ pub mod job_service_client {
                 .insert(GrpcMethod::new("sift.jobs.v1.JobService", "CancelJob"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn retry_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RetryJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RetryJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.jobs.v1.JobService/RetryJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("sift.jobs.v1.JobService", "RetryJob"));
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -155,6 +180,13 @@ pub mod job_service_server {
             request: tonic::Request<super::CancelJobRequest>,
         ) -> std::result::Result<
             tonic::Response<super::CancelJobResponse>,
+            tonic::Status,
+        >;
+        async fn retry_job(
+            &self,
+            request: tonic::Request<super::RetryJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RetryJobResponse>,
             tonic::Status,
         >;
     }
@@ -314,6 +346,52 @@ pub mod job_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = CancelJobSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.jobs.v1.JobService/RetryJob" => {
+                    #[allow(non_camel_case_types)]
+                    struct RetryJobSvc<T: JobService>(pub Arc<T>);
+                    impl<
+                        T: JobService,
+                    > tonic::server::UnaryService<super::RetryJobRequest>
+                    for RetryJobSvc<T> {
+                        type Response = super::RetryJobResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::RetryJobRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as JobService>::retry_job(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = RetryJobSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

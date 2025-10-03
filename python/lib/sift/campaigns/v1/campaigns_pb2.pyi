@@ -36,6 +36,7 @@ class Campaign(google.protobuf.message.Message):
     REPORTS_FIELD_NUMBER: builtins.int
     CREATED_FROM_CAMPAIGN_ID_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     campaign_id: builtins.str
     organization_id: builtins.str
     client_key: builtins.str
@@ -45,6 +46,8 @@ class Campaign(google.protobuf.message.Message):
     modified_by_user_id: builtins.str
     created_from_campaign_id: builtins.str
     """If this campaign was created by duplicating another campaign, that other campaign will be referenced here"""
+    is_archived: builtins.bool
+    """Whether the campaign. This is inferred from whether archived_date is set."""
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -78,9 +81,10 @@ class Campaign(google.protobuf.message.Message):
         reports: collections.abc.Iterable[global___CampaignReport] | None = ...,
         created_from_campaign_id: builtins.str | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "campaign_id", b"campaign_id", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "reports", b"reports", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_created_from_campaign_id", b"_created_from_campaign_id", "_description", b"_description", "archived_date", b"archived_date", "campaign_id", b"campaign_id", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "created_from_campaign_id", b"created_from_campaign_id", "description", b"description", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "reports", b"reports", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
     @typing.overload
@@ -308,7 +312,7 @@ class ListCampaignsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are:
-    `created_by_user_id`, `tag_id`, `tag_name`, `report_id`, `report_name`, `campaign_id`, `client_key`, `description`, `run_id`, `name`, and `metadata`.
+    `created_by_user_id`, `tag_id`, `tag_name`, `report_id`, `report_name`, `campaign_id`, `client_key`, `description`, `run_id`, `name`, `is_archived`, and `metadata`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to this definition. Optional.
     """
@@ -375,7 +379,7 @@ class UpdateCampaignRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, `reports`, and `metadata`."""
+        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `is_archived`, `description`, `tags`, `reports`, and `metadata`."""
 
     def __init__(
         self,

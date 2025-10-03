@@ -88,6 +88,8 @@ class Annotation(google.protobuf.message.Message):
     LINKED_CHANNELS_FIELD_NUMBER: builtins.int
     ASSET_IDS_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    ARCHIVED_DATE_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     annotation_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -106,6 +108,8 @@ class Annotation(google.protobuf.message.Message):
     """An annotation is pending if it is part of an ongoing violation of a rule condition.
     The `end_time` of a pending annotation might be set, but is not yet finalized.
     """
+    is_archived: builtins.bool
+    """is_archived is a inferred from when archived_date is not null"""
     @property
     def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -126,6 +130,8 @@ class Annotation(google.protobuf.message.Message):
     def asset_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
     def metadata(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
+    @property
+    def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -154,9 +160,11 @@ class Annotation(google.protobuf.message.Message):
         linked_channels: collections.abc.Iterable[global___AnnotationLinkedChannel] | None = ...,
         asset_ids: collections.abc.Iterable[builtins.str] | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "assigned_to_user", b"assigned_to_user", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "end_time", b"end_time", "legend_config", b"legend_config", "modified_date", b"modified_date", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "annotation_id", b"annotation_id", "annotation_type", b"annotation_type", "asset_ids", b"asset_ids", "assigned_to_user", b"assigned_to_user", "assigned_to_user_id", b"assigned_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "end_time", b"end_time", "legend_config", b"legend_config", "linked_channels", b"linked_channels", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "pending", b"pending", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "archived_date", b"archived_date", "assigned_to_user", b"assigned_to_user", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "end_time", b"end_time", "legend_config", b"legend_config", "modified_date", b"modified_date", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_created_by_condition_id", b"_created_by_condition_id", "_created_by_rule_condition_version_id", b"_created_by_rule_condition_version_id", "_legend_config", b"_legend_config", "_report_rule_version_id", b"_report_rule_version_id", "_run_id", b"_run_id", "_state", b"_state", "annotation_id", b"annotation_id", "annotation_type", b"annotation_type", "archived_date", b"archived_date", "asset_ids", b"asset_ids", "assigned_to_user", b"assigned_to_user", "assigned_to_user_id", b"assigned_to_user_id", "created_by_condition_id", b"created_by_condition_id", "created_by_rule_condition_version_id", b"created_by_rule_condition_version_id", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "end_time", b"end_time", "is_archived", b"is_archived", "legend_config", b"legend_config", "linked_channels", b"linked_channels", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "pending", b"pending", "report_rule_version_id", b"report_rule_version_id", "run_id", b"run_id", "start_time", b"start_time", "state", b"state", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_created_by_condition_id", b"_created_by_condition_id"]) -> typing.Literal["created_by_condition_id"] | None: ...
     @typing.overload
@@ -474,7 +482,7 @@ class ListAnnotationsRequest(google.protobuf.message.Message):
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
     `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`,
-    `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`, `campaign_reports`, and `metadata`.
+    `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`, `campaign_reports`, `metadata`, `archived_date`, and `is_archived`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/annotations#annotation). Optional.
     """
@@ -571,3 +579,151 @@ class UpdateAnnotationResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["annotation", b"annotation"]) -> None: ...
 
 global___UpdateAnnotationResponse = UpdateAnnotationResponse
+
+@typing.final
+class ArchiveAnnotationRequest(google.protobuf.message.Message):
+    """The request for a call to `AnnotationService_ArchiveAnnotation`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATION_ID_FIELD_NUMBER: builtins.int
+    annotation_id: builtins.str
+    def __init__(
+        self,
+        *,
+        annotation_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["annotation_id", b"annotation_id"]) -> None: ...
+
+global___ArchiveAnnotationRequest = ArchiveAnnotationRequest
+
+@typing.final
+class ArchiveAnnotationResponse(google.protobuf.message.Message):
+    """The response of a call to `AnnotationService_ArchiveAnnotation`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATION_FIELD_NUMBER: builtins.int
+    @property
+    def annotation(self) -> global___Annotation: ...
+    def __init__(
+        self,
+        *,
+        annotation: global___Annotation | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["annotation", b"annotation"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["annotation", b"annotation"]) -> None: ...
+
+global___ArchiveAnnotationResponse = ArchiveAnnotationResponse
+
+@typing.final
+class UnarchiveAnnotationRequest(google.protobuf.message.Message):
+    """The request for a call to `AnnotationService_UnarchiveAnnotation`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATION_ID_FIELD_NUMBER: builtins.int
+    annotation_id: builtins.str
+    def __init__(
+        self,
+        *,
+        annotation_id: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["annotation_id", b"annotation_id"]) -> None: ...
+
+global___UnarchiveAnnotationRequest = UnarchiveAnnotationRequest
+
+@typing.final
+class UnarchiveAnnotationResponse(google.protobuf.message.Message):
+    """The response of a call to `AnnotationService_UnarchiveAnnotation`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATION_FIELD_NUMBER: builtins.int
+    @property
+    def annotation(self) -> global___Annotation: ...
+    def __init__(
+        self,
+        *,
+        annotation: global___Annotation | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["annotation", b"annotation"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["annotation", b"annotation"]) -> None: ...
+
+global___UnarchiveAnnotationResponse = UnarchiveAnnotationResponse
+
+@typing.final
+class BatchArchiveAnnotationsRequest(google.protobuf.message.Message):
+    """The request for a call to `AnnotationService_BatchArchiveAnnotations`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATION_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def annotation_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Limit of 1000 annotations per batch"""
+
+    def __init__(
+        self,
+        *,
+        annotation_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["annotation_ids", b"annotation_ids"]) -> None: ...
+
+global___BatchArchiveAnnotationsRequest = BatchArchiveAnnotationsRequest
+
+@typing.final
+class BatchArchiveAnnotationsResponse(google.protobuf.message.Message):
+    """The response of a call to `AnnotationService_BatchArchiveAnnotations`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATIONS_FIELD_NUMBER: builtins.int
+    @property
+    def annotations(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Annotation]: ...
+    def __init__(
+        self,
+        *,
+        annotations: collections.abc.Iterable[global___Annotation] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["annotations", b"annotations"]) -> None: ...
+
+global___BatchArchiveAnnotationsResponse = BatchArchiveAnnotationsResponse
+
+@typing.final
+class BatchUnarchiveAnnotationsRequest(google.protobuf.message.Message):
+    """The request for a call to `AnnotationService_BatchUnarchiveAnnotations`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATION_IDS_FIELD_NUMBER: builtins.int
+    @property
+    def annotation_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Limit of 1000 annotations per batch"""
+
+    def __init__(
+        self,
+        *,
+        annotation_ids: collections.abc.Iterable[builtins.str] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["annotation_ids", b"annotation_ids"]) -> None: ...
+
+global___BatchUnarchiveAnnotationsRequest = BatchUnarchiveAnnotationsRequest
+
+@typing.final
+class BatchUnarchiveAnnotationsResponse(google.protobuf.message.Message):
+    """The response of a call to `AnnotationService_BatchUnarchiveAnnotations`."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ANNOTATIONS_FIELD_NUMBER: builtins.int
+    @property
+    def annotations(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Annotation]: ...
+    def __init__(
+        self,
+        *,
+        annotations: collections.abc.Iterable[global___Annotation] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["annotations", b"annotations"]) -> None: ...
+
+global___BatchUnarchiveAnnotationsResponse = BatchUnarchiveAnnotationsResponse

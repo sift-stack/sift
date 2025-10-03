@@ -831,6 +831,7 @@ impl serde::Serialize for EntityType {
             Self::Annotation => "ENTITY_TYPE_ANNOTATION",
             Self::Asset => "ENTITY_TYPE_ASSET",
             Self::AnnotationLog => "ENTITY_TYPE_ANNOTATION_LOG",
+            Self::TestReport => "ENTITY_TYPE_TEST_REPORT",
         };
         serializer.serialize_str(variant)
     }
@@ -847,6 +848,7 @@ impl<'de> serde::Deserialize<'de> for EntityType {
             "ENTITY_TYPE_ANNOTATION",
             "ENTITY_TYPE_ASSET",
             "ENTITY_TYPE_ANNOTATION_LOG",
+            "ENTITY_TYPE_TEST_REPORT",
         ];
 
         struct GeneratedVisitor;
@@ -892,6 +894,7 @@ impl<'de> serde::Deserialize<'de> for EntityType {
                     "ENTITY_TYPE_ANNOTATION" => Ok(EntityType::Annotation),
                     "ENTITY_TYPE_ASSET" => Ok(EntityType::Asset),
                     "ENTITY_TYPE_ANNOTATION_LOG" => Ok(EntityType::AnnotationLog),
+                    "ENTITY_TYPE_TEST_REPORT" => Ok(EntityType::TestReport),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

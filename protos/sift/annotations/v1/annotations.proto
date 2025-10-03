@@ -19,8 +19,8 @@ service AnnotationService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to programmatically interact with annotations."
     external_docs: {
-      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265486685";
-      description: "Read more about annotations.";
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265486685"
+      description: "Read more about annotations."
     }
   };
 
@@ -36,30 +36,82 @@ service AnnotationService {
     };
   }
 
-  // Delete Annotation is deprecated. Calling this will archive the annotation, which should be done using the
-  // UpdateAnnotation method with the delete date set to a non-null value. Restoring an annotation can be done
-  // by calling UpdateAnnotation with the delete date set to a null value.
+  // Delete Annotation is deprecated. Use ArchiveAnnotation instead.
+  // Calling this will archive the annotation, which should be done using the
+  // ArchiveAnnotation method or the UpdateAnnotation method with the delete date set to a non-null value.
+  // Restoring an annotation can be done using the UnarchiveAnnotation method or by calling
+  // UpdateAnnotation with the delete date set to a null value.
   rpc DeleteAnnotation(DeleteAnnotationRequest) returns (DeleteAnnotationResponse) {
+    option deprecated = true;
     option (google.api.http) = {delete: "/api/v1/annotations/{annotation_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "DeleteAnnotation"
-      description: "Deletes an annotation."
+      description: "Archives an annotation."
     };
   }
 
-  // BatchDeleteAnnotations will archive the annotations specified in the request. These can be restored
-  // by calling UpdateAnnotation with the delete date set to a null value.
-  rpc BatchDeleteAnnotations(BatchDeleteAnnotationsRequest) returns (BatchDeleteAnnotationsResponse) {
+  // Archives an annotation.
+  rpc ArchiveAnnotation(ArchiveAnnotationRequest) returns (ArchiveAnnotationResponse) {
     option (google.api.http) = {
-      post: "/api/v1/annotations:batchDelete",
+      post: "/api/v1/annotations/{annotation_id}:archive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchiveAnnotation"
+      description: "Archives an annotation."
+    };
+  }
+
+  // Unarchives an annotation.
+  rpc UnarchiveAnnotation(UnarchiveAnnotationRequest) returns (UnarchiveAnnotationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/annotations/{annotation_id}:unarchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnarchiveAnnotation"
+      description: "Unarchives an annotation."
+    };
+  }
+
+  // BatchDeleteAnnotations is deprecated. Use BatchArchiveAnnotations instead.
+  // BatchDeleteAnnotations will archive the annotations specified in the request. These can be restored
+  // by calling UnarchiveAnnotation or UpdateAnnotation with the delete date set to a null value.
+  rpc BatchDeleteAnnotations(BatchDeleteAnnotationsRequest) returns (BatchDeleteAnnotationsResponse) {
+    option deprecated = true;
+    option (google.api.http) = {
+      post: "/api/v1/annotations:batchDelete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "BatchDeleteAnnotation"
-      description: "Batch deletes annotations."
+      description: "Batch archives annotations."
     };
   }
 
+  // Batch archives annotations.
+  rpc BatchArchiveAnnotations(BatchArchiveAnnotationsRequest) returns (BatchArchiveAnnotationsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/annotations:batchArchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchArchiveAnnotations"
+      description: "Batch archives annotations."
+    };
+  }
+
+  // Batch unarchives annotations.
+  rpc BatchUnarchiveAnnotations(BatchUnarchiveAnnotationsRequest) returns (BatchUnarchiveAnnotationsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/annotations:batchUnarchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchUnarchiveAnnotations"
+      description: "Batch unarchives annotations."
+    };
+  }
   // Retrieves annotations using an optional filter.
   rpc ListAnnotations(ListAnnotationsRequest) returns (ListAnnotationsResponse) {
     option (google.api.http) = {get: "/api/v1/annotations"};
@@ -116,11 +168,19 @@ message Annotation {
   // The `end_time` of a pending annotation might be set, but is not yet finalized.
   bool pending = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
   sift.common.type.v1.User assigned_to_user = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
-  google.protobuf.Timestamp deleted_date = 22 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp deleted_date = 22 [
+    (google.api.field_behavior) = OPTIONAL,
+    deprecated = true
+  ];
 
   repeated AnnotationLinkedChannel linked_channels = 23 [(google.api.field_behavior) = OPTIONAL];
   repeated string asset_ids = 24 [(google.api.field_behavior) = OPTIONAL];
   repeated sift.metadata.v1.MetadataValue metadata = 25 [(google.api.field_behavior) = OPTIONAL];
+
+  google.protobuf.Timestamp archived_date = 26 [(google.api.field_behavior) = OPTIONAL];
+
+  // is_archived is a inferred from when archived_date is not null
+  bool is_archived = 27 [(google.api.field_behavior) = REQUIRED];
 }
 
 enum AnnotationState {
@@ -236,7 +296,7 @@ message ListAnnotationsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `annotation_id`, `start_time`, `end_time`,
   // `created_date`, `modified_date`, `run_id`, `name`, `description`, `state`, `created_by_user_id`, `created_by_rule_condition_version_id`,
-  // `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`, `campaign_reports`, and `metadata`.
+  // `annotation_type`, `tag_name`, `report_id`, `asset_id`, `asset_name`, `pending`, `assignee`, `campaign_reports`, `metadata`, `archived_date`, and `is_archived`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/annotations#annotation). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -274,4 +334,46 @@ message UpdateAnnotationRequest {
 // The response of a call to `AnnotationService_UpdateAnnotation`.
 message UpdateAnnotationResponse {
   Annotation annotation = 1;
+}
+
+// The request for a call to `AnnotationService_ArchiveAnnotation`.
+message ArchiveAnnotationRequest {
+  string annotation_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `AnnotationService_ArchiveAnnotation`.
+message ArchiveAnnotationResponse {
+  Annotation annotation = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AnnotationService_UnarchiveAnnotation`.
+message UnarchiveAnnotationRequest {
+  string annotation_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `AnnotationService_UnarchiveAnnotation`.
+message UnarchiveAnnotationResponse {
+  Annotation annotation = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AnnotationService_BatchArchiveAnnotations`.
+message BatchArchiveAnnotationsRequest {
+  // Limit of 1000 annotations per batch
+  repeated string annotation_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `AnnotationService_BatchArchiveAnnotations`.
+message BatchArchiveAnnotationsResponse {
+  repeated Annotation annotations = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to `AnnotationService_BatchUnarchiveAnnotations`.
+message BatchUnarchiveAnnotationsRequest {
+  // Limit of 1000 annotations per batch
+  repeated string annotation_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The response of a call to `AnnotationService_BatchUnarchiveAnnotations`.
+message BatchUnarchiveAnnotationsResponse {
+  repeated Annotation annotations = 1 [(google.api.field_behavior) = REQUIRED];
 }

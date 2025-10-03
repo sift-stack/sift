@@ -18,7 +18,7 @@ from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__
 from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapiv2_dot_options_dot_annotations__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17sift/tags/v2/tags.proto\x12\x0csift.tags.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xb0\x01\n\x03Tag\x12\x1a\n\x06tag_id\x18\x01 \x01(\tB\x03\xe0\x41\x03R\x05tagId\x12\x17\n\x04name\x18\x02 \x01(\tB\x03\xe0\x41\x03R\x04name\x12\x30\n\x12\x63reated_by_user_id\x18\x03 \x01(\tB\x03\xe0\x41\x03R\x0f\x63reatedByUserId\x12\x42\n\x0c\x63reated_date\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03R\x0b\x63reatedDate\"+\n\x10\x43reateTagRequest\x12\x17\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x04name\"8\n\x11\x43reateTagResponse\x12#\n\x03tag\x18\x01 \x01(\x0b\x32\x11.sift.tags.v2.TagR\x03tag\"\x94\x01\n\x0fListTagsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"a\n\x10ListTagsResponse\x12%\n\x04tags\x18\x01 \x03(\x0b\x32\x11.sift.tags.v2.TagR\x04tags\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xa0\x03\n\nTagService\x12\x9a\x01\n\tCreateTag\x12\x1e.sift.tags.v2.CreateTagRequest\x1a\x1f.sift.tags.v2.CreateTagResponse\"L\x92\x41\x32\x12\tCreateTag\x1a\rCreate a tag.*\x16TagService_CreateTagV2\x82\xd3\xe4\x93\x02\x11\"\x0c/api/v2/tags:\x01*\x12\xad\x01\n\x08ListTags\x12\x1d.sift.tags.v2.ListTagsRequest\x1a\x1e.sift.tags.v2.ListTagsResponse\"b\x92\x41K\x12\x08ListTags\x1a(Retrieves tags using an optional filter.*\x15TagService_ListTagsV2\x82\xd3\xe4\x93\x02\x0e\x12\x0c/api/v2/tags\x1a\x45\x92\x41\x42\x12@Service to programmatically interact with [tags](/glossary#tag).B\x81\x01\n\x10\x63om.sift.tags.v2B\tTagsProtoP\x01\xa2\x02\x03STX\xaa\x02\x0cSift.Tags.V2\xca\x02\x0cSift\\Tags\\V2\xe2\x02\x18Sift\\Tags\\V2\\GPBMetadata\xea\x02\x0eSift::Tags::V2\x92\x41\x0f\x12\r\n\x0bTag Serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17sift/tags/v2/tags.proto\x12\x0csift.tags.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xb0\x01\n\x03Tag\x12\x1a\n\x06tag_id\x18\x01 \x01(\tB\x03\xe0\x41\x03R\x05tagId\x12\x17\n\x04name\x18\x02 \x01(\tB\x03\xe0\x41\x03R\x04name\x12\x30\n\x12\x63reated_by_user_id\x18\x03 \x01(\tB\x03\xe0\x41\x03R\x0f\x63reatedByUserId\x12\x42\n\x0c\x63reated_date\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03R\x0b\x63reatedDate\"+\n\x10\x43reateTagRequest\x12\x17\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x04name\"8\n\x11\x43reateTagResponse\x12#\n\x03tag\x18\x01 \x01(\x0b\x32\x11.sift.tags.v2.TagR\x03tag\"\xcb\x01\n\x0fListTagsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\x12\x35\n\x08tag_type\x18\x05 \x01(\x0e\x32\x15.sift.tags.v2.TagTypeB\x03\xe0\x41\x01R\x07tagType\"a\n\x10ListTagsResponse\x12%\n\x04tags\x18\x01 \x03(\x0b\x32\x11.sift.tags.v2.TagR\x04tags\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken*\xac\x01\n\x07TagType\x12\x18\n\x14TAG_TYPE_UNSPECIFIED\x10\x00\x12\x17\n\x13TAG_TYPE_ANNOTATION\x10\x01\x12\x12\n\x0eTAG_TYPE_ASSET\x10\x02\x12\x15\n\x11TAG_TYPE_CAMPAIGN\x10\x03\x12\x13\n\x0fTAG_TYPE_REPORT\x10\x04\x12\x1c\n\x18TAG_TYPE_REPORT_TEMPLATE\x10\x05\x12\x10\n\x0cTAG_TYPE_RUN\x10\x06\x32\xa0\x03\n\nTagService\x12\x9a\x01\n\tCreateTag\x12\x1e.sift.tags.v2.CreateTagRequest\x1a\x1f.sift.tags.v2.CreateTagResponse\"L\x92\x41\x32\x12\tCreateTag\x1a\rCreate a tag.*\x16TagService_CreateTagV2\x82\xd3\xe4\x93\x02\x11\"\x0c/api/v2/tags:\x01*\x12\xad\x01\n\x08ListTags\x12\x1d.sift.tags.v2.ListTagsRequest\x1a\x1e.sift.tags.v2.ListTagsResponse\"b\x92\x41K\x12\x08ListTags\x1a(Retrieves tags using an optional filter.*\x15TagService_ListTagsV2\x82\xd3\xe4\x93\x02\x0e\x12\x0c/api/v2/tags\x1a\x45\x92\x41\x42\x12@Service to programmatically interact with [tags](/glossary#tag).B\x81\x01\n\x10\x63om.sift.tags.v2B\tTagsProtoP\x01\xa2\x02\x03STX\xaa\x02\x0cSift.Tags.V2\xca\x02\x0cSift\\Tags\\V2\xe2\x02\x18Sift\\Tags\\V2\\GPBMetadata\xea\x02\x0eSift::Tags::V2\x92\x41\x0f\x12\r\n\x0bTag Serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -44,12 +44,16 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTTAGSREQUEST'].fields_by_name['filter']._serialized_options = b'\340A\001'
   _globals['_LISTTAGSREQUEST'].fields_by_name['order_by']._loaded_options = None
   _globals['_LISTTAGSREQUEST'].fields_by_name['order_by']._serialized_options = b'\340A\001'
+  _globals['_LISTTAGSREQUEST'].fields_by_name['tag_type']._loaded_options = None
+  _globals['_LISTTAGSREQUEST'].fields_by_name['tag_type']._serialized_options = b'\340A\001'
   _globals['_TAGSERVICE']._loaded_options = None
   _globals['_TAGSERVICE']._serialized_options = b'\222AB\022@Service to programmatically interact with [tags](/glossary#tag).'
   _globals['_TAGSERVICE'].methods_by_name['CreateTag']._loaded_options = None
   _globals['_TAGSERVICE'].methods_by_name['CreateTag']._serialized_options = b'\222A2\022\tCreateTag\032\rCreate a tag.*\026TagService_CreateTagV2\202\323\344\223\002\021\"\014/api/v2/tags:\001*'
   _globals['_TAGSERVICE'].methods_by_name['ListTags']._loaded_options = None
   _globals['_TAGSERVICE'].methods_by_name['ListTags']._serialized_options = b'\222AK\022\010ListTags\032(Retrieves tags using an optional filter.*\025TagService_ListTagsV2\202\323\344\223\002\016\022\014/api/v2/tags'
+  _globals['_TAGTYPE']._serialized_start=773
+  _globals['_TAGTYPE']._serialized_end=945
   _globals['_TAG']._serialized_start=186
   _globals['_TAG']._serialized_end=362
   _globals['_CREATETAGREQUEST']._serialized_start=364
@@ -57,9 +61,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREATETAGRESPONSE']._serialized_start=409
   _globals['_CREATETAGRESPONSE']._serialized_end=465
   _globals['_LISTTAGSREQUEST']._serialized_start=468
-  _globals['_LISTTAGSREQUEST']._serialized_end=616
-  _globals['_LISTTAGSRESPONSE']._serialized_start=618
-  _globals['_LISTTAGSRESPONSE']._serialized_end=715
-  _globals['_TAGSERVICE']._serialized_start=718
-  _globals['_TAGSERVICE']._serialized_end=1134
+  _globals['_LISTTAGSREQUEST']._serialized_end=671
+  _globals['_LISTTAGSRESPONSE']._serialized_start=673
+  _globals['_LISTTAGSRESPONSE']._serialized_end=770
+  _globals['_TAGSERVICE']._serialized_start=948
+  _globals['_TAGSERVICE']._serialized_end=1364
 # @@protoc_insertion_point(module_scope)

@@ -15,6 +15,8 @@ pub struct UserGroup {
     pub resources: ::core::option::Option<user_group::Resource>,
     #[prost(string, repeated, tag="7")]
     pub user_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag="8")]
+    pub is_external: bool,
 }
 /// Nested message and enum types in `UserGroup`.
 pub mod user_group {

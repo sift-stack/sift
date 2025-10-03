@@ -1,4 +1,11 @@
 // @generated
+pub mod buf {
+    // @@protoc_insertion_point(attribute:buf.validate)
+    pub mod validate {
+        include!("buf.validate.rs");
+        // @@protoc_insertion_point(buf.validate)
+    }
+}
 pub mod google {
     // @@protoc_insertion_point(attribute:google.api)
     pub mod api {
@@ -131,6 +138,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.exports.v1)
         }
     }
+    pub mod external_sync {
+        // @@protoc_insertion_point(attribute:sift.external_sync.v1)
+        pub mod v1 {
+            include!("sift.external_sync.v1.rs");
+            // @@protoc_insertion_point(sift.external_sync.v1)
+        }
+    }
     pub mod ingest {
         // @@protoc_insertion_point(attribute:sift.ingest.v1)
         pub mod v1 {
@@ -176,6 +190,20 @@ pub mod sift {
         pub mod v1 {
             include!("sift.notifications.v1.rs");
             // @@protoc_insertion_point(sift.notifications.v1)
+        }
+    }
+    pub mod options {
+        // @@protoc_insertion_point(attribute:sift.options.v1)
+        pub mod v1 {
+            include!("sift.options.v1.rs");
+            // @@protoc_insertion_point(sift.options.v1)
+        }
+    }
+    pub mod panel_configurations {
+        // @@protoc_insertion_point(attribute:sift.panel_configurations.v1)
+        pub mod v1 {
+            include!("sift.panel_configurations.v1.rs");
+            // @@protoc_insertion_point(sift.panel_configurations.v1)
         }
     }
     pub mod ping {
@@ -298,6 +326,13 @@ pub mod sift {
         pub mod v2 {
             include!("sift.views.v2.rs");
             // @@protoc_insertion_point(sift.views.v2)
+        }
+    }
+    pub mod webhooks {
+        // @@protoc_insertion_point(attribute:sift.webhooks.v1)
+        pub mod v1 {
+            include!("sift.webhooks.v1.rs");
+            // @@protoc_insertion_point(sift.webhooks.v1)
         }
     }
 }

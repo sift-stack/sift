@@ -379,6 +379,7 @@ impl serde::Serialize for ExpressionIdentifierLibrary {
             Self::Iter => "EXPRESSION_IDENTIFIER_LIBRARY_ITER",
             Self::Stateful => "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL",
             Self::Summary => "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY",
+            Self::UserDefinedFunctions => "EXPRESSION_IDENTIFIER_LIBRARY_USER_DEFINED_FUNCTIONS",
         };
         serializer.serialize_str(variant)
     }
@@ -397,6 +398,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionIdentifierLibrary {
             "EXPRESSION_IDENTIFIER_LIBRARY_ITER",
             "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL",
             "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY",
+            "EXPRESSION_IDENTIFIER_LIBRARY_USER_DEFINED_FUNCTIONS",
         ];
 
         struct GeneratedVisitor;
@@ -444,6 +446,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionIdentifierLibrary {
                     "EXPRESSION_IDENTIFIER_LIBRARY_ITER" => Ok(ExpressionIdentifierLibrary::Iter),
                     "EXPRESSION_IDENTIFIER_LIBRARY_STATEFUL" => Ok(ExpressionIdentifierLibrary::Stateful),
                     "EXPRESSION_IDENTIFIER_LIBRARY_SUMMARY" => Ok(ExpressionIdentifierLibrary::Summary),
+                    "EXPRESSION_IDENTIFIER_LIBRARY_USER_DEFINED_FUNCTIONS" => Ok(ExpressionIdentifierLibrary::UserDefinedFunctions),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }
@@ -622,6 +625,9 @@ impl serde::Serialize for ExpressionRequest {
         if !self.expression_channel_references.is_empty() {
             len += 1;
         }
+        if !self.function_dependencies.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v1.ExpressionRequest", len)?;
         if !self.channel_references.is_empty() {
             struct_ser.serialize_field("channelReferences", &self.channel_references)?;
@@ -631,6 +637,9 @@ impl serde::Serialize for ExpressionRequest {
         }
         if !self.expression_channel_references.is_empty() {
             struct_ser.serialize_field("expressionChannelReferences", &self.expression_channel_references)?;
+        }
+        if !self.function_dependencies.is_empty() {
+            struct_ser.serialize_field("functionDependencies", &self.function_dependencies)?;
         }
         struct_ser.end()
     }
@@ -647,6 +656,8 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
             "expression",
             "expression_channel_references",
             "expressionChannelReferences",
+            "function_dependencies",
+            "functionDependencies",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -654,6 +665,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
             ChannelReferences,
             Expression,
             ExpressionChannelReferences,
+            FunctionDependencies,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -678,6 +690,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
                             "channelReferences" | "channel_references" => Ok(GeneratedField::ChannelReferences),
                             "expression" => Ok(GeneratedField::Expression),
                             "expressionChannelReferences" | "expression_channel_references" => Ok(GeneratedField::ExpressionChannelReferences),
+                            "functionDependencies" | "function_dependencies" => Ok(GeneratedField::FunctionDependencies),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -700,6 +713,7 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
                 let mut channel_references__ = None;
                 let mut expression__ = None;
                 let mut expression_channel_references__ = None;
+                let mut function_dependencies__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelReferences => {
@@ -722,12 +736,19 @@ impl<'de> serde::Deserialize<'de> for ExpressionRequest {
                             }
                             expression_channel_references__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::FunctionDependencies => {
+                            if function_dependencies__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("functionDependencies"));
+                            }
+                            function_dependencies__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(ExpressionRequest {
                     channel_references: channel_references__.unwrap_or_default(),
                     expression: expression__.unwrap_or_default(),
                     expression_channel_references: expression_channel_references__.unwrap_or_default(),
+                    function_dependencies: function_dependencies__.unwrap_or_default(),
                 })
             }
         }
@@ -876,9 +897,15 @@ impl serde::Serialize for ListExpressionIdentifiersResponse {
         if !self.identifiers.is_empty() {
             len += 1;
         }
+        if self.next_page_token.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.calculated_channels.v1.ListExpressionIdentifiersResponse", len)?;
         if !self.identifiers.is_empty() {
             struct_ser.serialize_field("identifiers", &self.identifiers)?;
+        }
+        if let Some(v) = self.next_page_token.as_ref() {
+            struct_ser.serialize_field("nextPageToken", v)?;
         }
         struct_ser.end()
     }
@@ -891,11 +918,14 @@ impl<'de> serde::Deserialize<'de> for ListExpressionIdentifiersResponse {
     {
         const FIELDS: &[&str] = &[
             "identifiers",
+            "next_page_token",
+            "nextPageToken",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Identifiers,
+            NextPageToken,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -918,6 +948,7 @@ impl<'de> serde::Deserialize<'de> for ListExpressionIdentifiersResponse {
                     {
                         match value {
                             "identifiers" => Ok(GeneratedField::Identifiers),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -938,6 +969,7 @@ impl<'de> serde::Deserialize<'de> for ListExpressionIdentifiersResponse {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut identifiers__ = None;
+                let mut next_page_token__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Identifiers => {
@@ -946,10 +978,17 @@ impl<'de> serde::Deserialize<'de> for ListExpressionIdentifiersResponse {
                             }
                             identifiers__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(ListExpressionIdentifiersResponse {
                     identifiers: identifiers__.unwrap_or_default(),
+                    next_page_token: next_page_token__,
                 })
             }
         }

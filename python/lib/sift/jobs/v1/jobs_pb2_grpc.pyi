@@ -34,6 +34,14 @@ class JobServiceStub:
     Cancelled jobs have implementation-based behavior, but in every case it's valid to cancel a job at any time.
     """
 
+    RetryJob: grpc.UnaryUnaryMultiCallable[
+        sift.jobs.v1.jobs_pb2.RetryJobRequest,
+        sift.jobs.v1.jobs_pb2.RetryJobResponse,
+    ]
+    """Requests a retry of a job.
+    Jobs that are finished, in progress or in the process of being cancelled are not affected.
+    """
+
 class JobServiceAsyncStub:
     ListJobs: grpc.aio.UnaryUnaryMultiCallable[
         sift.jobs.v1.jobs_pb2.ListJobsRequest,
@@ -48,6 +56,14 @@ class JobServiceAsyncStub:
     """Requests cancellation of an active job. If the job hasn't started yet, it will be cancelled immediately.
     Jobs that are already finished, failed, or cancelled are not affected.
     Cancelled jobs have implementation-based behavior, but in every case it's valid to cancel a job at any time.
+    """
+
+    RetryJob: grpc.aio.UnaryUnaryMultiCallable[
+        sift.jobs.v1.jobs_pb2.RetryJobRequest,
+        sift.jobs.v1.jobs_pb2.RetryJobResponse,
+    ]
+    """Requests a retry of a job.
+    Jobs that are finished, in progress or in the process of being cancelled are not affected.
     """
 
 class JobServiceServicer(metaclass=abc.ABCMeta):
@@ -68,6 +84,16 @@ class JobServiceServicer(metaclass=abc.ABCMeta):
         """Requests cancellation of an active job. If the job hasn't started yet, it will be cancelled immediately.
         Jobs that are already finished, failed, or cancelled are not affected.
         Cancelled jobs have implementation-based behavior, but in every case it's valid to cancel a job at any time.
+        """
+
+    @abc.abstractmethod
+    def RetryJob(
+        self,
+        request: sift.jobs.v1.jobs_pb2.RetryJobRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.jobs.v1.jobs_pb2.RetryJobResponse, collections.abc.Awaitable[sift.jobs.v1.jobs_pb2.RetryJobResponse]]:
+        """Requests a retry of a job.
+        Jobs that are finished, in progress or in the process of being cancelled are not affected.
         """
 
 def add_JobServiceServicer_to_server(servicer: JobServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

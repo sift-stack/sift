@@ -1308,6 +1308,145 @@ impl<'de> serde::Deserialize<'de> for SavedSearchFilterItem {
         deserializer.deserialize_struct("sift.saved_searches.v1.SavedSearchFilterItem", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for SavedSearchMetadataItem {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.key.is_empty() {
+            len += 1;
+        }
+        if self.value.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.saved_searches.v1.SavedSearchMetadataItem", len)?;
+        if !self.key.is_empty() {
+            struct_ser.serialize_field("key", &self.key)?;
+        }
+        if let Some(v) = self.value.as_ref() {
+            match v {
+                saved_search_metadata_item::Value::StringValue(v) => {
+                    struct_ser.serialize_field("stringValue", v)?;
+                }
+                saved_search_metadata_item::Value::NumberValue(v) => {
+                    struct_ser.serialize_field("numberValue", v)?;
+                }
+                saved_search_metadata_item::Value::BooleanValue(v) => {
+                    struct_ser.serialize_field("booleanValue", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for SavedSearchMetadataItem {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "key",
+            "string_value",
+            "stringValue",
+            "number_value",
+            "numberValue",
+            "boolean_value",
+            "booleanValue",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Key,
+            StringValue,
+            NumberValue,
+            BooleanValue,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "key" => Ok(GeneratedField::Key),
+                            "stringValue" | "string_value" => Ok(GeneratedField::StringValue),
+                            "numberValue" | "number_value" => Ok(GeneratedField::NumberValue),
+                            "booleanValue" | "boolean_value" => Ok(GeneratedField::BooleanValue),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = SavedSearchMetadataItem;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.saved_searches.v1.SavedSearchMetadataItem")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<SavedSearchMetadataItem, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut key__ = None;
+                let mut value__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Key => {
+                            if key__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("key"));
+                            }
+                            key__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::StringValue => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("stringValue"));
+                            }
+                            value__ = map_.next_value::<::std::option::Option<_>>()?.map(saved_search_metadata_item::Value::StringValue);
+                        }
+                        GeneratedField::NumberValue => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("numberValue"));
+                            }
+                            value__ = map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| saved_search_metadata_item::Value::NumberValue(x.0));
+                        }
+                        GeneratedField::BooleanValue => {
+                            if value__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("booleanValue"));
+                            }
+                            value__ = map_.next_value::<::std::option::Option<_>>()?.map(saved_search_metadata_item::Value::BooleanValue);
+                        }
+                    }
+                }
+                Ok(SavedSearchMetadataItem {
+                    key: key__.unwrap_or_default(),
+                    value: value__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.saved_searches.v1.SavedSearchMetadataItem", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for SavedSearchProperties {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1349,6 +1488,15 @@ impl serde::Serialize for SavedSearchProperties {
         if self.show_advanced_filters.is_some() {
             len += 1;
         }
+        if self.include_archived.is_some() {
+            len += 1;
+        }
+        if self.order_by.is_some() {
+            len += 1;
+        }
+        if !self.metadata_items.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.saved_searches.v1.SavedSearchProperties", len)?;
         if !self.overview_mode.is_empty() {
             struct_ser.serialize_field("overviewMode", &self.overview_mode)?;
@@ -1383,6 +1531,15 @@ impl serde::Serialize for SavedSearchProperties {
         if let Some(v) = self.show_advanced_filters.as_ref() {
             struct_ser.serialize_field("showAdvancedFilters", v)?;
         }
+        if let Some(v) = self.include_archived.as_ref() {
+            struct_ser.serialize_field("includeArchived", v)?;
+        }
+        if let Some(v) = self.order_by.as_ref() {
+            struct_ser.serialize_field("orderBy", v)?;
+        }
+        if !self.metadata_items.is_empty() {
+            struct_ser.serialize_field("metadataItems", &self.metadata_items)?;
+        }
         struct_ser.end()
     }
 }
@@ -1415,6 +1572,12 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
             "reportTemplateItems",
             "show_advanced_filters",
             "showAdvancedFilters",
+            "include_archived",
+            "includeArchived",
+            "order_by",
+            "orderBy",
+            "metadata_items",
+            "metadataItems",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1430,6 +1593,9 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
             RunItems,
             ReportTemplateItems,
             ShowAdvancedFilters,
+            IncludeArchived,
+            OrderBy,
+            MetadataItems,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1462,6 +1628,9 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                             "runItems" | "run_items" => Ok(GeneratedField::RunItems),
                             "reportTemplateItems" | "report_template_items" => Ok(GeneratedField::ReportTemplateItems),
                             "showAdvancedFilters" | "show_advanced_filters" => Ok(GeneratedField::ShowAdvancedFilters),
+                            "includeArchived" | "include_archived" => Ok(GeneratedField::IncludeArchived),
+                            "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
+                            "metadataItems" | "metadata_items" => Ok(GeneratedField::MetadataItems),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1492,6 +1661,9 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                 let mut run_items__ = None;
                 let mut report_template_items__ = None;
                 let mut show_advanced_filters__ = None;
+                let mut include_archived__ = None;
+                let mut order_by__ = None;
+                let mut metadata_items__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::OverviewMode => {
@@ -1560,6 +1732,24 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                             }
                             show_advanced_filters__ = map_.next_value()?;
                         }
+                        GeneratedField::IncludeArchived => {
+                            if include_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("includeArchived"));
+                            }
+                            include_archived__ = map_.next_value()?;
+                        }
+                        GeneratedField::OrderBy => {
+                            if order_by__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orderBy"));
+                            }
+                            order_by__ = map_.next_value()?;
+                        }
+                        GeneratedField::MetadataItems => {
+                            if metadata_items__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadataItems"));
+                            }
+                            metadata_items__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(SavedSearchProperties {
@@ -1574,6 +1764,9 @@ impl<'de> serde::Deserialize<'de> for SavedSearchProperties {
                     run_items: run_items__.unwrap_or_default(),
                     report_template_items: report_template_items__.unwrap_or_default(),
                     show_advanced_filters: show_advanced_filters__,
+                    include_archived: include_archived__,
+                    order_by: order_by__,
+                    metadata_items: metadata_items__.unwrap_or_default(),
                 })
             }
         }

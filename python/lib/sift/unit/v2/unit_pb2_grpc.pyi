@@ -21,18 +21,35 @@ class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type:
 
 class UnitServiceStub:
     def __init__(self, channel: typing.Union[grpc.Channel, grpc.aio.Channel]) -> None: ...
+    CreateUnit: grpc.UnaryUnaryMultiCallable[
+        sift.unit.v2.unit_pb2.CreateUnitRequest,
+        sift.unit.v2.unit_pb2.CreateUnitResponse,
+    ]
+
     ListUnits: grpc.UnaryUnaryMultiCallable[
         sift.unit.v2.unit_pb2.ListUnitsRequest,
         sift.unit.v2.unit_pb2.ListUnitsResponse,
     ]
 
 class UnitServiceAsyncStub:
+    CreateUnit: grpc.aio.UnaryUnaryMultiCallable[
+        sift.unit.v2.unit_pb2.CreateUnitRequest,
+        sift.unit.v2.unit_pb2.CreateUnitResponse,
+    ]
+
     ListUnits: grpc.aio.UnaryUnaryMultiCallable[
         sift.unit.v2.unit_pb2.ListUnitsRequest,
         sift.unit.v2.unit_pb2.ListUnitsResponse,
     ]
 
 class UnitServiceServicer(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def CreateUnit(
+        self,
+        request: sift.unit.v2.unit_pb2.CreateUnitRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.unit.v2.unit_pb2.CreateUnitResponse, collections.abc.Awaitable[sift.unit.v2.unit_pb2.CreateUnitResponse]]: ...
+
     @abc.abstractmethod
     def ListUnits(
         self,

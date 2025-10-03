@@ -144,6 +144,66 @@ pub mod annotation_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn archive_annotation(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ArchiveAnnotationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ArchiveAnnotationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.annotations.v1.AnnotationService/ArchiveAnnotation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.annotations.v1.AnnotationService",
+                        "ArchiveAnnotation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn unarchive_annotation(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UnarchiveAnnotationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UnarchiveAnnotationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.annotations.v1.AnnotationService/UnarchiveAnnotation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.annotations.v1.AnnotationService",
+                        "UnarchiveAnnotation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn batch_delete_annotations(
             &mut self,
             request: impl tonic::IntoRequest<super::BatchDeleteAnnotationsRequest>,
@@ -170,6 +230,66 @@ pub mod annotation_service_client {
                     GrpcMethod::new(
                         "sift.annotations.v1.AnnotationService",
                         "BatchDeleteAnnotations",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn batch_archive_annotations(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchArchiveAnnotationsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchArchiveAnnotationsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.annotations.v1.AnnotationService/BatchArchiveAnnotations",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.annotations.v1.AnnotationService",
+                        "BatchArchiveAnnotations",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn batch_unarchive_annotations(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchUnarchiveAnnotationsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUnarchiveAnnotationsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.annotations.v1.AnnotationService/BatchUnarchiveAnnotations",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "sift.annotations.v1.AnnotationService",
+                        "BatchUnarchiveAnnotations",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -287,11 +407,39 @@ pub mod annotation_service_server {
             tonic::Response<super::DeleteAnnotationResponse>,
             tonic::Status,
         >;
+        async fn archive_annotation(
+            &self,
+            request: tonic::Request<super::ArchiveAnnotationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ArchiveAnnotationResponse>,
+            tonic::Status,
+        >;
+        async fn unarchive_annotation(
+            &self,
+            request: tonic::Request<super::UnarchiveAnnotationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UnarchiveAnnotationResponse>,
+            tonic::Status,
+        >;
         async fn batch_delete_annotations(
             &self,
             request: tonic::Request<super::BatchDeleteAnnotationsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::BatchDeleteAnnotationsResponse>,
+            tonic::Status,
+        >;
+        async fn batch_archive_annotations(
+            &self,
+            request: tonic::Request<super::BatchArchiveAnnotationsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchArchiveAnnotationsResponse>,
+            tonic::Status,
+        >;
+        async fn batch_unarchive_annotations(
+            &self,
+            request: tonic::Request<super::BatchUnarchiveAnnotationsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchUnarchiveAnnotationsResponse>,
             tonic::Status,
         >;
         async fn list_annotations(
@@ -489,6 +637,106 @@ pub mod annotation_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/sift.annotations.v1.AnnotationService/ArchiveAnnotation" => {
+                    #[allow(non_camel_case_types)]
+                    struct ArchiveAnnotationSvc<T: AnnotationService>(pub Arc<T>);
+                    impl<
+                        T: AnnotationService,
+                    > tonic::server::UnaryService<super::ArchiveAnnotationRequest>
+                    for ArchiveAnnotationSvc<T> {
+                        type Response = super::ArchiveAnnotationResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ArchiveAnnotationRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AnnotationService>::archive_annotation(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ArchiveAnnotationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.annotations.v1.AnnotationService/UnarchiveAnnotation" => {
+                    #[allow(non_camel_case_types)]
+                    struct UnarchiveAnnotationSvc<T: AnnotationService>(pub Arc<T>);
+                    impl<
+                        T: AnnotationService,
+                    > tonic::server::UnaryService<super::UnarchiveAnnotationRequest>
+                    for UnarchiveAnnotationSvc<T> {
+                        type Response = super::UnarchiveAnnotationResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UnarchiveAnnotationRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AnnotationService>::unarchive_annotation(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = UnarchiveAnnotationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/sift.annotations.v1.AnnotationService/BatchDeleteAnnotations" => {
                     #[allow(non_camel_case_types)]
                     struct BatchDeleteAnnotationsSvc<T: AnnotationService>(pub Arc<T>);
@@ -524,6 +772,113 @@ pub mod annotation_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = BatchDeleteAnnotationsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.annotations.v1.AnnotationService/BatchArchiveAnnotations" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchArchiveAnnotationsSvc<T: AnnotationService>(pub Arc<T>);
+                    impl<
+                        T: AnnotationService,
+                    > tonic::server::UnaryService<super::BatchArchiveAnnotationsRequest>
+                    for BatchArchiveAnnotationsSvc<T> {
+                        type Response = super::BatchArchiveAnnotationsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::BatchArchiveAnnotationsRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AnnotationService>::batch_archive_annotations(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BatchArchiveAnnotationsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.annotations.v1.AnnotationService/BatchUnarchiveAnnotations" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchUnarchiveAnnotationsSvc<T: AnnotationService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: AnnotationService,
+                    > tonic::server::UnaryService<
+                        super::BatchUnarchiveAnnotationsRequest,
+                    > for BatchUnarchiveAnnotationsSvc<T> {
+                        type Response = super::BatchUnarchiveAnnotationsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::BatchUnarchiveAnnotationsRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AnnotationService>::batch_unarchive_annotations(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BatchUnarchiveAnnotationsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -138,6 +138,33 @@ pub mod channel_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn filter_channels(
+            &mut self,
+            request: impl tonic::IntoRequest<super::FilterChannelsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::FilterChannelsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/sift.channels.v3.ChannelService/FilterChannels",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("sift.channels.v3.ChannelService", "FilterChannels"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn update_channel(
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateChannelRequest>,
@@ -186,6 +213,13 @@ pub mod channel_service_server {
             request: tonic::Request<super::ListChannelsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ListChannelsResponse>,
+            tonic::Status,
+        >;
+        async fn filter_channels(
+            &self,
+            request: tonic::Request<super::FilterChannelsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::FilterChannelsResponse>,
             tonic::Status,
         >;
         async fn update_channel(
@@ -352,6 +386,53 @@ pub mod channel_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = ListChannelsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/sift.channels.v3.ChannelService/FilterChannels" => {
+                    #[allow(non_camel_case_types)]
+                    struct FilterChannelsSvc<T: ChannelService>(pub Arc<T>);
+                    impl<
+                        T: ChannelService,
+                    > tonic::server::UnaryService<super::FilterChannelsRequest>
+                    for FilterChannelsSvc<T> {
+                        type Response = super::FilterChannelsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::FilterChannelsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ChannelService>::filter_channels(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = FilterChannelsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
