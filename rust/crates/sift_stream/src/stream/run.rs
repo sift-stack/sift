@@ -401,6 +401,7 @@ mod tests {
             }),
             value: Some(Value::StringValue(string_value.to_string())),
             archived_date: None,
+            is_archived: false,
         }
     }
 
