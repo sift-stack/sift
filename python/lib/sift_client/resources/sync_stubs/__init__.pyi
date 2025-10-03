@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -15,18 +16,28 @@ from sift_client.sift_types.calculated_channel import CalculatedChannel, Calcula
 from sift_client.sift_types.channel import Channel, ChannelReference
 from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
 from sift_client.sift_types.run import Run, RunUpdate
+from sift_client.sift_types.test_report import (
+    TestMeasurement,
+    TestMeasurementType,
+    TestMeasurementUpdate,
+    TestReport,
+    TestReportUpdate,
+    TestStatus,
+    TestStep,
+    TestStepType,
+    TestStepUpdate,
+)
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
 
     High-level API for interacting with assets.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the AssetsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
-        representation of an asset using standard Python data structures and types.
-
+    All methods in this class use the Asset class from the low-level wrapper, which is a user-friendly
+    representation of an asset using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -139,12 +150,11 @@ class CalculatedChannelsAPI:
 
     High-level API for interacting with calculated channels.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the CalculatedChannelsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
-        representation of a calculated channel using standard Python data structures and types.
-
+    All methods in this class use the CalculatedChannel class from the low-level wrapper, which is a user-friendly
+    representation of a calculated channel using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -351,12 +361,11 @@ class ChannelsAPI:
 
     High-level API for interacting with channels.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the ChannelsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
-        representation of a channel using standard Python data structures and types.
-
+    All methods in this class use the Channel class from the low-level wrapper, which is a user-friendly
+    representation of a channel using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -496,12 +505,11 @@ class RulesAPI:
 
     High-level API for interacting with rules.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RulesAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
-        representation of a rule using standard Python data structures and types.
-
+    All methods in this class use the Rule class from the low-level wrapper, which is a user-friendly
+    representation of a rule using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -656,12 +664,11 @@ class RunsAPI:
 
     High-level API for interacting with runs.
 
-        This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
-        It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RunsAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
 
-        All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
-        representation of a run using standard Python data structures and types.
-
+    All methods in this class use the Run class from the low-level wrapper, which is a user-friendly
+    representation of a run using standard Python data structures and types.
     """
 
     def __init__(self, sift_client: SiftClient):
@@ -809,5 +816,313 @@ class RunsAPI:
 
         Returns:
             The updated Run.
+        """
+        ...
+
+class TestResultsAPI:
+    """Sync counterpart to `TestResultsAPIAsync`.
+
+    High-level API for interacting with test reports, steps, and measurements.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the TestResultsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive_report(self, *, test_report: str | TestReport) -> TestReport:
+        """Archive a test report.
+
+        Args:
+            test_report: The TestReport or test report ID to archive.
+        """
+        ...
+
+    def create_measurement(
+        self, test_measurement: TestMeasurement, update_step: bool = False
+    ) -> TestMeasurement:
+        """Create a new test measurement.
+
+        Args:
+            test_measurement: The test measurement to create.
+            update_step: Whether to update the step to failed if the measurement is being created is failed.
+
+        Returns:
+            The created TestMeasurement.
+        """
+        ...
+
+    def create_measurements(
+        self, test_measurements: list[TestMeasurement]
+    ) -> tuple[int, list[str]]:
+        """Create multiple test measurements in a single request.
+
+        Args:
+            test_measurements: The test measurements to create.
+
+        Returns:
+            A tuple of (measurements_created_count, measurement_ids).
+        """
+        ...
+
+    def create_report(
+        self,
+        status: TestStatus,
+        name: str,
+        test_system_name: str,
+        test_case: str,
+        start_time: datetime,
+        end_time: datetime,
+        metadata: dict[str, str | float | bool] | None = None,
+        serial_number: str | None = None,
+        part_number: str | None = None,
+        system_operator: str | None = None,
+    ) -> TestReport:
+        """Create a new test report.
+
+        Args:
+            status: The status of the test run (TestStatus enum).
+            name: The name of the test run.
+            test_system_name: The name of the test system.
+            test_case: The test case that was run.
+            start_time: The start time of the test run.
+            end_time: The end time of the test run.
+            metadata: The metadata values associated with this test run.
+            serial_number: The serial number for the DUT.
+            part_number: The part number for the DUT.
+            system_operator: Unique identifier for user owner.
+
+        Returns:
+            The created TestReport.
+        """
+        ...
+
+    def create_step(self, test_step: TestStep) -> TestStep:
+        """Create a new test step.
+
+        Args:
+            test_step: The test step to create.
+
+        Returns:
+            The created TestStep.
+        """
+        ...
+
+    def delete_measurement(self, *, test_measurement: str | TestMeasurement) -> None:
+        """Delete a test measurement.
+
+        Args:
+            test_measurement: The TestMeasurement or measurement ID to delete.
+        """
+        ...
+
+    def delete_report(self, *, test_report: str | TestReport) -> None:
+        """Delete a test report.
+
+        Args:
+            test_report: The TestReport or test report ID to delete.
+        """
+        ...
+
+    def delete_step(self, *, test_step: str | TestStep) -> None:
+        """Delete a test step.
+
+        Args:
+            test_step: The TestStep or test step ID to delete.
+        """
+        ...
+
+    def find_report(self, **kwargs) -> TestReport | None:
+        """Find a single test report matching the given query. Takes the same arguments as `list_`. If more than one test report is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list_reports`.
+
+        Returns:
+            The TestReport found or None.
+        """
+        ...
+
+    def get_report(self, *, test_report_id: str) -> TestReport:
+        """Get a TestReport.
+
+        Args:
+            test_report_id: The ID of the test report.
+
+        Returns:
+            The TestReport.
+        """
+        ...
+
+    def get_step(self, test_step_id: str) -> TestStep:
+        """Get a TestStep.
+
+        Args:
+            test_step_id: The ID of the test step.
+        """
+        ...
+
+    def import_test_report(self, test_file: str | Path) -> TestReport:
+        """Import a test report from an already-uploaded file.
+
+        Args:
+            test_file: The path to the test report file to import.
+
+        Returns:
+            The imported TestReport.
+        """
+        ...
+
+    def list_measurements(
+        self,
+        *,
+        measurement_id: str | None = None,
+        test_step_id: str | None = None,
+        test_report_id: str | None = None,
+        name: str | None = None,
+        name_contains: str | None = None,
+        measurement_type: TestMeasurementType | None = None,
+        passed: bool | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[TestMeasurement]:
+        """List test measurements with optional filtering.
+
+        Args:
+            measurement_id: Measurement ID to filter by.
+            test_step_id: Test step ID to filter by.
+            test_report_id: Test report ID to filter by.
+            name: Exact name of the test measurement.
+            name_contains: Partial name of the test measurement.
+            measurement_type: Measurement type to filter by (TestMeasurementType enum).
+            passed: Whether the measurement passed.
+            order_by: How to order the retrieved test measurements.
+            limit: How many test measurements to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of TestMeasurements that matches the filter.
+        """
+        ...
+
+    def list_reports(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        test_report_id: str | None = None,
+        status: TestStatus | None = None,
+        test_system_name: str | None = None,
+        test_case: str | None = None,
+        serial_number: str | None = None,
+        part_number: str | None = None,
+        system_operator: str | None = None,
+        created_by_user_id: str | None = None,
+        is_archived: bool | None = None,
+        custom_filter: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[TestReport]:
+        """List test reports with optional filtering.
+
+        Args:
+            name: Exact name of the test report.
+            name_contains: Partial name of the test report.
+            name_regex: Regular expression string to filter test reports by name.
+            test_report_id: Test report ID to filter by.
+            status: Status to filter by (TestStatus enum).
+            test_system_name: Test system name to filter by.
+            test_case: Test case to filter by.
+            serial_number: Serial number to filter by.
+            part_number: Part number to filter by.
+            system_operator: System operator to filter by.
+            created_by_user_id: User ID who created the test report.
+            is_archived: Whether to include only archived or non-archived reports.
+            custom_filter: Custom filter to apply to the test reports.
+            order_by: How to order the retrieved test reports. If used, this will override the other filters.
+            limit: How many test reports to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of TestReports that matches the filter.
+        """
+        ...
+
+    def list_steps(
+        self,
+        *,
+        test_step_id: str | None = None,
+        test_report_id: str | None = None,
+        parent_step_id: str | None = None,
+        name: str | None = None,
+        name_contains: str | None = None,
+        status: TestStatus | None = None,
+        step_type: TestStepType | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[TestStep]:
+        """List test steps with optional filtering.
+
+        Args:
+            test_step_id: Test step ID to filter by.
+            test_report_id: Test report ID to filter by.
+            parent_step_id: Parent step ID to filter by.
+            name: Exact name of the test step.
+            name_contains: Partial name of the test step.
+            status: Status to filter by (TestStatus enum).
+            step_type: Step type to filter by (TestStepType enum).
+            order_by: How to order the retrieved test steps.
+            limit: How many test steps to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of TestSteps that matches the filter.
+        """
+        ...
+
+    def update_measurement(
+        self,
+        test_measurement: TestMeasurement,
+        update: TestMeasurementUpdate | dict,
+        update_step: bool = False,
+    ) -> TestMeasurement:
+        """Update a TestMeasurement.
+
+        Args:
+            test_measurement: The TestMeasurement or measurement ID to update.
+            update: Updates to apply to the TestMeasurement.
+            update_step: Whether to update the step to failed if the measurement is being updated to failed.
+
+        Returns:
+            The updated TestMeasurement.
+        """
+        ...
+
+    def update_report(
+        self, test_report: str | TestReport, update: TestReportUpdate | dict
+    ) -> TestReport:
+        """Update a TestReport.
+
+        Args:
+            test_report: The TestReport or test report ID to update.
+            update: Updates to apply to the TestReport.
+
+        Returns:
+            The updated TestReport.
+        """
+        ...
+
+    def update_step(self, test_step: str | TestStep, update: TestStepUpdate | dict) -> TestStep:
+        """Update a TestStep.
+
+        Args:
+            test_step: The TestStep or test step ID to update.
+            update: Updates to apply to the TestStep.
+
+        Returns:
+            The updated TestStep.
         """
         ...

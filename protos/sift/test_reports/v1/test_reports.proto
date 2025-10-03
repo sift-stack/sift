@@ -1,0 +1,629 @@
+syntax = "proto3";
+
+package sift_internal.test_reports.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "sift/metadata/v1/metadata.proto";
+import "sift/unit/v2/unit.proto";
+
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Test Results Service"}
+};
+
+message TestReport {
+  // Unique identifier for the run
+  string test_report_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The status of the test run
+  TestStatus status = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // The name of the test run
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // The name of the test system
+  string test_system_name = 4 [(google.api.field_behavior) = REQUIRED];
+
+  // The test case that was run
+  string test_case = 5 [(google.api.field_behavior) = REQUIRED];
+
+  // The start time of the test run
+  google.protobuf.Timestamp start_time = 6 [(google.api.field_behavior) = REQUIRED];
+
+  // The end time of the test run
+  google.protobuf.Timestamp end_time = 7 [(google.api.field_behavior) = REQUIRED];
+
+  // The metadata values associated with this test run
+  repeated sift.metadata.v1.MetadataValue metadata = 8 [(google.api.field_behavior) = OPTIONAL];
+
+  // The serial number for the DUT
+  string serial_number = 9 [(google.api.field_behavior) = OPTIONAL];
+
+  // The part number for the DUT
+  string part_number = 10 [(google.api.field_behavior) = OPTIONAL];
+
+  // Unique identifier for user owner
+  string system_operator = 11 [(google.api.field_behavior) = OPTIONAL];
+
+  // The date and time the test run was archived (internal)
+  google.protobuf.Timestamp archived_date = 12 [(google.api.field_behavior) = OPTIONAL];
+
+  // Whether the test run is archived (externally exposed)
+  bool is_archived = 13 [(google.api.field_behavior) = OPTIONAL];
+}
+
+enum TestStatus {
+  TEST_STATUS_UNSPECIFIED = 0;
+  TEST_STATUS_DRAFT = 1; // Barebones test report created, waiting for file processing
+  TEST_STATUS_PASSED = 2;
+  TEST_STATUS_FAILED = 3;
+  TEST_STATUS_ABORTED = 4;
+  TEST_STATUS_ERROR = 5;
+  TEST_STATUS_IN_PROGRESS = 6;
+  TEST_STATUS_SKIPPED = 7;
+}
+
+enum TestStepType {
+  TEST_STEP_TYPE_UNSPECIFIED = 0;
+  TEST_STEP_TYPE_SEQUENCE = 1; // ResultSet/MainSequence - top-level test sequence
+  TEST_STEP_TYPE_GROUP = 2; // TestGroup - logical grouping of test steps
+  TEST_STEP_TYPE_ACTION = 3; // SessionAction - individual executable action
+  TEST_STEP_TYPE_FLOW_CONTROL = 4; // Flow control elements (While, If, etc.)
+}
+
+message TestStep {
+  // unique identifier for the step
+  string test_step_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // pointer to overall test run
+  string test_report_id = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // pointer to parent step, if any
+  string parent_step_id = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // Name of the test step for display
+  string name = 4 [(google.api.field_behavior) = REQUIRED];
+
+  // Description of the test step from test controller
+  string description = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Semantic type of the test step
+  TestStepType step_type = 6 [(google.api.field_behavior) = REQUIRED];
+
+  // Order among siblings (1, 2, 3...)
+  int32 step_number = 7 [(google.api.field_behavior) = REQUIRED];
+
+  // Hierarchical path (e.g., "1", "1.1", "1.2.3")
+  string step_path = 8 [(google.api.field_behavior) = REQUIRED];
+
+  // Status of the test step
+  TestStatus status = 9 [(google.api.field_behavior) = REQUIRED];
+
+  // Start time of the test step
+  google.protobuf.Timestamp start_time = 10 [(google.api.field_behavior) = REQUIRED];
+
+  // End time of the test step
+  google.protobuf.Timestamp end_time = 11 [(google.api.field_behavior) = REQUIRED];
+
+  // Error information of the test step
+  ErrorInfo error_info = 12 [(google.api.field_behavior) = OPTIONAL];
+
+  //repeated Measurement measurements = XX; TOOD: to be added in ENG-5623
+}
+
+message ErrorInfo {
+  int32 error_code = 1 [(google.api.field_behavior) = REQUIRED];
+  string error_message = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+enum TestMeasurementType {
+  TEST_MEASUREMENT_TYPE_UNSPECIFIED = 0;
+  TEST_MEASUREMENT_TYPE_DOUBLE = 1;
+  TEST_MEASUREMENT_TYPE_STRING = 3;
+  TEST_MEASUREMENT_TYPE_BOOLEAN = 4;
+  TEST_MEASUREMENT_TYPE_LIMIT = 5;
+}
+
+message TestMeasurement {
+  string measurement_id = 1 [(google.api.field_behavior) = REQUIRED];
+  TestMeasurementType measurement_type = 2 [(google.api.field_behavior) = REQUIRED];
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+  string test_step_id = 4 [(google.api.field_behavior) = REQUIRED];
+  string test_report_id = 5 [(google.api.field_behavior) = REQUIRED];
+
+  oneof value {
+    double numeric_value = 6;
+    string string_value = 7;
+    bool boolean_value = 8;
+  }
+  sift.unit.v2.Unit unit = 9 [(google.api.field_behavior) = OPTIONAL];
+  oneof bounds {
+    NumericBounds numeric_bounds = 10;
+    StringBounds string_bounds = 11;
+  }
+  bool passed = 12 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp timestamp = 13 [(google.api.field_behavior) = REQUIRED];
+}
+
+message NumericBounds {
+  optional double min = 1 [(google.api.field_behavior) = OPTIONAL];
+  optional double max = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message StringBounds {
+  string expected_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+service TestReportService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to manage test reports"};
+
+  // Imports a test report from an already-uploaded file
+  rpc ImportTestReport(ImportTestReportRequest) returns (ImportTestReportResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/test-reports"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ImportTestReport"
+      description: "Imports a test report from an already-uploaded file."
+    };
+  }
+
+  // Creates a test report
+  rpc CreateTestReport(CreateTestReportRequest) returns (CreateTestReportResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/test-reports:create"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateTestReport"
+      description: "Creates a test report"
+    };
+  }
+
+  // Gets a single test report
+  rpc GetTestReport(GetTestReportRequest) returns (GetTestReportResponse) {
+    option (google.api.http) = {get: "/api/v1/test-reports/{test_report_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "GetTestReport"
+      description: "Gets a single test report"
+    };
+  }
+
+  // Lists test reports with optional filtering
+  rpc ListTestReports(ListTestReportsRequest) returns (ListTestReportsResponse) {
+    option (google.api.http) = {get: "/api/v1/test-reports"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListTestReports"
+      description: "Lists test reports with optional filtering"
+    };
+  }
+
+  // Updates a test report
+  rpc UpdateTestReport(UpdateTestReportRequest) returns (UpdateTestReportResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/test-reports"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateTestReport"
+      description: "Updates a test report"
+    };
+  }
+
+  // Deletes a test report
+  rpc DeleteTestReport(DeleteTestReportRequest) returns (DeleteTestReportResponse) {
+    option (google.api.http) = {delete: "/api/v1/test-reports/{test_report_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteTestReport"
+      description: "Deletes a test report"
+    };
+  }
+
+  // Creates a test step
+  rpc CreateTestStep(CreateTestStepRequest) returns (CreateTestStepResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/test-steps"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateTestStep"
+      description: "Creates a test step"
+    };
+  }
+
+  // Lists test steps with optional filtering
+  rpc ListTestSteps(ListTestStepsRequest) returns (ListTestStepsResponse) {
+    option (google.api.http) = {get: "/api/v1/test-steps"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListTestSteps"
+      description: "Lists test steps with optional filtering"
+    };
+  }
+
+  // Updates a test step
+  rpc UpdateTestStep(UpdateTestStepRequest) returns (UpdateTestStepResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/test-steps"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateTestStep"
+      description: "Updates a test step"
+    };
+  }
+
+  // Deletes a test step
+  rpc DeleteTestStep(DeleteTestStepRequest) returns (DeleteTestStepResponse) {
+    option (google.api.http) = {delete: "/api/v1/test-steps/{test_step_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteTestStep"
+      description: "Deletes a test step"
+    };
+  }
+
+  // Creates a test measurement
+  rpc CreateTestMeasurement(CreateTestMeasurementRequest) returns (CreateTestMeasurementResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/test-measurements"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateTestMeasurement"
+      description: "Creates a test measurement"
+    };
+  }
+
+  // Creates multiple test measurements in a single request
+  rpc CreateTestMeasurements(CreateTestMeasurementsRequest) returns (CreateTestMeasurementsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/test-measurements:batch"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "CreateTestMeasurements"
+      description: "Creates multiple test measurements in a single request"
+    };
+  }
+
+  // Lists test measurements with optional filtering
+  rpc ListTestMeasurements(ListTestMeasurementsRequest) returns (ListTestMeasurementsResponse) {
+    option (google.api.http) = {get: "/api/v1/test-measurements"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ListTestMeasurements"
+      description: "Lists test measurements with optional filtering"
+    };
+  }
+
+  // Updates a test measurement
+  rpc UpdateTestMeasurement(UpdateTestMeasurementRequest) returns (UpdateTestMeasurementResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/test-measurements"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UpdateTestMeasurement"
+      description: "Updates a test measurement"
+    };
+  }
+
+  // Deletes a test measurement
+  rpc DeleteTestMeasurement(DeleteTestMeasurementRequest) returns (DeleteTestMeasurementResponse) {
+    option (google.api.http) = {delete: "/api/v1/test-measurements/{measurement_id}"};
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "DeleteTestMeasurement"
+      description: "Deletes a test measurement"
+    };
+  }
+}
+
+// Request message for ImportTestReport
+message ImportTestReportRequest {
+  // The remote file ID containing the XML test data
+  string remote_file_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Response message for ImportTestReport
+message ImportTestReportResponse {
+  // The imported test report
+  TestReport test_report = 1;
+}
+
+// Request message for CreateTestReport
+message CreateTestReportRequest {
+  // The status of the test run
+  TestStatus status = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The name of the test run
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // The name of the test system
+  string test_system_name = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // The test case that was run
+  string test_case = 4 [(google.api.field_behavior) = REQUIRED];
+
+  // The start time of the test run
+  google.protobuf.Timestamp start_time = 5 [(google.api.field_behavior) = REQUIRED];
+
+  // The end time of the test run
+  google.protobuf.Timestamp end_time = 6 [(google.api.field_behavior) = REQUIRED];
+
+  // The metadata values associated with this test run
+  repeated sift.metadata.v1.MetadataValue metadata = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // The serial number for the DUT
+  string serial_number = 8 [(google.api.field_behavior) = OPTIONAL];
+
+  // The part number for the DUT
+  string part_number = 9 [(google.api.field_behavior) = OPTIONAL];
+
+  // Unique identifier for user owner
+  string system_operator = 10 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Response message for CreateTestReport
+message CreateTestReportResponse {
+  // The created test report
+  TestReport test_report = 1;
+}
+
+// Request message for GetTestReport
+message GetTestReportRequest {
+  // The ID of the test report to get
+  string test_report_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Response message for GetTestReport
+message GetTestReportResponse {
+  // The test report
+  TestReport test_report = 1;
+}
+
+// Request message for ListTestReports
+message ListTestReportsRequest {
+  // The maximum number of test reports to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 test reports will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListTestReports` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListTestReports` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `test_report_id`, `status`, `name`, `test_system_name`,
+  // `test_case`, `start_time`, `end_time`, `serial_number`,
+  // `part_number`, `system_operator`, `archived_date`, and `metadata`.
+  // Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testreport). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved test reports. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `test_report_id`, `name`, `test_system_name`, `test_case`, `start_time`, `end_time`,
+  // `created_date`, and `modified_date`.
+  // If left empty, items are ordered by `start_time` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "start_time desc,name"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Response message for ListTestReports
+message ListTestReportsResponse {
+  // The list of test reports
+  repeated TestReport test_reports = 1;
+
+  // The next page token for pagination
+  string next_page_token = 2;
+}
+
+// Request message for UpdateTestReport
+message UpdateTestReportRequest {
+  // The test report to update
+  TestReport test_report = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The field mask specifying which fields to update. The fields available to be updated are
+  // `status`, `name`, `test_system_name`, `test_case`, `start_time`, `end_time`, `serial_number`,
+  // `part_number`, `system_operator`, and `is_archived`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Response message for UpdateTestReport
+message UpdateTestReportResponse {
+  // The updated test report
+  TestReport test_report = 1;
+}
+
+// Request message for DeleteTestReport
+message DeleteTestReportRequest {
+  // The ID of the test report to delete
+  string test_report_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Response message for DeleteTestReport
+message DeleteTestReportResponse {
+  // Empty response indicating successful deletion
+}
+
+// Request message for CreateTestStep
+message CreateTestStepRequest {
+  // The test step to create
+  TestStep test_step = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Response message for CreateTestStep
+message CreateTestStepResponse {
+  // The created test step
+  TestStep test_step = 1;
+}
+
+// Request message for ListTestSteps
+message ListTestStepsRequest {
+  // The maximum number of test steps to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 test steps will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListTestSteps` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListTestSteps` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
+  // `description`, `step_type`, `step_number`, `step_path`, `status`, `start_time`, `end_time`,
+  // `error_code`, `error_message`, `created_date`, and `modified_date`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved test steps. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `test_step_id`, `name`, `step_type`, `step_number`, `step_path`, `status`,
+  // `start_time`, `end_time`, `created_date`, and `modified_date`.
+  // If left empty, items are ordered by `step_path` in ascending order.
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "step_path asc,start_time desc"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Response message for ListTestSteps
+message ListTestStepsResponse {
+  // The list of test steps
+  repeated TestStep test_steps = 1;
+
+  // The next page token for pagination
+  string next_page_token = 2;
+}
+
+// Request message for UpdateTestStep
+message UpdateTestStepRequest {
+  // The test step to update
+  TestStep test_step = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The field mask specifying which fields to update. The fields available to be updated are
+  // `name`, `description`, `step_type`, `step_number`, `step_path`, `test_case`, `status`,
+  // `start_time`, `end_time`, and `error_info`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Response message for UpdateTestStep
+message UpdateTestStepResponse {
+  // The updated test step
+  TestStep test_step = 1;
+}
+
+// Request message for DeleteTestStep
+message DeleteTestStepRequest {
+  // The ID of the test step to delete
+  string test_step_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Response message for DeleteTestStep
+message DeleteTestStepResponse {
+  // Empty response indicating successful deletion
+}
+
+// Request message for CreateTestMeasurement
+message CreateTestMeasurementRequest {
+  // The test measurement to create
+  TestMeasurement test_measurement = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Response message for CreateTestMeasurement
+message CreateTestMeasurementResponse {
+  // The created test measurement
+  TestMeasurement test_measurement = 1;
+}
+
+// Request message for CreateTestMeasurements
+message CreateTestMeasurementsRequest {
+  // The test measurements to create
+  repeated TestMeasurement test_measurements = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Response message for CreateTestMeasurements
+message CreateTestMeasurementsResponse {
+  // The number of test measurements successfully created
+  int32 measurements_created_count = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The IDs of the created test measurements
+  repeated string measurement_ids = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Request message for ListTestMeasurements
+message ListTestMeasurementsRequest {
+  // The maximum number of test measurements to return.
+  // The service may return fewer than this value.
+  // If unspecified, at most 50 test measurements will be returned.
+  // The maximum value is 1000; values above 1000 will be coerced to 1000.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListTestMeasurements` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListTestMeasurements` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `measurement_id`, `measurement_type`, `name`, `test_step_id`,
+  // `test_report_id`, `numeric_value`, `string_value`, `boolean_value`, `passed`, `timestamp`,
+  // `created_date`, and `modified_date`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testmeasurement). Optional.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved test measurements. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `measurement_id`, `name`, `measurement_type`, `test_step_id`, `test_report_id`,
+  // `passed`, `timestamp`, `created_date`, and `modified_date`.
+  // If left empty, items are ordered by `timestamp` in ascending order.
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "timestamp asc,name"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Response message for ListTestMeasurements
+message ListTestMeasurementsResponse {
+  // The list of test measurements
+  repeated TestMeasurement test_measurements = 1;
+
+  // The next page token for pagination
+  string next_page_token = 2;
+}
+
+// Request message for UpdateTestMeasurement
+message UpdateTestMeasurementRequest {
+  // The test measurement to update
+  TestMeasurement test_measurement = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The field mask specifying which fields to update. The fields available to be updated are
+  // `name`, `measurement_type`, `numeric_value`, `string_value`, `boolean_value`, `unit`, `numeric_bounds`,
+  // `string_bounds`, `passed`, and `timestamp`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Response message for UpdateTestMeasurement
+message UpdateTestMeasurementResponse {
+  // The updated test measurement
+  TestMeasurement test_measurement = 1;
+}
+
+// Request message for DeleteTestMeasurement
+message DeleteTestMeasurementRequest {
+  // The ID of the test measurement to delete
+  string measurement_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Response message for DeleteTestMeasurement
+message DeleteTestMeasurementResponse {
+  // Empty response indicating successful deletion
+}

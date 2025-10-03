@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, TypeVar
 
 from google.protobuf import field_mask_pb2, message
@@ -167,6 +168,8 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                 paths.append(path)
             else:
                 try:
+                    if isinstance(value, Enum):
+                        value = value.value
                     setattr(proto_msg, field_name, value)
                     paths.append(path)
                 except TypeError as e:
