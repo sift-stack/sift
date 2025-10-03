@@ -50,7 +50,7 @@ gen_python_modules() {
   local sift_grafana="python/lib/sift_grafana"
 
   if [[ ! -d "$python_gen_dir" ]]; then
-    err_and_exit "The '$python_gen_dir' directory could not be located. Failed to generate python modules."
+    mkdir -p "$python_gen_dir" || err_and_exit "Failed to create '$python_gen_dir' directory."
   fi
 
   printf "Generating python modules... "
@@ -82,7 +82,8 @@ gen_python_modules() {
 
 gen_protos() {
   printf "\x1b[?25l"
-  mkdir "$TMP_DIR"
+  mkdir -p "$TMP_DIR"
+  mkdir -p "$OUTPUT_PROTOS"
   buf mod update protos
   buf export protos --output="$OUTPUT_PROTOS" --config="$BUF_CONF"
 
