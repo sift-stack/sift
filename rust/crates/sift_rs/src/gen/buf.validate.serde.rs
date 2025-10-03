@@ -1302,17 +1302,17 @@ impl serde::Serialize for FieldPathElement {
             struct_ser.serialize_field("fieldName", v)?;
         }
         if let Some(v) = self.field_type.as_ref() {
-            let v = super::super::google::protobuf::field_descriptor_proto::Type::try_from(*v)
+            let v = ::pbjson_types::field_descriptor_proto::Type::try_from(*v)
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
             struct_ser.serialize_field("fieldType", &v)?;
         }
         if let Some(v) = self.key_type.as_ref() {
-            let v = super::super::google::protobuf::field_descriptor_proto::Type::try_from(*v)
+            let v = ::pbjson_types::field_descriptor_proto::Type::try_from(*v)
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
             struct_ser.serialize_field("keyType", &v)?;
         }
         if let Some(v) = self.value_type.as_ref() {
-            let v = super::super::google::protobuf::field_descriptor_proto::Type::try_from(*v)
+            let v = ::pbjson_types::field_descriptor_proto::Type::try_from(*v)
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", *v)))?;
             struct_ser.serialize_field("valueType", &v)?;
         }
@@ -1457,19 +1457,19 @@ impl<'de> serde::Deserialize<'de> for FieldPathElement {
                             if field_type__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fieldType"));
                             }
-                            field_type__ = map_.next_value::<::std::option::Option<super::super::google::protobuf::field_descriptor_proto::Type>>()?.map(|x| x as i32);
+                            field_type__ = map_.next_value::<::std::option::Option<::pbjson_types::field_descriptor_proto::Type>>()?.map(|x| x as i32);
                         }
                         GeneratedField::KeyType => {
                             if key_type__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("keyType"));
                             }
-                            key_type__ = map_.next_value::<::std::option::Option<super::super::google::protobuf::field_descriptor_proto::Type>>()?.map(|x| x as i32);
+                            key_type__ = map_.next_value::<::std::option::Option<::pbjson_types::field_descriptor_proto::Type>>()?.map(|x| x as i32);
                         }
                         GeneratedField::ValueType => {
                             if value_type__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueType"));
                             }
-                            value_type__ = map_.next_value::<::std::option::Option<super::super::google::protobuf::field_descriptor_proto::Type>>()?.map(|x| x as i32);
+                            value_type__ = map_.next_value::<::std::option::Option<::pbjson_types::field_descriptor_proto::Type>>()?.map(|x| x as i32);
                         }
                         GeneratedField::Index => {
                             if subscript__.is_some() {
