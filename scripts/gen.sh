@@ -98,7 +98,17 @@ gen_protos() {
   for lang in ${langs[@]}; do
     printf "Compiling protocol buffers for $lang... "
     if [[ "$lang" == "rust" ]]; then
+      # Clean old generated files to avoid stale code
+      if [[ -d "$lang/crates/sift_rs/src/gen" ]]; then
+        rm -rf "$lang/crates/sift_rs/src/gen"
+      fi
       buf generate "$OUTPUT_PROTOS" --template "$lang/crates/sift_rs/buf.gen.yaml" --output "$lang/crates/sift_rs"
+    elif [[ "$lang" == "go" ]]; then
+      # Clean old generated files to avoid stale code
+      if [[ -d "$lang/gen" ]]; then
+        rm -rf "$lang/gen"
+      fi
+      buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang"
     else
       buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang"
     fi
