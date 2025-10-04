@@ -52,7 +52,7 @@ async def main():
 
     # Example 1: List all runs
     print("\n1. Listing all runs...")
-    runs = client.runs.list(limit=5)
+    runs = client.runs.list_(limit=5)
     print(f"   Found {len(runs)} runs:")
     for run in runs:
         print(f"   - {run.name} (ID: {run.id_}), Organization ID: {run.organization_id}")
@@ -61,7 +61,7 @@ async def main():
     print("\n2. Testing different filter options...")
 
     # Get a sample run for testing filters
-    sample_runs = client.runs.list(limit=3)
+    sample_runs = client.runs.list_(limit=3)
     if not sample_runs:
         print("   No runs available for filter testing")
         return
@@ -71,30 +71,30 @@ async def main():
     # 2a: Filter by exact name
     print("\n   2a. Filter by exact name...")
     run_name = sample_run.name
-    runs = client.runs.list(name=run_name, limit=5)
+    runs = client.runs.list_(name=run_name, limit=5)
     print(f"   Found {len(runs)} runs with exact name '{run_name}':")
     for run in runs:
         print(f"   - {run.name} (ID: {run.id_})")
 
     # 2b: Filter by name containing text
     print("\n   2b. Filter by name containing text...")
-    runs = client.runs.list(name_contains="test", limit=5)
+    runs = client.runs.list_(name_contains="test", limit=5)
     print(f"   Found {len(runs)} runs with 'test' in name:")
     for run in runs:
         print(f"   - {run.name}")
 
     # 2c: Filter by name using regex
     print("\n   2c. Filter by name using regex...")
-    runs = client.runs.list(name_regex=".*test.*", limit=5)
+    runs = client.runs.list_(name_regex=".*test.*", limit=5)
     print(f"   Found {len(runs)} runs with 'test' in name (regex):")
     for run in runs:
         print(f"   - {run.name}")
 
     # 2d: Filter by exact description
-    print("\n   2d. Filter by exact description...")
+    print("\n   2d. Filter by description contains...")
     if sample_run.description:
-        runs = client.runs.list(description=sample_run.description, limit=5)
-        print(f"   Found {len(runs)} runs with exact description '{sample_run.description}':")
+        runs = client.runs.list_(description_contains=sample_run.description, limit=5)
+        print(f"   Found {len(runs)} runs with description contains '{sample_run.description}':")
         for run in runs:
             print(f"   - {run.name}: {run.description}")
     else:
@@ -102,7 +102,7 @@ async def main():
 
     # 2e: Filter by description containing text
     print("\n   2e. Filter by description containing text...")
-    runs = client.runs.list(description_contains="test", limit=5)
+    runs = client.runs.list_(description_contains="test", limit=5)
     print(f"   Found {len(runs)} runs with 'test' in description:")
     for run in runs:
         print(f"   - {run.name}: {run.description}")
@@ -112,8 +112,8 @@ async def main():
     # Calculate duration for sample run if it has start and stop times
     if sample_run.start_time and sample_run.stop_time:
         duration_seconds = int((sample_run.stop_time - sample_run.start_time).total_seconds())
-        runs = client.runs.list(duration_seconds=duration_seconds, limit=5)
-        print(f"   Found {len(runs)} runs with duration {duration_seconds} seconds:")
+        runs = client.runs.list_(duration_greater_than=timedelta(seconds=duration_seconds), limit=5)
+        print(f"   Found {len(runs)} runs with duration greater than {duration_seconds} seconds:")
         for run in runs:
             if run.start_time and run.stop_time:
                 run_duration = int((run.stop_time - run.start_time).total_seconds())
@@ -124,10 +124,8 @@ async def main():
     # 2g: Filter by client key
     print("\n   2g. Filter by client key...")
     if sample_run.client_key:
-        runs = client.runs.list(client_key=sample_run.client_key, limit=5)
-        print(f"   Found {len(runs)} runs with client key '{sample_run.client_key}':")
-        for run in runs:
-            print(f"   - {run.name} (client_key: {run.client_key})")
+        run = client.runs.get(client_key=sample_run.client_key)
+        print(f"   Found run with client key '{run.name}'")
     else:
         print("   No client key available for testing")
 
@@ -135,7 +133,7 @@ async def main():
     print("\n   2h. Filter by asset ID...")
     if sample_run.asset_ids:
         asset_id = sample_run.asset_ids[0]
-        runs = client.runs.list(asset_id=asset_id, limit=5)
+        runs = client.runs.list_(assets=[asset_id], limit=5)
         print(f"   Found {len(runs)} runs associated with asset {asset_id}:")
         for run in runs:
             print(f"   - {run.name} (asset_ids: {list(run.asset_ids)})")
@@ -144,42 +142,42 @@ async def main():
 
     # 2i: Filter by asset name
     print("\n   2i. Filter by asset name...")
-    runs = client.runs.list(asset_name="NostromoLV426", limit=5)
+    runs = client.runs.list_(assets=[client.assets.find(name="NostromoLV426")], limit=5)
     print(f"   Found {len(runs)} runs associated with asset 'NostromoLV426':")
     for run in runs:
         print(f"   - {run.name}")
 
     # 2j: Filter by created by user ID
     print("\n   2j. Filter by created by user ID...")
-    created_by_user_id = sample_run.created_by_user_id
-    runs = client.runs.list(created_by_user_id=created_by_user_id, limit=5)
-    print(f"   Found {len(runs)} runs created by user {created_by_user_id}:")
+    created_by = sample_run.created_by_user_id
+    runs = client.runs.list_(created_by=created_by, limit=5)
+    print(f"   Found {len(runs)} runs created by user {created_by}:")
     for run in runs:
-        print(f"   - {run.name} (created by: {run.created_by_user_id})")
+        print(f"   - {run.name} (created by: {run.created_by})")
 
     # 2l: Test ordering options
     print("\n   2l. Testing ordering options...")
 
     # Order by name ascending
-    runs = client.runs.list(order_by="name", limit=3)
+    runs = client.runs.list_(order_by="name", limit=3)
     print("   First 3 runs ordered by name (ascending):")
     for run in runs:
         print(f"   - {run.name}")
 
     # Order by name descending
-    runs = client.runs.list(order_by="name desc", limit=3)
+    runs = client.runs.list_(order_by="name desc", limit=3)
     print("   First 3 runs ordered by name (descending):")
     for run in runs:
         print(f"   - {run.name}")
 
     # Order by creation date (newest first - default)
-    runs = client.runs.list(order_by="created_date desc", limit=3)
+    runs = client.runs.list_(order_by="created_date desc", limit=3)
     print("   First 3 runs ordered by creation date (newest first):")
     for run in runs:
         print(f"   - {run.name} (created: {run.created_date})")
 
     # Order by creation date (oldest first)
-    runs = client.runs.list(order_by="created_date", limit=3)
+    runs = client.runs.list_(order_by="created_date", limit=3)
     print("   First 3 runs ordered by creation date (oldest first):")
     for run in runs:
         print(f"   - {run.name} (created: {run.created_date})")
@@ -206,7 +204,7 @@ async def main():
     start_time = datetime.now(timezone.utc)
     stop_time = start_time + timedelta(minutes=2)
 
-    previously_created_runs = client.runs.list(name_regex="Example Test Run.*")
+    previously_created_runs = client.runs.list_(name_regex="Example Test Run.*")
     if previously_created_runs:
         print(f"   Deleting previously created runs: {previously_created_runs}")
         for run in previously_created_runs:
@@ -214,14 +212,16 @@ async def main():
             client.runs.archive(run=run)
 
     new_run = client.runs.create(
-        name=f"Example Test Run {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
-        description="A test run created via the API",
-        tags=["api-created", "test"],
-        start_time=start_time,
-        stop_time=stop_time,
-        # Use a unique client key for each run
-        client_key=f"example-run-key-{datetime.now(tz=timezone.utc).timestamp()}",
-        metadata=metadata,
+        dict(
+            name=f"Example Test Run {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
+            description="A test run created via the API",
+            tags=["api-created", "test"],
+            start_time=start_time,
+            stop_time=stop_time,
+            # Use a unique client key for each run
+            client_key=f"example-run-key-{datetime.now(tz=timezone.utc).timestamp()}",
+            metadata=metadata,
+        )
     )
     print(f"   Created run: {new_run.name} (ID: {new_run.id_})")
     print(f"   Client key: {new_run.client_key}")
@@ -257,7 +257,7 @@ async def main():
 
     # Example 6: Associate assets with a run
     print("\n6. Associating assets with a run...")
-    ongoing_runs = client.runs.list(
+    ongoing_runs = client.runs.list_(
         name_regex="Example Test Run.*", include_archived=True, is_stopped=False
     )
     if ongoing_runs:
