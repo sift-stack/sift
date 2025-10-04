@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 if TYPE_CHECKING:
     from sift_client.resources import (
@@ -9,8 +9,10 @@ if TYPE_CHECKING:
         ChannelsAPIAsync,
         IngestionAPIAsync,
         PingAPIAsync,
+        ReportsAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
+        TagsAPIAsync,
     )
 
 
@@ -32,8 +34,19 @@ class AsyncAPIs(NamedTuple):
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making asynchronous requests."""
 
+    reports: ReportsAPIAsync
+    """Instance of the Reports API for making asynchronous requests."""
+
     runs: RunsAPIAsync
     """Instance of the Runs API for making asynchronous requests."""
 
+    tags: TagsAPIAsync
+    """Instance of the Tags API for making asynchronous requests."""
+
     rules: RulesAPIAsync
     """Instance of the Rules API for making asynchronous requests."""
+
+
+def count_non_none(*args: Any) -> int:
+    """Count the number of non-none arguments."""
+    return sum(1 for arg in args if arg is not None)

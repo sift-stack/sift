@@ -9,6 +9,7 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from datetime import datetime
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.channel import ChannelReference
@@ -57,6 +58,10 @@ class RulesAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        asset_ids: list[str] | None = None,
+        asset_tags_ids: list[str] | None = None,
+        client_key: str | None = None,
+        created_by_user_id: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         include_deleted: bool = False,
@@ -67,6 +72,10 @@ class RulesAPIAsync(ResourceBase):
             name: Exact name of the rule.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
+            asset_ids: List of asset IDs to filter rules by.
+            asset_tags_ids: List of asset tags IDs to filter rules by.
+            client_key: The client key of the rules.
+            created_by_user_id: The user ID of the creator of the rules.
             order_by: How to order the retrieved rules.
             limit: How many rules to retrieve. If None, retrieves all matches.
             include_deleted: Include deleted rules.
@@ -84,9 +93,18 @@ class RulesAPIAsync(ResourceBase):
             filters.append(cel.contains("name", name_contains))
         if name_regex:
             filters.append(cel.match("name", name_regex))
+        if asset_ids:
+            filters.append(cel.in_("asset_id", asset_ids))
+        if asset_tags_ids:
+            filters.append(cel.in_("tag_id", asset_tags_ids))
+        if client_key:
+            filters.append(cel.equals("client_key", client_key))
+        if created_by_user_id:
+            filters.append(cel.equals("created_by_user_id", created_by_user_id))
+        # We mostly want to OR these filters except for the deleted_date filter
+        filter_str = " || ".join(filters) if filters else ""
         if not include_deleted:
-            filters.append(cel.equals_null("deleted_date"))
-        filter_str = " && ".join(filters) if filters else ""
+            filter_str = f"({filter_str}) && {cel.equals_null('deleted_date')}"
         rules = await self._low_level_client.list_all_rules(
             filter_query=filter_str,
             order_by=order_by,
@@ -260,3 +278,54 @@ class RulesAPIAsync(ResourceBase):
             rule_ids=rule_ids, client_keys=client_keys
         )
         return self._apply_client_to_instances(rules)
+
+    async def evaluate(
+        self,
+        *,
+        run_id: str | None = None,
+        asset_ids: list[str] | None = None,
+        all_applicable_rules: bool | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        rule_ids: list[str] | None = None,
+        rule_version_ids: list[str] | None = None,
+        report_template_id: str | None = None,
+        tags: list[str] | None = None,
+    ) -> tuple[int, str | None, str | None]:
+        """Evaluate a rule.
+
+        Pick one of the following grouping of rules to evaluate against:
+        - run_id (may optionally include start_time and end_time for more specificity)
+        - asset_ids (requires start_time and end_time)
+        And one of the following filters to select which rules to evaluate:
+        - rule_ids
+        - rule_version_ids
+        - report_template_id
+        - all_applicable_rules
+
+        Args:
+            run_id: The run ID to evaluate.
+            asset_ids: The asset IDs to evaluate.
+            all_applicable_rules: Whether to evaluate all rules applicable to the selected run, assets, or time range.
+            start_time: The start time of when to evaluate rules against.
+            end_time: The end time of when to evaluate rules against.
+            rule_ids: The rule IDs to evaluate.
+            rule_version_ids: The rule version IDs to evaluate.
+            report_template_id: The report template ID to evaluate.
+            tags: Optional tags to add to generated annotations.
+
+        Returns:
+            A tuple of (created_annotation_count, report_id, job_id).
+        """
+        created_annotation_count, report_id, job_id = await self._low_level_client.evaluate_rules(
+            run_id=run_id,
+            asset_ids=asset_ids,
+            all_applicable_rules=all_applicable_rules,
+            start_time=start_time,
+            end_time=end_time,
+            rule_ids=rule_ids,
+            rule_version_ids=rule_version_ids,
+            report_template_id=report_template_id,
+            tags=tags,
+        )
+        return created_annotation_count, report_id, job_id
