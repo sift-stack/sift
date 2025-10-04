@@ -129,6 +129,7 @@ class CalculatedChannelQuery(google.protobuf.message.Message):
     EXPRESSION_FIELD_NUMBER: builtins.int
     RUN_ID_FIELD_NUMBER: builtins.int
     MODE_FIELD_NUMBER: builtins.int
+    COMBINE_RUN_DATA_FIELD_NUMBER: builtins.int
     channel_key: builtins.str
     run_id: builtins.str
     """Optional.
@@ -138,6 +139,14 @@ class CalculatedChannelQuery(google.protobuf.message.Message):
     """
     mode: sift.calculated_channels.v1.calculated_channels_pb2.ExpressionMode.ValueType
     """Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS."""
+    combine_run_data: builtins.bool
+    """Optional. If unset, will default to false.
+    If true, then requests that return data across multiple runs will be
+    combined into a single result. This will apply to queries without a run,
+    or when the requested run is an ad hoc run.
+    This is useful when you prefer to see all the data as a single time series,
+    instead of separated results by run.
+    """
     @property
     def expression(self) -> sift.calculated_channels.v1.calculated_channels_pb2.ExpressionRequest: ...
     def __init__(
@@ -147,9 +156,12 @@ class CalculatedChannelQuery(google.protobuf.message.Message):
         expression: sift.calculated_channels.v1.calculated_channels_pb2.ExpressionRequest | None = ...,
         run_id: builtins.str | None = ...,
         mode: sift.calculated_channels.v1.calculated_channels_pb2.ExpressionMode.ValueType | None = ...,
+        combine_run_data: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_mode", b"_mode", "_run_id", b"_run_id", "expression", b"expression", "mode", b"mode", "run_id", b"run_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_mode", b"_mode", "_run_id", b"_run_id", "channel_key", b"channel_key", "expression", b"expression", "mode", b"mode", "run_id", b"run_id"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_combine_run_data", b"_combine_run_data", "_mode", b"_mode", "_run_id", b"_run_id", "combine_run_data", b"combine_run_data", "expression", b"expression", "mode", b"mode", "run_id", b"run_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_combine_run_data", b"_combine_run_data", "_mode", b"_mode", "_run_id", b"_run_id", "channel_key", b"channel_key", "combine_run_data", b"combine_run_data", "expression", b"expression", "mode", b"mode", "run_id", b"run_id"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_combine_run_data", b"_combine_run_data"]) -> typing.Literal["combine_run_data"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_mode", b"_mode"]) -> typing.Literal["mode"] | None: ...
     @typing.overload

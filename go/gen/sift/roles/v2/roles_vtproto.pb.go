@@ -32,6 +32,7 @@ func (m *Role) CloneVT() *Role {
 	r.RoleId = m.RoleId
 	r.Name = m.Name
 	r.Description = m.Description
+	r.RoleOrder = m.RoleOrder
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -100,6 +101,9 @@ func (this *Role) EqualVT(that *Role) bool {
 		return false
 	}
 	if this.Description != that.Description {
+		return false
+	}
+	if this.RoleOrder != that.RoleOrder {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -298,6 +302,11 @@ func (m *Role) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.RoleOrder != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.RoleOrder))
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Description) > 0 {
 		i -= len(m.Description)
 		copy(dAtA[i:], m.Description)
@@ -463,6 +472,11 @@ func (m *Role) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.RoleOrder != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.RoleOrder))
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Description) > 0 {
 		i -= len(m.Description)
 		copy(dAtA[i:], m.Description)
@@ -615,6 +629,9 @@ func (m *Role) SizeVT() (n int) {
 	l = len(m.Description)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.RoleOrder != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.RoleOrder))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -790,6 +807,25 @@ func (m *Role) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Description = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RoleOrder", wireType)
+			}
+			m.RoleOrder = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.RoleOrder |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -1232,6 +1268,25 @@ func (m *Role) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.Description = stringValue
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RoleOrder", wireType)
+			}
+			m.RoleOrder = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.RoleOrder |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

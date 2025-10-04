@@ -18,7 +18,7 @@ from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapi
 from sift.common.type.v1 import user_pb2 as sift_dot_common_dot_type_dot_v1_dot_user__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19sift/users/v2/users.proto\x12\rsift.users.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1esift/common/type/v1/user.proto\"\x7f\n#UpdateUserOrganizationActiveRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\x12\'\n\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x16\n\x06\x61\x63tive\x18\x03 \x01(\x08R\x06\x61\x63tive\"&\n$UpdateUserOrganizationActiveResponse\".\n\x0eGetUserRequest\x12\x1c\n\x07user_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x06userId\"@\n\x0fGetUserResponse\x12-\n\x04user\x18\x01 \x01(\x0b\x32\x19.sift.common.type.v1.UserR\x04user\"\xc9\x01\n\x16ListActiveUsersRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\x12\x1e\n\x08order_by\x18\x05 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"r\n\x17ListActiveUsersResponse\x12/\n\x05users\x18\x01 \x03(\x0b\x32\x19.sift.common.type.v1.UserR\x05users\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\x98\x05\n\x0bUserService\x12\x96\x02\n\x1cUpdateUserOrganizationActive\x12\x32.sift.users.v2.UpdateUserOrganizationActiveRequest\x1a\x33.sift.users.v2.UpdateUserOrganizationActiveResponse\"\x8c\x01\x92\x41`\x12\x1cUpdateUserOrganizationActive\x1a@Used to toggle a user\'s active status within their organization.\x82\xd3\xe4\x93\x02#\"\x1e/api/v2/users/{user_id}/active:\x01*\x12\x8f\x01\n\x07GetUser\x12\x1d.sift.users.v2.GetUserRequest\x1a\x1e.sift.users.v2.GetUserResponse\"E\x92\x41#\x12\x07GetUser\x1a\x18Retrieves a user object.\x82\xd3\xe4\x93\x02\x19\x12\x17/api/v2/users/{user_id}\x12\x9f\x01\n\x0fListActiveUsers\x12%.sift.users.v2.ListActiveUsersRequest\x1a&.sift.users.v2.ListActiveUsersResponse\"=\x92\x41%\x12\x0fListActiveUsers\x1a\x12List active users.\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v2/users\x1a<\x92\x41\x39\x12\x37Service to programmatically interact with user objects.B\x88\x01\n\x11\x63om.sift.users.v2B\nUsersProtoP\x01\xa2\x02\x03SUX\xaa\x02\rSift.Users.V2\xca\x02\rSift\\Users\\V2\xe2\x02\x19Sift\\Users\\V2\\GPBMetadata\xea\x02\x0fSift::Users::V2\x92\x41\x10\x12\x0e\n\x0cUser Serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19sift/users/v2/users.proto\x12\rsift.users.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1esift/common/type/v1/user.proto\"\x7f\n#UpdateUserOrganizationActiveRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\x12\'\n\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x16\n\x06\x61\x63tive\x18\x03 \x01(\x08R\x06\x61\x63tive\"&\n$UpdateUserOrganizationActiveResponse\".\n\x0eGetUserRequest\x12\x1c\n\x07user_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x06userId\"@\n\x0fGetUserResponse\x12-\n\x04user\x18\x01 \x01(\x0b\x32\x19.sift.common.type.v1.UserR\x04user\"\xc9\x01\n\x16ListActiveUsersRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\x12\x1e\n\x08order_by\x18\x05 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"r\n\x17ListActiveUsersResponse\x12/\n\x05users\x18\x01 \x03(\x0b\x32\x19.sift.common.type.v1.UserR\x05users\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x95\x01\n\x10ListUsersRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"l\n\x11ListUsersResponse\x12/\n\x05users\x18\x01 \x03(\x0b\x32\x19.sift.common.type.v1.UserR\x05users\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xb8\x06\n\x0bUserService\x12\x96\x02\n\x1cUpdateUserOrganizationActive\x12\x32.sift.users.v2.UpdateUserOrganizationActiveRequest\x1a\x33.sift.users.v2.UpdateUserOrganizationActiveResponse\"\x8c\x01\x92\x41`\x12\x1cUpdateUserOrganizationActive\x1a@Used to toggle a user\'s active status within their organization.\x82\xd3\xe4\x93\x02#\"\x1e/api/v2/users/{user_id}/active:\x01*\x12\x8f\x01\n\x07GetUser\x12\x1d.sift.users.v2.GetUserRequest\x1a\x1e.sift.users.v2.GetUserResponse\"E\x92\x41#\x12\x07GetUser\x1a\x18Retrieves a user object.\x82\xd3\xe4\x93\x02\x19\x12\x17/api/v2/users/{user_id}\x12\x9f\x01\n\x0fListActiveUsers\x12%.sift.users.v2.ListActiveUsersRequest\x1a&.sift.users.v2.ListActiveUsersResponse\"=\x92\x41%\x12\x0fListActiveUsers\x1a\x12List active users.\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v2/users\x12\x9d\x01\n\tListUsers\x12\x1f.sift.users.v2.ListUsersRequest\x1a .sift.users.v2.ListUsersResponse\"M\x92\x41\x31\x12\tListUsers\x1a\x0bList users.*\x17UserService_ListUsersV2\x82\xd3\xe4\x93\x02\x13\x12\x11/api/v2/users:all\x1a<\x92\x41\x39\x12\x37Service to programmatically interact with user objects.B\x88\x01\n\x11\x63om.sift.users.v2B\nUsersProtoP\x01\xa2\x02\x03SUX\xaa\x02\rSift.Users.V2\xca\x02\rSift\\Users\\V2\xe2\x02\x19Sift\\Users\\V2\\GPBMetadata\xea\x02\x0fSift::Users::V2\x92\x41\x10\x12\x0e\n\x0cUser Serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,6 +38,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTACTIVEUSERSREQUEST'].fields_by_name['organization_id']._serialized_options = b'\340A\001'
   _globals['_LISTACTIVEUSERSREQUEST'].fields_by_name['order_by']._loaded_options = None
   _globals['_LISTACTIVEUSERSREQUEST'].fields_by_name['order_by']._serialized_options = b'\340A\001'
+  _globals['_LISTUSERSREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTUSERSREQUEST'].fields_by_name['page_size']._serialized_options = b'\340A\001'
+  _globals['_LISTUSERSREQUEST'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTUSERSREQUEST'].fields_by_name['page_token']._serialized_options = b'\340A\001'
+  _globals['_LISTUSERSREQUEST'].fields_by_name['filter']._loaded_options = None
+  _globals['_LISTUSERSREQUEST'].fields_by_name['filter']._serialized_options = b'\340A\001'
+  _globals['_LISTUSERSREQUEST'].fields_by_name['order_by']._loaded_options = None
+  _globals['_LISTUSERSREQUEST'].fields_by_name['order_by']._serialized_options = b'\340A\001'
   _globals['_USERSERVICE']._loaded_options = None
   _globals['_USERSERVICE']._serialized_options = b'\222A9\0227Service to programmatically interact with user objects.'
   _globals['_USERSERVICE'].methods_by_name['UpdateUserOrganizationActive']._loaded_options = None
@@ -46,6 +54,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_USERSERVICE'].methods_by_name['GetUser']._serialized_options = b'\222A#\022\007GetUser\032\030Retrieves a user object.\202\323\344\223\002\031\022\027/api/v2/users/{user_id}'
   _globals['_USERSERVICE'].methods_by_name['ListActiveUsers']._loaded_options = None
   _globals['_USERSERVICE'].methods_by_name['ListActiveUsers']._serialized_options = b'\222A%\022\017ListActiveUsers\032\022List active users.\202\323\344\223\002\017\022\r/api/v2/users'
+  _globals['_USERSERVICE'].methods_by_name['ListUsers']._loaded_options = None
+  _globals['_USERSERVICE'].methods_by_name['ListUsers']._serialized_options = b'\222A1\022\tListUsers\032\013List users.*\027UserService_ListUsersV2\202\323\344\223\002\023\022\021/api/v2/users:all'
   _globals['_UPDATEUSERORGANIZATIONACTIVEREQUEST']._serialized_start=187
   _globals['_UPDATEUSERORGANIZATIONACTIVEREQUEST']._serialized_end=314
   _globals['_UPDATEUSERORGANIZATIONACTIVERESPONSE']._serialized_start=316
@@ -58,6 +68,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTACTIVEUSERSREQUEST']._serialized_end=672
   _globals['_LISTACTIVEUSERSRESPONSE']._serialized_start=674
   _globals['_LISTACTIVEUSERSRESPONSE']._serialized_end=788
-  _globals['_USERSERVICE']._serialized_start=791
-  _globals['_USERSERVICE']._serialized_end=1455
+  _globals['_LISTUSERSREQUEST']._serialized_start=791
+  _globals['_LISTUSERSREQUEST']._serialized_end=940
+  _globals['_LISTUSERSRESPONSE']._serialized_start=942
+  _globals['_LISTUSERSRESPONSE']._serialized_end=1050
+  _globals['_USERSERVICE']._serialized_start=1053
+  _globals['_USERSERVICE']._serialized_end=1877
 # @@protoc_insertion_point(module_scope)

@@ -8,7 +8,6 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Notification Service"}
 };
@@ -61,6 +60,7 @@ enum NotificationKind {
   NOTIFICATION_KIND_CONDITION_TRIGGERED = 4;
   NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED = 5;
   NOTIFICATION_KIND_REPORT_READY = 6;
+  NOTIFICATION_KIND_DATA_EXPORT_READY = 7;
 }
 
 // The request for a call to `NotificationService_ListNotifications` to retrieve notifications.

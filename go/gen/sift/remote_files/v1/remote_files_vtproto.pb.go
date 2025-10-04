@@ -1081,7 +1081,7 @@ const _ = grpc.SupportPackageIsVersion7
 type RemoteFileServiceClient interface {
 	// Retrieve a remote file.
 	GetRemoteFile(ctx context.Context, in *GetRemoteFileRequest, opts ...grpc.CallOption) (*GetRemoteFileResponse, error)
-	// Create a remote file.
+	// Create a remote file. Note that this does not perform the actual file upload.
 	CreateRemoteFile(ctx context.Context, in *CreateRemoteFileRequest, opts ...grpc.CallOption) (*CreateRemoteFileResponse, error)
 	// List remote files.
 	ListRemoteFiles(ctx context.Context, in *ListRemoteFilesRequest, opts ...grpc.CallOption) (*ListRemoteFilesResponse, error)
@@ -1172,7 +1172,7 @@ func (c *remoteFileServiceClient) GetRemoteFileDownloadUrl(ctx context.Context, 
 type RemoteFileServiceServer interface {
 	// Retrieve a remote file.
 	GetRemoteFile(context.Context, *GetRemoteFileRequest) (*GetRemoteFileResponse, error)
-	// Create a remote file.
+	// Create a remote file. Note that this does not perform the actual file upload.
 	CreateRemoteFile(context.Context, *CreateRemoteFileRequest) (*CreateRemoteFileResponse, error)
 	// List remote files.
 	ListRemoteFiles(context.Context, *ListRemoteFilesRequest) (*ListRemoteFilesResponse, error)

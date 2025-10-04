@@ -16,9 +16,10 @@ from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapiv2_dot_options_dot_annotations__pb2
+from sift.exports.v1 import exports_pb2 as sift_dot_exports_dot_v1_dot_exports__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17sift/jobs/v1/jobs.proto\x12\x0csift.jobs.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xbf\x04\n\x03Job\x12\x1a\n\x06job_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05jobId\x12,\n\x0forganization_id\x18\x02 \x01(\tB\x03\xe0\x41\x05R\x0eorganizationId\x12\x30\n\x12\x63reated_by_user_id\x18\x04 \x01(\tB\x03\xe0\x41\x03R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\x05 \x01(\tB\x03\xe0\x41\x03R\x10modifiedByUserId\x12\x42\n\x0c\x63reated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03R\x0cmodifiedDate\x12\x42\n\x0cstarted_date\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03R\x0bstartedDate\x12\x46\n\x0e\x63ompleted_date\x18\t \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03R\rcompletedDate\x12\x35\n\x08job_type\x18\n \x01(\x0e\x32\x15.sift.jobs.v1.JobTypeB\x03\xe0\x41\x03R\x07jobType\x12;\n\njob_status\x18\x0b \x01(\x0e\x32\x17.sift.jobs.v1.JobStatusB\x03\xe0\x41\x03R\tjobStatus\"\xc2\x01\n\x0fListJobsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\x12\x1e\n\x08order_by\x18\x06 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"a\n\x10ListJobsResponse\x12%\n\x04jobs\x18\x01 \x03(\x0b\x32\x11.sift.jobs.v1.JobR\x04jobs\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\".\n\x10\x43\x61ncelJobRequest\x12\x1a\n\x06job_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05jobId\"\x13\n\x11\x43\x61ncelJobResponse*_\n\x07JobType\x12\x1c\n\x14JOB_TYPE_UNSPECIFIED\x10\x00\x1a\x02\x08\x01\x12\x1c\n\x18JOB_TYPE_RULE_EVALUATION\x10\x01\x12\x18\n\x14JOB_TYPE_DATA_IMPORT\x10\x02*\xc6\x01\n\tJobStatus\x12\x1e\n\x16JOB_STATUS_UNSPECIFIED\x10\x00\x1a\x02\x08\x01\x12\x16\n\x12JOB_STATUS_CREATED\x10\x01\x12\x16\n\x12JOB_STATUS_RUNNING\x10\x02\x12\x17\n\x13JOB_STATUS_FINISHED\x10\x03\x12\x15\n\x11JOB_STATUS_FAILED\x10\x04\x12\x18\n\x14JOB_STATUS_CANCELLED\x10\x05\x12\x1f\n\x1bJOB_STATUS_CANCEL_REQUESTED\x10\x06\x32\xaa\x02\n\nJobService\x12x\n\x08ListJobs\x12\x1d.sift.jobs.v1.ListJobsRequest\x1a\x1e.sift.jobs.v1.ListJobsResponse\"-\x92\x41\x16\x12\x08ListJobs\x1a\nList jobs.\x82\xd3\xe4\x93\x02\x0e\x12\x0c/api/v1/jobs\x12\xa1\x01\n\tCancelJob\x12\x1e.sift.jobs.v1.CancelJobRequest\x1a\x1f.sift.jobs.v1.CancelJobResponse\"S\x92\x41,\x12\tCancelJob\x1a\x1fRequests cancellation of a job.\x82\xd3\xe4\x93\x02\x1e\"\x1c/api/v1/jobs/{job_id}:cancelB\x82\x01\n\x10\x63om.sift.jobs.v1B\tJobsProtoP\x01\xa2\x02\x03SJX\xaa\x02\x0cSift.Jobs.V1\xca\x02\x0cSift\\Jobs\\V1\xe2\x02\x18Sift\\Jobs\\V1\\GPBMetadata\xea\x02\x0eSift::Jobs::V1\x92\x41\x10\x12\x0e\n\x0cJobs serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17sift/jobs/v1/jobs.proto\x12\x0csift.jobs.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1dsift/exports/v1/exports.proto\"\xe4\x05\n\x03Job\x12\x1a\n\x06job_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05jobId\x12,\n\x0forganization_id\x18\x02 \x01(\tB\x03\xe0\x41\x05R\x0eorganizationId\x12\x33\n\x12\x63reated_by_user_id\x18\x04 \x01(\tB\x06\xe0\x41\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x35\n\x13modified_by_user_id\x18\x05 \x01(\tB\x06\xe0\x41\x03\xe0\x41\x02R\x10modifiedByUserId\x12\x45\n\x0c\x63reated_date\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x06\xe0\x41\x03\xe0\x41\x02R\x0b\x63reatedDate\x12G\n\rmodified_date\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x06\xe0\x41\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x42\n\x0cstarted_date\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03R\x0bstartedDate\x12\x46\n\x0e\x63ompleted_date\x18\t \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x03R\rcompletedDate\x12\x38\n\x08job_type\x18\n \x01(\x0e\x32\x15.sift.jobs.v1.JobTypeB\x06\xe0\x41\x03\xe0\x41\x02R\x07jobType\x12>\n\njob_status\x18\x0b \x01(\x0e\x32\x17.sift.jobs.v1.JobStatusB\x06\xe0\x41\x03\xe0\x41\x02R\tjobStatus\x12Q\n\x12job_status_details\x18\x0c \x01(\x0b\x32\x1e.sift.jobs.v1.JobStatusDetailsB\x03\xe0\x41\x03R\x10jobStatusDetails\x12>\n\x0bjob_details\x18\r \x01(\x0b\x32\x18.sift.jobs.v1.JobDetailsB\x03\xe0\x41\x03R\njobDetails\"\x86\x02\n\x10JobStatusDetails\x12T\n\x0frule_evaluation\x18\x01 \x01(\x0b\x32).sift.jobs.v1.RuleEvaluationStatusDetailsH\x00R\x0eruleEvaluation\x12H\n\x0b\x64\x61ta_import\x18\x02 \x01(\x0b\x32%.sift.jobs.v1.DataImportStatusDetailsH\x00R\ndataImport\x12H\n\x0b\x64\x61ta_export\x18\x03 \x01(\x0b\x32%.sift.jobs.v1.DataExportStatusDetailsH\x00R\ndataExportB\x08\n\x06status\"\x1d\n\x1bRuleEvaluationStatusDetails\"q\n\x17\x44\x61taImportStatusDetails\x12.\n\x10points_processed\x18\x01 \x01(\x04\x42\x03\xe0\x41\x02R\x0fpointsProcessed\x12&\n\x0cpoints_total\x18\x02 \x01(\x04\x42\x03\xe0\x41\x02R\x0bpointsTotal\"C\n\x17\x44\x61taExportStatusDetails\x12(\n\rerror_message\x18\x01 \x01(\tB\x03\xe0\x41\x01R\x0c\x65rrorMessage\"u\n\x14\x44\x61taExportJobDetails\x12<\n\x07request\x18\x01 \x01(\x0b\x32\".sift.exports.v1.ExportDataRequestR\x07request\x12\x1f\n\x0bstorage_key\x18\x02 \x01(\tR\nstorageKey\"\xf8\x01\n\nJobDetails\x12Q\n\x0frule_evaluation\x18\x01 \x01(\x0b\x32&.sift.jobs.v1.RuleEvaluationJobDetailsH\x00R\x0eruleEvaluation\x12\x45\n\x0b\x64\x61ta_import\x18\x02 \x01(\x0b\x32\".sift.jobs.v1.DataImportJobDetailsH\x00R\ndataImport\x12\x45\n\x0b\x64\x61ta_export\x18\x03 \x01(\x0b\x32\".sift.jobs.v1.DataExportJobDetailsH\x00R\ndataExportB\t\n\x07\x64\x65tails\"<\n\x18RuleEvaluationJobDetails\x12 \n\treport_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x08reportId\"A\n\x14\x44\x61taImportJobDetails\x12)\n\x0e\x64\x61ta_import_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x0c\x64\x61taImportId\"\xc2\x01\n\x0fListJobsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12,\n\x0forganization_id\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\x12\x1e\n\x08order_by\x18\x06 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"a\n\x10ListJobsResponse\x12%\n\x04jobs\x18\x01 \x03(\x0b\x32\x11.sift.jobs.v1.JobR\x04jobs\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\".\n\x10\x43\x61ncelJobRequest\x12\x1a\n\x06job_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05jobId\"\x13\n\x11\x43\x61ncelJobResponse\"-\n\x0fRetryJobRequest\x12\x1a\n\x06job_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05jobId\"7\n\x10RetryJobResponse\x12#\n\x03job\x18\x01 \x01(\x0b\x32\x11.sift.jobs.v1.JobR\x03job*y\n\x07JobType\x12\x1c\n\x14JOB_TYPE_UNSPECIFIED\x10\x00\x1a\x02\x08\x01\x12\x1c\n\x18JOB_TYPE_RULE_EVALUATION\x10\x01\x12\x18\n\x14JOB_TYPE_DATA_IMPORT\x10\x02\x12\x18\n\x14JOB_TYPE_DATA_EXPORT\x10\x03*\xc6\x01\n\tJobStatus\x12\x1e\n\x16JOB_STATUS_UNSPECIFIED\x10\x00\x1a\x02\x08\x01\x12\x16\n\x12JOB_STATUS_CREATED\x10\x01\x12\x16\n\x12JOB_STATUS_RUNNING\x10\x02\x12\x17\n\x13JOB_STATUS_FINISHED\x10\x03\x12\x15\n\x11JOB_STATUS_FAILED\x10\x04\x12\x18\n\x14JOB_STATUS_CANCELLED\x10\x05\x12\x1f\n\x1bJOB_STATUS_CANCEL_REQUESTED\x10\x06\x32\xc1\x03\n\nJobService\x12x\n\x08ListJobs\x12\x1d.sift.jobs.v1.ListJobsRequest\x1a\x1e.sift.jobs.v1.ListJobsResponse\"-\x92\x41\x16\x12\x08ListJobs\x1a\nList jobs.\x82\xd3\xe4\x93\x02\x0e\x12\x0c/api/v1/jobs\x12\xa1\x01\n\tCancelJob\x12\x1e.sift.jobs.v1.CancelJobRequest\x1a\x1f.sift.jobs.v1.CancelJobResponse\"S\x92\x41,\x12\tCancelJob\x1a\x1fRequests cancellation of a job.\x82\xd3\xe4\x93\x02\x1e\"\x1c/api/v1/jobs/{job_id}:cancel\x12\x94\x01\n\x08RetryJob\x12\x1d.sift.jobs.v1.RetryJobRequest\x1a\x1e.sift.jobs.v1.RetryJobResponse\"I\x92\x41#\x12\x08RetryJob\x1a\x17Manually retries a job.\x82\xd3\xe4\x93\x02\x1d\"\x1b/api/v1/jobs/{job_id}:retryB\x82\x01\n\x10\x63om.sift.jobs.v1B\tJobsProtoP\x01\xa2\x02\x03SJX\xaa\x02\x0cSift.Jobs.V1\xca\x02\x0cSift\\Jobs\\V1\xe2\x02\x18Sift\\Jobs\\V1\\GPBMetadata\xea\x02\x0eSift::Jobs::V1\x92\x41\x10\x12\x0e\n\x0cJobs serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,21 +36,35 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_JOB'].fields_by_name['organization_id']._loaded_options = None
   _globals['_JOB'].fields_by_name['organization_id']._serialized_options = b'\340A\005'
   _globals['_JOB'].fields_by_name['created_by_user_id']._loaded_options = None
-  _globals['_JOB'].fields_by_name['created_by_user_id']._serialized_options = b'\340A\003'
+  _globals['_JOB'].fields_by_name['created_by_user_id']._serialized_options = b'\340A\003\340A\002'
   _globals['_JOB'].fields_by_name['modified_by_user_id']._loaded_options = None
-  _globals['_JOB'].fields_by_name['modified_by_user_id']._serialized_options = b'\340A\003'
+  _globals['_JOB'].fields_by_name['modified_by_user_id']._serialized_options = b'\340A\003\340A\002'
   _globals['_JOB'].fields_by_name['created_date']._loaded_options = None
-  _globals['_JOB'].fields_by_name['created_date']._serialized_options = b'\340A\003'
+  _globals['_JOB'].fields_by_name['created_date']._serialized_options = b'\340A\003\340A\002'
   _globals['_JOB'].fields_by_name['modified_date']._loaded_options = None
-  _globals['_JOB'].fields_by_name['modified_date']._serialized_options = b'\340A\003'
+  _globals['_JOB'].fields_by_name['modified_date']._serialized_options = b'\340A\003\340A\002'
   _globals['_JOB'].fields_by_name['started_date']._loaded_options = None
   _globals['_JOB'].fields_by_name['started_date']._serialized_options = b'\340A\003'
   _globals['_JOB'].fields_by_name['completed_date']._loaded_options = None
   _globals['_JOB'].fields_by_name['completed_date']._serialized_options = b'\340A\003'
   _globals['_JOB'].fields_by_name['job_type']._loaded_options = None
-  _globals['_JOB'].fields_by_name['job_type']._serialized_options = b'\340A\003'
+  _globals['_JOB'].fields_by_name['job_type']._serialized_options = b'\340A\003\340A\002'
   _globals['_JOB'].fields_by_name['job_status']._loaded_options = None
-  _globals['_JOB'].fields_by_name['job_status']._serialized_options = b'\340A\003'
+  _globals['_JOB'].fields_by_name['job_status']._serialized_options = b'\340A\003\340A\002'
+  _globals['_JOB'].fields_by_name['job_status_details']._loaded_options = None
+  _globals['_JOB'].fields_by_name['job_status_details']._serialized_options = b'\340A\003'
+  _globals['_JOB'].fields_by_name['job_details']._loaded_options = None
+  _globals['_JOB'].fields_by_name['job_details']._serialized_options = b'\340A\003'
+  _globals['_DATAIMPORTSTATUSDETAILS'].fields_by_name['points_processed']._loaded_options = None
+  _globals['_DATAIMPORTSTATUSDETAILS'].fields_by_name['points_processed']._serialized_options = b'\340A\002'
+  _globals['_DATAIMPORTSTATUSDETAILS'].fields_by_name['points_total']._loaded_options = None
+  _globals['_DATAIMPORTSTATUSDETAILS'].fields_by_name['points_total']._serialized_options = b'\340A\002'
+  _globals['_DATAEXPORTSTATUSDETAILS'].fields_by_name['error_message']._loaded_options = None
+  _globals['_DATAEXPORTSTATUSDETAILS'].fields_by_name['error_message']._serialized_options = b'\340A\001'
+  _globals['_RULEEVALUATIONJOBDETAILS'].fields_by_name['report_id']._loaded_options = None
+  _globals['_RULEEVALUATIONJOBDETAILS'].fields_by_name['report_id']._serialized_options = b'\340A\002'
+  _globals['_DATAIMPORTJOBDETAILS'].fields_by_name['data_import_id']._loaded_options = None
+  _globals['_DATAIMPORTJOBDETAILS'].fields_by_name['data_import_id']._serialized_options = b'\340A\002'
   _globals['_LISTJOBSREQUEST'].fields_by_name['page_size']._loaded_options = None
   _globals['_LISTJOBSREQUEST'].fields_by_name['page_size']._serialized_options = b'\340A\001'
   _globals['_LISTJOBSREQUEST'].fields_by_name['page_token']._loaded_options = None
@@ -62,24 +77,48 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTJOBSREQUEST'].fields_by_name['order_by']._serialized_options = b'\340A\001'
   _globals['_CANCELJOBREQUEST'].fields_by_name['job_id']._loaded_options = None
   _globals['_CANCELJOBREQUEST'].fields_by_name['job_id']._serialized_options = b'\340A\002'
+  _globals['_RETRYJOBREQUEST'].fields_by_name['job_id']._loaded_options = None
+  _globals['_RETRYJOBREQUEST'].fields_by_name['job_id']._serialized_options = b'\340A\002'
   _globals['_JOBSERVICE'].methods_by_name['ListJobs']._loaded_options = None
   _globals['_JOBSERVICE'].methods_by_name['ListJobs']._serialized_options = b'\222A\026\022\010ListJobs\032\nList jobs.\202\323\344\223\002\016\022\014/api/v1/jobs'
   _globals['_JOBSERVICE'].methods_by_name['CancelJob']._loaded_options = None
   _globals['_JOBSERVICE'].methods_by_name['CancelJob']._serialized_options = b'\222A,\022\tCancelJob\032\037Requests cancellation of a job.\202\323\344\223\002\036\"\034/api/v1/jobs/{job_id}:cancel'
-  _globals['_JOBTYPE']._serialized_start=1128
-  _globals['_JOBTYPE']._serialized_end=1223
-  _globals['_JOBSTATUS']._serialized_start=1226
-  _globals['_JOBSTATUS']._serialized_end=1424
-  _globals['_JOB']._serialized_start=186
-  _globals['_JOB']._serialized_end=761
-  _globals['_LISTJOBSREQUEST']._serialized_start=764
-  _globals['_LISTJOBSREQUEST']._serialized_end=958
-  _globals['_LISTJOBSRESPONSE']._serialized_start=960
-  _globals['_LISTJOBSRESPONSE']._serialized_end=1057
-  _globals['_CANCELJOBREQUEST']._serialized_start=1059
-  _globals['_CANCELJOBREQUEST']._serialized_end=1105
-  _globals['_CANCELJOBRESPONSE']._serialized_start=1107
-  _globals['_CANCELJOBRESPONSE']._serialized_end=1126
-  _globals['_JOBSERVICE']._serialized_start=1427
-  _globals['_JOBSERVICE']._serialized_end=1725
+  _globals['_JOBSERVICE'].methods_by_name['RetryJob']._loaded_options = None
+  _globals['_JOBSERVICE'].methods_by_name['RetryJob']._serialized_options = b'\222A#\022\010RetryJob\032\027Manually retries a job.\202\323\344\223\002\035\"\033/api/v1/jobs/{job_id}:retry'
+  _globals['_JOBTYPE']._serialized_start=2407
+  _globals['_JOBTYPE']._serialized_end=2528
+  _globals['_JOBSTATUS']._serialized_start=2531
+  _globals['_JOBSTATUS']._serialized_end=2729
+  _globals['_JOB']._serialized_start=217
+  _globals['_JOB']._serialized_end=957
+  _globals['_JOBSTATUSDETAILS']._serialized_start=960
+  _globals['_JOBSTATUSDETAILS']._serialized_end=1222
+  _globals['_RULEEVALUATIONSTATUSDETAILS']._serialized_start=1224
+  _globals['_RULEEVALUATIONSTATUSDETAILS']._serialized_end=1253
+  _globals['_DATAIMPORTSTATUSDETAILS']._serialized_start=1255
+  _globals['_DATAIMPORTSTATUSDETAILS']._serialized_end=1368
+  _globals['_DATAEXPORTSTATUSDETAILS']._serialized_start=1370
+  _globals['_DATAEXPORTSTATUSDETAILS']._serialized_end=1437
+  _globals['_DATAEXPORTJOBDETAILS']._serialized_start=1439
+  _globals['_DATAEXPORTJOBDETAILS']._serialized_end=1556
+  _globals['_JOBDETAILS']._serialized_start=1559
+  _globals['_JOBDETAILS']._serialized_end=1807
+  _globals['_RULEEVALUATIONJOBDETAILS']._serialized_start=1809
+  _globals['_RULEEVALUATIONJOBDETAILS']._serialized_end=1869
+  _globals['_DATAIMPORTJOBDETAILS']._serialized_start=1871
+  _globals['_DATAIMPORTJOBDETAILS']._serialized_end=1936
+  _globals['_LISTJOBSREQUEST']._serialized_start=1939
+  _globals['_LISTJOBSREQUEST']._serialized_end=2133
+  _globals['_LISTJOBSRESPONSE']._serialized_start=2135
+  _globals['_LISTJOBSRESPONSE']._serialized_end=2232
+  _globals['_CANCELJOBREQUEST']._serialized_start=2234
+  _globals['_CANCELJOBREQUEST']._serialized_end=2280
+  _globals['_CANCELJOBRESPONSE']._serialized_start=2282
+  _globals['_CANCELJOBRESPONSE']._serialized_end=2301
+  _globals['_RETRYJOBREQUEST']._serialized_start=2303
+  _globals['_RETRYJOBREQUEST']._serialized_end=2348
+  _globals['_RETRYJOBRESPONSE']._serialized_start=2350
+  _globals['_RETRYJOBRESPONSE']._serialized_end=2405
+  _globals['_JOBSERVICE']._serialized_start=2732
+  _globals['_JOBSERVICE']._serialized_end=3181
 # @@protoc_insertion_point(module_scope)

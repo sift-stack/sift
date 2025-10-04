@@ -416,12 +416,15 @@ class TDMSConfig(google.protobuf.message.Message):
     RUN_NAME_FIELD_NUMBER: builtins.int
     START_TIME_OVERRIDE_FIELD_NUMBER: builtins.int
     FILE_SIZE_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
     asset_name: builtins.str
     run_name: builtins.str
     file_size: builtins.int
     """The file size in bytes.
     If the file has truncated chunks, this will be required to pass validation.
     """
+    run_id: builtins.str
+    """The id of the run to add this data to. If set, `run_name` is ignored."""
     @property
     def start_time_override(self) -> google.protobuf.timestamp_pb2.Timestamp:
         """Override the wf_start_time metadata field for all channels.
@@ -435,9 +438,10 @@ class TDMSConfig(google.protobuf.message.Message):
         run_name: builtins.str = ...,
         start_time_override: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         file_size: builtins.int | None = ...,
+        run_id: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_file_size", b"_file_size", "file_size", b"file_size", "start_time_override", b"start_time_override"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_file_size", b"_file_size", "asset_name", b"asset_name", "file_size", b"file_size", "run_name", b"run_name", "start_time_override", b"start_time_override"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_file_size", b"_file_size", "asset_name", b"asset_name", "file_size", b"file_size", "run_id", b"run_id", "run_name", b"run_name", "start_time_override", b"start_time_override"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_file_size", b"_file_size"]) -> typing.Literal["file_size"] | None: ...
 
 global___TDMSConfig = TDMSConfig

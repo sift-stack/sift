@@ -272,6 +272,9 @@ impl serde::Serialize for Role {
         if !self.description.is_empty() {
             len += 1;
         }
+        if self.role_order != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.roles.v2.Role", len)?;
         if !self.role_id.is_empty() {
             struct_ser.serialize_field("roleId", &self.role_id)?;
@@ -281,6 +284,9 @@ impl serde::Serialize for Role {
         }
         if !self.description.is_empty() {
             struct_ser.serialize_field("description", &self.description)?;
+        }
+        if self.role_order != 0 {
+            struct_ser.serialize_field("roleOrder", &self.role_order)?;
         }
         struct_ser.end()
     }
@@ -296,6 +302,8 @@ impl<'de> serde::Deserialize<'de> for Role {
             "roleId",
             "name",
             "description",
+            "role_order",
+            "roleOrder",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -303,6 +311,7 @@ impl<'de> serde::Deserialize<'de> for Role {
             RoleId,
             Name,
             Description,
+            RoleOrder,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -327,6 +336,7 @@ impl<'de> serde::Deserialize<'de> for Role {
                             "roleId" | "role_id" => Ok(GeneratedField::RoleId),
                             "name" => Ok(GeneratedField::Name),
                             "description" => Ok(GeneratedField::Description),
+                            "roleOrder" | "role_order" => Ok(GeneratedField::RoleOrder),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -349,6 +359,7 @@ impl<'de> serde::Deserialize<'de> for Role {
                 let mut role_id__ = None;
                 let mut name__ = None;
                 let mut description__ = None;
+                let mut role_order__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RoleId => {
@@ -369,12 +380,21 @@ impl<'de> serde::Deserialize<'de> for Role {
                             }
                             description__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::RoleOrder => {
+                            if role_order__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("roleOrder"));
+                            }
+                            role_order__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
                     }
                 }
                 Ok(Role {
                     role_id: role_id__.unwrap_or_default(),
                     name: name__.unwrap_or_default(),
                     description: description__.unwrap_or_default(),
+                    role_order: role_order__.unwrap_or_default(),
                 })
             }
         }

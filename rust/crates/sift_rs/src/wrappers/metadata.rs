@@ -46,12 +46,14 @@ impl<T: Into<MetadataEnumValue>> From<(&str, T)> for MetadataValue {
             name: name.to_string(),
             r#type: key_type.into(),
             archived_date: None,
+            is_archived: false,
         };
 
         MetadataValue {
             key: Some(key),
             value: Some(enum_value),
             archived_date: None,
+            is_archived: false,
         }
     }
 }

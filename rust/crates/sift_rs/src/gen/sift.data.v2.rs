@@ -52,6 +52,8 @@ pub struct CalculatedChannelQuery {
     pub run_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(enumeration="super::super::calculated_channels::v1::ExpressionMode", optional, tag="4")]
     pub mode: ::core::option::Option<i32>,
+    #[prost(bool, optional, tag="5")]
+    pub combine_run_data: ::core::option::Option<bool>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

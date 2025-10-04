@@ -117,6 +117,8 @@ pub struct TdmsConfig {
     pub start_time_override: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(uint64, optional, tag="4")]
     pub file_size: ::core::option::Option<u64>,
+    #[prost(string, tag="5")]
+    pub run_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -41,10 +41,12 @@ class UserGroup(google.protobuf.message.Message):
     IS_DEFAULT_FIELD_NUMBER: builtins.int
     RESOURCES_FIELD_NUMBER: builtins.int
     USER_IDS_FIELD_NUMBER: builtins.int
+    IS_EXTERNAL_FIELD_NUMBER: builtins.int
     user_group_id: builtins.str
     name: builtins.str
     role_id: builtins.str
     is_default: builtins.bool
+    is_external: builtins.bool
     @property
     def resources(self) -> global___UserGroup.Resource: ...
     @property
@@ -58,9 +60,10 @@ class UserGroup(google.protobuf.message.Message):
         is_default: builtins.bool = ...,
         resources: global___UserGroup.Resource | None = ...,
         user_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        is_external: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["resources", b"resources"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["is_default", b"is_default", "name", b"name", "resources", b"resources", "role_id", b"role_id", "user_group_id", b"user_group_id", "user_ids", b"user_ids"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["is_default", b"is_default", "is_external", b"is_external", "name", b"name", "resources", b"resources", "role_id", b"role_id", "user_group_id", b"user_group_id", "user_ids", b"user_ids"]) -> None: ...
 
 global___UserGroup = UserGroup
 
@@ -92,9 +95,10 @@ class ListUserGroupsRequest(google.protobuf.message.Message):
     """
     order_by: builtins.str
     """How to order the retrieved user groups. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are:
-    - created_date
-    - modified_date
+    Available fields to order_by are `name`, `created_date`, and `modified_date`.
+    If left empty, items are ordered by `name` in ascending order (A-Z).
+    For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+    Example: "created_date desc,modified_date"
     """
     def __init__(
         self,

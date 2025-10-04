@@ -12,15 +12,17 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
+from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
+from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapiv2_dot_options_dot_annotations__pb2
 from sift.metadata.v1 import metadata_pb2 as sift_dot_metadata_dot_v1_dot_metadata__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17sift/runs/v2/runs.proto\x12\x0csift.runs.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1fsift/metadata/v1/metadata.proto\"\xa9\x07\n\x03Run\x12\x1a\n\x06run_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05runId\x12\x42\n\x0c\x63reated_date\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x30\n\x12\x63reated_by_user_id\x18\x04 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\x05 \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12,\n\x0forganization_id\x18\x06 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\x43\n\nstart_time\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x00R\tstartTime\x88\x01\x01\x12\x41\n\tstop_time\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x01R\x08stopTime\x88\x01\x01\x12 \n\tis_pinned\x18\t \x01(\x08\x42\x03\xe0\x41\x02R\x08isPinned\x12\x17\n\x04name\x18\n \x01(\tB\x03\xe0\x41\x02R\x04name\x12%\n\x0b\x64\x65scription\x18\x0b \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12\x17\n\x04tags\x18\x0c \x03(\tB\x03\xe0\x41\x02R\x04tags\x12/\n\x11\x64\x65\x66\x61ult_report_id\x18\r \x01(\tB\x03\xe0\x41\x01R\x0f\x64\x65\x66\x61ultReportId\x12\'\n\nclient_key\x18\x0e \x01(\tB\x03\xe0\x41\x01H\x02R\tclientKey\x88\x01\x01\x12@\n\x08metadata\x18\x0f \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x02R\x08metadata\x12 \n\tasset_ids\x18\x10 \x03(\tB\x03\xe0\x41\x02R\x08\x61ssetIds\x12I\n\rarchived_date\x18\x11 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x03R\x0c\x61rchivedDate\x88\x01\x01\x12\x1e\n\x08is_adhoc\x18\x12 \x01(\x08\x42\x03\xe0\x41\x02R\x07isAdhocB\r\n\x0b_start_timeB\x0c\n\n_stop_timeB\r\n\x0b_client_keyB\x10\n\x0e_archived_date\"+\n\rGetRunRequest\x12\x1a\n\x06run_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05runId\":\n\x0eGetRunResponse\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\"\x94\x01\n\x0fListRunsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"f\n\x10ListRunsResponse\x12*\n\x04runs\x18\x01 \x03(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x04runs\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x91\x03\n\x10\x43reateRunRequest\x12\x17\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x04name\x12%\n\x0b\x64\x65scription\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12\x17\n\x04tags\x18\x03 \x03(\tB\x03\xe0\x41\x01R\x04tags\x12>\n\nstart_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01R\tstartTime\x12<\n\tstop_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01R\x08stopTime\x12,\n\x0forganization_id\x18\x07 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\x12\'\n\nclient_key\x18\x08 \x01(\tB\x03\xe0\x41\x01H\x00R\tclientKey\x88\x01\x01\x12@\n\x08metadata\x18\t \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x01R\x08metadataB\r\n\x0b_client_key\"=\n\x11\x43reateRunResponse\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\"\x8a\x03\n\x15\x43reateAdhocRunRequest\x12\x17\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x04name\x12%\n\x0b\x64\x65scription\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12>\n\nstart_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\tstartTime\x12<\n\tstop_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x08stopTime\x12 \n\tasset_ids\x18\x05 \x03(\tB\x03\xe0\x41\x02R\x08\x61ssetIds\x12\x17\n\x04tags\x18\x06 \x03(\tB\x03\xe0\x41\x01R\x04tags\x12@\n\x08metadata\x18\x07 \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x01R\x08metadata\x12\'\n\nclient_key\x18\x08 \x01(\tB\x03\xe0\x41\x01H\x00R\tclientKey\x88\x01\x01\x42\r\n\x0b_client_key\"B\n\x16\x43reateAdhocRunResponse\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\"~\n\x10UpdateRunRequest\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\x12@\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x03\xe0\x41\x02R\nupdateMask\"=\n\x11UpdateRunResponse\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\"q\n-CreateAutomaticRunAssociationForAssetsRequest\x12\x1a\n\x06run_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05runId\x12$\n\x0b\x61sset_names\x18\x02 \x03(\tB\x03\xe0\x41\x02R\nassetNames\"0\n.CreateAutomaticRunAssociationForAssetsResponse\".\n\x10\x44\x65leteRunRequest\x12\x1a\n\x06run_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05runId\"\x13\n\x11\x44\x65leteRunResponse\",\n\x0eStopRunRequest\x12\x1a\n\x06run_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05runId\"\x11\n\x0fStopRunResponse2\xf3\r\n\nRunService\x12~\n\x06GetRun\x12\x1b.sift.runs.v2.GetRunRequest\x1a\x1c.sift.runs.v2.GetRunResponse\"9\x92\x41\x19\x12\x06GetRun\x1a\x0fRetrieve a run.\x82\xd3\xe4\x93\x02\x17\x12\x15/api/v2/runs/{run_id}\x12\x95\x01\n\x08ListRuns\x12\x1d.sift.runs.v2.ListRunsRequest\x1a\x1e.sift.runs.v2.ListRunsResponse\"J\x92\x41\x33\x12\x08ListRuns\x1a\'Retrieve runs using an optional filter.\x82\xd3\xe4\x93\x02\x0e\x12\x0c/api/v2/runs\x12\x82\x01\n\tCreateRun\x12\x1e.sift.runs.v2.CreateRunRequest\x1a\x1f.sift.runs.v2.CreateRunResponse\"4\x92\x41\x1a\x12\tCreateRun\x1a\rCreate a run.\x82\xd3\xe4\x93\x02\x11\"\x0c/api/v2/runs:\x01*\x12\xa3\x01\n\x0e\x43reateAdhocRun\x12#.sift.runs.v2.CreateAdhocRunRequest\x1a$.sift.runs.v2.CreateAdhocRunResponse\"F\x92\x41&\x12\x0e\x43reateAdhocRun\x1a\x14\x43reate an adhoc run.\x82\xd3\xe4\x93\x02\x17\"\x12/api/v2/runs:adhoc:\x01*\x12\xc7\x01\n\tUpdateRun\x12\x1e.sift.runs.v2.UpdateRunRequest\x1a\x1f.sift.runs.v2.UpdateRunResponse\"y\x92\x41_\x12\tUpdateRun\x1aRUpdates an existing run using using the list of fields specified in `update_mask`.\x82\xd3\xe4\x93\x02\x11\x32\x0c/api/v2/runs:\x01*\x12\xdc\x01\n\tDeleteRun\x12\x1e.sift.runs.v2.DeleteRunRequest\x1a\x1f.sift.runs.v2.DeleteRunResponse\"\x8d\x01\x92\x41m\x12\tDeleteRun\x1a`Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.\x82\xd3\xe4\x93\x02\x17*\x15/api/v2/runs/{run_id}\x12\xe6\x01\n\x07StopRun\x12\x1c.sift.runs.v2.StopRunRequest\x1a\x1d.sift.runs.v2.StopRunResponse\"\x9d\x01\x92\x41~\x12\x07StopRun\x1asSet the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`.\x82\xd3\xe4\x93\x02\x16\x32\x11/api/v2/runs:stop:\x01*\x12\xcc\x02\n&CreateAutomaticRunAssociationForAssets\x12;.sift.runs.v2.CreateAutomaticRunAssociationForAssetsRequest\x1a<.sift.runs.v2.CreateAutomaticRunAssociationForAssetsResponse\"\xa6\x01\x92\x41W\x12&CreateAutomaticRunAssociationForAssets\x1a-Associates a list of assets with a given run.\x82\xd3\xe4\x93\x02\x46\"A/api/v2/runs/{run_id}:create-automatic-run-association-for-assets:\x01*\x1a\xc0\x01\x92\x41\xbc\x01\x12@Service to programmatically interact with [runs](/glossary#run).\x1ax\n\x1eRead more about what runs are.\x12Vhttps://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265454053B\x81\x01\n\x10\x63om.sift.runs.v2B\tRunsProtoP\x01\xa2\x02\x03SRX\xaa\x02\x0cSift.Runs.V2\xca\x02\x0cSift\\Runs\\V2\xe2\x02\x18Sift\\Runs\\V2\\GPBMetadata\xea\x02\x0eSift::Runs::V2\x92\x41\x0f\x12\r\n\x0bRun serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17sift/runs/v2/runs.proto\x12\x0csift.runs.v2\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1fsift/metadata/v1/metadata.proto\"\x9d\x08\n\x03Run\x12\x1a\n\x06run_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x05runId\x12\x42\n\x0c\x63reated_date\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0b\x63reatedDate\x12\x44\n\rmodified_date\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x0cmodifiedDate\x12\x30\n\x12\x63reated_by_user_id\x18\x04 \x01(\tB\x03\xe0\x41\x02R\x0f\x63reatedByUserId\x12\x32\n\x13modified_by_user_id\x18\x05 \x01(\tB\x03\xe0\x41\x02R\x10modifiedByUserId\x12,\n\x0forganization_id\x18\x06 \x01(\tB\x03\xe0\x41\x02R\x0eorganizationId\x12\x43\n\nstart_time\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x00R\tstartTime\x88\x01\x01\x12\x41\n\tstop_time\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x01R\x08stopTime\x88\x01\x01\x12 \n\tis_pinned\x18\t \x01(\x08\x42\x03\xe0\x41\x02R\x08isPinned\x12\x17\n\x04name\x18\n \x01(\tB\x03\xe0\x41\x02R\x04name\x12%\n\x0b\x64\x65scription\x18\x0b \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12\x17\n\x04tags\x18\x0c \x03(\tB\x03\xe0\x41\x02R\x04tags\x12/\n\x11\x64\x65\x66\x61ult_report_id\x18\r \x01(\tB\x03\xe0\x41\x01R\x0f\x64\x65\x66\x61ultReportId\x12\'\n\nclient_key\x18\x0e \x01(\tB\x03\xe0\x41\x01H\x02R\tclientKey\x88\x01\x01\x12@\n\x08metadata\x18\x0f \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x02R\x08metadata\x12 \n\tasset_ids\x18\x10 \x03(\tB\x03\xe0\x41\x02R\x08\x61ssetIds\x12I\n\rarchived_date\x18\x11 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01H\x03R\x0c\x61rchivedDate\x88\x01\x01\x12\x1e\n\x08is_adhoc\x18\x12 \x01(\x08\x42\x03\xe0\x41\x02R\x07isAdhoc\x12$\n\x0bis_archived\x18\x13 \x01(\x08\x42\x03\xe0\x41\x02R\nisArchived\x12?\n\x08\x64uration\x18\x14 \x01(\x0b\x32\x19.google.protobuf.DurationB\x03\xe0\x41\x01H\x04R\x08\x64uration\x88\x01\x01\x42\r\n\x0b_start_timeB\x0c\n\n_stop_timeB\r\n\x0b_client_keyB\x10\n\x0e_archived_dateB\x0b\n\t_duration\"3\n\rGetRunRequest\x12\"\n\x06run_id\x18\x01 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x05runId\":\n\x0eGetRunResponse\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\"\x94\x01\n\x0fListRunsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"f\n\x10ListRunsResponse\x12*\n\x04runs\x18\x01 \x03(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x04runs\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xdb\x04\n\x10\x43reateRunRequest\x12\x17\n\x04name\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x04name\x12%\n\x0b\x64\x65scription\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12\x17\n\x04tags\x18\x03 \x03(\tB\x03\xe0\x41\x01R\x04tags\x12>\n\nstart_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01R\tstartTime\x12<\n\tstop_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x01R\x08stopTime\x12,\n\x0forganization_id\x18\x07 \x01(\tB\x03\xe0\x41\x01R\x0eorganizationId\x12\xf0\x01\n\nclient_key\x18\x08 \x01(\tB\xcb\x01\xe0\x41\x01\xbaH\xc4\x01\xba\x01\xc0\x01\n\x12invalid_client_key\x12jclient key must be 3-128 characters, start and end with an alphanumeric, and contain only [a-zA-Z0-9_~.-].\x1a>this.matches(\'^[a-zA-Z0-9][a-zA-Z0-9_~.-]{0,126}[a-zA-Z0-9]$\')H\x00R\tclientKey\x88\x01\x01\x12@\n\x08metadata\x18\t \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x01R\x08metadataB\r\n\x0b_client_key\"=\n\x11\x43reateRunResponse\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\"\xe3\x04\n\x15\x43reateAdhocRunRequest\x12\x1e\n\x04name\x18\x01 \x01(\tB\n\xe0\x41\x02\xbaH\x04r\x02\x10\x01R\x04name\x12%\n\x0b\x64\x65scription\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x0b\x64\x65scription\x12>\n\nstart_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\tstartTime\x12<\n\tstop_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x03\xe0\x41\x02R\x08stopTime\x12(\n\tasset_ids\x18\x05 \x03(\tB\x0b\xe0\x41\x02\xbaH\x05\x92\x01\x02\x08\x01R\x08\x61ssetIds\x12\x17\n\x04tags\x18\x06 \x03(\tB\x03\xe0\x41\x01R\x04tags\x12@\n\x08metadata\x18\x07 \x03(\x0b\x32\x1f.sift.metadata.v1.MetadataValueB\x03\xe0\x41\x01R\x08metadata\x12\xf0\x01\n\nclient_key\x18\x08 \x01(\tB\xcb\x01\xe0\x41\x01\xbaH\xc4\x01\xba\x01\xc0\x01\n\x12invalid_client_key\x12jclient key must be 3-128 characters, start and end with an alphanumeric, and contain only [a-zA-Z0-9_~.-].\x1a>this.matches(\'^[a-zA-Z0-9][a-zA-Z0-9_~.-]{0,126}[a-zA-Z0-9]$\')H\x00R\tclientKey\x88\x01\x01\x42\r\n\x0b_client_key\"B\n\x16\x43reateAdhocRunResponse\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\"\xe2\x04\n\x10UpdateRunRequest\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\x12\xa3\x04\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\xe5\x03\xe0\x41\x02\xbaH\xde\x03\xba\x01\xda\x03\n\x17invalid_field_mask_path\x12\xdc\x01\x66ield mask path must be in [\'name\', \'description\', \'start_time\', \'startTime\', \'stop_time\', \'stopTime\', \'is_pinned\', \'isPinned\', \'client_key\', \'clientKey\', \'tags\', \'metadata\', \'archived_date\', \'is_archived\', \'isArchived\']\x1a\xdf\x01this.paths.all(path, path in [\'name\', \'description\', \'start_time\', \'startTime\', \'stop_time\', \'stopTime\', \'is_pinned\', \'isPinned\', \'client_key\', \'clientKey\', \'tags\', \'metadata\', \'archived_date\', \'is_archived\', \'isArchived\'])R\nupdateMask\"=\n\x11UpdateRunResponse\x12(\n\x03run\x18\x01 \x01(\x0b\x32\x11.sift.runs.v2.RunB\x03\xe0\x41\x02R\x03run\"y\n-CreateAutomaticRunAssociationForAssetsRequest\x12\"\n\x06run_id\x18\x01 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x05runId\x12$\n\x0b\x61sset_names\x18\x02 \x03(\tB\x03\xe0\x41\x02R\nassetNames\"0\n.CreateAutomaticRunAssociationForAssetsResponse\"6\n\x10\x44\x65leteRunRequest\x12\"\n\x06run_id\x18\x01 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x05runId\"\x13\n\x11\x44\x65leteRunResponse\"4\n\x0eStopRunRequest\x12\"\n\x06run_id\x18\x01 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x05runId\"\x11\n\x0fStopRunResponse2\xdd\r\n\nRunService\x12~\n\x06GetRun\x12\x1b.sift.runs.v2.GetRunRequest\x1a\x1c.sift.runs.v2.GetRunResponse\"9\x92\x41\x19\x12\x06GetRun\x1a\x0fRetrieve a run.\x82\xd3\xe4\x93\x02\x17\x12\x15/api/v2/runs/{run_id}\x12\x95\x01\n\x08ListRuns\x12\x1d.sift.runs.v2.ListRunsRequest\x1a\x1e.sift.runs.v2.ListRunsResponse\"J\x92\x41\x33\x12\x08ListRuns\x1a\'Retrieve runs using an optional filter.\x82\xd3\xe4\x93\x02\x0e\x12\x0c/api/v2/runs\x12\x82\x01\n\tCreateRun\x12\x1e.sift.runs.v2.CreateRunRequest\x1a\x1f.sift.runs.v2.CreateRunResponse\"4\x92\x41\x1a\x12\tCreateRun\x1a\rCreate a run.\x82\xd3\xe4\x93\x02\x11\"\x0c/api/v2/runs:\x01*\x12\xa3\x01\n\x0e\x43reateAdhocRun\x12#.sift.runs.v2.CreateAdhocRunRequest\x1a$.sift.runs.v2.CreateAdhocRunResponse\"F\x92\x41&\x12\x0e\x43reateAdhocRun\x1a\x14\x43reate an adhoc run.\x82\xd3\xe4\x93\x02\x17\"\x12/api/v2/runs:adhoc:\x01*\x12\xc7\x01\n\tUpdateRun\x12\x1e.sift.runs.v2.UpdateRunRequest\x1a\x1f.sift.runs.v2.UpdateRunResponse\"y\x92\x41_\x12\tUpdateRun\x1aRUpdates an existing run using using the list of fields specified in `update_mask`.\x82\xd3\xe4\x93\x02\x11\x32\x0c/api/v2/runs:\x01*\x12\xc6\x01\n\tDeleteRun\x12\x1e.sift.runs.v2.DeleteRunRequest\x1a\x1f.sift.runs.v2.DeleteRunResponse\"x\x88\x02\x01\x92\x41U\x12\tDeleteRun\x1aHPermanently delete a given run. Deprecated: Use update with is_archived.\x82\xd3\xe4\x93\x02\x17*\x15/api/v2/runs/{run_id}\x12\xe6\x01\n\x07StopRun\x12\x1c.sift.runs.v2.StopRunRequest\x1a\x1d.sift.runs.v2.StopRunResponse\"\x9d\x01\x92\x41~\x12\x07StopRun\x1asSet the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`.\x82\xd3\xe4\x93\x02\x16\x32\x11/api/v2/runs:stop:\x01*\x12\xcc\x02\n&CreateAutomaticRunAssociationForAssets\x12;.sift.runs.v2.CreateAutomaticRunAssociationForAssetsRequest\x1a<.sift.runs.v2.CreateAutomaticRunAssociationForAssetsResponse\"\xa6\x01\x92\x41W\x12&CreateAutomaticRunAssociationForAssets\x1a-Associates a list of assets with a given run.\x82\xd3\xe4\x93\x02\x46\"A/api/v2/runs/{run_id}:create-automatic-run-association-for-assets:\x01*\x1a\xc0\x01\x92\x41\xbc\x01\x12@Service to programmatically interact with [runs](/glossary#run).\x1ax\n\x1eRead more about what runs are.\x12Vhttps://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265454053B\x81\x01\n\x10\x63om.sift.runs.v2B\tRunsProtoP\x01\xa2\x02\x03SRX\xaa\x02\x0cSift.Runs.V2\xca\x02\x0cSift\\Runs\\V2\xe2\x02\x18Sift\\Runs\\V2\\GPBMetadata\xea\x02\x0eSift::Runs::V2\x92\x41\x0f\x12\r\n\x0bRun serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -64,8 +66,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_RUN'].fields_by_name['archived_date']._serialized_options = b'\340A\001'
   _globals['_RUN'].fields_by_name['is_adhoc']._loaded_options = None
   _globals['_RUN'].fields_by_name['is_adhoc']._serialized_options = b'\340A\002'
+  _globals['_RUN'].fields_by_name['is_archived']._loaded_options = None
+  _globals['_RUN'].fields_by_name['is_archived']._serialized_options = b'\340A\002'
+  _globals['_RUN'].fields_by_name['duration']._loaded_options = None
+  _globals['_RUN'].fields_by_name['duration']._serialized_options = b'\340A\001'
   _globals['_GETRUNREQUEST'].fields_by_name['run_id']._loaded_options = None
-  _globals['_GETRUNREQUEST'].fields_by_name['run_id']._serialized_options = b'\340A\002'
+  _globals['_GETRUNREQUEST'].fields_by_name['run_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_GETRUNRESPONSE'].fields_by_name['run']._loaded_options = None
   _globals['_GETRUNRESPONSE'].fields_by_name['run']._serialized_options = b'\340A\002'
   _globals['_LISTRUNSREQUEST'].fields_by_name['page_size']._loaded_options = None
@@ -91,13 +97,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREATERUNREQUEST'].fields_by_name['organization_id']._loaded_options = None
   _globals['_CREATERUNREQUEST'].fields_by_name['organization_id']._serialized_options = b'\340A\001'
   _globals['_CREATERUNREQUEST'].fields_by_name['client_key']._loaded_options = None
-  _globals['_CREATERUNREQUEST'].fields_by_name['client_key']._serialized_options = b'\340A\001'
+  _globals['_CREATERUNREQUEST'].fields_by_name['client_key']._serialized_options = b'\340A\001\272H\304\001\272\001\300\001\n\022invalid_client_key\022jclient key must be 3-128 characters, start and end with an alphanumeric, and contain only [a-zA-Z0-9_~.-].\032>this.matches(\'^[a-zA-Z0-9][a-zA-Z0-9_~.-]{0,126}[a-zA-Z0-9]$\')'
   _globals['_CREATERUNREQUEST'].fields_by_name['metadata']._loaded_options = None
   _globals['_CREATERUNREQUEST'].fields_by_name['metadata']._serialized_options = b'\340A\001'
   _globals['_CREATERUNRESPONSE'].fields_by_name['run']._loaded_options = None
   _globals['_CREATERUNRESPONSE'].fields_by_name['run']._serialized_options = b'\340A\002'
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['name']._loaded_options = None
-  _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['name']._serialized_options = b'\340A\002'
+  _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['name']._serialized_options = b'\340A\002\272H\004r\002\020\001'
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['description']._loaded_options = None
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['description']._serialized_options = b'\340A\002'
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['start_time']._loaded_options = None
@@ -105,29 +111,29 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['stop_time']._loaded_options = None
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['stop_time']._serialized_options = b'\340A\002'
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['asset_ids']._loaded_options = None
-  _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['asset_ids']._serialized_options = b'\340A\002'
+  _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['asset_ids']._serialized_options = b'\340A\002\272H\005\222\001\002\010\001'
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['tags']._loaded_options = None
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['tags']._serialized_options = b'\340A\001'
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['metadata']._loaded_options = None
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['metadata']._serialized_options = b'\340A\001'
   _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['client_key']._loaded_options = None
-  _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['client_key']._serialized_options = b'\340A\001'
+  _globals['_CREATEADHOCRUNREQUEST'].fields_by_name['client_key']._serialized_options = b'\340A\001\272H\304\001\272\001\300\001\n\022invalid_client_key\022jclient key must be 3-128 characters, start and end with an alphanumeric, and contain only [a-zA-Z0-9_~.-].\032>this.matches(\'^[a-zA-Z0-9][a-zA-Z0-9_~.-]{0,126}[a-zA-Z0-9]$\')'
   _globals['_CREATEADHOCRUNRESPONSE'].fields_by_name['run']._loaded_options = None
   _globals['_CREATEADHOCRUNRESPONSE'].fields_by_name['run']._serialized_options = b'\340A\002'
   _globals['_UPDATERUNREQUEST'].fields_by_name['run']._loaded_options = None
   _globals['_UPDATERUNREQUEST'].fields_by_name['run']._serialized_options = b'\340A\002'
   _globals['_UPDATERUNREQUEST'].fields_by_name['update_mask']._loaded_options = None
-  _globals['_UPDATERUNREQUEST'].fields_by_name['update_mask']._serialized_options = b'\340A\002'
+  _globals['_UPDATERUNREQUEST'].fields_by_name['update_mask']._serialized_options = b'\340A\002\272H\336\003\272\001\332\003\n\027invalid_field_mask_path\022\334\001field mask path must be in [\'name\', \'description\', \'start_time\', \'startTime\', \'stop_time\', \'stopTime\', \'is_pinned\', \'isPinned\', \'client_key\', \'clientKey\', \'tags\', \'metadata\', \'archived_date\', \'is_archived\', \'isArchived\']\032\337\001this.paths.all(path, path in [\'name\', \'description\', \'start_time\', \'startTime\', \'stop_time\', \'stopTime\', \'is_pinned\', \'isPinned\', \'client_key\', \'clientKey\', \'tags\', \'metadata\', \'archived_date\', \'is_archived\', \'isArchived\'])'
   _globals['_UPDATERUNRESPONSE'].fields_by_name['run']._loaded_options = None
   _globals['_UPDATERUNRESPONSE'].fields_by_name['run']._serialized_options = b'\340A\002'
   _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST'].fields_by_name['run_id']._loaded_options = None
-  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST'].fields_by_name['run_id']._serialized_options = b'\340A\002'
+  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST'].fields_by_name['run_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST'].fields_by_name['asset_names']._loaded_options = None
   _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST'].fields_by_name['asset_names']._serialized_options = b'\340A\002'
   _globals['_DELETERUNREQUEST'].fields_by_name['run_id']._loaded_options = None
-  _globals['_DELETERUNREQUEST'].fields_by_name['run_id']._serialized_options = b'\340A\002'
+  _globals['_DELETERUNREQUEST'].fields_by_name['run_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_STOPRUNREQUEST'].fields_by_name['run_id']._loaded_options = None
-  _globals['_STOPRUNREQUEST'].fields_by_name['run_id']._serialized_options = b'\340A\002'
+  _globals['_STOPRUNREQUEST'].fields_by_name['run_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_RUNSERVICE']._loaded_options = None
   _globals['_RUNSERVICE']._serialized_options = b'\222A\274\001\022@Service to programmatically interact with [runs](/glossary#run).\032x\n\036Read more about what runs are.\022Vhttps://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265454053'
   _globals['_RUNSERVICE'].methods_by_name['GetRun']._loaded_options = None
@@ -141,45 +147,45 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_RUNSERVICE'].methods_by_name['UpdateRun']._loaded_options = None
   _globals['_RUNSERVICE'].methods_by_name['UpdateRun']._serialized_options = b'\222A_\022\tUpdateRun\032RUpdates an existing run using using the list of fields specified in `update_mask`.\202\323\344\223\002\0212\014/api/v2/runs:\001*'
   _globals['_RUNSERVICE'].methods_by_name['DeleteRun']._loaded_options = None
-  _globals['_RUNSERVICE'].methods_by_name['DeleteRun']._serialized_options = b'\222Am\022\tDeleteRun\032`Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.\202\323\344\223\002\027*\025/api/v2/runs/{run_id}'
+  _globals['_RUNSERVICE'].methods_by_name['DeleteRun']._serialized_options = b'\210\002\001\222AU\022\tDeleteRun\032HPermanently delete a given run. Deprecated: Use update with is_archived.\202\323\344\223\002\027*\025/api/v2/runs/{run_id}'
   _globals['_RUNSERVICE'].methods_by_name['StopRun']._loaded_options = None
   _globals['_RUNSERVICE'].methods_by_name['StopRun']._serialized_options = b'\222A~\022\007StopRun\032sSet the stop time of a run to the current time. To set the stop time of a run to an arbitrary time see `UpdateRun`.\202\323\344\223\002\0262\021/api/v2/runs:stop:\001*'
   _globals['_RUNSERVICE'].methods_by_name['CreateAutomaticRunAssociationForAssets']._loaded_options = None
   _globals['_RUNSERVICE'].methods_by_name['CreateAutomaticRunAssociationForAssets']._serialized_options = b'\222AW\022&CreateAutomaticRunAssociationForAssets\032-Associates a list of assets with a given run.\202\323\344\223\002F\"A/api/v2/runs/{run_id}:create-automatic-run-association-for-assets:\001*'
-  _globals['_RUN']._serialized_start=253
-  _globals['_RUN']._serialized_end=1190
-  _globals['_GETRUNREQUEST']._serialized_start=1192
-  _globals['_GETRUNREQUEST']._serialized_end=1235
-  _globals['_GETRUNRESPONSE']._serialized_start=1237
-  _globals['_GETRUNRESPONSE']._serialized_end=1295
-  _globals['_LISTRUNSREQUEST']._serialized_start=1298
-  _globals['_LISTRUNSREQUEST']._serialized_end=1446
-  _globals['_LISTRUNSRESPONSE']._serialized_start=1448
-  _globals['_LISTRUNSRESPONSE']._serialized_end=1550
-  _globals['_CREATERUNREQUEST']._serialized_start=1553
-  _globals['_CREATERUNREQUEST']._serialized_end=1954
-  _globals['_CREATERUNRESPONSE']._serialized_start=1956
-  _globals['_CREATERUNRESPONSE']._serialized_end=2017
-  _globals['_CREATEADHOCRUNREQUEST']._serialized_start=2020
-  _globals['_CREATEADHOCRUNREQUEST']._serialized_end=2414
-  _globals['_CREATEADHOCRUNRESPONSE']._serialized_start=2416
-  _globals['_CREATEADHOCRUNRESPONSE']._serialized_end=2482
-  _globals['_UPDATERUNREQUEST']._serialized_start=2484
-  _globals['_UPDATERUNREQUEST']._serialized_end=2610
-  _globals['_UPDATERUNRESPONSE']._serialized_start=2612
-  _globals['_UPDATERUNRESPONSE']._serialized_end=2673
-  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST']._serialized_start=2675
-  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST']._serialized_end=2788
-  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSRESPONSE']._serialized_start=2790
-  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSRESPONSE']._serialized_end=2838
-  _globals['_DELETERUNREQUEST']._serialized_start=2840
-  _globals['_DELETERUNREQUEST']._serialized_end=2886
-  _globals['_DELETERUNRESPONSE']._serialized_start=2888
-  _globals['_DELETERUNRESPONSE']._serialized_end=2907
-  _globals['_STOPRUNREQUEST']._serialized_start=2909
-  _globals['_STOPRUNREQUEST']._serialized_end=2953
-  _globals['_STOPRUNRESPONSE']._serialized_start=2955
-  _globals['_STOPRUNRESPONSE']._serialized_end=2972
-  _globals['_RUNSERVICE']._serialized_start=2975
-  _globals['_RUNSERVICE']._serialized_end=4754
+  _globals['_RUN']._serialized_start=314
+  _globals['_RUN']._serialized_end=1367
+  _globals['_GETRUNREQUEST']._serialized_start=1369
+  _globals['_GETRUNREQUEST']._serialized_end=1420
+  _globals['_GETRUNRESPONSE']._serialized_start=1422
+  _globals['_GETRUNRESPONSE']._serialized_end=1480
+  _globals['_LISTRUNSREQUEST']._serialized_start=1483
+  _globals['_LISTRUNSREQUEST']._serialized_end=1631
+  _globals['_LISTRUNSRESPONSE']._serialized_start=1633
+  _globals['_LISTRUNSRESPONSE']._serialized_end=1735
+  _globals['_CREATERUNREQUEST']._serialized_start=1738
+  _globals['_CREATERUNREQUEST']._serialized_end=2341
+  _globals['_CREATERUNRESPONSE']._serialized_start=2343
+  _globals['_CREATERUNRESPONSE']._serialized_end=2404
+  _globals['_CREATEADHOCRUNREQUEST']._serialized_start=2407
+  _globals['_CREATEADHOCRUNREQUEST']._serialized_end=3018
+  _globals['_CREATEADHOCRUNRESPONSE']._serialized_start=3020
+  _globals['_CREATEADHOCRUNRESPONSE']._serialized_end=3086
+  _globals['_UPDATERUNREQUEST']._serialized_start=3089
+  _globals['_UPDATERUNREQUEST']._serialized_end=3699
+  _globals['_UPDATERUNRESPONSE']._serialized_start=3701
+  _globals['_UPDATERUNRESPONSE']._serialized_end=3762
+  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST']._serialized_start=3764
+  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSREQUEST']._serialized_end=3885
+  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSRESPONSE']._serialized_start=3887
+  _globals['_CREATEAUTOMATICRUNASSOCIATIONFORASSETSRESPONSE']._serialized_end=3935
+  _globals['_DELETERUNREQUEST']._serialized_start=3937
+  _globals['_DELETERUNREQUEST']._serialized_end=3991
+  _globals['_DELETERUNRESPONSE']._serialized_start=3993
+  _globals['_DELETERUNRESPONSE']._serialized_end=4012
+  _globals['_STOPRUNREQUEST']._serialized_start=4014
+  _globals['_STOPRUNREQUEST']._serialized_end=4066
+  _globals['_STOPRUNRESPONSE']._serialized_start=4068
+  _globals['_STOPRUNRESPONSE']._serialized_end=4085
+  _globals['_RUNSERVICE']._serialized_start=4088
+  _globals['_RUNSERVICE']._serialized_end=5845
 # @@protoc_insertion_point(module_scope)

@@ -7,7 +7,6 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Metadata service"}
 };
@@ -20,7 +19,7 @@ service MetadataService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CreateMetadataKey",
+      summary: "CreateMetadataKey"
       description: "Create a metadata key."
     };
   }
@@ -54,7 +53,7 @@ service MetadataService {
   // Archive metadata keys.
   rpc ArchiveMetadataKeys(ArchiveMetadataKeysRequest) returns (ArchiveMetadataKeysResponse) {
     option (google.api.http) = {
-      post: "/api/v1/metadata-keys/archive",
+      post: "/api/v1/metadata-keys/archive"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -66,7 +65,7 @@ service MetadataService {
   // Archive metadata values.
   rpc ArchiveMetadataValues(ArchiveMetadataValuesRequest) returns (ArchiveMetadataValuesResponse) {
     option (google.api.http) = {
-      post: "/api/v1/metadata-values/archive",
+      post: "/api/v1/metadata-values/archive"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -78,7 +77,7 @@ service MetadataService {
   // Unarchive metadata keys.
   rpc UnarchiveMetadataKeys(UnarchiveMetadataKeysRequest) returns (UnarchiveMetadataKeysResponse) {
     option (google.api.http) = {
-      post: "/api/v1/metadata-keys/unarchive",
+      post: "/api/v1/metadata-keys/unarchive"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -90,7 +89,7 @@ service MetadataService {
   // Unarchive metadata values.
   rpc UnarchiveMetadataValues(UnarchiveMetadataValuesRequest) returns (UnarchiveMetadataValuesResponse) {
     option (google.api.http) = {
-      post: "/api/v1/metadata-values/unarchive",
+      post: "/api/v1/metadata-values/unarchive"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -102,7 +101,7 @@ service MetadataService {
   // Delete metadata keys.
   rpc DeleteMetadataKeys(DeleteMetadataKeysRequest) returns (DeleteMetadataKeysResponse) {
     option (google.api.http) = {
-      post: "/api/v1/metadata-keys/delete",
+      post: "/api/v1/metadata-keys/delete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -114,7 +113,7 @@ service MetadataService {
   // Delete metadata values.
   rpc DeleteMetadataValues(DeleteMetadataValuesRequest) returns (DeleteMetadataValuesResponse) {
     option (google.api.http) = {
-      post: "/api/v1/metadata-values/delete",
+      post: "/api/v1/metadata-values/delete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -148,6 +147,8 @@ message MetadataKey {
   string name = 1 [(google.api.field_behavior) = REQUIRED];
   MetadataKeyType type = 2 [(google.api.field_behavior) = REQUIRED];
   google.protobuf.Timestamp archived_date = 3 [(google.api.field_behavior) = OPTIONAL];
+  // Whether the metadata key is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 4 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message MetadataValue {
@@ -158,6 +159,8 @@ message MetadataValue {
     bool boolean_value = 4;
   }
   google.protobuf.Timestamp archived_date = 5 [(google.api.field_behavior) = OPTIONAL];
+  // Whether the metadata value is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 6 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // The request of a call to `MetadataService_CreateMetadataKey` to create a metadata key.
@@ -195,7 +198,7 @@ message ListMetadataKeysRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are:
-  // `name`.
+  // `name`, `archived_date`, and `is_archived`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to this definition. Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -228,7 +231,7 @@ message ListMetadataValuesRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are:
-  // `value_string`, `value_number`, and `value_boolean`.
+  // `value_string`, `value_number`, `value_boolean`, `archived_date`, and `is_archived`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to this definition. Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];

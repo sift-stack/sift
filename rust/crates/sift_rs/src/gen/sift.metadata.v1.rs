@@ -9,6 +9,8 @@ pub struct MetadataKey {
     pub r#type: i32,
     #[prost(message, optional, tag="3")]
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bool, tag="4")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -17,6 +19,8 @@ pub struct MetadataValue {
     pub key: ::core::option::Option<MetadataKey>,
     #[prost(message, optional, tag="5")]
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bool, tag="6")]
+    pub is_archived: bool,
     #[prost(oneof="metadata_value::Value", tags="2, 3, 4")]
     pub value: ::core::option::Option<metadata_value::Value>,
 }

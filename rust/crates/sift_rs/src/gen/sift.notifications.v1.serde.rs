@@ -724,6 +724,7 @@ impl serde::Serialize for NotificationKind {
             Self::ConditionTriggered => "NOTIFICATION_KIND_CONDITION_TRIGGERED",
             Self::AnnotationStateChanged => "NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED",
             Self::ReportReady => "NOTIFICATION_KIND_REPORT_READY",
+            Self::DataExportReady => "NOTIFICATION_KIND_DATA_EXPORT_READY",
         };
         serializer.serialize_str(variant)
     }
@@ -742,6 +743,7 @@ impl<'de> serde::Deserialize<'de> for NotificationKind {
             "NOTIFICATION_KIND_CONDITION_TRIGGERED",
             "NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED",
             "NOTIFICATION_KIND_REPORT_READY",
+            "NOTIFICATION_KIND_DATA_EXPORT_READY",
         ];
 
         struct GeneratedVisitor;
@@ -789,6 +791,7 @@ impl<'de> serde::Deserialize<'de> for NotificationKind {
                     "NOTIFICATION_KIND_CONDITION_TRIGGERED" => Ok(NotificationKind::ConditionTriggered),
                     "NOTIFICATION_KIND_ANNOTATION_STATE_CHANGED" => Ok(NotificationKind::AnnotationStateChanged),
                     "NOTIFICATION_KIND_REPORT_READY" => Ok(NotificationKind::ReportReady),
+                    "NOTIFICATION_KIND_DATA_EXPORT_READY" => Ok(NotificationKind::DataExportReady),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }
             }

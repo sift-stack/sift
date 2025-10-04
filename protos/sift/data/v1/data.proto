@@ -12,7 +12,6 @@ import "sift/common/type/v1/channel_bit_field_element.proto";
 import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Data Service"}
 };
@@ -24,7 +23,7 @@ service DataService {
   rpc GetData(GetDataRequest) returns (GetDataResponse) {
     option (google.api.http) = {
       post: "/api/v1/data"
-      body: "*",
+      body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "GetData"

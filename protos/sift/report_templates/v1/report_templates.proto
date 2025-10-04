@@ -9,7 +9,6 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/metadata/v1/metadata.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "ReportTemplate service"}
 };
@@ -19,10 +18,10 @@ service ReportTemplateService {
   rpc GetReportTemplate(GetReportTemplateRequest) returns (GetReportTemplateResponse) {
     option (google.api.http) = {
       get: "/api/v1/report-templates/{report_template_id}"
-      additional_bindings {get: "/v1/organizations/{organization_id}/report_templates/{client_key}"}
+      additional_bindings: {get: "/v1/organizations/{organization_id}/report_templates/{client_key}"}
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetReportTemplate",
+      summary: "GetReportTemplate"
       description: "Retrieve a report template."
     };
   }
@@ -34,7 +33,7 @@ service ReportTemplateService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CreateReportTemplate",
+      summary: "CreateReportTemplate"
       description: "Create a report template."
     };
   }
@@ -75,6 +74,8 @@ message ReportTemplate {
   repeated ReportTemplateRule rules = 11 [(google.api.field_behavior) = REQUIRED];
   repeated ReportTemplateTag tags = 12 [(google.api.field_behavior) = REQUIRED];
   repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = REQUIRED];
+  // Whether the report template is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 14 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ReportTemplateRule {
@@ -145,7 +146,7 @@ message ListReportTemplatesRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, and `name`.
+  // Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, `name` and 'is_archived'.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/report_templates#report_template). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -177,7 +178,7 @@ message UpdateReportTemplateRequest {
   // The report template to update.
   ReportTemplate report_template = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, `rules`, and `metadata`.
+  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `is_archived`, `description`, `tags`, `rules`, and `metadata`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 

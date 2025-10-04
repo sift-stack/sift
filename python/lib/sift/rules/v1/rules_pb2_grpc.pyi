@@ -66,25 +66,57 @@ class RuleServiceStub:
         sift.rules.v1.rules_pb2.DeleteRuleRequest,
         sift.rules.v1.rules_pb2.DeleteRuleResponse,
     ]
-    """Deletes a rule"""
+    """Deprecated - use ArchiveRule instead.
+    Archives a rule.
+    """
+
+    ArchiveRule: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.ArchiveRuleRequest,
+        sift.rules.v1.rules_pb2.ArchiveRuleResponse,
+    ]
+    """Archives a rule."""
 
     BatchDeleteRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.BatchDeleteRulesRequest,
         sift.rules.v1.rules_pb2.BatchDeleteRulesResponse,
     ]
-    """Deletes multiple rules"""
+    """Deprecated - use BatchArchiveRules instead.
+    Archives multiple rules.
+    """
+
+    BatchArchiveRules: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchArchiveRulesRequest,
+        sift.rules.v1.rules_pb2.BatchArchiveRulesResponse,
+    ]
+    """Batch archives rules."""
+
+    UnarchiveRule: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.UnarchiveRuleRequest,
+        sift.rules.v1.rules_pb2.UnarchiveRuleResponse,
+    ]
+    """Unarchives a rule."""
+
+    BatchUnarchiveRules: grpc.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchUnarchiveRulesRequest,
+        sift.rules.v1.rules_pb2.BatchUnarchiveRulesResponse,
+    ]
+    """Batch unarchives rules."""
 
     UndeleteRule: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.UndeleteRuleRequest,
         sift.rules.v1.rules_pb2.UndeleteRuleResponse,
     ]
-    """Undeletes a rule"""
+    """Deprecated - use UnarchiveRule instead.
+    Unarchives a rule
+    """
 
     BatchUndeleteRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.BatchUndeleteRulesRequest,
         sift.rules.v1.rules_pb2.BatchUndeleteRulesResponse,
     ]
-    """Undeletes multiple rules"""
+    """Deprecated - use BatchUnarchiveRules instead.
+    Unarchives multiple rules
+    """
 
     EvaluateRules: grpc.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.EvaluateRulesRequest,
@@ -186,25 +218,57 @@ class RuleServiceAsyncStub:
         sift.rules.v1.rules_pb2.DeleteRuleRequest,
         sift.rules.v1.rules_pb2.DeleteRuleResponse,
     ]
-    """Deletes a rule"""
+    """Deprecated - use ArchiveRule instead.
+    Archives a rule.
+    """
+
+    ArchiveRule: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.ArchiveRuleRequest,
+        sift.rules.v1.rules_pb2.ArchiveRuleResponse,
+    ]
+    """Archives a rule."""
 
     BatchDeleteRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.BatchDeleteRulesRequest,
         sift.rules.v1.rules_pb2.BatchDeleteRulesResponse,
     ]
-    """Deletes multiple rules"""
+    """Deprecated - use BatchArchiveRules instead.
+    Archives multiple rules.
+    """
+
+    BatchArchiveRules: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchArchiveRulesRequest,
+        sift.rules.v1.rules_pb2.BatchArchiveRulesResponse,
+    ]
+    """Batch archives rules."""
+
+    UnarchiveRule: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.UnarchiveRuleRequest,
+        sift.rules.v1.rules_pb2.UnarchiveRuleResponse,
+    ]
+    """Unarchives a rule."""
+
+    BatchUnarchiveRules: grpc.aio.UnaryUnaryMultiCallable[
+        sift.rules.v1.rules_pb2.BatchUnarchiveRulesRequest,
+        sift.rules.v1.rules_pb2.BatchUnarchiveRulesResponse,
+    ]
+    """Batch unarchives rules."""
 
     UndeleteRule: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.UndeleteRuleRequest,
         sift.rules.v1.rules_pb2.UndeleteRuleResponse,
     ]
-    """Undeletes a rule"""
+    """Deprecated - use UnarchiveRule instead.
+    Unarchives a rule
+    """
 
     BatchUndeleteRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.BatchUndeleteRulesRequest,
         sift.rules.v1.rules_pb2.BatchUndeleteRulesResponse,
     ]
-    """Undeletes multiple rules"""
+    """Deprecated - use BatchUnarchiveRules instead.
+    Unarchives multiple rules
+    """
 
     EvaluateRules: grpc.aio.UnaryUnaryMultiCallable[
         sift.rules.v1.rules_pb2.EvaluateRulesRequest,
@@ -320,7 +384,17 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.DeleteRuleRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.DeleteRuleResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.DeleteRuleResponse]]:
-        """Deletes a rule"""
+        """Deprecated - use ArchiveRule instead.
+        Archives a rule.
+        """
+
+    @abc.abstractmethod
+    def ArchiveRule(
+        self,
+        request: sift.rules.v1.rules_pb2.ArchiveRuleRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.ArchiveRuleResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.ArchiveRuleResponse]]:
+        """Archives a rule."""
 
     @abc.abstractmethod
     def BatchDeleteRules(
@@ -328,7 +402,33 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.BatchDeleteRulesRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.BatchDeleteRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.BatchDeleteRulesResponse]]:
-        """Deletes multiple rules"""
+        """Deprecated - use BatchArchiveRules instead.
+        Archives multiple rules.
+        """
+
+    @abc.abstractmethod
+    def BatchArchiveRules(
+        self,
+        request: sift.rules.v1.rules_pb2.BatchArchiveRulesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.BatchArchiveRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.BatchArchiveRulesResponse]]:
+        """Batch archives rules."""
+
+    @abc.abstractmethod
+    def UnarchiveRule(
+        self,
+        request: sift.rules.v1.rules_pb2.UnarchiveRuleRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.UnarchiveRuleResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.UnarchiveRuleResponse]]:
+        """Unarchives a rule."""
+
+    @abc.abstractmethod
+    def BatchUnarchiveRules(
+        self,
+        request: sift.rules.v1.rules_pb2.BatchUnarchiveRulesRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.rules.v1.rules_pb2.BatchUnarchiveRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.BatchUnarchiveRulesResponse]]:
+        """Batch unarchives rules."""
 
     @abc.abstractmethod
     def UndeleteRule(
@@ -336,7 +436,9 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.UndeleteRuleRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.UndeleteRuleResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.UndeleteRuleResponse]]:
-        """Undeletes a rule"""
+        """Deprecated - use UnarchiveRule instead.
+        Unarchives a rule
+        """
 
     @abc.abstractmethod
     def BatchUndeleteRules(
@@ -344,7 +446,9 @@ class RuleServiceServicer(metaclass=abc.ABCMeta):
         request: sift.rules.v1.rules_pb2.BatchUndeleteRulesRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.rules.v1.rules_pb2.BatchUndeleteRulesResponse, collections.abc.Awaitable[sift.rules.v1.rules_pb2.BatchUndeleteRulesResponse]]:
-        """Undeletes multiple rules"""
+        """Deprecated - use BatchUnarchiveRules instead.
+        Unarchives multiple rules
+        """
 
     @abc.abstractmethod
     def EvaluateRules(

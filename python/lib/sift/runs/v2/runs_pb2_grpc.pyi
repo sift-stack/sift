@@ -53,7 +53,9 @@ class RunServiceStub:
         sift.runs.v2.runs_pb2.DeleteRunRequest,
         sift.runs.v2.runs_pb2.DeleteRunResponse,
     ]
-    """Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`."""
+    """Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.
+    Deprecated: Use update with is_archived.
+    """
 
     StopRun: grpc.UnaryUnaryMultiCallable[
         sift.runs.v2.runs_pb2.StopRunRequest,
@@ -102,7 +104,9 @@ class RunServiceAsyncStub:
         sift.runs.v2.runs_pb2.DeleteRunRequest,
         sift.runs.v2.runs_pb2.DeleteRunResponse,
     ]
-    """Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`."""
+    """Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.
+    Deprecated: Use update with is_archived.
+    """
 
     StopRun: grpc.aio.UnaryUnaryMultiCallable[
         sift.runs.v2.runs_pb2.StopRunRequest,
@@ -163,7 +167,9 @@ class RunServiceServicer(metaclass=abc.ABCMeta):
         request: sift.runs.v2.runs_pb2.DeleteRunRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.runs.v2.runs_pb2.DeleteRunResponse, collections.abc.Awaitable[sift.runs.v2.runs_pb2.DeleteRunResponse]]:
-        """Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`."""
+        """Permanently delete a given run. In order for a run to be deleted it must have a set `stop_time`.
+        Deprecated: Use update with is_archived.
+        """
 
     @abc.abstractmethod
     def StopRun(

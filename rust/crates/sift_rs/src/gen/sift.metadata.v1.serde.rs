@@ -1825,6 +1825,9 @@ impl serde::Serialize for MetadataKey {
         if self.archived_date.is_some() {
             len += 1;
         }
+        if self.is_archived {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.metadata.v1.MetadataKey", len)?;
         if !self.name.is_empty() {
             struct_ser.serialize_field("name", &self.name)?;
@@ -1836,6 +1839,9 @@ impl serde::Serialize for MetadataKey {
         }
         if let Some(v) = self.archived_date.as_ref() {
             struct_ser.serialize_field("archivedDate", v)?;
+        }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
         struct_ser.end()
     }
@@ -1851,6 +1857,8 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
             "type",
             "archived_date",
             "archivedDate",
+            "is_archived",
+            "isArchived",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1858,6 +1866,7 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
             Name,
             Type,
             ArchivedDate,
+            IsArchived,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1882,6 +1891,7 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
                             "name" => Ok(GeneratedField::Name),
                             "type" => Ok(GeneratedField::Type),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1904,6 +1914,7 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
                 let mut name__ = None;
                 let mut r#type__ = None;
                 let mut archived_date__ = None;
+                let mut is_archived__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Name => {
@@ -1924,12 +1935,19 @@ impl<'de> serde::Deserialize<'de> for MetadataKey {
                             }
                             archived_date__ = map_.next_value()?;
                         }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(MetadataKey {
                     name: name__.unwrap_or_default(),
                     r#type: r#type__.unwrap_or_default(),
                     archived_date: archived_date__,
+                    is_archived: is_archived__.unwrap_or_default(),
                 })
             }
         }
@@ -2154,6 +2172,9 @@ impl serde::Serialize for MetadataValue {
         if self.archived_date.is_some() {
             len += 1;
         }
+        if self.is_archived {
+            len += 1;
+        }
         if self.value.is_some() {
             len += 1;
         }
@@ -2163,6 +2184,9 @@ impl serde::Serialize for MetadataValue {
         }
         if let Some(v) = self.archived_date.as_ref() {
             struct_ser.serialize_field("archivedDate", v)?;
+        }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
         if let Some(v) = self.value.as_ref() {
             match v {
@@ -2190,6 +2214,8 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
             "key",
             "archived_date",
             "archivedDate",
+            "is_archived",
+            "isArchived",
             "string_value",
             "stringValue",
             "number_value",
@@ -2202,6 +2228,7 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
         enum GeneratedField {
             Key,
             ArchivedDate,
+            IsArchived,
             StringValue,
             NumberValue,
             BooleanValue,
@@ -2228,6 +2255,7 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
                         match value {
                             "key" => Ok(GeneratedField::Key),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             "stringValue" | "string_value" => Ok(GeneratedField::StringValue),
                             "numberValue" | "number_value" => Ok(GeneratedField::NumberValue),
                             "booleanValue" | "boolean_value" => Ok(GeneratedField::BooleanValue),
@@ -2252,6 +2280,7 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
             {
                 let mut key__ = None;
                 let mut archived_date__ = None;
+                let mut is_archived__ = None;
                 let mut value__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -2266,6 +2295,12 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
                                 return Err(serde::de::Error::duplicate_field("archivedDate"));
                             }
                             archived_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
                         }
                         GeneratedField::StringValue => {
                             if value__.is_some() {
@@ -2290,6 +2325,7 @@ impl<'de> serde::Deserialize<'de> for MetadataValue {
                 Ok(MetadataValue {
                     key: key__,
                     archived_date: archived_date__,
+                    is_archived: is_archived__.unwrap_or_default(),
                     value: value__,
                 })
             }

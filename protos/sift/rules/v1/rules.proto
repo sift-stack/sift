@@ -18,7 +18,6 @@ import "sift/common/type/v1/resource_identifier.proto";
 import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Rule Service"}
 };
@@ -101,51 +100,107 @@ service RuleService {
     };
   }
 
-  // Deletes a rule
+  // Deprecated - use ArchiveRule instead.
+  // Archives a rule.
   rpc DeleteRule(DeleteRuleRequest) returns (DeleteRuleResponse) {
+    option deprecated = true;
     option (google.api.http) = {
       post: "/api/v1/rules/delete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "DeleteRule"
-      description: "Deletes a rule."
+      description: "Archives a rule. Deprecated: Use ArchiveRule instead."
     };
   }
 
-  // Deletes multiple rules
+  // Archives a rule.
+  rpc ArchiveRule(ArchiveRuleRequest) returns (ArchiveRuleResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/archive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "ArchiveRule"
+      description: "Archives a rule."
+    };
+  }
+
+  // Deprecated - use BatchArchiveRules instead.
+  // Archives multiple rules.
   rpc BatchDeleteRules(BatchDeleteRulesRequest) returns (BatchDeleteRulesResponse) {
+    option deprecated = true;
     option (google.api.http) = {
       post: "/api/v1/rules/batchDelete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "BatchDeleteRules"
-      description: "Deletes multiple rules."
+      description: "Archives multiple rules. Deprecated: Use BatchArchiveRules instead."
     };
   }
 
-  // Undeletes a rule
+  // Batch archives rules.
+  rpc BatchArchiveRules(BatchArchiveRulesRequest) returns (BatchArchiveRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/batchArchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchArchiveRules"
+      description: "Batch archives rules."
+    };
+  }
+
+  // Unarchives a rule.
+  rpc UnarchiveRule(UnarchiveRuleRequest) returns (UnarchiveRuleResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/unarchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "UnarchiveRule"
+      description: "Unarchives a rule."
+    };
+  }
+
+  // Batch unarchives rules.
+  rpc BatchUnarchiveRules(BatchUnarchiveRulesRequest) returns (BatchUnarchiveRulesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/rules/batchUnarchive"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "BatchUnarchiveRules"
+      description: "Batch unarchives rules."
+    };
+  }
+
+  // Deprecated - use UnarchiveRule instead.
+  // Unarchives a rule
   rpc UndeleteRule(UndeleteRuleRequest) returns (UndeleteRuleResponse) {
+    option deprecated = true;
     option (google.api.http) = {
       post: "/api/v1/rules/undelete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "UndeleteRule"
-      description: "Undeletes a rule."
+      description: "Deprecated: Use UnarchiveRule instead."
     };
   }
 
-  // Undeletes multiple rules
+  // Deprecated - use BatchUnarchiveRules instead.
+  // Unarchives multiple rules
   rpc BatchUndeleteRules(BatchUndeleteRulesRequest) returns (BatchUndeleteRulesResponse) {
+    option deprecated = true;
     option (google.api.http) = {
       post: "/api/v1/rules/batchUndelete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "BatchUndeleteRules"
-      description: "Undeletes multiple rules."
+      description: "Deprecated: Use BatchUnarchiveRules instead."
     };
   }
 
@@ -284,9 +339,18 @@ message Rule {
 
   RuleAssetConfiguration asset_configuration = 15 [(google.api.field_behavior) = REQUIRED];
   ContextualChannels contextual_channels = 16 [(google.api.field_behavior) = REQUIRED];
-  google.protobuf.Timestamp deleted_date = 17 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp deleted_date = 17 [
+    (google.api.field_behavior) = OPTIONAL,
+    deprecated = true
+  ];
   bool is_external = 18 [(google.api.field_behavior) = REQUIRED];
   repeated sift.metadata.v1.MetadataValue metadata = 19 [(google.api.field_behavior) = REQUIRED];
+
+  // archived_date indicates when the rule was archived
+  google.protobuf.Timestamp archived_date = 20 [(google.api.field_behavior) = OPTIONAL];
+
+  // is_archived is inferred from when archived_date is not null
+  bool is_archived = 21 [(google.api.field_behavior) = REQUIRED];
 }
 message RuleCondition {
   // 4 is reserved from old "status" column that lived directly on rule condition
@@ -410,6 +474,7 @@ message UpdateRuleRequest {
   ContextualChannels contextual_channels = 11;
   bool is_external = 12;
   repeated sift.metadata.v1.MetadataValue metadata = 13 [(google.api.field_behavior) = REQUIRED];
+  bool is_archived = 14 [(google.api.field_behavior) = OPTIONAL];
 }
 message UpdateConditionRequest {
   // 2 is reserved from old status update support on rule condition directly
@@ -496,6 +561,20 @@ message BatchDeleteRulesRequest {
 }
 message BatchDeleteRulesResponse {}
 
+// ArchiveRuleRequest is used to archive a rule by rule_id or client_key. If both are provided, only rule_id will be used.
+message ArchiveRuleRequest {
+  string rule_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+message ArchiveRuleResponse {}
+
+// BatchArchiveRulesRequest is used to archive a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used.
+message BatchArchiveRulesRequest {
+  repeated string rule_ids = 1 [(google.api.field_behavior) = OPTIONAL];
+  repeated string client_keys = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+message BatchArchiveRulesResponse {}
+
 // UndeleteRuleRequest is used to undelete a rule by rule_id or client_key. If both are provided, only rule_id will be used.
 message UndeleteRuleRequest {
   string rule_id = 1 [(google.api.field_behavior) = OPTIONAL];
@@ -509,6 +588,20 @@ message BatchUndeleteRulesRequest {
   repeated string client_keys = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 message BatchUndeleteRulesResponse {}
+
+// UnarchiveRuleRequest is used to unarchive a rule by rule_id or client_key. If both are provided, only rule_id will be used.
+message UnarchiveRuleRequest {
+  string rule_id = 1 [(google.api.field_behavior) = OPTIONAL];
+  string client_key = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+message UnarchiveRuleResponse {}
+
+// BatchUnarchiveRulesRequest is used to unarchive a rule by rule_id or client_key. For each rule if both are provided, only rule_id will be used.
+message BatchUnarchiveRulesRequest {
+  repeated string rule_ids = 1 [(google.api.field_behavior) = OPTIONAL];
+  repeated string client_keys = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+message BatchUnarchiveRulesResponse {}
 
 // Deprecated - use ViewJsonRulesRequest.
 message ViewHumanFriendlyRulesRequest {
@@ -591,7 +684,8 @@ message ListRulesRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `asset_id`, `tag_id`, and `deleted_date`.
+  // Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
+  // `created_date`, `created_by_user_id`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, and `archived_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -636,7 +730,15 @@ message RuleVersion {
   string created_by_user_id = 5 [(google.api.field_behavior) = REQUIRED];
   string version_notes = 6 [(google.api.field_behavior) = REQUIRED];
   string generated_change_message = 7 [(google.api.field_behavior) = REQUIRED];
-  google.protobuf.Timestamp deleted_date = 8 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp deleted_date = 8 [
+    (google.api.field_behavior) = OPTIONAL,
+    deprecated = true
+  ];
+  // archived_date indicates when the rule version was archived
+  google.protobuf.Timestamp archived_date = 9 [(google.api.field_behavior) = OPTIONAL];
+
+  // is_archived is inferred from when archived_date is not null
+  bool is_archived = 10 [(google.api.field_behavior) = REQUIRED];
 }
 
 message ListRuleVersionsResponse {

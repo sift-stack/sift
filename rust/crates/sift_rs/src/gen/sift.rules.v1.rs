@@ -34,12 +34,17 @@ pub struct Rule {
     pub asset_configuration: ::core::option::Option<RuleAssetConfiguration>,
     #[prost(message, optional, tag="16")]
     pub contextual_channels: ::core::option::Option<ContextualChannels>,
+    #[deprecated]
     #[prost(message, optional, tag="17")]
     pub deleted_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(bool, tag="18")]
     pub is_external: bool,
     #[prost(message, repeated, tag="19")]
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(message, optional, tag="20")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bool, tag="21")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -216,6 +221,8 @@ pub struct UpdateRuleRequest {
     pub is_external: bool,
     #[prost(message, repeated, tag="13")]
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(bool, tag="14")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -320,6 +327,30 @@ pub struct BatchDeleteRulesResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ArchiveRuleRequest {
+    #[prost(string, tag="1")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub client_key: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ArchiveRuleResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchArchiveRulesRequest {
+    #[prost(string, repeated, tag="1")]
+    pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="2")]
+    pub client_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BatchArchiveRulesResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UndeleteRuleRequest {
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
@@ -341,6 +372,30 @@ pub struct BatchUndeleteRulesRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct BatchUndeleteRulesResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnarchiveRuleRequest {
+    #[prost(string, tag="1")]
+    pub rule_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub client_key: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct UnarchiveRuleResponse {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchUnarchiveRulesRequest {
+    #[prost(string, repeated, tag="1")]
+    pub rule_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="2")]
+    pub client_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BatchUnarchiveRulesResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -485,8 +540,13 @@ pub struct RuleVersion {
     pub version_notes: ::prost::alloc::string::String,
     #[prost(string, tag="7")]
     pub generated_change_message: ::prost::alloc::string::String,
+    #[deprecated]
     #[prost(message, optional, tag="8")]
     pub deleted_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, optional, tag="9")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bool, tag="10")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

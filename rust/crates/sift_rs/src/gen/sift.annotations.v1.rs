@@ -45,6 +45,7 @@ pub struct Annotation {
     pub pending: bool,
     #[prost(message, optional, tag="21")]
     pub assigned_to_user: ::core::option::Option<super::super::common::r#type::v1::User>,
+    #[deprecated]
     #[prost(message, optional, tag="22")]
     pub deleted_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, repeated, tag="23")]
@@ -53,6 +54,10 @@ pub struct Annotation {
     pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag="25")]
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(message, optional, tag="26")]
+    pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(bool, tag="27")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -194,6 +199,54 @@ pub struct UpdateAnnotationRequest {
 pub struct UpdateAnnotationResponse {
     #[prost(message, optional, tag="1")]
     pub annotation: ::core::option::Option<Annotation>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ArchiveAnnotationRequest {
+    #[prost(string, tag="1")]
+    pub annotation_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ArchiveAnnotationResponse {
+    #[prost(message, optional, tag="1")]
+    pub annotation: ::core::option::Option<Annotation>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnarchiveAnnotationRequest {
+    #[prost(string, tag="1")]
+    pub annotation_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UnarchiveAnnotationResponse {
+    #[prost(message, optional, tag="1")]
+    pub annotation: ::core::option::Option<Annotation>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchArchiveAnnotationsRequest {
+    #[prost(string, repeated, tag="1")]
+    pub annotation_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchArchiveAnnotationsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub annotations: ::prost::alloc::vec::Vec<Annotation>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchUnarchiveAnnotationsRequest {
+    #[prost(string, repeated, tag="1")]
+    pub annotation_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchUnarchiveAnnotationsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub annotations: ::prost::alloc::vec::Vec<Annotation>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

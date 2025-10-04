@@ -49,7 +49,9 @@ class ChannelServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def UpdateChannel(self, request, context):
-        """Update a channel
+        """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
+
+        Update a channel
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

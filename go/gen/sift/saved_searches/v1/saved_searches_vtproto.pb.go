@@ -6,6 +6,7 @@ package saved_searchesv1
 
 import (
 	context "context"
+	binary "encoding/binary"
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	fieldmaskpb1 "github.com/planetscale/vtprotobuf/types/known/fieldmaskpb"
@@ -18,6 +19,7 @@ import (
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	io "io"
+	math "math"
 	unsafe "unsafe"
 )
 
@@ -110,6 +112,21 @@ func (m *SavedSearchProperties) CloneVT() *SavedSearchProperties {
 		tmpVal := *rhs
 		r.ShowAdvancedFilters = &tmpVal
 	}
+	if rhs := m.IncludeArchived; rhs != nil {
+		tmpVal := *rhs
+		r.IncludeArchived = &tmpVal
+	}
+	if rhs := m.OrderBy; rhs != nil {
+		tmpVal := *rhs
+		r.OrderBy = &tmpVal
+	}
+	if rhs := m.MetadataItems; rhs != nil {
+		tmpContainer := make([]*SavedSearchMetadataItem, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.MetadataItems = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -137,6 +154,55 @@ func (m *SavedSearchFilterItem) CloneVT() *SavedSearchFilterItem {
 
 func (m *SavedSearchFilterItem) CloneMessageVT() proto.Message {
 	return m.CloneVT()
+}
+
+func (m *SavedSearchMetadataItem) CloneVT() *SavedSearchMetadataItem {
+	if m == nil {
+		return (*SavedSearchMetadataItem)(nil)
+	}
+	r := new(SavedSearchMetadataItem)
+	r.Key = m.Key
+	if m.Value != nil {
+		r.Value = m.Value.(interface {
+			CloneVT() isSavedSearchMetadataItem_Value
+		}).CloneVT()
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *SavedSearchMetadataItem) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *SavedSearchMetadataItem_StringValue) CloneVT() isSavedSearchMetadataItem_Value {
+	if m == nil {
+		return (*SavedSearchMetadataItem_StringValue)(nil)
+	}
+	r := new(SavedSearchMetadataItem_StringValue)
+	r.StringValue = m.StringValue
+	return r
+}
+
+func (m *SavedSearchMetadataItem_NumberValue) CloneVT() isSavedSearchMetadataItem_Value {
+	if m == nil {
+		return (*SavedSearchMetadataItem_NumberValue)(nil)
+	}
+	r := new(SavedSearchMetadataItem_NumberValue)
+	r.NumberValue = m.NumberValue
+	return r
+}
+
+func (m *SavedSearchMetadataItem_BooleanValue) CloneVT() isSavedSearchMetadataItem_Value {
+	if m == nil {
+		return (*SavedSearchMetadataItem_BooleanValue)(nil)
+	}
+	r := new(SavedSearchMetadataItem_BooleanValue)
+	r.BooleanValue = m.BooleanValue
+	return r
 }
 
 func (m *GetSavedSearchRequest) CloneVT() *GetSavedSearchRequest {
@@ -521,6 +587,29 @@ func (this *SavedSearchProperties) EqualVT(that *SavedSearchProperties) bool {
 	if p, q := this.ShowAdvancedFilters, that.ShowAdvancedFilters; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
+	if p, q := this.IncludeArchived, that.IncludeArchived; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.OrderBy, that.OrderBy; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if len(this.MetadataItems) != len(that.MetadataItems) {
+		return false
+	}
+	for i, vx := range this.MetadataItems {
+		vy := that.MetadataItems[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &SavedSearchMetadataItem{}
+			}
+			if q == nil {
+				q = &SavedSearchMetadataItem{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -553,6 +642,88 @@ func (this *SavedSearchFilterItem) EqualMessageVT(thatMsg proto.Message) bool {
 	}
 	return this.EqualVT(that)
 }
+func (this *SavedSearchMetadataItem) EqualVT(that *SavedSearchMetadataItem) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Value == nil && that.Value != nil {
+		return false
+	} else if this.Value != nil {
+		if that.Value == nil {
+			return false
+		}
+		if !this.Value.(interface {
+			EqualVT(isSavedSearchMetadataItem_Value) bool
+		}).EqualVT(that.Value) {
+			return false
+		}
+	}
+	if this.Key != that.Key {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SavedSearchMetadataItem) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*SavedSearchMetadataItem)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *SavedSearchMetadataItem_StringValue) EqualVT(thatIface isSavedSearchMetadataItem_Value) bool {
+	that, ok := thatIface.(*SavedSearchMetadataItem_StringValue)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.StringValue != that.StringValue {
+		return false
+	}
+	return true
+}
+
+func (this *SavedSearchMetadataItem_NumberValue) EqualVT(thatIface isSavedSearchMetadataItem_Value) bool {
+	that, ok := thatIface.(*SavedSearchMetadataItem_NumberValue)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.NumberValue != that.NumberValue {
+		return false
+	}
+	return true
+}
+
+func (this *SavedSearchMetadataItem_BooleanValue) EqualVT(thatIface isSavedSearchMetadataItem_Value) bool {
+	that, ok := thatIface.(*SavedSearchMetadataItem_BooleanValue)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if this.BooleanValue != that.BooleanValue {
+		return false
+	}
+	return true
+}
+
 func (this *GetSavedSearchRequest) EqualVT(that *GetSavedSearchRequest) bool {
 	if this == that {
 		return true
@@ -1228,6 +1399,35 @@ func (m *SavedSearchProperties) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.MetadataItems) > 0 {
+		for iNdEx := len(m.MetadataItems) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.MetadataItems[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x72
+		}
+	}
+	if m.OrderBy != nil {
+		i -= len(*m.OrderBy)
+		copy(dAtA[i:], *m.OrderBy)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.OrderBy)))
+		i--
+		dAtA[i] = 0x6a
+	}
+	if m.IncludeArchived != nil {
+		i--
+		if *m.IncludeArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x60
+	}
 	if m.ShowAdvancedFilters != nil {
 		i--
 		if *m.ShowAdvancedFilters {
@@ -1394,6 +1594,99 @@ func (m *SavedSearchFilterItem) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *SavedSearchMetadataItem) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SavedSearchMetadataItem) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SavedSearchMetadataItem) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if vtmsg, ok := m.Value.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SavedSearchMetadataItem_StringValue) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SavedSearchMetadataItem_StringValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.StringValue)
+	copy(dAtA[i:], m.StringValue)
+	i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.StringValue)))
+	i--
+	dAtA[i] = 0x12
+	return len(dAtA) - i, nil
+}
+func (m *SavedSearchMetadataItem_NumberValue) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SavedSearchMetadataItem_NumberValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= 8
+	binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.NumberValue))))
+	i--
+	dAtA[i] = 0x19
+	return len(dAtA) - i, nil
+}
+func (m *SavedSearchMetadataItem_BooleanValue) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SavedSearchMetadataItem_BooleanValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.BooleanValue {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x20
+	return len(dAtA) - i, nil
+}
 func (m *GetSavedSearchRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2060,6 +2353,35 @@ func (m *SavedSearchProperties) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.MetadataItems) > 0 {
+		for iNdEx := len(m.MetadataItems) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.MetadataItems[iNdEx].MarshalToSizedBufferVTStrict(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x72
+		}
+	}
+	if m.OrderBy != nil {
+		i -= len(*m.OrderBy)
+		copy(dAtA[i:], *m.OrderBy)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.OrderBy)))
+		i--
+		dAtA[i] = 0x6a
+	}
+	if m.IncludeArchived != nil {
+		i--
+		if *m.IncludeArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x60
+	}
 	if m.ShowAdvancedFilters != nil {
 		i--
 		if *m.ShowAdvancedFilters {
@@ -2226,6 +2548,111 @@ func (m *SavedSearchFilterItem) MarshalToSizedBufferVTStrict(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *SavedSearchMetadataItem) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SavedSearchMetadataItem) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *SavedSearchMetadataItem) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if msg, ok := m.Value.(*SavedSearchMetadataItem_BooleanValue); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if msg, ok := m.Value.(*SavedSearchMetadataItem_NumberValue); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if msg, ok := m.Value.(*SavedSearchMetadataItem_StringValue); ok {
+		size, err := msg.MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SavedSearchMetadataItem_StringValue) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *SavedSearchMetadataItem_StringValue) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.StringValue)
+	copy(dAtA[i:], m.StringValue)
+	i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.StringValue)))
+	i--
+	dAtA[i] = 0x12
+	return len(dAtA) - i, nil
+}
+func (m *SavedSearchMetadataItem_NumberValue) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *SavedSearchMetadataItem_NumberValue) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= 8
+	binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.NumberValue))))
+	i--
+	dAtA[i] = 0x19
+	return len(dAtA) - i, nil
+}
+func (m *SavedSearchMetadataItem_BooleanValue) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *SavedSearchMetadataItem_BooleanValue) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i--
+	if m.BooleanValue {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i--
+	dAtA[i] = 0x20
+	return len(dAtA) - i, nil
+}
 func (m *GetSavedSearchRequest) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2867,6 +3294,19 @@ func (m *SavedSearchProperties) SizeVT() (n int) {
 	if m.ShowAdvancedFilters != nil {
 		n += 2
 	}
+	if m.IncludeArchived != nil {
+		n += 2
+	}
+	if m.OrderBy != nil {
+		l = len(*m.OrderBy)
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.MetadataItems) > 0 {
+		for _, e := range m.MetadataItems {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2889,6 +3329,51 @@ func (m *SavedSearchFilterItem) SizeVT() (n int) {
 	return n
 }
 
+func (m *SavedSearchMetadataItem) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if vtmsg, ok := m.Value.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SavedSearchMetadataItem_StringValue) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.StringValue)
+	n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	return n
+}
+func (m *SavedSearchMetadataItem_NumberValue) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 9
+	return n
+}
+func (m *SavedSearchMetadataItem_BooleanValue) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2
+	return n
+}
 func (m *GetSavedSearchRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3790,6 +4275,94 @@ func (m *SavedSearchProperties) UnmarshalVT(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.ShowAdvancedFilters = &b
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IncludeArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IncludeArchived = &b
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrderBy", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.OrderBy = &s
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MetadataItems", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MetadataItems = append(m.MetadataItems, &SavedSearchMetadataItem{})
+			if err := m.MetadataItems[len(m.MetadataItems)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -3905,6 +4478,153 @@ func (m *SavedSearchFilterItem) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Name = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SavedSearchMetadataItem) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SavedSearchMetadataItem: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SavedSearchMetadataItem: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StringValue", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Value = &SavedSearchMetadataItem_StringValue{StringValue: string(dAtA[iNdEx:postIndex])}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumberValue", wireType)
+			}
+			var v uint64
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			v = uint64(binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
+			m.Value = &SavedSearchMetadataItem_NumberValue{NumberValue: float64(math.Float64frombits(v))}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BooleanValue", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Value = &SavedSearchMetadataItem_BooleanValue{BooleanValue: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5834,6 +6554,98 @@ func (m *SavedSearchProperties) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.ShowAdvancedFilters = &b
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IncludeArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IncludeArchived = &b
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrderBy", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			s := stringValue
+			m.OrderBy = &s
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MetadataItems", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MetadataItems = append(m.MetadataItems, &SavedSearchMetadataItem{})
+			if err := m.MetadataItems[len(m.MetadataItems)-1].UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -5957,6 +6769,161 @@ func (m *SavedSearchFilterItem) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.Name = stringValue
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SavedSearchMetadataItem) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SavedSearchMetadataItem: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SavedSearchMetadataItem: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Key = stringValue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StringValue", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.Value = &SavedSearchMetadataItem_StringValue{StringValue: stringValue}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumberValue", wireType)
+			}
+			var v uint64
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			v = uint64(binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
+			m.Value = &SavedSearchMetadataItem_NumberValue{NumberValue: float64(math.Float64frombits(v))}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BooleanValue", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.Value = &SavedSearchMetadataItem_BooleanValue{BooleanValue: b}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

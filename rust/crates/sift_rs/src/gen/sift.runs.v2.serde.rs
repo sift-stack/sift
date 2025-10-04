@@ -1454,6 +1454,12 @@ impl serde::Serialize for Run {
         if self.is_adhoc {
             len += 1;
         }
+        if self.is_archived {
+            len += 1;
+        }
+        if self.duration.is_some() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.runs.v2.Run", len)?;
         if !self.run_id.is_empty() {
             struct_ser.serialize_field("runId", &self.run_id)?;
@@ -1509,6 +1515,12 @@ impl serde::Serialize for Run {
         if self.is_adhoc {
             struct_ser.serialize_field("isAdhoc", &self.is_adhoc)?;
         }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
+        }
+        if let Some(v) = self.duration.as_ref() {
+            struct_ser.serialize_field("duration", v)?;
+        }
         struct_ser.end()
     }
 }
@@ -1551,6 +1563,9 @@ impl<'de> serde::Deserialize<'de> for Run {
             "archivedDate",
             "is_adhoc",
             "isAdhoc",
+            "is_archived",
+            "isArchived",
+            "duration",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1573,6 +1588,8 @@ impl<'de> serde::Deserialize<'de> for Run {
             AssetIds,
             ArchivedDate,
             IsAdhoc,
+            IsArchived,
+            Duration,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1612,6 +1629,8 @@ impl<'de> serde::Deserialize<'de> for Run {
                             "assetIds" | "asset_ids" => Ok(GeneratedField::AssetIds),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isAdhoc" | "is_adhoc" => Ok(GeneratedField::IsAdhoc),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "duration" => Ok(GeneratedField::Duration),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1649,6 +1668,8 @@ impl<'de> serde::Deserialize<'de> for Run {
                 let mut asset_ids__ = None;
                 let mut archived_date__ = None;
                 let mut is_adhoc__ = None;
+                let mut is_archived__ = None;
+                let mut duration__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::RunId => {
@@ -1759,6 +1780,18 @@ impl<'de> serde::Deserialize<'de> for Run {
                             }
                             is_adhoc__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Duration => {
+                            if duration__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("duration"));
+                            }
+                            duration__ = map_.next_value()?;
+                        }
                     }
                 }
                 Ok(Run {
@@ -1780,6 +1813,8 @@ impl<'de> serde::Deserialize<'de> for Run {
                     asset_ids: asset_ids__.unwrap_or_default(),
                     archived_date: archived_date__,
                     is_adhoc: is_adhoc__.unwrap_or_default(),
+                    is_archived: is_archived__.unwrap_or_default(),
+                    duration: duration__,
                 })
             }
         }

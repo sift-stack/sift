@@ -191,6 +191,8 @@ impl MockRunService {
             asset_ids: vec!["123".to_string()],
             archived_date: None,
             is_adhoc: false,
+            is_archived: false,
+            duration: None,
         }
     }
 }

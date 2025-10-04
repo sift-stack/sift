@@ -37,6 +37,12 @@ class UserServiceStub:
     ]
     """List active users."""
 
+    ListUsers: grpc.UnaryUnaryMultiCallable[
+        sift.users.v2.users_pb2.ListUsersRequest,
+        sift.users.v2.users_pb2.ListUsersResponse,
+    ]
+    """List users."""
+
 class UserServiceAsyncStub:
     UpdateUserOrganizationActive: grpc.aio.UnaryUnaryMultiCallable[
         sift.users.v2.users_pb2.UpdateUserOrganizationActiveRequest,
@@ -55,6 +61,12 @@ class UserServiceAsyncStub:
         sift.users.v2.users_pb2.ListActiveUsersResponse,
     ]
     """List active users."""
+
+    ListUsers: grpc.aio.UnaryUnaryMultiCallable[
+        sift.users.v2.users_pb2.ListUsersRequest,
+        sift.users.v2.users_pb2.ListUsersResponse,
+    ]
+    """List users."""
 
 class UserServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -80,5 +92,13 @@ class UserServiceServicer(metaclass=abc.ABCMeta):
         context: _ServicerContext,
     ) -> typing.Union[sift.users.v2.users_pb2.ListActiveUsersResponse, collections.abc.Awaitable[sift.users.v2.users_pb2.ListActiveUsersResponse]]:
         """List active users."""
+
+    @abc.abstractmethod
+    def ListUsers(
+        self,
+        request: sift.users.v2.users_pb2.ListUsersRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[sift.users.v2.users_pb2.ListUsersResponse, collections.abc.Awaitable[sift.users.v2.users_pb2.ListUsersResponse]]:
+        """List users."""
 
 def add_UserServiceServicer_to_server(servicer: UserServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

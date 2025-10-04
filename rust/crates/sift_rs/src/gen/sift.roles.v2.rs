@@ -9,6 +9,8 @@ pub struct Role {
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
     pub description: ::prost::alloc::string::String,
+    #[prost(int32, tag="4")]
+    pub role_order: i32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

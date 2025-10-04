@@ -29,7 +29,7 @@ class RemoteFileServiceStub:
         sift.remote_files.v1.remote_files_pb2.CreateRemoteFileRequest,
         sift.remote_files.v1.remote_files_pb2.CreateRemoteFileResponse,
     ]
-    """Create a remote file."""
+    """Create a remote file. Note that this does not perform the actual file upload."""
 
     ListRemoteFiles: grpc.UnaryUnaryMultiCallable[
         sift.remote_files.v1.remote_files_pb2.ListRemoteFilesRequest,
@@ -72,7 +72,7 @@ class RemoteFileServiceAsyncStub:
         sift.remote_files.v1.remote_files_pb2.CreateRemoteFileRequest,
         sift.remote_files.v1.remote_files_pb2.CreateRemoteFileResponse,
     ]
-    """Create a remote file."""
+    """Create a remote file. Note that this does not perform the actual file upload."""
 
     ListRemoteFiles: grpc.aio.UnaryUnaryMultiCallable[
         sift.remote_files.v1.remote_files_pb2.ListRemoteFilesRequest,
@@ -119,7 +119,7 @@ class RemoteFileServiceServicer(metaclass=abc.ABCMeta):
         request: sift.remote_files.v1.remote_files_pb2.CreateRemoteFileRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.remote_files.v1.remote_files_pb2.CreateRemoteFileResponse, collections.abc.Awaitable[sift.remote_files.v1.remote_files_pb2.CreateRemoteFileResponse]]:
-        """Create a remote file."""
+        """Create a remote file. Note that this does not perform the actual file upload."""
 
     @abc.abstractmethod
     def ListRemoteFiles(

@@ -35,6 +35,8 @@ pub struct ListTagsRequest {
     pub filter: ::prost::alloc::string::String,
     #[prost(string, tag="4")]
     pub order_by: ::prost::alloc::string::String,
+    #[prost(enumeration="TagType", tag="5")]
+    pub tag_type: i32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -43,6 +45,47 @@ pub struct ListTagsResponse {
     pub tags: ::prost::alloc::vec::Vec<Tag>,
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TagType {
+    Unspecified = 0,
+    Annotation = 1,
+    Asset = 2,
+    Campaign = 3,
+    Report = 4,
+    ReportTemplate = 5,
+    Run = 6,
+}
+impl TagType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            TagType::Unspecified => "TAG_TYPE_UNSPECIFIED",
+            TagType::Annotation => "TAG_TYPE_ANNOTATION",
+            TagType::Asset => "TAG_TYPE_ASSET",
+            TagType::Campaign => "TAG_TYPE_CAMPAIGN",
+            TagType::Report => "TAG_TYPE_REPORT",
+            TagType::ReportTemplate => "TAG_TYPE_REPORT_TEMPLATE",
+            TagType::Run => "TAG_TYPE_RUN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TAG_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "TAG_TYPE_ANNOTATION" => Some(Self::Annotation),
+            "TAG_TYPE_ASSET" => Some(Self::Asset),
+            "TAG_TYPE_CAMPAIGN" => Some(Self::Campaign),
+            "TAG_TYPE_REPORT" => Some(Self::Report),
+            "TAG_TYPE_REPORT_TEMPLATE" => Some(Self::ReportTemplate),
+            "TAG_TYPE_RUN" => Some(Self::Run),
+            _ => None,
+        }
+    }
 }
 include!("sift.tags.v2.tonic.rs");
 include!("sift.tags.v2.serde.rs");

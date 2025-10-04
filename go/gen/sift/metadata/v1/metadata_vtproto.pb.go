@@ -36,6 +36,7 @@ func (m *MetadataKey) CloneVT() *MetadataKey {
 	r.Name = m.Name
 	r.Type = m.Type
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
+	r.IsArchived = m.IsArchived
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -54,6 +55,7 @@ func (m *MetadataValue) CloneVT() *MetadataValue {
 	r := new(MetadataValue)
 	r.Key = m.Key.CloneVT()
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
+	r.IsArchived = m.IsArchived
 	if m.Value != nil {
 		r.Value = m.Value.(interface{ CloneVT() isMetadataValue_Value }).CloneVT()
 	}
@@ -565,6 +567,9 @@ func (this *MetadataKey) EqualVT(that *MetadataKey) bool {
 	if !(*timestamppb1.Timestamp)(this.ArchivedDate).EqualVT((*timestamppb1.Timestamp)(that.ArchivedDate)) {
 		return false
 	}
+	if this.IsArchived != that.IsArchived {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -597,6 +602,9 @@ func (this *MetadataValue) EqualVT(that *MetadataValue) bool {
 		return false
 	}
 	if !(*timestamppb1.Timestamp)(this.ArchivedDate).EqualVT((*timestamppb1.Timestamp)(that.ArchivedDate)) {
+		return false
+	}
+	if this.IsArchived != that.IsArchived {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1757,6 +1765,16 @@ func (m *MetadataKey) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.ArchivedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.ArchivedDate).MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1820,6 +1838,16 @@ func (m *MetadataValue) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i -= size
+	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
 	}
 	if m.ArchivedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.ArchivedDate).MarshalToSizedBufferVT(dAtA[:i])
@@ -2965,6 +2993,16 @@ func (m *MetadataKey) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.ArchivedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.ArchivedDate).MarshalToSizedBufferVTStrict(dAtA[:i])
 		if err != nil {
@@ -3019,6 +3057,16 @@ func (m *MetadataValue) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
 	}
 	if m.ArchivedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.ArchivedDate).MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -4172,6 +4220,9 @@ func (m *MetadataKey) SizeVT() (n int) {
 		l = (*timestamppb1.Timestamp)(m.ArchivedDate).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.IsArchived {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -4192,6 +4243,9 @@ func (m *MetadataValue) SizeVT() (n int) {
 	if m.ArchivedDate != nil {
 		l = (*timestamppb1.Timestamp)(m.ArchivedDate).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.IsArchived {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -4717,6 +4771,26 @@ func (m *MetadataKey) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -4904,6 +4978,26 @@ func (m *MetadataValue) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7262,6 +7356,26 @@ func (m *MetadataKey) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -7453,6 +7567,26 @@ func (m *MetadataValue) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

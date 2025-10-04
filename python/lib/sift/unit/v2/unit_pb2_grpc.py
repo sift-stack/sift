@@ -14,6 +14,11 @@ class UnitServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.CreateUnit = channel.unary_unary(
+                '/sift.unit.v2.UnitService/CreateUnit',
+                request_serializer=sift_dot_unit_dot_v2_dot_unit__pb2.CreateUnitRequest.SerializeToString,
+                response_deserializer=sift_dot_unit_dot_v2_dot_unit__pb2.CreateUnitResponse.FromString,
+                )
         self.ListUnits = channel.unary_unary(
                 '/sift.unit.v2.UnitService/ListUnits',
                 request_serializer=sift_dot_unit_dot_v2_dot_unit__pb2.ListUnitsRequest.SerializeToString,
@@ -24,6 +29,12 @@ class UnitServiceStub(object):
 class UnitServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
+    def CreateUnit(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ListUnits(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -33,6 +44,11 @@ class UnitServiceServicer(object):
 
 def add_UnitServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'CreateUnit': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateUnit,
+                    request_deserializer=sift_dot_unit_dot_v2_dot_unit__pb2.CreateUnitRequest.FromString,
+                    response_serializer=sift_dot_unit_dot_v2_dot_unit__pb2.CreateUnitResponse.SerializeToString,
+            ),
             'ListUnits': grpc.unary_unary_rpc_method_handler(
                     servicer.ListUnits,
                     request_deserializer=sift_dot_unit_dot_v2_dot_unit__pb2.ListUnitsRequest.FromString,
@@ -47,6 +63,23 @@ def add_UnitServiceServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class UnitService(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def CreateUnit(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.unit.v2.UnitService/CreateUnit',
+            sift_dot_unit_dot_v2_dot_unit__pb2.CreateUnitRequest.SerializeToString,
+            sift_dot_unit_dot_v2_dot_unit__pb2.CreateUnitResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ListUnits(request,

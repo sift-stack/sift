@@ -316,7 +316,7 @@ class UpdateUserDefinedFunctionRequest(google.protobuf.message.Message):
     the current version is returned. If name is changed then only name will be changed. If archive date is changed then only archive date will be changed.
     To archive user defined function, specify `archived_date` in the `update mask` as well as a non-null value for `archived_date` in the
     `user_defined_function` object. To unarchive a user defined function, specify `archived_date` in the `update mask` and a `null` value for `archived_date`
-    in the `user_defined_function` object.
+    in the `user_defined_function` object. Alternatively, use `is_archived` with a boolean value to archive/unarchive.
     """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -329,10 +329,11 @@ class UpdateUserDefinedFunctionRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `expression`, and `function_inputs`.
+        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `is_archived`, `description`, `expression`, `function_inputs`, and `metadata`.
          -- `name` can't be updated if the function has ever had any dependencies
          -- `function_inputs` inputs can't be updated if the function has any dependents (functions or calculated channels with a dependency on this function).
          -- `expression` can't be updated if the function has dependents and the expression changes the output type.
+         -- `metadata` updates metadata associated with the function
         """
 
     def __init__(
@@ -445,7 +446,7 @@ class ListUserDefinedFunctionsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    There are currently no available fields.
+    Available fields to filter by are `user_defined_function_id`, `name`, `archived_date`, and `is_archived`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str
@@ -517,7 +518,7 @@ class ListUserDefinedFunctionVersionsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    There are currently no available fields.
+    Available fields to filter by are `user_defined_function_id`, `name`, `version`, `archived_date`, and `is_archived`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     """
     order_by: builtins.str

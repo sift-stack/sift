@@ -14,16 +14,15 @@ import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
 
 
-
 service CalculatedChannelService {
   // Retrieve the latest version of a calculated channel
   rpc GetCalculatedChannel(GetCalculatedChannelRequest) returns (GetCalculatedChannelResponse) {
     option (google.api.http) = {
       get: "/api/v2/calculated-channels/{calculated_channel_id}"
-      additional_bindings {get: "/v2/organizations/{organization_id}/calculated-channels/{client_key}"}
+      additional_bindings: {get: "/v2/organizations/{organization_id}/calculated-channels/{client_key}"}
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetCalculatedChannel",
+      summary: "GetCalculatedChannel"
       description: "Retrieve the latest version of a calculated channel."
     };
   }
@@ -35,7 +34,7 @@ service CalculatedChannelService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CreateCalculatedChannel",
+      summary: "CreateCalculatedChannel"
       description: "Create a calculated channel."
     };
   }
@@ -44,7 +43,7 @@ service CalculatedChannelService {
   rpc ListCalculatedChannels(ListCalculatedChannelsRequest) returns (ListCalculatedChannelsResponse) {
     option (google.api.http) = {get: "/api/v2/calculated-channels"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ListCalculatedChannels",
+      summary: "ListCalculatedChannels"
       description: "Retrieve the latest versions of calculated channels based on an optional filter."
     };
   }
@@ -56,7 +55,7 @@ service CalculatedChannelService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "UpdateCalculatedChannel",
+      summary: "UpdateCalculatedChannel"
       description: "Update and create a new version of a calculated channel."
     };
   }
@@ -65,10 +64,10 @@ service CalculatedChannelService {
   rpc ListCalculatedChannelVersions(ListCalculatedChannelVersionsRequest) returns (ListCalculatedChannelVersionsResponse) {
     option (google.api.http) = {
       get: "/api/v2/calculated-channels/{calculated_channel_id}/versions"
-      additional_bindings {get: "/v2/organizations/{organization_id}/calculated-channels/{client_key}/versions"}
+      additional_bindings: {get: "/v2/organizations/{organization_id}/calculated-channels/{client_key}/versions"}
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ListCalculatedChannelVersions",
+      summary: "ListCalculatedChannelVersions"
       description: "List versions of a particular calculated channel with an optional filter."
     };
   }
@@ -80,7 +79,7 @@ service CalculatedChannelService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ResolveCalculatedChannel",
+      summary: "ResolveCalculatedChannel"
       description: "Resolve a calculated channel into an expression with references"
     };
   }
@@ -92,7 +91,7 @@ service CalculatedChannelService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "BatchResolveCalculatedChannel",
+      summary: "BatchResolveCalculatedChannel"
       description: "Resolve a batch of calculated channels into expressions with references"
     };
   }
@@ -101,7 +100,7 @@ service CalculatedChannelService {
   rpc ListResolvedCalculatedChannels(ListResolvedCalculatedChannelsRequest) returns (ListResolvedCalculatedChannelsResponse) {
     option (google.api.http) = {get: "/api/v2/calculated-channels/resolved"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "ListResolvedCalculatedChannels",
+      summary: "ListResolvedCalculatedChannels"
       description: "Retrieve the latest versions of calculated channels based on an optional filter."
     };
   }
@@ -127,6 +126,8 @@ message CalculatedChannel {
   string modified_by_user_id = 17 [(google.api.field_behavior) = REQUIRED];
   repeated sift.common.type.v1.FunctionDependency function_dependencies = 19 [(google.api.field_behavior) = REQUIRED];
   repeated sift.metadata.v1.MetadataValue metadata = 20 [(google.api.field_behavior) = REQUIRED];
+  // Whether the calculated channel is archived. This is inferred from whether archived_date is set.
+  bool is_archived = 21 [(google.api.field_behavior) = REQUIRED];
 }
 
 message CalculatedChannelConfiguration {
@@ -215,7 +216,9 @@ message ListCalculatedChannelsRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, and `archived_date.
+  // Available fields to filter by are `calculated_channel_id`, `organization_id`, `client_key`, `name`, `description`,
+  // `asset_id`, `asset_name`, `tag_id`, `tag_name`, `units`, `calculated_channel_version_id`,
+  // `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -224,7 +227,7 @@ message ListCalculatedChannelsRequest {
   string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved calculated channels. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-  // Available fields to order_by are `created_date` and `modified_date`.
+  // Available fields to order_by are `created_date`, `modified_date`, `name`, `description`, `units`, and `archived_date`.
   // If left empty, items are ordered by `created_date` in descending order (newest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date"
@@ -247,7 +250,7 @@ message UpdateCalculatedChannelRequest {
   CalculatedChannel calculated_channel = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The list of fields to be updated. The fields available to be updated are `name`, `description`, `units`, `metadata`,
-  // `query_configuration`, `archived_date`, and `asset_configuration`.
+  // `query_configuration`, `archived_date`, `is_archived`, and `asset_configuration`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 
   // Optional user notes to describe changes.
@@ -278,7 +281,9 @@ message ListCalculatedChannelVersionsRequest {
   string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, `archived_date`, and `metadata`.
+  // Available fields to filter by are `calculated_channel_id`, `organization_id`, `client_key`, `name`, `description`,
+  // `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, `units`, `calculated_channel_version_id`,
+  // `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
   string filter = 5 [(google.api.field_behavior) = OPTIONAL];
@@ -287,7 +292,7 @@ message ListCalculatedChannelVersionsRequest {
   string organization_id = 6 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved calculated channel versions. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-  // Available fields to order_by are `created_date`, `modified_date`, and `version`.
+  // Available fields to order_by are 'version', `created_date`, `modified_date`, `name`, `description`, `units`, and `archived_date`.
   // If left empty, items are ordered by `created_date` in ascending order (oldest-first).
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,modified_date".
@@ -378,7 +383,9 @@ message ListResolvedCalculatedChannelsRequest {
   string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `calculated_channel_id`, `client_key`, `name`, `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, and `archived_date.
+  // Available fields to filter by are `calculated_channel_id`, `organization_id`, `client_key`, `name`, `description`,
+  // `asset_id`, `asset_name`, `tag_id`, `tag_name`, `version`, `units`, `calculated_channel_version_id`,
+  // `created_date`, `modified_date`, `created_by_user_id`, `modified_by_user_id`, `is_archived`, and `archived_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/calculated_channels#calculated_channel). Optional.
   string filter = 5 [(google.api.field_behavior) = OPTIONAL];

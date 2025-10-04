@@ -12,6 +12,7 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
+from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.api import annotations_pb2 as google_dot_api_dot_annotations__pb2
 from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
@@ -19,7 +20,7 @@ from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapi
 from sift.roles.v2 import roles_pb2 as sift_dot_roles_dot_v2_dot_roles__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%sift/user_groups/v2/user_groups.proto\x12\x13sift.user_groups.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x19sift/roles/v2/roles.proto\"\xcd\x02\n\tUserGroup\x12\'\n\ruser_group_id\x18\x01 \x01(\tB\x03\xe0\x41\x01R\x0buserGroupId\x12\x17\n\x04name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x04name\x12\x1c\n\x07role_id\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06roleId\x12\"\n\nis_default\x18\x04 \x01(\x08\x42\x03\xe0\x41\x02R\tisDefault\x12J\n\tresources\x18\x06 \x01(\x0b\x32\'.sift.user_groups.v2.UserGroup.ResourceB\x03\xe0\x41\x01R\tresources\x12\x1e\n\x08user_ids\x18\x07 \x03(\tB\x03\xe0\x41\x01R\x07userIds\x1aP\n\x08Resource\x12 \n\tasset_ids\x18\x01 \x03(\tB\x03\xe0\x41\x01R\x08\x61ssetIds\x12\"\n\nall_assets\x18\x02 \x01(\x08\x42\x03\xe0\x41\x02R\tallAssets\"\x9a\x01\n\x15ListUserGroupsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"\x8b\x01\n\x16ListUserGroupsResponse\x12\x44\n\x0buser_groups\x18\x01 \x03(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\nuserGroups\x12+\n\x0fnext_page_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\rnextPageToken\"9\n\x13GetUserGroupRequest\x12\"\n\ruser_group_id\x18\x01 \x01(\tR\x0buserGroupId\"Z\n\x14GetUserGroupResponse\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\"\\\n\x1bUpdateUserUserGroupsRequest\x12\x17\n\x07user_id\x18\x01 \x01(\tR\x06userId\x12$\n\x0euser_group_ids\x18\x02 \x03(\tR\x0cuserGroupIds\"\x1e\n\x1cUpdateUserUserGroupsResponse\"\\\n\x16\x43reateUserGroupRequest\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\"]\n\x17\x43reateUserGroupResponse\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\"\x9e\x01\n\x16UpdateUserGroupRequest\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\x12@\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x03\xe0\x41\x02R\nupdateMask\"]\n\x17UpdateUserGroupResponse\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\"A\n\x16\x44\x65leteUserGroupRequest\x12\'\n\ruser_group_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x0buserGroupId\"\x19\n\x17\x44\x65leteUserGroupResponse\"b\n\x19\x41\x64\x64UserToUserGroupRequest\x12\'\n\ruser_group_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x0buserGroupId\x12\x1c\n\x07user_id\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x06userId\"\x1c\n\x1a\x41\x64\x64UserToUserGroupResponse\"g\n\x1eRemoveUserFromUserGroupRequest\x12\'\n\ruser_group_id\x18\x01 \x01(\tB\x03\xe0\x41\x02R\x0buserGroupId\x12\x1c\n\x07user_id\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x06userId\"!\n\x1fRemoveUserFromUserGroupResponse\"A\n\x1dGetUserGroupsForAssetsRequest\x12 \n\tasset_ids\x18\x01 \x03(\tB\x03\xe0\x41\x02R\x08\x61ssetIds\"\x96\x01\n\x1eGetUserGroupsForAssetsResponse\x12\x44\n\x0buser_groups\x18\x01 \x03(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\nuserGroups\x12.\n\x05roles\x18\x02 \x03(\x0b\x32\x13.sift.roles.v2.RoleB\x03\xe0\x41\x02R\x05roles2\xe8\x11\n\x10UserGroupService\x12\xee\x01\n\x0eListUserGroups\x12*.sift.user_groups.v2.ListUserGroupsRequest\x1a+.sift.user_groups.v2.ListUserGroupsResponse\"\x82\x01\x92\x41\x64\x12\x0eListUserGroups\x1a/Retrieves user groups using an optional filter.*!UserGroupService_ListUserGroupsV2\x82\xd3\xe4\x93\x02\x15\x12\x13/api/v2/user-groups\x12\xdb\x01\n\x0cGetUserGroup\x12(.sift.user_groups.v2.GetUserGroupRequest\x1a).sift.user_groups.v2.GetUserGroupResponse\"v\x92\x41H\x12\x0cGetUserGroup\x1a\x17Retrieves a user group.*\x1fUserGroupService_GetUserGroupV2\x82\xd3\xe4\x93\x02%\x12#/api/v2/user-groups/{user_group_id}\x12\xdb\x01\n\x0f\x43reateUserGroup\x12+.sift.user_groups.v2.CreateUserGroupRequest\x1a,.sift.user_groups.v2.CreateUserGroupResponse\"m\x92\x41L\x12\x0f\x43reateUserGroup\x1a\x15\x43reates a user group.*\"UserGroupService_CreateUserGroupV2\x82\xd3\xe4\x93\x02\x18\"\x13/api/v2/user-groups:\x01*\x12\xf7\x01\n\x0fUpdateUserGroup\x12+.sift.user_groups.v2.UpdateUserGroupRequest\x1a,.sift.user_groups.v2.UpdateUserGroupResponse\"\x88\x01\x92\x41L\x12\x0fUpdateUserGroup\x1a\x15Updates a user group.*\"UserGroupService_UpdateUserGroupV2\x82\xd3\xe4\x93\x02\x33\x32./api/v2/user-groups/{user_group.user_group_id}:\x01*\x12\xe8\x01\n\x0f\x44\x65leteUserGroup\x12+.sift.user_groups.v2.DeleteUserGroupRequest\x1a,.sift.user_groups.v2.DeleteUserGroupResponse\"z\x92\x41L\x12\x0f\x44\x65leteUserGroup\x1a\x15\x44\x65letes a user group.*\"UserGroupService_DeleteUserGroupV2\x82\xd3\xe4\x93\x02%*#/api/v2/user-groups/{user_group_id}\x12\xf8\x01\n\x12\x41\x64\x64UserToUserGroup\x12..sift.user_groups.v2.AddUserToUserGroupRequest\x1a/.sift.user_groups.v2.AddUserToUserGroupResponse\"\x80\x01\x92\x41Y\x12\x12\x41\x64\x64UserToUserGroup\x1a\x1c\x41\x64\x64s a user to a user group.*%UserGroupService_AddUserToUserGroupV2\x82\xd3\xe4\x93\x02\x1e\"\x1c/api/v2/user-groups:add-user\x12\x99\x02\n\x17RemoveUserFromUserGroup\x12\x33.sift.user_groups.v2.RemoveUserFromUserGroupRequest\x1a\x34.sift.user_groups.v2.RemoveUserFromUserGroupResponse\"\x92\x01\x92\x41h\x12\x17RemoveUserFromUserGroup\x1a!Removes a user from a user group.**UserGroupService_RemoveUserFromUserGroupV2\x82\xd3\xe4\x93\x02!\"\x1f/api/v2/user-groups:remove-user\x12\x86\x02\n\x14UpdateUserUserGroups\x12\x30.sift.user_groups.v2.UpdateUserUserGroupsRequest\x1a\x31.sift.user_groups.v2.UpdateUserUserGroupsResponse\"\x88\x01\x92\x41^\x12\x14UpdateUserUserGroups\x1a\x1dUpdates a user\'s user groups.*\'UserGroupService_UpdateUserUserGroupsV2\x82\xd3\xe4\x93\x02!\"\x1f/api/v2/user-groups:update-user\x12\xa1\x02\n\x16GetUserGroupsForAssets\x12\x32.sift.user_groups.v2.GetUserGroupsForAssetsRequest\x1a\x33.sift.user_groups.v2.GetUserGroupsForAssetsResponse\"\x9d\x01\x92\x41p\x12\x16GetUserGroupsForAssets\x1a+Retrieves user groups for a list of assets.*)UserGroupService_GetUserGroupsForAssetsV2\x82\xd3\xe4\x93\x02$\x12\"/api/v2/user-groups:get-for-assetsB\xad\x01\n\x17\x63om.sift.user_groups.v2B\x0fUserGroupsProtoP\x01\xa2\x02\x03SUX\xaa\x02\x12Sift.UserGroups.V2\xca\x02\x12Sift\\UserGroups\\V2\xe2\x02\x1eSift\\UserGroups\\V2\\GPBMetadata\xea\x02\x14Sift::UserGroups::V2\x92\x41\x16\x12\x14\n\x12User Group Serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%sift/user_groups/v2/user_groups.proto\x12\x13sift.user_groups.v2\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x19sift/roles/v2/roles.proto\"\x8d\x03\n\tUserGroup\x12\'\n\ruser_group_id\x18\x01 \x01(\tB\x03\xe0\x41\x01R\x0buserGroupId\x12\x17\n\x04name\x18\x02 \x01(\tB\x03\xe0\x41\x02R\x04name\x12\x1c\n\x07role_id\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06roleId\x12\"\n\nis_default\x18\x04 \x01(\x08\x42\x03\xe0\x41\x02R\tisDefault\x12J\n\tresources\x18\x06 \x01(\x0b\x32\'.sift.user_groups.v2.UserGroup.ResourceB\x03\xe0\x41\x01R\tresources\x12+\n\x08user_ids\x18\x07 \x03(\tB\x10\xe0\x41\x01\xbaH\n\x92\x01\x07\"\x05r\x03\xb0\x01\x01R\x07userIds\x12$\n\x0bis_external\x18\x08 \x01(\x08\x42\x03\xe0\x41\x02R\nisExternal\x1a]\n\x08Resource\x12-\n\tasset_ids\x18\x01 \x03(\tB\x10\xe0\x41\x01\xbaH\n\x92\x01\x07\"\x05r\x03\xb0\x01\x01R\x08\x61ssetIds\x12\"\n\nall_assets\x18\x02 \x01(\x08\x42\x03\xe0\x41\x02R\tallAssets\"\x9a\x01\n\x15ListUserGroupsRequest\x12 \n\tpage_size\x18\x01 \x01(\rB\x03\xe0\x41\x01R\x08pageSize\x12\"\n\npage_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"\x8b\x01\n\x16ListUserGroupsResponse\x12\x44\n\x0buser_groups\x18\x01 \x03(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\nuserGroups\x12+\n\x0fnext_page_token\x18\x02 \x01(\tB\x03\xe0\x41\x01R\rnextPageToken\"C\n\x13GetUserGroupRequest\x12,\n\ruser_group_id\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\xb0\x01\x01R\x0buserGroupId\"Z\n\x14GetUserGroupResponse\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\"u\n\x1bUpdateUserUserGroupsRequest\x12!\n\x07user_id\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12\x33\n\x0euser_group_ids\x18\x02 \x03(\tB\r\xbaH\n\x92\x01\x07\"\x05r\x03\xb0\x01\x01R\x0cuserGroupIds\"\x1e\n\x1cUpdateUserUserGroupsResponse\"\\\n\x16\x43reateUserGroupRequest\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\"]\n\x17\x43reateUserGroupResponse\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\"\xec\x02\n\x16UpdateUserGroupRequest\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\x12\x8d\x02\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\xcf\x01\xe0\x41\x02\xbaH\xc8\x01\xba\x01\xc4\x01\n\x17invalid_field_mask_path\x12Rfield mask path must be in [\'name\', \'is_default\', \'role_id\', \'resources\', \'users\']\x1aUthis.paths.all(path, path in [\'name\', \'is_default\', \'role_id\', \'resources\', \'users\'])R\nupdateMask\"]\n\x17UpdateUserGroupResponse\x12\x42\n\nuser_group\x18\x01 \x01(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\tuserGroup\"I\n\x16\x44\x65leteUserGroupRequest\x12/\n\ruser_group_id\x18\x01 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x0buserGroupId\"\x19\n\x17\x44\x65leteUserGroupResponse\"r\n\x19\x41\x64\x64UserToUserGroupRequest\x12/\n\ruser_group_id\x18\x01 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x0buserGroupId\x12$\n\x07user_id\x18\x02 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"\x1c\n\x1a\x41\x64\x64UserToUserGroupResponse\"w\n\x1eRemoveUserFromUserGroupRequest\x12/\n\ruser_group_id\x18\x01 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x0buserGroupId\x12$\n\x07user_id\x18\x02 \x01(\tB\x0b\xe0\x41\x02\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"!\n\x1fRemoveUserFromUserGroupResponse\"N\n\x1dGetUserGroupsForAssetsRequest\x12-\n\tasset_ids\x18\x01 \x03(\tB\x10\xe0\x41\x02\xbaH\n\x92\x01\x07\"\x05r\x03\xb0\x01\x01R\x08\x61ssetIds\"\x96\x01\n\x1eGetUserGroupsForAssetsResponse\x12\x44\n\x0buser_groups\x18\x01 \x03(\x0b\x32\x1e.sift.user_groups.v2.UserGroupB\x03\xe0\x41\x02R\nuserGroups\x12.\n\x05roles\x18\x02 \x03(\x0b\x32\x13.sift.roles.v2.RoleB\x03\xe0\x41\x02R\x05roles2\xe8\x11\n\x10UserGroupService\x12\xee\x01\n\x0eListUserGroups\x12*.sift.user_groups.v2.ListUserGroupsRequest\x1a+.sift.user_groups.v2.ListUserGroupsResponse\"\x82\x01\x92\x41\x64\x12\x0eListUserGroups\x1a/Retrieves user groups using an optional filter.*!UserGroupService_ListUserGroupsV2\x82\xd3\xe4\x93\x02\x15\x12\x13/api/v2/user-groups\x12\xdb\x01\n\x0cGetUserGroup\x12(.sift.user_groups.v2.GetUserGroupRequest\x1a).sift.user_groups.v2.GetUserGroupResponse\"v\x92\x41H\x12\x0cGetUserGroup\x1a\x17Retrieves a user group.*\x1fUserGroupService_GetUserGroupV2\x82\xd3\xe4\x93\x02%\x12#/api/v2/user-groups/{user_group_id}\x12\xdb\x01\n\x0f\x43reateUserGroup\x12+.sift.user_groups.v2.CreateUserGroupRequest\x1a,.sift.user_groups.v2.CreateUserGroupResponse\"m\x92\x41L\x12\x0f\x43reateUserGroup\x1a\x15\x43reates a user group.*\"UserGroupService_CreateUserGroupV2\x82\xd3\xe4\x93\x02\x18\"\x13/api/v2/user-groups:\x01*\x12\xf7\x01\n\x0fUpdateUserGroup\x12+.sift.user_groups.v2.UpdateUserGroupRequest\x1a,.sift.user_groups.v2.UpdateUserGroupResponse\"\x88\x01\x92\x41L\x12\x0fUpdateUserGroup\x1a\x15Updates a user group.*\"UserGroupService_UpdateUserGroupV2\x82\xd3\xe4\x93\x02\x33\x32./api/v2/user-groups/{user_group.user_group_id}:\x01*\x12\xe8\x01\n\x0f\x44\x65leteUserGroup\x12+.sift.user_groups.v2.DeleteUserGroupRequest\x1a,.sift.user_groups.v2.DeleteUserGroupResponse\"z\x92\x41L\x12\x0f\x44\x65leteUserGroup\x1a\x15\x44\x65letes a user group.*\"UserGroupService_DeleteUserGroupV2\x82\xd3\xe4\x93\x02%*#/api/v2/user-groups/{user_group_id}\x12\xf8\x01\n\x12\x41\x64\x64UserToUserGroup\x12..sift.user_groups.v2.AddUserToUserGroupRequest\x1a/.sift.user_groups.v2.AddUserToUserGroupResponse\"\x80\x01\x92\x41Y\x12\x12\x41\x64\x64UserToUserGroup\x1a\x1c\x41\x64\x64s a user to a user group.*%UserGroupService_AddUserToUserGroupV2\x82\xd3\xe4\x93\x02\x1e\"\x1c/api/v2/user-groups:add-user\x12\x99\x02\n\x17RemoveUserFromUserGroup\x12\x33.sift.user_groups.v2.RemoveUserFromUserGroupRequest\x1a\x34.sift.user_groups.v2.RemoveUserFromUserGroupResponse\"\x92\x01\x92\x41h\x12\x17RemoveUserFromUserGroup\x1a!Removes a user from a user group.**UserGroupService_RemoveUserFromUserGroupV2\x82\xd3\xe4\x93\x02!\"\x1f/api/v2/user-groups:remove-user\x12\x86\x02\n\x14UpdateUserUserGroups\x12\x30.sift.user_groups.v2.UpdateUserUserGroupsRequest\x1a\x31.sift.user_groups.v2.UpdateUserUserGroupsResponse\"\x88\x01\x92\x41^\x12\x14UpdateUserUserGroups\x1a\x1dUpdates a user\'s user groups.*\'UserGroupService_UpdateUserUserGroupsV2\x82\xd3\xe4\x93\x02!\"\x1f/api/v2/user-groups:update-user\x12\xa1\x02\n\x16GetUserGroupsForAssets\x12\x32.sift.user_groups.v2.GetUserGroupsForAssetsRequest\x1a\x33.sift.user_groups.v2.GetUserGroupsForAssetsResponse\"\x9d\x01\x92\x41p\x12\x16GetUserGroupsForAssets\x1a+Retrieves user groups for a list of assets.*)UserGroupService_GetUserGroupsForAssetsV2\x82\xd3\xe4\x93\x02$\x12\"/api/v2/user-groups:get-for-assetsB\xad\x01\n\x17\x63om.sift.user_groups.v2B\x0fUserGroupsProtoP\x01\xa2\x02\x03SUX\xaa\x02\x12Sift.UserGroups.V2\xca\x02\x12Sift\\UserGroups\\V2\xe2\x02\x1eSift\\UserGroups\\V2\\GPBMetadata\xea\x02\x14Sift::UserGroups::V2\x92\x41\x16\x12\x14\n\x12User Group Serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -28,7 +29,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\027com.sift.user_groups.v2B\017UserGroupsProtoP\001\242\002\003SUX\252\002\022Sift.UserGroups.V2\312\002\022Sift\\UserGroups\\V2\342\002\036Sift\\UserGroups\\V2\\GPBMetadata\352\002\024Sift::UserGroups::V2\222A\026\022\024\n\022User Group Service'
   _globals['_USERGROUP_RESOURCE'].fields_by_name['asset_ids']._loaded_options = None
-  _globals['_USERGROUP_RESOURCE'].fields_by_name['asset_ids']._serialized_options = b'\340A\001'
+  _globals['_USERGROUP_RESOURCE'].fields_by_name['asset_ids']._serialized_options = b'\340A\001\272H\n\222\001\007\"\005r\003\260\001\001'
   _globals['_USERGROUP_RESOURCE'].fields_by_name['all_assets']._loaded_options = None
   _globals['_USERGROUP_RESOURCE'].fields_by_name['all_assets']._serialized_options = b'\340A\002'
   _globals['_USERGROUP'].fields_by_name['user_group_id']._loaded_options = None
@@ -42,7 +43,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_USERGROUP'].fields_by_name['resources']._loaded_options = None
   _globals['_USERGROUP'].fields_by_name['resources']._serialized_options = b'\340A\001'
   _globals['_USERGROUP'].fields_by_name['user_ids']._loaded_options = None
-  _globals['_USERGROUP'].fields_by_name['user_ids']._serialized_options = b'\340A\001'
+  _globals['_USERGROUP'].fields_by_name['user_ids']._serialized_options = b'\340A\001\272H\n\222\001\007\"\005r\003\260\001\001'
+  _globals['_USERGROUP'].fields_by_name['is_external']._loaded_options = None
+  _globals['_USERGROUP'].fields_by_name['is_external']._serialized_options = b'\340A\002'
   _globals['_LISTUSERGROUPSREQUEST'].fields_by_name['page_size']._loaded_options = None
   _globals['_LISTUSERGROUPSREQUEST'].fields_by_name['page_size']._serialized_options = b'\340A\001'
   _globals['_LISTUSERGROUPSREQUEST'].fields_by_name['page_token']._loaded_options = None
@@ -55,8 +58,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTUSERGROUPSRESPONSE'].fields_by_name['user_groups']._serialized_options = b'\340A\002'
   _globals['_LISTUSERGROUPSRESPONSE'].fields_by_name['next_page_token']._loaded_options = None
   _globals['_LISTUSERGROUPSRESPONSE'].fields_by_name['next_page_token']._serialized_options = b'\340A\001'
+  _globals['_GETUSERGROUPREQUEST'].fields_by_name['user_group_id']._loaded_options = None
+  _globals['_GETUSERGROUPREQUEST'].fields_by_name['user_group_id']._serialized_options = b'\272H\005r\003\260\001\001'
   _globals['_GETUSERGROUPRESPONSE'].fields_by_name['user_group']._loaded_options = None
   _globals['_GETUSERGROUPRESPONSE'].fields_by_name['user_group']._serialized_options = b'\340A\002'
+  _globals['_UPDATEUSERUSERGROUPSREQUEST'].fields_by_name['user_id']._loaded_options = None
+  _globals['_UPDATEUSERUSERGROUPSREQUEST'].fields_by_name['user_id']._serialized_options = b'\272H\005r\003\260\001\001'
+  _globals['_UPDATEUSERUSERGROUPSREQUEST'].fields_by_name['user_group_ids']._loaded_options = None
+  _globals['_UPDATEUSERUSERGROUPSREQUEST'].fields_by_name['user_group_ids']._serialized_options = b'\272H\n\222\001\007\"\005r\003\260\001\001'
   _globals['_CREATEUSERGROUPREQUEST'].fields_by_name['user_group']._loaded_options = None
   _globals['_CREATEUSERGROUPREQUEST'].fields_by_name['user_group']._serialized_options = b'\340A\002'
   _globals['_CREATEUSERGROUPRESPONSE'].fields_by_name['user_group']._loaded_options = None
@@ -64,21 +73,21 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATEUSERGROUPREQUEST'].fields_by_name['user_group']._loaded_options = None
   _globals['_UPDATEUSERGROUPREQUEST'].fields_by_name['user_group']._serialized_options = b'\340A\002'
   _globals['_UPDATEUSERGROUPREQUEST'].fields_by_name['update_mask']._loaded_options = None
-  _globals['_UPDATEUSERGROUPREQUEST'].fields_by_name['update_mask']._serialized_options = b'\340A\002'
+  _globals['_UPDATEUSERGROUPREQUEST'].fields_by_name['update_mask']._serialized_options = b'\340A\002\272H\310\001\272\001\304\001\n\027invalid_field_mask_path\022Rfield mask path must be in [\'name\', \'is_default\', \'role_id\', \'resources\', \'users\']\032Uthis.paths.all(path, path in [\'name\', \'is_default\', \'role_id\', \'resources\', \'users\'])'
   _globals['_UPDATEUSERGROUPRESPONSE'].fields_by_name['user_group']._loaded_options = None
   _globals['_UPDATEUSERGROUPRESPONSE'].fields_by_name['user_group']._serialized_options = b'\340A\002'
   _globals['_DELETEUSERGROUPREQUEST'].fields_by_name['user_group_id']._loaded_options = None
-  _globals['_DELETEUSERGROUPREQUEST'].fields_by_name['user_group_id']._serialized_options = b'\340A\002'
+  _globals['_DELETEUSERGROUPREQUEST'].fields_by_name['user_group_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_ADDUSERTOUSERGROUPREQUEST'].fields_by_name['user_group_id']._loaded_options = None
-  _globals['_ADDUSERTOUSERGROUPREQUEST'].fields_by_name['user_group_id']._serialized_options = b'\340A\002'
+  _globals['_ADDUSERTOUSERGROUPREQUEST'].fields_by_name['user_group_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_ADDUSERTOUSERGROUPREQUEST'].fields_by_name['user_id']._loaded_options = None
-  _globals['_ADDUSERTOUSERGROUPREQUEST'].fields_by_name['user_id']._serialized_options = b'\340A\002'
+  _globals['_ADDUSERTOUSERGROUPREQUEST'].fields_by_name['user_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_REMOVEUSERFROMUSERGROUPREQUEST'].fields_by_name['user_group_id']._loaded_options = None
-  _globals['_REMOVEUSERFROMUSERGROUPREQUEST'].fields_by_name['user_group_id']._serialized_options = b'\340A\002'
+  _globals['_REMOVEUSERFROMUSERGROUPREQUEST'].fields_by_name['user_group_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_REMOVEUSERFROMUSERGROUPREQUEST'].fields_by_name['user_id']._loaded_options = None
-  _globals['_REMOVEUSERFROMUSERGROUPREQUEST'].fields_by_name['user_id']._serialized_options = b'\340A\002'
+  _globals['_REMOVEUSERFROMUSERGROUPREQUEST'].fields_by_name['user_id']._serialized_options = b'\340A\002\272H\005r\003\260\001\001'
   _globals['_GETUSERGROUPSFORASSETSREQUEST'].fields_by_name['asset_ids']._loaded_options = None
-  _globals['_GETUSERGROUPSFORASSETSREQUEST'].fields_by_name['asset_ids']._serialized_options = b'\340A\002'
+  _globals['_GETUSERGROUPSFORASSETSREQUEST'].fields_by_name['asset_ids']._serialized_options = b'\340A\002\272H\n\222\001\007\"\005r\003\260\001\001'
   _globals['_GETUSERGROUPSFORASSETSRESPONSE'].fields_by_name['user_groups']._loaded_options = None
   _globals['_GETUSERGROUPSFORASSETSRESPONSE'].fields_by_name['user_groups']._serialized_options = b'\340A\002'
   _globals['_GETUSERGROUPSFORASSETSRESPONSE'].fields_by_name['roles']._loaded_options = None
@@ -101,46 +110,46 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_USERGROUPSERVICE'].methods_by_name['UpdateUserUserGroups']._serialized_options = b'\222A^\022\024UpdateUserUserGroups\032\035Updates a user\'s user groups.*\'UserGroupService_UpdateUserUserGroupsV2\202\323\344\223\002!\"\037/api/v2/user-groups:update-user'
   _globals['_USERGROUPSERVICE'].methods_by_name['GetUserGroupsForAssets']._loaded_options = None
   _globals['_USERGROUPSERVICE'].methods_by_name['GetUserGroupsForAssets']._serialized_options = b'\222Ap\022\026GetUserGroupsForAssets\032+Retrieves user groups for a list of assets.*)UserGroupService_GetUserGroupsForAssetsV2\202\323\344\223\002$\022\"/api/v2/user-groups:get-for-assets'
-  _globals['_USERGROUP']._serialized_start=235
-  _globals['_USERGROUP']._serialized_end=568
-  _globals['_USERGROUP_RESOURCE']._serialized_start=488
-  _globals['_USERGROUP_RESOURCE']._serialized_end=568
-  _globals['_LISTUSERGROUPSREQUEST']._serialized_start=571
-  _globals['_LISTUSERGROUPSREQUEST']._serialized_end=725
-  _globals['_LISTUSERGROUPSRESPONSE']._serialized_start=728
-  _globals['_LISTUSERGROUPSRESPONSE']._serialized_end=867
-  _globals['_GETUSERGROUPREQUEST']._serialized_start=869
-  _globals['_GETUSERGROUPREQUEST']._serialized_end=926
-  _globals['_GETUSERGROUPRESPONSE']._serialized_start=928
-  _globals['_GETUSERGROUPRESPONSE']._serialized_end=1018
-  _globals['_UPDATEUSERUSERGROUPSREQUEST']._serialized_start=1020
-  _globals['_UPDATEUSERUSERGROUPSREQUEST']._serialized_end=1112
-  _globals['_UPDATEUSERUSERGROUPSRESPONSE']._serialized_start=1114
-  _globals['_UPDATEUSERUSERGROUPSRESPONSE']._serialized_end=1144
-  _globals['_CREATEUSERGROUPREQUEST']._serialized_start=1146
-  _globals['_CREATEUSERGROUPREQUEST']._serialized_end=1238
-  _globals['_CREATEUSERGROUPRESPONSE']._serialized_start=1240
-  _globals['_CREATEUSERGROUPRESPONSE']._serialized_end=1333
-  _globals['_UPDATEUSERGROUPREQUEST']._serialized_start=1336
-  _globals['_UPDATEUSERGROUPREQUEST']._serialized_end=1494
-  _globals['_UPDATEUSERGROUPRESPONSE']._serialized_start=1496
-  _globals['_UPDATEUSERGROUPRESPONSE']._serialized_end=1589
-  _globals['_DELETEUSERGROUPREQUEST']._serialized_start=1591
-  _globals['_DELETEUSERGROUPREQUEST']._serialized_end=1656
-  _globals['_DELETEUSERGROUPRESPONSE']._serialized_start=1658
-  _globals['_DELETEUSERGROUPRESPONSE']._serialized_end=1683
-  _globals['_ADDUSERTOUSERGROUPREQUEST']._serialized_start=1685
-  _globals['_ADDUSERTOUSERGROUPREQUEST']._serialized_end=1783
-  _globals['_ADDUSERTOUSERGROUPRESPONSE']._serialized_start=1785
-  _globals['_ADDUSERTOUSERGROUPRESPONSE']._serialized_end=1813
-  _globals['_REMOVEUSERFROMUSERGROUPREQUEST']._serialized_start=1815
-  _globals['_REMOVEUSERFROMUSERGROUPREQUEST']._serialized_end=1918
-  _globals['_REMOVEUSERFROMUSERGROUPRESPONSE']._serialized_start=1920
-  _globals['_REMOVEUSERFROMUSERGROUPRESPONSE']._serialized_end=1953
-  _globals['_GETUSERGROUPSFORASSETSREQUEST']._serialized_start=1955
-  _globals['_GETUSERGROUPSFORASSETSREQUEST']._serialized_end=2020
-  _globals['_GETUSERGROUPSFORASSETSRESPONSE']._serialized_start=2023
-  _globals['_GETUSERGROUPSFORASSETSRESPONSE']._serialized_end=2173
-  _globals['_USERGROUPSERVICE']._serialized_start=2176
-  _globals['_USERGROUPSERVICE']._serialized_end=4456
+  _globals['_USERGROUP']._serialized_start=264
+  _globals['_USERGROUP']._serialized_end=661
+  _globals['_USERGROUP_RESOURCE']._serialized_start=568
+  _globals['_USERGROUP_RESOURCE']._serialized_end=661
+  _globals['_LISTUSERGROUPSREQUEST']._serialized_start=664
+  _globals['_LISTUSERGROUPSREQUEST']._serialized_end=818
+  _globals['_LISTUSERGROUPSRESPONSE']._serialized_start=821
+  _globals['_LISTUSERGROUPSRESPONSE']._serialized_end=960
+  _globals['_GETUSERGROUPREQUEST']._serialized_start=962
+  _globals['_GETUSERGROUPREQUEST']._serialized_end=1029
+  _globals['_GETUSERGROUPRESPONSE']._serialized_start=1031
+  _globals['_GETUSERGROUPRESPONSE']._serialized_end=1121
+  _globals['_UPDATEUSERUSERGROUPSREQUEST']._serialized_start=1123
+  _globals['_UPDATEUSERUSERGROUPSREQUEST']._serialized_end=1240
+  _globals['_UPDATEUSERUSERGROUPSRESPONSE']._serialized_start=1242
+  _globals['_UPDATEUSERUSERGROUPSRESPONSE']._serialized_end=1272
+  _globals['_CREATEUSERGROUPREQUEST']._serialized_start=1274
+  _globals['_CREATEUSERGROUPREQUEST']._serialized_end=1366
+  _globals['_CREATEUSERGROUPRESPONSE']._serialized_start=1368
+  _globals['_CREATEUSERGROUPRESPONSE']._serialized_end=1461
+  _globals['_UPDATEUSERGROUPREQUEST']._serialized_start=1464
+  _globals['_UPDATEUSERGROUPREQUEST']._serialized_end=1828
+  _globals['_UPDATEUSERGROUPRESPONSE']._serialized_start=1830
+  _globals['_UPDATEUSERGROUPRESPONSE']._serialized_end=1923
+  _globals['_DELETEUSERGROUPREQUEST']._serialized_start=1925
+  _globals['_DELETEUSERGROUPREQUEST']._serialized_end=1998
+  _globals['_DELETEUSERGROUPRESPONSE']._serialized_start=2000
+  _globals['_DELETEUSERGROUPRESPONSE']._serialized_end=2025
+  _globals['_ADDUSERTOUSERGROUPREQUEST']._serialized_start=2027
+  _globals['_ADDUSERTOUSERGROUPREQUEST']._serialized_end=2141
+  _globals['_ADDUSERTOUSERGROUPRESPONSE']._serialized_start=2143
+  _globals['_ADDUSERTOUSERGROUPRESPONSE']._serialized_end=2171
+  _globals['_REMOVEUSERFROMUSERGROUPREQUEST']._serialized_start=2173
+  _globals['_REMOVEUSERFROMUSERGROUPREQUEST']._serialized_end=2292
+  _globals['_REMOVEUSERFROMUSERGROUPRESPONSE']._serialized_start=2294
+  _globals['_REMOVEUSERFROMUSERGROUPRESPONSE']._serialized_end=2327
+  _globals['_GETUSERGROUPSFORASSETSREQUEST']._serialized_start=2329
+  _globals['_GETUSERGROUPSFORASSETSREQUEST']._serialized_end=2407
+  _globals['_GETUSERGROUPSFORASSETSRESPONSE']._serialized_start=2410
+  _globals['_GETUSERGROUPSFORASSETSRESPONSE']._serialized_end=2560
+  _globals['_USERGROUPSERVICE']._serialized_start=2563
+  _globals['_USERGROUPSERVICE']._serialized_end=4843
 # @@protoc_insertion_point(module_scope)
