@@ -41,6 +41,7 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
         cls, proto: IngestionConfigProto, sift_client: SiftClient | None = None
     ) -> IngestionConfig:
         return cls(
+            proto=proto,
             id_=proto.ingestion_config_id,
             asset_id=proto.asset_id,
             client_key=proto.client_key,
@@ -63,6 +64,7 @@ class Flow(BaseType[FlowConfig, "Flow"]):
     @classmethod
     def _from_proto(cls, proto: FlowConfig, sift_client: SiftClient | None = None) -> Flow:
         return cls(
+            proto=proto,
             name=proto.name,
             channels=[Channel._from_proto(channel) for channel in proto.channels],
             _client=sift_client,

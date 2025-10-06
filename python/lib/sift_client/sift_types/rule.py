@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -30,6 +29,8 @@ from sift_client.sift_types._base import BaseType, ModelUpdate
 from sift_client.sift_types.channel import ChannelReference
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
 
@@ -37,33 +38,30 @@ if TYPE_CHECKING:
 class Rule(BaseType[RuleProto, "Rule"]):
     """Model of the Sift Rule."""
 
+    # Required fields
     name: str
     description: str
-    is_enabled: bool = True
-    expression: str | None = None
-    channel_references: list[ChannelReference] | None = None
-    action: RuleAction | None = None
-    asset_ids: list[str] | None = None
-    asset_tag_ids: list[str] | None = None
-    contextual_channels: list[str] | None = None
-    client_key: str | None = None
+    is_enabled: bool
+    is_enabled: bool
+    created_date: datetime
+    modified_date: datetime
+    created_by_user_id: str
+    modified_by_user_id: str
+    organization_id: str
+    is_archived: bool
+    is_external: bool
 
-    # Fields from proto
-    created_date: datetime | None = None
-    modified_date: datetime | None = None
-    created_by_user_id: str | None = None
-    modified_by_user_id: str | None = None
-    organization_id: str | None = None
-    rule_version: RuleVersion | None = None
-    archived_date: datetime | None = None
-    is_external: bool | None = None
+    # Optional fields
+    expression: str | None
+    channel_references: list[ChannelReference] | None
+    action: RuleAction | None
+    asset_ids: list[str] | None
+    asset_tag_ids: list[str] | None
+    contextual_channels: list[str] | None
+    client_key: str | None
+    rule_version: RuleVersion | None
+    archived_date: datetime | None
 
-    @property
-    def is_archived(self) -> bool:
-        """Whether the rule is archived."""
-        return self.archived_date is not None and self.archived_date > datetime(
-            1970, 1, 1, tzinfo=timezone.utc
-        )
 
     @property
     def assets(self) -> list[Asset]:
@@ -115,6 +113,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
             else None
         )
         return cls(
+            proto=proto,
             id_=proto.rule_id,
             name=proto.name,
             description=proto.description,
@@ -139,7 +138,8 @@ class Rule(BaseType[RuleProto, "Rule"]):
             asset_ids=proto.asset_configuration.asset_ids,  # type: ignore
             asset_tag_ids=proto.asset_configuration.tag_ids,  # type: ignore
             contextual_channels=[c.name for c in proto.contextual_channels.channels],
-            archived_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
+            archived_date=proto.archived_date.ToDatetime() if proto.archived_date else None,
+            is_archived=proto.is_archived,
             is_external=proto.is_external,
             _client=sift_client,
         )
@@ -161,6 +161,7 @@ class RuleUpdate(ModelUpdate[RuleProto]):
     asset_ids: list[str] | None = None
     asset_tag_ids: list[str] | None = None
     contextual_channels: list[str] | None = None
+    is_archived: bool | None = None
 
     def _get_proto_class(self) -> type[RuleProto]:
         return RuleProto

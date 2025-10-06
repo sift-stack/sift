@@ -207,17 +207,21 @@ class ChannelBitFieldElement(BaseModel):
 class Channel(BaseType[ChannelProto, "Channel"]):
     """Model representing a Sift Channel."""
 
+    # Required fields
     name: str
     data_type: ChannelDataType
-    description: str | None = None
-    unit: str | None = None
+    description: str
+    unit: str
     bit_field_elements: list[ChannelBitFieldElement] = Field(default_factory=list)
     enum_types: dict[str, int] = Field(default_factory=dict)
-    asset_id: str | None = None
-    created_date: datetime | None = None
-    modified_date: datetime | None = None
-    created_by_user_id: str | None = None
-    modified_by_user_id: str | None = None
+    asset_id: str
+    created_date: datetime
+    modified_date: datetime
+    created_by_user_id: str
+    modified_by_user_id: str
+
+    # Optional fields
+    ...
 
     @staticmethod
     def _enum_types_to_proto_list(enum_types: dict[str, int] | None) -> list[ChannelEnumTypePb]:
@@ -236,6 +240,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
     ) -> Channel:
         if isinstance(proto, ChannelProto):
             return cls(
+                proto=proto,
                 id_=proto.channel_id,
                 name=proto.name,
                 data_type=ChannelDataType(proto.data_type),
@@ -252,8 +257,9 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 modified_by_user_id=proto.modified_by_user_id,
                 _client=sift_client,
             )
-        elif isinstance(proto, ChannelConfig):
+        else: # ChannelConfig
             return cls(
+                proto=proto,
                 id_=proto.name,
                 name=proto.name,
                 data_type=ChannelDataType(proto.data_type),

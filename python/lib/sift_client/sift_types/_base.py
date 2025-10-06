@@ -18,6 +18,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     model_config = ConfigDict(frozen=True)
 
     id_: str | None = None
+    proto: ProtoT | None = None
     _client: SiftClient | None = None
 
     @property

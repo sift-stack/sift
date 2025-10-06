@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import ConfigDict, model_validator
@@ -26,6 +26,7 @@ class Run(BaseType[RunProto, "Run"]):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    # Required fields
     name: str
     description: str
     created_date: datetime
@@ -33,18 +34,25 @@ class Run(BaseType[RunProto, "Run"]):
     created_by_user_id: str
     modified_by_user_id: str
     organization_id: str
-    start_time: datetime | None = None
-    stop_time: datetime | None = None
-    tags: list[str] | None = None
-    default_report_id: str | None = None
-    client_key: str | None = None
     metadata: dict[str, str | float | bool]
-    asset_ids: list[str] | None = None
-    archived_date: datetime | None = None
+    tags: list[str]
+    asset_ids: list[str]
+    is_adhoc: bool
+    is_archived: bool
+
+    # Optional fields
+    start_time: datetime | None
+    stop_time: datetime | None
+    duration: timedelta | None
+    default_report_id: str | None
+    client_key: str | None
+    archived_date: datetime | None
+    duration: timedelta | None
 
     @classmethod
     def _from_proto(cls, proto: RunProto, sift_client: SiftClient | None = None) -> Run:
         return cls(
+            proto=proto,
             id_=proto.run_id,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
@@ -57,6 +65,7 @@ class Run(BaseType[RunProto, "Run"]):
             stop_time=proto.stop_time.ToDatetime(tzinfo=timezone.utc)
             if proto.HasField("stop_time")
             else None,
+            duration=proto.duration.ToTimedelta() if proto.HasField("duration") else None,
             name=proto.name,
             description=proto.description,
             tags=list(proto.tags),
@@ -67,42 +76,9 @@ class Run(BaseType[RunProto, "Run"]):
             archived_date=proto.archived_date.ToDatetime()
             if proto.HasField("archived_date")
             else None,
+            is_archived=proto.is_archived,
             _client=sift_client,
         )
-
-    def _to_proto(self) -> RunProto:
-        """Convert to protobuf message."""
-        proto = RunProto(
-            run_id=self.id_ or "",
-            created_date=self.created_date,  # type: ignore
-            modified_date=self.modified_date,  # type: ignore
-            created_by_user_id=self.created_by_user_id,
-            modified_by_user_id=self.modified_by_user_id,
-            organization_id=self.organization_id,
-            is_pinned=False,
-            name=self.name,
-            description=self.description,
-            tags=self.tags,
-            metadata=metadata_dict_to_proto(self.metadata),
-            asset_ids=self.asset_ids,
-        )
-
-        if self.start_time is not None:
-            proto.start_time.FromDatetime(self.start_time)
-
-        if self.stop_time is not None:
-            proto.stop_time.FromDatetime(self.stop_time)
-
-        if self.default_report_id is not None:
-            proto.default_report_id = self.default_report_id
-
-        if self.client_key is not None:
-            proto.client_key = self.client_key
-
-        if self.archived_date is not None:
-            proto.archived_date.FromDatetime(self.archived_date)
-
-        return proto
 
     @property
     def assets(self) -> list[Asset]:
@@ -154,6 +130,7 @@ class RunUpdate(RunBase, ModelUpdate[RunProto]):
     """Update model for Run."""
 
     name: str | None = None
+    is_archived: bool | None = None
 
     @model_validator(mode="after")
     def _validate_non_updatable_fields(self):
