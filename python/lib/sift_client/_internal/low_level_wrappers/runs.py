@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, cast
 from sift.runs.v2.runs_pb2 import (
     CreateAutomaticRunAssociationForAssetsRequest,
     CreateRunResponse,
-    DeleteRunRequest,
     GetRunRequest,
     GetRunResponse,
     ListRunsRequest,
@@ -54,9 +53,6 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Raises:
             ValueError: If run_id is not provided.
         """
-        if not run_id:
-            raise ValueError("run_id must be provided")
-
         request = GetRunRequest(run_id=run_id)
         response = await self._grpc_client.get_stub(RunServiceStub).GetRun(request)
         grpc_run = cast("GetRunResponse", response).run
@@ -134,21 +130,6 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(RunServiceStub).UpdateRun(request)
         updated_grpc_run = cast("UpdateRunResponse", response).run
         return Run._from_proto(updated_grpc_run)
-
-    async def archive_run(self, run_id: str) -> None:
-        """Archive a run.
-
-        Args:
-            run_id: The ID of the run to archive.
-
-        Raises:
-            ValueError: If run_id is not provided.
-        """
-        if not run_id:
-            raise ValueError("run_id must be provided")
-
-        request = DeleteRunRequest(run_id=run_id)
-        await self._grpc_client.get_stub(RunServiceStub).DeleteRun(request)
 
     async def stop_run(self, run_id: str) -> None:
         """Stop a run by setting its stop time to the current time.

@@ -147,10 +147,10 @@ class RunsAPIAsync(ResourceBase):
             filter_parts.append(cel.in_("client_key", client_keys))
         if assets:
             if all(isinstance(s, str) for s in assets):
-                ids = cast("list[str]", assets)
+                ids = cast("list[str]", assets) # linting
                 filter_parts.append(cel.in_("asset_ids", ids))
             else:
-                asset = cast("list[Asset]", assets)
+                asset = cast("list[Asset]", assets)  # linting
                 filter_parts.append(cel.in_("asset_ids", [a._id_or_error for a in asset]))
         if duration_less_than:
             filter_parts.append(cel.less_than("duration_string", duration_less_than))
@@ -230,16 +230,25 @@ class RunsAPIAsync(ResourceBase):
     async def archive(
         self,
         run: str | Run,
-    ) -> None:
+    ) -> Run:
         """Archive a run.
 
         Args:
             run: The Run or run ID to archive.
         """
-        run_id = run._id_or_error if isinstance(run, Run) else run
-        await self._low_level_client.archive_run(run_id=run_id)
+        return await self.update(run, RunUpdate(is_archived=True))
 
-    # TODO: unarchive
+    async def unarchive(
+            self,
+            run: str | Run,
+    ) -> Run:
+        """Unarchive a run.
+
+        Args:
+            run: The Run or run ID to unarchive.
+        """
+        return await self.update(run, RunUpdate(is_archived=False))
+
 
     async def stop(
         self,
