@@ -192,8 +192,17 @@ class AssetsAPIAsync(ResourceBase):
         """
         asset_id = asset._id_or_error if isinstance(asset, Asset) else asset
 
-        await self._low_level_client.delete_asset(asset_id, archive_runs=archive_runs)
+        await self._low_level_client.archive_asset(asset_id, archive_runs=archive_runs)
 
         return await self.get(asset_id=asset_id)
 
-    # TODO: unarchive
+    async def unarchive(self, asset: str | Asset) -> Asset:
+        """Unarchive an asset.
+
+        Args:
+             asset: The Asset or asset ID to unarchive.
+
+        Returns:
+             The unarchived Asset.
+        """
+        return await self.update(asset, AssetUpdate(is_archived=False))

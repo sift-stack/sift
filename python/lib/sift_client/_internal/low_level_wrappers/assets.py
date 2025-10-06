@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any, cast
 
 from sift.assets.v1.assets_pb2 import (
-    DeleteAssetRequest,
+    ArchiveAssetRequest,
+ArchiveAssetResponse,
     GetAssetRequest,
     GetAssetResponse,
     ListAssetsRequest,
@@ -96,6 +97,8 @@ class AssetsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         updated_grpc_asset = cast("UpdateAssetResponse", response).asset
         return Asset._from_proto(updated_grpc_asset)
 
-    async def delete_asset(self, asset_id: str, archive_runs: bool = False) -> None:
-        request = DeleteAssetRequest(asset_id=asset_id, archive_runs=archive_runs)
-        await self._grpc_client.get_stub(AssetServiceStub).DeleteAsset(request)
+    async def archive_asset(self, asset_id: str, archive_runs: bool = False) -> list[str] | None:
+        request = ArchiveAssetRequest(asset_id=asset_id, archive_runs=archive_runs)
+        response = await self._grpc_client.get_stub(AssetServiceStub).ArchiveAsset(request)
+        response = cast("ArchiveAssetResponse", response)
+        return response.archived_runs
