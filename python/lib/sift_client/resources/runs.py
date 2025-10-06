@@ -153,9 +153,9 @@ class RunsAPIAsync(ResourceBase):
                 asset = cast("list[Asset]", assets)
                 filter_parts.append(cel.in_("asset_ids", [a._id_or_error for a in asset]))
         if duration_less_than:
-            raise NotImplementedError
+            filter_parts.append(cel.less_than("duration_string", duration_less_than))
         if duration_greater_than:
-            raise NotImplementedError
+            filter_parts.append(cel.greater_than("duration_string", duration_greater_than))
         if start_time_after:
             filter_parts.append(cel.greater_than("start_time", start_time_after))
         if start_time_before:

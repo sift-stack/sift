@@ -79,7 +79,7 @@ class AssetsAPIAsync(ResourceBase):
         modified_by: Any | str | None = None,
         # tags
         tags: list[Any] | list[str] | None = None,
-        _tag_ids: list[str] | None = None,
+        _tag_ids: list[str] | None = None, # For compatibility until first class Tag support is added
         # metadata
         metadata: list[Any] | None = None,
         # common filters
@@ -103,7 +103,6 @@ class AssetsAPIAsync(ResourceBase):
             created_by: Filter assets created by this User or user ID.
             modified_by: Filter assets last modified by this User or user ID.
             tags: Filter assets with any of these Tags or tag names.
-            _tag_ids: Filter assets with any of these Tag IDs.
             metadata: Filter assets by metadata criteria.
             description_contains: Partial description of the asset.
             include_archived: If True, include archived assets in results.
