@@ -74,6 +74,7 @@ class Run(BaseType[RunProto, "Run"]):
             if proto.HasField("archived_date")
             else None,
             is_archived=proto.is_archived,
+            is_adhoc=proto.is_adhoc,
             _client=sift_client,
         )
 
