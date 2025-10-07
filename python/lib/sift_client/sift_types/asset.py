@@ -104,7 +104,6 @@ class AssetUpdate(ModelUpdate[AssetProto]):
     """Model of the Asset Fields that can be updated."""
 
     tags: list[str] | None = None
-    archived_date: datetime | str | None = None
     metadata: dict[str, str | float | bool] | None = None
     is_archived: bool | None = None
 

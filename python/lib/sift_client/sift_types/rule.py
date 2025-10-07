@@ -315,7 +315,8 @@ class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
     created_by_user_id: str
     version_notes: str
     generated_change_message: str
-    deleted_date: datetime | None = None
+    archived_date: datetime | None
+    is_archived: bool
 
     @classmethod
     def _from_proto(
@@ -329,6 +330,7 @@ class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
             created_by_user_id=proto.created_by_user_id,
             version_notes=proto.version_notes,
             generated_change_message=proto.generated_change_message,
-            deleted_date=proto.deleted_date.ToDatetime() if proto.deleted_date else None,
+            archived_date=proto.archived_date.ToDatetime() if proto.archived_date else None,
+            is_archived=proto.is_archived,
             _client=sift_client,
         )

@@ -201,7 +201,7 @@ class CalculatedChannelUpdate(CalculatedChannelBase, ModelUpdate[CalculatedChann
     """Update model for a Calculated Channel."""
 
     name: str | None = None
-    archived_date: datetime | None = None
+    is_archived: bool | None = None
 
     @model_validator(mode="after")
     def _validate_non_updatable_fields(self):

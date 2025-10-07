@@ -121,6 +121,17 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
 
     name: str
     client_key: str | None = None
+    tags: list[str] | None = None
+    metadata: dict[str, str | float | bool] | None = None
+    start_time: datetime | None = None
+    stop_time: datetime | None = None
+    organization_id: str | None = None
+
+    _to_proto_helpers: ClassVar = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
 
     def _get_proto_class(self) -> type[CreateRunRequestProto]:
         return CreateRunRequestProto
@@ -130,14 +141,17 @@ class RunUpdate(RunBase, ModelUpdate[RunProto]):
     """Update model for Run."""
 
     name: str | None = None
+    tags: list[str] | None = None
+    metadata: dict[str, str | float | bool] | None = None
+    start_time: datetime | None = None
+    stop_time: datetime | None = None
     is_archived: bool | None = None
 
-    @model_validator(mode="after")
-    def _validate_non_updatable_fields(self):
-        """Validate that the fields that cannot be updated are not set."""
-        if self.client_key is not None:
-            raise ValueError("Cannot update client key")
-        return self
+    _to_proto_helpers: ClassVar = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
 
     def _get_proto_class(self) -> type[RunProto]:
         return RunProto
