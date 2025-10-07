@@ -75,6 +75,10 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             raise ValueError(
                 f"Channel '{self.name}' has data_type ENUM but enum_types is not provided"
             )
+        elif self.data_type == ChannelDataType.BIT_FIELD and not self.bit_field_elements:
+            raise ValueError(
+                f"Channel '{self.name}' has data_type BIT_FIELD but bit_field_elements is not provided"
+            )
         return self
 
     @classmethod
