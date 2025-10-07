@@ -70,6 +70,12 @@ class Asset(BaseType[AssetProto, "Asset"]):
         self._update(updated_asset)
         return self
 
+    def unarchive(self) -> Asset:
+        """Unarchive the asset."""
+        updated_asset = self.client.assets.unarchive(asset=self)
+        self._update(updated_asset)
+        return self
+
     def update(self, update: AssetUpdate | dict) -> Asset:
         """Update the Asset.
 
@@ -109,7 +115,9 @@ class AssetUpdate(ModelUpdate[AssetProto]):
 
     _to_proto_helpers: ClassVar = {
         "metadata": MappingHelper(
-            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+            proto_attr_path="metadata",
+            update_field="metadata",
+            converter=metadata_dict_to_proto,
         ),
     }
 

@@ -89,7 +89,9 @@ async def main():
     )
     print(f"config_id: {config_id}")
     try:
-        regular_flow.add_channelConfig(ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE))
+        regular_flow.add_channelConfig(
+            ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE)
+        )
     except ValueError as e:
         assert repr(e) == "ValueError('Cannot add a channel to a flow after creation')"
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
@@ -9,6 +9,7 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from datetime import datetime
 
     from sift_client.client import SiftClient
 
@@ -50,16 +51,34 @@ class RulesAPIAsync(ResourceBase):
         rule = await self._low_level_client.get_rule(rule_id=rule_id, client_key=client_key)
         return self._apply_client_to_instance(rule)
 
-    # TODO: update this more
     async def list_(
         self,
         *,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        # self ids
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        # created/modified ranges
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        # created/modified users
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        # metadata
+        metadata: list[Any] | None = None,
+        # rule specific
+        asset_ids: list[str] | None = None,
+        asset_tag_ids: list[str] | None = None,
+        # common filters
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
-        include_deleted: bool = False,
     ) -> list[Rule]:
         """List rules with optional filtering.
 
@@ -67,28 +86,56 @@ class RulesAPIAsync(ResourceBase):
             name: Exact name of the rule.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
-            order_by: How to order the retrieved rules.
-            limit: How many rules to retrieve. If None, retrieves all matches.
-            include_deleted: Include deleted rules.
+            rule_ids: IDs of rules to filter to.
+            client_keys: Client keys of rules to filter to.
+            created_after: Rules created after this datetime.
+            created_before: Rules created before this datetime.
+            modified_after: Rules modified after this datetime.
+            modified_before: Rules modified before this datetime.
+            created_by: Filter rules created by this User or user ID.
+            modified_by: Filter rules last modified by this User or user ID.
+            metadata: Filter rules by metadata criteria.
+            asset_ids: Filter rules associated with any of these Asset IDs.
+            asset_tag_ids: Filter rules associated with any of these Asset Tag IDs.
+            description_contains: Partial description of the rule.
+            include_archived: If True, include archived rules in results.
+            filter_query: Explicit CEL query to filter rules.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of rules to return. If None, returns all matches.
 
         Returns:
             A list of Rules that matches the filter.
         """
-        if int(name is not None) + int(name_contains is not None) + int(name_regex is not None) > 1:
-            raise ValueError("Must use EITHER name, name_contains, or name_regex, not multiple")
-
-        filters = []
-        if name:
-            filters.append(cel.equals("name", name))
-        if name_contains:
-            filters.append(cel.contains("name", name_contains))
-        if name_regex:
-            filters.append(cel.match("name", name_regex))
-        if not include_deleted:
-            filters.append(cel.equals_null("deleted_date"))
-        filter_str = " && ".join(filters) if filters else ""
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name, name_contains=name_contains, name_regex=name_regex
+            ),
+            *self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+                created_by=created_by,
+                modified_by=modified_by,
+            ),
+            *self._build_tags_metadata_cel_filters(metadata=metadata),
+            *self._build_common_cel_filters(
+                description_contains=description_contains,
+                include_archived=include_archived,
+                filter_query=filter_query,
+            ),
+        ]
+        if rule_ids:
+            filter_parts.append(cel.in_("rule_id", rule_ids))
+        if client_keys:
+            filter_parts.append(cel.in_("client_key", client_keys))
+        if asset_ids:
+            filter_parts.append(cel.in_("asset_id", asset_ids))
+        if asset_tag_ids:
+            filter_parts.append(cel.in_("tag_id", asset_tag_ids))
+        query_filter = cel.and_(*filter_parts)
         rules = await self._low_level_client.list_all_rules(
-            filter_query=filter_str,
+            filter_query=query_filter,
             order_by=order_by,
             max_results=limit,
             page_size=limit,

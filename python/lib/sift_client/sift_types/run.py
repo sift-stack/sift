@@ -85,6 +85,31 @@ class Run(BaseType[RunProto, "Run"]):
             return []
         return self.client.assets.list_(asset_ids=self.asset_ids)
 
+    def archive(self) -> Run:
+        """Archive the run."""
+        updated_run = self.client.runs.archive(run=self)
+        self._update(updated_run)
+        return self
+
+    def unarchive(self) -> Run:
+        """Unarchive the run."""
+        updated_run = self.client.runs.unarchive(run=self)
+        self._update(updated_run)
+        return self
+
+    def update(self, update: RunUpdate | dict) -> Run:
+        """Update the Run.
+
+        Args:
+            update: The update to apply to the run. See RunUpdate for more updatable fields.
+
+        Returns:
+            The updated run.
+        """
+        updated_run = self.client.runs.update(run=self, update=update)
+        self._update(updated_run)
+        return self
+
 
 class RunBase(ModelCreateUpdateBase):
     """Base class for Run create and update models with shared fields and validation."""

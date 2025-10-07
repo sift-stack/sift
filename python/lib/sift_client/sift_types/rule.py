@@ -108,6 +108,12 @@ class Rule(BaseType[RuleProto, "Rule"]):
         self._update(updated_rule)
         return self
 
+    def unarchive(self) -> Rule:
+        """Unarchive the rule."""
+        updated_rule = self.client.rules.unarchive(rule=self)
+        self._update(updated_rule)
+        return self
+
     @classmethod
     def _from_proto(cls, proto: RuleProto, sift_client: SiftClient | None = None) -> Rule:
         expression = (
@@ -141,7 +147,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
             asset_ids=proto.asset_configuration.asset_ids,  # type: ignore
             asset_tag_ids=proto.asset_configuration.tag_ids,  # type: ignore
             contextual_channels=[c.name for c in proto.contextual_channels.channels],
-            archived_date=proto.archived_date.ToDatetime() if proto.archived_date else None,
+            archived_date=(proto.archived_date.ToDatetime() if proto.archived_date else None),
             is_archived=proto.is_archived,
             is_external=proto.is_external,
             _client=sift_client,
@@ -307,11 +313,13 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                 else None
             ),
             action_type=action_type,
-            annotation_type=RuleAnnotationType.from_str(
-                proto.configuration.annotation.annotation_type  # type: ignore
-            )
-            if action_type == RuleActionType.ANNOTATION
-            else None,
+            annotation_type=(
+                RuleAnnotationType.from_str(
+                    proto.configuration.annotation.annotation_type  # type: ignore
+                )
+                if action_type == RuleActionType.ANNOTATION
+                else None
+            ),
             _client=sift_client,
         )
 
@@ -357,7 +365,7 @@ class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
             created_by_user_id=proto.created_by_user_id,
             version_notes=proto.version_notes,
             generated_change_message=proto.generated_change_message,
-            archived_date=proto.archived_date.ToDatetime() if proto.archived_date else None,
+            archived_date=(proto.archived_date.ToDatetime() if proto.archived_date else None),
             is_archived=proto.is_archived,
             _client=sift_client,
         )

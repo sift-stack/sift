@@ -58,9 +58,7 @@ async def main():
                     ChannelReference(
                         channel_reference="$1", channel_identifier="mainmotor.velocity"
                     ),
-                    ChannelReference(
-                        channel_reference="$2", channel_identifier="voltage"
-                    ),
+                    ChannelReference(channel_reference="$2", channel_identifier="voltage"),
                 ],
                 units="velocity/voltage",
                 asset_ids=[asset_id],
