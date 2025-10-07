@@ -79,7 +79,8 @@ class AssetsAPIAsync(ResourceBase):
         modified_by: Any | str | None = None,
         # tags
         tags: list[Any] | list[str] | None = None,
-        _tag_ids: list[str] | None = None, # For compatibility until first class Tag support is added
+        _tag_ids: list[str]
+        | None = None,  # For compatibility until first class Tag support is added
         # metadata
         metadata: list[Any] | None = None,
         # common filters

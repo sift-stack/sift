@@ -37,29 +37,20 @@ class RulesAPIAsync(ResourceBase):
         *,
         rule_id: str | None = None,
         client_key: str | None = None,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> Rule | list[Rule]:
+    ) -> Rule:
         """Get a Rule.
 
         Args:
             rule_id: The ID of the rule.
             client_key: The client key of the rule.
-            rule_ids: List of rule IDs to get.
-            client_keys: List of client keys to get.
 
         Returns:
-            The Rule or Rules.
+            The Rule.
         """
-        if rule_id or client_key:
-            rule = await self._low_level_client.get_rule(rule_id=rule_id, client_key=client_key)
-            return self._apply_client_to_instance(rule)
-        else:
-            rules = await self._low_level_client.batch_get_rules(
-                rule_ids=rule_ids, client_keys=client_keys
-            )
-            return self._apply_client_to_instances(rules)
+        rule = await self._low_level_client.get_rule(rule_id=rule_id, client_key=client_key)
+        return self._apply_client_to_instance(rule)
 
+    # TODO: update this more
     async def list_(
         self,
         *,
@@ -156,13 +147,16 @@ class RulesAPIAsync(ResourceBase):
         Returns:
             The updated Rule.
         """
+        rule_obj: Rule
         if isinstance(rule, str):
-            rule = await self.get(rule_id=rule)
+            rule_obj = await self.get(rule_id=rule)
+        else:
+            rule_obj = rule
 
         if isinstance(update, dict):
             update = RuleUpdate.model_validate(update)
 
-        updated_rule = await self._low_level_client.update_rule(rule, update, version_notes)
+        updated_rule = await self._low_level_client.update_rule(rule=rule_obj, update=update, version_notes=version_notes)
         return self._apply_client_to_instance(updated_rule)
 
     async def archive(self, rule: str | Rule) -> Rule:
@@ -186,6 +180,3 @@ class RulesAPIAsync(ResourceBase):
             The unarchived Rule.
         """
         return await self.update(rule=rule, update=RuleUpdate(is_archived=False))
-
-
-

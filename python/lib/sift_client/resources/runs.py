@@ -147,7 +147,7 @@ class RunsAPIAsync(ResourceBase):
             filter_parts.append(cel.in_("client_key", client_keys))
         if assets:
             if all(isinstance(s, str) for s in assets):
-                ids = cast("list[str]", assets) # linting
+                ids = cast("list[str]", assets)  # linting
                 filter_parts.append(cel.in_("asset_ids", ids))
             else:
                 asset = cast("list[Asset]", assets)  # linting
@@ -239,8 +239,8 @@ class RunsAPIAsync(ResourceBase):
         return await self.update(run, RunUpdate(is_archived=True))
 
     async def unarchive(
-            self,
-            run: str | Run,
+        self,
+        run: str | Run,
     ) -> Run:
         """Unarchive a run.
 
@@ -248,7 +248,6 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID to unarchive.
         """
         return await self.update(run, RunUpdate(is_archived=False))
-
 
     async def stop(
         self,

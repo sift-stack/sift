@@ -16,8 +16,8 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannelCreate,
     CalculatedChannelUpdate,
 )
-from sift_client.sift_types.channel import Channel, ChannelReference
-from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
+from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 
 class AssetsAPI:
@@ -113,7 +113,6 @@ class AssetsAPI:
             created_by: Filter assets created by this User or user ID.
             modified_by: Filter assets last modified by this User or user ID.
             tags: Filter assets with any of these Tags or tag names.
-            _tag_ids: Filter assets with any of these Tag IDs.
             metadata: Filter assets by metadata criteria.
             description_contains: Partial description of the asset.
             include_archived: If True, include archived assets in results.
@@ -123,6 +122,17 @@ class AssetsAPI:
 
         Returns:
             A list of Asset objects that match the filter criteria.
+        """
+        ...
+
+    def unarchive(self, asset: str | Asset) -> Asset:
+        """Unarchive an asset.
+
+        Args:
+             asset: The Asset or asset ID to unarchive.
+
+        Returns:
+             The unarchived Asset.
         """
         ...
 
@@ -159,8 +169,15 @@ class CalculatedChannelsAPI:
         ...
 
     def _run(self, coro): ...
-    def archive(self, calculated_channel: str | CalculatedChannel) -> None:
-        """Archive a Calculated Channel."""
+    def archive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
+        """Archive a calculated channel.
+
+        Args:
+            calculated_channel: The id or CalculatedChannel object of the calculated channel to archive.
+
+        Returns:
+            The archived CalculatedChannel.
+        """
         ...
 
     def create(self, create: CalculatedChannelCreate | dict) -> CalculatedChannel:
@@ -229,7 +246,7 @@ class CalculatedChannelsAPI:
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[CalculatedChannel]:
-        """List calculated channels with optional filtering.
+        """List calculated channels with optional filtering. This will return the latest version. To find all versions, use `list_versions`.
 
         Args:
             name: Exact name of the calculated channel.
@@ -305,6 +322,17 @@ class CalculatedChannelsAPI:
 
         Returns:
             A list of CalculatedChannel versions that match the filter criteria.
+        """
+        ...
+
+    def unarchive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
+        """Unarchive a calculated channel.
+
+        Args:
+            calculated_channel: The id or CalculatedChannel object of the calculated channel to unarchive.
+
+        Returns:
+            The unarchived CalculatedChannel.
         """
         ...
 
@@ -493,63 +521,26 @@ class RulesAPI:
         ...
 
     def _run(self, coro): ...
-    def archive(
-        self,
-        *,
-        rule: str | Rule | None = None,
-        rules: list[Rule] | None = None,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> None:
-        """Archive a rule or multiple.
+    def archive(self, rule: str | Rule) -> Rule:
+        """Archive a rule.
 
         Args:
-            rule: The Rule to archive.
-            rules: The Rules to archive.
-            rule_ids: The rule IDs to archive.
-            client_keys: The client keys to archive.
-        """
-        ...
-
-    def batch_get(
-        self, *, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
-    ) -> list[Rule]:
-        """Get multiple rules by rule IDs or client keys.
-
-        Args:
-            rule_ids: List of rule IDs to get.
-            client_keys: List of client keys to get.
+            rule: The id or Rule object of the rule to archive.
 
         Returns:
-            List of Rules.
+            The archived Rule.
         """
         ...
 
-    def batch_restore(
-        self, *, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
-    ) -> None:
-        """Batch restore rules.
+    def create(self, create: RuleCreate | dict) -> Rule:
+        """Create a new rule.
 
         Args:
-            rule_ids: List of rule IDs to restore.
-            client_keys: List of client keys to undelete.
-        """
-        ...
+            create: A RuleCreate object or dictionary with configuration for the new rule.
 
-    def create(
-        self,
-        name: str,
-        description: str,
-        expression: str,
-        channel_references: list[ChannelReference],
-        action: RuleAction,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        asset_ids: list[str] | None = None,
-        contextual_channels: list[str] | None = None,
-        is_external: bool = False,
-    ) -> Rule:
-        """Create a new rule."""
+        Returns:
+            The created Rule.
+        """
         ...
 
     def find(self, **kwargs) -> Rule | None:
@@ -601,23 +592,19 @@ class RulesAPI:
         """
         ...
 
-    def restore(
-        self, *, rule: str | Rule, rule_id: str | None = None, client_key: str | None = None
-    ) -> Rule:
-        """Restore a rule.
+    def unarchive(self, rule: str | Rule) -> Rule:
+        """Unarchive a rule.
 
         Args:
-            rule: The Rule or rule ID to restore.
-            rule_id: The rule ID to restore (alternative to rule parameter).
-            client_key: The client key to restore (alternative to rule parameter).
+            rule: The id or Rule object of the rule to unarchive.
 
         Returns:
-            The restored Rule.
+            The unarchived Rule.
         """
         ...
 
     def update(
-        self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
+        self, rule: Rule | str, update: RuleUpdate | dict, *, version_notes: str | None = None
     ) -> Rule:
         """Update a Rule.
 
@@ -652,7 +639,7 @@ class RunsAPI:
         ...
 
     def _run(self, coro): ...
-    def archive(self, run: str | Run) -> None:
+    def archive(self, run: str | Run) -> Run:
         """Archive a run.
 
         Args:
@@ -774,6 +761,14 @@ class RunsAPI:
 
         Args:
             run: The Run or run ID to stop.
+        """
+        ...
+
+    def unarchive(self, run: str | Run) -> Run:
+        """Unarchive a run.
+
+        Args:
+            run: The Run or run ID to unarchive.
         """
         ...
 

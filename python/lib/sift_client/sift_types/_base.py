@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, TypeVar
 
 from google.protobuf import field_mask_pb2, message
-from pydantic import BaseModel, ConfigDict, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -18,7 +18,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     model_config = ConfigDict(frozen=True)
 
     id_: str | None = None
-    proto: ProtoT | None = None
+    proto: Any | None = Field(default=None, exclude=True) # For user reference only
     _client: SiftClient | None = None
 
     @property

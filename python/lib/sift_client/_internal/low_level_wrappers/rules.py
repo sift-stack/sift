@@ -338,7 +338,9 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = BatchArchiveRulesRequest(**request_kwargs)
         await self._grpc_client.get_stub(RuleServiceStub).BatchArchiveRules(request)
 
-    async def unarchive_rule(self, rule_id: str | None = None, client_key: str | None = None) -> Rule:
+    async def unarchive_rule(
+        self, rule_id: str | None = None, client_key: str | None = None
+    ) -> Rule:
         """Unarchive a rule.
 
         Args:

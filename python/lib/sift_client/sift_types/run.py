@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import ConfigDict, model_validator
+from pydantic import model_validator
 from sift.runs.v2.runs_pb2 import CreateRunRequest as CreateRunRequestProto
 from sift.runs.v2.runs_pb2 import Run as RunProto
 
@@ -23,8 +23,6 @@ if TYPE_CHECKING:
 
 class Run(BaseType[RunProto, "Run"]):
     """Run model representing a data collection run."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Required fields
     name: str
@@ -47,7 +45,6 @@ class Run(BaseType[RunProto, "Run"]):
     default_report_id: str | None
     client_key: str | None
     archived_date: datetime | None
-    duration: timedelta | None
 
     @classmethod
     def _from_proto(cls, proto: RunProto, sift_client: SiftClient | None = None) -> Run:

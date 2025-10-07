@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from sift.assets.v1.assets_pb2 import (
     ArchiveAssetRequest,
-ArchiveAssetResponse,
+    ArchiveAssetResponse,
     GetAssetRequest,
     GetAssetResponse,
     ListAssetsRequest,

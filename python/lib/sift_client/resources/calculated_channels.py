@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.calculated_channels import (
@@ -18,6 +17,7 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from datetime import datetime
 
     from sift_client.client import SiftClient
 
@@ -256,9 +256,9 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         Returns:
             The archived CalculatedChannel.
         """
-        return await self.update(calculated_channel=calculated_channel, update=CalculatedChannelUpdate(
-            is_archived=True
-        ))
+        return await self.update(
+            calculated_channel=calculated_channel, update=CalculatedChannelUpdate(is_archived=True)
+        )
 
     async def unarchive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
         """Unarchive a calculated channel.
@@ -269,9 +269,9 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         Returns:
             The unarchived CalculatedChannel.
         """
-        return await self.update(calculated_channel=calculated_channel, update=CalculatedChannelUpdate(
-            is_archived=False
-        ))
+        return await self.update(
+            calculated_channel=calculated_channel, update=CalculatedChannelUpdate(is_archived=False)
+        )
 
     async def list_versions(
         self,

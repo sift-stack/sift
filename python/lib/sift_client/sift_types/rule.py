@@ -45,7 +45,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
     name: str
     description: str
     is_enabled: bool
-    is_enabled: bool
     created_date: datetime
     modified_date: datetime
     created_by_user_id: str
@@ -64,7 +63,6 @@ class Rule(BaseType[RuleProto, "Rule"]):
     client_key: str | None
     rule_version: RuleVersion | None
     archived_date: datetime | None
-
 
     @property
     def assets(self) -> list[Asset]:

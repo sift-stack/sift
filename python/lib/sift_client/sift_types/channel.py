@@ -236,35 +236,27 @@ class Channel(BaseType[ChannelProto, "Channel"]):
 
     @classmethod
     def _from_proto(
-        cls, proto: ChannelProto | ChannelConfig, sift_client: SiftClient | None = None
+        cls, proto: ChannelProto, sift_client: SiftClient | None = None
     ) -> Channel:
-        if isinstance(proto, ChannelProto):
-            return cls(
-                proto=proto,
-                id_=proto.channel_id,
-                name=proto.name,
-                data_type=ChannelDataType(proto.data_type),
-                description=proto.description,
-                unit=proto.unit_id,
-                bit_field_elements=[
-                    ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements
-                ],
-                enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
-                asset_id=proto.asset_id,
-                created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
-                modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
-                created_by_user_id=proto.created_by_user_id,
-                modified_by_user_id=proto.modified_by_user_id,
-                _client=sift_client,
-            )
-        else: # ChannelConfig
-            return cls(
-                proto=proto,
-                id_=proto.name,
-                name=proto.name,
-                data_type=ChannelDataType(proto.data_type),
-                _client=sift_client,
-            )
+        return cls(
+            proto=proto,
+            id_=proto.channel_id,
+            name=proto.name,
+            data_type=ChannelDataType(proto.data_type),
+            description=proto.description,
+            unit=proto.unit_id,
+            bit_field_elements=[
+                ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements
+            ],
+            enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
+            asset_id=proto.asset_id,
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
+            created_by_user_id=proto.created_by_user_id,
+            modified_by_user_id=proto.modified_by_user_id,
+            _client=sift_client,
+        )
+
 
     def _to_config_proto(self) -> ChannelConfig:
         return ChannelConfig(
