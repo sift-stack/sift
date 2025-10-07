@@ -573,9 +573,22 @@ class RulesAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        metadata: list[Any] | None = None,
+        asset_ids: list[str] | None = None,
+        asset_tag_ids: list[str] | None = None,
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
-        include_deleted: bool = False,
     ) -> list[Rule]:
         """List rules with optional filtering.
 
@@ -583,9 +596,22 @@ class RulesAPI:
             name: Exact name of the rule.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
-            order_by: How to order the retrieved rules.
-            limit: How many rules to retrieve. If None, retrieves all matches.
-            include_deleted: Include deleted rules.
+            rule_ids: IDs of rules to filter to.
+            client_keys: Client keys of rules to filter to.
+            created_after: Rules created after this datetime.
+            created_before: Rules created before this datetime.
+            modified_after: Rules modified after this datetime.
+            modified_before: Rules modified before this datetime.
+            created_by: Filter rules created by this User or user ID.
+            modified_by: Filter rules last modified by this User or user ID.
+            metadata: Filter rules by metadata criteria.
+            asset_ids: Filter rules associated with any of these Asset IDs.
+            asset_tag_ids: Filter rules associated with any of these Asset Tag IDs.
+            description_contains: Partial description of the rule.
+            include_archived: If True, include archived rules in results.
+            filter_query: Explicit CEL query to filter rules.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of rules to return. If None, returns all matches.
 
         Returns:
             A list of Rules that matches the filter.
