@@ -24,7 +24,6 @@ from sift.data.v2.data_pb2 import (
     Uint32Values,
     Uint64Values,
 )
-from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig
 
 from sift_client.sift_types._base import BaseType
 
@@ -235,9 +234,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return {enum.name: enum.key for enum in enum_types}
 
     @classmethod
-    def _from_proto(
-        cls, proto: ChannelProto, sift_client: SiftClient | None = None
-    ) -> Channel:
+    def _from_proto(cls, proto: ChannelProto, sift_client: SiftClient | None = None) -> Channel:
         return cls(
             proto=proto,
             id_=proto.channel_id,
@@ -255,19 +252,6 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             _client=sift_client,
-        )
-
-
-    def _to_config_proto(self) -> ChannelConfig:
-        return ChannelConfig(
-            name=self.name,
-            data_type=self.data_type.value,
-            description=self.description,  # type: ignore
-            unit=self.unit,  # type: ignore
-            bit_field_elements=[el._to_proto() for el in self.bit_field_elements]
-            if self.bit_field_elements
-            else None,
-            enum_types=self._enum_types_to_proto_list(self.enum_types),
         )
 
     def data(

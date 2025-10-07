@@ -18,7 +18,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     model_config = ConfigDict(frozen=True)
 
     id_: str | None = None
-    proto: Any | None = Field(default=None, exclude=True) # For user reference only
+    proto: Any | None = Field(default=None, exclude=True)  # For user reference only
     _client: SiftClient | None = None
 
     @property

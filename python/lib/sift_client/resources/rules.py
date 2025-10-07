@@ -156,7 +156,9 @@ class RulesAPIAsync(ResourceBase):
         if isinstance(update, dict):
             update = RuleUpdate.model_validate(update)
 
-        updated_rule = await self._low_level_client.update_rule(rule=rule_obj, update=update, version_notes=version_notes)
+        updated_rule = await self._low_level_client.update_rule(
+            rule=rule_obj, update=update, version_notes=version_notes
+        )
         return self._apply_client_to_instance(updated_rule)
 
     async def archive(self, rule: str | Rule) -> Rule:
