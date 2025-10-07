@@ -1,6 +1,7 @@
 from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
+    CalculatedChannelCreate,
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import (
@@ -15,15 +16,17 @@ from sift_client.sift_types.rule import (
     RuleAction,
     RuleActionType,
     RuleAnnotationType,
+    RuleCreate,
     RuleUpdate,
     RuleVersion,
 )
-from sift_client.sift_types.run import Run, RunUpdate
+from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 
 __all__ = [
     "Asset",
     "AssetUpdate",
     "CalculatedChannel",
+    "CalculatedChannelCreate",
     "CalculatedChannelUpdate",
     "Channel",
     "ChannelBitFieldElement",
@@ -36,8 +39,10 @@ __all__ = [
     "RuleAction",
     "RuleActionType",
     "RuleAnnotationType",
+    "RuleCreate",
     "RuleUpdate",
     "RuleVersion",
     "Run",
+    "RunCreate",
     "RunUpdate",
 ]

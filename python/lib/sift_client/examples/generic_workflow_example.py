@@ -10,6 +10,7 @@ from sift_client.sift_types import (
     ChannelReference,
     RuleAction,
     RuleAnnotationType,
+    RuleCreate,
     RuleUpdate,
 )
 
@@ -57,7 +58,9 @@ async def main():
                     ChannelReference(
                         channel_reference="$1", channel_identifier="mainmotor.velocity"
                     ),
-                    ChannelReference(channel_reference="$2", channel_identifier="voltage"),
+                    ChannelReference(
+                        channel_reference="$2", channel_identifier="voltage"
+                    ),
                 ],
                 units="velocity/voltage",
                 asset_ids=[asset_id],
@@ -91,26 +94,29 @@ async def main():
         updated = True
     else:
         print(f"No rules found for {rule_search}")
-        rules = client.rules.search(
+        rules = client.rules.list_(
             asset_ids=[asset_id],
         )
         if rules:
             print(f"However these rules do exist: {[rule.name for rule in rules]}")
         print("Attempting to create rule for high_velocity_voltage_ratio_alert")
         rule = client.rules.create(
-            name="high_velocity_voltage_ratio_alert",
-            description="Alert when velocity-to-voltage ratio exceeds 0.1",
-            expression="$1 > 0.1",
-            channel_references=[
-                ChannelReference(
-                    channel_reference="$1", channel_identifier=calculated_channel.name
+            RuleCreate(
+                name="high_velocity_voltage_ratio_alert",
+                description="Alert when velocity-to-voltage ratio exceeds 0.1",
+                expression="$1 > 0.1",
+                channel_references=[
+                    ChannelReference(
+                        channel_reference="$1",
+                        channel_identifier=calculated_channel.name,
+                    ),
+                ],
+                action=RuleAction.annotation(
+                    annotation_type=RuleAnnotationType.DATA_REVIEW,
+                    tags=["high_ratio", "alert"],
+                    default_assignee_user_id=None,  # You can set a user ID here if needed
                 ),
-            ],
-            action=RuleAction.annotation(
-                annotation_type=RuleAnnotationType.DATA_REVIEW,
-                tags=["high_ratio", "alert"],
-                default_assignee_user_id=None,  # You can set a user ID here if needed
-            ),
+            )
         )
         print(f"Created rule: {rule.name} (ID: {rule.rule_id})")
 

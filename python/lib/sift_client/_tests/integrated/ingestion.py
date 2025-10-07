@@ -8,11 +8,10 @@ from datetime import datetime, timedelta, timezone
 from sift_client._tests import setup_logger
 from sift_client.client import SiftClient
 from sift_client.sift_types.channel import (
-    Channel,
     ChannelBitFieldElement,
     ChannelDataType,
 )
-from sift_client.sift_types.ingestion import Flow
+from sift_client.sift_types.ingestion import ChannelConfig, Flow
 from sift_client.transport import SiftConnectionConfig
 
 setup_logger()
@@ -55,16 +54,16 @@ async def main():
     regular_flow = Flow(
         name="test-flow",
         channels=[
-            Channel(name="test-channel", data_type=ChannelDataType.DOUBLE),
-            Channel(
+            ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
+            ChannelConfig(
                 name="test-enum-channel",
                 data_type=ChannelDataType.ENUM,
                 enum_types={"enum1": 1, "enum2": 2},
             ),
         ],
     )
-    regular_flow.add_channel(
-        Channel(
+    regular_flow.add_channelConfig(
+        ChannelConfig(
             name="test-bit-field-channel",
             data_type=ChannelDataType.BIT_FIELD,
             bit_field_elements=[
@@ -79,7 +78,7 @@ async def main():
     highspeed_flow = Flow(
         name="highspeed-flow",
         channels=[
-            Channel(name="highspeed-channel", data_type=ChannelDataType.DOUBLE),
+            ChannelConfig(name="highspeed-channel", data_type=ChannelDataType.DOUBLE),
         ],
     )
     # This seals the flow and ingestion config
@@ -90,7 +89,7 @@ async def main():
     )
     print(f"config_id: {config_id}")
     try:
-        regular_flow.add_channel(Channel(name="test-channel", data_type=ChannelDataType.DOUBLE))
+        regular_flow.add_channelConfig(ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE))
     except ValueError as e:
         assert repr(e) == "ValueError('Cannot add a channel to a flow after creation')"
 
@@ -99,7 +98,7 @@ async def main():
             name="new-asset-flow",
             channels=[
                 # Same channel name as the regular flow, but on a different asset.
-                Channel(name="test-channel", data_type=ChannelDataType.DOUBLE),
+                ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
             ],
         )
     ]
