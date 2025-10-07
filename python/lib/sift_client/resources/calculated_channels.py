@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.calculated_channels import (
@@ -247,12 +247,31 @@ class CalculatedChannelsAPIAsync(ResourceBase):
 
         return self._apply_client_to_instance(updated_calculated_channel)
 
-    async def archive(self, calculated_channel: str | CalculatedChannel) -> None:
-        """Archive a Calculated Channel."""
-        update = CalculatedChannelUpdate(
-            archived_date=datetime.now(tz=timezone.utc),
-        )
-        await self.update(calculated_channel=calculated_channel, update=update)
+    async def archive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
+        """Archive a calculated channel.
+
+        Args:
+            calculated_channel: The id or CalculatedChannel object of the calculated channel to archive.
+
+        Returns:
+            The archived CalculatedChannel.
+        """
+        return await self.update(calculated_channel=calculated_channel, update=CalculatedChannelUpdate(
+            is_archived=True
+        ))
+
+    async def unarchive(self, calculated_channel: str | CalculatedChannel) -> CalculatedChannel:
+        """Unarchive a calculated channel.
+
+        Args:
+            calculated_channel: The id or CalculatedChannel object of the calculated channel to unarchive.
+
+        Returns:
+            The unarchived CalculatedChannel.
+        """
+        return await self.update(calculated_channel=calculated_channel, update=CalculatedChannelUpdate(
+            is_archived=False
+        ))
 
     async def list_versions(
         self,
