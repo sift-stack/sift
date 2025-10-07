@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sift_client.util.cel_utils import (
     and_,
@@ -165,3 +165,15 @@ class TestCelUtils:
         """Test less_than function with datetime value."""
         dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         assert less_than("field", dt) == f"field < timestamp('{dt.isoformat()}')"
+
+    def test_greater_than_duration(self):
+        """Test greater_than function with timedelta value."""
+        duration = timedelta(hours=2, minutes=30, seconds=15)
+        expected_seconds = duration.total_seconds()
+        assert greater_than("field", duration) == f"field > duration('{expected_seconds}s')"
+
+    def test_less_than_duration(self):
+        """Test less_than function with timedelta value."""
+        duration = timedelta(hours=1, minutes=15, seconds=30)
+        expected_seconds = duration.total_seconds()
+        assert less_than("field", duration) == f"field < duration('{expected_seconds}s')"
