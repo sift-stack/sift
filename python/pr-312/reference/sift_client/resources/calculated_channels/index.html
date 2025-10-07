@@ -881,6 +881,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.unarchive" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unarchive
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.update" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update
@@ -1304,6 +1313,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.unarchive" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unarchive
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.update" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update
@@ -1470,7 +1488,7 @@ representation of a calculated channel using standard Python data structures and
    (sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.archive)" href="#sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.archive">archive</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Archive a Calculated Channel.</p>
+                  <p>Archive a calculated channel.</p>
                 </div>
               </td>
             </tr>
@@ -1540,6 +1558,19 @@ representation of a calculated channel using standard Python data structures and
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            unarchive
+
+
+  
+      async
+   (sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.unarchive)" href="#sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.unarchive">unarchive</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Unarchive a calculated channel.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            update
 
 
@@ -1590,12 +1621,79 @@ representation of a calculated channel using standard Python data structures and
   
       pydantic-model
    (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Archive a Calculated Channel.</p>
+        <p>Archive a calculated channel.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>calculated_channel</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The id or CalculatedChannel object of the calculated channel to archive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The archived CalculatedChannel.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -2910,6 +3008,104 @@ Will raise an error if multiple calculated channels are found.</p>
             <td class="doc-returns-details">
               <div class="doc-md-description">
                 <p>A list of CalculatedChannel versions that match the filter criteria.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.unarchive" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">unarchive</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#sift_client.resources.calculated_channels.CalculatedChannelsAPIAsync.unarchive" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">unarchive</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">calculated_channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Unarchive a calculated channel.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>calculated_channel</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The id or CalculatedChannel object of the calculated channel to unarchive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            CalculatedChannel
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.calculated_channel.CalculatedChannel)" href="../../sift_types/calculated_channel/#sift_client.sift_types.calculated_channel.CalculatedChannel">CalculatedChannel</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The unarchived CalculatedChannel.</p>
               </div>
             </td>
           </tr>
