@@ -159,10 +159,10 @@ case "$1" in
     test)
         run_tests
         ;;
-    test_integration)
+    test-integration)
         run_tests_integration
         ;;
-    test_all)
+    test-all)
         run_tests_all
         ;;
     gen-stubs)
