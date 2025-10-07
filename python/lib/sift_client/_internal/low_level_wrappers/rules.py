@@ -4,23 +4,23 @@ import logging
 from typing import TYPE_CHECKING, Any, cast
 
 from sift.rules.v1.rules_pb2 import (
-    BatchDeleteRulesRequest,
+    ArchiveRuleRequest,
+    BatchArchiveRulesRequest,
     BatchGetRulesRequest,
     BatchGetRulesResponse,
-    BatchUndeleteRulesRequest,
+    BatchUnarchiveRulesRequest,
     BatchUpdateRulesRequest,
     BatchUpdateRulesResponse,
     CalculatedChannelConfig,
     ContextualChannels,
     CreateRuleRequest,
     CreateRuleResponse,
-    DeleteRuleRequest,
     GetRuleRequest,
     GetRuleResponse,
     ListRulesRequest,
     RuleAssetConfiguration,
     RuleConditionExpression,
-    UndeleteRuleRequest,
+    UnarchiveRuleRequest,
     UpdateConditionRequest,
     UpdateRuleRequest,
     UpdateRuleResponse,
@@ -328,7 +328,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if client_key is not None:
             request_kwargs["client_key"] = client_key
 
-        request = DeleteRuleRequest(**request_kwargs)
+        request = ArchiveRuleRequest(**request_kwargs)
         await self._grpc_client.get_stub(RuleServiceStub).ArchiveRule(request)
 
     async def batch_archive_rules(
@@ -338,7 +338,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Args:
             rule_ids: List of rule IDs to archive.
-            client_keys: List of client keys to delete. If both are provided, rule_ids will be used.
+            client_keys: List of client keys to archive. If both are provided, rule_ids will be used.
 
         Raises:
             ValueError: If neither rule_ids nor client_keys is provided.
@@ -352,59 +352,53 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if client_keys is not None:
             request_kwargs["client_keys"] = client_keys
 
-        request = BatchDeleteRulesRequest(**request_kwargs)
-        await self._grpc_client.get_stub(RuleServiceStub).BatchDeleteRules(request)
+        request = BatchArchiveRulesRequest(**request_kwargs)
+        await self._grpc_client.get_stub(RuleServiceStub).BatchArchiveRules(request)
 
-    async def restore_rule(self, rule_id: str | None = None, client_key: str | None = None) -> Rule:
-        """Restore a rule.
+    async def unarchive_rule(self, rule_id: str | None = None, client_key: str | None = None) -> Rule:
+        """Unarchive a rule.
 
         Args:
-            rule_id: The rule ID to restore.
-            client_key: The client key to restore.
+            rule_id: The rule ID to unarchive.
+            client_key: The client key to unarchive.
 
         Returns:
-            The restored Rule.
+            The unarchived Rule.
 
         Raises:
             ValueError: If neither rule_id nor client_key is provided.
         """
-        if rule_id is None and client_key is None:
-            raise ValueError("Either rule_id or client_key must be provided")
-
         request_kwargs: dict[str, Any] = {}
         if rule_id is not None:
             request_kwargs["rule_id"] = rule_id
         if client_key is not None:
             request_kwargs["client_key"] = client_key
 
-        request = UndeleteRuleRequest(**request_kwargs)
-        await self._grpc_client.get_stub(RuleServiceStub).UndeleteRule(request)
-        # Get the restored rule
+        request = UnarchiveRuleRequest(**request_kwargs)
+        await self._grpc_client.get_stub(RuleServiceStub).UnarchiveRule(request)
+        # Get the unarchived rule
         return await self.get_rule(rule_id=rule_id, client_key=client_key)
 
-    async def batch_restore_rules(
+    async def batch_unarchive_rules(
         self, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
     ) -> None:
-        """Batch restore rules.
+        """Batch unarchive rules.
 
         Args:
-            rule_ids: List of rule IDs to restore.
-            client_keys: List of client keys to restore.
+            rule_ids: List of rule IDs to unarchive.
+            client_keys: List of client keys to unarchive.
 
         Raises:
             ValueError: If neither rule_ids nor client_keys is provided.
         """
-        if rule_ids is None and client_keys is None:
-            raise ValueError("Either rule_ids or client_keys must be provided")
-
         request_kwargs: dict[str, Any] = {}
         if rule_ids is not None:
             request_kwargs["rule_ids"] = rule_ids
         if client_keys is not None:
             request_kwargs["client_keys"] = client_keys
 
-        request = BatchUndeleteRulesRequest(**request_kwargs)
-        await self._grpc_client.get_stub(RuleServiceStub).BatchUndeleteRules(request)
+        request = BatchUnarchiveRulesRequest(**request_kwargs)
+        await self._grpc_client.get_stub(RuleServiceStub).BatchUnarchiveRules(request)
 
     async def list_rules(
         self,

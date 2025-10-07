@@ -38,18 +38,28 @@ class RulesAPIAsync(ResourceBase):
         *,
         rule_id: str | None = None,
         client_key: str | None = None,
-    ) -> Rule:
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+    ) -> Rule | list[Rule]:
         """Get a Rule.
 
         Args:
             rule_id: The ID of the rule.
             client_key: The client key of the rule.
+            rule_ids: List of rule IDs to get.
+            client_keys: List of client keys to get.
 
         Returns:
-            The Rule.
+            The Rule or Rules.
         """
-        rule = await self._low_level_client.get_rule(rule_id=rule_id, client_key=client_key)
-        return self._apply_client_to_instance(rule)
+        if rule_id or client_key:
+            rule = await self._low_level_client.get_rule(rule_id=rule_id, client_key=client_key)
+            return self._apply_client_to_instance(rule)
+        else:
+            rules = await self._low_level_client.batch_get_rules(
+                rule_ids=rule_ids, client_keys=client_keys
+            )
+            return self._apply_client_to_instances(rules)
 
     async def list_(
         self,
@@ -166,6 +176,7 @@ class RulesAPIAsync(ResourceBase):
         self,
         *,
         rule: str | Rule | None = None,
+        client_key: str | None = None,
         rules: list[Rule] | None = None,
         rule_ids: list[str] | None = None,
         client_keys: list[str] | None = None,
@@ -174,89 +185,50 @@ class RulesAPIAsync(ResourceBase):
 
         Args:
             rule: The Rule to archive.
+            client_key: The client key or the Rule to archive.
             rules: The Rules to archive.
             rule_ids: The rule IDs to archive.
-            client_keys: The client keys to archive.
+            client_keys: The client keys of the Rules tp archive.
         """
-        if rule:
-            if isinstance(rule, Rule):
-                await self._low_level_client.archive_rule(rule_id=rule.id_)
-            else:
-                await self._low_level_client.archive_rule(rule_id=rule)
-        elif rules:
-            if len(rules) == 1:
-                await self._low_level_client.archive_rule(rule_id=rules[0].id_)
-            else:
-                await self._low_level_client.batch_archive_rules(
-                    rule_ids=[r.id_ for r in rules],  # type: ignore
-                )
-        elif rule_ids:
-            if len(rule_ids) == 1:
-                await self._low_level_client.archive_rule(rule_id=rule_ids[0])
-            else:
-                await self._low_level_client.batch_archive_rules(rule_ids=rule_ids)
-        elif client_keys:
-            await self._low_level_client.batch_archive_rules(client_keys=client_keys)
-        else:
-            raise ValueError("Either rules, rule_ids, or client_keys must be provided")
-
-    async def restore(
-        self,
-        *,
-        rule: str | Rule,
-        rule_id: str | None = None,
-        client_key: str | None = None,
-    ) -> Rule:
-        """Restore a rule.
-
-        Args:
-            rule: The Rule or rule ID to restore.
-            rule_id: The rule ID to restore (alternative to rule parameter).
-            client_key: The client key to restore (alternative to rule parameter).
-
-        Returns:
-            The restored Rule.
-        """
-        if rule_id or client_key:
-            restored_rule = await self._low_level_client.restore_rule(
-                rule_id=rule_id, client_key=client_key
+        if rule or client_key:
+            rule_id = rule._id_or_error if isinstance(rule, Rule) else rule
+            return await self._low_level_client.archive_rule(rule_id=rule_id, client_key=client_key)
+        elif rules or rule_ids or client_keys:
+            rule_ids = rule_ids or [rule._id_or_error for rule in rules]
+            return await self._low_level_client.batch_archive_rules(
+                rule_ids=rule_ids, client_keys=client_keys
             )
         else:
+            raise ValueError("Either rule or rules must be provided")
+
+        async def unarchive(
+                self,
+                *,
+                rule: str | Rule | None = None,
+                client_key: str | None = None,
+                rules: list[Rule] | None = None,
+                rule_ids: list[str] | None = None,
+                client_keys: list[str] | None = None,
+        ) -> None:
+            """Unarchive a Rule or multiple.
+
+            Args:
+            rule: The Rule to restore.
+            client_key: The client key of the Rule to restore.
+            rules: The Rules to restore.
+            rule_ids: The rule IDs to restore.
+            client_keys: The client keys of the Rules to restore.
+            """
+        if rule or client_key:
             rule_id = rule._id_or_error if isinstance(rule, Rule) else rule
-            restored_rule = await self._low_level_client.restore_rule(rule_id=rule_id)
+            return await self._low_level_client.unarchive_rule(rule_id=rule_id, client_key=client_key)
+        elif rules or rule_ids or client_keys:
+            rule_ids = rule_ids or [rule._id_or_error for rule in rules]
+            return await self._low_level_client.batch_unarchive_rules(
+                rule_ids=rule_ids, client_keys=client_keys
+            )
+        else:
+            raise ValueError("Either rule or rules must be provided")
 
-        return self._apply_client_to_instance(restored_rule)
 
-    async def batch_restore(
-        self,
-        *,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> None:
-        """Batch restore rules.
 
-        Args:
-            rule_ids: List of rule IDs to restore.
-            client_keys: List of client keys to undelete.
-        """
-        await self._low_level_client.batch_restore_rules(rule_ids=rule_ids, client_keys=client_keys)
-
-    async def batch_get(
-        self,
-        *,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> list[Rule]:
-        """Get multiple rules by rule IDs or client keys.
-
-        Args:
-            rule_ids: List of rule IDs to get.
-            client_keys: List of client keys to get.
-
-        Returns:
-            List of Rules.
-        """
-        rules = await self._low_level_client.batch_get_rules(
-            rule_ids=rule_ids, client_keys=client_keys
-        )
-        return self._apply_client_to_instances(rules)
