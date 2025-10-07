@@ -16,6 +16,9 @@ ChannelReferencesEntry = CalculatedChannelConfig.ChannelReferencesEntry
 del CalculatedChannelConfig
 
 from sift.rules.v1.rules_pb2 import (
+    CreateRuleRequest,
+)
+from sift.rules.v1.rules_pb2 import (
     Rule as RuleProto,
 )
 from sift.rules.v1.rules_pb2 import (
@@ -25,7 +28,7 @@ from sift.rules.v1.rules_pb2 import (
     RuleVersion as RuleVersionProto,
 )
 
-from sift_client.sift_types._base import BaseType, ModelUpdate
+from sift_client.sift_types._base import BaseType, ModelCreate, ModelUpdate
 from sift_client.sift_types.channel import ChannelReference
 
 if TYPE_CHECKING:
@@ -101,9 +104,11 @@ class Rule(BaseType[RuleProto, "Rule"]):
         self._update(updated_rule)
         return self
 
-    def archive(self) -> None:
+    def archive(self) -> Rule:
         """Archive the rule."""
-        self.client.rules.archive(rule=self)
+        updated_rule = self.client.rules.archive(rule=self)
+        self._update(updated_rule)
+        return self
 
     @classmethod
     def _from_proto(cls, proto: RuleProto, sift_client: SiftClient | None = None) -> Rule:
@@ -143,6 +148,30 @@ class Rule(BaseType[RuleProto, "Rule"]):
             is_external=proto.is_external,
             _client=sift_client,
         )
+
+
+class RuleCreate(ModelCreate[CreateRuleRequest]):
+    """Model for creating a new Rule.
+
+    Note:
+    - asset_ids applies this rule to those assets.
+    - asset_tag_ids applies this rule to assets with those tags.
+    """
+
+    name: str
+    description: str
+    expression: str
+    channel_references: list[ChannelReference]
+    action: RuleAction
+    organization_id: str | None = None
+    client_key: str | None = None
+    asset_ids: list[str] | None = None
+    asset_tag_ids: list[str] | None = None
+    contextual_channels: list[str] | None = None
+    is_external: bool = False
+
+    def _get_proto_class(self) -> type[CreateRuleRequest]:
+        return CreateRuleRequest
 
 
 class RuleUpdate(ModelUpdate[RuleProto]):

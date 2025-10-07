@@ -4,14 +4,13 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
+from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.channel import ChannelReference
 
 
 class RulesAPIAsync(ResourceBase):
@@ -124,34 +123,28 @@ class RulesAPIAsync(ResourceBase):
 
     async def create(
         self,
-        name: str,
-        description: str,
-        expression: str,
-        channel_references: list[ChannelReference],
-        action: RuleAction,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        asset_ids: list[str] | None = None,
-        contextual_channels: list[str] | None = None,
-        is_external: bool = False,
+        create: RuleCreate | dict,
     ) -> Rule:
-        """Create a new rule."""
-        created_rule = await self._low_level_client.create_rule(
-            name=name,
-            description=description,
-            organization_id=organization_id,
-            expression=expression,
-            action=action,
-            channel_references=channel_references,
-            client_key=client_key,
-            asset_ids=asset_ids,
-            contextual_channels=contextual_channels,
-            is_external=is_external,
-        )
+        """Create a new rule.
+
+        Args:
+            create: A RuleCreate object or dictionary with configuration for the new rule.
+
+        Returns:
+            The created Rule.
+        """
+        if isinstance(create, dict):
+            create = RuleCreate.model_validate(create)
+
+        created_rule = await self._low_level_client.create_rule(create=create)
         return self._apply_client_to_instance(created_rule)
 
     async def update(
-        self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
+        self,
+        rule: Rule | str,
+        update: RuleUpdate | dict,
+        *,
+        version_notes: str | None = None,
     ) -> Rule:
         """Update a Rule.
 
@@ -172,63 +165,27 @@ class RulesAPIAsync(ResourceBase):
         updated_rule = await self._low_level_client.update_rule(rule, update, version_notes)
         return self._apply_client_to_instance(updated_rule)
 
-    async def archive(
-        self,
-        *,
-        rule: str | Rule | None = None,
-        client_key: str | None = None,
-        rules: list[Rule] | None = None,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> None:
-        """Archive a rule or multiple.
+    async def archive(self, rule: str | Rule) -> Rule:
+        """Archive a rule.
 
         Args:
-            rule: The Rule to archive.
-            client_key: The client key or the Rule to archive.
-            rules: The Rules to archive.
-            rule_ids: The rule IDs to archive.
-            client_keys: The client keys of the Rules tp archive.
+            rule: The id or Rule object of the rule to archive.
+
+        Returns:
+            The archived Rule.
         """
-        if rule or client_key:
-            rule_id = rule._id_or_error if isinstance(rule, Rule) else rule
-            return await self._low_level_client.archive_rule(rule_id=rule_id, client_key=client_key)
-        elif rules or rule_ids or client_keys:
-            rule_ids = rule_ids or [rule._id_or_error for rule in rules]
-            return await self._low_level_client.batch_archive_rules(
-                rule_ids=rule_ids, client_keys=client_keys
-            )
-        else:
-            raise ValueError("Either rule or rules must be provided")
+        return await self.update(rule=rule, update=RuleUpdate(is_archived=True))
 
-        async def unarchive(
-                self,
-                *,
-                rule: str | Rule | None = None,
-                client_key: str | None = None,
-                rules: list[Rule] | None = None,
-                rule_ids: list[str] | None = None,
-                client_keys: list[str] | None = None,
-        ) -> None:
-            """Unarchive a Rule or multiple.
+    async def unarchive(self, rule: str | Rule) -> Rule:
+        """Unarchive a rule.
 
-            Args:
-            rule: The Rule to restore.
-            client_key: The client key of the Rule to restore.
-            rules: The Rules to restore.
-            rule_ids: The rule IDs to restore.
-            client_keys: The client keys of the Rules to restore.
-            """
-        if rule or client_key:
-            rule_id = rule._id_or_error if isinstance(rule, Rule) else rule
-            return await self._low_level_client.unarchive_rule(rule_id=rule_id, client_key=client_key)
-        elif rules or rule_ids or client_keys:
-            rule_ids = rule_ids or [rule._id_or_error for rule in rules]
-            return await self._low_level_client.batch_unarchive_rules(
-                rule_ids=rule_ids, client_keys=client_keys
-            )
-        else:
-            raise ValueError("Either rule or rules must be provided")
+        Args:
+            rule: The id or Rule object of the rule to unarchive.
+
+        Returns:
+            The unarchived Rule.
+        """
+        return await self.update(rule=rule, update=RuleUpdate(is_archived=False))
 
 
 

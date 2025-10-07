@@ -7,7 +7,6 @@ from sift.rules.v1.rules_pb2 import (
     ArchiveRuleRequest,
     BatchArchiveRulesRequest,
     BatchGetRulesRequest,
-    BatchGetRulesResponse,
     BatchUnarchiveRulesRequest,
     BatchUpdateRulesRequest,
     BatchUpdateRulesResponse,
@@ -33,7 +32,7 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client.sift_types.rule import (
     Rule,
-    RuleAction,
+    RuleCreate,
     RuleUpdate,
 )
 from sift_client.transport import GrpcClient, WithGrpcClient
@@ -109,66 +108,50 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = BatchGetRulesRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchGetRules(request)
-        response = cast("BatchGetRulesResponse", response)
         return [Rule._from_proto(rule) for rule in response.rules]
 
     async def create_rule(
         self,
         *,
-        name: str,
-        description: str,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        asset_ids: list[str] | None = None,
-        tag_ids: list[str] | None = None,
-        contextual_channels: list[str] | None = None,
-        is_external: bool,
-        expression: str,
-        channel_references: list[ChannelReference],
-        action: RuleAction,
+        create: RuleCreate,
     ) -> Rule:
         """Create a new rule.
 
         Args:
-            name: The name of the rule.
-            description: The description of the rule.
-            organization_id: The organization ID of the rule.
-            client_key: The client key of the rule.
-            asset_ids: The asset IDs of the rule.
-            contextual_channels: Optional contextual channels of the rule.
+            create: The RuleCreate model with the rule configuration.
 
         Returns:
-            The rule ID of the created rule.
+            The created Rule.
         """
         # Convert rule to UpdateRuleRequest
         expression_proto = RuleConditionExpression(
             calculated_channel=CalculatedChannelConfig(
-                expression=expression,
+                expression=create.expression,
                 channel_references={
                     c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
-                    for c in channel_references
+                    for c in create.channel_references
                 },
             )
         )
         conditions_request = [
             UpdateConditionRequest(
-                expression=expression_proto, actions=[action._to_update_request()]
+                expression=expression_proto, actions=[create.action._to_update_request()]
             )
         ]
         update_request = UpdateRuleRequest(
-            name=name,
-            description=description,
+            name=create.name,
+            description=create.description,
             is_enabled=True,
-            organization_id=organization_id or "",
-            client_key=client_key,
-            is_external=is_external,
+            organization_id=create.organization_id or "",
+            client_key=create.client_key,
+            is_external=create.is_external,
             conditions=conditions_request,
             asset_configuration=RuleAssetConfiguration(
-                asset_ids=asset_ids or [],
-                tag_ids=tag_ids or [],
+                asset_ids=create.asset_ids or [],
+                tag_ids=create.asset_tag_ids or [],
             ),
             contextual_channels=ContextualChannels(
-                channels=[ChannelReferenceProto(name=c) for c in contextual_channels or []]
+                channels=[ChannelReferenceProto(name=c) for c in create.contextual_channels or []]
             ),  # type: ignore
         )
 
@@ -177,7 +160,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "CreateRuleResponse",
             await self._grpc_client.get_stub(RuleServiceStub).CreateRule(request),
         )
-        return await self.get_rule(rule_id=created_rule.rule_id, client_key=client_key)
+        return await self.get_rule(rule_id=created_rule.rule_id, client_key=create.client_key)
 
     def _update_rule_request_from_update(
         self, rule: Rule, update: RuleUpdate, version_notes: str | None = None
