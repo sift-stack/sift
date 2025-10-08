@@ -49,6 +49,7 @@ ignore = ["W191", "D206", "D300", # https://docs.astral.sh/ruff/formatter/#confl
     "D105", # Missing docstring in magic method
     "D205", # 1 blank line required between summary line and description
     "D100", # Missing docstring in public module
+    "C408", # Allow dict()
 ]
 
 

@@ -10,6 +10,7 @@ from sift_client.sift_types import (
     RuleAnnotationType,
     RuleUpdate,
 )
+from sift_client.sift_types.rule import RuleCreate
 
 """
 Comprehensive test script for rules with extensive update field exercises.
@@ -51,24 +52,28 @@ def main():
     created_rules = []
     for i in range(num_rules):
         rule = client.rules.create(
-            name=f"test_rule_{unique_name_suffix}_{i}",
-            description=f"Test rule {i} - initial description",
-            expression="$1 > 0.1",  # Simple threshold check
-            channel_references=[
-                ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
-            ],
-            action=RuleAction.annotation(
-                annotation_type=RuleAnnotationType.DATA_REVIEW,
-                tags=["test", "initial"],
-                default_assignee_user_id=None,
-            ),
-            asset_ids=[asset_id],
+            RuleCreate(
+                name=f"test_rule_{unique_name_suffix}_{i}",
+                description=f"Test rule {i} - initial description",
+                expression="$1 > 0.1",  # Simple threshold check
+                channel_references=[
+                    ChannelReference(
+                        channel_reference="$1", channel_identifier="mainmotor.velocity"
+                    ),
+                ],
+                action=RuleAction.annotation(
+                    annotation_type=RuleAnnotationType.DATA_REVIEW,
+                    tags=["test", "initial"],
+                    default_assignee_user_id=None,
+                ),
+                asset_ids=[asset_id],
+            )
         )
         created_rules.append(rule)
         print(f"Created rule: {rule.name} (ID: {rule.id_})")
 
     # Find the rules we just created
-    search_results = client.rules.list(
+    search_results = client.rules.list_(
         name_regex=f"test_rule_{unique_name_suffix}.*",
     )
     assert len(search_results) == num_rules, (
@@ -159,9 +164,9 @@ def main():
     print(f"Updated {updated_rule_6.name}: complex expression = {updated_rule_6.expression}")
 
     # Test 7: Update action to notification type
-    print("\n--- Test 7: Update action to notification ---")
-    rule_7 = created_rules[6]
-    updated_rule_7 = rule_7
+    # print("\n--- Test 7: Update action to notification ---")
+    # rule_7 = created_rules[6]
+    # updated_rule_7 = rule_7
     # Note: Notification actions are not supported yet.
     # updated_rule_7 = rule_7.update(
     #     RuleUpdate(
@@ -179,7 +184,10 @@ def main():
     updated_rule_8 = rule_8.update(
         RuleUpdate(
             # tag_ids=["tag-123", "tag-456"],  # Example tag IDs # TODO: Where are these IDs supposed to come from? They're supposed to be uuids? {grpc_message:"invalid argument: invalid input syntax for type uuid: \"tag-123\"
-            contextual_channels=["temperature", "pressure"],  # Example contextual channels
+            contextual_channels=[
+                "temperature",
+                "pressure",
+            ],  # Example contextual channels
         )
     )
     print(f"Updated {updated_rule_8.name}:")
@@ -202,42 +210,6 @@ def main():
         print(f"Invalid expression update succeeded (unexpected): {invalid_update.expression}")
     except Exception as e:
         print(f"Invalid expression update failed as expected: {e}")
-
-    # Test 9: Batch operations demonstration
-    print("\n--- Test 9: Batch operations demonstration ---")
-    all_updated_rules = [
-        updated_rule_1,
-        updated_rule_2,
-        updated_rule_3,
-        updated_rule_4,
-        updated_rule_5,
-        updated_rule_6,
-        updated_rule_7,
-        updated_rule_8,
-    ]
-
-    # Batch get the updated rules
-    rule_ids = [rule.id_ for rule in all_updated_rules]
-    batch_rules = client.rules.batch_get(rule_ids=rule_ids)
-    print(f"Batch retrieved {len(batch_rules)} rules:")
-    for rule in batch_rules:
-        print(f"  - {rule.name}: {rule.expression}")
-
-    # Test 10: Archive rules
-    print("\n--- Test 10: Archive rules ---")
-    client.rules.archive(rules=created_rules)
-
-    print("\n=== Test Summary ===")
-    print(f"Created: {len(created_rules)} rules")
-    print(f"Updated: {len(all_updated_rules)} rules")
-
-    # Verify all rules were processed
-    assert len(created_rules) == num_rules, (
-        f"Expected {num_rules} created rules, got {len(created_rules)}"
-    )
-    assert len(all_updated_rules) == num_rules, (
-        f"Expected {num_rules} updated rules, got {len(all_updated_rules)}"
-    )
 
     # Additional validation
     print("\n=== Validation Checks ===")

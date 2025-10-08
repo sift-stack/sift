@@ -8,11 +8,10 @@ from datetime import datetime, timedelta, timezone
 from sift_client._tests import setup_logger
 from sift_client.client import SiftClient
 from sift_client.sift_types.channel import (
-    Channel,
     ChannelBitFieldElement,
     ChannelDataType,
 )
-from sift_client.sift_types.ingestion import Flow
+from sift_client.sift_types.ingestion import ChannelConfig, Flow
 from sift_client.transport import SiftConnectionConfig
 
 setup_logger()
@@ -35,8 +34,8 @@ async def main():
     asset = "ian-test-asset"
 
     # TODO:Get user id from current user
-    previously_created_runs = client.runs.list(
-        name_regex="test-run-.*", created_by_user_id="1eba461b-fa36-4e98-8fe8-ff32d3e43a6e"
+    previously_created_runs = client.runs.list_(
+        name_regex="test-run-.*", created_by="1eba461b-fa36-4e98-8fe8-ff32d3e43a6e"
     )
     if previously_created_runs:
         print(f"   Deleting previously created runs: {previously_created_runs}")
@@ -45,24 +44,26 @@ async def main():
             client.runs.archive(run=run)
 
     run = client.runs.create(
-        name=f"test-run-{datetime.now(tz=timezone.utc).timestamp()}",
-        description="A test run created via the API",
-        tags=["api-created", "test"],
+        dict(
+            name=f"test-run-{datetime.now(tz=timezone.utc).timestamp()}",
+            description="A test run created via the API",
+            tags=["api-created", "test"],
+        )
     )
 
     regular_flow = Flow(
         name="test-flow",
         channels=[
-            Channel(name="test-channel", data_type=ChannelDataType.DOUBLE),
-            Channel(
+            ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
+            ChannelConfig(
                 name="test-enum-channel",
                 data_type=ChannelDataType.ENUM,
                 enum_types={"enum1": 1, "enum2": 2},
             ),
         ],
     )
-    regular_flow.add_channel(
-        Channel(
+    regular_flow.add_channelConfig(
+        ChannelConfig(
             name="test-bit-field-channel",
             data_type=ChannelDataType.BIT_FIELD,
             bit_field_elements=[
@@ -77,7 +78,7 @@ async def main():
     highspeed_flow = Flow(
         name="highspeed-flow",
         channels=[
-            Channel(name="highspeed-channel", data_type=ChannelDataType.DOUBLE),
+            ChannelConfig(name="highspeed-channel", data_type=ChannelDataType.DOUBLE),
         ],
     )
     # This seals the flow and ingestion config
@@ -88,7 +89,9 @@ async def main():
     )
     print(f"config_id: {config_id}")
     try:
-        regular_flow.add_channel(Channel(name="test-channel", data_type=ChannelDataType.DOUBLE))
+        regular_flow.add_channelConfig(
+            ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE)
+        )
     except ValueError as e:
         assert repr(e) == "ValueError('Cannot add a channel to a flow after creation')"
 
@@ -97,7 +100,7 @@ async def main():
             name="new-asset-flow",
             channels=[
                 # Same channel name as the regular flow, but on a different asset.
-                Channel(name="test-channel", data_type=ChannelDataType.DOUBLE),
+                ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
             ],
         )
     ]

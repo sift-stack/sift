@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, TypeVar
 
 from google.protobuf import field_mask_pb2, message
-from pydantic import BaseModel, ConfigDict, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -18,6 +18,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
     model_config = ConfigDict(frozen=True)
 
     id_: str | None = None
+    proto: Any | None = Field(default=None, exclude=True)  # For user reference only
     _client: SiftClient | None = None
 
     @property
@@ -27,6 +28,13 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
                 "Sift client not set. Please retrieve with the SiftClient to use this method."
             )
         return self._client
+
+    @property
+    def _id_or_error(self) -> str:
+        """Get the ID of this instance or raise an error if it's not set for type safe usage."""
+        if self.id_ is None:
+            raise ValueError("ID is not set")
+        return self.id_
 
     @classmethod
     @abstractmethod
@@ -42,6 +50,9 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
         for key in other.__class__.model_fields.keys():
             if key in self.model_fields:
                 self.__dict__.update({key: getattr(other, key)})
+
+        # Make sure we also update the proto since it is excluded
+        self.__dict__["proto"] = other.proto
         return self
 
 
@@ -58,13 +69,10 @@ class MappingHelper(BaseModel):
     converter: type[Any] | Callable[[Any], Any] | None = None
 
 
-# TODO: how to handle nulling fields, needs to be default value for the type
-class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
-    """Base class for Pydantic models that generate proto patches with field masks."""
+class ModelCreateUpdateBase(BaseModel, ABC):
+    """Base class for Pydantic models that generate proto messages."""
 
     model_config = ConfigDict(frozen=False)
-
-    _resource_id: Any | None = PrivateAttr(default=None)
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = PrivateAttr(default={})
 
     def __init__(self, **data: Any):
@@ -76,28 +84,6 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
                     raise ValueError(
                         f"MappingHelper created for {expected_field} but {self.__class__.__name__} has no matching variable names."
                     )
-
-    @property
-    def resource_id(self):
-        return self._resource_id
-
-    @resource_id.setter
-    def resource_id(self, value):
-        self._resource_id = value
-
-    def to_proto_with_mask(self) -> tuple[ProtoT, field_mask_pb2.FieldMask]:
-        """Convert to proto with field mask."""
-        # Get the corresponding proto class
-        proto_cls: type[ProtoT] = self._get_proto_class()
-        proto_msg = proto_cls()
-
-        # Get only explicitly set fields, including those set to None
-        data = self.model_dump(exclude_unset=True, exclude_none=False)
-        paths = self._build_proto_and_paths(proto_msg, data)
-
-        self._add_resource_id_to_proto(proto_msg)
-        mask = field_mask_pb2.FieldMask(paths=paths)
-        return proto_msg, mask
 
     def _build_proto_and_paths(
         self, proto_msg, data, prefix="", already_setting_path_override=False
@@ -176,10 +162,61 @@ class ModelUpdate(BaseModel, Generic[ProtoT], ABC):
 
         return paths
 
+
+class ModelCreate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
+    """Base class for Pydantic models that generate proto messages for creation."""
+
+    @abstractmethod
     def _get_proto_class(self) -> type[ProtoT]:
         """Get the corresponding proto class - override in subclasses since typing is not strict."""
         raise NotImplementedError("Subclasses must implement this")
 
+    def to_proto(self) -> ProtoT:
+        """Convert to proto."""
+        # Get the corresponding proto class
+        proto_cls: type[ProtoT] = self._get_proto_class()
+        proto_msg = proto_cls()
+
+        # Get all fields
+        data = self.model_dump(exclude_none=False)
+        self._build_proto_and_paths(proto_msg, data)
+
+        return proto_msg
+
+
+class ModelUpdate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
+    """Base class for Pydantic models that generate proto patches with field masks."""
+
+    _resource_id: str | None = PrivateAttr(default=None)
+
+    @property
+    def resource_id(self):
+        return self._resource_id
+
+    @resource_id.setter
+    def resource_id(self, value):
+        self._resource_id = value
+
+    def to_proto_with_mask(self) -> tuple[ProtoT, field_mask_pb2.FieldMask]:
+        """Convert to proto with field mask."""
+        # Get the corresponding proto class
+        proto_cls: type[ProtoT] = self._get_proto_class()
+        proto_msg = proto_cls()
+
+        # Get only explicitly set fields, including those set to None
+        data = self.model_dump(exclude_unset=True, exclude_none=False)
+        paths = self._build_proto_and_paths(proto_msg, data)
+
+        self._add_resource_id_to_proto(proto_msg)
+        mask = field_mask_pb2.FieldMask(paths=paths)
+        return proto_msg, mask
+
+    @abstractmethod
+    def _get_proto_class(self) -> type[ProtoT]:
+        """Get the corresponding proto class - override in subclasses since typing is not strict."""
+        raise NotImplementedError("Subclasses must implement this")
+
+    @abstractmethod
     def _add_resource_id_to_proto(self, proto_msg: ProtoT):
         """Assigns a resource ID (such as Asset ID) to the proto message."""
         raise NotImplementedError("Subclasses must implement this")

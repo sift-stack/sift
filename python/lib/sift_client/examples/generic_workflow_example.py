@@ -10,6 +10,7 @@ from sift_client.sift_types import (
     ChannelReference,
     RuleAction,
     RuleAnnotationType,
+    RuleCreate,
     RuleUpdate,
 )
 
@@ -49,16 +50,20 @@ async def main():
         # Create a calculated channel that divides mainmotor.velocity by voltage
         print("\nCreating calculated channel...")
         calculated_channel = client.calculated_channels.create(
-            name="velocity_per_voltage",
-            description="Ratio of mainmotor velocity to voltage",
-            expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
-            channel_references=[
-                ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
-                ChannelReference(channel_reference="$2", channel_identifier="voltage"),
-            ],
-            units="velocity/voltage",
-            asset_ids=[asset_id],
-            user_notes="Created to monitor velocity-to-voltage ratio",
+            dict(
+                name="velocity_per_voltage",
+                description="Ratio of mainmotor velocity to voltage",
+                expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
+                channel_references=[
+                    ChannelReference(
+                        channel_reference="$1", channel_identifier="mainmotor.velocity"
+                    ),
+                    ChannelReference(channel_reference="$2", channel_identifier="voltage"),
+                ],
+                units="velocity/voltage",
+                asset_ids=[asset_id],
+                user_notes="Created to monitor velocity-to-voltage ratio",
+            )
         )
         print(
             f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.calculated_channel_id})"
@@ -87,26 +92,29 @@ async def main():
         updated = True
     else:
         print(f"No rules found for {rule_search}")
-        rules = client.rules.search(
+        rules = client.rules.list_(
             asset_ids=[asset_id],
         )
         if rules:
             print(f"However these rules do exist: {[rule.name for rule in rules]}")
         print("Attempting to create rule for high_velocity_voltage_ratio_alert")
         rule = client.rules.create(
-            name="high_velocity_voltage_ratio_alert",
-            description="Alert when velocity-to-voltage ratio exceeds 0.1",
-            expression="$1 > 0.1",
-            channel_references=[
-                ChannelReference(
-                    channel_reference="$1", channel_identifier=calculated_channel.name
+            RuleCreate(
+                name="high_velocity_voltage_ratio_alert",
+                description="Alert when velocity-to-voltage ratio exceeds 0.1",
+                expression="$1 > 0.1",
+                channel_references=[
+                    ChannelReference(
+                        channel_reference="$1",
+                        channel_identifier=calculated_channel.name,
+                    ),
+                ],
+                action=RuleAction.annotation(
+                    annotation_type=RuleAnnotationType.DATA_REVIEW,
+                    tags=["high_ratio", "alert"],
+                    default_assignee_user_id=None,  # You can set a user ID here if needed
                 ),
-            ],
-            action=RuleAction.annotation(
-                annotation_type=RuleAnnotationType.DATA_REVIEW,
-                tags=["high_ratio", "alert"],
-                default_assignee_user_id=None,  # You can set a user ID here if needed
-            ),
+            )
         )
         print(f"Created rule: {rule.name} (ID: {rule.rule_id})")
 

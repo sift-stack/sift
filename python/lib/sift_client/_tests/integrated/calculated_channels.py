@@ -9,6 +9,7 @@ from sift_client.sift_types import (
     CalculatedChannelUpdate,
     ChannelReference,
 )
+from sift_client.sift_types.calculated_channel import CalculatedChannelCreate
 
 """
 Comprehensive test script for calculated channels with extensive update field exercises.
@@ -55,11 +56,11 @@ async def main():
 
     created_channels = []
     for i in range(num_channels):
-        calculated_channel = client.calculated_channels.create(
+        new_chan = CalculatedChannelCreate(
             name=f"test_channel_{unique_name_suffix}_{i}",
             description=f"Test calculated channel {i} - initial description",
             expression="$1 / $2",  # $1 = mainmotor.velocity, $2 = voltage
-            channel_references=[
+            expression_channel_references=[
                 ChannelReference(channel_reference="$1", channel_identifier="mainmotor.velocity"),
                 ChannelReference(channel_reference="$2", channel_identifier="voltage"),
             ],
@@ -67,6 +68,7 @@ async def main():
             asset_ids=[asset_id],
             user_notes=f"Created for testing update fields - channel {i}",
         )
+        calculated_channel = client.calculated_channels.create(new_chan)
         created_channels.append(calculated_channel)
         print(
             f"Created calculated channel: {calculated_channel.name} (ID: {calculated_channel.id_})"
@@ -236,7 +238,7 @@ async def main():
     assert updated_channel_7.tag_ids == [], f"Tag IDs update failed: {updated_channel_7.tag_ids}"
 
     versions = client.calculated_channels.list_versions(
-        calculated_channel_id=channel_1.id_,
+        calculated_channel=channel_1.id_,
         limit=10,
     )
     print(f"Found {len(versions)} versions for {created_channels[0].name}")

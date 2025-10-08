@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.run import Run, RunUpdate
-from sift_client.util.cel_utils import contains, equals, equals_null, match, not_
+from sift_client.sift_types.run import Run, RunCreate, RunUpdate
+from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
-    from datetime import datetime
+    import re
+    from datetime import datetime, timedelta
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset
 
 
 class RunsAPIAsync(ResourceBase):
@@ -33,20 +34,25 @@ class RunsAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = RunsLowLevelClient(grpc_client=self.client.grpc_client)
 
-    async def get(
-        self,
-        *,
-        run_id: str,
-    ) -> Run:
+    async def get(self, *, run_id: str | None = None, client_key: str | None = None) -> Run:
         """Get a Run.
 
         Args:
             run_id: The ID of the run.
+            client_key: The client key of the run.
 
         Returns:
             The Run.
         """
-        run = await self._low_level_client.get_run(run_id=run_id)
+        run: Run | None
+        if run_id is not None:
+            run = await self._low_level_client.get_run(run_id=run_id)
+        elif client_key is not None:
+            run = await self.find(client_keys=[client_key])
+            if run is None:
+                raise ValueError(f"Run with client_key {client_key} not found")
+        else:
+            raise ValueError("Either run_id or client_key must be provided")
         return self._apply_client_to_instance(run)
 
     async def list_(
@@ -55,15 +61,32 @@ class RunsAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        description: str | None = None,
-        description_contains: str | None = None,
-        duration_seconds: int | None = None,
-        client_key: str | None = None,
-        asset_id: str | None = None,
-        asset_name: str | None = None,
-        created_by_user_id: str | None = None,
+        # self ids
+        run_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        # created/modified ranges
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        # created/modified users
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        # metadata
+        metadata: list[Any] | None = None,
+        # run specific
+        assets: list[Asset] | list[str] | None = None,
+        duration_less_than: timedelta | None = None,
+        duration_greater_than: timedelta | None = None,
+        start_time_after: datetime | None = None,
+        start_time_before: datetime | None = None,
+        stop_time_after: datetime | None = None,
+        stop_time_before: datetime | None = None,
         is_stopped: bool | None = None,
+        # common filters
+        description_contains: str | None = None,
         include_archived: bool = False,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Run]:
@@ -72,122 +95,119 @@ class RunsAPIAsync(ResourceBase):
         Args:
             name: Exact name of the run.
             name_contains: Partial name of the run.
-            name_regex: Regular expression string to filter runs by name.
-            description: Exact description of the run.
-            description_contains: Partial description of the run.
-            duration_seconds: Duration of the run in seconds.
-            client_key: Client key to filter by.
-            asset_id: Asset ID to filter by.
-            asset_name: Asset name to filter by.
-            created_by_user_id: User ID who created the run.
+            name_regex: Regular expression to filter runs by name.
+            run_ids: Filter to runs with any of these IDs.
+            client_keys: Filter to runs with any of these client keys.
+            created_after: Filter runs created after this datetime.
+            created_before: Filter runs created before this datetime.
+            modified_after: Filter runs modified after this datetime.
+            modified_before: Filter runs modified before this datetime.
+            created_by: Filter runs created by this User or user ID.
+            modified_by: Filter runs last modified by this User or user ID.
+            metadata: Filter runs by metadata criteria.
+            assets: Filter runs associated with any of these Assets or asset IDs.
+            duration_less_than: Filter runs with duration less than this time.
+            duration_greater_than: Filter runs with duration greater than this time.
+            start_time_after: Filter runs that started after this datetime.
+            start_time_before: Filter runs that started before this datetime.
+            stop_time_after: Filter runs that stopped after this datetime.
+            stop_time_before: Filter runs that stopped before this datetime.
             is_stopped: Whether the run is stopped.
-            include_archived: Whether to include archived runs.
-            order_by: How to order the retrieved runs.
-            limit: How many runs to retrieve. If None, retrieves all matches.
+            description_contains: Partial description of the run.
+            include_archived: If True, include archived runs in results.
+            filter_query: Explicit CEL query to filter runs.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of runs to return. If None, returns all matches.
 
         Returns:
-            A list of Runs that matches the filter.
+            A list of Run objects that match the filter criteria.
         """
-        # Build CEL filter
-        filter_parts = []
-
-        if name:
-            filter_parts.append(equals("name", name))
-        elif name_contains:
-            filter_parts.append(contains("name", name_contains))
-        elif name_regex:
-            if isinstance(name_regex, re.Pattern):
-                name_regex = name_regex.pattern
-            filter_parts.append(match("name", name_regex))  # type: ignore
-
-        if description:
-            filter_parts.append(equals("description", description))
-        elif description_contains:
-            filter_parts.append(contains("description", description_contains))
-
-        if duration_seconds:
-            filter_parts.append(equals("duration", duration_seconds))
-
-        if client_key:
-            filter_parts.append(equals("client_key", client_key))
-
-        if asset_id:
-            filter_parts.append(equals("asset_id", asset_id))
-
-        if asset_name:
-            filter_parts.append(equals("asset_name", asset_name))
-
-        if created_by_user_id:
-            filter_parts.append(equals("created_by_user_id", created_by_user_id))
-
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name, name_contains=name_contains, name_regex=name_regex
+            ),
+            *self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+                created_by=created_by,
+                modified_by=modified_by,
+            ),
+            *self._build_tags_metadata_cel_filters(metadata=metadata),
+            *self._build_common_cel_filters(
+                description_contains=description_contains,
+                include_archived=include_archived,
+                filter_query=filter_query,
+            ),
+        ]
+        if run_ids:
+            filter_parts.append(cel.in_("run_id", run_ids))
+        if client_keys:
+            filter_parts.append(cel.in_("client_key", client_keys))
+        if assets:
+            if all(isinstance(s, str) for s in assets):
+                ids = cast("list[str]", assets)  # linting
+                filter_parts.append(cel.in_("asset_ids", ids))
+            else:
+                asset = cast("list[Asset]", assets)  # linting
+                filter_parts.append(cel.in_("asset_ids", [a._id_or_error for a in asset]))
+        if duration_less_than:
+            filter_parts.append(cel.less_than("duration_string", duration_less_than))
+        if duration_greater_than:
+            filter_parts.append(cel.greater_than("duration_string", duration_greater_than))
+        if start_time_after:
+            filter_parts.append(cel.greater_than("start_time", start_time_after))
+        if start_time_before:
+            filter_parts.append(cel.less_than("start_time", start_time_before))
+        if stop_time_after:
+            filter_parts.append(cel.greater_than("stop_time", stop_time_after))
+        if stop_time_before:
+            filter_parts.append(cel.less_than("stop_time", stop_time_before))
         if is_stopped is not None:
-            filter_parts.append(not_(equals_null("stop_time")))
-
-        if not include_archived:
-            filter_parts.append(equals("archived_date", None))
-
-        query_filter = " && ".join(filter_parts) if filter_parts else None
+            filter_parts.append(cel.not_(cel.equals_null("stop_time")))
+        query_filter = cel.and_(*filter_parts)
 
         runs = await self._low_level_client.list_all_runs(
-            query_filter=query_filter,
+            query_filter=query_filter or None,
             order_by=order_by,
             max_results=limit,
         )
         return self._apply_client_to_instances(runs)
 
     async def find(self, **kwargs) -> Run | None:
-        """Find a single run matching the given query. Takes the same arguments as `list`. If more than one run is found,
+        """Find a single run matching the given query. Takes the same arguments as `list_`. If more than one run is found,
         raises an error.
 
         Args:
-            **kwargs: Keyword arguments to pass to `list`.
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
             The Run found or None.
         """
         runs = await self.list_(**kwargs)
         if len(runs) > 1:
-            raise ValueError("Multiple runs found for query")
+            raise ValueError(f"Multiple ({len(runs)}) runs found for query")
         elif len(runs) == 1:
             return runs[0]
         return None
 
     async def create(
         self,
-        name: str,
-        description: str,
-        tags: list[str] | None = None,
-        start_time: datetime | None = None,
-        stop_time: datetime | None = None,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
+        create: RunCreate | dict,
     ) -> Run:
         """Create a new run.
 
         Args:
-            name: The name of the run.
-            description: The description of the run.
-            tags: Tags to associate with the run.
-            start_time: The start time of the run.
-            stop_time: The stop time of the run.
-            organization_id: The organization ID.
-            client_key: A unique client key for the run.
-            metadata: Metadata values for the run.
+            create: The Run definition to create.
 
         Returns:
             The created Run.
         """
-        created_run = await self._low_level_client.create_run(
-            name=name,
-            description=description,
-            tags=tags,
-            start_time=start_time,
-            stop_time=stop_time,
-            organization_id=organization_id,
-            client_key=client_key,
-            metadata=metadata,
-        )
+        if isinstance(create, dict):
+            create = RunCreate.model_validate(create)
+
+        created_run = await self._low_level_client.create_run(create=create)
         return self._apply_client_to_instance(created_run)
 
     async def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
@@ -200,34 +220,37 @@ class RunsAPIAsync(ResourceBase):
         Returns:
             The updated Run.
         """
-        if isinstance(run, str):
-            run = await self.get(run_id=run)
-
+        run_id = run._id_or_error if isinstance(run, Run) else run
         if isinstance(update, dict):
             update = RunUpdate.model_validate(update)
-
-        update.resource_id = run.id_
-        updated_run = await self._low_level_client.update_run(run, update)
+        update.resource_id = run_id
+        updated_run = await self._low_level_client.update_run(update)
         return self._apply_client_to_instance(updated_run)
 
     async def archive(
         self,
-        *,
         run: str | Run,
-    ) -> None:
+    ) -> Run:
         """Archive a run.
 
         Args:
             run: The Run or run ID to archive.
         """
-        run_id = run.id_ if isinstance(run, Run) else run
-        if not isinstance(run_id, str):
-            raise TypeError(f"run_id must be a string not {type(run_id)}")
-        await self._low_level_client.archive_run(run_id=run_id)
+        return await self.update(run, RunUpdate(is_archived=True))
+
+    async def unarchive(
+        self,
+        run: str | Run,
+    ) -> Run:
+        """Unarchive a run.
+
+        Args:
+            run: The Run or run ID to unarchive.
+        """
+        return await self.update(run, RunUpdate(is_archived=False))
 
     async def stop(
         self,
-        *,
         run: str | Run,
     ) -> None:
         """Stop a run by setting its stop time to the current time.
@@ -235,12 +258,13 @@ class RunsAPIAsync(ResourceBase):
         Args:
             run: The Run or run ID to stop.
         """
-        run_id = run.id_ if isinstance(run, Run) else run
+        run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.stop_run(run_id=run_id or "")
 
     async def create_automatic_association_for_assets(
         self,
         run: str | Run,
+        *,
         asset_names: list[str],
     ) -> None:
         """Associate assets with a run for automatic data ingestion.
@@ -249,16 +273,7 @@ class RunsAPIAsync(ResourceBase):
             run: The Run or run ID.
             asset_names: List of asset names to associate.
         """
-        run_id = run.id_ or "" if isinstance(run, Run) else run
+        run_id = run._id_or_error or "" if isinstance(run, Run) else run
         await self._low_level_client.create_automatic_run_association_for_assets(
             run_id=run_id, asset_names=asset_names
         )
-
-    async def stop_run(self, run: str | Run) -> None:
-        """Stop a run by setting its stop time to the current time.
-
-        Args:
-            run: The Run or run ID to stop.
-        """
-        run_id = run.id_ or "" if isinstance(run, Run) else run
-        await self._low_level_client.stop_run(run_id=run_id or "")

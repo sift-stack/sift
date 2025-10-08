@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
+from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from datetime import datetime
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.channel import ChannelReference
 
 
 class RulesAPIAsync(ResourceBase):
@@ -57,9 +57,28 @@ class RulesAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
+        # self ids
+        rule_ids: list[str] | None = None,
+        client_keys: list[str] | None = None,
+        # created/modified ranges
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+        # created/modified users
+        created_by: Any | str | None = None,
+        modified_by: Any | str | None = None,
+        # metadata
+        metadata: list[Any] | None = None,
+        # rule specific
+        asset_ids: list[str] | None = None,
+        asset_tag_ids: list[str] | None = None,
+        # common filters
+        description_contains: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
-        include_deleted: bool = False,
     ) -> list[Rule]:
         """List rules with optional filtering.
 
@@ -67,28 +86,56 @@ class RulesAPIAsync(ResourceBase):
             name: Exact name of the rule.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
-            order_by: How to order the retrieved rules.
-            limit: How many rules to retrieve. If None, retrieves all matches.
-            include_deleted: Include deleted rules.
+            rule_ids: IDs of rules to filter to.
+            client_keys: Client keys of rules to filter to.
+            created_after: Rules created after this datetime.
+            created_before: Rules created before this datetime.
+            modified_after: Rules modified after this datetime.
+            modified_before: Rules modified before this datetime.
+            created_by: Filter rules created by this User or user ID.
+            modified_by: Filter rules last modified by this User or user ID.
+            metadata: Filter rules by metadata criteria.
+            asset_ids: Filter rules associated with any of these Asset IDs.
+            asset_tag_ids: Filter rules associated with any of these Asset Tag IDs.
+            description_contains: Partial description of the rule.
+            include_archived: If True, include archived rules in results.
+            filter_query: Explicit CEL query to filter rules.
+            order_by: Field and direction to order results by.
+            limit: Maximum number of rules to return. If None, returns all matches.
 
         Returns:
             A list of Rules that matches the filter.
         """
-        if int(name is not None) + int(name_contains is not None) + int(name_regex is not None) > 1:
-            raise ValueError("Must use EITHER name, name_contains, or name_regex, not multiple")
-
-        filters = []
-        if name:
-            filters.append(cel.equals("name", name))
-        if name_contains:
-            filters.append(cel.contains("name", name_contains))
-        if name_regex:
-            filters.append(cel.match("name", name_regex))
-        if not include_deleted:
-            filters.append(cel.equals_null("deleted_date"))
-        filter_str = " && ".join(filters) if filters else ""
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name, name_contains=name_contains, name_regex=name_regex
+            ),
+            *self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+                created_by=created_by,
+                modified_by=modified_by,
+            ),
+            *self._build_tags_metadata_cel_filters(metadata=metadata),
+            *self._build_common_cel_filters(
+                description_contains=description_contains,
+                include_archived=include_archived,
+                filter_query=filter_query,
+            ),
+        ]
+        if rule_ids:
+            filter_parts.append(cel.in_("rule_id", rule_ids))
+        if client_keys:
+            filter_parts.append(cel.in_("client_key", client_keys))
+        if asset_ids:
+            filter_parts.append(cel.in_("asset_id", asset_ids))
+        if asset_tag_ids:
+            filter_parts.append(cel.in_("tag_id", asset_tag_ids))
+        query_filter = cel.and_(*filter_parts)
         rules = await self._low_level_client.list_all_rules(
-            filter_query=filter_str,
+            filter_query=query_filter,
             order_by=order_by,
             max_results=limit,
             page_size=limit,
@@ -114,34 +161,28 @@ class RulesAPIAsync(ResourceBase):
 
     async def create(
         self,
-        name: str,
-        description: str,
-        expression: str,
-        channel_references: list[ChannelReference],
-        action: RuleAction,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        asset_ids: list[str] | None = None,
-        contextual_channels: list[str] | None = None,
-        is_external: bool = False,
+        create: RuleCreate | dict,
     ) -> Rule:
-        """Create a new rule."""
-        created_rule = await self._low_level_client.create_rule(
-            name=name,
-            description=description,
-            organization_id=organization_id,
-            expression=expression,
-            action=action,
-            channel_references=channel_references,
-            client_key=client_key,
-            asset_ids=asset_ids,
-            contextual_channels=contextual_channels,
-            is_external=is_external,
-        )
+        """Create a new rule.
+
+        Args:
+            create: A RuleCreate object or dictionary with configuration for the new rule.
+
+        Returns:
+            The created Rule.
+        """
+        if isinstance(create, dict):
+            create = RuleCreate.model_validate(create)
+
+        created_rule = await self._low_level_client.create_rule(create=create)
         return self._apply_client_to_instance(created_rule)
 
     async def update(
-        self, rule: str | Rule, update: RuleUpdate | dict, version_notes: str | None = None
+        self,
+        rule: Rule | str,
+        update: RuleUpdate | dict,
+        *,
+        version_notes: str | None = None,
     ) -> Rule:
         """Update a Rule.
 
@@ -153,110 +194,38 @@ class RulesAPIAsync(ResourceBase):
         Returns:
             The updated Rule.
         """
+        rule_obj: Rule
         if isinstance(rule, str):
-            rule = await self.get(rule_id=rule)
+            rule_obj = await self.get(rule_id=rule)
+        else:
+            rule_obj = rule
 
         if isinstance(update, dict):
             update = RuleUpdate.model_validate(update)
 
-        updated_rule = await self._low_level_client.update_rule(rule, update, version_notes)
+        updated_rule = await self._low_level_client.update_rule(
+            rule=rule_obj, update=update, version_notes=version_notes
+        )
         return self._apply_client_to_instance(updated_rule)
 
-    async def archive(
-        self,
-        *,
-        rule: str | Rule | None = None,
-        rules: list[Rule] | None = None,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> None:
-        """Archive a rule or multiple.
+    async def archive(self, rule: str | Rule) -> Rule:
+        """Archive a rule.
 
         Args:
-            rule: The Rule to archive.
-            rules: The Rules to archive.
-            rule_ids: The rule IDs to archive.
-            client_keys: The client keys to archive.
-        """
-        if rule:
-            if isinstance(rule, Rule):
-                await self._low_level_client.archive_rule(rule_id=rule.id_)
-            else:
-                await self._low_level_client.archive_rule(rule_id=rule)
-        elif rules:
-            if len(rules) == 1:
-                await self._low_level_client.archive_rule(rule_id=rules[0].id_)
-            else:
-                await self._low_level_client.batch_archive_rules(
-                    rule_ids=[r.id_ for r in rules],  # type: ignore
-                )
-        elif rule_ids:
-            if len(rule_ids) == 1:
-                await self._low_level_client.archive_rule(rule_id=rule_ids[0])
-            else:
-                await self._low_level_client.batch_archive_rules(rule_ids=rule_ids)
-        elif client_keys:
-            await self._low_level_client.batch_archive_rules(client_keys=client_keys)
-        else:
-            raise ValueError("Either rules, rule_ids, or client_keys must be provided")
-
-    async def restore(
-        self,
-        *,
-        rule: str | Rule,
-        rule_id: str | None = None,
-        client_key: str | None = None,
-    ) -> Rule:
-        """Restore a rule.
-
-        Args:
-            rule: The Rule or rule ID to restore.
-            rule_id: The rule ID to restore (alternative to rule parameter).
-            client_key: The client key to restore (alternative to rule parameter).
+            rule: The id or Rule object of the rule to archive.
 
         Returns:
-            The restored Rule.
+            The archived Rule.
         """
-        if rule_id or client_key:
-            restored_rule = await self._low_level_client.restore_rule(
-                rule_id=rule_id, client_key=client_key
-            )
-        else:
-            rule_id = rule.id_ if isinstance(rule, Rule) else rule
-            restored_rule = await self._low_level_client.restore_rule(rule_id=rule_id)
+        return await self.update(rule=rule, update=RuleUpdate(is_archived=True))
 
-        return self._apply_client_to_instance(restored_rule)
-
-    async def batch_restore(
-        self,
-        *,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> None:
-        """Batch restore rules.
+    async def unarchive(self, rule: str | Rule) -> Rule:
+        """Unarchive a rule.
 
         Args:
-            rule_ids: List of rule IDs to restore.
-            client_keys: List of client keys to undelete.
-        """
-        await self._low_level_client.batch_restore_rules(rule_ids=rule_ids, client_keys=client_keys)
-
-    async def batch_get(
-        self,
-        *,
-        rule_ids: list[str] | None = None,
-        client_keys: list[str] | None = None,
-    ) -> list[Rule]:
-        """Get multiple rules by rule IDs or client keys.
-
-        Args:
-            rule_ids: List of rule IDs to get.
-            client_keys: List of client keys to get.
+            rule: The id or Rule object of the rule to unarchive.
 
         Returns:
-            List of Rules.
+            The unarchived Rule.
         """
-        rules = await self._low_level_client.batch_get_rules(
-            rule_ids=rule_ids, client_keys=client_keys
-        )
-        return self._apply_client_to_instances(rules)
+        return await self.update(rule=rule, update=RuleUpdate(is_archived=False))

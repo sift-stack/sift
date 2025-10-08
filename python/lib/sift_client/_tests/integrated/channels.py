@@ -41,7 +41,7 @@ async def main():
     # List channels for this asset (find a run w/ data)
     channels = []
     for run in runs:
-        asset_channels = asset.channels(run_id=run.id_, limit=10)
+        asset_channels = asset.channels(run=run.id_, limit=10)
         other_channels = []
         for c in asset_channels:
             if c.name in {"voltage", "gpio", "temperature", "mainmotor.velocity"}:
@@ -68,7 +68,7 @@ async def main():
     print("Getting data for multiple channels:")
     perf_start = time.perf_counter()
     channel_data = client.channels.get_data(
-        run_id="1d5f5c93-eaaa-48f2-94ff-7ec4337faec7", channels=channels, limit=100
+        run="1d5f5c93-eaaa-48f2-94ff-7ec4337faec7", channels=channels, limit=100
     )
     first_time = time.perf_counter() - perf_start
     start_time = None
