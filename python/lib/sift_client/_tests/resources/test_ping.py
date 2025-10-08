@@ -6,28 +6,12 @@ These tests demonstrate and validate the usage of the Ping API including:
 - Error handling and edge cases
 """
 
-import os
-
 import pytest
 
 from sift_client import SiftClient
 from sift_client.resources import PingAPI, PingAPIAsync
 
 pytestmark = pytest.mark.integration
-
-
-@pytest.fixture(scope="session")
-def sift_client() -> SiftClient:
-    """Create a SiftClient instance for testing."""
-    grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
-    rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
-    api_key = os.getenv("SIFT_API_KEY", "")
-
-    return SiftClient(
-        api_key=api_key,
-        grpc_url=grpc_url,
-        rest_url=rest_url,
-    )
 
 
 def test_client_binding(sift_client):

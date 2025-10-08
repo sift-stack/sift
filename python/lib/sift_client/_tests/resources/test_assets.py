@@ -18,20 +18,6 @@ from sift_client.sift_types import Asset
 pytestmark = pytest.mark.integration
 
 
-@pytest.fixture(scope="session")
-def sift_client() -> SiftClient:
-    """Create a SiftClient instance for testing."""
-    grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
-    rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
-    api_key = os.getenv("SIFT_API_KEY", "")
-
-    return SiftClient(
-        api_key=api_key,
-        grpc_url=grpc_url,
-        rest_url=rest_url,
-    )
-
-
 def test_client_binding(sift_client):
     assert sift_client.assets
     assert isinstance(sift_client.assets, AssetsAPI)
