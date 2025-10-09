@@ -1944,8 +1944,18 @@ You're not viewing the latest version.
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.archive_report" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">archive_report</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1972,7 +1982,12 @@ You're not viewing the latest version.
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
                   </span>
               </p>
             </td>
@@ -1998,9 +2013,19 @@ You're not viewing the latest version.
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.create_measurement" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_measurement</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_measurement</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_measurement</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurementCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurementCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementCreate">TestMeasurementCreate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2022,12 +2047,17 @@ You're not viewing the latest version.
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The test measurement to create.</p>
+                <p>The test measurement to create (can be TestMeasurement or TestMeasurementCreate).</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            TestMeasurementCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurementCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementCreate">TestMeasurementCreate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
                   </span>
               </p>
             </td>
@@ -2067,7 +2097,12 @@ You're not viewing the latest version.
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
+                    <code><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -2097,8 +2132,20 @@ You're not viewing the latest version.
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.create_measurements" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_measurements</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_measurements</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span><span class="p">],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]]</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_measurements</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurementCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurementCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementCreate">TestMeasurementCreate</a></span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">],</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2120,12 +2167,22 @@ You're not viewing the latest version.
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The test measurements to create.</p>
+                <p>The test measurements to create (can be TestMeasurement or TestMeasurementCreate).</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a>]</code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a> | <a class="autorefs autorefs-internal" title="            TestMeasurementCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurementCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementCreate">TestMeasurementCreate</a>]</code>
                   </span>
               </p>
             </td>
@@ -2175,17 +2232,18 @@ You're not viewing the latest version.
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.create_report" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_report</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">status</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStatus (sift_client.sift_types.test_report.TestStatus)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStatus">TestStatus</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">test_system_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">test_case</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">start_time</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">end_time</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">serial_number</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">part_number</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">system_operator</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReportCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReportCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportCreate">TestReportCreate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2203,176 +2261,21 @@ You're not viewing the latest version.
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>status</code>
+                <code>test_report</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The status of the test run (TestStatus enum).</p>
+                <p>The test report to create (can be TestReport or TestReportCreate).</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TestStatus (sift_client.sift_types.test_report.TestStatus)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStatus">TestStatus</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>name</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The name of the test run.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>test_system_name</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The name of the test system.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>test_case</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The test case that was run.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>start_time</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The start time of the test run.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>end_time</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The end time of the test run.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>metadata</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The metadata values associated with this test run.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>] | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>serial_number</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The serial number for the DUT.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>part_number</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The part number for the DUT.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>system_operator</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>Unique identifier for user owner.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
+                      <code><a class="autorefs autorefs-internal" title="            TestReportCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReportCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportCreate">TestReportCreate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
                   </span>
               </p>
             </td>
@@ -2392,7 +2295,12 @@ You're not viewing the latest version.
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
+                    <code><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -2421,7 +2329,17 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.create_step" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_step</span><span class="p">(</span><span class="n">test_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">create_step</span><span class="p">(</span><span class="n">test_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStepCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepCreate">TestStepCreate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2443,12 +2361,17 @@ You're not viewing the latest version.
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The test step to create.</p>
+                <p>The test step to create (can be TestStep or TestStepCreate).</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            TestStepCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStepCreate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepCreate">TestStepCreate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
                   </span>
               </p>
             </td>
@@ -2468,7 +2391,12 @@ You're not viewing the latest version.
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
+                    <code><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -2498,7 +2426,12 @@ You're not viewing the latest version.
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.delete_measurement" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">delete_measurement</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">test_measurement</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">test_measurement</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
@@ -2526,7 +2459,12 @@ You're not viewing the latest version.
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
                   </span>
               </p>
             </td>
@@ -2551,7 +2489,12 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.delete_report" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">delete_report</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">delete_report</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2578,7 +2521,12 @@ You're not viewing the latest version.
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
                   </span>
               </p>
             </td>
@@ -2603,7 +2551,12 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.delete_step" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">delete_step</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">test_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">delete_step</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">test_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2630,7 +2583,12 @@ You're not viewing the latest version.
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
                   </span>
               </p>
             </td>
@@ -2655,7 +2613,12 @@ You're not viewing the latest version.
   </span>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.find_report" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">find_report</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span> <span class="o">|</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">find_report</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2703,7 +2666,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a> | None</code>
+                    <code><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a> | None</code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -2732,7 +2700,12 @@ raises an error.</p>
   </span>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.get_report" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_report</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">test_report_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_report</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">test_report_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2779,7 +2752,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
+                    <code><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -2808,7 +2786,12 @@ raises an error.</p>
   </span>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.get_step" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_step</span><span class="p">(</span><span class="n">test_step_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_step</span><span class="p">(</span><span class="n">test_step_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2860,7 +2843,12 @@ raises an error.</p>
   </span>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.import_test_report" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_test_report</span><span class="p">(</span><span class="n">test_file</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">import_test_report</span><span class="p">(</span><span class="n">test_file</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2907,7 +2895,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
+                    <code><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -2943,11 +2936,17 @@ raises an error.</p>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">test_report_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">name_contains</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">measurement_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurementType (sift_client.sift_types.test_report.TestMeasurementType)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementType">TestMeasurementType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">passed</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span><span class="p">]</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">name_regex</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" title="re.Pattern" href="https://docs.python.org/3/library/re.html#re.Pattern">Pattern</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">measurement_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurementType (sift_client.sift_types.test_report.TestMeasurementType)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementType">TestMeasurementType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">passed</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3065,6 +3064,26 @@ raises an error.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>name_regex</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Regular expression string to filter test measurements by name.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-external" title="re.Pattern" href="https://docs.python.org/3/library/re.html#re.Pattern">Pattern</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>measurement_type</code>
             </td>
             <td class="doc-param-details">
@@ -3158,7 +3177,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a>]</code>
+                    <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a>]</code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -3192,7 +3216,7 @@ raises an error.</p>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">name_contains</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">name_regex</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" title="re.Pattern" href="https://docs.python.org/3/library/re.html#re.Pattern">Pattern</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">test_report_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">test_report_ids</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">status</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStatus (sift_client.sift_types.test_report.TestStatus)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStatus">TestStatus</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">test_system_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">test_case</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -3200,11 +3224,22 @@ raises an error.</p>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">part_number</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">system_operator</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">created_by_user_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">is_archived</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">custom_filter</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span><span class="p">]</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">modified_by_user_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">created_after</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">created_before</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">modified_after</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">modified_before</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">include_archived</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">custom_filter</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3282,16 +3317,16 @@ raises an error.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>test_report_id</code>
+                <code>test_report_ids</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Test report ID to filter by.</p>
+                <p>Test report IDs to filter by.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>] | None</code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
@@ -3442,7 +3477,127 @@ raises an error.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>is_archived</code>
+                <code>modified_by_user_id</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>User ID who last modified the test report.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>created_after</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Filter test reports created after this datetime.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>created_before</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Filter test reports created before this datetime.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>modified_after</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Filter test reports modified after this datetime.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>modified_before</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Filter test reports modified before this datetime.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>metadata</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Filter test reports by metadata criteria.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>] | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>] | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_archived</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
@@ -3451,11 +3606,11 @@ raises an error.</p>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a> | None</code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
                   </span>
                   <span class="doc-param-default">
                     <b>DEFAULT:</b>
-                      <code>None</code>
+                      <code>False</code>
                   </span>
               </p>
             </td>
@@ -3535,7 +3690,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a>]</code>
+                    <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a>]</code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -3571,11 +3731,17 @@ raises an error.</p>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">parent_step_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">name_contains</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">status</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStatus (sift_client.sift_types.test_report.TestStatus)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStatus">TestStatus</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">step_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepType (sift_client.sift_types.test_report.TestStepType)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepType">TestStepType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">]</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">name_regex</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" title="re.Pattern" href="https://docs.python.org/3/library/re.html#re.Pattern">Pattern</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">status</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStatus (sift_client.sift_types.test_report.TestStatus)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStatus">TestStatus</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">step_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepType (sift_client.sift_types.test_report.TestStepType)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepType">TestStepType</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">order_by</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">limit</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3693,6 +3859,26 @@ raises an error.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>name_regex</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Regular expression string to filter test steps by name.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-external" title="re.Pattern" href="https://docs.python.org/3/library/re.html#re.Pattern">Pattern</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>status</code>
             </td>
             <td class="doc-param-details">
@@ -3786,7 +3972,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a>]</code>
+                    <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a>]</code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -3816,10 +4007,25 @@ raises an error.</p>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.update_measurement" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_measurement</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_measurement</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurementUpdate (sift_client.sift_types.test_report.TestMeasurementUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementUpdate">TestMeasurementUpdate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_measurement</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurementUpdate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurementUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementUpdate">TestMeasurementUpdate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">update_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3846,7 +4052,12 @@ raises an error.</p>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
                   </span>
               </p>
             </td>
@@ -3862,7 +4073,12 @@ raises an error.</p>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TestMeasurementUpdate (sift_client.sift_types.test_report.TestMeasurementUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementUpdate">TestMeasurementUpdate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            TestMeasurementUpdate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurementUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurementUpdate">TestMeasurementUpdate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
                   </span>
               </p>
             </td>
@@ -3902,7 +4118,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestMeasurement (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
+                    <code><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -3932,9 +4153,24 @@ raises an error.</p>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.update_report" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_report</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReportUpdate (sift_client.sift_types.test_report.TestReportUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportUpdate">TestReportUpdate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReportUpdate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReportUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportUpdate">TestReportUpdate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3961,7 +4197,12 @@ raises an error.</p>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
                   </span>
               </p>
             </td>
@@ -3977,7 +4218,12 @@ raises an error.</p>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TestReportUpdate (sift_client.sift_types.test_report.TestReportUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportUpdate">TestReportUpdate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            TestReportUpdate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReportUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReportUpdate">TestReportUpdate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
                   </span>
               </p>
             </td>
@@ -3997,7 +4243,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestReport (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
+                    <code><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
@@ -4027,8 +4278,23 @@ raises an error.</p>
 
 <a href="#sift_client.resources.test_results.TestResultsAPIAsync.update_step" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_step</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepUpdate (sift_client.sift_types.test_report.TestStepUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepUpdate">TestStepUpdate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">test_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">,</span> <span class="n">update</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStepUpdate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStepUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepUpdate">TestStepUpdate</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4055,7 +4321,12 @@ raises an error.</p>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
                   </span>
               </p>
             </td>
@@ -4071,7 +4342,12 @@ raises an error.</p>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TestStepUpdate (sift_client.sift_types.test_report.TestStepUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepUpdate">TestStepUpdate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
+                      <code><a class="autorefs autorefs-internal" title="            TestStepUpdate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStepUpdate)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStepUpdate">TestStepUpdate</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
                   </span>
               </p>
             </td>
@@ -4091,7 +4367,12 @@ raises an error.</p>
           <tr class="doc-section-item">
             <td>
                 <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            TestStep (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
+                    <code><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
                 </span>
             </td>
             <td class="doc-returns-details">
