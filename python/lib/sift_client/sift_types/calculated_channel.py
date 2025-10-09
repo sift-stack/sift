@@ -135,7 +135,6 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
     """Base class for CalculatedChannel create and update models with shared fields and validation."""
 
     description: str | None = None
-    user_notes: str | None = None
     units: str | None = None
 
     expression: str | None = None
@@ -180,8 +179,14 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
     @model_validator(mode="after")
     def _validate_asset_configuration(self):
         """Validate that either all_assets is True or at least one of tag_ids or asset_ids is provided, but not both."""
-        if self.all_assets is not None and self.all_assets and (self.asset_ids or self.tag_ids):
-            raise ValueError("Cannot specify both all_assets=True and asset_ids/tag_ids")
+        if (
+            self.all_assets is not None
+            and self.all_assets
+            and (self.asset_ids or self.tag_ids)
+        ):
+            raise ValueError(
+                "Cannot specify both all_assets=True and asset_ids/tag_ids"
+            )
         return self
 
     @model_validator(mode="after")
@@ -194,30 +199,26 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
         return self
 
 
-class CalculatedChannelCreate(CalculatedChannelBase, ModelCreate[CreateCalculatedChannelRequest]):
+class CalculatedChannelCreate(
+    CalculatedChannelBase, ModelCreate[CreateCalculatedChannelRequest]
+):
     """Create model for a Calculated Channel."""
 
     name: str
+    user_notes: str | None = None
     client_key: str | None = None
 
     def _get_proto_class(self) -> type[CreateCalculatedChannelRequest]:
         return CreateCalculatedChannelRequest
 
 
-class CalculatedChannelUpdate(CalculatedChannelBase, ModelUpdate[CalculatedChannelProto]):
+class CalculatedChannelUpdate(
+    CalculatedChannelBase, ModelUpdate[CalculatedChannelProto]
+):
     """Update model for a Calculated Channel."""
 
     name: str | None = None
     is_archived: bool | None = None
-
-    @model_validator(mode="after")
-    def _validate_non_updatable_fields(self):
-        """Validate that the fields that cannot be updated are not set."""
-        if self.user_notes is not None:
-            raise ValueError("Cannot update user notes")
-        if self.client_key is not None:
-            raise ValueError("Cannot update client key")
-        return self
 
     def _get_proto_class(self) -> type[CalculatedChannelProto]:
         return CalculatedChannelProto
