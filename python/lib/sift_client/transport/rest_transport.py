@@ -119,8 +119,6 @@ class RestClient:
         **kwargs,
     ) -> requests.Response:
         full_url = urljoin(self.base_url, endpoint)
-        print(f"base_url: {self.base_url}")
-        print(f"Executing {method} request to {full_url}")
         return self._client._session.request(method, full_url, headers=headers, data=data, **kwargs)
 
     def get(self, endpoint: str, headers: dict | None = None, **kwargs) -> requests.Response:

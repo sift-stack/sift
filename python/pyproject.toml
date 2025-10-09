@@ -118,7 +118,6 @@ exclude = [
     "lib/buf",
     "lib/google",
     "lib/protoc_gen_openapiv2",
-    "lib/test_reports",
 ]
 
 # No official typing stubs for Python gRPC libraries yet.
@@ -191,7 +190,6 @@ exclude = [
     "lib/google",
     "lib/buf",
     "lib/protoc_gen_openapiv2",
-    "lib/test_reports",
 ]
 
 [tool.ruff.lint]
@@ -205,5 +203,7 @@ select = [
 
  # pytest.ini
 [tool.pytest.ini_options]
-# Skip sift_client till we've set up our GH env to be able to run.
-norecursedirs = "lib/sift_client/_tests/integrated/"
+testpaths = [
+    "lib/sift_py",
+    "lib/sift_client/tests",
+]
