@@ -20,7 +20,7 @@ pub fn try_parse_enum_config(val: &str) -> Result<Vec<ChannelEnumType>> {
             .with_context(|| format!("expected first value in comma-separated list for enum config to be a number for '{val}'"))?;
         let name = conf[1].to_string();
 
-        result.push(ChannelEnumType { key, name })
+        result.push(ChannelEnumType { key, name, ..Default::default() })
     }
     Ok(result)
 }

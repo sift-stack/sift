@@ -375,6 +375,7 @@ fn create_data_import_request<R: io::Read>(
                             units: unit,
                             bit_field_elements: bit_field_configs,
                             enum_types: enum_configs,
+                            ..Default::default()
                         },
                     );
                 } else if col.parse::<f64>().is_ok() {

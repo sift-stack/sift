@@ -22,7 +22,7 @@ flate2 = "1.1.2"
 indicatif = "0.18.0"
 pbjson-types = { workspace = true }
 reqwest = "0.12.23"
-sift_rs = { version = "0.5.0", path = "../sift_rs" }
+sift_rs = { version = "0.6.0", path = "../sift_rs" }
 tokio = { version = "1.47.1", features = ["full", "net", "time"] }
 toml = "0.8.23"
 
