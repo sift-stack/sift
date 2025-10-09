@@ -201,13 +201,13 @@ select = [
     "TID", # flake8-tidy-imports
 ]
 
- # pytest.ini
+# pytest.ini
 [tool.pytest.ini_options]
 testpaths = [
     "lib/sift_py",
     "lib/sift_client/_tests",
 ]
 # Ignored till we have credentials added to GH actions
-collect_ignore = [
-    "lib/sift_client/_tests/integrated/"
+norecursedirs = [
+    "lib/sift_client/_tests/integrated",
 ]
