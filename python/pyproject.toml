@@ -64,7 +64,8 @@ docs = ["mkdocs",
     "mkdocs-include-markdown-plugin",
     "mkdocs-api-autonav",
     "mike",
-    "griffe-pydantic"]
+    "griffe-pydantic",
+    "mkdocs-jupyter"]
 
 # May be required for certain library functionality
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
