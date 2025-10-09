@@ -75,9 +75,7 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             raise ValueError(
                 f"Channel '{self.name}' has data_type ENUM but enum_types is not provided"
             )
-        elif (
-            self.data_type == ChannelDataType.BIT_FIELD and not self.bit_field_elements
-        ):
+        elif self.data_type == ChannelDataType.BIT_FIELD and not self.bit_field_elements:
             raise ValueError(
                 f"Channel '{self.name}' has data_type BIT_FIELD but bit_field_elements is not provided"
             )
@@ -95,17 +93,12 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             description=proto.description if proto.description else None,
             unit=proto.unit if proto.unit else None,
             bit_field_elements=(
-                [
-                    ChannelBitFieldElement._from_proto(el)
-                    for el in proto.bit_field_elements
-                ]
+                [ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements]
                 if proto.bit_field_elements
                 else None
             ),
             enum_types=(
-                {enum.name: enum.key for enum in proto.enum_types}
-                if proto.enum_types
-                else None
+                {enum.name: enum.key for enum in proto.enum_types} if proto.enum_types else None
             ),
             _client=sift_client,
         )
@@ -125,9 +118,7 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             data_type=channel.data_type,
             description=channel.description,
             unit=channel.unit,
-            bit_field_elements=(
-                channel.bit_field_elements if channel.bit_field_elements else None
-            ),
+            bit_field_elements=(channel.bit_field_elements if channel.bit_field_elements else None),
             enum_types=channel.enum_types,
         )
 
@@ -173,9 +164,7 @@ class Flow(BaseType[FlowConfig, "Flow"]):
     run_id: str | None = None
 
     @classmethod
-    def _from_proto(
-        cls, proto: FlowConfig, sift_client: SiftClient | None = None
-    ) -> Flow:
+    def _from_proto(cls, proto: FlowConfig, sift_client: SiftClient | None = None) -> Flow:
         return cls(
             proto=proto,
             name=proto.name,
@@ -235,9 +224,7 @@ def _channel_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
         description=channel.description or "",
         unit=channel.unit or "",
         bit_field_elements=[
-            ChannelBitFieldElementPy(
-                name=bfe.name, index=bfe.index, bit_count=bfe.bit_count
-            )
+            ChannelBitFieldElementPy(name=bfe.name, index=bfe.index, bit_count=bfe.bit_count)
             for bfe in channel.bit_field_elements or []
         ],
         enum_types=(
@@ -288,9 +275,7 @@ def _rust_channel_value_from_bitfield(
     return IngestWithConfigDataChannelValuePy.bitfield(byte_array)
 
 
-def _to_rust_value(
-    channel: ChannelConfig, value: Any
-) -> IngestWithConfigDataChannelValuePy:
+def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataChannelValuePy:
     if value is None:
         return IngestWithConfigDataChannelValuePy.empty()
     if channel.data_type == ChannelDataType.ENUM and channel.enum_types is not None:
@@ -298,9 +283,7 @@ def _to_rust_value(
         enum_val = channel.enum_types.get(enum_name)
         if enum_val is None:
             # Try to find the enum value by value instead of string.
-            for enum_name, enum_key in (
-                channel.enum_types.items() if channel.enum_types else []
-            ):
+            for enum_name, enum_key in channel.enum_types.items() if channel.enum_types else []:
                 if enum_key == value:
                     enum_name = enum_name
                     enum_val = enum_key
@@ -354,9 +337,7 @@ def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
     raise ValueError(f"Unknown data type: {data_type}")
 
 
-def _to_ingestion_value(
-    data_type: ChannelDataType, value: Any
-) -> IngestWithConfigDataChannelValue:
+def _to_ingestion_value(data_type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
     if value is None:
         return IngestWithConfigDataChannelValue(empty=Empty())
     ingestion_type_string = data_type.name.lower().replace("int_", "int")

@@ -41,7 +41,7 @@ def test_run(sift_client: SiftClient):
     )
     yield run
     # Cleanup
-    sift_client.runs.archive(run=run.id_)
+    sift_client.runs.archive(run=run)
 
 
 class TestIngestionAPIAsync:
@@ -56,9 +56,7 @@ class TestIngestionAPIAsync:
             flow = Flow(
                 name="test-basic-flow",
                 channels=[
-                    ChannelConfig(
-                        name="test-channel", data_type=ChannelDataType.DOUBLE
-                    ),
+                    ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
                 ],
             )
 
@@ -77,18 +75,14 @@ class TestIngestionAPIAsync:
             regular_flow = Flow(
                 name="test-regular-flow",
                 channels=[
-                    ChannelConfig(
-                        name="regular-channel", data_type=ChannelDataType.DOUBLE
-                    ),
+                    ChannelConfig(name="regular-channel", data_type=ChannelDataType.DOUBLE),
                 ],
             )
 
             highspeed_flow = Flow(
                 name="test-highspeed-flow",
                 channels=[
-                    ChannelConfig(
-                        name="highspeed-channel", data_type=ChannelDataType.DOUBLE
-                    ),
+                    ChannelConfig(name="highspeed-channel", data_type=ChannelDataType.DOUBLE),
                 ],
             )
 
@@ -123,9 +117,7 @@ class TestIngestionAPIAsync:
             assert config_id is not None
 
         @pytest.mark.asyncio
-        async def test_create_config_with_bit_field_channel(
-            self, sift_client, test_run
-        ):
+        async def test_create_config_with_bit_field_channel(self, sift_client, test_run):
             """Test creating an ingestion configuration with bit field channel."""
             flow = Flow(
                 name="test-bitfield-flow",
@@ -134,12 +126,8 @@ class TestIngestionAPIAsync:
                         name="test-bit-field-channel",
                         data_type=ChannelDataType.BIT_FIELD,
                         bit_field_elements=[
-                            ChannelBitFieldElement(
-                                name="voltage", index=0, bit_count=4
-                            ),
-                            ChannelBitFieldElement(
-                                name="current", index=4, bit_count=2
-                            ),
+                            ChannelBitFieldElement(name="voltage", index=0, bit_count=4),
+                            ChannelBitFieldElement(name="current", index=4, bit_count=2),
                             ChannelBitFieldElement(name="status", index=6, bit_count=2),
                         ],
                     ),
@@ -160,9 +148,7 @@ class TestIngestionAPIAsync:
             flow = Flow(
                 name="test-sealed-flow",
                 channels=[
-                    ChannelConfig(
-                        name="test-channel", data_type=ChannelDataType.DOUBLE
-                    ),
+                    ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
                 ],
             )
 
@@ -173,9 +159,7 @@ class TestIngestionAPIAsync:
             )
 
             # Try to add a channel after config creation
-            with pytest.raises(
-                ValueError, match="Cannot add a channel to a flow after creation"
-            ):
+            with pytest.raises(ValueError, match="Cannot add a channel to a flow after creation"):
                 flow.add_channel(
                     ChannelConfig(name="new-channel", data_type=ChannelDataType.DOUBLE)
                 )
@@ -189,9 +173,7 @@ class TestIngestionAPIAsync:
             flow = Flow(
                 name="test-double-flow",
                 channels=[
-                    ChannelConfig(
-                        name="double-channel", data_type=ChannelDataType.DOUBLE
-                    ),
+                    ChannelConfig(name="double-channel", data_type=ChannelDataType.DOUBLE),
                 ],
             )
 
@@ -251,12 +233,8 @@ class TestIngestionAPIAsync:
                         name="bitfield-channel",
                         data_type=ChannelDataType.BIT_FIELD,
                         bit_field_elements=[
-                            ChannelBitFieldElement(
-                                name="voltage", index=0, bit_count=4
-                            ),
-                            ChannelBitFieldElement(
-                                name="current", index=4, bit_count=2
-                            ),
+                            ChannelBitFieldElement(name="voltage", index=0, bit_count=4),
+                            ChannelBitFieldElement(name="current", index=4, bit_count=2),
                             ChannelBitFieldElement(name="led", index=6, bit_count=1),
                             ChannelBitFieldElement(name="heater", index=7, bit_count=1),
                         ],
@@ -367,9 +345,7 @@ class TestIngestionAPIAsync:
             flow = Flow(
                 name="test-highspeed-data-flow",
                 channels=[
-                    ChannelConfig(
-                        name="highspeed-channel", data_type=ChannelDataType.DOUBLE
-                    ),
+                    ChannelConfig(name="highspeed-channel", data_type=ChannelDataType.DOUBLE),
                 ],
             )
 
@@ -429,9 +405,7 @@ class TestIngestionAPIAsync:
                 )
 
         @pytest.mark.asyncio
-        async def test_ingest_invalid_enum_value_raises_error(
-            self, sift_client, test_run
-        ):
+        async def test_ingest_invalid_enum_value_raises_error(self, sift_client, test_run):
             """Test that ingesting an invalid enum value raises an error."""
             flow = Flow(
                 name="test-enum-validation-flow",
@@ -471,9 +445,7 @@ class TestIngestionAPIAsync:
             flow = Flow(
                 name="test-resume-flow",
                 channels=[
-                    ChannelConfig(
-                        name="test-channel", data_type=ChannelDataType.DOUBLE
-                    ),
+                    ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
                 ],
             )
 

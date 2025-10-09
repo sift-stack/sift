@@ -66,9 +66,7 @@ class Run(BaseType[RunProto, "Run"]):
                 if proto.HasField("stop_time")
                 else None
             ),
-            duration=(
-                proto.duration.ToTimedelta() if proto.HasField("duration") else None
-            ),
+            duration=(proto.duration.ToTimedelta() if proto.HasField("duration") else None),
             name=proto.name,
             description=proto.description,
             tags=list(proto.tags),
