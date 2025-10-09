@@ -291,7 +291,9 @@ class TestStep(BaseType[TestStepProto, "TestStep"]):
 
     def update(self, update: TestStepUpdate | dict) -> TestStep:
         """Update the TestStep."""
-        updated_test_step = self._client.test_results.update_step(test_step=self, update=update)
+        if not self.client:
+            raise ValueError("Client not set")
+        updated_test_step = self.client.test_results.update_step(test_step=self, update=update)
         self._update(updated_test_step)
         return self
 
@@ -476,7 +478,7 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
         self, update: TestMeasurementUpdate | dict, update_step: bool = False
     ) -> TestMeasurement:
         """Update the TestMeasurement."""
-        updated_test_measurement = self._client.test_results.update_measurement(
+        updated_test_measurement = self.client.test_results.update_measurement(
             test_measurement=self, update=update, update_step=update_step
         )
         self._update(updated_test_measurement)
@@ -555,7 +557,7 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
 
     def update(self, update: TestReportUpdate | dict) -> TestReport:
         """Update the TestReport."""
-        updated_test_report = self._client.test_results.update_report(
+        updated_test_report = self.client.test_results.update_report(
             test_report=self, update=update
         )
         self._update(updated_test_report)
@@ -563,12 +565,12 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
 
     def archive(self) -> TestReport:
         """Archive the TestReport."""
-        updated_test_report = self._client.test_results.archive_report(test_report=self)
+        updated_test_report = self.client.test_results.archive_report(test_report=self)
         self._update(updated_test_report)
         return self
 
     def unarchive(self) -> TestReport:
         """Unarchive the TestReport."""
-        updated_test_report = self._client.test_results.unarchive_report(test_report=self)
+        updated_test_report = self.client.test_results.unarchive_report(test_report=self)
         self._update(updated_test_report)
         return self
