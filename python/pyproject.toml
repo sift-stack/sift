@@ -205,5 +205,5 @@ select = [
 [tool.pytest.ini_options]
 testpaths = [
     "lib/sift_py",
-    "lib/sift_client/tests",
+    "lib/sift_client/_tests",
 ]
