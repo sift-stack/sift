@@ -207,3 +207,7 @@ testpaths = [
     "lib/sift_py",
     "lib/sift_client/_tests",
 ]
+# Ignored till we have credentials added to GH actions
+collect_ignore = [
+    "lib/sift_client/_tests/integrated/"
+]
