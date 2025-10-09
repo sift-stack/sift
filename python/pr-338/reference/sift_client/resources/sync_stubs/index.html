@@ -1514,6 +1514,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.sync_stubs.TestResultsAPI.unarchive_report" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unarchive_report
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.sync_stubs.TestResultsAPI.update_measurement" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update_measurement
@@ -2329,6 +2338,15 @@ You're not viewing the latest version.
   <a href="#sift_client.resources.sync_stubs.TestResultsAPI.list_steps" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;list_steps
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.sync_stubs.TestResultsAPI.unarchive_report" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unarchive_report
     </span>
   </a>
   
@@ -9292,6 +9310,14 @@ raises an error.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            unarchive_report (sift_client.resources.sync_stubs.TestResultsAPI.unarchive_report)" href="#sift_client.resources.sync_stubs.TestResultsAPI.unarchive_report">unarchive_report</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Unarchive a test report.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            update_measurement (sift_client.resources.sync_stubs.TestResultsAPI.update_measurement)" href="#sift_client.resources.sync_stubs.TestResultsAPI.update_measurement">update_measurement</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -11327,6 +11353,71 @@ raises an error.</p>
               <div class="doc-md-description">
                 <p>A list of TestSteps that matches the filter.</p>
               </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.sync_stubs.TestResultsAPI.unarchive_report" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">unarchive_report</span>
+
+
+<a href="#sift_client.resources.sync_stubs.TestResultsAPI.unarchive_report" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">unarchive_report</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">test_report</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Unarchive a test report.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>test_report</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The TestReport or test report ID to unarchive.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-internal" title="            TestReport
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestReport)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestReport">TestReport</a></code>
+                  </span>
+              </p>
             </td>
           </tr>
       </tbody>
