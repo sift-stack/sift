@@ -189,7 +189,7 @@ class ModelCreate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
         proto_msg = proto_cls()
 
         # Get all fields
-        data = self.model_dump(exclude_unset=True)
+        data = self.model_dump(exclude_unset=True, exclude_none=True)
         self._build_proto_and_paths(proto_msg, data)
 
         return proto_msg
@@ -214,8 +214,8 @@ class ModelUpdate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
         proto_cls: type[ProtoT] = self._get_proto_class()
         proto_msg = proto_cls()
 
-        # Get only explicitly set fields, including those set to None
-        data = self.model_dump(exclude_unset=True, exclude_none=False)
+        # Get only explicitly set fields
+        data = self.model_dump(exclude_unset=True, exclude_none=True)
         paths = self._build_proto_and_paths(proto_msg, data)
 
         self._add_resource_id_to_proto(proto_msg)
