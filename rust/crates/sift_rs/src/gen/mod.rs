@@ -206,6 +206,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.ping.v1)
         }
     }
+    pub mod policies {
+        // @@protoc_insertion_point(attribute:sift.policies.v1)
+        pub mod v1 {
+            include!("sift.policies.v1.rs");
+            // @@protoc_insertion_point(sift.policies.v1)
+        }
+    }
     pub mod protobuf_descriptors {
         // @@protoc_insertion_point(attribute:sift.protobuf_descriptors.v2)
         pub mod v2 {
@@ -279,6 +286,13 @@ pub mod sift {
         pub mod v2 {
             include!("sift.tags.v2.rs");
             // @@protoc_insertion_point(sift.tags.v2)
+        }
+    }
+    pub mod test_reports {
+        // @@protoc_insertion_point(attribute:sift.test_reports.v1)
+        pub mod v1 {
+            include!("sift.test_reports.v1.rs");
+            // @@protoc_insertion_point(sift.test_reports.v1)
         }
     }
     pub mod unit {

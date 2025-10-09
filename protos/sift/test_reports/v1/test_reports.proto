@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package sift_internal.test_reports.v1;
+package sift.test_reports.v1;
 
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
@@ -9,7 +9,6 @@ import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "sift/metadata/v1/metadata.proto";
 import "sift/unit/v2/unit.proto";
-
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Test Results Service"}

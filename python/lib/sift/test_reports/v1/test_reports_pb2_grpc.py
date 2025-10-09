@@ -15,87 +15,87 @@ class TestReportServiceStub(object):
             channel: A grpc.Channel.
         """
         self.ImportTestReport = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/ImportTestReport',
+                '/sift.test_reports.v1.TestReportService/ImportTestReport',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ImportTestReportRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ImportTestReportResponse.FromString,
                 )
         self.CreateTestReport = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/CreateTestReport',
+                '/sift.test_reports.v1.TestReportService/CreateTestReport',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestReportRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestReportResponse.FromString,
                 )
         self.GetTestReport = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/GetTestReport',
+                '/sift.test_reports.v1.TestReportService/GetTestReport',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.GetTestReportRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.GetTestReportResponse.FromString,
                 )
         self.ListTestReports = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/ListTestReports',
+                '/sift.test_reports.v1.TestReportService/ListTestReports',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestReportsRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestReportsResponse.FromString,
                 )
         self.UpdateTestReport = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/UpdateTestReport',
+                '/sift.test_reports.v1.TestReportService/UpdateTestReport',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportResponse.FromString,
                 )
         self.DeleteTestReport = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/DeleteTestReport',
+                '/sift.test_reports.v1.TestReportService/DeleteTestReport',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestReportRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestReportResponse.FromString,
                 )
         self.CreateTestStep = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/CreateTestStep',
+                '/sift.test_reports.v1.TestReportService/CreateTestStep',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestStepRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestStepResponse.FromString,
                 )
         self.ListTestSteps = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/ListTestSteps',
+                '/sift.test_reports.v1.TestReportService/ListTestSteps',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestStepsRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestStepsResponse.FromString,
                 )
         self.UpdateTestStep = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/UpdateTestStep',
+                '/sift.test_reports.v1.TestReportService/UpdateTestStep',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestStepRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestStepResponse.FromString,
                 )
         self.DeleteTestStep = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/DeleteTestStep',
+                '/sift.test_reports.v1.TestReportService/DeleteTestStep',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestStepRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestStepResponse.FromString,
                 )
         self.CreateTestMeasurement = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/CreateTestMeasurement',
+                '/sift.test_reports.v1.TestReportService/CreateTestMeasurement',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestMeasurementRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestMeasurementResponse.FromString,
                 )
         self.CreateTestMeasurements = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/CreateTestMeasurements',
+                '/sift.test_reports.v1.TestReportService/CreateTestMeasurements',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestMeasurementsRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestMeasurementsResponse.FromString,
                 )
         self.ListTestMeasurements = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/ListTestMeasurements',
+                '/sift.test_reports.v1.TestReportService/ListTestMeasurements',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestMeasurementsRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestMeasurementsResponse.FromString,
                 )
         self.CountTestSteps = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/CountTestSteps',
+                '/sift.test_reports.v1.TestReportService/CountTestSteps',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CountTestStepsRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CountTestStepsResponse.FromString,
                 )
         self.CountTestMeasurements = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/CountTestMeasurements',
+                '/sift.test_reports.v1.TestReportService/CountTestMeasurements',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CountTestMeasurementsRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CountTestMeasurementsResponse.FromString,
                 )
         self.UpdateTestMeasurement = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/UpdateTestMeasurement',
+                '/sift.test_reports.v1.TestReportService/UpdateTestMeasurement',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestMeasurementRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestMeasurementResponse.FromString,
                 )
         self.DeleteTestMeasurement = channel.unary_unary(
-                '/sift_internal.test_reports.v1.TestReportService/DeleteTestMeasurement',
+                '/sift.test_reports.v1.TestReportService/DeleteTestMeasurement',
                 request_serializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestMeasurementRequest.SerializeToString,
                 response_deserializer=sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestMeasurementResponse.FromString,
                 )
@@ -313,7 +313,7 @@ def add_TestReportServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'sift_internal.test_reports.v1.TestReportService', rpc_method_handlers)
+            'sift.test_reports.v1.TestReportService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -332,7 +332,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/ImportTestReport',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/ImportTestReport',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ImportTestReportRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ImportTestReportResponse.FromString,
             options, channel_credentials,
@@ -349,7 +349,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/CreateTestReport',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/CreateTestReport',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestReportRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestReportResponse.FromString,
             options, channel_credentials,
@@ -366,7 +366,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/GetTestReport',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/GetTestReport',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.GetTestReportRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.GetTestReportResponse.FromString,
             options, channel_credentials,
@@ -383,7 +383,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/ListTestReports',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/ListTestReports',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestReportsRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestReportsResponse.FromString,
             options, channel_credentials,
@@ -400,7 +400,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/UpdateTestReport',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/UpdateTestReport',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestReportResponse.FromString,
             options, channel_credentials,
@@ -417,7 +417,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/DeleteTestReport',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/DeleteTestReport',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestReportRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestReportResponse.FromString,
             options, channel_credentials,
@@ -434,7 +434,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/CreateTestStep',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/CreateTestStep',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestStepRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestStepResponse.FromString,
             options, channel_credentials,
@@ -451,7 +451,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/ListTestSteps',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/ListTestSteps',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestStepsRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestStepsResponse.FromString,
             options, channel_credentials,
@@ -468,7 +468,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/UpdateTestStep',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/UpdateTestStep',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestStepRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestStepResponse.FromString,
             options, channel_credentials,
@@ -485,7 +485,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/DeleteTestStep',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/DeleteTestStep',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestStepRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestStepResponse.FromString,
             options, channel_credentials,
@@ -502,7 +502,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/CreateTestMeasurement',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/CreateTestMeasurement',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestMeasurementRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestMeasurementResponse.FromString,
             options, channel_credentials,
@@ -519,7 +519,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/CreateTestMeasurements',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/CreateTestMeasurements',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestMeasurementsRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CreateTestMeasurementsResponse.FromString,
             options, channel_credentials,
@@ -536,7 +536,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/ListTestMeasurements',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/ListTestMeasurements',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestMeasurementsRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.ListTestMeasurementsResponse.FromString,
             options, channel_credentials,
@@ -553,7 +553,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/CountTestSteps',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/CountTestSteps',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CountTestStepsRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CountTestStepsResponse.FromString,
             options, channel_credentials,
@@ -570,7 +570,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/CountTestMeasurements',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/CountTestMeasurements',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CountTestMeasurementsRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.CountTestMeasurementsResponse.FromString,
             options, channel_credentials,
@@ -587,7 +587,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/UpdateTestMeasurement',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/UpdateTestMeasurement',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestMeasurementRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.UpdateTestMeasurementResponse.FromString,
             options, channel_credentials,
@@ -604,7 +604,7 @@ class TestReportService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/sift_internal.test_reports.v1.TestReportService/DeleteTestMeasurement',
+        return grpc.experimental.unary_unary(request, target, '/sift.test_reports.v1.TestReportService/DeleteTestMeasurement',
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestMeasurementRequest.SerializeToString,
             sift_dot_test__reports_dot_v1_dot_test__reports__pb2.DeleteTestMeasurementResponse.FromString,
             options, channel_credentials,
