@@ -118,6 +118,7 @@ exclude = [
     "lib/buf",
     "lib/google",
     "lib/protoc_gen_openapiv2",
+    "lib/test_reports",
 ]
 
 # No official typing stubs for Python gRPC libraries yet.
