@@ -429,7 +429,7 @@ class TestBaseType:
 
             @classmethod
             def _from_proto(cls, proto, sift_client=None):
-                return cls(name=proto.name)
+                return cls(name=proto.name, created_date=proto.created_date)
 
         # Should not raise
         model = TestModel(name="test", created_date=datetime.now(timezone.utc))
@@ -444,11 +444,11 @@ class TestBaseType:
 
             @classmethod
             def _from_proto(cls, proto, sift_client=None):
-                return cls(name=proto.name)
+                return cls(name=proto.name, created_date=proto.created_date)
 
         # Should raise validation error
         with pytest.raises(ValueError, match="must have timezone information"):
-            TestModel(name="test", created_date=datetime.now(timezone.utc))
+            TestModel(name="test", created_date=datetime.now())  # noqa: DTZ005
 
     def test_validate_timezones_with_none_datetime(self):
         """Test timezone validation passes when datetime is None."""
