@@ -10,7 +10,7 @@ from sift_client import SiftClient
 @pytest.fixture(scope="session")
 def sift_client() -> SiftClient:
     """Create a SiftClient instance for testing.
-    
+
     This fixture is shared across all test files and is session-scoped
     to avoid creating multiple client instances.
     """
