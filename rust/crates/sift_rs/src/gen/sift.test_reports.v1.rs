@@ -45,17 +45,15 @@ pub struct TestStep {
     pub description: ::prost::alloc::string::String,
     #[prost(enumeration="TestStepType", tag="6")]
     pub step_type: i32,
-    #[prost(int32, tag="7")]
-    pub step_number: i32,
-    #[prost(string, tag="8")]
+    #[prost(string, tag="7")]
     pub step_path: ::prost::alloc::string::String,
-    #[prost(enumeration="TestStatus", tag="9")]
+    #[prost(enumeration="TestStatus", tag="8")]
     pub status: i32,
-    #[prost(message, optional, tag="10")]
+    #[prost(message, optional, tag="9")]
     pub start_time: ::core::option::Option<::pbjson_types::Timestamp>,
-    #[prost(message, optional, tag="11")]
+    #[prost(message, optional, tag="10")]
     pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
-    #[prost(message, optional, tag="12")]
+    #[prost(message, optional, tag="11")]
     pub error_info: ::core::option::Option<ErrorInfo>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

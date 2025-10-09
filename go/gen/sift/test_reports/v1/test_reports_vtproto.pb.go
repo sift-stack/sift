@@ -82,7 +82,6 @@ func (m *TestStep) CloneVT() *TestStep {
 	r.Name = m.Name
 	r.Description = m.Description
 	r.StepType = m.StepType
-	r.StepNumber = m.StepNumber
 	r.StepPath = m.StepPath
 	r.Status = m.Status
 	r.StartTime = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.StartTime).CloneVT())
@@ -976,9 +975,6 @@ func (this *TestStep) EqualVT(that *TestStep) bool {
 		return false
 	}
 	if this.StepType != that.StepType {
-		return false
-	}
-	if this.StepNumber != that.StepNumber {
 		return false
 	}
 	if this.StepPath != that.StepPath {
@@ -2921,7 +2917,7 @@ func (m *TestStep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x62
+		dAtA[i] = 0x5a
 	}
 	if m.EndTime != nil {
 		size, err := (*timestamppb1.Timestamp)(m.EndTime).MarshalToSizedBufferVT(dAtA[:i])
@@ -2931,7 +2927,7 @@ func (m *TestStep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x5a
+		dAtA[i] = 0x52
 	}
 	if m.StartTime != nil {
 		size, err := (*timestamppb1.Timestamp)(m.StartTime).MarshalToSizedBufferVT(dAtA[:i])
@@ -2941,24 +2937,19 @@ func (m *TestStep) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x52
+		dAtA[i] = 0x4a
 	}
 	if m.Status != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Status))
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x40
 	}
 	if len(m.StepPath) > 0 {
 		i -= len(m.StepPath)
 		copy(dAtA[i:], m.StepPath)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.StepPath)))
 		i--
-		dAtA[i] = 0x42
-	}
-	if m.StepNumber != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.StepNumber))
-		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x3a
 	}
 	if m.StepType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.StepType))
@@ -5123,7 +5114,7 @@ func (m *TestStep) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x62
+		dAtA[i] = 0x5a
 	}
 	if m.EndTime != nil {
 		size, err := (*timestamppb1.Timestamp)(m.EndTime).MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -5133,7 +5124,7 @@ func (m *TestStep) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x5a
+		dAtA[i] = 0x52
 	}
 	if m.StartTime != nil {
 		size, err := (*timestamppb1.Timestamp)(m.StartTime).MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -5143,24 +5134,19 @@ func (m *TestStep) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= size
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x52
+		dAtA[i] = 0x4a
 	}
 	if m.Status != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Status))
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x40
 	}
 	if len(m.StepPath) > 0 {
 		i -= len(m.StepPath)
 		copy(dAtA[i:], m.StepPath)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.StepPath)))
 		i--
-		dAtA[i] = 0x42
-	}
-	if m.StepNumber != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.StepNumber))
-		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x3a
 	}
 	if m.StepType != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.StepType))
@@ -7250,9 +7236,6 @@ func (m *TestStep) SizeVT() (n int) {
 	if m.StepType != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.StepType))
 	}
-	if m.StepNumber != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.StepNumber))
-	}
 	l = len(m.StepPath)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -8675,25 +8658,6 @@ func (m *TestStep) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StepNumber", wireType)
-			}
-			m.StepNumber = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.StepNumber |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StepPath", wireType)
 			}
@@ -8725,7 +8689,7 @@ func (m *TestStep) UnmarshalVT(dAtA []byte) error {
 			}
 			m.StepPath = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 9:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
 			}
@@ -8744,7 +8708,7 @@ func (m *TestStep) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 10:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StartTime", wireType)
 			}
@@ -8780,7 +8744,7 @@ func (m *TestStep) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 11:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EndTime", wireType)
 			}
@@ -8816,7 +8780,7 @@ func (m *TestStep) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 12:
+		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ErrorInfo", wireType)
 			}
@@ -13824,25 +13788,6 @@ func (m *TestStep) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StepNumber", wireType)
-			}
-			m.StepNumber = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.StepNumber |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StepPath", wireType)
 			}
@@ -13878,7 +13823,7 @@ func (m *TestStep) UnmarshalVTUnsafe(dAtA []byte) error {
 			}
 			m.StepPath = stringValue
 			iNdEx = postIndex
-		case 9:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
 			}
@@ -13897,7 +13842,7 @@ func (m *TestStep) UnmarshalVTUnsafe(dAtA []byte) error {
 					break
 				}
 			}
-		case 10:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StartTime", wireType)
 			}
@@ -13933,7 +13878,7 @@ func (m *TestStep) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 11:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EndTime", wireType)
 			}
@@ -13969,7 +13914,7 @@ func (m *TestStep) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 12:
+		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ErrorInfo", wireType)
 			}

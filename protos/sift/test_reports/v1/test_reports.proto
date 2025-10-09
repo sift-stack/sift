@@ -93,23 +93,20 @@ message TestStep {
   // Semantic type of the test step
   TestStepType step_type = 6 [(google.api.field_behavior) = REQUIRED];
 
-  // Order among siblings (1, 2, 3...)
-  int32 step_number = 7 [(google.api.field_behavior) = REQUIRED];
-
   // Hierarchical path (e.g., "1", "1.1", "1.2.3")
-  string step_path = 8 [(google.api.field_behavior) = REQUIRED];
+  string step_path = 7 [(google.api.field_behavior) = REQUIRED];
 
   // Status of the test step
-  TestStatus status = 9 [(google.api.field_behavior) = REQUIRED];
+  TestStatus status = 8 [(google.api.field_behavior) = REQUIRED];
 
   // Start time of the test step
-  google.protobuf.Timestamp start_time = 10 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp start_time = 9 [(google.api.field_behavior) = REQUIRED];
 
   // End time of the test step
-  google.protobuf.Timestamp end_time = 11 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp end_time = 10 [(google.api.field_behavior) = REQUIRED];
 
   // Error information of the test step
-  ErrorInfo error_info = 12 [(google.api.field_behavior) = OPTIONAL];
+  ErrorInfo error_info = 11 [(google.api.field_behavior) = OPTIONAL];
 
   //repeated Measurement measurements = XX; TOOD: to be added in ENG-5623
 }
@@ -498,14 +495,14 @@ message ListTestStepsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
-  // `description`, `step_type`, `step_number`, `step_path`, `status`, `start_time`, `end_time`,
+  // `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
   // `error_code`, `error_message`, `created_date`, and `modified_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 
   // How to order the retrieved test steps. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-  // Available fields to order_by are `test_step_id`, `name`, `step_type`, `step_number`, `step_path`, `status`,
+  // Available fields to order_by are `test_step_id`, `name`, `step_type`, `step_path`, `status`,
   // `start_time`, `end_time`, `created_date`, and `modified_date`.
   // If left empty, items are ordered by `step_path` in ascending order.
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
@@ -528,7 +525,7 @@ message UpdateTestStepRequest {
   TestStep test_step = 1 [(google.api.field_behavior) = REQUIRED];
 
   // The field mask specifying which fields to update. The fields available to be updated are
-  // `name`, `description`, `step_type`, `step_number`, `step_path`, `test_case`, `status`,
+  // `name`, `description`, `step_type`, `step_path`, `test_case`, `status`,
   // `start_time`, `end_time`, and `error_info`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
 }
@@ -621,7 +618,7 @@ message ListTestMeasurementsResponse {
 message CountTestStepsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
-  // `description`, `step_type`, `step_number`, `step_path`, `status`, `start_time`, `end_time`,
+  // `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
   // `error_code`, `error_message`, `created_date`, and `modified_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.

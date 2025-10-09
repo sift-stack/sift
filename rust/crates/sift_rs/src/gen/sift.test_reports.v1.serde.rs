@@ -4033,9 +4033,6 @@ impl serde::Serialize for TestStep {
         if self.step_type != 0 {
             len += 1;
         }
-        if self.step_number != 0 {
-            len += 1;
-        }
         if !self.step_path.is_empty() {
             len += 1;
         }
@@ -4071,9 +4068,6 @@ impl serde::Serialize for TestStep {
             let v = TestStepType::try_from(self.step_type)
                 .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.step_type)))?;
             struct_ser.serialize_field("stepType", &v)?;
-        }
-        if self.step_number != 0 {
-            struct_ser.serialize_field("stepNumber", &self.step_number)?;
         }
         if !self.step_path.is_empty() {
             struct_ser.serialize_field("stepPath", &self.step_path)?;
@@ -4112,8 +4106,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
             "description",
             "step_type",
             "stepType",
-            "step_number",
-            "stepNumber",
             "step_path",
             "stepPath",
             "status",
@@ -4133,7 +4125,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
             Name,
             Description,
             StepType,
-            StepNumber,
             StepPath,
             Status,
             StartTime,
@@ -4166,7 +4157,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
                             "name" => Ok(GeneratedField::Name),
                             "description" => Ok(GeneratedField::Description),
                             "stepType" | "step_type" => Ok(GeneratedField::StepType),
-                            "stepNumber" | "step_number" => Ok(GeneratedField::StepNumber),
                             "stepPath" | "step_path" => Ok(GeneratedField::StepPath),
                             "status" => Ok(GeneratedField::Status),
                             "startTime" | "start_time" => Ok(GeneratedField::StartTime),
@@ -4197,7 +4187,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
                 let mut name__ = None;
                 let mut description__ = None;
                 let mut step_type__ = None;
-                let mut step_number__ = None;
                 let mut step_path__ = None;
                 let mut status__ = None;
                 let mut start_time__ = None;
@@ -4241,14 +4230,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
                             }
                             step_type__ = Some(map_.next_value::<TestStepType>()? as i32);
                         }
-                        GeneratedField::StepNumber => {
-                            if step_number__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("stepNumber"));
-                            }
-                            step_number__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::StepPath => {
                             if step_path__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("stepPath"));
@@ -4288,7 +4269,6 @@ impl<'de> serde::Deserialize<'de> for TestStep {
                     name: name__.unwrap_or_default(),
                     description: description__.unwrap_or_default(),
                     step_type: step_type__.unwrap_or_default(),
-                    step_number: step_number__.unwrap_or_default(),
                     step_path: step_path__.unwrap_or_default(),
                     status: status__.unwrap_or_default(),
                     start_time: start_time__,

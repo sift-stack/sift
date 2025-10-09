@@ -176,7 +176,6 @@ class TestStepUpdate(ModelUpdate[TestStepProto]):
     name: str | None = None
     description: str | None = None
     step_type: TestStepType | None = None
-    step_number: int | None = None
     step_path: str | None = None
     status: TestStatus | None = None
     start_time: datetime | None = None
@@ -217,7 +216,6 @@ class TestStepCreate(ModelCreate[TestStepProto]):
             test_report_id=self.test_report_id,
             name=self.name,
             step_type=self.step_type.value,  # type: ignore
-            step_number=int(self.step_path.split(".")[0]),
             step_path=self.step_path,
             status=self.status.value,  # type: ignore
         )
@@ -283,7 +281,6 @@ class TestStep(BaseType[TestStepProto, "TestStep"]):
             test_report_id=self.test_report_id,
             name=self.name,
             step_type=self.step_type.value,  # type: ignore
-            step_number=int(self.step_path.split(".")[0]),
             step_path=self.step_path,
             status=self.status.value,  # type: ignore
         )

@@ -85,6 +85,8 @@ pub mod test_report_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
+        /** Imports a test report from an already-uploaded file
+*/
         pub async fn import_test_report(
             &mut self,
             request: impl tonic::IntoRequest<super::ImportTestReportRequest>,
@@ -435,6 +437,8 @@ pub mod test_report_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Creates multiple test measurements in a single request
+*/
         pub async fn create_test_measurements(
             &mut self,
             request: impl tonic::IntoRequest<super::CreateTestMeasurementsRequest>,
@@ -624,6 +628,8 @@ pub mod test_report_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with TestReportServiceServer.
     #[async_trait]
     pub trait TestReportService: Send + Sync + 'static {
+        /** Imports a test report from an already-uploaded file
+*/
         async fn import_test_report(
             &self,
             request: tonic::Request<super::ImportTestReportRequest>,
@@ -721,6 +727,8 @@ pub mod test_report_service_server {
             tonic::Response<super::CreateTestMeasurementResponse>,
             tonic::Status,
         >;
+        /** Creates multiple test measurements in a single request
+*/
         async fn create_test_measurements(
             &self,
             request: tonic::Request<super::CreateTestMeasurementsRequest>,

@@ -185,7 +185,6 @@ class TestStep(google.protobuf.message.Message):
     NAME_FIELD_NUMBER: builtins.int
     DESCRIPTION_FIELD_NUMBER: builtins.int
     STEP_TYPE_FIELD_NUMBER: builtins.int
-    STEP_NUMBER_FIELD_NUMBER: builtins.int
     STEP_PATH_FIELD_NUMBER: builtins.int
     STATUS_FIELD_NUMBER: builtins.int
     START_TIME_FIELD_NUMBER: builtins.int
@@ -203,8 +202,6 @@ class TestStep(google.protobuf.message.Message):
     """Description of the test step from test controller"""
     step_type: global___TestStepType.ValueType
     """Semantic type of the test step"""
-    step_number: builtins.int
-    """Order among siblings (1, 2, 3...)"""
     step_path: builtins.str
     """Hierarchical path (e.g., "1", "1.1", "1.2.3")"""
     status: global___TestStatus.ValueType
@@ -230,7 +227,6 @@ class TestStep(google.protobuf.message.Message):
         name: builtins.str = ...,
         description: builtins.str = ...,
         step_type: global___TestStepType.ValueType = ...,
-        step_number: builtins.int = ...,
         step_path: builtins.str = ...,
         status: global___TestStatus.ValueType = ...,
         start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
@@ -238,7 +234,7 @@ class TestStep(google.protobuf.message.Message):
         error_info: global___ErrorInfo | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["end_time", b"end_time", "error_info", b"error_info", "start_time", b"start_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["description", b"description", "end_time", b"end_time", "error_info", b"error_info", "name", b"name", "parent_step_id", b"parent_step_id", "start_time", b"start_time", "status", b"status", "step_number", b"step_number", "step_path", b"step_path", "step_type", b"step_type", "test_report_id", b"test_report_id", "test_step_id", b"test_step_id"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["description", b"description", "end_time", b"end_time", "error_info", b"error_info", "name", b"name", "parent_step_id", b"parent_step_id", "start_time", b"start_time", "status", b"status", "step_path", b"step_path", "step_type", b"step_type", "test_report_id", b"test_report_id", "test_step_id", b"test_step_id"]) -> None: ...
 
 global___TestStep = TestStep
 
@@ -743,14 +739,14 @@ class ListTestStepsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
-    `description`, `step_type`, `step_number`, `step_path`, `status`, `start_time`, `end_time`,
+    `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
     `error_code`, `error_message`, `created_date`, and `modified_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
     """
     order_by: builtins.str
     """How to order the retrieved test steps. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
-    Available fields to order_by are `test_step_id`, `name`, `step_type`, `step_number`, `step_path`, `status`,
+    Available fields to order_by are `test_step_id`, `name`, `step_type`, `step_path`, `status`,
     `start_time`, `end_time`, `created_date`, and `modified_date`.
     If left empty, items are ordered by `step_path` in ascending order.
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
@@ -807,7 +803,7 @@ class UpdateTestStepRequest(google.protobuf.message.Message):
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
         """The field mask specifying which fields to update. The fields available to be updated are
-        `name`, `description`, `step_type`, `step_number`, `step_path`, `test_case`, `status`,
+        `name`, `description`, `step_type`, `step_path`, `test_case`, `status`,
         `start_time`, `end_time`, and `error_info`.
         """
 
@@ -1045,7 +1041,7 @@ class CountTestStepsRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `test_step_id`, `test_report_id`, `parent_step_id`, `name`,
-    `description`, `step_type`, `step_number`, `step_path`, `status`, `start_time`, `end_time`,
+    `description`, `step_type`, `step_path`, `status`, `start_time`, `end_time`,
     `error_code`, `error_message`, `created_date`, and `modified_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#teststep). Optional.
