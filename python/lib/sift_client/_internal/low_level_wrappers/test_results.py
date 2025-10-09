@@ -261,7 +261,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The created TestStep.
         """
-        request = CreateTestStepRequest(test_step=test_step._to_proto())
+        request = CreateTestStepRequest(test_step=test_step.to_proto())
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestStep(request)
         grpc_test_step = cast("CreateTestStepResponse", response).test_step
         return TestStep._from_proto(grpc_test_step)

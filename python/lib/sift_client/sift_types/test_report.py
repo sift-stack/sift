@@ -71,7 +71,7 @@ class TestMeasurementType(Enum):
 
 
 class TestReportBase(ModelCreateUpdateBase):
-    """Base model for TestReportUpdate and TestReportCreate."""
+    """Base model for TestReportUpdate and TestReportCreate. Contains shared fields for all test reports. Update and create models differ mostly in what fields are required vs optional."""
 
     status: TestStatus | None = None
     metadata: dict[str, str | float | bool] | None = None
@@ -168,22 +168,26 @@ class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
         )
 
 
-class TestStepUpdate(ModelUpdate[TestStepProto]):
+class TestStepBase(ModelCreateUpdateBase):
+    """Base model for TestStepUpdate and TestStepCreate. Contains shared fields for all test steps. Update and create models differ mostly in what fields are required vs optional."""
+
+    parent_step_id: str | None = None
+    description: str | None = None
+    error_info: ErrorInfo | None = None
+
+    def _get_proto_class(self) -> type[TestStepProto]:
+        return TestStepProto
+
+
+class TestStepUpdate(TestStepBase, ModelUpdate[TestStepProto]):
     """Update model for TestStep."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     name: str | None = None
-    description: str | None = None
     step_type: TestStepType | None = None
     step_path: str | None = None
     status: TestStatus | None = None
     start_time: datetime | None = None
     end_time: datetime | None = None
-    error_info: ErrorInfo | None = None
-
-    def _get_proto_class(self) -> type[TestStepProto]:
-        return TestStepProto
 
     def _add_resource_id_to_proto(self, proto_msg: TestStepProto):
         if self._resource_id is None:
@@ -191,24 +195,16 @@ class TestStepUpdate(ModelUpdate[TestStepProto]):
         proto_msg.test_step_id = self._resource_id
 
 
-class TestStepCreate(ModelCreate[TestStepProto]):
+class TestStepCreate(TestStepBase, ModelCreate[TestStepProto]):
     """Create model for TestStep."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     test_report_id: str
-    parent_step_id: str | None = None
     name: str
-    description: str | None = None
     step_type: TestStepType
     step_path: str
     status: TestStatus
     start_time: datetime
     end_time: datetime
-    error_info: ErrorInfo | None = None
-
-    def _get_proto_class(self) -> type[TestStepProto]:
-        return TestStepProto
 
     def to_proto(self) -> TestStepProto:
         """Convert to protobuf message with custom logic."""
@@ -234,15 +230,9 @@ class TestStepCreate(ModelCreate[TestStepProto]):
 
         return proto
 
-    def _to_proto(self) -> TestStepProto:
-        """Alias for to_proto() for compatibility with low-level client."""
-        return self.to_proto()
-
 
 class TestStep(BaseType[TestStepProto, "TestStep"]):
     """TestStep model representing a step in a test."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     test_report_id: str
     parent_step_id: str | None = None
@@ -299,6 +289,12 @@ class TestStep(BaseType[TestStepProto, "TestStep"]):
 
         return proto
 
+    def update(self, update: TestStepUpdate | dict) -> TestStep:
+        """Update the TestStep."""
+        updated_test_step = self._client.test_results.update_step(test_step=self, update=update)
+        self._update(updated_test_step)
+        return self
+
 
 class NumericBounds(BaseType[NumericBoundsProto, "NumericBounds"]):
     """NumericBounds model representing numeric bounds for test measurements."""
@@ -321,19 +317,25 @@ class NumericBounds(BaseType[NumericBoundsProto, "NumericBounds"]):
         return NumericBoundsProto(min=self.min, max=self.max)
 
 
-class TestMeasurementUpdate(ModelUpdate[TestMeasurementProto]):
-    """Update model for TestMeasurement."""
+class TestMeasurementBase(ModelCreateUpdateBase):
+    """Base model for TestMeasurementUpdate and TestMeasurementCreate. Contains shared fields for all test measurements. Update and create models differ mostly in what fields are required vs optional."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    name: str | None = None
-    measurement_type: int | None = None
     numeric_value: float | None = None
     string_value: str | None = None
     boolean_value: bool | None = None
     unit: str | None = None
     numeric_bounds: NumericBounds | None = None
     string_expected_value: str | None = None
+
+    def _get_proto_class(self) -> type[TestMeasurementProto]:
+        return TestMeasurementProto
+
+
+class TestMeasurementUpdate(TestMeasurementBase, ModelUpdate[TestMeasurementProto]):
+    """Update model for TestMeasurement."""
+
+    name: str | None = None
+    measurement_type: int | None = None
     passed: bool | None = None
     timestamp: datetime | None = None
 
@@ -343,34 +345,20 @@ class TestMeasurementUpdate(ModelUpdate[TestMeasurementProto]):
         ),
     }
 
-    def _get_proto_class(self) -> type[TestMeasurementProto]:
-        return TestMeasurementProto
-
     def _add_resource_id_to_proto(self, proto_msg: TestMeasurementProto):
         if self._resource_id is None:
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.measurement_id = self._resource_id
 
 
-class TestMeasurementCreate(ModelCreate[TestMeasurementProto]):
+class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProto]):
     """Create model for TestMeasurement."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     measurement_type: TestMeasurementType
     name: str
     test_step_id: str
-    numeric_value: float | None = None
-    string_value: str | None = None
-    boolean_value: bool | None = None
-    unit: str | None = None
-    numeric_bounds: NumericBounds | None = None
-    string_expected_value: str | None = None
     passed: bool
     timestamp: datetime
-
-    def _get_proto_class(self) -> type[TestMeasurementProto]:
-        return TestMeasurementProto
 
     def to_proto(self) -> TestMeasurementProto:
         """Convert to protobuf message with custom logic."""
@@ -484,6 +472,16 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
 
         return proto
 
+    def update(
+        self, update: TestMeasurementUpdate | dict, update_step: bool = False
+    ) -> TestMeasurement:
+        """Update the TestMeasurement."""
+        updated_test_measurement = self._client.test_results.update_measurement(
+            test_measurement=self, update=update, update_step=update_step
+        )
+        self._update(updated_test_measurement)
+        return self
+
 
 class TestReport(BaseType[TestReportProto, "TestReport"]):
     """TestReport model representing a test report."""
@@ -554,3 +552,23 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
             proto.archived_date.FromDatetime(self.archived_date)
 
         return proto
+
+    def update(self, update: TestReportUpdate | dict) -> TestReport:
+        """Update the TestReport."""
+        updated_test_report = self._client.test_results.update_report(
+            test_report=self, update=update
+        )
+        self._update(updated_test_report)
+        return self
+
+    def archive(self) -> TestReport:
+        """Archive the TestReport."""
+        updated_test_report = self._client.test_results.archive_report(test_report=self)
+        self._update(updated_test_report)
+        return self
+
+    def unarchive(self) -> TestReport:
+        """Unarchive the TestReport."""
+        updated_test_report = self._client.test_results.unarchive_report(test_report=self)
+        self._update(updated_test_report)
+        return self

@@ -127,7 +127,7 @@ class TestResultsTest:
                 description="Validate collected data",
                 step_type=TestStepType.ACTION,
                 step_path="3",
-                status=TestStatus.PASSED,
+                status=TestStatus.IN_PROGRESS,
                 start_time=simulated_time,
                 end_time=simulated_time + timedelta(seconds=10),
             ),
@@ -157,6 +157,24 @@ class TestResultsTest:
         self.test_steps["step2"] = step2
         self.test_steps["step3"] = step3
         self.test_steps["step3_1"] = step3_1
+
+    def test_update_test_steps(self):
+        step3 = self.test_steps.get("step3")
+        step3_1 = self.test_steps.get("step3_1")
+        if not step3 or not step3_1:
+            pytest.skip("Need to create a step first")
+        step3 = self.client.test_results.update_step(
+            step3,
+            {"status": TestStatus.PASSED},
+        )
+        # Update the step using class function.
+        step3_1 = step3_1.update(
+            {"description": "Error demo w/ updated description"},
+        )
+        print(f"Updated step 3: {step3}")
+        print(f"Updated step 3.1: {step3_1}")
+        assert step3.status == TestStatus.PASSED
+        assert step3_1.description == "Error demo w/ updated description"
 
     def test_create_test_measurements(self):
         step1 = self.test_steps.get("step1")
@@ -247,9 +265,9 @@ class TestResultsTest:
         assert measurement2.passed == False
         assert measurement2.string_expected_value == "1.10.4"
 
-        measurement4 = self.client.test_results.update_measurement(
-            measurement4,
-            update={
+        # Update the measurement using class function.
+        measurement4 = measurement4.update(
+            {
                 "passed": False,
                 "numeric_bounds": NumericBounds(
                     min=10,
@@ -286,11 +304,16 @@ class TestResultsTest:
                     "humidity": 45.0,
                     "automated": True,
                 },
-                status=TestStatus.FAILED,
                 end_time=new_end_time,
             ),
         )
         print(f"Updated report with metadata: {updated_report.metadata}")
+
+        # Update the report using class function.
+        updated_report = updated_report.update(
+            {"status": TestStatus.FAILED},
+        )
+        print(f"Updated report with status: {updated_report.status}")
         assert updated_report.metadata == {
             "test_environment": "production",
             "temperature": 22.5,

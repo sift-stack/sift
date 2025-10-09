@@ -236,13 +236,11 @@ class TestResultsAPIAsync(ResourceBase):
         Returns:
             The updated TestReport.
         """
-        if isinstance(test_report, str):
-            test_report = await self.get_report(test_report_id=test_report)
-
+        test_report_id = test_report.id_ if isinstance(test_report, TestReport) else test_report
         if isinstance(update, dict):
             update = TestReportUpdate.model_validate(update)
 
-        update.resource_id = test_report.id_
+        update.resource_id = test_report_id
         updated_test_report = await self._low_level_client.update_test_report(update)
         return self._apply_client_to_instance(updated_test_report)
 
@@ -253,6 +251,14 @@ class TestResultsAPIAsync(ResourceBase):
             test_report: The TestReport or test report ID to archive.
         """
         return await self.update_report(test_report=test_report, update={"is_archived": True})
+
+    async def unarchive_report(self, *, test_report: str | TestReport) -> TestReport:
+        """Unarchive a test report.
+
+        Args:
+            test_report: The TestReport or test report ID to unarchive.
+        """
+        return await self.update_report(test_report=test_report, update={"is_archived": False})
 
     async def delete_report(self, *, test_report: str | TestReport) -> None:
         """Delete a test report.

@@ -1084,6 +1084,14 @@ class TestResultsAPI:
         """
         ...
 
+    def unarchive_report(self, *, test_report: str | TestReport) -> TestReport:
+        """Unarchive a test report.
+
+        Args:
+            test_report: The TestReport or test report ID to unarchive.
+        """
+        ...
+
     def update_measurement(
         self,
         test_measurement: TestMeasurement,
