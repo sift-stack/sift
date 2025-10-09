@@ -32,9 +32,9 @@ class TestResultsTest:
 
     @classmethod
     def setup_class(cls):
-        grpc_url = os.getenv("SIFT_GRPC_URI")
-        rest_url = os.getenv("SIFT_REST_URI")
-        api_key = os.getenv("SIFT_API_KEY")
+        grpc_url = os.getenv("SIFT_GRPC_URI", "")
+        rest_url = os.getenv("SIFT_REST_URI", "")
+        api_key = os.getenv("SIFT_API_KEY", "")
         cls.client = SiftClient(
             connection_config=SiftConnectionConfig(
                 grpc_url=grpc_url,
