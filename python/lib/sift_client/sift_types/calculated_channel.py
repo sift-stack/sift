@@ -96,6 +96,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         cls, proto: CalculatedChannelProto, sift_client: SiftClient | None = None
     ) -> CalculatedChannel:
         return cls(
+            proto=proto,
             id_=proto.calculated_channel_id,
             name=proto.name,
             description=proto.description,
@@ -179,14 +180,8 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
     @model_validator(mode="after")
     def _validate_asset_configuration(self):
         """Validate that either all_assets is True or at least one of tag_ids or asset_ids is provided, but not both."""
-        if (
-            self.all_assets is not None
-            and self.all_assets
-            and (self.asset_ids or self.tag_ids)
-        ):
-            raise ValueError(
-                "Cannot specify both all_assets=True and asset_ids/tag_ids"
-            )
+        if self.all_assets is not None and self.all_assets and (self.asset_ids or self.tag_ids):
+            raise ValueError("Cannot specify both all_assets=True and asset_ids/tag_ids")
         return self
 
     @model_validator(mode="after")
@@ -199,9 +194,7 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
         return self
 
 
-class CalculatedChannelCreate(
-    CalculatedChannelBase, ModelCreate[CreateCalculatedChannelRequest]
-):
+class CalculatedChannelCreate(CalculatedChannelBase, ModelCreate[CreateCalculatedChannelRequest]):
     """Create model for a Calculated Channel."""
 
     name: str
@@ -212,9 +205,7 @@ class CalculatedChannelCreate(
         return CreateCalculatedChannelRequest
 
 
-class CalculatedChannelUpdate(
-    CalculatedChannelBase, ModelUpdate[CalculatedChannelProto]
-):
+class CalculatedChannelUpdate(CalculatedChannelBase, ModelUpdate[CalculatedChannelProto]):
     """Update model for a Calculated Channel."""
 
     name: str | None = None

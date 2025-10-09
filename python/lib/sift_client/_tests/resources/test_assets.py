@@ -7,8 +7,6 @@ These tests demonstrate and validate the usage of the Assets API including:
 - Error handling and edge cases
 """
 
-import os
-
 import pytest
 
 from sift_client import SiftClient

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -32,8 +33,6 @@ from sift_client.sift_types._base import BaseType, ModelCreate, ModelUpdate
 from sift_client.sift_types.channel import ChannelReference
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
 
@@ -135,8 +134,8 @@ class Rule(BaseType[RuleProto, "Rule"]):
             ],
             action=RuleAction._from_proto(proto.conditions[0].actions[0]),
             is_enabled=proto.is_enabled,
-            created_date=proto.created_date.ToDatetime(),
-            modified_date=proto.modified_date.ToDatetime(),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
@@ -147,7 +146,9 @@ class Rule(BaseType[RuleProto, "Rule"]):
             asset_ids=proto.asset_configuration.asset_ids,  # type: ignore
             asset_tag_ids=proto.asset_configuration.tag_ids,  # type: ignore
             contextual_channels=[c.name for c in proto.contextual_channels.channels],
-            archived_date=(proto.archived_date.ToDatetime() if proto.archived_date else None),
+            archived_date=(
+                proto.archived_date.ToDatetime(tzinfo=timezone.utc) if proto.archived_date else None
+            ),
             is_archived=proto.is_archived,
             is_external=proto.is_external,
             _client=sift_client,
@@ -296,9 +297,10 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     ) -> RuleAction:
         action_type = RuleActionType(proto.action_type)
         return cls(
+            proto=proto,
             condition_id=proto.rule_condition_id,
-            created_date=proto.created_date.ToDatetime(),
-            modified_date=proto.modified_date.ToDatetime(),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             version_id=proto.rule_action_version_id,
@@ -358,14 +360,17 @@ class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):
         cls, proto: RuleVersionProto, sift_client: SiftClient | None = None
     ) -> RuleVersion:
         return cls(
+            proto=proto,
             rule_id=proto.rule_id,
             rule_version_id=proto.rule_version_id,
             version=proto.version,
-            created_date=proto.created_date.ToDatetime(),
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
             version_notes=proto.version_notes,
             generated_change_message=proto.generated_change_message,
-            archived_date=(proto.archived_date.ToDatetime() if proto.archived_date else None),
+            archived_date=(
+                proto.archived_date.ToDatetime(tzinfo=timezone.utc) if proto.archived_date else None
+            ),
             is_archived=proto.is_archived,
             _client=sift_client,
         )

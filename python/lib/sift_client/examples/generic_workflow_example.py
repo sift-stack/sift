@@ -29,7 +29,7 @@ async def main():
     asset_id = asset.id_
     print("Found asset", asset.name)
 
-    calculated_channels = client.calculated_channels.list(
+    calculated_channels = client.calculated_channels.list_(
         name_regex="velocity_per.*",
         asset_id=asset_id,
     )

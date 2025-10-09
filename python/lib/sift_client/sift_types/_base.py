@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, TypeVar
 
 from google.protobuf import field_mask_pb2, message
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -53,6 +54,16 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
 
         # Make sure we also update the proto since it is excluded
         self.__dict__["proto"] = other.proto
+        return self
+
+    @model_validator(mode="after")
+    def _validate_timezones(self):
+        """Validate datetime fiels have timezone information."""
+        for field_name in self.model_fields.keys():
+            val = getattr(self, field_name)
+            if isinstance(val, datetime) and val.tzinfo is None:
+                raise ValueError(f"{field_name} must have timezone information")
+
         return self
 
 

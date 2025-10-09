@@ -7,7 +7,6 @@ These tests demonstrate and validate the usage of the Runs API including:
 - Error handling and edge cases
 """
 
-import os
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -256,7 +255,12 @@ class TestRunsAPIAsync:
                 assert created_run.client_key is not None
                 assert created_run.start_time is not None
                 assert created_run.stop_time is not None
-                assert created_run.tags == ["test", "pytest", "integration", "sift-client-pytest"]
+                assert created_run.tags == [
+                    "test",
+                    "pytest",
+                    "integration",
+                    "sift-client-pytest",
+                ]
                 assert created_run.metadata["pytest_type"] == "integration"
 
             finally:
@@ -328,7 +332,11 @@ class TestRunsAPIAsync:
                 updated_run = await runs_api_async.update(new_run, update)
 
                 # Verify the updates
-                assert set(updated_run.tags) == {"updated", "new-tag", "sift-client-pytest"}
+                assert set(updated_run.tags) == {
+                    "updated",
+                    "new-tag",
+                    "sift-client-pytest",
+                }
             finally:
                 await runs_api_async.archive(new_run.id_)
 
