@@ -47,8 +47,7 @@ class TestCalculatedChannelBase:
 
         # Verify expression is set in nested path
         assert (
-            proto.calculated_channel_configuration.query_configuration.sel.expression
-            == "$1 + $2"
+            proto.calculated_channel_configuration.query_configuration.sel.expression == "$1 + $2"
         )
         assert "query_configuration" in mask.paths
 
@@ -66,9 +65,7 @@ class TestCalculatedChannelBase:
         proto, mask = update.to_proto_with_mask()
 
         # Verify channel references are converted
-        refs = (
-            proto.calculated_channel_configuration.query_configuration.sel.expression_channel_references
-        )
+        refs = proto.calculated_channel_configuration.query_configuration.sel.expression_channel_references
         assert len(refs) == 2
         assert refs[0].channel_reference == "$1"
         assert refs[0].channel_identifier == "channel1"
@@ -110,10 +107,7 @@ class TestCalculatedChannelBase:
         proto, mask = update.to_proto_with_mask()
 
         # Verify all_assets is set in nested path
-        assert (
-            proto.calculated_channel_configuration.asset_configuration.all_assets
-            is True
-        )
+        assert proto.calculated_channel_configuration.asset_configuration.all_assets is True
         # Verify update_field is in mask (same as tag_ids and asset_ids)
         assert "asset_configuration" in mask.paths
 
@@ -153,9 +147,7 @@ class TestCalculatedChannelBase:
         ):
             CalculatedChannelUpdate(
                 expression_channel_references=[
-                    ChannelReference(
-                        channel_reference="$1", channel_identifier="channel1"
-                    ),
+                    ChannelReference(channel_reference="$1", channel_identifier="channel1"),
                 ],
             )
 
@@ -210,9 +202,7 @@ def mock_calculated_channel(mock_client):
 class TestCalculatedChannel:
     """Unit tests for CalculatedChannel model - tests properties and methods."""
 
-    def test_archive_calls_client_and_updates_self(
-        self, mock_calculated_channel, mock_client
-    ):
+    def test_archive_calls_client_and_updates_self(self, mock_calculated_channel, mock_client):
         """Test that archive() calls client.calculated_channels.archive and calls _update."""
         archived_calc_channel = MagicMock()
         archived_calc_channel.is_archived = True
@@ -234,9 +224,7 @@ class TestCalculatedChannel:
             # Verify it returns self
             assert result is mock_calculated_channel
 
-    def test_unarchive_calls_client_and_updates_self(
-        self, mock_calculated_channel, mock_client
-    ):
+    def test_unarchive_calls_client_and_updates_self(self, mock_calculated_channel, mock_client):
         """Test that unarchive() calls client.calculated_channels.unarchive and calls _update."""
         unarchived_calc_channel = MagicMock()
         unarchived_calc_channel.is_archived = False
@@ -258,9 +246,7 @@ class TestCalculatedChannel:
             # Verify it returns self
             assert result is mock_calculated_channel
 
-    def test_update_calls_client_and_updates_self(
-        self, mock_calculated_channel, mock_client
-    ):
+    def test_update_calls_client_and_updates_self(self, mock_calculated_channel, mock_client):
         """Test that update() calls client.calculated_channels.update and calls _update."""
         updated_calc_channel = MagicMock()
         updated_calc_channel.description = "Updated description"

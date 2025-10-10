@@ -325,9 +325,10 @@ class TestRunsAPIAsync:
         async def test_update_run_tags_and_metadata(self, runs_api_async, new_run):
             """Test updating a run's tags and metadata."""
             try:
-                # Update tags
+                # Update tags and metadata
                 update = RunUpdate(
                     tags=["updated", "new-tag", "sift-client-pytest"],
+                    metadata={"test_key": "test_value", "number": 42.5, "flag": True},
                 )
                 updated_run = await runs_api_async.update(new_run, update)
 
@@ -337,6 +338,9 @@ class TestRunsAPIAsync:
                     "new-tag",
                     "sift-client-pytest",
                 }
+                assert updated_run.metadata["test_key"] == "test_value"
+                assert updated_run.metadata["number"] == 42.5
+                assert updated_run.metadata["flag"] is True
             finally:
                 await runs_api_async.archive(new_run.id_)
 

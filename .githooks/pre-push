@@ -8,7 +8,10 @@ GITHOOKS_DIR="$REPO_ROOT/.githooks"
 python_changed_files=($(git diff --name-only --diff-filter=ACM | grep '^python/lib/sift_client/' || true))
 
 if [[ -n "$python_changed_files" ]]; then
-    echo "Python files changed, running Python stub checks..."
+    echo "Python files changed, running Python formatting and linting..."
+    bash "$GITHOOKS_DIR/pre-push-python/fmt-lint.sh"
+    
+    echo "Running Python stub checks..."
     bash "$GITHOOKS_DIR/pre-push-python/stubs.sh"
 fi
 
