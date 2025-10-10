@@ -299,7 +299,6 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         asset_name: str,
         flows: list[Flow],
         client_key: str | None = None,
-        organization_id: str | None = None,
     ) -> str:
         """Create an ingestion config.
 
@@ -312,6 +311,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The id of the new or found ingestion config.
         """
+        from sift_stream_bindings import IngestionConfigFormPy
+
         ingestion_config_id = None
         if client_key:
             logger.debug(f"Getting ingestion config id for client key {client_key}")
@@ -390,6 +391,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             channel_values: The channel values to ingest.
             organization_id: The organization id to use for ingestion. Only relevant if the user is part of several organizations.
         """
+        from sift_stream_bindings import IngestWithConfigDataStreamRequestPy
+
         if not flow.ingestion_config_id:
             raise ValueError(
                 "Flow has no ingestion config id -- have you created an ingestion config for this flow?"
