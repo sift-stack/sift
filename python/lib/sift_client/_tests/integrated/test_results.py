@@ -25,35 +25,29 @@ from sift_client.sift_types.test_report import (
 )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def sift_client():
+    grpc_url = os.getenv("SIFT_GRPC_URI", "")
+    rest_url = os.getenv("SIFT_REST_URI", "")
+    api_key = os.getenv("SIFT_API_KEY", "")
+    return SiftClient(
+        connection_config=SiftConnectionConfig(
+            grpc_url=grpc_url,
+            api_key=api_key,
+            rest_url=rest_url,
+        )
+    )
+
+
 class TestResultsTest:
     test_reports: ClassVar[dict[str, TestReport]] = {}
     test_steps: ClassVar[dict[str, TestStep]] = {}
     test_measurements: ClassVar[dict[str, TestMeasurement]] = {}
 
-    @classmethod
-    def setup_class(cls):
-        grpc_url = os.getenv("SIFT_GRPC_URI", "")
-        rest_url = os.getenv("SIFT_REST_URI", "")
-        api_key = os.getenv("SIFT_API_KEY", "")
-        cls.client = SiftClient(
-            connection_config=SiftConnectionConfig(
-                grpc_url=grpc_url,
-                api_key=api_key,
-                rest_url=rest_url,
-            )
-        )
-
-    @classmethod
-    def teardown_class(cls):
-        for test_report in cls.test_reports.values():
-            print(f"Deleting test report: {test_report.id_}")
-            cls.client.test_results.delete_report(test_report=test_report)
-        print("Test completed successfully")
-
-    def test_create_test_report(self):
+    def test_create_test_report(self, sift_client):
         # Create a test report
         simulated_time = datetime.now(timezone.utc)
-        test_report = self.client.test_results.create_report(
+        test_report = sift_client.test_results.create_report(
             {
                 "status": TestStatus.PASSED,
                 "name": "Test Report with Steps and Measurements",
@@ -67,14 +61,14 @@ class TestResultsTest:
         assert test_report.id_ is not None
         self.test_reports["basic_test_report"] = test_report
 
-    def test_create_test_steps(self):
+    def test_create_test_steps(self, sift_client):
         test_report = self.test_reports.get("basic_test_report")
         if not test_report:
             pytest.skip("Need to create a test report first")
         simulated_time = test_report.start_time
 
         # Create multiple test steps using TestStepCreate
-        step1 = self.client.test_results.create_step(
+        step1 = sift_client.test_results.create_step(
             TestStepCreate(
                 test_report_id=test_report.id_,
                 name="Step 1: Initialization",
@@ -90,7 +84,7 @@ class TestResultsTest:
         print(f"Created step 1: {step1.id_}")
 
         # Create a step using a dict
-        step1_1 = self.client.test_results.create_step(
+        step1_1 = sift_client.test_results.create_step(
             {
                 "test_report_id": test_report.id_,
                 "parent_step_id": step1.id_,
@@ -106,7 +100,7 @@ class TestResultsTest:
         print(f"Created step 1.1: {step1_1.id_}")
         simulated_time = simulated_time + timedelta(seconds=10.1)
 
-        step2 = self.client.test_results.create_step(
+        step2 = sift_client.test_results.create_step(
             TestStepCreate(
                 test_report_id=test_report.id_,
                 name="Step 2: Data Collection",
@@ -120,7 +114,7 @@ class TestResultsTest:
         )
         print(f"Created step 2: {step2.id_}")
         simulated_time = simulated_time + timedelta(seconds=10.1)
-        step3 = self.client.test_results.create_step(
+        step3 = sift_client.test_results.create_step(
             TestStepCreate(
                 test_report_id=test_report.id_,
                 name="Step 3: Validation",
@@ -134,7 +128,7 @@ class TestResultsTest:
         )
         print(f"Created step 3: {step3.id_}")
 
-        step3_1 = self.client.test_results.create_step(
+        step3_1 = sift_client.test_results.create_step(
             TestStepCreate(
                 test_report_id=test_report.id_,
                 parent_step_id=step3.id_,
@@ -152,18 +146,23 @@ class TestResultsTest:
             ),
         )
         print(f"Created step 3.1: {step3_1.id_}")
+        assert step1.id_ is not None
+        assert step1_1.id_ is not None
+        assert step2.id_ is not None
+        assert step3.id_ is not None
+        assert step3_1.id_ is not None
         self.test_steps["step1"] = step1
         self.test_steps["step1_1"] = step1_1
         self.test_steps["step2"] = step2
         self.test_steps["step3"] = step3
         self.test_steps["step3_1"] = step3_1
 
-    def test_update_test_steps(self):
+    def test_update_test_steps(self, sift_client):
         step3 = self.test_steps.get("step3")
         step3_1 = self.test_steps.get("step3_1")
         if not step3 or not step3_1:
             pytest.skip("Need to create a step first")
-        step3 = self.client.test_results.update_step(
+        step3 = sift_client.test_results.update_step(
             step3,
             {"status": TestStatus.PASSED},
         )
@@ -176,7 +175,7 @@ class TestResultsTest:
         assert step3.status == TestStatus.PASSED
         assert step3_1.description == "Error demo w/ updated description"
 
-    def test_create_test_measurements(self):
+    def test_create_test_measurements(self, sift_client):
         step1 = self.test_steps.get("step1")
         step2 = self.test_steps.get("step2")
         step3 = self.test_steps.get("step3")
@@ -185,7 +184,7 @@ class TestResultsTest:
             pytest.skip("Need to create steps first")
 
         # Create measurements for each step using TestMeasurementCreate
-        measurement1 = self.client.test_results.create_measurement(
+        measurement1 = sift_client.test_results.create_measurement(
             TestMeasurementCreate(
                 test_step_id=step1.id_,
                 name="Temperature Reading",
@@ -204,7 +203,7 @@ class TestResultsTest:
         print(f"Created measurement 1: {measurement1.id_}")
 
         # Create a measurement using a dict
-        measurement2 = self.client.test_results.create_measurement(
+        measurement2 = sift_client.test_results.create_measurement(
             {
                 "test_step_id": step2.id_,
                 "name": "FW Version",
@@ -217,7 +216,7 @@ class TestResultsTest:
         )
         print(f"Created measurement 2: {measurement2.id_}")
 
-        measurement3 = self.client.test_results.create_measurement(
+        measurement3 = sift_client.test_results.create_measurement(
             TestMeasurementCreate(
                 test_step_id=step3.id_,
                 name="Status Check",
@@ -230,7 +229,7 @@ class TestResultsTest:
         )
         print(f"Created measurement 3: {measurement3.id_}")
 
-        measurement4 = self.client.test_results.create_measurement(
+        measurement4 = sift_client.test_results.create_measurement(
             TestMeasurementCreate(
                 test_step_id=step1_1.id_,
                 name="Substep 1.1: Substep 1.1.1",
@@ -242,18 +241,22 @@ class TestResultsTest:
         )
         print(f"Created measurement 4: {measurement4}")
 
+        assert measurement1.id_ is not None
+        assert measurement2.id_ is not None
+        assert measurement3.id_ is not None
+        assert measurement4.id_ is not None
         self.test_measurements["measurement1"] = measurement1
         self.test_measurements["measurement2"] = measurement2
         self.test_measurements["measurement3"] = measurement3
         self.test_measurements["measurement4"] = measurement4
 
-    def test_update_test_measurements(self):
+    def test_update_test_measurements(self, sift_client):
         measurement2 = self.test_measurements.get("measurement2")
         measurement4 = self.test_measurements.get("measurement4")
         if not measurement2 or not measurement4:
             pytest.skip("Need to create measurements first")
 
-        measurement2 = self.client.test_results.update_measurement(
+        measurement2 = sift_client.test_results.update_measurement(
             measurement2,
             update={
                 "passed": False,
@@ -283,19 +286,19 @@ class TestResultsTest:
             max=20,
         )
         # Verify update_step propogated the status.
-        updated_step = self.client.test_results.get_step(test_step_id=measurement4.test_step_id)
+        updated_step = sift_client.test_results.get_step(test_step_id=measurement4.test_step_id)
         assert updated_step.status == TestStatus.FAILED
 
         self.test_measurements["measurement2"] = measurement2
         self.test_measurements["measurement4"] = measurement4
 
-    def test_update_test_report(self):
+    def test_update_test_report(self, sift_client):
         test_report = self.test_reports.get("basic_test_report")
         if not test_report:
             pytest.skip("Need to create a test report first")
         new_end_time = test_report.start_time + timedelta(seconds=42)
         # Update the report with metadata
-        updated_report = self.client.test_results.update_report(
+        updated_report = sift_client.test_results.update_report(
             test_report=test_report,
             update=TestReportUpdate(
                 metadata={
@@ -325,36 +328,42 @@ class TestResultsTest:
 
         self.test_reports["basic_test_report"] = updated_report
 
-    def test_archive_and_delete_test_report(self):
+    def test_archive_and_delete_test_report(self, sift_client):
         test_report = self.test_reports.get("basic_test_report")
         if not test_report:
             pytest.skip("Need to create a test report first")
 
         # Archive the report
-        archived_report = self.client.test_results.archive_report(test_report=test_report)
+        archived_report = sift_client.test_results.archive_report(test_report=test_report)
         assert archived_report.is_archived
 
-        self.client.test_results.delete_report(test_report=test_report)
+        sift_client.test_results.delete_report(test_report=test_report)
         try:
-            deleted_report = self.client.test_results.get_report(test_report_id=test_report.id_)
+            deleted_report = sift_client.test_results.get_report(test_report_id=test_report.id_)
             assert deleted_report is None  # Shouldn't reach here so error if we get something.
         except aiogrpc.AioRpcError as e:
             print(f"Report deleted: {e}")
             self.test_reports.pop("basic_test_report")
             assert e.code() == grpc.StatusCode.NOT_FOUND
 
-    def test_import_test_report(self):
+    def test_import_test_report(self, sift_client):
         # Import a test report from a file
         create_time = datetime.now(timezone.utc)
         current_dir = Path(__file__).parent
         test_file = Path(current_dir, "test_files", "demo_test_report.xml")
-        test_report = self.client.test_results.import_test_report(test_file=test_file)
+        test_report = sift_client.test_results.import_test_report(test_file=test_file)
         print(f"Imported test report: {test_report.id_}")
 
         # Excercise find_report, custom_filter, and filtering by commonon-proto fields such as created_date
-        found_report = self.client.test_results.find_report(
+        found_report = sift_client.test_results.find_report(
             custom_filter=f"test_report_id == '{test_report.id_}' && created_date >= timestamp('{create_time}')"
         )
         assert found_report is not None
         assert found_report.id_ == test_report.id_
         self.test_reports["imported_test_report"] = found_report
+
+    def test_delete_test_reports(self, sift_client):
+        for test_report in self.test_reports.values():
+            print(f"Deleting test report: {test_report.id_}")
+            sift_client.test_results.delete_report(test_report=test_report)
+        print("Test completed successfully")
