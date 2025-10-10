@@ -3,6 +3,9 @@ use sift_rs::common::r#type::v1::ChannelDataType;
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum DataType {
+    /// Asks the program to infer the type so user can just focus on setting things like unit,
+    /// description, etc.
+    Infer,
     Double,
     String,
     Enum,
@@ -30,6 +33,7 @@ impl From<DataType> for ChannelDataType {
             DataType::Int64 => Self::Int64,
             DataType::Uint64 => Self::Uint64,
             DataType::Bytes => Self::Bytes,
+            DataType::Infer => Self::Unspecified,
         }
     }
 }

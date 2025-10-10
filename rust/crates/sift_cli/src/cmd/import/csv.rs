@@ -1,15 +1,13 @@
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
-    io::{self, BufReader, Read, Seek},
+    io::{self, Seek},
     process::ExitCode,
-    time::Duration,
 };
 
 use anyhow::{Context as AnyhowContext, Result, format_err};
 use chrono::DateTime;
 use crossterm::style::Stylize;
-use flate2::{Compression, write::GzEncoder};
 use pbjson_types::Timestamp;
 use reqwest::header::{CONTENT_ENCODING, CONTENT_TYPE};
 use sift_rs::{
@@ -19,26 +17,27 @@ use sift_rs::{
         CsvTimeColumn, TimeFormat as PbTimeFormat,
         data_import_service_client::DataImportServiceClient,
     },
-    jobs::v1::{JobStatus, JobType},
 };
-use tokio::time::sleep;
 
 use crate::{
-    cli::{CsvArgs, time::TimeFormat},
+    cli::ImportCsvArgs,
     cmd::{
         Context,
-        utils::{try_parse_bit_field_config, try_parse_enum_config},
+        import::utils::{try_parse_bit_field_config, try_parse_enum_config},
     },
     util::{
         api::{create_grpc_channel, create_rest_client},
-        job::JobServiceWrapper,
-        progress::Spinner,
         tty::Output,
-        user::get_user_id,
     },
 };
 
-pub async fn import(ctx: Context, args: CsvArgs) -> Result<ExitCode> {
+use super::{
+    preview_import_config,
+    utils::{gzip_file, validate_time_format},
+    wait_for_job_completion,
+};
+
+pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
     let mut csv_file = File::open(&args.path)?;
     let csv_reader = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -48,6 +47,27 @@ pub async fn import(ctx: Context, args: CsvArgs) -> Result<ExitCode> {
     let create_data_import_req = create_data_import_request(csv_reader, &args)?;
     let mut data_imports_client = DataImportServiceClient::new(grpc_channel.clone());
 
+    if args.preview {
+        let csv_conf = create_data_import_req.csv_config.unwrap();
+
+        let channel_confs = csv_conf
+            .data_columns
+            .values()
+            .collect::<Vec<&ChannelConfig>>();
+
+        preview_import_config(
+            &csv_conf.asset_name,
+            if csv_conf.run_id.is_empty() {
+                csv_conf.run_name.as_str()
+            } else {
+                csv_conf.run_id.as_str()
+            },
+            &channel_confs,
+        );
+
+        return Ok(ExitCode::SUCCESS);
+    }
+
     let CreateDataImportFromUploadResponse { upload_url, .. } = data_imports_client
         .create_data_import_from_upload(create_data_import_req)
         .await
@@ -55,13 +75,7 @@ pub async fn import(ctx: Context, args: CsvArgs) -> Result<ExitCode> {
         .into_inner();
 
     csv_file.rewind()?;
-    let mut reader = BufReader::new(csv_file);
-    let mut buffer = Vec::new();
-    reader.read_to_end(&mut buffer)?;
-
-    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-    io::copy(&mut buffer.as_slice(), &mut encoder)?;
-    let compressed_data = encoder.finish()?;
+    let compressed_data = gzip_file(csv_file)?;
 
     let rest_client = create_rest_client(&ctx)?;
     let res = rest_client
@@ -91,7 +105,7 @@ pub async fn import(ctx: Context, args: CsvArgs) -> Result<ExitCode> {
 
     if !args.wait {
         Output::new()
-            .line("Successfully uploaded CSV for processing.")
+            .line(format!("{} file for processing", "Uploaded".green()))
             .tip(format!(
                 "Once processing is complete the data will be available on the {location}."
             ))
@@ -99,77 +113,12 @@ pub async fn import(ctx: Context, args: CsvArgs) -> Result<ExitCode> {
 
         return Ok(ExitCode::SUCCESS);
     }
-
-    let spinner = Spinner::new();
-    spinner.set_message("CSV has been successfully uploaded and is waiting to be processed.");
-
-    let user_id = get_user_id(grpc_channel.clone()).await?;
-    let mut job_service = JobServiceWrapper::new(grpc_channel.clone());
-
-    let Some(mut job) = job_service
-        .get_latest_job_for_user(&user_id, JobType::DataImport)
-        .await?
-    else {
-        spinner.finish_and_clear();
-
-        Output::new()
-            .line("The CSV was successfully uploaded but the job was unexpectedly not found")
-            .tip("Please notify Sift about this bug.")
-            .eprint();
-        return Ok(ExitCode::FAILURE);
-    };
-
-    loop {
-        sleep(Duration::from_secs(3)).await;
-
-        let Some(updated_job) = job_service.get_job(&job.job_id).await? else {
-            spinner.finish_and_clear();
-            Output::new()
-                .line("The CSV was successfully uploaded but the job was unexpectedly not found")
-                .tip("Please notify Sift about this bug.")
-                .eprint();
-            return Ok(ExitCode::FAILURE);
-        };
-        job = updated_job;
-
-        match job.job_status() {
-            JobStatus::Created => (),
-            JobStatus::Running => {
-                spinner.set_message("CSV is currently being processed");
-            }
-            JobStatus::CancelRequested => {
-                spinner.set_message("A cancellation was requested but the job may still finish");
-            }
-            JobStatus::Cancelled => {
-                spinner.finish_and_clear();
-                Output::new().line("CSV job was cancelled").print();
-                break;
-            }
-            JobStatus::Failed => {
-                spinner.finish_and_clear();
-                Output::new()
-                    .line("CSV processing failed.")
-                    .tip("Please check the Sift jobs manage page for further details.")
-                    .eprint();
-                return Ok(ExitCode::FAILURE);
-            }
-            JobStatus::Finished => {
-                spinner.finish_and_clear();
-                Output::new()
-                    .line("CSV import completed")
-                    .tip(format!("The data should be available on the {location}."))
-                    .print();
-                break;
-            }
-            _ => (),
-        }
-    }
-    Ok(ExitCode::SUCCESS)
+    wait_for_job_completion(grpc_channel, location).await
 }
 
 fn create_data_import_request<R: io::Read>(
     csv_reader: csv::Reader<R>,
-    args: &CsvArgs,
+    args: &ImportCsvArgs,
 ) -> Result<CreateDataImportFromUploadRequest> {
     let num_overrides = args.channel_column.len();
 
@@ -187,21 +136,7 @@ fn create_data_import_request<R: io::Read>(
         .context("keep in mind that --units and --descriptions can be empty strings");
     }
 
-    match args.time_format {
-        TimeFormat::RelativeNanoseconds
-        | TimeFormat::RelativeMicroseconds
-        | TimeFormat::RelativeMilliseconds
-        | TimeFormat::RelativeSeconds
-        | TimeFormat::RelativeMinutes
-        | TimeFormat::RelativeHours => {
-            if args.relative_start_time.is_none() {
-                return Err(format_err!(
-                    "--relative-start-time is required if time format is relative"
-                ));
-            }
-        }
-        _ => (),
-    }
+    validate_time_format(args.time_format, &args.relative_start_time)?;
 
     let relative_start_time = match &args.relative_start_time {
         Some(start) => {
@@ -316,7 +251,7 @@ fn create_data_import_request<R: io::Read>(
 
             let parsed_record = record.context(format_err!("failed to parse row {row_num}"))?;
 
-            for (j, col) in parsed_record.iter().enumerate() {
+            for (j, col_val) in parsed_record.iter().enumerate() {
                 let col_num = j + 1;
 
                 if col_num == args.time_column {
@@ -344,7 +279,27 @@ fn create_data_import_request<R: io::Read>(
                     // Safe to unwrap all these because of top-level validation ensuring all
                     // vectors are of equal length with channel_columns; enum and bit filed configs
                     // follow other validation rules.
-                    let data_type: i32 = (*data_types.get(idx).unwrap()).into();
+                    let data_type: i32 = {
+                        let raw_data_type = data_types.get(idx).unwrap();
+
+                        if matches!(raw_data_type, ChannelDataType::Unspecified) {
+                            // Maybe a value will be present in a future iteration
+                            if col_val.is_empty() {
+                                continue;
+                            } else if col_val.parse::<f64>().is_ok() {
+                                ChannelDataType::Double.into()
+                            } else if col_val.parse::<String>().is_ok() {
+                                ChannelDataType::String.into()
+                            } else {
+                                return Err(format_err!(
+                                    "failed to infer type of column {col_num}"
+                                ));
+                            }
+                        } else {
+                            (*raw_data_type).into()
+                        }
+                    };
+
                     let unit = args.unit.get(idx).unwrap().clone();
                     let description = args.description.get(idx).unwrap().clone();
 
@@ -378,7 +333,10 @@ fn create_data_import_request<R: io::Read>(
                             ..Default::default()
                         },
                     );
-                } else if col.parse::<f64>().is_ok() {
+                } else if col_val.is_empty() {
+                    // Maybe a value will be present in a future iteration
+                    continue;
+                } else if col_val.parse::<f64>().is_ok() {
                     values.insert(
                         col_num as u32,
                         ChannelConfig {
@@ -419,7 +377,7 @@ fn create_data_import_request<R: io::Read>(
             time_column: Some(CsvTimeColumn {
                 relative_start_time,
                 column_number: args.time_column as u32,
-                format: PbTimeFormat::from(args.time_format.clone()).into(),
+                format: PbTimeFormat::from(args.time_format).into(),
             }),
             ..Default::default()
         }),
@@ -431,7 +389,7 @@ fn create_data_import_request<R: io::Read>(
 mod test_create_data_import_request {
     use std::path::PathBuf;
 
-    use crate::cli::{CsvArgs, channel::DataType, time::TimeFormat};
+    use crate::cli::{ImportCsvArgs, channel::DataType, time::TimeFormat};
     use indoc::indoc;
     use sift_rs::{
         common::r#type::v1::ChannelDataType, data_imports::v2::TimeFormat as PbTimeFormat,
@@ -451,7 +409,7 @@ mod test_create_data_import_request {
 
         let req = create_data_import_request(
             csv_reader,
-            &CsvArgs {
+            &ImportCsvArgs {
                 path: PathBuf::default(),
                 asset: "test_asset".into(),
                 run: None,
@@ -467,6 +425,7 @@ mod test_create_data_import_request {
                 time_format: TimeFormat::default(),
                 relative_start_time: None,
                 wait: false,
+                preview: false,
             },
         )
         .expect("expected Result::Ok");
@@ -500,7 +459,7 @@ mod test_create_data_import_request {
 
         let req = create_data_import_request(
             csv_reader,
-            &CsvArgs {
+            &ImportCsvArgs {
                 path: PathBuf::default(),
                 asset: "test_asset".into(),
                 run: Some("test_run".into()),
@@ -516,6 +475,7 @@ mod test_create_data_import_request {
                 time_format: TimeFormat::default(),
                 relative_start_time: None,
                 wait: false,
+                preview: false,
             },
         )
         .expect("expected Result::Ok");
@@ -543,7 +503,7 @@ mod test_create_data_import_request {
 
         let req = create_data_import_request(
             csv_reader,
-            &CsvArgs {
+            &ImportCsvArgs {
                 path: PathBuf::default(),
                 asset: "test_asset".into(),
                 run: Some("test_run".into()),
@@ -553,12 +513,13 @@ mod test_create_data_import_request {
                 data_type: vec![DataType::Enum],
                 unit: vec![String::new()],
                 description: vec![String::new()],
-                enum_config: vec!["0,stop,1,go".into()],
+                enum_config: vec!["0,stop|1,go".into()],
                 bit_field_config: Vec::default(),
                 time_column: 1,
                 time_format: TimeFormat::default(),
                 relative_start_time: None,
                 wait: false,
+                preview: false,
             },
         )
         .expect("expected Result::Ok");
@@ -602,7 +563,7 @@ mod test_create_data_import_request {
 
         let req = create_data_import_request(
             csv_reader,
-            &CsvArgs {
+            &ImportCsvArgs {
                 path: PathBuf::default(),
                 asset: "test_asset".into(),
                 run: Some("test_run".into()),
@@ -612,12 +573,13 @@ mod test_create_data_import_request {
                 data_type: vec![DataType::Float, DataType::Enum],
                 unit: vec!["km/hr".into(), String::new()],
                 description: vec!["float channel".into(), "enum channel".into()],
-                enum_config: vec!["0,stop,1,go".into()],
+                enum_config: vec!["0,stop|1,go".into()],
                 bit_field_config: Vec::default(),
                 time_column: 1,
                 time_format: TimeFormat::default(),
                 relative_start_time: None,
                 wait: false,
+                preview: false,
             },
         )
         .expect("expected Result::Ok");

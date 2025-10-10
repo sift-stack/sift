@@ -1,8 +1,11 @@
 use clap::{Parser, Subcommand, crate_description, crate_version};
+use parquet::ComplexTypesMode;
 use std::path::PathBuf;
 
 pub mod channel;
 use channel::DataType;
+
+pub mod parquet;
 
 pub mod time;
 use time::TimeFormat;
@@ -40,7 +43,11 @@ pub enum Cmd {
 pub enum ImportCmd {
     /// Import a CSV file into Sift. Unless manually specified all columns are inferred to type
     /// string or double.
-    Csv(CsvArgs),
+    Csv(ImportCsvArgs),
+
+    /// Import a Parquet file into Sift.
+    #[command(subcommand)]
+    Parquet(ImportParquetCmd),
 }
 
 #[derive(Subcommand)]
@@ -78,7 +85,7 @@ pub struct ConfigUpdateArgs {
 }
 
 #[derive(clap::Args)]
-pub struct CsvArgs {
+pub struct ImportCsvArgs {
     /// Path to the CSV file
     pub path: PathBuf,
 
@@ -116,12 +123,12 @@ pub struct CsvArgs {
     #[arg(short = 'n', long)]
     pub description: Vec<String>,
 
-    /// <name,key> repeated pairs e.g. "0,start,1,stop". Corresponds to the order in
+    /// <key,name> repeated pairs delimited by "|" e.g. "0,start|1,stop". Corresponds to the order in
     /// which enum channels appear in --channel-column
     #[arg(short, long)]
     pub enum_config: Vec<String>,
 
-    /// <index,name,bit_count> repeated triplets e.g. "0,12v,4,4,led,4". Corresponds
+    /// <name,index,length> repeated triplets delimited by "|" e.g. "12v,0,4|led,4,4". Corresponds
     /// to the order in which bit-field channels appear in --channel-column
     #[arg(short, long)]
     pub bit_field_config: Vec<String>,
@@ -140,4 +147,80 @@ pub struct CsvArgs {
     /// Wait for the CSV to be fully processed before returning
     #[arg(short, long)]
     pub wait: bool,
+
+    /// Preview the schema of the file from the provided arguments without uploading
+    #[arg(short, long)]
+    pub preview: bool,
+}
+
+#[derive(Subcommand)]
+pub enum ImportParquetCmd {
+    /// A parquet file where every column is exclusive to a single channel except for the time
+    /// column
+    FlatDataset(FlatDatasetArgs),
+}
+
+#[derive(clap::Args)]
+pub struct FlatDatasetArgs {
+    /// Path to the Parquet file
+    pub path: PathBuf,
+
+    /// The name of the asset this data is associated with
+    #[arg(short, long)]
+    pub asset: String,
+
+    /// The name of the wrong to associate this data with
+    #[arg(short, long)]
+    pub run: Option<String>,
+
+    /// The path of the channel to configure; can be specified multiple times
+    #[arg(short, long)]
+    pub channel_path: Vec<String>,
+
+    /// Column-type corresponding to ordered positioning of --channel-path
+    #[arg(short, long)]
+    pub data_type: Vec<DataType>,
+
+    /// Channel units corresponding to ordered positioning of --channel-path; can be an empty
+    /// string
+    #[arg(short, long)]
+    pub unit: Vec<String>,
+
+    /// Channel description corresponding to ordered positioning of --channel-path; can be an empty
+    /// string
+    #[arg(short = 'n', long)]
+    pub description: Vec<String>,
+
+    /// <name,key> repeated pairs e.g. "0,start,1,stop". Corresponds to the order in
+    /// which enum channels appear in --channel-path
+    #[arg(short, long)]
+    pub enum_config: Vec<String>,
+
+    /// <index,name,bit_count> repeated triplets e.g. "0,12v,4,4,led,4". Corresponds
+    /// to the order in which bit-field channels appear in --channel-path
+    #[arg(short, long)]
+    pub bit_field_config: Vec<String>,
+
+    /// The path to the time column
+    #[arg(short, long, default_value_t = String::from("timestamp"))]
+    pub time_path: String,
+
+    #[arg(short = 'f', long, default_value_t = TimeFormat::default())]
+    pub time_format: TimeFormat,
+
+    /// Start time to use (RFC3339) when time format is relative; ignored otherwise
+    #[arg(short = 's')]
+    pub relative_start_time: Option<String>,
+
+    /// Specifies how to handle columns that are complex types i.e. maps, lists and structs.
+    #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
+    pub complex_types_mode: ComplexTypesMode,
+
+    /// Wait for the Parquet to be fully processed before returning
+    #[arg(short, long)]
+    pub wait: bool,
+
+    /// Preview the schema of the file from the provided arguments without uploading
+    #[arg(short, long)]
+    pub preview: bool,
 }

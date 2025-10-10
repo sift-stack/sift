@@ -5,8 +5,7 @@ use crossterm::style::Stylize;
 use toml::{Table, Value};
 
 pub mod config;
-pub mod csv;
-mod utils;
+pub mod import;
 
 pub struct Context {
     pub grpc_uri: String,

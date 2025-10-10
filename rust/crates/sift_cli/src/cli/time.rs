@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 use clap::ValueEnum;
 use sift_rs::data_imports::v2::TimeFormat as ProtoTimeFormat;
 
-#[derive(Debug, Clone, ValueEnum, Default)]
+#[derive(Debug, Copy, Clone, ValueEnum, Default)]
 pub enum TimeFormat {
     #[default]
     AbsoluteRfc3339,

@@ -50,16 +50,21 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
     let profile = clargs
         .profile
         .as_ref()
-        .map_or_else(|| "default".to_string().green(), |s| s.clone().green());
+        .map_or_else(|| "default".to_string().cyan(), |s| s.clone().cyan());
     let ctx = Context::new(clargs.profile, clargs.disable_tls)?;
 
     Output::new()
-        .line(format!("Using profile '{profile}'"))
+        .line(format!("{} profile '{profile}'", "Using".green()))
         .print();
 
     match clargs.cmd {
         Cmd::Import(args) => match args {
-            cli::ImportCmd::Csv(args) => run_future(cmd::csv::import(ctx, args)),
+            cli::ImportCmd::Csv(args) => run_future(cmd::import::csv::run(ctx, args)),
+            cli::ImportCmd::Parquet(cmd) => match cmd {
+                cli::ImportParquetCmd::FlatDataset(args) => {
+                    run_future(cmd::import::parquet::flat_dataset::run(ctx, args))
+                }
+            },
         },
         _ => Ok(ExitCode::SUCCESS),
     }
