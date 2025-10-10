@@ -484,9 +484,7 @@ class TestRunsAPIAsync:
         """Tests for the async asset association methods."""
 
         @pytest.mark.asyncio
-        async def test_create_automatic_association_for_assets(
-            self, runs_api_async, sift_client
-        ):
+        async def test_create_automatic_association_for_assets(self, runs_api_async, sift_client):
             """Test associating assets with a run for automatic data ingestion."""
             # Create a test run
             run_name = f"test_run_asset_assoc_{datetime.now(timezone.utc).isoformat()}"

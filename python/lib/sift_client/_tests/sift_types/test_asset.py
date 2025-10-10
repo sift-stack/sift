@@ -74,9 +74,7 @@ class TestAsset:
         _ = mock_asset.channels(limit=5)
 
         # Verify client method was called with correct parameters
-        mock_client.channels.list_.assert_called_once_with(
-            asset=mock_asset, run=None, limit=5
-        )
+        mock_client.channels.list_.assert_called_once_with(asset=mock_asset, run=None, limit=5)
 
     def test_channels_method_with_run_filter(self, mock_asset, mock_client):
         """Test that channels() method passes run filter to client."""
@@ -87,9 +85,7 @@ class TestAsset:
         _ = mock_asset.channels(run=mock_run, limit=10)
 
         # Verify client method was called with run parameter
-        mock_client.channels.list_.assert_called_once_with(
-            asset=mock_asset, run=mock_run, limit=10
-        )
+        mock_client.channels.list_.assert_called_once_with(asset=mock_asset, run=mock_run, limit=10)
 
     def test_archive_calls_client_and_updates_self(self, mock_asset, mock_client):
         """Test that archive() calls client.assets.archive and calls _update."""
@@ -106,9 +102,7 @@ class TestAsset:
             result = mock_asset.archive(archive_runs=False)
 
             # Verify client method was called
-            mock_client.assets.archive.assert_called_once_with(
-                asset=mock_asset, archive_runs=False
-            )
+            mock_client.assets.archive.assert_called_once_with(asset=mock_asset, archive_runs=False)
             # Verify _update was called with the returned asset
             mock_update.assert_called_once_with(archived_asset)
             # Verify it returns self
@@ -127,9 +121,7 @@ class TestAsset:
             mock_asset.archive(archive_runs=True)
 
             # Verify client method was called with archive_runs=True
-            mock_client.assets.archive.assert_called_once_with(
-                asset=mock_asset, archive_runs=True
-            )
+            mock_client.assets.archive.assert_called_once_with(asset=mock_asset, archive_runs=True)
 
     def test_unarchive_calls_client_and_updates_self(self, mock_asset, mock_client):
         """Test that unarchive() calls client.assets.unarchive and calls _update."""
@@ -166,9 +158,7 @@ class TestAsset:
             result = mock_asset.update(update)
 
             # Verify client method was called with correct parameters
-            mock_client.assets.update.assert_called_once_with(
-                asset=mock_asset, update=update
-            )
+            mock_client.assets.update.assert_called_once_with(asset=mock_asset, update=update)
             # Verify _update was called with the returned asset
             mock_update.assert_called_once_with(updated_asset)
             # Verify it returns self

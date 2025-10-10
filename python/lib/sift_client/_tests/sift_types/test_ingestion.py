@@ -129,9 +129,7 @@ class TestFlow:
             data_type=ChannelDataType.DOUBLE,
         )
 
-        with pytest.raises(
-            ValueError, match="Cannot add a channel to a flow after creation"
-        ):
+        with pytest.raises(ValueError, match="Cannot add a channel to a flow after creation"):
             flow.add_channel(channel)
 
     def test_ingest_calls_client(self, mock_flow, mock_client):

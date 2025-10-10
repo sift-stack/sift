@@ -29,9 +29,7 @@ def test_client_binding(sift_client):
     assert sift_client.calculated_channels
     assert isinstance(sift_client.calculated_channels, CalculatedChannelsAPI)
     assert sift_client.async_.calculated_channels
-    assert isinstance(
-        sift_client.async_.calculated_channels, CalculatedChannelsAPIAsync
-    )
+    assert isinstance(sift_client.async_.calculated_channels, CalculatedChannelsAPIAsync)
 
 
 @pytest.fixture
@@ -73,12 +71,8 @@ def new_calculated_channel(calculated_channels_api_sync, sift_client):
             description=description,
             expression="$1 + $2",
             expression_channel_references=[
-                ChannelReference(
-                    channel_reference="$1", channel_identifier=channels[0].name
-                ),
-                ChannelReference(
-                    channel_reference="$2", channel_identifier=channels[1].name
-                ),
+                ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
             ],
             all_assets=True,
         )
@@ -93,9 +87,7 @@ class TestCalculatedChannelsAPIAsync:
         """Tests for the async get method."""
 
         @pytest.mark.asyncio
-        async def test_get_by_id(
-            self, calculated_channels_api_async, test_calculated_channel
-        ):
+        async def test_get_by_id(self, calculated_channels_api_async, test_calculated_channel):
             """Test getting a specific calculated channel by ID."""
             retrieved_calc_channel = await calculated_channels_api_async.get(
                 calculated_channel_id=test_calculated_channel.id_
@@ -148,13 +140,9 @@ class TestCalculatedChannelsAPIAsync:
                 assert calc_channel.name == test_calc_channel_name
 
         @pytest.mark.asyncio
-        async def test_list_with_name_contains_filter(
-            self, calculated_channels_api_async
-        ):
+        async def test_list_with_name_contains_filter(self, calculated_channels_api_async):
             """Test calculated channel listing with name contains filtering."""
-            calc_channels = await calculated_channels_api_async.list_(
-                name_contains="test", limit=5
-            )
+            calc_channels = await calculated_channels_api_async.list_(name_contains="test", limit=5)
 
             assert isinstance(calc_channels, list)
             assert calc_channels
@@ -205,9 +193,7 @@ class TestCalculatedChannelsAPIAsync:
             assert found_calc_channel.id_ == test_calculated_channel.id_
 
         @pytest.mark.asyncio
-        async def test_find_nonexistent_calculated_channel(
-            self, calculated_channels_api_async
-        ):
+        async def test_find_nonexistent_calculated_channel(self, calculated_channels_api_async):
             """Test finding a non-existent calculated channel returns None."""
             found_calc_channel = await calculated_channels_api_async.find(
                 name="nonexistent-calculated-channel-name-12345"
@@ -224,20 +210,14 @@ class TestCalculatedChannelsAPIAsync:
         """Tests for the async create method."""
 
         @pytest.mark.asyncio
-        async def test_create_basic_calculated_channel(
-            self, calculated_channels_api_async
-        ):
+        async def test_create_basic_calculated_channel(self, calculated_channels_api_async):
             """Test creating a basic calculated channel with minimal fields."""
             from datetime import datetime, timezone
 
-            calc_channel_name = (
-                f"test_calc_channel_create_{datetime.now(timezone.utc).isoformat()}"
-            )
+            calc_channel_name = f"test_calc_channel_create_{datetime.now(timezone.utc).isoformat()}"
             description = "Test calculated channel created by Sift Client pytest"
 
-            channels = await calculated_channels_api_async.client.async_.channels.list_(
-                limit=2
-            )
+            channels = await calculated_channels_api_async.client.async_.channels.list_(limit=2)
             assert len(channels) >= 2
 
             calc_channel_create = CalculatedChannelCreate(
@@ -245,19 +225,13 @@ class TestCalculatedChannelsAPIAsync:
                 description=description,
                 expression="$1 + $2",
                 expression_channel_references=[
-                    ChannelReference(
-                        channel_reference="$1", channel_identifier=channels[0].name
-                    ),
-                    ChannelReference(
-                        channel_reference="$2", channel_identifier=channels[1].name
-                    ),
+                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                    ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
                 ],
                 all_assets=True,
             )
 
-            created_calc_channel = await calculated_channels_api_async.create(
-                calc_channel_create
-            )
+            created_calc_channel = await calculated_channels_api_async.create(calc_channel_create)
 
             try:
                 assert created_calc_channel is not None
@@ -271,20 +245,14 @@ class TestCalculatedChannelsAPIAsync:
                 await calculated_channels_api_async.archive(created_calc_channel)
 
         @pytest.mark.asyncio
-        async def test_create_calculated_channel_with_dict(
-            self, calculated_channels_api_async
-        ):
+        async def test_create_calculated_channel_with_dict(self, calculated_channels_api_async):
             """Test creating a calculated channel using a dictionary."""
             from datetime import datetime, timezone
 
-            calc_channel_name = (
-                f"test_calc_channel_dict_{datetime.now(timezone.utc).isoformat()}"
-            )
+            calc_channel_name = f"test_calc_channel_dict_{datetime.now(timezone.utc).isoformat()}"
             description = "Test calculated channel created by Sift Client pytest"
 
-            channels = await calculated_channels_api_async.client.async_.channels.list_(
-                limit=2
-            )
+            channels = await calculated_channels_api_async.client.async_.channels.list_(limit=2)
             assert len(channels) >= 2
 
             calc_channel_dict = {
@@ -298,9 +266,7 @@ class TestCalculatedChannelsAPIAsync:
                 "all_assets": True,
             }
 
-            created_calc_channel = await calculated_channels_api_async.create(
-                calc_channel_dict
-            )
+            created_calc_channel = await calculated_channels_api_async.create(calc_channel_dict)
 
             try:
                 assert created_calc_channel.name == calc_channel_name
@@ -411,18 +377,12 @@ class TestCalculatedChannelsAPIAsync:
                 description="Test calculated channel for complex expression update",
                 expression="$1 + $2",
                 expression_channel_references=[
-                    ChannelReference(
-                        channel_reference="$1", channel_identifier=channels[0].name
-                    ),
-                    ChannelReference(
-                        channel_reference="$2", channel_identifier=channels[1].name
-                    ),
+                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                    ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
                 ],
                 all_assets=True,
             )
-            created_calc_channel = await calculated_channels_api_async.create(
-                calc_channel_create
-            )
+            created_calc_channel = await calculated_channels_api_async.create(calc_channel_create)
 
             try:
                 # Update with complex expression
@@ -449,8 +409,7 @@ class TestCalculatedChannelsAPIAsync:
                 assert len(updated_calc_channel.channel_references) == 3
                 # Verify all three channel references are present
                 ref_identifiers = {
-                    ref.channel_identifier
-                    for ref in updated_calc_channel.channel_references
+                    ref.channel_identifier for ref in updated_calc_channel.channel_references
                 }
                 assert channels[0].name in ref_identifiers
                 assert channels[1].name in ref_identifiers
@@ -503,9 +462,7 @@ class TestCalculatedChannelsAPIAsync:
             self, calculated_channels_api_async, new_calculated_channel
         ):
             """Test archiving a calculated channel."""
-            calc_channel = await calculated_channels_api_async.archive(
-                new_calculated_channel
-            )
+            calc_channel = await calculated_channels_api_async.archive(new_calculated_channel)
 
             assert isinstance(calc_channel, CalculatedChannel)
             assert calc_channel.id_ == new_calculated_channel.id_
@@ -528,9 +485,7 @@ class TestCalculatedChannelsAPIAsync:
             self, calculated_channels_api_async, new_calculated_channel
         ):
             """Test archiving a calculated channel by passing ID as string."""
-            calc_channel = await calculated_channels_api_async.archive(
-                new_calculated_channel.id_
-            )
+            calc_channel = await calculated_channels_api_async.archive(new_calculated_channel.id_)
 
             assert isinstance(calc_channel, CalculatedChannel)
             assert calc_channel.id_ == new_calculated_channel.id_
@@ -547,9 +502,7 @@ class TestCalculatedChannelsAPIAsync:
             try:
                 await calculated_channels_api_async.archive(new_calculated_channel)
 
-                calc_channel = await calculated_channels_api_async.unarchive(
-                    new_calculated_channel
-                )
+                calc_channel = await calculated_channels_api_async.unarchive(new_calculated_channel)
 
                 assert isinstance(calc_channel, CalculatedChannel)
                 assert calc_channel.id_ == new_calculated_channel.id_
@@ -561,9 +514,7 @@ class TestCalculatedChannelsAPIAsync:
         """Tests for the async list_versions method."""
 
         @pytest.mark.asyncio
-        async def test_list_versions(
-            self, calculated_channels_api_async, test_calculated_channel
-        ):
+        async def test_list_versions(self, calculated_channels_api_async, test_calculated_channel):
             """Test listing versions of a calculated channel."""
             versions = await calculated_channels_api_async.list_versions(
                 calculated_channel=test_calculated_channel

@@ -7,7 +7,6 @@ import pytest
 
 from sift_client.sift_types import CalculatedChannel
 from sift_client.sift_types.calculated_channel import (
-    CalculatedChannelBase,
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import ChannelReference
@@ -67,7 +66,9 @@ class TestCalculatedChannelBase:
         proto, mask = update.to_proto_with_mask()
 
         # Verify channel references are converted
-        refs = proto.calculated_channel_configuration.query_configuration.sel.expression_channel_references
+        refs = (
+            proto.calculated_channel_configuration.query_configuration.sel.expression_channel_references
+        )
         assert len(refs) == 2
         assert refs[0].channel_reference == "$1"
         assert refs[0].channel_identifier == "channel1"
@@ -109,14 +110,18 @@ class TestCalculatedChannelBase:
         proto, mask = update.to_proto_with_mask()
 
         # Verify all_assets is set in nested path
-        assert proto.calculated_channel_configuration.asset_configuration.all_assets is True
+        assert (
+            proto.calculated_channel_configuration.asset_configuration.all_assets
+            is True
+        )
         # Verify update_field is in mask (same as tag_ids and asset_ids)
         assert "asset_configuration" in mask.paths
 
     def test_asset_configuration_validator_rejects_all_assets_with_asset_ids(self):
         """Test validator rejects all_assets=True with asset_ids."""
         with pytest.raises(
-            ValueError, match="Cannot specify both all_assets=True and asset_ids/tag_ids"
+            ValueError,
+            match="Cannot specify both all_assets=True and asset_ids/tag_ids",
         ):
             CalculatedChannelUpdate(
                 all_assets=True,
@@ -126,7 +131,8 @@ class TestCalculatedChannelBase:
     def test_asset_configuration_validator_rejects_all_assets_with_tag_ids(self):
         """Test validator rejects all_assets=True with tag_ids."""
         with pytest.raises(
-            ValueError, match="Cannot specify both all_assets=True and asset_ids/tag_ids"
+            ValueError,
+            match="Cannot specify both all_assets=True and asset_ids/tag_ids",
         ):
             CalculatedChannelUpdate(
                 all_assets=True,

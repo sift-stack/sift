@@ -77,12 +77,8 @@ def new_rule(rules_api_sync, sift_client):
             description=description,
             expression="$1 > $2",
             channel_references=[
-                ChannelReference(
-                    channel_reference="$1", channel_identifier=channels[0].name
-                ),
-                ChannelReference(
-                    channel_reference="$2", channel_identifier=channels[1].name
-                ),
+                ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
             ],
             action=RuleAction.annotation(
                 annotation_type=RuleAnnotationType.DATA_REVIEW,
@@ -113,9 +109,7 @@ class TestRulesAPIAsync:
         async def test_get_by_client_key(self, rules_api_async, test_rule):
             """Test getting a specific rule by client key."""
             if test_rule.client_key:
-                retrieved_rule = await rules_api_async.get(
-                    client_key=test_rule.client_key
-                )
+                retrieved_rule = await rules_api_async.get(client_key=test_rule.client_key)
 
                 assert retrieved_rule is not None
                 assert retrieved_rule.id_ == test_rule.id_
@@ -266,12 +260,8 @@ class TestRulesAPIAsync:
                 description=description,
                 expression="$1 > $2",
                 channel_references=[
-                    ChannelReference(
-                        channel_reference="$1", channel_identifier=channels[0].name
-                    ),
-                    ChannelReference(
-                        channel_reference="$2", channel_identifier=channels[1].name
-                    ),
+                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                    ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
                 ],
                 action=RuleAction.annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
@@ -350,10 +340,7 @@ class TestRulesAPIAsync:
                 assert updated_rule.expression == new_rule.expression
                 assert updated_rule.action.action_type == new_rule.action.action_type
                 assert updated_rule.client_key == new_rule.client_key
-                assert (
-                    updated_rule.rule_version.created_date
-                    > new_rule.rule_version.created_date
-                )
+                assert updated_rule.rule_version.created_date > new_rule.rule_version.created_date
             finally:
                 await rules_api_async.archive(new_rule.id_)
 
@@ -426,10 +413,7 @@ class TestRulesAPIAsync:
                 assert updated_rule.action.action_type == RuleActionType.ANNOTATION
                 assert updated_rule.action.annotation_type == RuleAnnotationType.PHASE
                 assert set(updated_rule.action.tags) == {"sift-client-pytest"}
-                assert (
-                    updated_rule.action.default_assignee_user_id
-                    == new_rule.created_by_user_id
-                )
+                assert updated_rule.action.default_assignee_user_id == new_rule.created_by_user_id
 
                 # Verify other fields remain unchanged
                 assert updated_rule.name == new_rule.name
@@ -438,9 +422,7 @@ class TestRulesAPIAsync:
                 await rules_api_async.archive(new_rule.id_)
 
         @pytest.mark.asyncio
-        async def test_update_with_complex_expression(
-            self, rules_api_async, sift_client
-        ):
+        async def test_update_with_complex_expression(self, rules_api_async, sift_client):
             """Test updating a rule with a complex expression (range check)."""
             # Get channels and assets
             channels = await sift_client.async_.channels.list_(limit=2)
@@ -449,17 +431,13 @@ class TestRulesAPIAsync:
             assert len(assets) >= 1
 
             # Create a rule with simple expression
-            rule_name = (
-                f"test_rule_complex_expr_{datetime.now(timezone.utc).isoformat()}"
-            )
+            rule_name = f"test_rule_complex_expr_{datetime.now(timezone.utc).isoformat()}"
             rule_create = RuleCreate(
                 name=rule_name,
                 description="Test rule for complex expression update",
                 expression="$1 > 0.5",
                 channel_references=[
-                    ChannelReference(
-                        channel_reference="$1", channel_identifier=channels[0].name
-                    ),
+                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
                 ],
                 action=RuleAction.annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
@@ -485,23 +463,16 @@ class TestRulesAPIAsync:
                 assert updated_rule.id_ == created_rule.id_
                 assert updated_rule.expression == "$1 > 0.3 && $1 < 0.8"
                 assert len(updated_rule.channel_references) == 1
-                assert (
-                    updated_rule.channel_references[0].channel_identifier
-                    == channels[0].name
-                )
+                assert updated_rule.channel_references[0].channel_identifier == channels[0].name
 
                 # Verify other fields remain unchanged
                 assert updated_rule.name == created_rule.name
-                assert (
-                    updated_rule.action.action_type == created_rule.action.action_type
-                )
+                assert updated_rule.action.action_type == created_rule.action.action_type
             finally:
                 await rules_api_async.archive(created_rule.id_)
 
         @pytest.mark.asyncio
-        async def test_update_with_multiple_channel_references(
-            self, rules_api_async, sift_client
-        ):
+        async def test_update_with_multiple_channel_references(self, rules_api_async, sift_client):
             """Test updating a rule expression to use multiple channel references."""
             # Get channels and assets
             channels = await sift_client.async_.channels.list_(limit=3)
@@ -516,12 +487,8 @@ class TestRulesAPIAsync:
                 description="Test rule for multiple channel references",
                 expression="$1 > $2",
                 channel_references=[
-                    ChannelReference(
-                        channel_reference="$1", channel_identifier=channels[0].name
-                    ),
-                    ChannelReference(
-                        channel_reference="$2", channel_identifier=channels[1].name
-                    ),
+                    ChannelReference(channel_reference="$1", channel_identifier=channels[0].name),
+                    ChannelReference(channel_reference="$2", channel_identifier=channels[1].name),
                 ],
                 action=RuleAction.annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
@@ -578,9 +545,7 @@ class TestRulesAPIAsync:
                     channel_references=[
                         ChannelReference(
                             channel_reference="$1",
-                            channel_identifier=new_rule.channel_references[
-                                0
-                            ].channel_identifier,
+                            channel_identifier=new_rule.channel_references[0].channel_identifier,
                         ),
                     ],
                 )

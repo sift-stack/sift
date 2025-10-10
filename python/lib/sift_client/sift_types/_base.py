@@ -46,9 +46,7 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
 
     @classmethod
     @abstractmethod
-    def _from_proto(
-        cls, proto: ProtoT, sift_client: SiftClient | None = None
-    ) -> SelfT: ...
+    def _from_proto(cls, proto: ProtoT, sift_client: SiftClient | None = None) -> SelfT: ...
 
     def _apply_client_to_instance(self, client: SiftClient) -> None:
         # This bypasses the frozen status of the model
@@ -133,10 +131,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
         for field_name, value in data.items():
             path = f"{prefix}.{field_name}" if prefix else field_name
 
-            if (
-                not already_setting_path_override
-                and field_name in self._to_proto_helpers
-            ):
+            if not already_setting_path_override and field_name in self._to_proto_helpers:
                 mapping_helper = self._to_proto_helpers[field_name]
                 # Expand the proto path to a dictionary and parse recursively
                 for layer in reversed(mapping_helper.proto_attr_path.split(".")):
@@ -150,9 +145,9 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                     paths.append(mapping_helper.update_field)
             elif isinstance(value, dict):
                 if field_name in self.__class__._to_proto_helpers:
-                    assert self.__class__._to_proto_helpers[
-                        field_name
-                    ].converter, f"Expecting to run a coverter given a helper was defined for: {field_name}"
+                    assert self.__class__._to_proto_helpers[field_name].converter, (
+                        f"Expecting to run a coverter given a helper was defined for: {field_name}"
+                    )
                     sub_paths = self._build_proto_and_paths(
                         proto_msg,
                         {field_name: self.__class__._to_proto_helpers[field_name].converter(value)},  # type: ignore[misc]
@@ -178,9 +173,9 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                     repeated_field.extend(value)  # Add all new values
                 except TypeError as e:
                     if field_name in self.__class__._to_proto_helpers:
-                        assert self.__class__._to_proto_helpers[
-                            field_name
-                        ].converter, f"Expecting to run a coverter given a helper was defined for: {field_name}"
+                        assert self.__class__._to_proto_helpers[field_name].converter, (
+                            f"Expecting to run a coverter given a helper was defined for: {field_name}"
+                        )
                         for item in value:
                             repeated_field.append(
                                 self.__class__._to_proto_helpers[field_name].converter(**item)  # type: ignore
