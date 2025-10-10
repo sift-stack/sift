@@ -34,7 +34,9 @@ class RunsAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = RunsLowLevelClient(grpc_client=self.client.grpc_client)
 
-    async def get(self, *, run_id: str | None = None, client_key: str | None = None) -> Run:
+    async def get(
+        self, *, run_id: str | None = None, client_key: str | None = None
+    ) -> Run:
         """Get a Run.
 
         Args:
@@ -148,14 +150,18 @@ class RunsAPIAsync(ResourceBase):
         if assets:
             if all(isinstance(s, str) for s in assets):
                 ids = cast("list[str]", assets)  # linting
-                filter_parts.append(cel.in_("asset_ids", ids))
+                filter_parts.append(cel.in_("asset_id", ids))
             else:
                 asset = cast("list[Asset]", assets)  # linting
-                filter_parts.append(cel.in_("asset_ids", [a._id_or_error for a in asset]))
+                filter_parts.append(
+                    cel.in_("asset_id", [a._id_or_error for a in asset])
+                )
         if duration_less_than:
             filter_parts.append(cel.less_than("duration_string", duration_less_than))
         if duration_greater_than:
-            filter_parts.append(cel.greater_than("duration_string", duration_greater_than))
+            filter_parts.append(
+                cel.greater_than("duration_string", duration_greater_than)
+            )
         if start_time_after:
             filter_parts.append(cel.greater_than("start_time", start_time_after))
         if start_time_before:

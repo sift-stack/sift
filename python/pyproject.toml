@@ -207,6 +207,11 @@ select = [
 env_files = [
     ".env"
 ]
+testpaths = [
+    "lib/sift_py",
+    "lib/sift_client/_tests",
+]
+
 markers = [
     "integration: mark a test as an integration test (requires API)"
 ]

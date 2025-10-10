@@ -63,12 +63,18 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
 
     def archive(self) -> CalculatedChannel:
         """Archive the calculated channel."""
-        self.client.calculated_channels.archive(calculated_channel=self)
+        updated_calculated_channel = self.client.calculated_channels.archive(
+            calculated_channel=self
+        )
+        self._update(updated_calculated_channel)
         return self
 
     def unarchive(self) -> CalculatedChannel:
         """Unarchive the calculated channel."""
-        self.client.calculated_channels.unarchive(calculated_channel=self)
+        updated_calculated_channel = self.client.calculated_channels.unarchive(
+            calculated_channel=self
+        )
+        self._update(updated_calculated_channel)
         return self
 
     def update(
@@ -169,6 +175,7 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
         ),
         "all_assets": MappingHelper(
             proto_attr_path="calculated_channel_configuration.asset_configuration.all_assets",
+            update_field="asset_configuration",
         ),
         "metadata": MappingHelper(
             proto_attr_path="metadata",
