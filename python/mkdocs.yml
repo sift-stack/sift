@@ -69,8 +69,6 @@ plugins:
   - mkdocs-jupyter:
       include_source: True
       execute: False
-  - mkdocs-jupyter:
-      include_source: True
   - mkdocstrings:
       default_handler: python
       handlers:
