@@ -480,6 +480,43 @@ class TestRunsAPIAsync:
             finally:
                 await runs_api_async.archive(new_run.id_)
 
+    class TestAssetAssociation:
+        """Tests for the async asset association methods."""
+
+        @pytest.mark.asyncio
+        async def test_create_automatic_association_for_assets(
+            self, runs_api_async, sift_client
+        ):
+            """Test associating assets with a run for automatic data ingestion."""
+            # Create a test run
+            run_name = f"test_run_asset_assoc_{datetime.now(timezone.utc).isoformat()}"
+            run_create = RunCreate(
+                name=run_name,
+                description="Test run for asset association",
+                tags=["sift-client-pytest"],
+            )
+            created_run = await runs_api_async.create(run_create)
+
+            try:
+                # Get some assets to associate
+                assets = await sift_client.async_.assets.list_(limit=2)
+                assert len(assets) >= 1
+
+                asset_names = [asset.name for asset in assets[:2]]
+
+                # Associate assets with the run
+                await runs_api_async.create_automatic_association_for_assets(
+                    run=created_run, asset_names=asset_names
+                )
+
+                # Verify the association by getting the run and checking asset_ids
+                updated_run = await runs_api_async.get(run_id=created_run.id_)
+                assert updated_run.asset_ids is not None
+                assert len(updated_run.asset_ids) >= len(asset_names)
+
+            finally:
+                await runs_api_async.archive(created_run)
+
 
 class TestRunsAPISync:
     """Test suite for the synchronous Runs API functionality.
