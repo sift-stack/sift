@@ -58,10 +58,11 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
         for key in other.__class__.model_fields.keys():
             if key in self.model_fields:
                 self.__dict__.update({key: getattr(other, key)})
-        return self
 
         # Make sure we also update the proto since it is excluded
         self.__dict__["proto"] = other.proto
+
+        return self
 
     @model_validator(mode="after")
     def _validate_timezones(self):
