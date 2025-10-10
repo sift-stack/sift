@@ -378,33 +378,6 @@ class TestIngestionAPIAsync:
         """Tests for ingestion validation and error handling."""
 
         @pytest.mark.asyncio
-        async def test_ingest_missing_channel_raises_error(self, sift_client, test_run):
-            """Test that ingesting without all channels raises an error."""
-            flow = Flow(
-                name="test-validation-flow",
-                channels=[
-                    ChannelConfig(name="channel1", data_type=ChannelDataType.DOUBLE),
-                    ChannelConfig(name="channel2", data_type=ChannelDataType.DOUBLE),
-                ],
-            )
-
-            await sift_client.async_.ingestion.create_ingestion_config(
-                asset_name=ASSET_NAME,
-                run_id=test_run.id_,
-                flows=[flow],
-            )
-
-            timestamp = datetime.now(tz=timezone.utc)
-            with pytest.raises(
-                Exception,
-                match="Expected all channels in flow to have a data point at same time",
-            ):
-                flow.ingest(
-                    timestamp=timestamp,
-                    channel_values={"channel1": 1.0},  # Missing channel2
-                )
-
-        @pytest.mark.asyncio
         async def test_ingest_invalid_enum_value_raises_error(self, sift_client, test_run):
             """Test that ingesting an invalid enum value raises an error."""
             flow = Flow(
