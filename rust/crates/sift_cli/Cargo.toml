@@ -9,7 +9,7 @@ repository.workspace = true
 keywords.workspace = true
 readme.workspace = true
 license.workspace = true
-description = "Sift CLI"
+description = "CLI to streamline programmatic workflows with Sift's API"
 
 [dependencies]
 anyhow = "1.0.100"

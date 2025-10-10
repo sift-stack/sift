@@ -30,11 +30,11 @@ pub struct Args {
 
 #[derive(Subcommand)]
 pub enum Cmd {
-    /// Interacting with the Sift CLI config
+    /// Manage Sift CLI configuration
     #[command(subcommand)]
     Config(ConfigCmd),
 
-    /// Import files containing time series to Sift
+    /// Import time series files into Sift
     #[command(subcommand)]
     Import(ImportCmd),
 }
@@ -52,103 +52,101 @@ pub enum ImportCmd {
 
 #[derive(Subcommand)]
 pub enum ConfigCmd {
-    /// Print the contents of the config file if it exists
+    /// Display the contents of the current config file
     Show,
 
-    /// Prints the location of the config file
+    /// Show the path to the current config file
     Where,
 
-    /// Creates a new config file or errors if it already exists
+    /// Create a new config file (fails if one already exists)
     Create,
 
-    /// Updates the config file
+    /// Update fields in the existing config file
     Update(ConfigUpdateArgs),
 }
 
 #[derive(clap::Args)]
 pub struct ConfigUpdateArgs {
-    /// Create or update a profile interactively, ignoring all other arguments
+    /// Edit or create a profile interactively (ignores other flags)
     #[arg(short, long)]
     pub interactive: bool,
 
-    /// The Sift gRPC base URI
+    /// Base gRPC endpoint for Sift
     #[arg(short, long)]
     pub grpc_uri: Option<String>,
 
-    /// The Sift REST base URI
+    /// Base REST endpoint for Sift
     #[arg(short, long)]
     pub rest_uri: Option<String>,
 
-    /// Your Sift API key
+    /// API key used for authentication
     #[arg(short = 'k', long)]
     pub api_key: Option<String>,
 }
 
 #[derive(clap::Args)]
 pub struct ImportCsvArgs {
-    /// Path to the CSV file
+    /// Path to the CSV file to import
     pub path: PathBuf,
 
-    /// The name of the asset this data is associated with
+    /// Name of the asset this data belongs to
     #[arg(short, long)]
     pub asset: String,
 
-    /// The name of the wrong to associate this data with
+    /// Optional run name to associate with this import
     #[arg(short, long)]
     pub run: Option<String>,
 
-    /// The row containing the channel names and timestamp (1-based indexing)
+    /// Row number containing column headers (1-based)
     #[arg(long, default_value_t = 1)]
     pub header_row: usize,
 
-    /// The first row containing time series data (1-based indexing)
+    /// Row number where data starts (1-based)
     #[arg(long, default_value_t = 2)]
     pub first_data_row: usize,
 
-    /// Column number to configure an override for (1-based indexing); can be specified multiple times
+    /// 1-based column indices to override; can appear multiple times
     #[arg(short, long)]
     pub channel_column: Vec<usize>,
 
-    /// Column-type corresponding to ordered positioning of --channel-column
+    /// Data type for each channel in `--channel-column`. Use `"infer"` to have the program infer
+    /// the data type which is useful when wanting to just specify `--unit` and/or `--description`
     #[arg(short, long)]
     pub data_type: Vec<DataType>,
 
-    /// Channel units corresponding to ordered positioning of --channel-column; can be an empty
-    /// string
+    /// Unit for each channel in `--channel-column` (can be empty)
     #[arg(short, long)]
     pub unit: Vec<String>,
 
-    /// Channel description corresponding to ordered positioning of --channel-column; can be an empty
-    /// string
+    /// Description for each channel in `--channel-column` (can be empty)
     #[arg(short = 'n', long)]
     pub description: Vec<String>,
 
-    /// <key,name> repeated pairs delimited by "|" e.g. "0,start|1,stop". Corresponds to the order in
-    /// which enum channels appear in --channel-column
+    /// Enum configuration pairs `<key,name>` (e.g. `"0,start|1,stop"`) for enum-type channels
     #[arg(short, long)]
     pub enum_config: Vec<String>,
 
-    /// <name,index,length> repeated triplets delimited by "|" e.g. "12v,0,4|led,4,4". Corresponds
-    /// to the order in which bit-field channels appear in --channel-column
+    /// Bit-field configuration triplets `<name,index,length>` (e.g. `"12v,0,4|led,4,4"`)
     #[arg(short, long)]
     pub bit_field_config: Vec<String>,
 
-    /// Column number of the time column (1-based indexing)
+    /// 1-based index of the time column
     #[arg(short, long, default_value_t = 1)]
     pub time_column: usize,
 
+    /// Time format used in the file
     #[arg(short = 'f', long, default_value_t = TimeFormat::default())]
     pub time_format: TimeFormat,
 
-    /// Start time to use (RFC3339) when time format is relative; ignored otherwise
+    /// Start time (RFC3339) to use if time format is relative
     #[arg(short = 's')]
     pub relative_start_time: Option<String>,
 
-    /// Wait for the CSV to be fully processed before returning
+    /// Wait until the import finishes processing
     #[arg(short, long)]
     pub wait: bool,
 
-    /// Preview the schema of the file from the provided arguments without uploading
+    /// Preview the parsed schema without uploading
     #[arg(short, long)]
     pub preview: bool,
 }
@@ -162,65 +160,63 @@ pub enum ImportParquetCmd {
 
 #[derive(clap::Args)]
 pub struct FlatDatasetArgs {
-    /// Path to the Parquet file
+    /// Path to the Parquet file to import
     pub path: PathBuf,
 
-    /// The name of the asset this data is associated with
+    /// Name of the asset this data belongs to
     #[arg(short, long)]
     pub asset: String,
 
-    /// The name of the wrong to associate this data with
+    /// Optional run name to associate with this import
     #[arg(short, long)]
     pub run: Option<String>,
 
-    /// The path of the channel to configure; can be specified multiple times
+    /// Paths of data columns to import; can be specified multiple times
     #[arg(short, long)]
     pub channel_path: Vec<String>,
 
-    /// Column-type corresponding to ordered positioning of --channel-path
+    /// Data type for each channel in `--channel-path`. Use `"infer"` to have the program infer
+    /// the data type which is useful when wanting to just specify `--unit` and/or `--description`
     #[arg(short, long)]
     pub data_type: Vec<DataType>,
 
-    /// Channel units corresponding to ordered positioning of --channel-path; can be an empty
-    /// string
+    /// Unit for each channel in `--channel-path` (can be empty)
     #[arg(short, long)]
     pub unit: Vec<String>,
 
-    /// Channel description corresponding to ordered positioning of --channel-path; can be an empty
-    /// string
+    /// Description for each channel in `--channel-path` (can be empty)
     #[arg(short = 'n', long)]
     pub description: Vec<String>,
 
-    /// <name,key> repeated pairs e.g. "0,start,1,stop". Corresponds to the order in
-    /// which enum channels appear in --channel-path
+    /// Enum configuration pairs `<key,name>` for enum-type channels
     #[arg(short, long)]
     pub enum_config: Vec<String>,
 
-    /// <index,name,bit_count> repeated triplets e.g. "0,12v,4,4,led,4". Corresponds
-    /// to the order in which bit-field channels appear in --channel-path
+    /// Bit-field configuration triplets `<index,name,bit_count>` for bit-field channels
     #[arg(short, long)]
     pub bit_field_config: Vec<String>,
 
-    /// The path to the time column
+    /// Path to the time column
     #[arg(short, long, default_value_t = String::from("timestamp"))]
     pub time_path: String,
 
+    /// Time format used in the file
     #[arg(short = 'f', long, default_value_t = TimeFormat::default())]
     pub time_format: TimeFormat,
 
-    /// Start time to use (RFC3339) when time format is relative; ignored otherwise
+    /// Start time (RFC3339) to use if time format is relative
     #[arg(short = 's')]
     pub relative_start_time: Option<String>,
 
-    /// Specifies how to handle columns that are complex types i.e. maps, lists and structs.
+    /// Strategy for handling complex types (maps, lists, structs)
     #[arg(short = 'm', long, default_value_t = ComplexTypesMode::default())]
     pub complex_types_mode: ComplexTypesMode,
 
-    /// Wait for the Parquet to be fully processed before returning
+    /// Wait until the import finishes processing
     #[arg(short, long)]
     pub wait: bool,
 
-    /// Preview the schema of the file from the provided arguments without uploading
+    /// Preview the parsed schema without uploading
     #[arg(short, long)]
     pub preview: bool,
 }
