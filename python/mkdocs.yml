@@ -53,10 +53,10 @@ extra:
 
 nav:
   - Home: index.md
-  - Examples:
-      - examples/basic.ipynb
   - Sift Py API
   - Sift Client API (New)
+  - Examples:
+      - examples/basic.ipynb
 #  - Guides:
 #      - Logging
 #      - Error Handling
