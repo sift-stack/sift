@@ -15,20 +15,19 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
 )
-from sift_stream_bindings import (
-    ChannelBitFieldElementPy,
-    ChannelConfigPy,
-    ChannelDataTypePy,
-    ChannelEnumTypePy,
-    FlowConfigPy,
-    IngestWithConfigDataChannelValuePy,
-)
 
 from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 
 if TYPE_CHECKING:
     from datetime import datetime
+
+    from sift_stream_bindings import (
+        ChannelConfigPy,
+        ChannelDataTypePy,
+        FlowConfigPy,
+        IngestWithConfigDataChannelValuePy,
+    )
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.channel import Channel
@@ -179,6 +178,8 @@ class Flow(BaseType[FlowConfig, "Flow"]):
         )
 
     def _to_rust_config(self) -> FlowConfigPy:
+        from sift_stream_bindings import FlowConfigPy
+
         return FlowConfigPy(
             name=self.name,
             channels=[_channel_to_rust_config(channel) for channel in self.channels],
@@ -218,6 +219,12 @@ class Flow(BaseType[FlowConfig, "Flow"]):
 
 # Converter functions.
 def _channel_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
+    from sift_stream_bindings import (
+        ChannelBitFieldElementPy,
+        ChannelConfigPy,
+        ChannelEnumTypePy,
+    )
+
     return ChannelConfigPy(
         name=channel.name,
         data_type=_to_rust_type(channel.data_type),
@@ -252,6 +259,8 @@ def _rust_channel_value_from_bitfield(
     Returns:
         A ChannelValuePy object.
     """
+    from sift_stream_bindings import IngestWithConfigDataChannelValuePy
+
     assert channel.bit_field_elements is not None
     # We expect individual ints or bytes to represent full bitfield values.
     if isinstance(value, bytes) or isinstance(value, int):
@@ -276,6 +285,8 @@ def _rust_channel_value_from_bitfield(
 
 
 def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataChannelValuePy:
+    from sift_stream_bindings import IngestWithConfigDataChannelValuePy
+
     if value is None:
         return IngestWithConfigDataChannelValuePy.empty()
     if channel.data_type == ChannelDataType.ENUM and channel.enum_types is not None:
@@ -314,6 +325,8 @@ def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataCh
 
 
 def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
+    from sift_stream_bindings import ChannelDataTypePy
+
     if data_type == ChannelDataType.DOUBLE:
         return ChannelDataTypePy.Double
     elif data_type == ChannelDataType.FLOAT:

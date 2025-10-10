@@ -149,7 +149,7 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
 
     metadata: dict[str, str | float | bool] | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "expression": MappingHelper(
             proto_attr_path="calculated_channel_configuration.query_configuration.sel.expression",
             update_field="query_configuration",

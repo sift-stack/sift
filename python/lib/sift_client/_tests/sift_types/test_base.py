@@ -41,7 +41,7 @@ class NestedCreateModel(ModelCreate[CreateCalculatedChannelRequest]):
     expression: str | None = None
     all_assets: bool | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "expression": MappingHelper(
             proto_attr_path="calculated_channel_configuration.query_configuration.sel.expression",
             update_field="query_configuration",
@@ -293,7 +293,7 @@ class TestEdgeCases:
             class InvalidModel(ModelCreate[CreateCalculatedChannelRequest]):
                 name: str
 
-                _to_proto_helpers: ClassVar = {
+                _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
                     "nonexistent_field": MappingHelper(proto_attr_path="some.path"),
                 }
 

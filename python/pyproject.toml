@@ -22,7 +22,7 @@ dependencies = [
     "PyYAML~=6.0",
     "pandas~=2.0",
     "protobuf>=4.0",
-    "pydantic~=2.0",
+    "pydantic~=2.10",
     # Support python 3.9+ typing in older versons of python.
     "eval-type-backport~=0.2",
     "pydantic_core~=2.3",

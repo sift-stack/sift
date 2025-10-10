@@ -18,17 +18,14 @@ from collections import namedtuple
 from queue import Queue
 from typing import TYPE_CHECKING, Any, cast
 
-import sift_stream_bindings
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     GetIngestionConfigRequest,
     ListIngestionConfigFlowsResponse,
     ListIngestionConfigsRequest,
     ListIngestionConfigsResponse,
 )
-from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import IngestionConfigServiceStub
-from sift_stream_bindings import (
-    IngestionConfigFormPy,
-    IngestWithConfigDataStreamRequestPy,
+from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import (
+    IngestionConfigServiceStub,
 )
 
 from sift_client._internal.low_level_wrappers.base import (
@@ -44,6 +41,12 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from sift_stream_bindings import (
+        IngestionConfigFormPy,
+        IngestWithConfigDataStreamRequestPy,
+        SiftStreamBuilderPy,
+    )
+
 
 class IngestionThread(threading.Thread):
     """Manages ingestion for a single ingestion config."""
@@ -54,7 +57,7 @@ class IngestionThread(threading.Thread):
 
     def __init__(
         self,
-        sift_stream_builder: sift_stream_bindings.SiftStreamBuilderPy,
+        sift_stream_builder: SiftStreamBuilderPy,
         data_queue: Queue,
         ingestion_config: IngestionConfigFormPy,
         no_data_timeout: int = 1,
@@ -154,7 +157,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     CacheEntry = namedtuple("CacheEntry", ["data_queue", "ingestion_config", "thread"])
 
-    sift_stream_builder: sift_stream_bindings.SiftStreamBuilderPy
+    sift_stream_builder: SiftStreamBuilderPy
     stream_cache: dict[str, CacheEntry]
 
     def __init__(self, grpc_client: GrpcClient):
@@ -163,21 +166,25 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Args:
             grpc_client: The gRPC client to use for making API calls.
         """
+        from sift_stream_bindings import (
+            RecoveryStrategyPy,
+            RetryPolicyPy,
+            SiftStreamBuilderPy,
+        )
+
         super().__init__(grpc_client=grpc_client)
         # Rust GRPC client expects URI to have http(s):// prefix.
         uri = grpc_client._config.uri
         if not uri.startswith("http"):
             uri = f"https://{uri}" if grpc_client._config.use_ssl else f"http://{uri}"
-        self.sift_stream_builder = sift_stream_bindings.SiftStreamBuilderPy(
+        self.sift_stream_builder = SiftStreamBuilderPy(
             uri=uri,
             apikey=grpc_client._config.api_key,
         )
         self.sift_stream_builder.enable_tls = grpc_client._config.use_ssl
         # FD-177: Expose configuration for recovery strategy.
-        self.sift_stream_builder.recovery_strategy = (
-            sift_stream_bindings.RecoveryStrategyPy.retry_only(
-                sift_stream_bindings.RetryPolicyPy.default()
-            )
+        self.sift_stream_builder.recovery_strategy = RecoveryStrategyPy.retry_only(
+            RetryPolicyPy.default()
         )
         self.stream_cache = {}
 
@@ -229,7 +236,9 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return ingestion_configs[0].id_
 
     def _new_ingestion_thread(
-        self, ingestion_config_id: str, ingestion_config: IngestionConfigFormPy | None = None
+        self,
+        ingestion_config_id: str,
+        ingestion_config: IngestionConfigFormPy | None = None,
     ):
         """Start a new ingestion thread.
         This allows ingestion to happen in the background regardless of if the user is using the sync or async client
