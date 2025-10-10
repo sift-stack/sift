@@ -26,6 +26,7 @@ def sift_client() -> SiftClient:
             api_key=api_key,
             grpc_url=grpc_url,
             rest_url=rest_url,
+            use_ssl=True,
         )
     )
 
