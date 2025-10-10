@@ -79,7 +79,7 @@ class TestReportBase(ModelCreateUpdateBase):
     part_number: str | None = None
     system_operator: str | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(
             proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
         ),
@@ -341,7 +341,7 @@ class TestMeasurementUpdate(TestMeasurementBase, ModelUpdate[TestMeasurementProt
     passed: bool | None = None
     timestamp: datetime | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "string_expected_value": MappingHelper(
             proto_attr_path="string_bounds.expected_value", update_field="string_bounds"
         ),

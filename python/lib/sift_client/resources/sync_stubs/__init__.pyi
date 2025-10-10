@@ -797,7 +797,7 @@ class RunsAPI:
         """
         ...
 
-    def stop(self, run: str | Run) -> None:
+    def stop(self, run: str | Run) -> Run:
         """Stop a run by setting its stop time to the current time.
 
         Args:

@@ -132,7 +132,6 @@ class SiftClient(
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
         self.channels = ChannelsAPI(self)
-        self.ingestion = IngestionAPIAsync(self)
         self.rules = RulesAPI(self)
         self.runs = RunsAPI(self)
         self.test_results = TestResultsAPI(self)

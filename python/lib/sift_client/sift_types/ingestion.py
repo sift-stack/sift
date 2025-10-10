@@ -15,20 +15,19 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
 )
-from sift_stream_bindings import (
-    ChannelBitFieldElementPy,
-    ChannelConfigPy,
-    ChannelDataTypePy,
-    ChannelEnumTypePy,
-    FlowConfigPy,
-    IngestWithConfigDataChannelValuePy,
-)
 
 from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 
 if TYPE_CHECKING:
     from datetime import datetime
+
+    from sift_stream_bindings import (
+        ChannelConfigPy,
+        ChannelDataTypePy,
+        FlowConfigPy,
+        IngestWithConfigDataChannelValuePy,
+    )
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.channel import Channel
@@ -92,14 +91,14 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             data_type=ChannelDataType(proto.data_type),
             description=proto.description if proto.description else None,
             unit=proto.unit if proto.unit else None,
-            bit_field_elements=[
-                ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements
-            ]
-            if proto.bit_field_elements
-            else None,
-            enum_types={enum.name: enum.key for enum in proto.enum_types}
-            if proto.enum_types
-            else None,
+            bit_field_elements=(
+                [ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements]
+                if proto.bit_field_elements
+                else None
+            ),
+            enum_types=(
+                {enum.name: enum.key for enum in proto.enum_types} if proto.enum_types else None
+            ),
             _client=sift_client,
         )
 
@@ -118,7 +117,7 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             data_type=channel.data_type,
             description=channel.description,
             unit=channel.unit,
-            bit_field_elements=channel.bit_field_elements if channel.bit_field_elements else None,
+            bit_field_elements=(channel.bit_field_elements if channel.bit_field_elements else None),
             enum_types=channel.enum_types,
         )
 
@@ -127,7 +126,9 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
         from sift.common.type.v1.channel_bit_field_element_pb2 import (
             ChannelBitFieldElement as ChannelBitFieldElementPb,
         )
-        from sift.common.type.v1.channel_enum_type_pb2 import ChannelEnumType as ChannelEnumTypePb
+        from sift.common.type.v1.channel_enum_type_pb2 import (
+            ChannelEnumType as ChannelEnumTypePb,
+        )
 
         return ChannelConfigProto(
             name=self.name,
@@ -177,6 +178,8 @@ class Flow(BaseType[FlowConfig, "Flow"]):
         )
 
     def _to_rust_config(self) -> FlowConfigPy:
+        from sift_stream_bindings import FlowConfigPy
+
         return FlowConfigPy(
             name=self.name,
             channels=[_channel_to_rust_config(channel) for channel in self.channels],
@@ -207,7 +210,7 @@ class Flow(BaseType[FlowConfig, "Flow"]):
         """
         if self.ingestion_config_id is None:
             raise ValueError("Ingestion config ID is not set.")
-        self.client.ingestion.ingest(
+        self.client.async_.ingestion.ingest(
             flow=self,
             timestamp=timestamp,
             channel_values=channel_values,
@@ -216,6 +219,12 @@ class Flow(BaseType[FlowConfig, "Flow"]):
 
 # Converter functions.
 def _channel_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
+    from sift_stream_bindings import (
+        ChannelBitFieldElementPy,
+        ChannelConfigPy,
+        ChannelEnumTypePy,
+    )
+
     return ChannelConfigPy(
         name=channel.name,
         data_type=_to_rust_type(channel.data_type),
@@ -225,12 +234,14 @@ def _channel_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
             ChannelBitFieldElementPy(name=bfe.name, index=bfe.index, bit_count=bfe.bit_count)
             for bfe in channel.bit_field_elements or []
         ],
-        enum_types=[
-            ChannelEnumTypePy(key=enum_key, name=enum_name)
-            for enum_name, enum_key in channel.enum_types.items()
-        ]
-        if channel.enum_types
-        else [],
+        enum_types=(
+            [
+                ChannelEnumTypePy(key=enum_key, name=enum_name)
+                for enum_name, enum_key in channel.enum_types.items()
+            ]
+            if channel.enum_types
+            else []
+        ),
     )
 
 
@@ -248,6 +259,8 @@ def _rust_channel_value_from_bitfield(
     Returns:
         A ChannelValuePy object.
     """
+    from sift_stream_bindings import IngestWithConfigDataChannelValuePy
+
     assert channel.bit_field_elements is not None
     # We expect individual ints or bytes to represent full bitfield values.
     if isinstance(value, bytes) or isinstance(value, int):
@@ -272,6 +285,8 @@ def _rust_channel_value_from_bitfield(
 
 
 def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataChannelValuePy:
+    from sift_stream_bindings import IngestWithConfigDataChannelValuePy
+
     if value is None:
         return IngestWithConfigDataChannelValuePy.empty()
     if channel.data_type == ChannelDataType.ENUM and channel.enum_types is not None:
@@ -310,6 +325,8 @@ def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataCh
 
 
 def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
+    from sift_stream_bindings import ChannelDataTypePy
+
     if data_type == ChannelDataType.DOUBLE:
         return ChannelDataTypePy.Double
     elif data_type == ChannelDataType.FLOAT:

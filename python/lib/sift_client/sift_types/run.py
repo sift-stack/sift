@@ -56,13 +56,17 @@ class Run(BaseType[RunProto, "Run"]):
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             organization_id=proto.organization_id,
-            start_time=proto.start_time.ToDatetime(tzinfo=timezone.utc)
-            if proto.HasField("start_time")
-            else None,
-            stop_time=proto.stop_time.ToDatetime(tzinfo=timezone.utc)
-            if proto.HasField("stop_time")
-            else None,
-            duration=proto.duration.ToTimedelta() if proto.HasField("duration") else None,
+            start_time=(
+                proto.start_time.ToDatetime(tzinfo=timezone.utc)
+                if proto.HasField("start_time")
+                else None
+            ),
+            stop_time=(
+                proto.stop_time.ToDatetime(tzinfo=timezone.utc)
+                if proto.HasField("stop_time")
+                else None
+            ),
+            duration=(proto.duration.ToTimedelta() if proto.HasField("duration") else None),
             name=proto.name,
             description=proto.description,
             tags=list(proto.tags),
@@ -70,9 +74,11 @@ class Run(BaseType[RunProto, "Run"]):
             client_key=proto.client_key if proto.HasField("client_key") else None,
             metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             asset_ids=list(proto.asset_ids),
-            archived_date=proto.archived_date.ToDatetime()
-            if proto.HasField("archived_date")
-            else None,
+            archived_date=(
+                proto.archived_date.ToDatetime(tzinfo=timezone.utc)
+                if proto.HasField("archived_date")
+                else None
+            ),
             is_archived=proto.is_archived,
             is_adhoc=proto.is_adhoc,
             _client=sift_client,
@@ -120,9 +126,11 @@ class RunBase(ModelCreateUpdateBase):
     tags: list[str] | None = None
     metadata: dict[str, str | float | bool] | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(
-            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+            proto_attr_path="metadata",
+            update_field="metadata",
+            converter=metadata_dict_to_proto,
         ),
     }
 
@@ -150,9 +158,11 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
     stop_time: datetime | None = None
     organization_id: str | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(
-            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+            proto_attr_path="metadata",
+            update_field="metadata",
+            converter=metadata_dict_to_proto,
         ),
     }
 
@@ -170,9 +180,11 @@ class RunUpdate(RunBase, ModelUpdate[RunProto]):
     stop_time: datetime | None = None
     is_archived: bool | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(
-            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+            proto_attr_path="metadata",
+            update_field="metadata",
+            converter=metadata_dict_to_proto,
         ),
     }
 

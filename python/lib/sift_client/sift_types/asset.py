@@ -113,7 +113,7 @@ class AssetUpdate(ModelUpdate[AssetProto]):
     metadata: dict[str, str | float | bool] | None = None
     is_archived: bool | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(
             proto_attr_path="metadata",
             update_field="metadata",

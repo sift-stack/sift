@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar
@@ -9,7 +8,6 @@ import grpc
 import pytest
 from grpc import aio as aiogrpc
 
-from sift_client.client import SiftClient, SiftConnectionConfig
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
@@ -24,19 +22,7 @@ from sift_client.sift_types.test_report import (
     TestStepType,
 )
 
-
-@pytest.fixture(scope="session", autouse=True)
-def sift_client():
-    grpc_url = os.getenv("SIFT_GRPC_URI", "")
-    rest_url = os.getenv("SIFT_REST_URI", "")
-    api_key = os.getenv("SIFT_API_KEY", "")
-    return SiftClient(
-        connection_config=SiftConnectionConfig(
-            grpc_url=grpc_url,
-            api_key=api_key,
-            rest_url=rest_url,
-        )
-    )
+pytestmark = pytest.mark.integration
 
 
 class TestResultsTest:

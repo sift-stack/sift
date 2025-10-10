@@ -148,10 +148,10 @@ class RunsAPIAsync(ResourceBase):
         if assets:
             if all(isinstance(s, str) for s in assets):
                 ids = cast("list[str]", assets)  # linting
-                filter_parts.append(cel.in_("asset_ids", ids))
+                filter_parts.append(cel.in_("asset_id", ids))
             else:
                 asset = cast("list[Asset]", assets)  # linting
-                filter_parts.append(cel.in_("asset_ids", [a._id_or_error for a in asset]))
+                filter_parts.append(cel.in_("asset_id", [a._id_or_error for a in asset]))
         if duration_less_than:
             filter_parts.append(cel.less_than("duration_string", duration_less_than))
         if duration_greater_than:
@@ -252,7 +252,7 @@ class RunsAPIAsync(ResourceBase):
     async def stop(
         self,
         run: str | Run,
-    ) -> None:
+    ) -> Run:
         """Stop a run by setting its stop time to the current time.
 
         Args:
@@ -260,6 +260,7 @@ class RunsAPIAsync(ResourceBase):
         """
         run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.stop_run(run_id=run_id or "")
+        return await self.get(run_id=run_id)
 
     async def create_automatic_association_for_assets(
         self,

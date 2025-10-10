@@ -108,7 +108,9 @@ class ResourceBase(ABC):
         return filter_parts
 
     def _build_tags_metadata_cel_filters(
-        self, tags: list[Any] | list[str] | None = None, metadata: list[Any] | None = None
+        self,
+        tags: list[Any] | list[str] | None = None,
+        metadata: list[Any] | None = None,
     ) -> list[str]:
         filter_parts = []
         if tags:
@@ -124,14 +126,14 @@ class ResourceBase(ABC):
         self,
         *,
         description_contains: str | None = None,
-        include_archived: bool = False,
+        include_archived: bool | None = None,
         filter_query: str | None = None,
     ) -> list[str]:
         filter_parts = []
         if description_contains:
             filter_parts.append(cel.contains("description", description_contains))
-        if not include_archived:
-            filter_parts.append(cel.equals("is_archived", False))
+        if include_archived is not None:
+            filter_parts.append(cel.equals("is_archived", include_archived))
         if filter_query:
             filter_parts.append(filter_query)
         return filter_parts

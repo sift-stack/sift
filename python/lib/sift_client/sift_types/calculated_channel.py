@@ -63,12 +63,18 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
 
     def archive(self) -> CalculatedChannel:
         """Archive the calculated channel."""
-        self.client.calculated_channels.archive(calculated_channel=self)
+        updated_calculated_channel = self.client.calculated_channels.archive(
+            calculated_channel=self
+        )
+        self._update(updated_calculated_channel)
         return self
 
     def unarchive(self) -> CalculatedChannel:
         """Unarchive the calculated channel."""
-        self.client.calculated_channels.unarchive(calculated_channel=self)
+        updated_calculated_channel = self.client.calculated_channels.unarchive(
+            calculated_channel=self
+        )
+        self._update(updated_calculated_channel)
         return self
 
     def update(
@@ -96,6 +102,7 @@ class CalculatedChannel(BaseType[CalculatedChannelProto, "CalculatedChannel"]):
         cls, proto: CalculatedChannelProto, sift_client: SiftClient | None = None
     ) -> CalculatedChannel:
         return cls(
+            proto=proto,
             id_=proto.calculated_channel_id,
             name=proto.name,
             description=proto.description,
@@ -135,7 +142,6 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
     """Base class for CalculatedChannel create and update models with shared fields and validation."""
 
     description: str | None = None
-    user_notes: str | None = None
     units: str | None = None
 
     expression: str | None = None
@@ -149,7 +155,7 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
 
     metadata: dict[str, str | float | bool] | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "expression": MappingHelper(
             proto_attr_path="calculated_channel_configuration.query_configuration.sel.expression",
             update_field="query_configuration",
@@ -169,6 +175,7 @@ class CalculatedChannelBase(ModelCreateUpdateBase):
         ),
         "all_assets": MappingHelper(
             proto_attr_path="calculated_channel_configuration.asset_configuration.all_assets",
+            update_field="asset_configuration",
         ),
         "metadata": MappingHelper(
             proto_attr_path="metadata",
@@ -198,6 +205,7 @@ class CalculatedChannelCreate(CalculatedChannelBase, ModelCreate[CreateCalculate
     """Create model for a Calculated Channel."""
 
     name: str
+    user_notes: str | None = None
     client_key: str | None = None
 
     def _get_proto_class(self) -> type[CreateCalculatedChannelRequest]:
@@ -209,15 +217,6 @@ class CalculatedChannelUpdate(CalculatedChannelBase, ModelUpdate[CalculatedChann
 
     name: str | None = None
     is_archived: bool | None = None
-
-    @model_validator(mode="after")
-    def _validate_non_updatable_fields(self):
-        """Validate that the fields that cannot be updated are not set."""
-        if self.user_notes is not None:
-            raise ValueError("Cannot update user notes")
-        if self.client_key is not None:
-            raise ValueError("Cannot update client key")
-        return self
 
     def _get_proto_class(self) -> type[CalculatedChannelProto]:
         return CalculatedChannelProto
