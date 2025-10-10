@@ -12,7 +12,6 @@ on:
 jobs:
   test-python:
     runs-on: ubuntu-latest
-    environment: python-integration-tests
     defaults:
       run:
         working-directory: python
