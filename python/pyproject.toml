@@ -22,7 +22,7 @@ dependencies = [
     "PyYAML~=6.0",
     "pandas~=2.0",
     "protobuf>=4.0",
-    "pydantic~=2.0",
+    "pydantic~=2.10",
     # Support python 3.9+ typing in older versons of python.
     "eval-type-backport~=0.2",
     "pydantic_core~=2.3",
@@ -54,6 +54,7 @@ development = [
     "pytest-asyncio==0.23.7",
     "pytest-benchmark==4.0.0",
     "pytest-mock==3.14.0",
+    "pytest-dotenv==0.5.2",
     "ruff~=0.12.10",
 ]
 build = ["pdoc==14.5.0", "build==1.2.1"]
@@ -63,7 +64,8 @@ docs = ["mkdocs",
     "mkdocs-include-markdown-plugin",
     "mkdocs-api-autonav",
     "mike",
-    "griffe-pydantic"]
+    "griffe-pydantic",
+    "mkdocs-jupyter"]
 
 # May be required for certain library functionality
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
@@ -200,3 +202,17 @@ select = [
     "N", # pep8-naming
     "TID", # flake8-tidy-imports
 ]
+
+[tool.pytest.ini_options]
+env_files = [
+    ".env"
+]
+testpaths = [
+    "lib/sift_py",
+    "lib/sift_client/_tests",
+]
+
+markers = [
+    "integration: mark a test as an integration test (requires API)"
+]
+

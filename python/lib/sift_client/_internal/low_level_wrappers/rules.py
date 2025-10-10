@@ -135,7 +135,8 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
         conditions_request = [
             UpdateConditionRequest(
-                expression=expression_proto, actions=[create.action._to_update_request()]
+                expression=expression_proto,
+                actions=[create.action._to_update_request()],
             )
         ]
         update_request = UpdateRuleRequest(
@@ -183,9 +184,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "asset_tag_ids",
         ]
         # Need to manually copy fields that will be reset even if not provided in update dict.
-        copy_unset_fields = [
-            "description",
-        ]
+        copy_unset_fields = ["description", "name"]
 
         # Populate the trivial fields first.
         update_dict.update(
@@ -214,15 +213,17 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 "Expression and channel_references must both be provided or both be None"
             )
         expression_proto = RuleConditionExpression(
-            calculated_channel=CalculatedChannelConfig(
-                expression=expression,
-                channel_references={
-                    c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
-                    for c in channel_references
-                },
+            calculated_channel=(
+                CalculatedChannelConfig(
+                    expression=expression,
+                    channel_references={
+                        c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
+                        for c in channel_references
+                    },
+                )
+                if expression
+                else None
             )
-            if expression
-            else None
         )
         conditions_request = [
             UpdateConditionRequest(
@@ -238,10 +239,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         # This always needs to be set, so handle the defaults.
         update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore
-            asset_ids=update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or [],
-            tag_ids=update.asset_tag_ids
-            if "asset_tag_ids" in model_dump
-            else rule.asset_tag_ids or [],
+            asset_ids=(update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or []),
+            tag_ids=(
+                update.asset_tag_ids if "asset_tag_ids" in model_dump else rule.asset_tag_ids or []
+            ),
         )
 
         update_request = UpdateRuleRequest(
@@ -254,7 +255,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def update_rule(
         self, rule: Rule, update: RuleUpdate, version_notes: str | None = None
     ) -> Rule:
-        """Update a rule.
+        """Update a rule. Also handles archive/unarchive to behave similar to other low-level clients.
 
         Args:
             rule: The rule to update.
@@ -264,14 +265,26 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated Rule.
         """
+
+        should_update_archive = "is_archived" in update.model_fields_set
+
         update.resource_id = rule.id_
+        if not should_update_archive or (
+            should_update_archive and len(update.model_fields_set) > 1
+        ):
+            update_request = self._update_rule_request_from_update(rule, update, version_notes)
 
-        update_request = self._update_rule_request_from_update(rule, update, version_notes)
+            response = await self._grpc_client.get_stub(RuleServiceStub).UpdateRule(update_request)
+            _ = cast("UpdateRuleResponse", response)
 
-        response = await self._grpc_client.get_stub(RuleServiceStub).UpdateRule(update_request)
-        updated_grpc_rule = cast("UpdateRuleResponse", response)
+        if should_update_archive:
+            if update.is_archived:
+                await self.archive_rule(rule_id=rule.id_)
+            else:
+                await self.unarchive_rule(rule_id=rule.id_)
+
         # Get the updated rule
-        return await self.get_rule(rule_id=updated_grpc_rule.rule_id)
+        return await self.get_rule(rule_id=rule.id_)
 
     async def batch_update_rules(self, rules: list[RuleUpdate]) -> BatchUpdateRulesResponse:
         """Batch update rules.

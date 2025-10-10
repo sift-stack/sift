@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, TypeVar
+from datetime import datetime
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Generic,
+    TypeVar,
+)
 
 from google.protobuf import field_mask_pb2, message
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -53,6 +61,17 @@ class BaseType(BaseModel, Generic[ProtoT, SelfT], ABC):
 
         # Make sure we also update the proto since it is excluded
         self.__dict__["proto"] = other.proto
+
+        return self
+
+    @model_validator(mode="after")
+    def _validate_timezones(self):
+        """Validate datetime fiels have timezone information."""
+        for field_name in self.model_fields.keys():
+            val = getattr(self, field_name)
+            if isinstance(val, datetime) and val.tzinfo is None:
+                raise ValueError(f"{field_name} must have timezone information")
+
         return self
 
 
@@ -73,10 +92,13 @@ class ModelCreateUpdateBase(BaseModel, ABC):
     """Base class for Pydantic models that generate proto messages."""
 
     model_config = ConfigDict(frozen=False)
-    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = PrivateAttr(default={})
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {}
 
     def __init__(self, **data: Any):
         super().__init__(**data)
+
+    @model_validator(mode="after")
+    def _check_mapping_helpers(self):
         if self._to_proto_helpers:
             data = self.model_dump()
             for expected_field in self._to_proto_helpers.keys():
@@ -84,6 +106,17 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                     raise ValueError(
                         f"MappingHelper created for {expected_field} but {self.__class__.__name__} has no matching variable names."
                     )
+        return self
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        required_annotation = "ClassVar[dict[str, MappingHelper]]"
+        annotation = cls.__annotations__.get("_to_proto_helpers")
+        # Check for correct annotation otherwise pydantic will not populate this properly
+        if annotation and annotation != required_annotation:
+            raise TypeError(
+                f"{cls.__name__} must define _to_proto_helpers type as: {required_annotation}"
+            )
 
     def _build_proto_and_paths(
         self, proto_msg, data, prefix="", already_setting_path_override=False
@@ -112,13 +145,13 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                 if mapping_helper.update_field:
                     paths.append(mapping_helper.update_field)
             elif isinstance(value, dict):
-                if field_name in self._to_proto_helpers:
-                    assert self._to_proto_helpers[field_name].converter, (
+                if field_name in self.__class__._to_proto_helpers:
+                    assert self.__class__._to_proto_helpers[field_name].converter, (
                         f"Expecting to run a coverter given a helper was defined for: {field_name}"
                     )
                     sub_paths = self._build_proto_and_paths(
                         proto_msg,
-                        {field_name: self._to_proto_helpers[field_name].converter(value)},  # type: ignore[misc]
+                        {field_name: self.__class__._to_proto_helpers[field_name].converter(value)},  # type: ignore[misc]
                         "",
                         already_setting_path_override=True,
                     )
@@ -140,13 +173,13 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                 try:
                     repeated_field.extend(value)  # Add all new values
                 except TypeError as e:
-                    if field_name in self._to_proto_helpers:
-                        assert self._to_proto_helpers[field_name].converter, (
+                    if field_name in self.__class__._to_proto_helpers:
+                        assert self.__class__._to_proto_helpers[field_name].converter, (
                             f"Expecting to run a coverter given a helper was defined for: {field_name}"
                         )
                         for item in value:
                             repeated_field.append(
-                                self._to_proto_helpers[field_name].converter(**item)  # type: ignore
+                                self.__class__._to_proto_helpers[field_name].converter(**item)  # type: ignore
                             )
                     else:
                         raise e
@@ -155,7 +188,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                 try:
                     setattr(proto_msg, field_name, value)
                     paths.append(path)
-                except TypeError as e:
+                except (TypeError, AttributeError) as e:
                     raise TypeError(
                         f"Can't set {field_name} to {value} on {proto_msg.__class__.__name__}"
                     ) from e
@@ -178,7 +211,7 @@ class ModelCreate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
         proto_msg = proto_cls()
 
         # Get all fields
-        data = self.model_dump(exclude_none=False)
+        data = self.model_dump(exclude_unset=True, exclude_none=True)
         self._build_proto_and_paths(proto_msg, data)
 
         return proto_msg
@@ -203,8 +236,8 @@ class ModelUpdate(ModelCreateUpdateBase, Generic[ProtoT], ABC):
         proto_cls: type[ProtoT] = self._get_proto_class()
         proto_msg = proto_cls()
 
-        # Get only explicitly set fields, including those set to None
-        data = self.model_dump(exclude_unset=True, exclude_none=False)
+        # Get only explicitly set fields
+        data = self.model_dump(exclude_unset=True, exclude_none=True)
         paths = self._build_proto_and_paths(proto_msg, data)
 
         self._add_resource_id_to_proto(proto_msg)

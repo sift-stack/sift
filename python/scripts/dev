@@ -23,6 +23,8 @@ Subcommands:
   mypy-stubs     Runs stubtest (mypy) on the generated pyi stubs
   pip-install    Install project dependencies
   test           Execute tests
+  test-integration Execute integration tests
+  test-all       Execute all non-integration tests
   update-dev     Copies changes to the dev script over to the venv bin
 
 Options:
@@ -90,8 +92,17 @@ doc_build() {
 }
 
 run_tests() {
+  pytest -m "not integration"
+}
+
+run_tests_integration() {
+  pytest -m "integration"
+}
+
+run_tests_all() {
   pytest
 }
+
 
 gen_stubs() {
   source venv/bin/activate
@@ -147,6 +158,12 @@ case "$1" in
         ;;
     test)
         run_tests
+        ;;
+    test-integration)
+        run_tests_integration
+        ;;
+    test-all)
+        run_tests_all
         ;;
     gen-stubs)
         gen_stubs
