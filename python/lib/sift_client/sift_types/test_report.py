@@ -295,7 +295,7 @@ class TestStep(BaseType[TestStepProto, "TestStep"]):
         return self
 
     @property
-    def measurements(self) -> list[TestMeasurement]:
+    def measurements(self) -> list[TestMeasurement]: # type: ignore (pyright bug)
         """Get the TestMeasurements for the TestStep."""
         return self.client.test_results.list_measurements(test_steps=[self])
 
@@ -543,7 +543,6 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
     def _to_proto(self) -> TestReportProto:
         """Convert to protobuf message."""
         proto = TestReportProto(
-            proto=self.proto,
             test_report_id=self.id_ or "",
             status=self.status.value,  # type: ignore
             name=self.name,
@@ -591,6 +590,6 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
         return self
 
     @property
-    def steps(self) -> list[TestStep]:
+    def steps(self) -> list[TestStep]: # type: ignore (pyright bug)
         """Get the TestSteps for the TestReport."""
         return self.client.test_results.list_steps(test_reports=[self])
