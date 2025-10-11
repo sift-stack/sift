@@ -281,6 +281,13 @@ pub mod sift {
             // @@protoc_insertion_point(sift.tags.v2)
         }
     }
+    pub mod test_reports {
+        // @@protoc_insertion_point(attribute:sift.test_reports.v1)
+        pub mod v1 {
+            include!("sift.test_reports.v1.rs");
+            // @@protoc_insertion_point(sift.test_reports.v1)
+        }
+    }
     pub mod unit {
         // @@protoc_insertion_point(attribute:sift.unit.v2)
         pub mod v2 {

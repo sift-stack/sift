@@ -3291,7 +3291,7 @@ type ListRulesRequest struct {
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
 	// Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
-	// `created_date`, `created_by_user_id`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, and `archived_date`.
+	// `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, and `archived_date`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	// Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`

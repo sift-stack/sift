@@ -1433,7 +1433,8 @@ type ListReportsRequest struct {
 	// the call that provided the page token. Optional.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-	// Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, and `archived_date`.
+	// Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, `archived_date`, `created_date`,
+	// `created_by_user_id`, `metadata`, `modified_date`, and `modified_by_user_id`.
 	// For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
 	// For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
 	Filter string `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
