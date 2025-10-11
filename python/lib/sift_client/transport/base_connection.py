@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import TYPE_CHECKING
 
-from sift_client.transport.grpc_transport import GrpcClient, GrpcConfig
+from sift_client.transport.grpc_transport import CacheConfig, GrpcClient, GrpcConfig
 from sift_client.transport.rest_transport import RestClient, RestConfig
 
 if TYPE_CHECKING:
@@ -24,6 +24,7 @@ class SiftConnectionConfig:
         api_key: str,
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
+        cache_config: CacheConfig | None = None,
     ):
         """Initialize the connection configuration.
 
@@ -33,12 +34,14 @@ class SiftConnectionConfig:
             api_key: The API key for authentication.
             use_ssl: Whether to use SSL/TLS for secure connections.
             cert_via_openssl: Whether to use OpenSSL for certificate validation.
+            cache_config: Optional cache configuration for gRPC responses.
         """
         self.api_key = api_key
         self.grpc_url = grpc_url
         self.rest_url = rest_url
         self.use_ssl = use_ssl
         self.cert_via_openssl = cert_via_openssl
+        self.cache_config = cache_config
 
     def get_grpc_config(self):
         """Create and return a GrpcConfig with the current settings.
@@ -51,6 +54,7 @@ class SiftConnectionConfig:
             api_key=self.api_key,
             use_ssl=self.use_ssl,
             cert_via_openssl=self.cert_via_openssl,
+            cache_config=self.cache_config,
         )
 
     def get_rest_config(self):
