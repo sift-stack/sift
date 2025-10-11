@@ -321,7 +321,9 @@ class NumericBounds(BaseType[NumericBoundsProto, "NumericBounds"]):
         """Convert to protobuf message."""
         return NumericBoundsProto(min=self.min, max=self.max)
 
-    def __eq__(self, other: NumericBounds) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NumericBounds):
+            return False
         return self.min == other.min and self.max == other.max
 
 

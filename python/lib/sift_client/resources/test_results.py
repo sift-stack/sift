@@ -209,9 +209,8 @@ class TestResultsAPIAsync(ResourceBase):
         """
         test_reports = await self.list_reports(**kwargs)
         if len(test_reports) > 1:
-            raise ValueError(
-                f"Multiple test reports found for query ({', '.join(report.id_ or 'no id' for report in test_reports)})"
-            )
+            error_msg = f"Multiple test reports found for query ({', '.join(report.id_ or 'no id' for report in test_reports)})" if len(test_reports) < 10 else f"Multiple ({len(test_reports)} test reports found for query)"
+            raise ValueError(error_msg)
         elif len(test_reports) == 1:
             return test_reports[0]
         return None
@@ -318,22 +317,22 @@ class TestResultsAPIAsync(ResourceBase):
         ]
 
         if test_steps:
-            test_step_ids = [
-                test_step.id_ if isinstance(test_step, TestStep) else test_step
+            test_step_ids: list[str] = [
+                test_step.id_ or "" if isinstance(test_step, TestStep) else test_step
                 for test_step in test_steps
             ]
             filter_parts.append(in_("test_step_id", test_step_ids))
 
         if test_reports:
-            test_report_ids = [
-                test_report.id_ if isinstance(test_report, TestReport) else test_report
+            test_report_ids: list[str] = [
+                test_report.id_ or "" if isinstance(test_report, TestReport) else test_report
                 for test_report in test_reports
             ]
             filter_parts.append(in_("test_report_id", test_report_ids))
 
         if parent_steps:
-            parent_step_ids = [
-                parent_step.id_ if isinstance(parent_step, TestStep) else parent_step
+            parent_step_ids: list[str] = [
+                parent_step.id_ or "" if isinstance(parent_step, TestStep) else parent_step
                 for parent_step in parent_steps
             ]
             filter_parts.append(in_("parent_step_id", parent_step_ids))
@@ -479,21 +478,21 @@ class TestResultsAPIAsync(ResourceBase):
 
         if measurements:
             measurement_ids = [
-                measurement.id_ if isinstance(measurement, TestMeasurement) else measurement
+                measurement.id_ or "" if isinstance(measurement, TestMeasurement) else measurement
                 for measurement in measurements
             ]
             filter_parts.append(in_("measurement_id", measurement_ids))
 
         if test_steps:
-            test_step_ids = [
-                test_step.id_ if isinstance(test_step, TestStep) else test_step
+            test_step_ids: list[str] = [
+                test_step.id_ or "" if isinstance(test_step, TestStep) else test_step
                 for test_step in test_steps
             ]
             filter_parts.append(in_("test_step_id", test_step_ids))
 
         if test_reports:
-            test_report_ids = [
-                test_report.id_ if isinstance(test_report, TestReport) else test_report
+            test_report_ids: list[str] = [
+                test_report.id_ or "" if isinstance(test_report, TestReport) else test_report
                 for test_report in test_reports
             ]
             filter_parts.append(in_("test_report_id", test_report_ids))
@@ -549,7 +548,7 @@ class TestResultsAPIAsync(ResourceBase):
             test_measurement: The TestMeasurement or measurement ID to delete.
         """
         measurement_id = (
-            test_measurement.id_
+            test_measurement.id_ or ""
             if isinstance(test_measurement, TestMeasurement)
             else test_measurement
         )
