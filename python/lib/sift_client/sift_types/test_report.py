@@ -297,7 +297,7 @@ class TestStep(BaseType[TestStepProto, "TestStep"]):
     @property
     def measurements(self) -> list[TestMeasurement]:  # type: ignore
         """Get the TestMeasurements for the TestStep."""
-        return self.client.test_results.list_measurements(test_steps=[self])
+        return self.client.test_results.list_measurements(test_steps=[self])  # type: ignore
 
 
 class NumericBounds(BaseType[NumericBoundsProto, "NumericBounds"]):
@@ -592,4 +592,4 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
     @property
     def steps(self) -> list[TestStep]:  # type: ignore
         """Get the TestSteps for the TestReport."""
-        return self.client.test_results.list_steps(test_reports=[self])
+        return self.client.test_results.list_steps(test_reports=[self])  # type: ignore
