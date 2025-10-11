@@ -9,10 +9,13 @@ from __future__ import annotations
 import asyncio
 import atexit
 import logging
+import tempfile
 import threading
+from pathlib import Path
 from typing import Any
 
 from sift_py.grpc.transport import (
+    CacheConfig as SiftCacheConfig,
     SiftChannelConfig,
     use_sift_async_channel,
 )
@@ -34,6 +37,51 @@ def _suppress_blocking_io(loop, context):
     loop.default_exception_handler(context)
 
 
+class CacheConfig:
+    """Configuration for gRPC response caching.
+    
+    Attributes:
+        enabled: Whether to enable caching. Default is False.
+        ttl: Time-to-live for cached entries in seconds. Default is 3600 (1 hour).
+        cache_path: Path to the cache directory. Default is system temp directory + 'sift_grpc_cache'.
+        size_limit: Maximum size of the cache in bytes. Default is 1GB.
+    """
+
+    def __init__(
+        self,
+        enabled: bool = False,
+        ttl: int = 3600,
+        cache_path: str | None = None,
+        size_limit: int = 1024 * 1024 * 1024,  # 1GB
+    ):
+        """Initialize the cache configuration.
+
+        Args:
+            enabled: Whether to enable caching.
+            ttl: Time-to-live for cached entries in seconds.
+            cache_path: Path to the cache directory. If None, uses system temp directory.
+            size_limit: Maximum size of the cache in bytes.
+        """
+        self.enabled = enabled
+        self.ttl = ttl
+        self.cache_path = cache_path or str(
+            Path(tempfile.gettempdir()) / "sift_grpc_cache"
+        )
+        self.size_limit = size_limit
+
+    def to_sift_cache_config(self) -> SiftCacheConfig:
+        """Convert to a SiftCacheConfig for use with sift_py.grpc.transport.
+
+        Returns:
+            A SiftCacheConfig dictionary.
+        """
+        return {
+            "ttl": self.ttl,
+            "cache_path": self.cache_path,
+            "size_limit": self.size_limit,
+        }
+
+
 class GrpcConfig:
     """Configuration for gRPC API clients."""
 
@@ -44,6 +92,7 @@ class GrpcConfig:
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
         metadata: dict[str, str] | None = None,
+        cache_config: CacheConfig | None = None,
     ):
         """Initialize the gRPC configuration.
 
@@ -52,14 +101,15 @@ class GrpcConfig:
             api_key: The API key for authentication.
             use_ssl: Whether to use SSL/TLS.
             cert_via_openssl: Whether to use OpenSSL for SSL/TLS.
-            use_async: Whether to use async gRPC client.
             metadata: Additional metadata to include in all requests.
+            cache_config: Optional cache configuration. If None, caching is disabled.
         """
         self.uri = url
         self.api_key = api_key
         self.use_ssl = use_ssl
         self.cert_via_openssl = cert_via_openssl
         self.metadata = metadata or {}
+        self.cache_config = cache_config
 
     def _to_sift_channel_config(self) -> SiftChannelConfig:
         """Convert to a SiftChannelConfig.
@@ -67,12 +117,18 @@ class GrpcConfig:
         Returns:
             A SiftChannelConfig.
         """
-        return {
+        config: SiftChannelConfig = {
             "uri": self.uri,
             "apikey": self.api_key,
             "use_ssl": self.use_ssl,
             "cert_via_openssl": self.cert_via_openssl,
         }
+        
+        # Add cache config if enabled
+        if self.cache_config and self.cache_config.enabled:
+            config["cache_config"] = self.cache_config.to_sift_cache_config()
+        
+        return config
 
 
 class GrpcClient:

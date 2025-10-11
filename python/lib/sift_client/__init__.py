@@ -39,9 +39,21 @@ config = SiftConnectionConfig(
     rest_url="your-sift-rest-url"
 )
 client = SiftClient(connection_config=config)
+
+# Enable response caching
+from sift_client import CacheConfig
+
+cache_config = CacheConfig(enabled=True, ttl=3600)
+client = SiftClient(
+    api_key="your-api-key",
+    grpc_url="your-sift-grpc-url",
+    rest_url="your-sift-rest-url",
+    cache_config=cache_config
+)
 ```
 
 The `SiftConnectionConfig` provides access to additional configuration options such as `use_ssl` and `cert_via_openssl`.
+The `CacheConfig` enables transparent local response caching for gRPC calls (requires `pip install sift-stack-py[cache]`).
 
 ### Using Synchronous and Asynchronous APIs
 
@@ -205,9 +217,10 @@ recent_assets = client.assets.list_(
 import logging
 
 from sift_client.client import SiftClient
-from sift_client.transport import SiftConnectionConfig
+from sift_client.transport import CacheConfig, SiftConnectionConfig
 
 __all__ = [
+    "CacheConfig",
     "SiftClient",
     "SiftConnectionConfig",
 ]
