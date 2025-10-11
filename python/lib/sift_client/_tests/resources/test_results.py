@@ -43,7 +43,6 @@ class TestResultsTest:
                 "end_time": simulated_time,
             },
         )
-        print(f"Created test report: {test_report.id_}")
         assert test_report.id_ is not None
         self.test_reports["basic_test_report"] = test_report
 
@@ -67,7 +66,6 @@ class TestResultsTest:
             ),
         )
         simulated_time = simulated_time + timedelta(seconds=10.1)
-        print(f"Created step 1: {step1.id_}")
 
         # Create a step using a dict
         step1_1 = sift_client.test_results.create_step(
@@ -83,7 +81,6 @@ class TestResultsTest:
                 "end_time": simulated_time + timedelta(seconds=10),
             },
         )
-        print(f"Created step 1.1: {step1_1.id_}")
         simulated_time = simulated_time + timedelta(seconds=10.1)
 
         step2 = sift_client.test_results.create_step(
@@ -98,7 +95,6 @@ class TestResultsTest:
                 end_time=simulated_time + timedelta(seconds=10),
             )
         )
-        print(f"Created step 2: {step2.id_}")
         simulated_time = simulated_time + timedelta(seconds=10.1)
         step3 = sift_client.test_results.create_step(
             TestStepCreate(
@@ -112,7 +108,6 @@ class TestResultsTest:
                 end_time=simulated_time + timedelta(seconds=10),
             ),
         )
-        print(f"Created step 3: {step3.id_}")
 
         step3_1 = sift_client.test_results.create_step(
             TestStepCreate(
@@ -131,7 +126,6 @@ class TestResultsTest:
                 ),
             ),
         )
-        print(f"Created step 3.1: {step3_1.id_}")
         assert step1.id_ is not None
         assert step1_1.id_ is not None
         assert step2.id_ is not None
@@ -156,8 +150,6 @@ class TestResultsTest:
         step3_1 = step3_1.update(
             {"description": "Error demo w/ updated description"},
         )
-        print(f"Updated step 3: {step3}")
-        print(f"Updated step 3.1: {step3_1}")
         assert step3.status == TestStatus.PASSED
         assert step3_1.description == "Error demo w/ updated description"
 
@@ -186,7 +178,6 @@ class TestResultsTest:
             ),
             update_step=True,
         )
-        print(f"Created measurement 1: {measurement1.id_}")
 
         # Create a measurement using a dict
         measurement2 = sift_client.test_results.create_measurement(
@@ -200,7 +191,6 @@ class TestResultsTest:
             },
             update_step=True,
         )
-        print(f"Created measurement 2: {measurement2.id_}")
 
         measurement3 = sift_client.test_results.create_measurement(
             TestMeasurementCreate(
@@ -213,7 +203,6 @@ class TestResultsTest:
             ),
             update_step=True,
         )
-        print(f"Created measurement 3: {measurement3.id_}")
 
         measurement4 = sift_client.test_results.create_measurement(
             TestMeasurementCreate(
@@ -225,7 +214,6 @@ class TestResultsTest:
                 timestamp=step1_1.start_time,
             )
         )
-        print(f"Created measurement 4: {measurement4}")
 
         assert measurement1.id_ is not None
         assert measurement2.id_ is not None
@@ -250,7 +238,6 @@ class TestResultsTest:
             },
             update_step=True,
         )
-        print(f"Updated measurement 2: {measurement2}")
         assert measurement2.passed == False
         assert measurement2.string_expected_value == "1.10.4"
 
@@ -265,14 +252,13 @@ class TestResultsTest:
             },
             update_step=True,
         )
-        print(f"Updated measurement 4: {measurement4}")
         assert measurement4.passed == False
         assert measurement4.numeric_bounds == NumericBounds(
             min=10,
             max=20,
         )
         # Verify update_step propogated the status.
-        updated_step = sift_client.test_results.get_step(test_step_id=measurement4.test_step_id)
+        updated_step = sift_client.test_results.get_step(test_step=measurement4.test_step_id)
         assert updated_step.status == TestStatus.FAILED
 
         self.test_measurements["measurement2"] = measurement2
@@ -296,13 +282,11 @@ class TestResultsTest:
                 end_time=new_end_time,
             ),
         )
-        print(f"Updated report with metadata: {updated_report.metadata}")
 
         # Update the report using class function.
         updated_report = updated_report.update(
             {"status": TestStatus.FAILED},
         )
-        print(f"Updated report with status: {updated_report.status}")
         assert updated_report.metadata == {
             "test_environment": "production",
             "temperature": 22.5,
@@ -328,7 +312,6 @@ class TestResultsTest:
             deleted_report = sift_client.test_results.get_report(test_report_id=test_report.id_)
             assert deleted_report is None  # Shouldn't reach here so error if we get something.
         except aiogrpc.AioRpcError as e:
-            print(f"Report deleted: {e}")
             self.test_reports.pop("basic_test_report")
             assert e.code() == grpc.StatusCode.NOT_FOUND
 
@@ -338,11 +321,10 @@ class TestResultsTest:
         current_dir = Path(__file__).parent
         test_file = Path(current_dir, "test_files", "demo_test_report.xml")
         test_report = sift_client.test_results.import_test_report(test_file=test_file)
-        print(f"Imported test report: {test_report.id_}")
 
         # Excercise find_report, custom_filter, and filtering by commonon-proto fields such as created_date
         found_report = sift_client.test_results.find_report(
-            custom_filter=f"test_report_id == '{test_report.id_}' && created_date >= timestamp('{create_time}')"
+            filter_query=f"test_report_id == '{test_report.id_}' && created_date >= timestamp('{create_time}')"
         )
         assert found_report is not None
         assert found_report.id_ == test_report.id_
@@ -350,6 +332,4 @@ class TestResultsTest:
 
     def test_delete_test_reports(self, sift_client):
         for test_report in self.test_reports.values():
-            print(f"Deleting test report: {test_report.id_}")
             sift_client.test_results.delete_report(test_report=test_report)
-        print("Test completed successfully")

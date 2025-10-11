@@ -187,3 +187,25 @@ class TestResultsTest:
             # Verify the archive method was called
             mock_client.test_results.archive_report.assert_called_once()
             mock_update.assert_called_once_with(archived_report)
+
+    def test_numeric_bounds_eq(self):
+        """Test the equality of NumericBounds."""
+        bounds1 = NumericBounds(min=10, max=20)
+        bounds2 = NumericBounds(min=10, max=20)
+        bounds3 = NumericBounds(min=10, max=30)
+        assert bounds1 == bounds2
+        assert bounds1 != bounds3
+
+    def test_report_steps(self, mock_test_report, mock_test_step, mock_client):
+        """Test the steps property of TestReport."""
+        mock_client.test_results.list_steps.return_value = [mock_test_step]
+        steps = mock_test_report.steps
+        assert len(steps) == 1
+        assert steps[0] == mock_test_step
+
+    def test_step_measurements(self, mock_test_step, mock_test_measurement, mock_client):
+        """Test the measurements property of TestStep."""
+        mock_client.test_results.list_measurements.return_value = [mock_test_measurement]
+        measurements = mock_test_step.measurements
+        assert len(measurements) == 1
+        assert measurements[0] == mock_test_measurement

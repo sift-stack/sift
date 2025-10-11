@@ -944,11 +944,11 @@ class TestResultsAPI:
         """
         ...
 
-    def get_step(self, test_step_id: str) -> TestStep:
+    def get_step(self, test_step: str | TestStep) -> TestStep:
         """Get a TestStep.
 
         Args:
-            test_step_id: The ID of the test step.
+            test_step: The TestStep or test step ID to get.
         """
         ...
 
@@ -966,9 +966,9 @@ class TestResultsAPI:
     def list_measurements(
         self,
         *,
-        measurement_id: str | None = None,
-        test_step_id: str | None = None,
-        test_report_id: str | None = None,
+        measurements: list[str] | list[TestMeasurement] | None = None,
+        test_steps: list[str] | list[TestStep] | None = None,
+        test_reports: list[str] | list[TestReport] | None = None,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
@@ -980,8 +980,9 @@ class TestResultsAPI:
         """List test measurements with optional filtering.
 
         Args:
-            measurement_id: Measurement ID to filter by.
-            test_step_id: Test step ID to filter by.
+            measurements: Measurements to filter by.
+            test_steps: Test steps to filter by.
+            test_reports: Test reports to filter by.
             test_report_id: Test report ID to filter by.
             name: Exact name of the test measurement.
             name_contains: Partial name of the test measurement.
@@ -1017,7 +1018,7 @@ class TestResultsAPI:
         modified_before: datetime | None = None,
         metadata: list[Any] | dict[str, Any] | None = None,
         include_archived: bool = False,
-        custom_filter: str | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestReport]:
@@ -1042,7 +1043,7 @@ class TestResultsAPI:
             modified_before: Filter test reports modified before this datetime.
             metadata: Filter test reports by metadata criteria.
             include_archived: Whether to include only archived or non-archived reports.
-            custom_filter: Custom filter to apply to the test reports.
+            filter_query: Custom filter to apply to the test reports.
             order_by: How to order the retrieved test reports. If used, this will override the other filters.
             limit: How many test reports to retrieve. If None, retrieves all matches.
 
@@ -1054,9 +1055,9 @@ class TestResultsAPI:
     def list_steps(
         self,
         *,
-        test_step_id: str | None = None,
-        test_report_id: str | None = None,
-        parent_step_id: str | None = None,
+        test_steps: list[str] | list[TestStep] | None = None,
+        test_reports: list[str] | list[TestReport] | None = None,
+        parent_steps: list[str] | list[TestStep] | None = None,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
@@ -1068,9 +1069,9 @@ class TestResultsAPI:
         """List test steps with optional filtering.
 
         Args:
-            test_step_id: Test step ID to filter by.
-            test_report_id: Test report ID to filter by.
-            parent_step_id: Parent step ID to filter by.
+            test_steps: Test steps to filter by.
+            test_reports: Test reports to filter by.
+            parent_steps: Parent steps to filter by.
             name: Exact name of the test step.
             name_contains: Partial name of the test step.
             name_regex: Regular expression string to filter test steps by name.

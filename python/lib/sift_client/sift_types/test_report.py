@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import ConfigDict
 from sift.test_reports.v1.test_reports_pb2 import (
     ErrorInfo as ErrorInfoProto,
 )
@@ -140,10 +139,6 @@ class TestReportCreate(TestReportBase, ModelCreate[TestReportProto]):
 
         return proto
 
-    def _to_proto(self) -> TestReportProto:
-        """Alias for to_proto() for compatibility with low-level client."""
-        return self.to_proto()
-
 
 class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
     """ErrorInfo model representing error information in a test step."""
@@ -154,6 +149,7 @@ class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
     @classmethod
     def _from_proto(cls, proto: ErrorInfoProto, sift_client: SiftClient | None = None) -> ErrorInfo:
         return cls(
+            proto=proto,
             id_=None,
             error_code=proto.error_code,
             error_message=proto.error_message,
@@ -248,6 +244,7 @@ class TestStep(BaseType[TestStepProto, "TestStep"]):
     @classmethod
     def _from_proto(cls, proto: TestStepProto, sift_client: SiftClient | None = None) -> TestStep:
         return cls(
+            proto=proto,
             id_=proto.test_step_id,
             test_report_id=proto.test_report_id,
             parent_step_id=proto.parent_step_id if proto.parent_step_id else None,
@@ -297,6 +294,11 @@ class TestStep(BaseType[TestStepProto, "TestStep"]):
         self._update(updated_test_step)
         return self
 
+    @property
+    def measurements(self) -> list[TestMeasurement]:
+        """Get the TestMeasurements for the TestStep."""
+        return self.client.test_results.list_measurements(test_steps=[self])
+
 
 class NumericBounds(BaseType[NumericBoundsProto, "NumericBounds"]):
     """NumericBounds model representing numeric bounds for test measurements."""
@@ -309,6 +311,7 @@ class NumericBounds(BaseType[NumericBoundsProto, "NumericBounds"]):
         cls, proto: NumericBoundsProto, sift_client: SiftClient | None = None
     ) -> NumericBounds:
         return cls(
+            proto=proto,
             min=proto.min if proto.HasField("min") else None,
             max=proto.max if proto.HasField("max") else None,
             _client=sift_client,
@@ -317,6 +320,9 @@ class NumericBounds(BaseType[NumericBoundsProto, "NumericBounds"]):
     def _to_proto(self) -> NumericBoundsProto:
         """Convert to protobuf message."""
         return NumericBoundsProto(min=self.min, max=self.max)
+
+    def __eq__(self, other: NumericBounds) -> bool:
+        return self.min == other.min and self.max == other.max
 
 
 class TestMeasurementBase(ModelCreateUpdateBase):
@@ -394,8 +400,6 @@ class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProt
 class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
     """TestMeasurement model representing a measurement in a test."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     measurement_type: TestMeasurementType
     name: str
     test_step_id: str
@@ -425,6 +429,7 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
             boolean_value = proto.boolean_value
 
         return cls(
+            proto=proto,
             id_=proto.measurement_id,
             measurement_type=TestMeasurementType(proto.measurement_type),
             name=proto.name,
@@ -477,7 +482,15 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
     def update(
         self, update: TestMeasurementUpdate | dict, update_step: bool = False
     ) -> TestMeasurement:
-        """Update the TestMeasurement."""
+        """Update the TestMeasurement.
+
+        Args:
+            update: The update to apply to the TestMeasurement.
+            update_step: Whether to update the TestStep's status to failed if the TestMeasurement is being updated to failed.
+
+        Returns:
+            The updated TestMeasurement.
+        """
         updated_test_measurement = self.client.test_results.update_measurement(
             test_measurement=self, update=update, update_step=update_step
         )
@@ -487,8 +500,6 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
 
 class TestReport(BaseType[TestReportProto, "TestReport"]):
     """TestReport model representing a test report."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     status: TestStatus
     name: str
@@ -508,6 +519,7 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
         cls, proto: TestReportProto, sift_client: SiftClient | None = None
     ) -> TestReport:
         return cls(
+            proto=proto,
             id_=proto.test_report_id,
             status=TestStatus(proto.status),
             name=proto.name,
@@ -529,6 +541,7 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
     def _to_proto(self) -> TestReportProto:
         """Convert to protobuf message."""
         proto = TestReportProto(
+            proto=self.proto,
             test_report_id=self.id_ or "",
             status=self.status.value,  # type: ignore
             name=self.name,
@@ -574,3 +587,8 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
         updated_test_report = self.client.test_results.unarchive_report(test_report=self)
         self._update(updated_test_report)
         return self
+
+    @property
+    def steps(self) -> list[TestStep]:
+        """Get the TestSteps for the TestReport."""
+        return self.client.test_results.list_steps(test_reports=[self])

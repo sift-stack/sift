@@ -21,7 +21,7 @@ from sift_client.sift_types.test_report import (
     TestStepType,
     TestStepUpdate,
 )
-from sift_client.util.cel_utils import equals, in_
+from sift_client.util.cel_utils import and_, equals, in_
 
 if TYPE_CHECKING:
     import re
@@ -115,7 +115,7 @@ class TestResultsAPIAsync(ResourceBase):
         modified_before: datetime | None = None,
         metadata: list[Any] | dict[str, Any] | None = None,
         include_archived: bool = False,
-        custom_filter: str | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestReport]:
@@ -140,7 +140,7 @@ class TestResultsAPIAsync(ResourceBase):
             modified_before: Filter test reports modified before this datetime.
             metadata: Filter test reports by metadata criteria.
             include_archived: Whether to include only archived or non-archived reports.
-            custom_filter: Custom filter to apply to the test reports.
+            filter_query: Custom filter to apply to the test reports.
             order_by: How to order the retrieved test reports. If used, this will override the other filters.
             limit: How many test reports to retrieve. If None, retrieves all matches.
 
@@ -161,6 +161,10 @@ class TestResultsAPIAsync(ResourceBase):
                 modified_by=modified_by_user_id,
             ),
             *self._build_metadata_cel_filters(metadata=metadata),
+            *self._build_common_cel_filters(
+                include_archived=include_archived,
+                filter_query=filter_query,
+            ),
         ]
 
         if test_report_ids:
@@ -184,19 +188,7 @@ class TestResultsAPIAsync(ResourceBase):
         if system_operator:
             filter_parts.append(equals("system_operator", system_operator))
 
-        query_filter = None
-        if custom_filter:
-            if filter_parts:
-                raise ValueError("Custom filter cannot be used with other filters")
-            query_filter = custom_filter
-        else:
-            # Do this after checking custom_filter+filter_parts since include_archived filter will always create a filter.
-            filter_parts.extend(
-                self._build_common_cel_filters(
-                    include_archived=include_archived,
-                )
-            )
-            query_filter = " && ".join(filter_parts) if filter_parts else None
+        query_filter = and_(*filter_parts)
 
         test_reports = await self._low_level_client.list_all_test_reports(
             query_filter=query_filter,
@@ -236,7 +228,9 @@ class TestResultsAPIAsync(ResourceBase):
         Returns:
             The updated TestReport.
         """
-        test_report_id = test_report.id_ if isinstance(test_report, TestReport) else test_report
+        test_report_id = (
+            test_report._id_or_error if isinstance(test_report, TestReport) else test_report
+        )
         if isinstance(update, dict):
             update = TestReportUpdate.model_validate(update)
 
@@ -288,9 +282,9 @@ class TestResultsAPIAsync(ResourceBase):
     async def list_steps(
         self,
         *,
-        test_step_id: str | None = None,
-        test_report_id: str | None = None,
-        parent_step_id: str | None = None,
+        test_steps: list[str] | list[TestStep] | None = None,
+        test_reports: list[str] | list[TestReport] | None = None,
+        parent_steps: list[str] | list[TestStep] | None = None,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
@@ -302,9 +296,9 @@ class TestResultsAPIAsync(ResourceBase):
         """List test steps with optional filtering.
 
         Args:
-            test_step_id: Test step ID to filter by.
-            test_report_id: Test report ID to filter by.
-            parent_step_id: Parent step ID to filter by.
+            test_steps: Test steps to filter by.
+            test_reports: Test reports to filter by.
+            parent_steps: Parent steps to filter by.
             name: Exact name of the test step.
             name_contains: Partial name of the test step.
             name_regex: Regular expression string to filter test steps by name.
@@ -323,14 +317,26 @@ class TestResultsAPIAsync(ResourceBase):
             ),
         ]
 
-        if test_step_id:
-            filter_parts.append(equals("test_step_id", test_step_id))
+        if test_steps:
+            test_step_ids = [
+                test_step.id_ if isinstance(test_step, TestStep) else test_step
+                for test_step in test_steps
+            ]
+            filter_parts.append(in_("test_step_id", test_step_ids))
 
-        if test_report_id:
-            filter_parts.append(equals("test_report_id", test_report_id))
+        if test_reports:
+            test_report_ids = [
+                test_report.id_ if isinstance(test_report, TestReport) else test_report
+                for test_report in test_reports
+            ]
+            filter_parts.append(in_("test_report_id", test_report_ids))
 
-        if parent_step_id:
-            filter_parts.append(equals("parent_step_id", parent_step_id))
+        if parent_steps:
+            parent_step_ids = [
+                parent_step.id_ if isinstance(parent_step, TestStep) else parent_step
+                for parent_step in parent_steps
+            ]
+            filter_parts.append(in_("parent_step_id", parent_step_ids))
 
         if status is not None:
             filter_parts.append(equals("status", status))
@@ -338,7 +344,7 @@ class TestResultsAPIAsync(ResourceBase):
         if step_type is not None:
             filter_parts.append(equals("step_type", step_type))
 
-        query_filter = " && ".join(filter_parts) if filter_parts else None
+        query_filter = and_(*filter_parts)
 
         test_steps = await self._low_level_client.list_all_test_steps(
             query_filter=query_filter,
@@ -347,17 +353,19 @@ class TestResultsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(test_steps)
 
-    async def get_step(self, test_step_id: str) -> TestStep:
+    async def get_step(self, test_step: str | TestStep) -> TestStep:
         """Get a TestStep.
 
         Args:
-            test_step_id: The ID of the test step.
+            test_step: The TestStep or test step ID to get.
         """
-        test_steps = await self._low_level_client.list_all_test_steps(
-            query_filter=equals("test_step_id", test_step_id), max_results=1
+        step_id = test_step._id_or_error if isinstance(test_step, TestStep) else test_step
+        test_steps = await self.list_steps(
+            test_steps=[step_id],
+            limit=1,
         )
         if not test_steps:
-            raise ValueError(f"TestStep with ID {test_step_id} not found")
+            raise ValueError(f"TestStep with ID {step_id} not found")
         test_step = test_steps[0]
         return self._apply_client_to_instance(test_step)
 
@@ -373,7 +381,7 @@ class TestResultsAPIAsync(ResourceBase):
         Returns:
             The updated TestStep.
         """
-        test_step_id = test_step.id_ if isinstance(test_step, TestStep) else test_step
+        test_step_id = test_step._id_or_error if isinstance(test_step, TestStep) else test_step
 
         if isinstance(update, dict):
             update = TestStepUpdate.model_validate(update)
@@ -388,7 +396,7 @@ class TestResultsAPIAsync(ResourceBase):
         Args:
             test_step: The TestStep or test step ID to delete.
         """
-        test_step_id = test_step.id_ if isinstance(test_step, TestStep) else test_step
+        test_step_id = test_step._id_or_error if isinstance(test_step, TestStep) else test_step
         if not isinstance(test_step_id, str):
             raise TypeError(f"test_step_id must be a string not {type(test_step_id)}")
         await self._low_level_client.delete_test_step(test_step_id=test_step_id)
@@ -412,7 +420,7 @@ class TestResultsAPIAsync(ResourceBase):
         )  # type: ignore
         measurement = self._apply_client_to_instance(test_measurement_result)
         if update_step:
-            step = await self.get_step(test_step_id=test_measurement_result.test_step_id)
+            step = await self.get_step(test_step=test_measurement_result.test_step_id)
             if step.status == TestStatus.PASSED and not measurement.passed:
                 await self.update_step(test_step=step, update={"status": TestStatus.FAILED})
         return measurement
@@ -433,9 +441,9 @@ class TestResultsAPIAsync(ResourceBase):
     async def list_measurements(
         self,
         *,
-        measurement_id: str | None = None,
-        test_step_id: str | None = None,
-        test_report_id: str | None = None,
+        measurements: list[str] | list[TestMeasurement] | None = None,
+        test_steps: list[str] | list[TestStep] | None = None,
+        test_reports: list[str] | list[TestReport] | None = None,
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
@@ -447,8 +455,9 @@ class TestResultsAPIAsync(ResourceBase):
         """List test measurements with optional filtering.
 
         Args:
-            measurement_id: Measurement ID to filter by.
-            test_step_id: Test step ID to filter by.
+            measurements: Measurements to filter by.
+            test_steps: Test steps to filter by.
+            test_reports: Test reports to filter by.
             test_report_id: Test report ID to filter by.
             name: Exact name of the test measurement.
             name_contains: Partial name of the test measurement.
@@ -468,14 +477,26 @@ class TestResultsAPIAsync(ResourceBase):
             ),
         ]
 
-        if measurement_id:
-            filter_parts.append(equals("measurement_id", measurement_id))
+        if measurements:
+            measurement_ids = [
+                measurement.id_ if isinstance(measurement, TestMeasurement) else measurement
+                for measurement in measurements
+            ]
+            filter_parts.append(in_("measurement_id", measurement_ids))
 
-        if test_step_id:
-            filter_parts.append(equals("test_step_id", test_step_id))
+        if test_steps:
+            test_step_ids = [
+                test_step.id_ if isinstance(test_step, TestStep) else test_step
+                for test_step in test_steps
+            ]
+            filter_parts.append(in_("test_step_id", test_step_ids))
 
-        if test_report_id:
-            filter_parts.append(equals("test_report_id", test_report_id))
+        if test_reports:
+            test_report_ids = [
+                test_report.id_ if isinstance(test_report, TestReport) else test_report
+                for test_report in test_reports
+            ]
+            filter_parts.append(in_("test_report_id", test_report_ids))
 
         if measurement_type is not None:
             filter_parts.append(equals("measurement_type", measurement_type))
@@ -483,7 +504,7 @@ class TestResultsAPIAsync(ResourceBase):
         if passed is not None:
             filter_parts.append(equals("passed", passed))
 
-        query_filter = " && ".join(filter_parts) if filter_parts else None
+        query_filter = and_(*filter_parts)
 
         test_measurements = await self._low_level_client.list_all_test_measurements(
             query_filter=query_filter,
@@ -516,7 +537,7 @@ class TestResultsAPIAsync(ResourceBase):
         updated_test_measurement = self._apply_client_to_instance(updated_test_measurement)
         # If measurement is being updated to failed, see if step is passed and update it to failed if so
         if update_step and update.passed is not None and not update.passed:
-            step = await self.get_step(test_step_id=updated_test_measurement.test_step_id)
+            step = await self.get_step(test_step=updated_test_measurement.test_step_id)
             if step.status == TestStatus.PASSED:
                 await self.update_step(test_step=step, update={"status": TestStatus.FAILED})
         return updated_test_measurement
