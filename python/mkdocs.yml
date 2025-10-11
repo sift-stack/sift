@@ -53,10 +53,10 @@ extra:
 
 nav:
   - Home: index.md
-  - Examples:
-      - examples/sift_client.ipynb
   - Sift Py API
   - Sift Client API (New)
+  - Examples:
+      - examples/basic.ipynb
 #  - Guides:
 #      - Logging
 #      - Error Handling
@@ -68,6 +68,7 @@ plugins:
       deploy_prefix: 'python' # In case we want to use doc sites for other client libs too
   - mkdocs-jupyter:
       include_source: True
+      execute: False
   - mkdocstrings:
       default_handler: python
       handlers:
