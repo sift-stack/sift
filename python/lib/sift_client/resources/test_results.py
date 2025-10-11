@@ -209,7 +209,11 @@ class TestResultsAPIAsync(ResourceBase):
         """
         test_reports = await self.list_reports(**kwargs)
         if len(test_reports) > 1:
-            error_msg = f"Multiple test reports found for query ({', '.join(report.id_ or 'no id' for report in test_reports)})" if len(test_reports) < 10 else f"Multiple ({len(test_reports)} test reports found for query)"
+            error_msg = (
+                f"Multiple test reports found for query ({', '.join(report.id_ or 'no id' for report in test_reports)})"
+                if len(test_reports) < 10
+                else f"Multiple ({len(test_reports)} test reports found for query)"
+            )
             raise ValueError(error_msg)
         elif len(test_reports) == 1:
             return test_reports[0]
