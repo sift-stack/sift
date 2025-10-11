@@ -1,9 +1,10 @@
 use std::{fs::read_to_string, io::ErrorKind};
 
-use anyhow::{Context as AnyhowContext, Result, format_err};
+use anyhow::{Context as AnyhowContext, Result, anyhow};
 use crossterm::style::Stylize;
 use toml::{Table, Value};
 
+pub mod completions;
 pub mod config;
 pub mod import;
 
@@ -25,14 +26,12 @@ impl Context {
             Ok(txt) => txt,
             Err(err) => match err.kind() {
                 ErrorKind::NotFound => {
-                    return Err(format_err!("expected to find '{}'.", p.yellow())).context(
-                        format!(
-                            "Create a config using '{}'.",
-                            "sift_cli config create".green()
-                        ),
-                    );
+                    return Err(anyhow!("expected to find '{}'.", p.yellow())).context(format!(
+                        "Create a config using '{}'.",
+                        "sift_cli config create".green()
+                    ));
                 }
-                _ => return Err(format_err!("failed to read config file")),
+                _ => return Err(anyhow!("failed to read config file")),
             },
         };
 
@@ -43,7 +42,7 @@ impl Context {
         let target_profile = match profile {
             Some(prof) => {
                 let Some(Value::Table(target)) = config_toml.get(&prof) else {
-                    return Err(format_err!(
+                    return Err(anyhow!(
                         "Profile '{}' not found or not a TOML table.",
                         prof.yellow()
                     ));
@@ -54,39 +53,39 @@ impl Context {
         };
 
         let Some(Value::String(grpc_uri)) = target_profile.get("grpc_uri").cloned() else {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "Expected value of '{}' to be a string",
                 "grpc_uri".yellow()
             ));
         };
         if grpc_uri.is_empty() {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "Expected value of '{}' to be present",
                 "grpc_uri".yellow()
             ));
         }
 
         let Some(Value::String(rest_uri)) = target_profile.get("rest_uri").cloned() else {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "Expected value of '{}' to be a string",
                 "rest_uri".yellow()
             ));
         };
         if rest_uri.is_empty() {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "Expected value of '{}' to be present",
                 "rest_uri".yellow()
             ));
         }
 
         let Some(Value::String(api_key)) = target_profile.get("apikey").cloned() else {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "Expected value of '{}' to be a string",
                 "apikey".yellow()
             ));
         };
         if api_key.is_empty() {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "Expected value of '{}' to be present",
                 "apikey".yellow()
             ));

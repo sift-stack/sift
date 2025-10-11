@@ -25,7 +25,7 @@ pub async fn wait_for_job_completion(
     import_output_location: String,
 ) -> Result<ExitCode> {
     let spinner = Spinner::new();
-    spinner.set_message("File has been successfully uploaded and is waiting to be processed.");
+    spinner.set_message(format!("{} file for processing", "Uploaded".green()));
 
     let user_id = get_user_id(grpc_channel.clone()).await?;
     let mut job_service = JobServiceWrapper::new(grpc_channel.clone());
@@ -38,7 +38,7 @@ pub async fn wait_for_job_completion(
 
         Output::new()
             .line("The file was successfully uploaded but the job was unexpectedly not found")
-            .tip("Please notify Sift about this bug.")
+            .tip("Please notify Sift about this bug")
             .eprint();
         return Ok(ExitCode::FAILURE);
     };
@@ -50,7 +50,7 @@ pub async fn wait_for_job_completion(
             spinner.finish_and_clear();
             Output::new()
                 .line("The file was successfully uploaded but the job was unexpectedly not found")
-                .tip("Please notify Sift about this bug.")
+                .tip("Please notify Sift about this bug")
                 .eprint();
             return Ok(ExitCode::FAILURE);
         };
@@ -59,30 +59,35 @@ pub async fn wait_for_job_completion(
         match job.job_status() {
             JobStatus::Created => (),
             JobStatus::Running => {
-                spinner.set_message("File is currently being processed");
+                spinner.set_message(format!("{} imported file", "Processing".green()));
             }
             JobStatus::CancelRequested => {
-                spinner.set_message("A cancellation was requested but the job may still finish");
+                spinner.set_message(format!(
+                    "{} was requested but the job may still finish",
+                    "Cancellation".green()
+                ));
             }
             JobStatus::Cancelled => {
                 spinner.finish_and_clear();
-                Output::new().line("Job was cancelled").print();
+                Output::new()
+                    .line(format!("{} data import job", "Cancelled".green()))
+                    .print();
                 break;
             }
             JobStatus::Failed => {
                 spinner.finish_and_clear();
                 Output::new()
-                    .line("Processing failed.")
-                    .tip("Please check the Sift jobs manage page for further details.")
+                    .line("Processing failed")
+                    .tip("Please check the Sift jobs manage page for further details")
                     .eprint();
                 return Ok(ExitCode::FAILURE);
             }
             JobStatus::Finished => {
                 spinner.finish_and_clear();
                 Output::new()
-                    .line("Import completed")
+                    .line(format!("{} data import job", "Completed".green()))
                     .tip(format!(
-                        "The data should be available on the {import_output_location}."
+                        "The data should be available on the {import_output_location}"
                     ))
                     .print();
                 break;

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs::File, io::Seek, process::ExitCode};
 
-use anyhow::{Context as AnyhowContext, Result, format_err};
+use anyhow::{Context as AnyhowContext, Result, anyhow};
 use chrono::DateTime;
 use crossterm::style::Stylize;
 use pbjson_types::Timestamp;
@@ -51,7 +51,7 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
             .into_inner();
 
         resp.parquet_config
-            .ok_or(format_err!("unexpected empty Parquet config"))?
+            .ok_or(anyhow!("unexpected empty Parquet config"))?
     };
 
     update_config_with_overrides(&mut config, &args)?;
@@ -104,7 +104,7 @@ pub async fn run(ctx: Context, args: FlatDatasetArgs) -> Result<ExitCode> {
             .text()
             .await
             .unwrap_or_else(|_| "<failed to read body>".into());
-        return Err(format_err!(
+        return Err(anyhow!(
             "failed to upload Parquet with http status {status}: {text}"
         ));
     }
@@ -132,10 +132,10 @@ fn update_config_with_overrides(
     args: &FlatDatasetArgs,
 ) -> Result<()> {
     let Some(Config::FlatDataset(flat_dataset_conf)) = parquet_config.config.as_mut() else {
-        return Err(format_err!("unexpected missing Parquet file config"));
+        return Err(anyhow!("unexpected missing Parquet file config"));
     };
     if flat_dataset_conf.data_columns.is_empty() {
-        return Err(format_err!(
+        return Err(anyhow!(
             "failed to find any channel data columns in the provided Parquet file"
         ));
     }
@@ -167,7 +167,7 @@ fn update_config_with_overrides(
     .iter()
     .all(|n| *n == num_overrides)
     {
-        return Err(format_err!(
+        return Err(anyhow!(
             "occurrences of --data-type, --units, and --descriptions must equal --channel-paths"
         ))
         .context("keep in mind that --units and --descriptions can be empty strings");
@@ -206,7 +206,7 @@ fn update_config_with_overrides(
 
     for (i, channel) in args.channel_path.iter().enumerate() {
         let Some(idx) = path_index_lookup.get(channel) else {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "override for {channel} was specified but it wasn't found in the Parquet file"
             ));
         };
@@ -235,7 +235,7 @@ fn update_config_with_overrides(
             }
             DataType::BitField => {
                 let Some(bf_conf) = bit_field_configs_iter.next() else {
-                    return Err(format_err!(
+                    return Err(anyhow!(
                         "'{channel}' was declared as type bit-field but --bit-field-config was not specified"
                     ));
                 };
@@ -244,7 +244,7 @@ fn update_config_with_overrides(
             }
             DataType::Enum => {
                 let Some(enum_conf) = enum_configs_iter.next() else {
-                    return Err(format_err!(
+                    return Err(anyhow!(
                         "'{channel}' was declared as type enum but --enum-config was not specified"
                     ));
                 };

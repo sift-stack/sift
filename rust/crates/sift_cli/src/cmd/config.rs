@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, format_err};
+use anyhow::{Context, Result, anyhow};
 use crossterm::style::Stylize;
 use std::{
     fs::{File, OpenOptions, metadata, read_to_string},
@@ -117,7 +117,7 @@ pub fn config_where() -> Result<ExitCode> {
 pub(super) fn get_config_file_path() -> Result<PathBuf> {
     dirs::config_dir()
         .map(|p| p.join(CONFIG_FILE_NAME))
-        .ok_or(format_err!("user config directory not found"))
+        .ok_or(anyhow!("user config directory not found"))
 }
 
 fn create_config_file() -> Result<(File, PathBuf)> {

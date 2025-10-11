@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand, crate_description, crate_version};
+use clap_complete::Shell;
 use parquet::ComplexTypesMode;
 use std::path::PathBuf;
 
@@ -37,6 +38,27 @@ pub enum Cmd {
     /// Import time series files into Sift
     #[command(subcommand)]
     Import(ImportCmd),
+
+    /// Manage shell autocompletions
+    #[command(subcommand)]
+    Completions(CompletionsCmd),
+}
+
+#[derive(Subcommand)]
+pub enum CompletionsCmd {
+    /// Print completions for your shell
+    Print(CompletionsPrintArgs),
+
+    /// Attempts to automatically update this CLI's completions file for the current shell
+    Update,
+}
+
+#[derive(clap::Args)]
+pub struct CompletionsPrintArgs {
+    /// The shell to print completions for. If empty the program will try to infer the user shell
+    /// by reading the "$SHELL" environment variable.
+    #[arg(short, long)]
+    pub shell: Option<Shell>,
 }
 
 #[derive(Subcommand)]

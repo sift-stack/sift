@@ -39,14 +39,21 @@ where
 }
 
 fn run(clargs: cli::Args) -> Result<ExitCode> {
-    if let Cmd::Config(subcmd) = clargs.cmd {
-        return match subcmd {
-            ConfigCmd::Show => cmd::config::show(),
-            ConfigCmd::Create => cmd::config::create(),
-            ConfigCmd::Where => cmd::config::config_where(),
-            ConfigCmd::Update(args) => cmd::config::update(clargs.profile, args),
-        };
+    // These commands don't require `Context`
+    match clargs.cmd {
+        Cmd::Config(cmd) => match cmd {
+            ConfigCmd::Show => return cmd::config::show(),
+            ConfigCmd::Create => return cmd::config::create(),
+            ConfigCmd::Where => return cmd::config::config_where(),
+            ConfigCmd::Update(args) => return cmd::config::update(clargs.profile, args),
+        },
+        Cmd::Completions(cmd) => match cmd {
+            cli::CompletionsCmd::Print(args) => return cmd::completions::print(args),
+            cli::CompletionsCmd::Update => return cmd::completions::update(),
+        },
+        _ => (),
     }
+
     let profile = clargs
         .profile
         .as_ref()
@@ -57,8 +64,9 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
         .line(format!("{} profile '{profile}'", "Using".green()))
         .print();
 
+    // These commands require `Context`
     match clargs.cmd {
-        Cmd::Import(args) => match args {
+        Cmd::Import(cmd) => match cmd {
             cli::ImportCmd::Csv(args) => run_future(cmd::import::csv::run(ctx, args)),
             cli::ImportCmd::Parquet(cmd) => match cmd {
                 cli::ImportParquetCmd::FlatDataset(args) => {

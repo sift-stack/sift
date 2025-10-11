@@ -3,7 +3,7 @@ use std::{
     io::{self, BufReader, Read},
 };
 
-use anyhow::{Context, Result, format_err};
+use anyhow::{Context, Result, anyhow};
 use flate2::{Compression, write::GzEncoder};
 use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelEnumType};
 
@@ -33,7 +33,7 @@ pub fn validate_time_format(
         | TimeFormat::RelativeMinutes
         | TimeFormat::RelativeHours => {
             if relative_start_time.is_none() {
-                return Err(format_err!(
+                return Err(anyhow!(
                     "--relative-start-time is required if time format is relative"
                 ));
             }
@@ -47,14 +47,14 @@ pub fn try_parse_enum_config(val: &str) -> Result<Vec<ChannelEnumType>> {
     let values = val.split("|").collect::<Vec<&str>>();
 
     if values.is_empty() {
-        return Err(format_err!("blank --enum-config argument not allowed"));
+        return Err(anyhow!("blank --enum-config argument not allowed"));
     }
 
     let mut result = Vec::new();
     for key_value in values {
         let parts = key_value.split(",").collect::<Vec<&str>>();
         if parts.len() != 2 {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "expected --enum-config argument to contain <key,value> pairs delimited by \"|\""
             ))
             .context(format!("bad argument: {val}"));
@@ -76,14 +76,14 @@ pub fn try_parse_bit_field_config(val: &str) -> Result<Vec<ChannelBitFieldElemen
     let values = val.split("|").collect::<Vec<&str>>();
 
     if values.is_empty() {
-        return Err(format_err!("blank --bit-field-config argument not allowed"));
+        return Err(anyhow!("blank --bit-field-config argument not allowed"));
     }
 
     let mut result = Vec::new();
     for element in values {
         let parts = element.split(",").collect::<Vec<&str>>();
         if parts.len() != 3 {
-            return Err(format_err!("expected --bit-field-config argument to contain <name,index,length> triplets delimited by \"|\""))
+            return Err(anyhow!("expected --bit-field-config argument to contain <name,index,length> triplets delimited by \"|\""))
                 .context(format!("bad argument: {val}"));
         }
         let name = parts[0].to_string();

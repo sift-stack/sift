@@ -5,7 +5,7 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::{Context as AnyhowContext, Result, format_err};
+use anyhow::{Context as AnyhowContext, Result, anyhow};
 use chrono::DateTime;
 use crossterm::style::Stylize;
 use pbjson_types::Timestamp;
@@ -93,7 +93,7 @@ pub async fn run(ctx: Context, args: ImportCsvArgs) -> Result<ExitCode> {
             .text()
             .await
             .unwrap_or_else(|_| "<failed to read body>".into());
-        return Err(format_err!(
+        return Err(anyhow!(
             "failed to upload CSV with http status {status}: {text}"
         ));
     }
@@ -130,7 +130,7 @@ fn create_data_import_request<R: io::Read>(
     .iter()
     .all(|n| *n == num_overrides)
     {
-        return Err(format_err!(
+        return Err(anyhow!(
             "occurrences of --data-type, --units, and --descriptions must equal --channel-column"
         ))
         .context("keep in mind that --units and --descriptions can be empty strings");
@@ -149,19 +149,15 @@ fn create_data_import_request<R: io::Read>(
     };
 
     if args.header_row == 0 {
-        return Err(format_err!(
-            "--header-row cannot be 0 due to 1-based indexing"
-        ));
+        return Err(anyhow!("--header-row cannot be 0 due to 1-based indexing"));
     }
     if args.first_data_row == 0 {
-        return Err(format_err!(
+        return Err(anyhow!(
             "--first-data-row cannot be 0 due to 1-based indexing"
         ));
     }
     if args.header_row >= args.first_data_row {
-        return Err(format_err!(
-            "--header-row must come before --first-data-row"
-        ));
+        return Err(anyhow!("--header-row must come before --first-data-row"));
     }
 
     let data_types = args
@@ -202,7 +198,7 @@ fn create_data_import_request<R: io::Read>(
         }
 
         let Some((idx, header_row)) = records_iter.next() else {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "CSV prematurely reached EOF while looking for header row"
             ))
             .context("double check --header-row");
@@ -210,7 +206,7 @@ fn create_data_import_request<R: io::Read>(
         current_row += 1;
         let row_num = idx + 1;
 
-        let parsed_record = header_row.context(format_err!("failed to parse row {row_num}"))?;
+        let parsed_record = header_row.context(anyhow!("failed to parse row {row_num}"))?;
 
         for col in &parsed_record {
             values.push(col.to_string());
@@ -218,10 +214,10 @@ fn create_data_import_request<R: io::Read>(
         values
     };
     if headers.is_empty() {
-        return Err(format_err!("no headers were found given the --header-row"));
+        return Err(anyhow!("no headers were found given the --header-row"));
     }
     if headers.len() < 2 {
-        return Err(format_err!(
+        return Err(anyhow!(
             "expected at least two columns: a timestamp column and a channel column"
         ));
     }
@@ -234,7 +230,7 @@ fn create_data_import_request<R: io::Read>(
 
         while current_row < args.first_data_row {
             if records_iter.next().is_none() {
-                return Err(format_err!(
+                return Err(anyhow!(
                     "CSV reached EOF with the provided --first-data-row"
                 ));
             }
@@ -249,7 +245,7 @@ fn create_data_import_request<R: io::Read>(
             }
             let row_num = i + 1;
 
-            let parsed_record = record.context(format_err!("failed to parse row {row_num}"))?;
+            let parsed_record = record.context(anyhow!("failed to parse row {row_num}"))?;
 
             for (j, col_val) in parsed_record.iter().enumerate() {
                 let col_num = j + 1;
@@ -271,7 +267,7 @@ fn create_data_import_request<R: io::Read>(
                     .find(|(_, col)| **col == col_num)
                 {
                     if !channel_columns_set.insert(col) {
-                        return Err(format_err!(
+                        return Err(anyhow!(
                             "cannot have redundant values '{col}' for --channel-column"
                         ));
                     }
@@ -291,9 +287,7 @@ fn create_data_import_request<R: io::Read>(
                             } else if col_val.parse::<String>().is_ok() {
                                 ChannelDataType::String.into()
                             } else {
-                                return Err(format_err!(
-                                    "failed to infer type of column {col_num}"
-                                ));
+                                return Err(anyhow!("failed to infer type of column {col_num}"));
                             }
                         } else {
                             (*raw_data_type).into()
@@ -308,14 +302,14 @@ fn create_data_import_request<R: io::Read>(
 
                     if data_type == ChannelDataType::Enum.into() {
                         let Some(configs) = enum_configs_iter.next() else {
-                            return Err(format_err!(
+                            return Err(anyhow!(
                                 "'{name}' was declared as type enum but --enum-config was not specified"
                             ));
                         };
                         enum_configs = configs;
                     } else if data_type == ChannelDataType::BitField.into() {
                         let Some(configs) = bit_field_configs_iter.next() else {
-                            return Err(format_err!(
+                            return Err(anyhow!(
                                 "'{name}' was declared as type bit-field but --bit-field-config was not specified"
                             ));
                         };
@@ -362,7 +356,7 @@ fn create_data_import_request<R: io::Read>(
 
     for col_num in &args.channel_column {
         if !channel_columns_set.contains(col_num) {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "an override was specified for column {col_num} but it doesn't refer to a channel"
             ));
         }

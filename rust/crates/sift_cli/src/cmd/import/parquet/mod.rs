@@ -1,4 +1,4 @@
-use anyhow::{Result, format_err};
+use anyhow::{Result, anyhow};
 use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
@@ -39,12 +39,12 @@ impl TryFrom<&mut File> for FooterMetadata {
         let mut magic = [0u8; 4];
         file.read_exact(&mut magic)?;
         if &magic != b"PAR1" {
-            return Err(format_err!("invalid Parquet magic bytes"));
+            return Err(anyhow!("invalid Parquet magic bytes"));
         }
 
         let file_len = file.metadata()?.len();
         if u64::from(footer_len) + 8 > file_len {
-            return Err(format_err!(
+            return Err(anyhow!(
                 "footer length ({footer_len}) exceeds file size ({file_len})",
             ));
         }
