@@ -11,6 +11,7 @@ if TYPE_CHECKING:
         PingAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
+        TestResultsAPIAsync,
     )
 
 
@@ -37,3 +38,6 @@ class AsyncAPIs(NamedTuple):
 
     rules: RulesAPIAsync
     """Instance of the Rules API for making asynchronous requests."""
+
+    test_results: TestResultsAPIAsync
+    """Instance of the Test Results API for making asynchronous requests."""
