@@ -22,7 +22,7 @@ from sift_client.sift_types.rule import (
     RuleVersion,
 )
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
-from sift_client.sift_types.tag import Tag, TagUpdate
+from sift_client.sift_types.tag import Tag, TagCreate, TagUpdate
 
 __all__ = [
     "Asset",
@@ -52,5 +52,6 @@ __all__ = [
     "RunCreate",
     "RunUpdate",
     "Tag",
+    "TagCreate",
     "TagUpdate",
 ]

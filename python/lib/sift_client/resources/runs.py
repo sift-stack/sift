@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, cast
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
+from sift_client.sift_types.tag import Tag
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
@@ -72,10 +73,13 @@ class RunsAPIAsync(ResourceBase):
         # created/modified users
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
+        # tags
+        tags: list[str | Tag] | None = None,
         # metadata
         metadata: list[Any] | None = None,
         # run specific
         assets: list[Asset] | list[str] | None = None,
+        asset_tags: list[str | Tag] | None = None,
         duration_less_than: timedelta | None = None,
         duration_greater_than: timedelta | None = None,
         start_time_after: datetime | None = None,
@@ -104,8 +108,10 @@ class RunsAPIAsync(ResourceBase):
             modified_before: Filter runs modified before this datetime.
             created_by: Filter runs created by this User or user ID.
             modified_by: Filter runs last modified by this User or user ID.
+            tags: Filter runs with any of these Tags IDs.
             metadata: Filter runs by metadata criteria.
             assets: Filter runs associated with any of these Assets or asset IDs.
+            asset_tags: Filter runs associated with any Assets that have these Tag IDs.
             duration_less_than: Filter runs with duration less than this time.
             duration_greater_than: Filter runs with duration greater than this time.
             start_time_after: Filter runs that started after this datetime.
@@ -134,7 +140,7 @@ class RunsAPIAsync(ResourceBase):
                 created_by=created_by,
                 modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(metadata=metadata),
+            *self._build_tags_metadata_cel_filters(tag_ids=tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
@@ -152,6 +158,9 @@ class RunsAPIAsync(ResourceBase):
             else:
                 asset = cast("list[Asset]", assets)  # linting
                 filter_parts.append(cel.in_("asset_id", [a._id_or_error for a in asset]))
+        if asset_tags:
+            asset_tag_ids = [tag.id_ if isinstance(tag, Tag) else tag for tag in asset_tags]
+            filter_parts.append(cel.in_("asset_tag_id", asset_tag_ids))
         if duration_less_than:
             filter_parts.append(cel.less_than("duration_string", duration_less_than))
         if duration_greater_than:

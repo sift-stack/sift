@@ -3,33 +3,47 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from pydantic import ConfigDict
+from sift.tags.v2.tags_pb2 import CreateTagRequest as CreateTagRequestProto
 from sift.tags.v2.tags_pb2 import Tag as TagProto
 
-from sift_client.sift_types._base import BaseType, ModelUpdate
+from sift_client.sift_types._base import (
+    BaseType,
+    ModelCreate,
+    ModelCreateUpdateBase,
+    ModelUpdate,
+)
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
-class TagUpdate(ModelUpdate[TagProto]):
+class TagCreateUpdateBase(ModelCreateUpdateBase):
+    """Base model for Tag create and update."""
+
+    name: str
+
+
+class TagCreate(TagCreateUpdateBase, ModelCreate[TagProto]):
+    """Create model for Tag."""
+
+    def _get_proto_class(self) -> type[CreateTagRequestProto]:
+        return CreateTagRequestProto
+
+
+class TagUpdate(TagCreateUpdateBase, ModelUpdate[TagProto]):
     """Update model for Tag."""
-
-    name: str | None = None
-
-    def _get_proto_class(self) -> type[TagProto]:
-        return TagProto
 
     def _add_resource_id_to_proto(self, proto_msg: TagProto):
         if self._resource_id is None:
             raise ValueError("Resource ID must be set before adding to proto")
         proto_msg.tag_id = self._resource_id
 
+    def _get_proto_class(self) -> type[TagProto]:
+        return TagProto
+
 
 class Tag(BaseType[TagProto, "Tag"]):
     """Model of the Sift Tag."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str
     created_date: datetime

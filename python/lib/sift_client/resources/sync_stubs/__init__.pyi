@@ -11,23 +11,16 @@ import pyarrow as pa
 
 from sift_client.client import SiftClient
 from sift_client.sift_types.asset import Asset, AssetUpdate
-<<<<<<< HEAD
-from sift_client.sift_types.calculated_channel import CalculatedChannel, CalculatedChannelUpdate
-from sift_client.sift_types.channel import Channel, ChannelReference
-from sift_client.sift_types.report import Report
-from sift_client.sift_types.rule import Rule, RuleAction, RuleUpdate
-from sift_client.sift_types.run import Run, RunUpdate
-from sift_client.sift_types.tag import Tag, TagUpdate
-=======
 from sift_client.sift_types.calculated_channel import (
     CalculatedChannel,
     CalculatedChannelCreate,
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
->>>>>>> origin/main
+from sift_client.sift_types.tag import Tag, TagUpdate
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
@@ -99,8 +92,7 @@ class AssetsAPI:
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
-        tags: list[Any] | list[str] | None = None,
-        _tag_ids: list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         metadata: list[Any] | None = None,
         description_contains: str | None = None,
         include_archived: bool = False,
@@ -244,7 +236,7 @@ class CalculatedChannelsAPI:
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
-        tags: list[Any] | list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         metadata: list[Any] | None = None,
         asset: Asset | str | None = None,
         run: Run | str | None = None,
@@ -299,7 +291,7 @@ class CalculatedChannelsAPI:
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
-        tags: list[Any] | list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         metadata: list[Any] | None = None,
         description_contains: str | None = None,
         include_archived: bool = False,
@@ -524,6 +516,10 @@ class ReportsAPI:
         ...
 
     def _run(self, coro): ...
+    def archive(self, *, report: str | Report) -> Report:
+        """Archive a report."""
+        ...
+
     def cancel(self, *, report: str | Report) -> None:
         """Cancel a report.
 
@@ -536,32 +532,34 @@ class ReportsAPI:
         self,
         *,
         run_id: str | None = None,
-        organization_id: str,
+        organization_id: str | None = None,
         name: str | None = None,
-        asset_ids: list[str] | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-    ) -> Report:
-        """Create a new report from applicable rules based on assets or run.
-        Using assets requires a start and end time.
-        Using run_id allows but does not require a start and end time.
+    ) -> Report | None:
+        """Create a new report from applicable rules based on a run.
+        If you want to evaluate against assets, use the rules client instead since no report is created in that case.
 
         Args:
             run_id: The run ID to associate with the report.
             organization_id: The organization ID.
             name: Optional name for the report.
-            asset_ids: Asset IDs to add to generated annotations.
-            start_time: Start time of the report.
-            end_time: End time of the report.
+            start_time: Optional start time to evaluate rules against.
+            end_time: Optional end time to evaluate rules against.
 
         Returns:
-            The created Report.
+            The created Report or None if no report was created.
         """
         ...
 
     def create_from_rules(
-        self, name: str, run_id: str, organization_id: str, rule_ids: list[str] | None = None
-    ) -> Report:
+        self,
+        *,
+        name: str,
+        run_id: str | None = None,
+        organization_id: str | None = None,
+        rule_ids: list[str] | None = None,
+    ) -> Report | None:
         """Create a new report from rules.
 
         Args:
@@ -571,13 +569,18 @@ class ReportsAPI:
             rule_ids: List of rule IDs to include in the report.
 
         Returns:
-            The created Report.
+            The created Report or None if no report was created.
         """
         ...
 
     def create_from_template(
-        self, report_template_id: str, run_id: str, organization_id: str, name: str | None = None
-    ) -> Report:
+        self,
+        *,
+        report_template_id: str,
+        run_id: str,
+        organization_id: str | None = None,
+        name: str | None = None,
+    ) -> Report | None:
         """Create a new report from a report template.
 
         Args:
@@ -587,7 +590,7 @@ class ReportsAPI:
             name: Optional name for the report.
 
         Returns:
-            The created Report.
+            The created Report or None if no report was created.
         """
         ...
 
@@ -624,12 +627,13 @@ class ReportsAPI:
         description_contains: str | None = None,
         run_id: str | None = None,
         organization_id: str | None = None,
-        created_by_user_id: str | None = None,
-        modified_by_user_id: str | None = None,
         report_template_id: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
         tag_name: str | None = None,
+        created_by_user_id: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        include_archived: bool = False,
     ) -> list[Report]:
         """List reports with optional filtering.
 
@@ -641,12 +645,13 @@ class ReportsAPI:
             description_contains: Partial description of the report.
             run_id: Run ID to filter by.
             organization_id: Organization ID to filter by.
-            created_by_user_id: User ID who created the report.
-            modified_by_user_id: User ID who modified the report.
             report_template_id: Report template ID to filter by.
+            metadata: Metadata to filter by.
             tag_name: Tag name to filter by.
+            created_by_user_id: The user ID of the creator of the reports.
             order_by: How to order the retrieved reports.
             limit: How many reports to retrieve. If None, retrieves all matches.
+            include_archived: Whether to include archived reports.
 
         Returns:
             A list of Reports that matches the filter.
@@ -661,6 +666,15 @@ class ReportsAPI:
 
         Returns:
             A tuple of (job_id, new_report_id).
+        """
+        ...
+
+    def update(self, report: str | Report, update: ReportUpdate | dict) -> Report:
+        """Update a report.
+
+        Args:
+            report: The Report or report ID to update.
+            update: The updates to apply.
         """
         ...
 
@@ -707,47 +721,6 @@ class RulesAPI:
         """
         ...
 
-    def evaluate(
-        self,
-        *,
-        run_id: str | None = None,
-        assets: list[str] | None = None,
-        all_applicable_rules: bool | None = None,
-        run_start_time: datetime | None = None,
-        run_end_time: datetime | None = None,
-        rule_ids: list[str] | None = None,
-        rule_version_ids: list[str] | None = None,
-        report_template_id: str | None = None,
-        tags: list[str] | None = None,
-    ) -> Report | None:
-        """Evaluate a rule.
-
-        Pick one of the following grouping of rules to evaluate against:
-        - run_id
-        - assets
-        - run_start_time and run_end_time
-        And one of the following filters to select which rules to evaluate:
-        - rule_ids
-        - rule_version_ids
-        - report_template_id
-        - all_applicable_rules
-
-        Args:
-            run_id: The run ID to evaluate.
-            assets: The assets to evaluate.
-            all_applicable_rules: Whether to evaluate all rules applicable to the selected run, assets, or time range.
-            run_start_time: The start time of the run.
-            run_end_time: The end time of the run.
-            rule_ids: The rule IDs to evaluate.
-            rule_version_ids: The rule version IDs to evaluate.
-            report_template_id: The report template ID to evaluate.
-            tags: Optional tags to add to generated annotations.
-
-        Returns:
-            The result of the rule evaluation.
-        """
-        ...
-
     def find(self, **kwargs) -> Rule | None:
         """Find a single rule matching the given query. Takes the same arguments as `list`. If more than one rule is found,
         raises an error.
@@ -778,11 +751,6 @@ class RulesAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-<<<<<<< HEAD
-        asset_ids: list[str] | None = None,
-        asset_tags_ids: list[str] | None = None,
-        client_key: str | None = None,
-=======
         rule_ids: list[str] | None = None,
         client_keys: list[str] | None = None,
         created_after: datetime | None = None,
@@ -793,11 +761,10 @@ class RulesAPI:
         modified_by: Any | str | None = None,
         metadata: list[Any] | None = None,
         asset_ids: list[str] | None = None,
-        asset_tag_ids: list[str] | None = None,
+        asset_tags: list[str | Tag] | None = None,
         description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
->>>>>>> origin/main
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Rule]:
@@ -807,14 +774,6 @@ class RulesAPI:
             name: Exact name of the rule.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
-<<<<<<< HEAD
-            asset_ids: List of asset IDs to filter rules by.
-            asset_tags_ids: List of asset tags IDs to filter rules by.
-            client_key: The client key of the rules.
-            order_by: How to order the retrieved rules.
-            limit: How many rules to retrieve. If None, retrieves all matches.
-            include_deleted: Include deleted rules.
-=======
             rule_ids: IDs of rules to filter to.
             client_keys: Client keys of rules to filter to.
             created_after: Rules created after this datetime.
@@ -825,13 +784,12 @@ class RulesAPI:
             modified_by: Filter rules last modified by this User or user ID.
             metadata: Filter rules by metadata criteria.
             asset_ids: Filter rules associated with any of these Asset IDs.
-            asset_tag_ids: Filter rules associated with any of these Asset Tag IDs.
+            asset_tags: Filter rules associated with any Assets that have these Tag IDs.
             description_contains: Partial description of the rule.
             include_archived: If True, include archived rules in results.
             filter_query: Explicit CEL query to filter rules.
             order_by: Field and direction to order results by.
             limit: Maximum number of rules to return. If None, returns all matches.
->>>>>>> origin/main
 
         Returns:
             A list of Rules that matches the filter.
@@ -946,26 +904,6 @@ class RunsAPI:
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         run_ids: list[str] | None = None,
-<<<<<<< HEAD
-        description: str | None = None,
-        description_contains: str | None = None,
-        duration_seconds: int | None = None,
-        client_key: str | None = None,
-        asset_id: str | None = None,
-        asset_name: str | None = None,
-        created_by_user_id: str | None = None,
-        is_stopped: bool | None = None,
-        created_date_start: datetime | None = None,
-        created_date_end: datetime | None = None,
-        modified_date_start: datetime | None = None,
-        modified_date_end: datetime | None = None,
-        start_time_start: datetime | None = None,
-        start_time_end: datetime | None = None,
-        stop_time_start: datetime | None = None,
-        stop_time_end: datetime | None = None,
-        include_archived: bool = False,
-        organization_id: str | None = None,
-=======
         client_keys: list[str] | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
@@ -973,8 +911,10 @@ class RunsAPI:
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
+        tags: list[str | Tag] | None = None,
         metadata: list[Any] | None = None,
         assets: list[Asset] | list[str] | None = None,
+        asset_tags: list[str | Tag] | None = None,
         duration_less_than: timedelta | None = None,
         duration_greater_than: timedelta | None = None,
         start_time_after: datetime | None = None,
@@ -985,7 +925,6 @@ class RunsAPI:
         description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
->>>>>>> origin/main
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Run]:
@@ -994,30 +933,6 @@ class RunsAPI:
         Args:
             name: Exact name of the run.
             name_contains: Partial name of the run.
-<<<<<<< HEAD
-            name_regex: Regular expression string to filter runs by name.
-            run_ids: List of run IDs to filter by.
-            description: Exact description of the run.
-            description_contains: Partial description of the run.
-            duration_seconds: Duration of the run in seconds.
-            client_key: Client key to filter by.
-            asset_id: Asset ID to filter by.
-            asset_name: Asset name to filter by.
-            created_by_user_id: User ID who created the run.
-            is_stopped: Whether the run is stopped.
-            created_date_start: Start date for created_date filter.
-            created_date_end: End date for created_date filter.
-            modified_date_start: Start date for modified_date filter.
-            modified_date_end: End date for modified_date filter.
-            start_time_start: Start date for start_time filter.
-            start_time_end: End date for start_time filter.
-            stop_time_start: Start date for stop_time filter.
-            stop_time_end: End date for stop_time filter.
-            include_archived: Whether to include archived runs.
-            organization_id: Organization ID to filter by.
-            order_by: How to order the retrieved runs.
-            limit: How many runs to retrieve. If None, retrieves all matches.
-=======
             name_regex: Regular expression to filter runs by name.
             run_ids: Filter to runs with any of these IDs.
             client_keys: Filter to runs with any of these client keys.
@@ -1027,8 +942,10 @@ class RunsAPI:
             modified_before: Filter runs modified before this datetime.
             created_by: Filter runs created by this User or user ID.
             modified_by: Filter runs last modified by this User or user ID.
+            tags: Filter runs with any of these Tags IDs.
             metadata: Filter runs by metadata criteria.
             assets: Filter runs associated with any of these Assets or asset IDs.
+            asset_tags: Filter runs associated with any Assets that have these Tag IDs.
             duration_less_than: Filter runs with duration less than this time.
             duration_greater_than: Filter runs with duration greater than this time.
             start_time_after: Filter runs that started after this datetime.
@@ -1041,7 +958,6 @@ class RunsAPI:
             filter_query: Explicit CEL query to filter runs.
             order_by: Field and direction to order results by.
             limit: Maximum number of runs to return. If None, returns all matches.
->>>>>>> origin/main
 
         Returns:
             A list of Run objects that match the filter criteria.
@@ -1111,6 +1027,17 @@ class TagsAPI:
 
         Returns:
             The Tag found or None.
+        """
+        ...
+
+    def find_or_create(self, names: list[str]) -> list[Tag]:
+        """Find tags by name or create them if they don't exist.
+
+        Args:
+            names: List of tag names to find or create.
+
+        Returns:
+            List of Tags that were found or created.
         """
         ...
 

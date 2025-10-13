@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.tag import Tag
 
 
 class CalculatedChannelsAPIAsync(ResourceBase):
@@ -86,7 +87,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
         # tags
-        tags: list[Any] | list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         # metadata
         metadata: list[Any] | None = None,
         # calculated channel specific
@@ -140,7 +141,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
                 created_by=created_by,
                 modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(tags=tags, metadata=metadata),
+            *self._build_tags_metadata_cel_filters(tag_names=tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
@@ -291,7 +292,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
         # tags
-        tags: list[Any] | list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         # metadata
         metadata: list[Any] | None = None,
         # common filters
@@ -338,7 +339,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
                 created_by=created_by,
                 modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(tags=tags, metadata=metadata),
+            *self._build_tags_metadata_cel_filters(tag_names=tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,

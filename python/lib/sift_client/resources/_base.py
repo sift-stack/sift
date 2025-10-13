@@ -4,6 +4,7 @@ from abc import ABC
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from sift_client.errors import _sift_client_experimental_warning
+from sift_client.sift_types.tag import Tag
 from sift_client.util import cel_utils as cel
 
 _sift_client_experimental_warning()
@@ -15,7 +16,6 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types._base import BaseType
     from sift_client.transport.base_connection import GrpcClient, RestClient
-
 T = TypeVar("T", bound="BaseType")
 
 
@@ -92,15 +92,28 @@ class ResourceBase(ABC):
 
     def _build_tags_metadata_cel_filters(
         self,
-        tags: list[Any] | list[str] | None = None,
+        tag_names: list[Any] | list[str] | None = None,
+        tag_ids: list[Any] | list[str] | None = None,
         metadata: list[Any] | None = None,
     ) -> list[str]:
+        """Build CEL filters for tags and metadata.
+        Note: Some resources only support filtering on tag_id but conceptually users are most likely to want to filter on tag names. Check the request proto when using this helper and consider using tag_names by default if supported as a filterable field by the request proto.
+
+        Args:
+            tag_names: Creates filters for tag names
+            tag_ids: Creates filters for tag IDs
+            metadata: Creates filters for metadata.
+
+        Returns:
+            A list of CEL filters.
+        """
         filter_parts = []
-        if tags:
-            if all(isinstance(tag, str) for tag in tags):
-                filter_parts.append(cel.in_("tag_name", tags))
-            else:
-                raise NotImplementedError
+        if tag_names:
+            tag_names = [tag.name if isinstance(tag, Tag) else tag for tag in tag_names]
+            filter_parts.append(cel.in_("tag_name", tag_names))
+        if tag_ids:
+            tag_ids = [tag.id_ if isinstance(tag, Tag) else tag for tag in tag_ids]
+            filter_parts.append(cel.in_("tag_id", tag_ids))
         if metadata:
             raise NotImplementedError
         return filter_parts

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, ClassVar
 from sift.assets.v1.assets_pb2 import Asset as AssetProto
 
 from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types.tag import Tag
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
@@ -24,7 +25,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     created_by_user_id: str
     modified_date: datetime
     modified_by_user_id: str
-    tags: list[str]
+    tags: list[str | Tag]
     metadata: dict[str, str | float | bool]
     is_archived: bool
 
@@ -109,7 +110,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
 class AssetUpdate(ModelUpdate[AssetProto]):
     """Model of the Asset Fields that can be updated."""
 
-    tags: list[str] | None = None
+    tags: list[str | Tag] | None = None
     metadata: dict[str, str | float | bool] | None = None
     is_archived: bool | None = None
 
@@ -118,6 +119,11 @@ class AssetUpdate(ModelUpdate[AssetProto]):
             proto_attr_path="metadata",
             update_field="metadata",
             converter=metadata_dict_to_proto,
+        ),
+        "tags": MappingHelper(
+            proto_attr_path="tags",
+            update_field="tags",
+            converter=lambda tags: [tag.name if isinstance(tag, Tag) else tag for tag in tags],
         ),
     }
 

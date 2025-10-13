@@ -9,7 +9,8 @@ from sift.reports.v1.reports_pb2 import Report as ReportProto
 from sift.reports.v1.reports_pb2 import ReportRuleSummary as ReportRuleSummaryProto
 from sift.reports.v1.reports_pb2 import ReportTag as ReportTagProto
 
-from sift_client.sift_types._base import BaseType, MappingHelper, ModelUpdate
+from sift_client.sift_types._base import BaseType, MappingHelper, ModelCreateUpdateBase, ModelUpdate
+from sift_client.sift_types.tag import Tag
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
@@ -149,20 +150,33 @@ class Report(BaseType[ReportProto, "Report"]):
         return proto
 
 
-class ReportUpdate(ModelUpdate[ReportProto]):
-    """Model of the Report fields that can be updated."""
+class ReportCreateUpdateBase(ModelCreateUpdateBase):
+    """Base model for Report create and update."""
 
-    archived_date: datetime | None = None
+    name: str
+    description: str | None = None
+    tags: list[str] | list[Tag] | None = None
     metadata: dict[str, str | float | bool] | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(
             proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+        "tags": MappingHelper(
+            proto_attr_path="tags",
+            update_field="tags",
+            converter=lambda tags: [tag.name if isinstance(tag, Tag) else tag for tag in tags],
         ),
     }
 
     def _get_proto_class(self) -> type[ReportProto]:
         return ReportProto
+
+
+class ReportUpdate(ReportCreateUpdateBase, ModelUpdate[ReportProto]):
+    """Model of the Report fields that can be updated."""
+
+    is_archived: bool | None = None
 
     def _add_resource_id_to_proto(self, proto_msg: ReportProto):
         if self._resource_id is None:

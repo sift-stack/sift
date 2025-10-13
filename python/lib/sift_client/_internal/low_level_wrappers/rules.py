@@ -44,6 +44,7 @@ from sift_client.sift_types.rule import (
     RuleCreate,
     RuleUpdate,
 )
+from sift_client.sift_types.tag import Tag
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.util.util import count_non_none
 
@@ -463,7 +464,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         rule_version_ids: list[str] | None = None,
         report_template_id: str | None = None,
         report_name: str | None = None,
-        tags: list[str] | None = None,
+        tags: list[str | Tag] | None = None,
         organization_id: str | None = None,
     ) -> tuple[int, Report | None, str | None]:
         """Evaluate a rule.
@@ -521,7 +522,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if report_template_id:
             kwargs["report_template"] = report_template_id
         if tags:
-            kwargs["tags"] = tags
+            kwargs["tags"] = [tag.name if isinstance(tag, Tag) else tag for tag in tags]
         if report_name:
             kwargs["report_name"] = report_name
         if organization_id:
