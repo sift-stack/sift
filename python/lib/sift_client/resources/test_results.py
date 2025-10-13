@@ -107,8 +107,8 @@ class TestResultsAPIAsync(ResourceBase):
         serial_number: str | None = None,
         part_number: str | None = None,
         system_operator: str | None = None,
-        created_by_user: str | None = None,
-        modified_by_user: str | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
@@ -132,8 +132,8 @@ class TestResultsAPIAsync(ResourceBase):
             serial_number: Serial number to filter by.
             part_number: Part number to filter by.
             system_operator: System operator to filter by.
-            created_by_user: User ID who created the test report.
-            modified_by_user: User ID who last modified the test report.
+            created_by: User ID who created the test report.
+            modified_by: User ID who last modified the test report.
             created_after: Filter test reports created after this datetime.
             created_before: Filter test reports created before this datetime.
             modified_after: Filter test reports modified after this datetime.
@@ -157,8 +157,8 @@ class TestResultsAPIAsync(ResourceBase):
                 created_before=created_before,
                 modified_after=modified_after,
                 modified_before=modified_before,
-                created_by=created_by_user,
-                modified_by=modified_by_user,
+                created_by=created_by,
+                modified_by=modified_by,
             ),
             *self._build_metadata_cel_filters(metadata=metadata),
             *self._build_common_cel_filters(
@@ -293,6 +293,7 @@ class TestResultsAPIAsync(ResourceBase):
         name_regex: str | re.Pattern | None = None,
         status: TestStatus | None = None,
         step_type: TestStepType | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestStep]:
@@ -307,6 +308,7 @@ class TestResultsAPIAsync(ResourceBase):
             name_regex: Regular expression string to filter test steps by name.
             status: Status to filter by (TestStatus enum).
             step_type: Step type to filter by (TestStepType enum).
+            filter_query: Explicit CEL query to filter test steps.
             order_by: How to order the retrieved test steps.
             limit: How many test steps to retrieve. If None, retrieves all matches.
 
@@ -317,6 +319,9 @@ class TestResultsAPIAsync(ResourceBase):
         filter_parts = [
             *self._build_name_cel_filters(
                 name=name, name_contains=name_contains, name_regex=name_regex
+            ),
+            *self._build_common_cel_filters(
+                filter_query=filter_query,
             ),
         ]
 
@@ -452,6 +457,7 @@ class TestResultsAPIAsync(ResourceBase):
         name_regex: str | re.Pattern | None = None,
         measurement_type: TestMeasurementType | None = None,
         passed: bool | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestMeasurement]:
@@ -467,6 +473,7 @@ class TestResultsAPIAsync(ResourceBase):
             name_regex: Regular expression string to filter test measurements by name.
             measurement_type: Measurement type to filter by (TestMeasurementType enum).
             passed: Whether the measurement passed.
+            filter_query: Explicit CEL query to filter test measurements.
             order_by: How to order the retrieved test measurements.
             limit: How many test measurements to retrieve. If None, retrieves all matches.
 
@@ -477,6 +484,9 @@ class TestResultsAPIAsync(ResourceBase):
         filter_parts = [
             *self._build_name_cel_filters(
                 name=name, name_contains=name_contains, name_regex=name_regex
+            ),
+            *self._build_common_cel_filters(
+                filter_query=filter_query,
             ),
         ]
 

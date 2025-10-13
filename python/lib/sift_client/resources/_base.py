@@ -109,6 +109,7 @@ class ResourceBase(ABC):
 
     def _build_tags_metadata_cel_filters(
         self,
+        *,
         tags: list[Any] | list[str] | None = None,
         metadata: list[Any] | None = None,
     ) -> list[str]:
