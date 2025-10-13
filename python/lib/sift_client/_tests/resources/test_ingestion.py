@@ -29,7 +29,6 @@ def test_client_binding(sift_client):
     assert sift_client.async_.ingestion
 
 
-@pytest.fixture(scope="function")
 def test_run(sift_client: SiftClient):
     """Create a test run for ingestion tests."""
     run = sift_client.runs.create(

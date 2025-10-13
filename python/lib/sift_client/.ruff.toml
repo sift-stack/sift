@@ -39,7 +39,7 @@ select = [
     "LOG", # flake8-logging - logging best practices
 
     # Tests
-    #     "PT",     # flake8-pytest-style - pytest best practices # TODO: FD-59
+    "PT", # flake8-pytest-style - pytest best practices
 
 ]
 

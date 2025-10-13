@@ -54,7 +54,6 @@ def test_rule(rules_api_sync):
     return rules[0]
 
 
-@pytest.fixture(scope="function")
 def new_rule(rules_api_sync, sift_client):
     """Create a test rule for update tests."""
     from datetime import datetime, timezone
@@ -558,7 +557,9 @@ class TestRulesAPIAsync:
                     assert updated_rule.expression == "invalid_expression"
                 except Exception as e:
                     # If server validates and rejects, that's also acceptable behavior
-                    assert "expression" in str(e).lower() or "invalid" in str(e).lower()
+                    assert (  # noqa: PT017
+                        "expression" in str(e).lower() or "invalid" in str(e).lower()
+                    )
             finally:
                 await rules_api_async.archive(new_rule.id_)
 

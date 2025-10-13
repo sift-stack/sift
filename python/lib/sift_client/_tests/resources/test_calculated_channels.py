@@ -52,7 +52,6 @@ def test_calculated_channel(calculated_channels_api_sync):
     return calculated_channels[0]
 
 
-@pytest.fixture(scope="function")
 def new_calculated_channel(calculated_channels_api_sync, sift_client):
     """Create a test calculated channel for update tests."""
     from datetime import datetime, timezone
@@ -450,7 +449,9 @@ class TestCalculatedChannelsAPIAsync:
                     assert updated_calc_channel.expression == "invalid_expression"
                 except Exception as e:
                     # If server validates and rejects, that's also acceptable behavior
-                    assert "expression" in str(e).lower() or "invalid" in str(e).lower()
+                    assert (  # noqa: PT017
+                        "expression" in str(e).lower() or "invalid" in str(e).lower()
+                    )
             finally:
                 await calculated_channels_api_async.archive(new_calculated_channel.id_)
 

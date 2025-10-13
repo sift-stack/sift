@@ -288,18 +288,18 @@ class TestEdgeCases:
 
     def test_validation_error_on_invalid_helper_field(self):
         """Test that MappingHelper validation catches mismatched fields."""
+
+        class InvalidModel(ModelCreate[CreateCalculatedChannelRequest]):
+            name: str
+
+            _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+                "nonexistent_field": MappingHelper(proto_attr_path="some.path"),
+            }
+
+            def _get_proto_class(self):
+                return CreateCalculatedChannelRequest
+
         with pytest.raises(ValueError, match="MappingHelper created for"):
-
-            class InvalidModel(ModelCreate[CreateCalculatedChannelRequest]):
-                name: str
-
-                _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
-                    "nonexistent_field": MappingHelper(proto_attr_path="some.path"),
-                }
-
-                def _get_proto_class(self):
-                    return CreateCalculatedChannelRequest
-
             # This should raise during __init__
             InvalidModel(name="test")
 
@@ -495,7 +495,7 @@ class TestBaseType:
         model = TestModel(name="test")
 
         # Should not be able to modify frozen model
-        with pytest.raises(Exception):  # Pydantic raises ValidationError  # noqa: B017
+        with pytest.raises(Exception):  # noqa: B017, PT011
             model.name = "new_name"
 
 
