@@ -7,12 +7,11 @@ These tests demonstrate and validate the usage of the Tags API including:
 - Error handling and edge cases
 """
 
-from datetime import datetime, timezone
 import re
+from datetime import datetime, timezone
 
 import pytest
 
-from sift_client import SiftClient
 from sift_client.resources import TagsAPI, TagsAPIAsync
 from sift_client.sift_types import Tag
 
@@ -47,6 +46,7 @@ def test_tags(sift_client, test_timestamp_str):
     yield tag1, tag2
     # Would like to archive the tags, but this is not supported by the API
 
+
 class TestTags:
     """Tests for the Tags API."""
 
@@ -68,7 +68,7 @@ class TestTags:
         # Create a test tag with a unique name
         name_filter = f"test_tag1_{test_timestamp_str}"
         name_filter_contains = f"tag1_{test_timestamp_str}"
-        name_filter_regex = re.compile(fr".*_tag.+_{re.escape(test_timestamp_str)}")
+        name_filter_regex = re.compile(rf".*_tag.+_{re.escape(test_timestamp_str)}")
 
         filtered_tags = sift_client.tags.list_(name=name_filter)
         filtered_tags_contains = sift_client.tags.list_(name_contains=name_filter_contains)
@@ -82,7 +82,6 @@ class TestTags:
         assert filtered_tags[0].id_ == test_tags[0].id_
         assert filtered_tags_contains[0].id_ == test_tags[0].id_
         assert filtered_tags_regex[0].id_ == test_tags[0].id_
-
 
     def test_find_tag(self, sift_client, test_tags, test_timestamp_str):
         """Test finding a single tag. Excercises find and list_ limit functionality."""
@@ -104,7 +103,7 @@ class TestTags:
     def test_find_multiple_raises_error(self, sift_client, test_timestamp_str, test_tags):
         """Test finding multiple tags raises an error."""
         # Create multiple tags with similar names
-        name_filter_regex = re.compile(fr".*_tag(1|2)_{re.escape(test_timestamp_str)}")
+        name_filter_regex = re.compile(rf".*_tag(1|2)_{re.escape(test_timestamp_str)}")
         with pytest.raises(ValueError, match="Multiple tags found"):
             res = sift_client.tags.find(name_regex=name_filter_regex)
             print(res)

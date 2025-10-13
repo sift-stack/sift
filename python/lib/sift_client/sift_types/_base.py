@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -186,6 +187,8 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                 paths.append(path)
             else:
                 try:
+                    if isinstance(value, Enum):
+                        value = value.value
                     setattr(proto_msg, field_name, value)
                     paths.append(path)
                 except (TypeError, AttributeError) as e:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -11,6 +10,8 @@ from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
+
     from sift_client.client import SiftClient
 
 

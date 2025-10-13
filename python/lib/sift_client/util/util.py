@@ -13,6 +13,7 @@ if TYPE_CHECKING:
         RulesAPIAsync,
         RunsAPIAsync,
         TagsAPIAsync,
+        TestResultsAPIAsync,
     )
 
 
@@ -40,11 +41,14 @@ class AsyncAPIs(NamedTuple):
     runs: RunsAPIAsync
     """Instance of the Runs API for making asynchronous requests."""
 
+    rules: RulesAPIAsync
+    """Instance of the Rules API for making asynchronous requests."""
+
     tags: TagsAPIAsync
     """Instance of the Tags API for making asynchronous requests."""
 
-    rules: RulesAPIAsync
-    """Instance of the Rules API for making asynchronous requests."""
+    test_results: TestResultsAPIAsync
+    """Instance of the Test Results API for making asynchronous requests."""
 
 
 def count_non_none(*args: Any) -> int:

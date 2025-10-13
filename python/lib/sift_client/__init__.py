@@ -1,11 +1,17 @@
-"""!!! warning
+"""Sift Client Library - Python client for interacting with Sift APIs.
+
+!!! warning
     The Sift Client is experimental and is subject to change.
 
+## Overview
 
-# Sift Client Library
+This library provides a high-level Python client for interacting with Sift APIs. It offers:
 
-This library provides a high-level Python client for interacting with Sift APIs. It offers both synchronous and
-asynchronous interfaces, strong type checking, and a Pythonic API design.
+- **Synchronous and asynchronous interfaces** for all operations
+- **Strong type checking** with Pydantic models
+- **Pythonic API design** with intuitive method names
+- **Comprehensive filtering** capabilities for queries
+- **Automatic type conversion** between protobuf and Python types
 
 ## Installation
 
@@ -13,193 +19,120 @@ asynchronous interfaces, strong type checking, and a Pythonic API design.
 pip install sift-stack-py
 ```
 
-## Getting Started
+## Quick Start
 
-### Initializing the Client
-
-You can initialize the Sift client with your API key and service URLs:
+### Initialize the Client
 
 ```python
 from sift_client import SiftClient
-from datetime import datetime
 
-# Initialize with individual parameters
+# Initialize with credentials
 client = SiftClient(
     api_key="your-api-key",
-    grpc_url="your-sift-grpc-url",
-    rest_url="your-sift-rest-url"
+    grpc_url="grpc.siftstack.com:443",
+    rest_url="https://api.siftstack.com"
 )
-
-# Or use a connection configuration
-from sift_client.transport import SiftConnectionConfig
-
-config = SiftConnectionConfig(
-    api_key="your-api-key",
-    grpc_url="your-sift-grpc-url",
-    rest_url="your-sift-rest-url"
-)
-client = SiftClient(connection_config=config)
 ```
 
-The `SiftConnectionConfig` provides access to additional configuration options such as `use_ssl` and `cert_via_openssl`.
-
-### Using Synchronous and Asynchronous APIs
-
-The Sift client provides both synchronous and asynchronous versions of all APIs. You can choose the one that best fits
-your application's needs.
-
-#### Synchronous API
-
-The synchronous API is perfect for scripts, notebooks, and applications that don't need asynchronous operation:
+### Basic Operations
 
 ```python
-# Get an asset by ID
+# Get an asset
 asset = client.assets.get(asset_id="asset123")
 
-# List assets with filtering
-assets = client.assets.list_(
-    name_contains="example",
-    created_after=datetime(2023, 1, 1),
-    include_archived=False
+# List resources with filtering
+runs = client.runs.list_(
+    assets=[asset.id_],
+    start_time_after=datetime.now() - timedelta(days=7),
+    limit=10
 )
 
-# Find a single asset matching criteria
-asset = client.assets.find(name="my-asset")
+# Update a resource
+asset.update({"tags": ["production", "v2"]})
+
+# Create a new resource
+run = client.runs.create({
+    "name": "Test Run",
+    "asset_ids": [asset.id_],
+    "start_time": datetime.now()
+})
 ```
 
-#### Asynchronous API
-
-The asynchronous API is ideal for high-performance applications and services that need to make concurrent API calls:
+### Async Usage
 
 ```python
 import asyncio
 
+async def main():
+    # Use async_ accessor for async operations
+    asset = await client.async_.assets.get(asset_id="asset123")
+    runs = await client.async_.runs.list_(limit=10)
+    return asset, runs
 
-async def get_asset_async():
-    # Get an asset by ID asynchronously
-    asset = await client.assets_async.get(asset_id="asset123")
-
-    # Running Sync within async also works
-    some_other_asset = client.assets.get(asset_id="asset456")
-
-    return asset
-
-
-# Run in an async context
-asset = asyncio.run(get_asset_async())
-
+result = asyncio.run(main())
 ```
 
-### Working with Sift Types
+## Key Components
 
-Sift types (like `Asset`, `Run`, etc.) are immutable Pydantic models that provide a convenient interface for working
-with Sift resources.
+### Resources
 
-#### Accessing Properties
+Resource APIs provide methods for interacting with Sift services. Each resource supports
+operations like `get()`, `list_()`, `create()`, `update()`, and `archive()`.
 
-```python
-# Get an asset
-asset = client.assets.get(asset_id="asset123")
+**Available Resources:**
 
-# Access properties
-print(f"Asset name: {asset.name}")
-print(f"Created on: {asset.created_date}")
-print(f"Tags: {', '.join(asset.tags)}")
-print(f"Is archived: {asset.is_archived}")
-```
+- `client.assets` - Manage physical or logical entities
+- `client.runs` - Manage time-bounded operational periods
+- etc.
 
-#### Using Methods on Sift Types
+See [resources](resources/) for detailed documentation and a complete list.
 
-Sift types have convenient methods for common operations. These methods use the synchronous API internally.
-**Using these methods will update the instance in-place.**
+### Types
 
-```python
-# Get an asset
-asset = client.assets.get(asset_id="asset123")
+Sift types are immutable Pydantic models representing Sift objects. They provide
+type-safe access to properties and convenience methods for common operations.
 
-# Archive the asset
-asset.archive(archive_runs=True)
+**Available Types:**
 
-# Update the asset
-asset.update({
-    "tags": ["updated", "example"]
-})
-```
+- `Asset`, `AssetUpdate` - Asset resources
+- `Run`, `RunCreate`, `RunUpdate` - Run resources
+- etc.
 
-> **Note:** Type methods only work with the synchronous API. If you need to use the asynchronous API, you should use the
-> resource APIs directly.
+See [sift_types](sift_types/) for detailed documentation and a complete list.
 
-#### Creating Update Models
+## Examples
 
-For more complex updates, you can create update models (instead of a key-value dictionary):
+For complete examples, see the [examples](../examples/) directory.
+
+## Connection Configuration
+
+For advanced connection options:
 
 ```python
-from sift_client.types.asset import AssetUpdate
+from sift_client.transport import SiftConnectionConfig, GrpcConfig, RestConfig
 
-# Create an update model
-update = AssetUpdate(tags=["new", "tags"])
-
-# Apply the update
-asset = client.assets.update(asset="asset123", update=update)
-
-# Or using the asset method
-asset = client.assets.get(asset_id="asset123").update(update)
-```
-
-## Advanced Usage
-
-### Working with Tags
-
-Tags are a powerful way to organize and filter your assets:
-
-```python
-# Add tags when updating an asset
-asset.update({
-    "tags": ["production", "model-v1", "trained"]
-})
-
-# Filter assets by tags
-production_assets = client.assets.list_(
-    tags=["production"]
-)
-```
-
-### Filtering Assets
-
-The client provides various ways to filter different Sift types:
-
-```python
-# Filter by name (exact match)
-assets = client.assets.list_(name="my-model")
-
-# Filter by name (contains)
-assets = client.assets.list_(name_contains="model")
-
-# Filter by name (regex)
-assets = client.assets.list_(name_regex="model-v[0-9]+")
-
-# Filter by creation date
-assets = client.assets.list_(
-    created_after=datetime(2023, 1, 1),
-    created_before=datetime(2023, 12, 31)
+config = SiftConnectionConfig(
+    grpc_config=GrpcConfig(
+        uri="grpc.siftstack.com:443",
+        api_key="your-api-key",
+        use_ssl=True
+    ),
+    rest_config=RestConfig(
+        uri="https://api.siftstack.com",
+        api_key="your-api-key"
+    )
 )
 
-# Filter by modification date
-assets = client.assets.list_(
-    modified_after=datetime(2023, 6, 1)
-)
-
-# Include archived assets
-all_assets = client.assets.list_(include_archived=True)
-
-# Limit the number of results
-recent_assets = client.assets.list_(
-    limit=10,
-    order_by="modified_date desc"
-)
+client = SiftClient(connection_config=config)
 ```
 
+## Best Practices
 
+1. **Use sync APIs** for notebooks, scripts, and simple applications
+2. **Use async APIs** for high-performance services with concurrent operations
+3. **Leverage filtering** to reduce data transfer and improve performance
+4. **Reuse client instances** rather than creating new ones for each operation
+5. **Use type hints** to get full IDE support and catch errors early
 """
 
 import logging

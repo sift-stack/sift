@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.tags import TagsLowLevelClient
@@ -9,6 +7,8 @@ from sift_client.resources._base import ResourceBase
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.tag import Tag, TagUpdate
 

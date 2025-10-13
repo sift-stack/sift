@@ -40,6 +40,7 @@ def mock_client():
     client.channels = MagicMock()
     client.calculated_channels = MagicMock()
     client.rules = MagicMock()
+    client.test_results = MagicMock()
     client.async_ = MagicMock(spec=AsyncAPIs)
     client.async_.ingestion = MagicMock()
     return client
