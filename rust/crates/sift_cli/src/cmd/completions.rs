@@ -79,17 +79,13 @@ pub fn update() -> Result<ExitCode> {
     match shell {
         Shell::Zsh => {
             out.tip(format!(
-                "Ensure \"{}\" is set in your {} and run `{}`",
+                "Ensure \"{}\" is set in your {} and restart your shell (sourcing doesn't always work)",
                 "fpath=($HOME/.zsh-complete $fpath)".cyan(),
                 "$HOME/.zshrc".cyan(),
-                "source $HOME/.zshrc".yellow(),
             ));
         }
         Shell::Bash => {
-            out.tip(format!(
-                "Don't forget to run `{}`",
-                "source $HOME/.bash_profile".yellow(),
-            ));
+            out.tip("Don't forget to restart your shell (sourcing doesn't always work)");
         }
         Shell::Fish => {
             out.tip(format!(
