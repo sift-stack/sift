@@ -8,6 +8,7 @@ import grpc
 import pytest
 from grpc import aio as aiogrpc
 
+from sift_client.resources import TestResultsAPI, TestResultsAPIAsync
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
@@ -23,6 +24,13 @@ from sift_client.sift_types.test_report import (
 )
 
 pytestmark = pytest.mark.integration
+
+
+def test_client_binding(sift_client):
+    assert sift_client.test_results
+    assert isinstance(sift_client.test_results, TestResultsAPI)
+    assert sift_client.async_.test_results
+    assert isinstance(sift_client.async_.test_results, TestResultsAPIAsync)
 
 
 class TestResultsTest:

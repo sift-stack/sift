@@ -874,12 +874,12 @@ class TestResultsAPI:
         ...
 
     def create_measurements(
-        self, test_measurements: list[TestMeasurement | TestMeasurementCreate]
+        self, test_measurements: list[TestMeasurementCreate]
     ) -> tuple[int, list[str]]:
         """Create multiple test measurements in a single request.
 
         Args:
-            test_measurements: The test measurements to create (can be TestMeasurement or TestMeasurementCreate).
+            test_measurements: The test measurements to create.
 
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
@@ -976,8 +976,8 @@ class TestResultsAPI:
         serial_number: str | None = None,
         part_number: str | None = None,
         system_operator: str | None = None,
-        created_by_user_id: str | None = None,
-        modified_by_user_id: str | None = None,
+        created_by_user: str | None = None,
+        modified_by_user: str | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
@@ -1001,8 +1001,8 @@ class TestResultsAPI:
             serial_number: Serial number to filter by.
             part_number: Part number to filter by.
             system_operator: System operator to filter by.
-            created_by_user_id: User ID who created the test report.
-            modified_by_user_id: User ID who last modified the test report.
+            created_by_user: User ID who created the test report.
+            modified_by_user: User ID who last modified the test report.
             created_after: Filter test reports created after this datetime.
             created_before: Filter test reports created before this datetime.
             modified_after: Filter test reports modified after this datetime.

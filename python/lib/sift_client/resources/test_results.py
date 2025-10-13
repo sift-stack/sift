@@ -48,7 +48,7 @@ class TestResultsAPIAsync(ResourceBase):
         """Import a test report from an already-uploaded file.
 
         Args:
-            test_file: The path to the test report file to import.
+            test_file: The path to the test report file to import. We currently only support XML files exported from NI TestStand.
 
         Returns:
             The imported TestReport.
@@ -107,8 +107,8 @@ class TestResultsAPIAsync(ResourceBase):
         serial_number: str | None = None,
         part_number: str | None = None,
         system_operator: str | None = None,
-        created_by_user_id: str | None = None,
-        modified_by_user_id: str | None = None,
+        created_by_user: str | None = None,
+        modified_by_user: str | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
@@ -132,8 +132,8 @@ class TestResultsAPIAsync(ResourceBase):
             serial_number: Serial number to filter by.
             part_number: Part number to filter by.
             system_operator: System operator to filter by.
-            created_by_user_id: User ID who created the test report.
-            modified_by_user_id: User ID who last modified the test report.
+            created_by_user: User ID who created the test report.
+            modified_by_user: User ID who last modified the test report.
             created_after: Filter test reports created after this datetime.
             created_before: Filter test reports created before this datetime.
             modified_after: Filter test reports modified after this datetime.
@@ -157,8 +157,8 @@ class TestResultsAPIAsync(ResourceBase):
                 created_before=created_before,
                 modified_after=modified_after,
                 modified_before=modified_before,
-                created_by=created_by_user_id,
-                modified_by=modified_by_user_id,
+                created_by=created_by_user,
+                modified_by=modified_by_user,
             ),
             *self._build_metadata_cel_filters(metadata=metadata),
             *self._build_common_cel_filters(
@@ -279,7 +279,7 @@ class TestResultsAPIAsync(ResourceBase):
         """
         if isinstance(test_step, dict):
             test_step = TestStepCreate.model_validate(test_step)
-        test_step_result = await self._low_level_client.create_test_step(test_step)  # type: ignore
+        test_step_result = await self._low_level_client.create_test_step(test_step)
         return self._apply_client_to_instance(test_step_result)
 
     async def list_steps(
@@ -420,7 +420,7 @@ class TestResultsAPIAsync(ResourceBase):
             test_measurement = TestMeasurementCreate.model_validate(test_measurement)
         test_measurement_result = await self._low_level_client.create_test_measurement(
             test_measurement
-        )  # type: ignore
+        )
         measurement = self._apply_client_to_instance(test_measurement_result)
         if update_step:
             step = await self.get_step(test_step=test_measurement_result.test_step_id)
@@ -429,17 +429,17 @@ class TestResultsAPIAsync(ResourceBase):
         return measurement
 
     async def create_measurements(
-        self, test_measurements: list[TestMeasurement | TestMeasurementCreate]
+        self, test_measurements: list[TestMeasurementCreate]
     ) -> tuple[int, list[str]]:
         """Create multiple test measurements in a single request.
 
         Args:
-            test_measurements: The test measurements to create (can be TestMeasurement or TestMeasurementCreate).
+            test_measurements: The test measurements to create.
 
         Returns:
             A tuple of (measurements_created_count, measurement_ids).
         """
-        return await self._low_level_client.create_test_measurements(test_measurements)  # type: ignore
+        return await self._low_level_client.create_test_measurements(test_measurements)
 
     async def list_measurements(
         self,
