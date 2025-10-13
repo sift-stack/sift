@@ -139,6 +139,10 @@ func (m *CalculatedChannelQuery) CloneVT() *CalculatedChannelQuery {
 		tmpVal := *rhs
 		r.Mode = &tmpVal
 	}
+	if rhs := m.CombineRunData; rhs != nil {
+		tmpVal := *rhs
+		r.CombineRunData = &tmpVal
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -950,6 +954,9 @@ func (this *CalculatedChannelQuery) EqualVT(that *CalculatedChannelQuery) bool {
 		return false
 	}
 	if p, q := this.Mode, that.Mode; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if p, q := this.CombineRunData, that.CombineRunData; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2172,6 +2179,16 @@ func (m *CalculatedChannelQuery) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CombineRunData != nil {
+		i--
+		if *m.CombineRunData {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
 	}
 	if m.Mode != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.Mode))
@@ -4028,6 +4045,16 @@ func (m *CalculatedChannelQuery) MarshalToSizedBufferVTStrict(dAtA []byte) (int,
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.CombineRunData != nil {
+		i--
+		if *m.CombineRunData {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
 	if m.Mode != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.Mode))
 		i--
@@ -5755,6 +5782,9 @@ func (m *CalculatedChannelQuery) SizeVT() (n int) {
 	if m.Mode != nil {
 		n += 1 + protohelpers.SizeOfVarint(uint64(*m.Mode))
 	}
+	if m.CombineRunData != nil {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -6970,6 +7000,27 @@ func (m *CalculatedChannelQuery) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Mode = &v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CombineRunData", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.CombineRunData = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -11167,6 +11218,27 @@ func (m *CalculatedChannelQuery) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.Mode = &v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CombineRunData", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.CombineRunData = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

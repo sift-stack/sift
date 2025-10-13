@@ -8,7 +8,6 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "SavedSearch service"}
 };
@@ -18,7 +17,7 @@ service SavedSearchService {
   rpc GetSavedSearch(GetSavedSearchRequest) returns (GetSavedSearchResponse) {
     option (google.api.http) = {get: "/api/v1/saved_searches/{saved_search_id}"};
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetSavedSearch",
+      summary: "GetSavedSearch"
       description: "Retrieve a saved search."
     };
   }
@@ -68,7 +67,7 @@ service SavedSearchService {
   // Batch deletes saved searches.
   rpc BatchDeleteSavedSearches(BatchDeleteSavedSearchesRequest) returns (BatchDeleteSavedSearchesResponse) {
     option (google.api.http) = {
-      post: "/api/v1/saved_searches:batchDelete",
+      post: "/api/v1/saved_searches:batchDelete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -101,11 +100,23 @@ message SavedSearchProperties {
   repeated SavedSearchFilterItem run_items = 9 [(google.api.field_behavior) = OPTIONAL];
   repeated SavedSearchFilterItem report_template_items = 10 [(google.api.field_behavior) = OPTIONAL];
   optional bool show_advanced_filters = 11 [(google.api.field_behavior) = OPTIONAL];
+  optional bool include_archived = 12 [(google.api.field_behavior) = OPTIONAL];
+  optional string order_by = 13 [(google.api.field_behavior) = OPTIONAL];
+  repeated SavedSearchMetadataItem metadata_items = 14 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message SavedSearchFilterItem {
   string id = 1 [(google.api.field_behavior) = REQUIRED];
   string name = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message SavedSearchMetadataItem {
+  string key = 1 [(google.api.field_behavior) = REQUIRED];
+  oneof value {
+    string string_value = 2;
+    double number_value = 3;
+    bool boolean_value = 4;
+  }
 }
 
 // The request for a call to `SavedSearchService_GetSavedSearch` to retrieve a saved search;

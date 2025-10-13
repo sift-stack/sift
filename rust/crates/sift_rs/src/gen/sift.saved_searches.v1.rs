@@ -45,6 +45,12 @@ pub struct SavedSearchProperties {
     pub report_template_items: ::prost::alloc::vec::Vec<SavedSearchFilterItem>,
     #[prost(bool, optional, tag="11")]
     pub show_advanced_filters: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag="12")]
+    pub include_archived: ::core::option::Option<bool>,
+    #[prost(string, optional, tag="13")]
+    pub order_by: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="14")]
+    pub metadata_items: ::prost::alloc::vec::Vec<SavedSearchMetadataItem>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -53,6 +59,27 @@ pub struct SavedSearchFilterItem {
     pub id: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub name: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SavedSearchMetadataItem {
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(oneof="saved_search_metadata_item::Value", tags="2, 3, 4")]
+    pub value: ::core::option::Option<saved_search_metadata_item::Value>,
+}
+/// Nested message and enum types in `SavedSearchMetadataItem`.
+pub mod saved_search_metadata_item {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Value {
+        #[prost(string, tag="2")]
+        StringValue(::prost::alloc::string::String),
+        #[prost(double, tag="3")]
+        NumberValue(f64),
+        #[prost(bool, tag="4")]
+        BooleanValue(bool),
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

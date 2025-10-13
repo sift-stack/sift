@@ -6,7 +6,7 @@ This module provides helper functions to generate CEL expressions for building f
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 
@@ -50,9 +50,11 @@ def equals(key: str, value: Any) -> str:
         A CEL expression string
     """
     if value is None:
-        return f"{key} == null"
+        return equals_null(key)
     elif isinstance(value, str):
         return f"{key} == '{value}'"
+    elif isinstance(value, bool):
+        return f"{key} == {str(value).lower()}"
     else:
         return f"{key} == {value}"
 
@@ -184,7 +186,7 @@ def match(field: str, query: str | re.Pattern) -> str:
     return f"{field}.matches('{escaped_regex}')"
 
 
-def greater_than(field: str, value: int | float | datetime) -> str:
+def greater_than(field: str, value: int | float | datetime | timedelta) -> str:
     """Generates a CEL expression that checks whether a numeric or datetime field is greater than a given value.
 
     Args:
@@ -195,13 +197,15 @@ def greater_than(field: str, value: int | float | datetime) -> str:
         A CEL expression string
     """
     if isinstance(value, datetime):
-        as_string = value.isoformat()
+        as_string = f"timestamp('{value.isoformat()}')"
+    elif isinstance(value, timedelta):
+        as_string = f"duration('{value.total_seconds()}s')"
     else:
         as_string = str(value)
     return f"{field} > timestamp('{as_string}')"
 
 
-def less_than(field: str, value: int | float | datetime) -> str:
+def less_than(field: str, value: int | float | datetime | timedelta) -> str:
     """Generates a CEL expression that checks whether a numeric or datetime field is less than a given value.
 
     Args:
@@ -212,7 +216,9 @@ def less_than(field: str, value: int | float | datetime) -> str:
         A CEL expression string
     """
     if isinstance(value, datetime):
-        as_string = value.isoformat()
+        as_string = f"timestamp('{value.isoformat()}')"
+    elif isinstance(value, timedelta):
+        as_string = f"duration('{value.total_seconds()}s')"
     else:
         as_string = str(value)
     return f"{field} < timestamp('{as_string}')"

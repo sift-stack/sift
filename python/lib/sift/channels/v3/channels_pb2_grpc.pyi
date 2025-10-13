@@ -35,7 +35,10 @@ class ChannelServiceStub:
         sift.channels.v3.channels_pb2.UpdateChannelRequest,
         sift.channels.v3.channels_pb2.UpdateChannelResponse,
     ]
-    """Update a channel"""
+    """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
+
+    Update a channel
+    """
 
 class ChannelServiceAsyncStub:
     GetChannel: grpc.aio.UnaryUnaryMultiCallable[
@@ -54,7 +57,10 @@ class ChannelServiceAsyncStub:
         sift.channels.v3.channels_pb2.UpdateChannelRequest,
         sift.channels.v3.channels_pb2.UpdateChannelResponse,
     ]
-    """Update a channel"""
+    """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
+
+    Update a channel
+    """
 
 class ChannelServiceServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -79,6 +85,9 @@ class ChannelServiceServicer(metaclass=abc.ABCMeta):
         request: sift.channels.v3.channels_pb2.UpdateChannelRequest,
         context: _ServicerContext,
     ) -> typing.Union[sift.channels.v3.channels_pb2.UpdateChannelResponse, collections.abc.Awaitable[sift.channels.v3.channels_pb2.UpdateChannelResponse]]:
-        """Update a channel"""
+        """EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
+
+        Update a channel
+        """
 
 def add_ChannelServiceServicer_to_server(servicer: ChannelServiceServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

@@ -201,6 +201,9 @@ impl serde::Serialize for ListTagsRequest {
         if !self.order_by.is_empty() {
             len += 1;
         }
+        if self.tag_type != 0 {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.tags.v2.ListTagsRequest", len)?;
         if self.page_size != 0 {
             struct_ser.serialize_field("pageSize", &self.page_size)?;
@@ -213,6 +216,11 @@ impl serde::Serialize for ListTagsRequest {
         }
         if !self.order_by.is_empty() {
             struct_ser.serialize_field("orderBy", &self.order_by)?;
+        }
+        if self.tag_type != 0 {
+            let v = TagType::try_from(self.tag_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.tag_type)))?;
+            struct_ser.serialize_field("tagType", &v)?;
         }
         struct_ser.end()
     }
@@ -231,6 +239,8 @@ impl<'de> serde::Deserialize<'de> for ListTagsRequest {
             "filter",
             "order_by",
             "orderBy",
+            "tag_type",
+            "tagType",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -239,6 +249,7 @@ impl<'de> serde::Deserialize<'de> for ListTagsRequest {
             PageToken,
             Filter,
             OrderBy,
+            TagType,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -264,6 +275,7 @@ impl<'de> serde::Deserialize<'de> for ListTagsRequest {
                             "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
                             "filter" => Ok(GeneratedField::Filter),
                             "orderBy" | "order_by" => Ok(GeneratedField::OrderBy),
+                            "tagType" | "tag_type" => Ok(GeneratedField::TagType),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -287,6 +299,7 @@ impl<'de> serde::Deserialize<'de> for ListTagsRequest {
                 let mut page_token__ = None;
                 let mut filter__ = None;
                 let mut order_by__ = None;
+                let mut tag_type__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::PageSize => {
@@ -315,6 +328,12 @@ impl<'de> serde::Deserialize<'de> for ListTagsRequest {
                             }
                             order_by__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::TagType => {
+                            if tag_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("tagType"));
+                            }
+                            tag_type__ = Some(map_.next_value::<TagType>()? as i32);
+                        }
                     }
                 }
                 Ok(ListTagsRequest {
@@ -322,6 +341,7 @@ impl<'de> serde::Deserialize<'de> for ListTagsRequest {
                     page_token: page_token__.unwrap_or_default(),
                     filter: filter__.unwrap_or_default(),
                     order_by: order_by__.unwrap_or_default(),
+                    tag_type: tag_type__.unwrap_or_default(),
                 })
             }
         }
@@ -580,5 +600,91 @@ impl<'de> serde::Deserialize<'de> for Tag {
             }
         }
         deserializer.deserialize_struct("sift.tags.v2.Tag", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for TagType {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "TAG_TYPE_UNSPECIFIED",
+            Self::Annotation => "TAG_TYPE_ANNOTATION",
+            Self::Asset => "TAG_TYPE_ASSET",
+            Self::Campaign => "TAG_TYPE_CAMPAIGN",
+            Self::Report => "TAG_TYPE_REPORT",
+            Self::ReportTemplate => "TAG_TYPE_REPORT_TEMPLATE",
+            Self::Run => "TAG_TYPE_RUN",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for TagType {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "TAG_TYPE_UNSPECIFIED",
+            "TAG_TYPE_ANNOTATION",
+            "TAG_TYPE_ASSET",
+            "TAG_TYPE_CAMPAIGN",
+            "TAG_TYPE_REPORT",
+            "TAG_TYPE_REPORT_TEMPLATE",
+            "TAG_TYPE_RUN",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = TagType;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "TAG_TYPE_UNSPECIFIED" => Ok(TagType::Unspecified),
+                    "TAG_TYPE_ANNOTATION" => Ok(TagType::Annotation),
+                    "TAG_TYPE_ASSET" => Ok(TagType::Asset),
+                    "TAG_TYPE_CAMPAIGN" => Ok(TagType::Campaign),
+                    "TAG_TYPE_REPORT" => Ok(TagType::Report),
+                    "TAG_TYPE_REPORT_TEMPLATE" => Ok(TagType::ReportTemplate),
+                    "TAG_TYPE_RUN" => Ok(TagType::Run),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
     }
 }

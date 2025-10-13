@@ -49,6 +49,9 @@ impl serde::Serialize for Channel {
         if !self.bit_field_elements.is_empty() {
             len += 1;
         }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.channels.v2.Channel", len)?;
         if !self.channel_id.is_empty() {
             struct_ser.serialize_field("channelId", &self.channel_id)?;
@@ -94,6 +97,9 @@ impl serde::Serialize for Channel {
         if !self.bit_field_elements.is_empty() {
             struct_ser.serialize_field("bitFieldElements", &self.bit_field_elements)?;
         }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
         struct_ser.end()
     }
 }
@@ -129,6 +135,7 @@ impl<'de> serde::Deserialize<'de> for Channel {
             "enumTypes",
             "bit_field_elements",
             "bitFieldElements",
+            "metadata",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -147,6 +154,7 @@ impl<'de> serde::Deserialize<'de> for Channel {
             DataType,
             EnumTypes,
             BitFieldElements,
+            Metadata,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -182,6 +190,7 @@ impl<'de> serde::Deserialize<'de> for Channel {
                             "dataType" | "data_type" => Ok(GeneratedField::DataType),
                             "enumTypes" | "enum_types" => Ok(GeneratedField::EnumTypes),
                             "bitFieldElements" | "bit_field_elements" => Ok(GeneratedField::BitFieldElements),
+                            "metadata" => Ok(GeneratedField::Metadata),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -215,6 +224,7 @@ impl<'de> serde::Deserialize<'de> for Channel {
                 let mut data_type__ = None;
                 let mut enum_types__ = None;
                 let mut bit_field_elements__ = None;
+                let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::ChannelId => {
@@ -301,6 +311,12 @@ impl<'de> serde::Deserialize<'de> for Channel {
                             }
                             bit_field_elements__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Channel {
@@ -318,6 +334,7 @@ impl<'de> serde::Deserialize<'de> for Channel {
                     data_type: data_type__.unwrap_or_default(),
                     enum_types: enum_types__.unwrap_or_default(),
                     bit_field_elements: bit_field_elements__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
                 })
             }
         }

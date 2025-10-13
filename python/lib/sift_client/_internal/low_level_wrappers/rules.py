@@ -12,23 +12,22 @@ from sift.rule_evaluation.v1.rule_evaluation_pb2 import (
 )
 from sift.rule_evaluation.v1.rule_evaluation_pb2_grpc import RuleEvaluationServiceStub
 from sift.rules.v1.rules_pb2 import (
-    BatchDeleteRulesRequest,
+    ArchiveRuleRequest,
+    BatchArchiveRulesRequest,
     BatchGetRulesRequest,
-    BatchGetRulesResponse,
-    BatchUndeleteRulesRequest,
+    BatchUnarchiveRulesRequest,
     BatchUpdateRulesRequest,
     BatchUpdateRulesResponse,
     CalculatedChannelConfig,
     ContextualChannels,
     CreateRuleRequest,
     CreateRuleResponse,
-    DeleteRuleRequest,
     GetRuleRequest,
     GetRuleResponse,
     ListRulesRequest,
     RuleAssetConfiguration,
     RuleConditionExpression,
-    UndeleteRuleRequest,
+    UnarchiveRuleRequest,
     UpdateConditionRequest,
     UpdateRuleRequest,
     UpdateRuleResponse,
@@ -42,7 +41,7 @@ from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client.sift_types.rule import (
     Rule,
-    RuleAction,
+    RuleCreate,
     RuleUpdate,
 )
 from sift_client.transport import GrpcClient, WithGrpcClient
@@ -122,66 +121,51 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = BatchGetRulesRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RuleServiceStub).BatchGetRules(request)
-        response = cast("BatchGetRulesResponse", response)
         return [Rule._from_proto(rule) for rule in response.rules]
 
     async def create_rule(
         self,
         *,
-        name: str,
-        description: str,
-        organization_id: str | None = None,
-        client_key: str | None = None,
-        asset_ids: list[str] | None = None,
-        tag_ids: list[str] | None = None,
-        contextual_channels: list[str] | None = None,
-        is_external: bool,
-        expression: str,
-        channel_references: list[ChannelReference],
-        action: RuleAction,
+        create: RuleCreate,
     ) -> Rule:
         """Create a new rule.
 
         Args:
-            name: The name of the rule.
-            description: The description of the rule.
-            organization_id: The organization ID of the rule.
-            client_key: The client key of the rule.
-            asset_ids: The asset IDs of the rule.
-            contextual_channels: Optional contextual channels of the rule.
+            create: The RuleCreate model with the rule configuration.
 
         Returns:
-            The rule ID of the created rule.
+            The created Rule.
         """
         # Convert rule to UpdateRuleRequest
         expression_proto = RuleConditionExpression(
             calculated_channel=CalculatedChannelConfig(
-                expression=expression,
+                expression=create.expression,
                 channel_references={
                     c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
-                    for c in channel_references
+                    for c in create.channel_references
                 },
             )
         )
         conditions_request = [
             UpdateConditionRequest(
-                expression=expression_proto, actions=[action._to_update_request()]
+                expression=expression_proto,
+                actions=[create.action._to_update_request()],
             )
         ]
         update_request = UpdateRuleRequest(
-            name=name,
-            description=description,
+            name=create.name,
+            description=create.description,
             is_enabled=True,
-            organization_id=organization_id or "",
-            client_key=client_key,
-            is_external=is_external,
+            organization_id=create.organization_id or "",
+            client_key=create.client_key,
+            is_external=create.is_external,
             conditions=conditions_request,
             asset_configuration=RuleAssetConfiguration(
-                asset_ids=asset_ids or [],
-                tag_ids=tag_ids or [],
+                asset_ids=create.asset_ids or [],
+                tag_ids=create.asset_tag_ids or [],
             ),
             contextual_channels=ContextualChannels(
-                channels=[ChannelReferenceProto(name=c) for c in contextual_channels or []]
+                channels=[ChannelReferenceProto(name=c) for c in create.contextual_channels or []]
             ),  # type: ignore
         )
 
@@ -190,7 +174,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "CreateRuleResponse",
             await self._grpc_client.get_stub(RuleServiceStub).CreateRule(request),
         )
-        return await self.get_rule(rule_id=created_rule.rule_id, client_key=client_key)
+        return await self.get_rule(rule_id=created_rule.rule_id, client_key=create.client_key)
 
     def _update_rule_request_from_update(
         self, rule: Rule, update: RuleUpdate, version_notes: str | None = None
@@ -213,9 +197,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             "asset_tag_ids",
         ]
         # Need to manually copy fields that will be reset even if not provided in update dict.
-        copy_unset_fields = [
-            "description",
-        ]
+        copy_unset_fields = ["description", "name"]
 
         # Populate the trivial fields first.
         update_dict.update(
@@ -244,15 +226,17 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
                 "Expression and channel_references must both be provided or both be None"
             )
         expression_proto = RuleConditionExpression(
-            calculated_channel=CalculatedChannelConfig(
-                expression=expression,
-                channel_references={
-                    c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
-                    for c in channel_references
-                },
+            calculated_channel=(
+                CalculatedChannelConfig(
+                    expression=expression,
+                    channel_references={
+                        c.channel_reference: ChannelReferenceProto(name=c.channel_identifier)
+                        for c in channel_references
+                    },
+                )
+                if expression
+                else None
             )
-            if expression
-            else None
         )
         conditions_request = [
             UpdateConditionRequest(
@@ -268,10 +252,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         # This always needs to be set, so handle the defaults.
         update_dict["asset_configuration"] = RuleAssetConfiguration(  # type: ignore
-            asset_ids=update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or [],
-            tag_ids=update.asset_tag_ids
-            if "asset_tag_ids" in model_dump
-            else rule.asset_tag_ids or [],
+            asset_ids=(update.asset_ids if "asset_ids" in model_dump else rule.asset_ids or []),
+            tag_ids=(
+                update.asset_tag_ids if "asset_tag_ids" in model_dump else rule.asset_tag_ids or []
+            ),
         )
 
         update_request = UpdateRuleRequest(
@@ -284,7 +268,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def update_rule(
         self, rule: Rule, update: RuleUpdate, version_notes: str | None = None
     ) -> Rule:
-        """Update a rule.
+        """Update a rule. Also handles archive/unarchive to behave similar to other low-level clients.
 
         Args:
             rule: The rule to update.
@@ -294,14 +278,26 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated Rule.
         """
+
+        should_update_archive = "is_archived" in update.model_fields_set
+
         update.resource_id = rule.id_
+        if not should_update_archive or (
+            should_update_archive and len(update.model_fields_set) > 1
+        ):
+            update_request = self._update_rule_request_from_update(rule, update, version_notes)
 
-        update_request = self._update_rule_request_from_update(rule, update, version_notes)
+            response = await self._grpc_client.get_stub(RuleServiceStub).UpdateRule(update_request)
+            _ = cast("UpdateRuleResponse", response)
 
-        response = await self._grpc_client.get_stub(RuleServiceStub).UpdateRule(update_request)
-        updated_grpc_rule = cast("UpdateRuleResponse", response)
+        if should_update_archive:
+            if update.is_archived:
+                await self.archive_rule(rule_id=rule.id_)
+            else:
+                await self.unarchive_rule(rule_id=rule.id_)
+
         # Get the updated rule
-        return await self.get_rule(rule_id=updated_grpc_rule.rule_id)
+        return await self.get_rule(rule_id=rule.id_)
 
     async def batch_update_rules(self, rules: list[RuleUpdate]) -> BatchUpdateRulesResponse:
         """Batch update rules.
@@ -341,8 +337,8 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if client_key is not None:
             request_kwargs["client_key"] = client_key
 
-        request = DeleteRuleRequest(**request_kwargs)
-        await self._grpc_client.get_stub(RuleServiceStub).DeleteRule(request)
+        request = ArchiveRuleRequest(**request_kwargs)
+        await self._grpc_client.get_stub(RuleServiceStub).ArchiveRule(request)
 
     async def batch_archive_rules(
         self, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
@@ -351,7 +347,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Args:
             rule_ids: List of rule IDs to archive.
-            client_keys: List of client keys to delete. If both are provided, rule_ids will be used.
+            client_keys: List of client keys to archive. If both are provided, rule_ids will be used.
 
         Raises:
             ValueError: If neither rule_ids nor client_keys is provided.
@@ -365,59 +361,55 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if client_keys is not None:
             request_kwargs["client_keys"] = client_keys
 
-        request = BatchDeleteRulesRequest(**request_kwargs)
-        await self._grpc_client.get_stub(RuleServiceStub).BatchDeleteRules(request)
+        request = BatchArchiveRulesRequest(**request_kwargs)
+        await self._grpc_client.get_stub(RuleServiceStub).BatchArchiveRules(request)
 
-    async def restore_rule(self, rule_id: str | None = None, client_key: str | None = None) -> Rule:
-        """Restore a rule.
+    async def unarchive_rule(
+        self, rule_id: str | None = None, client_key: str | None = None
+    ) -> Rule:
+        """Unarchive a rule.
 
         Args:
-            rule_id: The rule ID to restore.
-            client_key: The client key to restore.
+            rule_id: The rule ID to unarchive.
+            client_key: The client key to unarchive.
 
         Returns:
-            The restored Rule.
+            The unarchived Rule.
 
         Raises:
             ValueError: If neither rule_id nor client_key is provided.
         """
-        if rule_id is None and client_key is None:
-            raise ValueError("Either rule_id or client_key must be provided")
-
         request_kwargs: dict[str, Any] = {}
         if rule_id is not None:
             request_kwargs["rule_id"] = rule_id
         if client_key is not None:
             request_kwargs["client_key"] = client_key
 
-        request = UndeleteRuleRequest(**request_kwargs)
-        await self._grpc_client.get_stub(RuleServiceStub).UndeleteRule(request)
-        # Get the restored rule
+        request = UnarchiveRuleRequest(**request_kwargs)
+        await self._grpc_client.get_stub(RuleServiceStub).UnarchiveRule(request)
+        # Get the unarchived rule
         return await self.get_rule(rule_id=rule_id, client_key=client_key)
 
-    async def batch_restore_rules(
+    async def batch_unarchive_rules(
         self, rule_ids: list[str] | None = None, client_keys: list[str] | None = None
     ) -> None:
-        """Batch restore rules.
+        """Batch unarchive rules.
 
         Args:
-            rule_ids: List of rule IDs to restore.
-            client_keys: List of client keys to restore.
+            rule_ids: List of rule IDs to unarchive.
+            client_keys: List of client keys to unarchive.
 
         Raises:
             ValueError: If neither rule_ids nor client_keys is provided.
         """
-        if rule_ids is None and client_keys is None:
-            raise ValueError("Either rule_ids or client_keys must be provided")
-
         request_kwargs: dict[str, Any] = {}
         if rule_ids is not None:
             request_kwargs["rule_ids"] = rule_ids
         if client_keys is not None:
             request_kwargs["client_keys"] = client_keys
 
-        request = BatchUndeleteRulesRequest(**request_kwargs)
-        await self._grpc_client.get_stub(RuleServiceStub).BatchUndeleteRules(request)
+        request = BatchUnarchiveRulesRequest(**request_kwargs)
+        await self._grpc_client.get_stub(RuleServiceStub).BatchUnarchiveRules(request)
 
     async def list_rules(
         self,

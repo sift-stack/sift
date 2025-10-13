@@ -342,6 +342,753 @@ impl<'de> serde::Deserialize<'de> for Channel {
         deserializer.deserialize_struct("sift.channels.v3.Channel", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for FilterChannel {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.channel_id.is_empty() {
+            len += 1;
+        }
+        if !self.name.is_empty() {
+            len += 1;
+        }
+        if !self.organization_id.is_empty() {
+            len += 1;
+        }
+        if !self.asset_id.is_empty() {
+            len += 1;
+        }
+        if !self.asset_name.is_empty() {
+            len += 1;
+        }
+        if !self.description.is_empty() {
+            len += 1;
+        }
+        if !self.display_description.is_empty() {
+            len += 1;
+        }
+        if !self.unit_id.is_empty() {
+            len += 1;
+        }
+        if !self.display_unit_id.is_empty() {
+            len += 1;
+        }
+        if !self.unit.is_empty() {
+            len += 1;
+        }
+        if !self.display_unit.is_empty() {
+            len += 1;
+        }
+        if self.data_type != 0 {
+            len += 1;
+        }
+        if !self.enum_types.is_empty() {
+            len += 1;
+        }
+        if !self.bit_field_elements.is_empty() {
+            len += 1;
+        }
+        if !self.metadata.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.channels.v3.FilterChannel", len)?;
+        if !self.channel_id.is_empty() {
+            struct_ser.serialize_field("channelId", &self.channel_id)?;
+        }
+        if !self.name.is_empty() {
+            struct_ser.serialize_field("name", &self.name)?;
+        }
+        if !self.organization_id.is_empty() {
+            struct_ser.serialize_field("organizationId", &self.organization_id)?;
+        }
+        if !self.asset_id.is_empty() {
+            struct_ser.serialize_field("assetId", &self.asset_id)?;
+        }
+        if !self.asset_name.is_empty() {
+            struct_ser.serialize_field("assetName", &self.asset_name)?;
+        }
+        if !self.description.is_empty() {
+            struct_ser.serialize_field("description", &self.description)?;
+        }
+        if !self.display_description.is_empty() {
+            struct_ser.serialize_field("displayDescription", &self.display_description)?;
+        }
+        if !self.unit_id.is_empty() {
+            struct_ser.serialize_field("unitId", &self.unit_id)?;
+        }
+        if !self.display_unit_id.is_empty() {
+            struct_ser.serialize_field("displayUnitId", &self.display_unit_id)?;
+        }
+        if !self.unit.is_empty() {
+            struct_ser.serialize_field("unit", &self.unit)?;
+        }
+        if !self.display_unit.is_empty() {
+            struct_ser.serialize_field("displayUnit", &self.display_unit)?;
+        }
+        if self.data_type != 0 {
+            let v = super::super::common::r#type::v1::ChannelDataType::try_from(self.data_type)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.data_type)))?;
+            struct_ser.serialize_field("dataType", &v)?;
+        }
+        if !self.enum_types.is_empty() {
+            struct_ser.serialize_field("enumTypes", &self.enum_types)?;
+        }
+        if !self.bit_field_elements.is_empty() {
+            struct_ser.serialize_field("bitFieldElements", &self.bit_field_elements)?;
+        }
+        if !self.metadata.is_empty() {
+            struct_ser.serialize_field("metadata", &self.metadata)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FilterChannel {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "channel_id",
+            "channelId",
+            "name",
+            "organization_id",
+            "organizationId",
+            "asset_id",
+            "assetId",
+            "asset_name",
+            "assetName",
+            "description",
+            "display_description",
+            "displayDescription",
+            "unit_id",
+            "unitId",
+            "display_unit_id",
+            "displayUnitId",
+            "unit",
+            "display_unit",
+            "displayUnit",
+            "data_type",
+            "dataType",
+            "enum_types",
+            "enumTypes",
+            "bit_field_elements",
+            "bitFieldElements",
+            "metadata",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            ChannelId,
+            Name,
+            OrganizationId,
+            AssetId,
+            AssetName,
+            Description,
+            DisplayDescription,
+            UnitId,
+            DisplayUnitId,
+            Unit,
+            DisplayUnit,
+            DataType,
+            EnumTypes,
+            BitFieldElements,
+            Metadata,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "channelId" | "channel_id" => Ok(GeneratedField::ChannelId),
+                            "name" => Ok(GeneratedField::Name),
+                            "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
+                            "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
+                            "assetName" | "asset_name" => Ok(GeneratedField::AssetName),
+                            "description" => Ok(GeneratedField::Description),
+                            "displayDescription" | "display_description" => Ok(GeneratedField::DisplayDescription),
+                            "unitId" | "unit_id" => Ok(GeneratedField::UnitId),
+                            "displayUnitId" | "display_unit_id" => Ok(GeneratedField::DisplayUnitId),
+                            "unit" => Ok(GeneratedField::Unit),
+                            "displayUnit" | "display_unit" => Ok(GeneratedField::DisplayUnit),
+                            "dataType" | "data_type" => Ok(GeneratedField::DataType),
+                            "enumTypes" | "enum_types" => Ok(GeneratedField::EnumTypes),
+                            "bitFieldElements" | "bit_field_elements" => Ok(GeneratedField::BitFieldElements),
+                            "metadata" => Ok(GeneratedField::Metadata),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FilterChannel;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.channels.v3.FilterChannel")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FilterChannel, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut channel_id__ = None;
+                let mut name__ = None;
+                let mut organization_id__ = None;
+                let mut asset_id__ = None;
+                let mut asset_name__ = None;
+                let mut description__ = None;
+                let mut display_description__ = None;
+                let mut unit_id__ = None;
+                let mut display_unit_id__ = None;
+                let mut unit__ = None;
+                let mut display_unit__ = None;
+                let mut data_type__ = None;
+                let mut enum_types__ = None;
+                let mut bit_field_elements__ = None;
+                let mut metadata__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::ChannelId => {
+                            if channel_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channelId"));
+                            }
+                            channel_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Name => {
+                            if name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("name"));
+                            }
+                            name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::OrganizationId => {
+                            if organization_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("organizationId"));
+                            }
+                            organization_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AssetId => {
+                            if asset_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetId"));
+                            }
+                            asset_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AssetName => {
+                            if asset_name__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetName"));
+                            }
+                            asset_name__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Description => {
+                            if description__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("description"));
+                            }
+                            description__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DisplayDescription => {
+                            if display_description__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("displayDescription"));
+                            }
+                            display_description__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::UnitId => {
+                            if unit_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("unitId"));
+                            }
+                            unit_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DisplayUnitId => {
+                            if display_unit_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("displayUnitId"));
+                            }
+                            display_unit_id__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Unit => {
+                            if unit__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("unit"));
+                            }
+                            unit__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DisplayUnit => {
+                            if display_unit__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("displayUnit"));
+                            }
+                            display_unit__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DataType => {
+                            if data_type__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dataType"));
+                            }
+                            data_type__ = Some(map_.next_value::<super::super::common::r#type::v1::ChannelDataType>()? as i32);
+                        }
+                        GeneratedField::EnumTypes => {
+                            if enum_types__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("enumTypes"));
+                            }
+                            enum_types__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::BitFieldElements => {
+                            if bit_field_elements__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("bitFieldElements"));
+                            }
+                            bit_field_elements__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::Metadata => {
+                            if metadata__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadata"));
+                            }
+                            metadata__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(FilterChannel {
+                    channel_id: channel_id__.unwrap_or_default(),
+                    name: name__.unwrap_or_default(),
+                    organization_id: organization_id__.unwrap_or_default(),
+                    asset_id: asset_id__.unwrap_or_default(),
+                    asset_name: asset_name__.unwrap_or_default(),
+                    description: description__.unwrap_or_default(),
+                    display_description: display_description__.unwrap_or_default(),
+                    unit_id: unit_id__.unwrap_or_default(),
+                    display_unit_id: display_unit_id__.unwrap_or_default(),
+                    unit: unit__.unwrap_or_default(),
+                    display_unit: display_unit__.unwrap_or_default(),
+                    data_type: data_type__.unwrap_or_default(),
+                    enum_types: enum_types__.unwrap_or_default(),
+                    bit_field_elements: bit_field_elements__.unwrap_or_default(),
+                    metadata: metadata__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.channels.v3.FilterChannel", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for FilterChannelsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.page_size != 0 {
+            len += 1;
+        }
+        if !self.page_token.is_empty() {
+            len += 1;
+        }
+        if !self.search_term.is_empty() {
+            len += 1;
+        }
+        if self.is_search_case_sensitive {
+            len += 1;
+        }
+        if self.is_search_regexp {
+            len += 1;
+        }
+        if !self.asset_ids.is_empty() {
+            len += 1;
+        }
+        if !self.run_ids.is_empty() {
+            len += 1;
+        }
+        if !self.channel_ids.is_empty() {
+            len += 1;
+        }
+        if !self.asset_tag_ids.is_empty() {
+            len += 1;
+        }
+        if !self.data_types.is_empty() {
+            len += 1;
+        }
+        if !self.metadata_keys.is_empty() {
+            len += 1;
+        }
+        if !self.metadata_values.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.channels.v3.FilterChannelsRequest", len)?;
+        if self.page_size != 0 {
+            struct_ser.serialize_field("pageSize", &self.page_size)?;
+        }
+        if !self.page_token.is_empty() {
+            struct_ser.serialize_field("pageToken", &self.page_token)?;
+        }
+        if !self.search_term.is_empty() {
+            struct_ser.serialize_field("searchTerm", &self.search_term)?;
+        }
+        if self.is_search_case_sensitive {
+            struct_ser.serialize_field("isSearchCaseSensitive", &self.is_search_case_sensitive)?;
+        }
+        if self.is_search_regexp {
+            struct_ser.serialize_field("isSearchRegexp", &self.is_search_regexp)?;
+        }
+        if !self.asset_ids.is_empty() {
+            struct_ser.serialize_field("assetIds", &self.asset_ids)?;
+        }
+        if !self.run_ids.is_empty() {
+            struct_ser.serialize_field("runIds", &self.run_ids)?;
+        }
+        if !self.channel_ids.is_empty() {
+            struct_ser.serialize_field("channelIds", &self.channel_ids)?;
+        }
+        if !self.asset_tag_ids.is_empty() {
+            struct_ser.serialize_field("assetTagIds", &self.asset_tag_ids)?;
+        }
+        if !self.data_types.is_empty() {
+            let v = self.data_types.iter().cloned().map(|v| {
+                super::super::common::r#type::v1::ChannelDataType::try_from(v)
+                    .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", v)))
+                }).collect::<Result<Vec<_>, _>>()?;
+            struct_ser.serialize_field("dataTypes", &v)?;
+        }
+        if !self.metadata_keys.is_empty() {
+            struct_ser.serialize_field("metadataKeys", &self.metadata_keys)?;
+        }
+        if !self.metadata_values.is_empty() {
+            struct_ser.serialize_field("metadataValues", &self.metadata_values)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FilterChannelsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "page_size",
+            "pageSize",
+            "page_token",
+            "pageToken",
+            "search_term",
+            "searchTerm",
+            "is_search_case_sensitive",
+            "isSearchCaseSensitive",
+            "is_search_regexp",
+            "isSearchRegexp",
+            "asset_ids",
+            "assetIds",
+            "run_ids",
+            "runIds",
+            "channel_ids",
+            "channelIds",
+            "asset_tag_ids",
+            "assetTagIds",
+            "data_types",
+            "dataTypes",
+            "metadata_keys",
+            "metadataKeys",
+            "metadata_values",
+            "metadataValues",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            PageSize,
+            PageToken,
+            SearchTerm,
+            IsSearchCaseSensitive,
+            IsSearchRegexp,
+            AssetIds,
+            RunIds,
+            ChannelIds,
+            AssetTagIds,
+            DataTypes,
+            MetadataKeys,
+            MetadataValues,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "pageSize" | "page_size" => Ok(GeneratedField::PageSize),
+                            "pageToken" | "page_token" => Ok(GeneratedField::PageToken),
+                            "searchTerm" | "search_term" => Ok(GeneratedField::SearchTerm),
+                            "isSearchCaseSensitive" | "is_search_case_sensitive" => Ok(GeneratedField::IsSearchCaseSensitive),
+                            "isSearchRegexp" | "is_search_regexp" => Ok(GeneratedField::IsSearchRegexp),
+                            "assetIds" | "asset_ids" => Ok(GeneratedField::AssetIds),
+                            "runIds" | "run_ids" => Ok(GeneratedField::RunIds),
+                            "channelIds" | "channel_ids" => Ok(GeneratedField::ChannelIds),
+                            "assetTagIds" | "asset_tag_ids" => Ok(GeneratedField::AssetTagIds),
+                            "dataTypes" | "data_types" => Ok(GeneratedField::DataTypes),
+                            "metadataKeys" | "metadata_keys" => Ok(GeneratedField::MetadataKeys),
+                            "metadataValues" | "metadata_values" => Ok(GeneratedField::MetadataValues),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FilterChannelsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.channels.v3.FilterChannelsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FilterChannelsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut page_size__ = None;
+                let mut page_token__ = None;
+                let mut search_term__ = None;
+                let mut is_search_case_sensitive__ = None;
+                let mut is_search_regexp__ = None;
+                let mut asset_ids__ = None;
+                let mut run_ids__ = None;
+                let mut channel_ids__ = None;
+                let mut asset_tag_ids__ = None;
+                let mut data_types__ = None;
+                let mut metadata_keys__ = None;
+                let mut metadata_values__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::PageSize => {
+                            if page_size__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageSize"));
+                            }
+                            page_size__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PageToken => {
+                            if page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("pageToken"));
+                            }
+                            page_token__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::SearchTerm => {
+                            if search_term__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("searchTerm"));
+                            }
+                            search_term__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::IsSearchCaseSensitive => {
+                            if is_search_case_sensitive__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isSearchCaseSensitive"));
+                            }
+                            is_search_case_sensitive__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::IsSearchRegexp => {
+                            if is_search_regexp__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isSearchRegexp"));
+                            }
+                            is_search_regexp__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AssetIds => {
+                            if asset_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetIds"));
+                            }
+                            asset_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::RunIds => {
+                            if run_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runIds"));
+                            }
+                            run_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::ChannelIds => {
+                            if channel_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channelIds"));
+                            }
+                            channel_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::AssetTagIds => {
+                            if asset_tag_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("assetTagIds"));
+                            }
+                            asset_tag_ids__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::DataTypes => {
+                            if data_types__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("dataTypes"));
+                            }
+                            data_types__ = Some(map_.next_value::<Vec<super::super::common::r#type::v1::ChannelDataType>>()?.into_iter().map(|x| x as i32).collect());
+                        }
+                        GeneratedField::MetadataKeys => {
+                            if metadata_keys__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadataKeys"));
+                            }
+                            metadata_keys__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::MetadataValues => {
+                            if metadata_values__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadataValues"));
+                            }
+                            metadata_values__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(FilterChannelsRequest {
+                    page_size: page_size__.unwrap_or_default(),
+                    page_token: page_token__.unwrap_or_default(),
+                    search_term: search_term__.unwrap_or_default(),
+                    is_search_case_sensitive: is_search_case_sensitive__.unwrap_or_default(),
+                    is_search_regexp: is_search_regexp__.unwrap_or_default(),
+                    asset_ids: asset_ids__.unwrap_or_default(),
+                    run_ids: run_ids__.unwrap_or_default(),
+                    channel_ids: channel_ids__.unwrap_or_default(),
+                    asset_tag_ids: asset_tag_ids__.unwrap_or_default(),
+                    data_types: data_types__.unwrap_or_default(),
+                    metadata_keys: metadata_keys__.unwrap_or_default(),
+                    metadata_values: metadata_values__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.channels.v3.FilterChannelsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for FilterChannelsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.channels.is_empty() {
+            len += 1;
+        }
+        if !self.next_page_token.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.channels.v3.FilterChannelsResponse", len)?;
+        if !self.channels.is_empty() {
+            struct_ser.serialize_field("channels", &self.channels)?;
+        }
+        if !self.next_page_token.is_empty() {
+            struct_ser.serialize_field("nextPageToken", &self.next_page_token)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for FilterChannelsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "channels",
+            "next_page_token",
+            "nextPageToken",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Channels,
+            NextPageToken,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "channels" => Ok(GeneratedField::Channels),
+                            "nextPageToken" | "next_page_token" => Ok(GeneratedField::NextPageToken),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = FilterChannelsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.channels.v3.FilterChannelsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FilterChannelsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut channels__ = None;
+                let mut next_page_token__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Channels => {
+                            if channels__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("channels"));
+                            }
+                            channels__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::NextPageToken => {
+                            if next_page_token__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("nextPageToken"));
+                            }
+                            next_page_token__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(FilterChannelsResponse {
+                    channels: channels__.unwrap_or_default(),
+                    next_page_token: next_page_token__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.channels.v3.FilterChannelsResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for GetChannelRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>

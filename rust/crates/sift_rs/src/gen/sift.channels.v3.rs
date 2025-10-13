@@ -68,6 +68,76 @@ pub struct ListChannelsResponse {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FilterChannel {
+    #[prost(string, tag="1")]
+    pub channel_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub organization_id: ::prost::alloc::string::String,
+    #[prost(string, tag="5")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag="6")]
+    pub asset_name: ::prost::alloc::string::String,
+    #[prost(string, tag="7")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag="8")]
+    pub display_description: ::prost::alloc::string::String,
+    #[prost(string, tag="9")]
+    pub unit_id: ::prost::alloc::string::String,
+    #[prost(string, tag="10")]
+    pub display_unit_id: ::prost::alloc::string::String,
+    #[prost(string, tag="11")]
+    pub unit: ::prost::alloc::string::String,
+    #[prost(string, tag="12")]
+    pub display_unit: ::prost::alloc::string::String,
+    #[prost(enumeration="super::super::common::r#type::v1::ChannelDataType", tag="13")]
+    pub data_type: i32,
+    #[prost(message, repeated, tag="14")]
+    pub enum_types: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::ChannelEnumType>,
+    #[prost(message, repeated, tag="15")]
+    pub bit_field_elements: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::ChannelBitFieldElement>,
+    #[prost(message, repeated, tag="16")]
+    pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FilterChannelsRequest {
+    #[prost(uint32, tag="1")]
+    pub page_size: u32,
+    #[prost(string, tag="2")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub search_term: ::prost::alloc::string::String,
+    #[prost(bool, tag="5")]
+    pub is_search_case_sensitive: bool,
+    #[prost(bool, tag="6")]
+    pub is_search_regexp: bool,
+    #[prost(string, repeated, tag="7")]
+    pub asset_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="8")]
+    pub run_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="9")]
+    pub channel_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="10")]
+    pub asset_tag_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration="super::super::common::r#type::v1::ChannelDataType", repeated, tag="11")]
+    pub data_types: ::prost::alloc::vec::Vec<i32>,
+    #[prost(string, repeated, tag="12")]
+    pub metadata_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag="13")]
+    pub metadata_values: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FilterChannelsResponse {
+    #[prost(message, repeated, tag="1")]
+    pub channels: ::prost::alloc::vec::Vec<FilterChannel>,
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateChannelRequest {
     #[prost(message, optional, tag="1")]
     pub channel: ::core::option::Option<Channel>,

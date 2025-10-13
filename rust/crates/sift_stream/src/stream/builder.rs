@@ -4,9 +4,12 @@ use super::{
     mode::ingestion_config::IngestionConfigMode,
     run::{load_run_by_form, load_run_by_id},
 };
-use crate::backup::{
-    disk::{AsyncBackupsManager, DiskBackupPolicy},
-    sanitize_name,
+use crate::{
+    backup::{
+        disk::{AsyncBackupsManager, DiskBackupPolicy},
+        sanitize_name,
+    },
+    metrics::SiftStreamMetrics,
 };
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
@@ -20,7 +23,7 @@ use sift_rs::{
         ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
     },
 };
-use std::{marker::PhantomData, time::Duration};
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 /// The default checkpoint interval (1 minute) to use if left unspecified.
 pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
@@ -281,6 +284,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         let mut backups_manager = None;
         let mut policy = None;
 
+        let metrics = Arc::new(SiftStreamMetrics::new());
+
         if let Some(strategy) = recovery_strategy {
             match strategy {
                 RecoveryStrategy::RetryOnly(retry_policy) => {
@@ -301,6 +306,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                         disk_backup_policy,
                         retry_policy,
                         channel.clone(),
+                        metrics.clone(),
                     )
                     .context("failed to build backups manager")?;
 
@@ -317,6 +323,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             checkpoint_interval,
             policy,
             backups_manager,
+            metrics,
         ))
     }
 

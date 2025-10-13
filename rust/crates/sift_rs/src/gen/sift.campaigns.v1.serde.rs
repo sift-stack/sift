@@ -49,6 +49,9 @@ impl serde::Serialize for Campaign {
         if !self.metadata.is_empty() {
             len += 1;
         }
+        if self.is_archived {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.campaigns.v1.Campaign", len)?;
         if !self.campaign_id.is_empty() {
             struct_ser.serialize_field("campaignId", &self.campaign_id)?;
@@ -92,6 +95,9 @@ impl serde::Serialize for Campaign {
         if !self.metadata.is_empty() {
             struct_ser.serialize_field("metadata", &self.metadata)?;
         }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
+        }
         struct_ser.end()
     }
 }
@@ -125,6 +131,8 @@ impl<'de> serde::Deserialize<'de> for Campaign {
             "created_from_campaign_id",
             "createdFromCampaignId",
             "metadata",
+            "is_archived",
+            "isArchived",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -143,6 +151,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
             Reports,
             CreatedFromCampaignId,
             Metadata,
+            IsArchived,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -178,6 +187,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             "reports" => Ok(GeneratedField::Reports),
                             "createdFromCampaignId" | "created_from_campaign_id" => Ok(GeneratedField::CreatedFromCampaignId),
                             "metadata" => Ok(GeneratedField::Metadata),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -211,6 +221,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                 let mut reports__ = None;
                 let mut created_from_campaign_id__ = None;
                 let mut metadata__ = None;
+                let mut is_archived__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::CampaignId => {
@@ -297,6 +308,12 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                             }
                             metadata__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Campaign {
@@ -314,6 +331,7 @@ impl<'de> serde::Deserialize<'de> for Campaign {
                     reports: reports__.unwrap_or_default(),
                     created_from_campaign_id: created_from_campaign_id__,
                     metadata: metadata__.unwrap_or_default(),
+                    is_archived: is_archived__.unwrap_or_default(),
                 })
             }
         }

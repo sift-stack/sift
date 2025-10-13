@@ -82,6 +82,12 @@ impl serde::Serialize for Annotation {
         if !self.metadata.is_empty() {
             len += 1;
         }
+        if self.archived_date.is_some() {
+            len += 1;
+        }
+        if self.is_archived {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.Annotation", len)?;
         if !self.annotation_id.is_empty() {
             struct_ser.serialize_field("annotationId", &self.annotation_id)?;
@@ -162,6 +168,12 @@ impl serde::Serialize for Annotation {
         if !self.metadata.is_empty() {
             struct_ser.serialize_field("metadata", &self.metadata)?;
         }
+        if let Some(v) = self.archived_date.as_ref() {
+            struct_ser.serialize_field("archivedDate", v)?;
+        }
+        if self.is_archived {
+            struct_ser.serialize_field("isArchived", &self.is_archived)?;
+        }
         struct_ser.end()
     }
 }
@@ -216,6 +228,10 @@ impl<'de> serde::Deserialize<'de> for Annotation {
             "asset_ids",
             "assetIds",
             "metadata",
+            "archived_date",
+            "archivedDate",
+            "is_archived",
+            "isArchived",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -245,6 +261,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
             LinkedChannels,
             AssetIds,
             Metadata,
+            ArchivedDate,
+            IsArchived,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -291,6 +309,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                             "linkedChannels" | "linked_channels" => Ok(GeneratedField::LinkedChannels),
                             "assetIds" | "asset_ids" => Ok(GeneratedField::AssetIds),
                             "metadata" => Ok(GeneratedField::Metadata),
+                            "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
+                            "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -335,6 +355,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                 let mut linked_channels__ = None;
                 let mut asset_ids__ = None;
                 let mut metadata__ = None;
+                let mut archived_date__ = None;
+                let mut is_archived__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AnnotationId => {
@@ -487,6 +509,18 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                             }
                             metadata__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::ArchivedDate => {
+                            if archived_date__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("archivedDate"));
+                            }
+                            archived_date__ = map_.next_value()?;
+                        }
+                        GeneratedField::IsArchived => {
+                            if is_archived__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("isArchived"));
+                            }
+                            is_archived__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(Annotation {
@@ -515,6 +549,8 @@ impl<'de> serde::Deserialize<'de> for Annotation {
                     linked_channels: linked_channels__.unwrap_or_default(),
                     asset_ids: asset_ids__.unwrap_or_default(),
                     metadata: metadata__.unwrap_or_default(),
+                    archived_date: archived_date__,
+                    is_archived: is_archived__.unwrap_or_default(),
                 })
             }
         }
@@ -984,6 +1020,372 @@ impl<'de> serde::Deserialize<'de> for AnnotationType {
         deserializer.deserialize_any(GeneratedVisitor)
     }
 }
+impl serde::Serialize for ArchiveAnnotationRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.annotation_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.ArchiveAnnotationRequest", len)?;
+        if !self.annotation_id.is_empty() {
+            struct_ser.serialize_field("annotationId", &self.annotation_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArchiveAnnotationRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotation_id",
+            "annotationId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AnnotationId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotationId" | "annotation_id" => Ok(GeneratedField::AnnotationId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArchiveAnnotationRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.ArchiveAnnotationRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ArchiveAnnotationRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotation_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AnnotationId => {
+                            if annotation_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotationId"));
+                            }
+                            annotation_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(ArchiveAnnotationRequest {
+                    annotation_id: annotation_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.ArchiveAnnotationRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for ArchiveAnnotationResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.annotation.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.ArchiveAnnotationResponse", len)?;
+        if let Some(v) = self.annotation.as_ref() {
+            struct_ser.serialize_field("annotation", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for ArchiveAnnotationResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotation",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Annotation,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotation" => Ok(GeneratedField::Annotation),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ArchiveAnnotationResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.ArchiveAnnotationResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<ArchiveAnnotationResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotation__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Annotation => {
+                            if annotation__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotation"));
+                            }
+                            annotation__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(ArchiveAnnotationResponse {
+                    annotation: annotation__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.ArchiveAnnotationResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchArchiveAnnotationsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.annotation_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.BatchArchiveAnnotationsRequest", len)?;
+        if !self.annotation_ids.is_empty() {
+            struct_ser.serialize_field("annotationIds", &self.annotation_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchArchiveAnnotationsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotation_ids",
+            "annotationIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AnnotationIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotationIds" | "annotation_ids" => Ok(GeneratedField::AnnotationIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchArchiveAnnotationsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.BatchArchiveAnnotationsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchArchiveAnnotationsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotation_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AnnotationIds => {
+                            if annotation_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotationIds"));
+                            }
+                            annotation_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchArchiveAnnotationsRequest {
+                    annotation_ids: annotation_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.BatchArchiveAnnotationsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchArchiveAnnotationsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.annotations.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.BatchArchiveAnnotationsResponse", len)?;
+        if !self.annotations.is_empty() {
+            struct_ser.serialize_field("annotations", &self.annotations)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchArchiveAnnotationsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotations",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Annotations,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotations" => Ok(GeneratedField::Annotations),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchArchiveAnnotationsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.BatchArchiveAnnotationsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchArchiveAnnotationsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotations__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Annotations => {
+                            if annotations__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotations"));
+                            }
+                            annotations__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchArchiveAnnotationsResponse {
+                    annotations: annotations__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.BatchArchiveAnnotationsResponse", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for BatchDeleteAnnotationsRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1145,6 +1547,189 @@ impl<'de> serde::Deserialize<'de> for BatchDeleteAnnotationsResponse {
             }
         }
         deserializer.deserialize_struct("sift.annotations.v1.BatchDeleteAnnotationsResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUnarchiveAnnotationsRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.annotation_ids.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.BatchUnarchiveAnnotationsRequest", len)?;
+        if !self.annotation_ids.is_empty() {
+            struct_ser.serialize_field("annotationIds", &self.annotation_ids)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUnarchiveAnnotationsRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotation_ids",
+            "annotationIds",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AnnotationIds,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotationIds" | "annotation_ids" => Ok(GeneratedField::AnnotationIds),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUnarchiveAnnotationsRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.BatchUnarchiveAnnotationsRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUnarchiveAnnotationsRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotation_ids__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AnnotationIds => {
+                            if annotation_ids__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotationIds"));
+                            }
+                            annotation_ids__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchUnarchiveAnnotationsRequest {
+                    annotation_ids: annotation_ids__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.BatchUnarchiveAnnotationsRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for BatchUnarchiveAnnotationsResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.annotations.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.BatchUnarchiveAnnotationsResponse", len)?;
+        if !self.annotations.is_empty() {
+            struct_ser.serialize_field("annotations", &self.annotations)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for BatchUnarchiveAnnotationsResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotations",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Annotations,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotations" => Ok(GeneratedField::Annotations),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = BatchUnarchiveAnnotationsResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.BatchUnarchiveAnnotationsResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<BatchUnarchiveAnnotationsResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotations__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Annotations => {
+                            if annotations__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotations"));
+                            }
+                            annotations__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(BatchUnarchiveAnnotationsResponse {
+                    annotations: annotations__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.BatchUnarchiveAnnotationsResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for CreateAnnotationRequest {
@@ -2216,6 +2801,189 @@ impl<'de> serde::Deserialize<'de> for ListAnnotationsResponse {
             }
         }
         deserializer.deserialize_struct("sift.annotations.v1.ListAnnotationsResponse", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UnarchiveAnnotationRequest {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if !self.annotation_id.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.UnarchiveAnnotationRequest", len)?;
+        if !self.annotation_id.is_empty() {
+            struct_ser.serialize_field("annotationId", &self.annotation_id)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UnarchiveAnnotationRequest {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotation_id",
+            "annotationId",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            AnnotationId,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotationId" | "annotation_id" => Ok(GeneratedField::AnnotationId),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UnarchiveAnnotationRequest;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.UnarchiveAnnotationRequest")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UnarchiveAnnotationRequest, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotation_id__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::AnnotationId => {
+                            if annotation_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotationId"));
+                            }
+                            annotation_id__ = Some(map_.next_value()?);
+                        }
+                    }
+                }
+                Ok(UnarchiveAnnotationRequest {
+                    annotation_id: annotation_id__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.UnarchiveAnnotationRequest", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for UnarchiveAnnotationResponse {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.annotation.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("sift.annotations.v1.UnarchiveAnnotationResponse", len)?;
+        if let Some(v) = self.annotation.as_ref() {
+            struct_ser.serialize_field("annotation", v)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for UnarchiveAnnotationResponse {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "annotation",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Annotation,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "annotation" => Ok(GeneratedField::Annotation),
+                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = UnarchiveAnnotationResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct sift.annotations.v1.UnarchiveAnnotationResponse")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<UnarchiveAnnotationResponse, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut annotation__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Annotation => {
+                            if annotation__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("annotation"));
+                            }
+                            annotation__ = map_.next_value()?;
+                        }
+                    }
+                }
+                Ok(UnarchiveAnnotationResponse {
+                    annotation: annotation__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("sift.annotations.v1.UnarchiveAnnotationResponse", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for UpdateAnnotationRequest {

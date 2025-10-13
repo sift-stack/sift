@@ -69,9 +69,14 @@ class SavedSearchProperties(google.protobuf.message.Message):
     RUN_ITEMS_FIELD_NUMBER: builtins.int
     REPORT_TEMPLATE_ITEMS_FIELD_NUMBER: builtins.int
     SHOW_ADVANCED_FILTERS_FIELD_NUMBER: builtins.int
+    INCLUDE_ARCHIVED_FIELD_NUMBER: builtins.int
+    ORDER_BY_FIELD_NUMBER: builtins.int
+    METADATA_ITEMS_FIELD_NUMBER: builtins.int
     overview_mode: builtins.str
     search_term: builtins.str
     show_advanced_filters: builtins.bool
+    include_archived: builtins.bool
+    order_by: builtins.str
     @property
     def from_date_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -88,6 +93,8 @@ class SavedSearchProperties(google.protobuf.message.Message):
     def run_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchFilterItem]: ...
     @property
     def report_template_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchFilterItem]: ...
+    @property
+    def metadata_items(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___SavedSearchMetadataItem]: ...
     def __init__(
         self,
         *,
@@ -102,11 +109,18 @@ class SavedSearchProperties(google.protobuf.message.Message):
         run_items: collections.abc.Iterable[global___SavedSearchFilterItem] | None = ...,
         report_template_items: collections.abc.Iterable[global___SavedSearchFilterItem] | None = ...,
         show_advanced_filters: builtins.bool | None = ...,
+        include_archived: builtins.bool | None = ...,
+        order_by: builtins.str | None = ...,
+        metadata_items: collections.abc.Iterable[global___SavedSearchMetadataItem] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "from_date_time", b"from_date_time", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "to_date_time", b"to_date_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "annotation_items", b"annotation_items", "asset_items", b"asset_items", "from_date_time", b"from_date_time", "overview_mode", b"overview_mode", "report_template_items", b"report_template_items", "run_items", b"run_items", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "tag_items", b"tag_items", "to_date_time", b"to_date_time", "user_items", b"user_items"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "order_by", b"order_by", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "to_date_time", b"to_date_time"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_from_date_time", b"_from_date_time", "_include_archived", b"_include_archived", "_order_by", b"_order_by", "_search_term", b"_search_term", "_show_advanced_filters", b"_show_advanced_filters", "_to_date_time", b"_to_date_time", "annotation_items", b"annotation_items", "asset_items", b"asset_items", "from_date_time", b"from_date_time", "include_archived", b"include_archived", "metadata_items", b"metadata_items", "order_by", b"order_by", "overview_mode", b"overview_mode", "report_template_items", b"report_template_items", "run_items", b"run_items", "search_term", b"search_term", "show_advanced_filters", b"show_advanced_filters", "tag_items", b"tag_items", "to_date_time", b"to_date_time", "user_items", b"user_items"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_from_date_time", b"_from_date_time"]) -> typing.Literal["from_date_time"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_include_archived", b"_include_archived"]) -> typing.Literal["include_archived"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_order_by", b"_order_by"]) -> typing.Literal["order_by"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_search_term", b"_search_term"]) -> typing.Literal["search_term"] | None: ...
     @typing.overload
@@ -133,6 +147,32 @@ class SavedSearchFilterItem(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["id", b"id", "name", b"name"]) -> None: ...
 
 global___SavedSearchFilterItem = SavedSearchFilterItem
+
+@typing.final
+class SavedSearchMetadataItem(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    KEY_FIELD_NUMBER: builtins.int
+    STRING_VALUE_FIELD_NUMBER: builtins.int
+    NUMBER_VALUE_FIELD_NUMBER: builtins.int
+    BOOLEAN_VALUE_FIELD_NUMBER: builtins.int
+    key: builtins.str
+    string_value: builtins.str
+    number_value: builtins.float
+    boolean_value: builtins.bool
+    def __init__(
+        self,
+        *,
+        key: builtins.str = ...,
+        string_value: builtins.str = ...,
+        number_value: builtins.float = ...,
+        boolean_value: builtins.bool = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["boolean_value", b"boolean_value", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["boolean_value", b"boolean_value", "key", b"key", "number_value", b"number_value", "string_value", b"string_value", "value", b"value"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["value", b"value"]) -> typing.Literal["string_value", "number_value", "boolean_value"] | None: ...
+
+global___SavedSearchMetadataItem = SavedSearchMetadataItem
 
 @typing.final
 class GetSavedSearchRequest(google.protobuf.message.Message):

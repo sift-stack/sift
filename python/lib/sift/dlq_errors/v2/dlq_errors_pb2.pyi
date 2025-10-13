@@ -30,7 +30,6 @@ class ListDlqErrorsRequest(google.protobuf.message.Message):
     page_token: builtins.str
     """A page token, received from a previous `ListDlqErrors` call.
     Provide this to retrieve the subsequent page.
-
     When paginating, all other parameters provided to `ListDlqErrors` must match
     the call that provided the page token.
     """

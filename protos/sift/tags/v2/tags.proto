@@ -7,7 +7,6 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Tag Service"}
 };
@@ -44,6 +43,16 @@ message Tag {
   string name = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
   string created_by_user_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
   google.protobuf.Timestamp created_date = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+enum TagType {
+  TAG_TYPE_UNSPECIFIED = 0;
+  TAG_TYPE_ANNOTATION = 1;
+  TAG_TYPE_ASSET = 2;
+  TAG_TYPE_CAMPAIGN = 3;
+  TAG_TYPE_REPORT = 4;
+  TAG_TYPE_REPORT_TEMPLATE = 5;
+  TAG_TYPE_RUN = 6;
 }
 
 // The request for a call to TagService.CreateTag.
@@ -83,6 +92,9 @@ message ListTagsRequest {
   // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
   // Example: "created_date desc,name"
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // Narrows the tags selected to a specific type.
+  TagType tag_type = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListTagsResponse {

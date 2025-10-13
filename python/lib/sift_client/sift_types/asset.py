@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 class Asset(BaseType[AssetProto, "Asset"]):
     """Model of the Sift Asset."""
 
+    # Required fields
     name: str
     organization_id: str
     created_date: datetime
@@ -25,15 +26,10 @@ class Asset(BaseType[AssetProto, "Asset"]):
     modified_by_user_id: str
     tags: list[str]
     metadata: dict[str, str | float | bool]
-    archived_date: datetime | None
+    is_archived: bool
 
-    @property
-    def is_archived(self):
-        """Whether the asset is archived."""
-        # TODO: clean up this logic when gRPC returns a null.
-        return self.archived_date is not None and self.archived_date > datetime(
-            1970, 1, 1, tzinfo=timezone.utc
-        )
+    # Optional fields
+    archived_date: datetime | None
 
     @property
     def created_by(self):
@@ -48,11 +44,11 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @property
     def runs(self) -> list[Run]:
         """Get the runs associated with this asset."""
-        return self.client.runs.list_(asset_id=self.id_)
+        return self.client.runs.list_(assets=[self])
 
-    def channels(self, run_id: str | None = None, limit: int | None = None) -> list[Channel]:
+    def channels(self, run: Run | str | None = None, limit: int | None = None) -> list[Channel]:
         """Get the channels for this asset."""
-        return self.client.channels.list_(asset_id=self.id_, run_id=run_id, limit=limit)
+        return self.client.channels.list_(asset=self, run=run, limit=limit)
 
     @property
     def rules(self):
@@ -74,6 +70,12 @@ class Asset(BaseType[AssetProto, "Asset"]):
         self._update(updated_asset)
         return self
 
+    def unarchive(self) -> Asset:
+        """Unarchive the asset."""
+        updated_asset = self.client.assets.unarchive(asset=self)
+        self._update(updated_asset)
+        return self
+
     def update(self, update: AssetUpdate | dict) -> Asset:
         """Update the Asset.
 
@@ -88,6 +90,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
     @classmethod
     def _from_proto(cls, proto: AssetProto, sift_client: SiftClient | None = None) -> Asset:
         return cls(
+            proto=proto,
             id_=proto.asset_id,
             name=proto.name,
             organization_id=proto.organization_id,
@@ -97,6 +100,7 @@ class Asset(BaseType[AssetProto, "Asset"]):
             modified_by_user_id=proto.modified_by_user_id,
             tags=list(proto.tags) if proto.tags else [],
             archived_date=proto.archived_date.ToDatetime(tzinfo=timezone.utc),
+            is_archived=proto.is_archived,
             metadata=metadata_proto_to_dict(proto.metadata),  # type: ignore
             _client=sift_client,
         )
@@ -106,12 +110,14 @@ class AssetUpdate(ModelUpdate[AssetProto]):
     """Model of the Asset Fields that can be updated."""
 
     tags: list[str] | None = None
-    archived_date: datetime | str | None = None
     metadata: dict[str, str | float | bool] | None = None
+    is_archived: bool | None = None
 
-    _to_proto_helpers: ClassVar = {
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
         "metadata": MappingHelper(
-            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+            proto_attr_path="metadata",
+            update_field="metadata",
+            converter=metadata_dict_to_proto,
         ),
     }
 

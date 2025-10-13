@@ -2968,6 +2968,9 @@ impl serde::Serialize for TdmsConfig {
         if self.file_size.is_some() {
             len += 1;
         }
+        if !self.run_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.data_imports.v2.TDMSConfig", len)?;
         if !self.asset_name.is_empty() {
             struct_ser.serialize_field("assetName", &self.asset_name)?;
@@ -2981,6 +2984,9 @@ impl serde::Serialize for TdmsConfig {
         if let Some(v) = self.file_size.as_ref() {
             #[allow(clippy::needless_borrow)]
             struct_ser.serialize_field("fileSize", ToString::to_string(&v).as_str())?;
+        }
+        if !self.run_id.is_empty() {
+            struct_ser.serialize_field("runId", &self.run_id)?;
         }
         struct_ser.end()
     }
@@ -3000,6 +3006,8 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
             "startTimeOverride",
             "file_size",
             "fileSize",
+            "run_id",
+            "runId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3008,6 +3016,7 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
             RunName,
             StartTimeOverride,
             FileSize,
+            RunId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -3033,6 +3042,7 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                             "runName" | "run_name" => Ok(GeneratedField::RunName),
                             "startTimeOverride" | "start_time_override" => Ok(GeneratedField::StartTimeOverride),
                             "fileSize" | "file_size" => Ok(GeneratedField::FileSize),
+                            "runId" | "run_id" => Ok(GeneratedField::RunId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -3056,6 +3066,7 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                 let mut run_name__ = None;
                 let mut start_time_override__ = None;
                 let mut file_size__ = None;
+                let mut run_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AssetName => {
@@ -3084,6 +3095,12 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                                 map_.next_value::<::std::option::Option<::pbjson::private::NumberDeserialize<_>>>()?.map(|x| x.0)
                             ;
                         }
+                        GeneratedField::RunId => {
+                            if run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runId"));
+                            }
+                            run_id__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(TdmsConfig {
@@ -3091,6 +3108,7 @@ impl<'de> serde::Deserialize<'de> for TdmsConfig {
                     run_name: run_name__.unwrap_or_default(),
                     start_time_override: start_time_override__,
                     file_size: file_size__,
+                    run_id: run_id__.unwrap_or_default(),
                 })
             }
         }

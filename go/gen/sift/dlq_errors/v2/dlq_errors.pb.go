@@ -35,7 +35,6 @@ type ListDlqErrorsRequest struct {
 	PageSize uint32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A page token, received from a previous `ListDlqErrors` call.
 	// Provide this to retrieve the subsequent page.
-	//
 	// When paginating, all other parameters provided to `ListDlqErrors` must match
 	// the call that provided the page token.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`

@@ -12,7 +12,6 @@ import "sift/common/type/v1/resource_identifier.proto";
 import "sift/metadata/v1/metadata.proto";
 import "sift/tags/v1/tags.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Campaign service"}
 };
@@ -22,10 +21,10 @@ service CampaignService {
   rpc GetCampaign(GetCampaignRequest) returns (GetCampaignResponse) {
     option (google.api.http) = {
       get: "/api/v1/campaigns/{campaign_id}"
-      additional_bindings {get: "/v1/organizations/{organization_id}/campaigns/{client_key}"}
+      additional_bindings: {get: "/v1/organizations/{organization_id}/campaigns/{client_key}"}
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "GetCampaign",
+      summary: "GetCampaign"
       description: "Retrieve a campaign."
     };
   }
@@ -37,7 +36,7 @@ service CampaignService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "CreateCampaign",
+      summary: "CreateCampaign"
       description: "Create a campaign."
     };
   }
@@ -58,7 +57,7 @@ service CampaignService {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "UpdateCampaign",
+      summary: "UpdateCampaign"
       description: "Updates an existing campaign using the list of fields specified in `update_mask`."
     };
   }
@@ -94,6 +93,9 @@ message Campaign {
 
   // User-defined metadata for this campaign
   repeated sift.metadata.v1.MetadataValue metadata = 14 [(google.api.field_behavior) = OPTIONAL];
+
+  // Whether the campaign. This is inferred from whether archived_date is set.
+  bool is_archived = 15 [(google.api.field_behavior) = REQUIRED];
 }
 
 // A top-level summary of the report's rules is provided here so clients needn't aggregate this information themselves.
@@ -190,7 +192,7 @@ message ListCampaignsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are:
-  // `created_by_user_id`, `tag_id`, `tag_name`, `report_id`, `report_name`, `campaign_id`, `client_key`, `description`, `run_id`, `name`, and `metadata`.
+  // `created_by_user_id`, `tag_id`, `tag_name`, `report_id`, `report_name`, `campaign_id`, `client_key`, `description`, `run_id`, `name`, `is_archived`, and `metadata`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to this definition. Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -222,7 +224,7 @@ message UpdateCampaignRequest {
   // The campaign to update.
   Campaign campaign = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, `reports`, and `metadata`.
+  // The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `is_archived`, `description`, `tags`, `reports`, and `metadata`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
 }
 

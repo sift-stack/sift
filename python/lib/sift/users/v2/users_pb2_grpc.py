@@ -29,6 +29,11 @@ class UserServiceStub(object):
                 request_serializer=sift_dot_users_dot_v2_dot_users__pb2.ListActiveUsersRequest.SerializeToString,
                 response_deserializer=sift_dot_users_dot_v2_dot_users__pb2.ListActiveUsersResponse.FromString,
                 )
+        self.ListUsers = channel.unary_unary(
+                '/sift.users.v2.UserService/ListUsers',
+                request_serializer=sift_dot_users_dot_v2_dot_users__pb2.ListUsersRequest.SerializeToString,
+                response_deserializer=sift_dot_users_dot_v2_dot_users__pb2.ListUsersResponse.FromString,
+                )
 
 
 class UserServiceServicer(object):
@@ -55,6 +60,13 @@ class UserServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListUsers(self, request, context):
+        """List users.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_UserServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -72,6 +84,11 @@ def add_UserServiceServicer_to_server(servicer, server):
                     servicer.ListActiveUsers,
                     request_deserializer=sift_dot_users_dot_v2_dot_users__pb2.ListActiveUsersRequest.FromString,
                     response_serializer=sift_dot_users_dot_v2_dot_users__pb2.ListActiveUsersResponse.SerializeToString,
+            ),
+            'ListUsers': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListUsers,
+                    request_deserializer=sift_dot_users_dot_v2_dot_users__pb2.ListUsersRequest.FromString,
+                    response_serializer=sift_dot_users_dot_v2_dot_users__pb2.ListUsersResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -131,5 +148,22 @@ class UserService(object):
         return grpc.experimental.unary_unary(request, target, '/sift.users.v2.UserService/ListActiveUsers',
             sift_dot_users_dot_v2_dot_users__pb2.ListActiveUsersRequest.SerializeToString,
             sift_dot_users_dot_v2_dot_users__pb2.ListActiveUsersResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListUsers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/sift.users.v2.UserService/ListUsers',
+            sift_dot_users_dot_v2_dot_users__pb2.ListUsersRequest.SerializeToString,
+            sift_dot_users_dot_v2_dot_users__pb2.ListUsersResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

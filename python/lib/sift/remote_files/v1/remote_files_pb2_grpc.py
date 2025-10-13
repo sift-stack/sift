@@ -62,7 +62,7 @@ class RemoteFileServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def CreateRemoteFile(self, request, context):
-        """Create a remote file.
+        """Create a remote file. Note that this does not perform the actual file upload.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

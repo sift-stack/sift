@@ -32,6 +32,7 @@ class _EntityTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._Enu
     ENTITY_TYPE_ANNOTATION: _EntityType.ValueType  # 2
     ENTITY_TYPE_ASSET: _EntityType.ValueType  # 3
     ENTITY_TYPE_ANNOTATION_LOG: _EntityType.ValueType  # 4
+    ENTITY_TYPE_TEST_REPORT: _EntityType.ValueType  # 5
 
 class EntityType(_EntityType, metaclass=_EntityTypeEnumTypeWrapper): ...
 
@@ -40,6 +41,7 @@ ENTITY_TYPE_RUN: EntityType.ValueType  # 1
 ENTITY_TYPE_ANNOTATION: EntityType.ValueType  # 2
 ENTITY_TYPE_ASSET: EntityType.ValueType  # 3
 ENTITY_TYPE_ANNOTATION_LOG: EntityType.ValueType  # 4
+ENTITY_TYPE_TEST_REPORT: EntityType.ValueType  # 5
 global___EntityType = EntityType
 
 @typing.final

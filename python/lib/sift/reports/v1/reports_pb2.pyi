@@ -67,6 +67,7 @@ class Report(google.protobuf.message.Message):
     JOB_ID_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     report_id: builtins.str
     report_template_id: builtins.str
     run_id: builtins.str
@@ -77,6 +78,7 @@ class Report(google.protobuf.message.Message):
     modified_by_user_id: builtins.str
     rerun_from_report_id: builtins.str
     job_id: builtins.str
+    is_archived: builtins.bool
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -108,9 +110,10 @@ class Report(google.protobuf.message.Message):
         job_id: builtins.str | None = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_date", b"created_date", "description", b"description", "job_id", b"job_id", "modified_date", b"modified_date", "rerun_from_report_id", b"rerun_from_report_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "job_id", b"job_id", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "summaries", b"summaries", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_description", b"_description", "_job_id", b"_job_id", "_rerun_from_report_id", b"_rerun_from_report_id", "archived_date", b"archived_date", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_archived", b"is_archived", "job_id", b"job_id", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_id", b"report_id", "report_template_id", b"report_template_id", "rerun_from_report_id", b"rerun_from_report_id", "run_id", b"run_id", "summaries", b"summaries", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -559,7 +562,7 @@ class ListReportsRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, and `archived_date`.
+    Available fields to filter by are `report_id`, `report_template_id`, `tag_name`, `name`, `run_id`, `is_archived`, and `archived_date`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/reports#report). Optional.
     """
@@ -678,7 +681,7 @@ class UpdateReportRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `archived_date` and `metadata`."""
+        """The list of fields to be updated. The fields available to be updated are `archived_date`, `is_archived`, and `metadata`."""
 
     def __init__(
         self,

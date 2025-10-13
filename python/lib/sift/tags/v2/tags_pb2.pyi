@@ -7,11 +7,43 @@ import builtins
 import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
+import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sys
 import typing
 
+if sys.version_info >= (3, 10):
+    import typing as typing_extensions
+else:
+    import typing_extensions
+
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
+
+class _TagType:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _TagTypeEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_TagType.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    TAG_TYPE_UNSPECIFIED: _TagType.ValueType  # 0
+    TAG_TYPE_ANNOTATION: _TagType.ValueType  # 1
+    TAG_TYPE_ASSET: _TagType.ValueType  # 2
+    TAG_TYPE_CAMPAIGN: _TagType.ValueType  # 3
+    TAG_TYPE_REPORT: _TagType.ValueType  # 4
+    TAG_TYPE_REPORT_TEMPLATE: _TagType.ValueType  # 5
+    TAG_TYPE_RUN: _TagType.ValueType  # 6
+
+class TagType(_TagType, metaclass=_TagTypeEnumTypeWrapper): ...
+
+TAG_TYPE_UNSPECIFIED: TagType.ValueType  # 0
+TAG_TYPE_ANNOTATION: TagType.ValueType  # 1
+TAG_TYPE_ASSET: TagType.ValueType  # 2
+TAG_TYPE_CAMPAIGN: TagType.ValueType  # 3
+TAG_TYPE_REPORT: TagType.ValueType  # 4
+TAG_TYPE_REPORT_TEMPLATE: TagType.ValueType  # 5
+TAG_TYPE_RUN: TagType.ValueType  # 6
+global___TagType = TagType
 
 @typing.final
 class Tag(google.protobuf.message.Message):
@@ -86,6 +118,7 @@ class ListTagsRequest(google.protobuf.message.Message):
     PAGE_TOKEN_FIELD_NUMBER: builtins.int
     FILTER_FIELD_NUMBER: builtins.int
     ORDER_BY_FIELD_NUMBER: builtins.int
+    TAG_TYPE_FIELD_NUMBER: builtins.int
     page_size: builtins.int
     """The maximum number of tags to return.
     The service may return fewer than this value.
@@ -111,6 +144,8 @@ class ListTagsRequest(google.protobuf.message.Message):
     For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
     Example: "created_date desc,name"
     """
+    tag_type: global___TagType.ValueType
+    """Narrows the tags selected to a specific type."""
     def __init__(
         self,
         *,
@@ -118,8 +153,9 @@ class ListTagsRequest(google.protobuf.message.Message):
         page_token: builtins.str = ...,
         filter: builtins.str = ...,
         order_by: builtins.str = ...,
+        tag_type: global___TagType.ValueType = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["filter", b"filter", "order_by", b"order_by", "page_size", b"page_size", "page_token", b"page_token", "tag_type", b"tag_type"]) -> None: ...
 
 global___ListTagsRequest = ListTagsRequest
 

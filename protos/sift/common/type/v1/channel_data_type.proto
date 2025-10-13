@@ -3,7 +3,6 @@ syntax = "proto3";
 package sift.common.type.v1;
 
 
-
 enum ChannelDataType {
   CHANNEL_DATA_TYPE_UNSPECIFIED = 0 [deprecated = true];
   CHANNEL_DATA_TYPE_DOUBLE = 1;

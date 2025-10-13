@@ -23,6 +23,86 @@ pub struct Job {
     pub job_type: i32,
     #[prost(enumeration="JobStatus", tag="11")]
     pub job_status: i32,
+    #[prost(message, optional, tag="12")]
+    pub job_status_details: ::core::option::Option<JobStatusDetails>,
+    #[prost(message, optional, tag="13")]
+    pub job_details: ::core::option::Option<JobDetails>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct JobStatusDetails {
+    #[prost(oneof="job_status_details::Status", tags="1, 2, 3")]
+    pub status: ::core::option::Option<job_status_details::Status>,
+}
+/// Nested message and enum types in `JobStatusDetails`.
+pub mod job_status_details {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Status {
+        #[prost(message, tag="1")]
+        RuleEvaluation(super::RuleEvaluationStatusDetails),
+        #[prost(message, tag="2")]
+        DataImport(super::DataImportStatusDetails),
+        #[prost(message, tag="3")]
+        DataExport(super::DataExportStatusDetails),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct RuleEvaluationStatusDetails {
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DataImportStatusDetails {
+    #[prost(uint64, tag="1")]
+    pub points_processed: u64,
+    #[prost(uint64, tag="2")]
+    pub points_total: u64,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DataExportStatusDetails {
+    #[prost(string, tag="1")]
+    pub error_message: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DataExportJobDetails {
+    #[prost(message, optional, tag="1")]
+    pub request: ::core::option::Option<super::super::exports::v1::ExportDataRequest>,
+    #[prost(string, tag="2")]
+    pub storage_key: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct JobDetails {
+    #[prost(oneof="job_details::Details", tags="1, 2, 3")]
+    pub details: ::core::option::Option<job_details::Details>,
+}
+/// Nested message and enum types in `JobDetails`.
+pub mod job_details {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Details {
+        #[prost(message, tag="1")]
+        RuleEvaluation(super::RuleEvaluationJobDetails),
+        #[prost(message, tag="2")]
+        DataImport(super::DataImportJobDetails),
+        #[prost(message, tag="3")]
+        DataExport(super::DataExportJobDetails),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RuleEvaluationJobDetails {
+    #[prost(string, tag="1")]
+    pub report_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DataImportJobDetails {
+    #[prost(string, tag="1")]
+    pub data_import_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -56,12 +136,25 @@ pub struct CancelJobRequest {
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct CancelJobResponse {
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RetryJobRequest {
+    #[prost(string, tag="1")]
+    pub job_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RetryJobResponse {
+    #[prost(message, optional, tag="1")]
+    pub job: ::core::option::Option<Job>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum JobType {
     Unspecified = 0,
     RuleEvaluation = 1,
     DataImport = 2,
+    DataExport = 3,
 }
 impl JobType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -73,6 +166,7 @@ impl JobType {
             JobType::Unspecified => "JOB_TYPE_UNSPECIFIED",
             JobType::RuleEvaluation => "JOB_TYPE_RULE_EVALUATION",
             JobType::DataImport => "JOB_TYPE_DATA_IMPORT",
+            JobType::DataExport => "JOB_TYPE_DATA_EXPORT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -81,6 +175,7 @@ impl JobType {
             "JOB_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "JOB_TYPE_RULE_EVALUATION" => Some(Self::RuleEvaluation),
             "JOB_TYPE_DATA_IMPORT" => Some(Self::DataImport),
+            "JOB_TYPE_DATA_EXPORT" => Some(Self::DataExport),
             _ => None,
         }
     }

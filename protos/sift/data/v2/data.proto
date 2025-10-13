@@ -11,7 +11,7 @@ import "sift/calculated_channels/v1/calculated_channels.proto";
 import "sift/common/type/v1/channel_bit_field_element.proto";
 import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
-
+import "sift/options/v1/safe_to_log.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Data Service"}
@@ -24,7 +24,7 @@ service DataService {
   rpc GetData(GetDataRequest) returns (GetDataResponse) {
     option (google.api.http) = {
       post: "/api/v2/data"
-      body: "*",
+      body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "GetData"
@@ -35,6 +35,7 @@ service DataService {
 }
 
 message GetDataRequest {
+  option (sift.options.v1.safe_to_log) = true;
   repeated Query queries = 1;
 
   // Required. The starting timestamp of the data to retrieve. This is an inclusive bound.
@@ -91,6 +92,13 @@ message CalculatedChannelQuery {
   optional string run_id = 3;
   // Optional. If unset, will default to EXPRESSION_MODE_CALCULATED_CHANNELS.
   optional sift.calculated_channels.v1.ExpressionMode mode = 4;
+  // Optional. If unset, will default to false.
+  // If true, then requests that return data across multiple runs will be
+  // combined into a single result. This will apply to queries without a run,
+  // or when the requested run is an ad hoc run.
+  // This is useful when you prefer to see all the data as a single time series,
+  // instead of separated results by run.
+  optional bool combine_run_data = 5;
 }
 
 message GetDataResponse {
@@ -256,6 +264,9 @@ message Uint64Values {
   Metadata metadata = 1 [(google.api.field_behavior) = REQUIRED];
   repeated Uint64Value values = 2 [(google.api.field_behavior) = REQUIRED];
 }
+
+
+
 
 message BytesValue {
   google.protobuf.Timestamp timestamp = 1 [(google.api.field_behavior) = REQUIRED];

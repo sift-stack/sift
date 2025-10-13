@@ -6,7 +6,9 @@ use sift_rs::{
     },
     ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
 };
-use sift_stream::{ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue};
+use sift_stream::{
+    ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue, metrics::SiftStreamMetrics,
+};
 use std::{
     sync::{
         Arc,
@@ -107,6 +109,7 @@ async fn test_sending_raw_ingest_request() {
         Duration::from_secs(30),
         None,
         None,
+        Arc::new(SiftStreamMetrics::new()),
     );
 
     let num_messages = 100;
@@ -197,6 +200,7 @@ async fn test_sending_flow() {
         Duration::from_secs(30),
         None,
         None,
+        Arc::new(SiftStreamMetrics::new()),
     );
 
     let num_messages = 100;
@@ -284,6 +288,7 @@ async fn test_sending_flow_not_in_flow_cache() {
         Duration::from_secs(30),
         None,
         None,
+        Arc::new(SiftStreamMetrics::new()),
     );
 
     let num_messages = 100;
@@ -320,7 +325,7 @@ async fn test_sending_flow_not_in_flow_cache() {
             .expect("failed to send requests");
     }
     assert!(logs_contain(
-        &"flow 'unregistered_flow' not found in local flow cache"
+        "flow 'unregistered_flow' not found in local flow cache"
     ));
 
     sift_stream.finish().await.expect("finish call failed");

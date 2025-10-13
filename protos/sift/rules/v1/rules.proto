@@ -18,7 +18,6 @@ import "sift/common/type/v1/resource_identifier.proto";
 import "sift/common/type/v1/user_defined_functions.proto";
 import "sift/metadata/v1/metadata.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Rule Service"}
 };

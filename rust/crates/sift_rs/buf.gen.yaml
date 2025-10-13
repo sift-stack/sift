@@ -16,3 +16,5 @@ plugins:
       - no_features
   - plugin: buf.build/community/neoeinstein-prost-serde:v0.3.0
     out: src/gen
+    opt:
+      - extern_path=.google.protobuf=::pbjson_types

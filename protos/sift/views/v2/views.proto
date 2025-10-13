@@ -8,7 +8,6 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "View Service"}
 };
@@ -17,8 +16,8 @@ service ViewService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to programmatically interact with views."
     external_docs: {
-      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/298188809";
-      description: "Read more about what views are.";
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/298188809"
+      description: "Read more about what views are."
     }
   };
 
@@ -99,8 +98,8 @@ service ViewService {
       description: "Pins a view."
       operation_id: "ViewService_PinViewV2"
       external_docs: {
-        url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/295436289";
-        description: "Learn more about pinning views.";
+        url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/295436289"
+        description: "Learn more about pinning views."
       }
     };
   }
@@ -116,8 +115,8 @@ service ViewService {
       description: "Unpins a view."
       operation_id: "ViewService_UnpinViewV2"
       external_docs: {
-        url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/295436289";
-        description: "Learn more about pinning views.";
+        url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/295436289"
+        description: "Learn more about pinning views."
       }
     };
   }

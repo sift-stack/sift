@@ -25,9 +25,11 @@ jobs:
           python-version: "3.8"
 
       - name: Pip install
+        id: install
         run: |
           python -m pip install --upgrade pip
           pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+
       - name: Lint
         run: |
           ruff check
@@ -44,9 +46,17 @@ jobs:
         run: |
           pyright lib
 
-      - name: Pytest
+      - name: Pytest Unit Tests
         run: |
-          pytest
+          pytest -m "not integration"
+
+      - name: Pytest Integration Tests
+        env:
+          SIFT_GRPC_URI: ${{ vars.SIFT_GRPC_URI }}
+          SIFT_REST_URI: ${{ vars.SIFT_REST_URI }}
+          SIFT_API_KEY: ${{ secrets.SIFT_API_KEY }}
+        run: |
+          pytest -m "integration"
 
       - name: Sync Stubs Mypy
         working-directory: python/lib

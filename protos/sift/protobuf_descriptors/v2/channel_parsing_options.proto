@@ -9,7 +9,6 @@ package sift.protobuf_descriptors.v2;
 import "google/protobuf/descriptor.proto";
 
 
-
 // Enum for different types of tag sources
 enum TagSourceType {
   DESCENDANT_SOURCES = 0; // Tags can be sourced from descendant fields

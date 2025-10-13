@@ -6,7 +6,6 @@ import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Role Service"}
 };
@@ -26,6 +25,7 @@ message Role {
   string role_id = 1;
   string name = 2;
   string description = 3;
+  int32 role_order = 4;
 }
 
 message ListRolesRequest {
@@ -37,7 +37,6 @@ message ListRolesRequest {
 
   // A page token, received from a previous `ListRoles` call.
   // Provide this to retrieve the subsequent page.
-  //
   // When paginating, all other parameters provided to `ListRoles` must match
   // the call that provided the page token.
   string page_token = 2;

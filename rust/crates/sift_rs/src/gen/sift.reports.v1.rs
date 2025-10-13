@@ -35,6 +35,8 @@ pub struct Report {
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, repeated, tag="16")]
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
+    #[prost(bool, tag="17")]
+    pub is_archived: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

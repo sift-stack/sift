@@ -24,7 +24,6 @@ from sift.data.v2.data_pb2 import (
     Uint32Values,
     Uint64Values,
 )
-from sift.ingestion_configs.v2.ingestion_configs_pb2 import ChannelConfig
 
 from sift_client.sift_types._base import BaseType
 
@@ -207,17 +206,21 @@ class ChannelBitFieldElement(BaseModel):
 class Channel(BaseType[ChannelProto, "Channel"]):
     """Model representing a Sift Channel."""
 
+    # Required fields
     name: str
     data_type: ChannelDataType
-    description: str | None = None
-    unit: str | None = None
+    description: str
+    unit: str
     bit_field_elements: list[ChannelBitFieldElement] = Field(default_factory=list)
     enum_types: dict[str, int] = Field(default_factory=dict)
-    asset_id: str | None = None
-    created_date: datetime | None = None
-    modified_date: datetime | None = None
-    created_by_user_id: str | None = None
-    modified_by_user_id: str | None = None
+    asset_id: str
+    created_date: datetime
+    modified_date: datetime
+    created_by_user_id: str
+    modified_by_user_id: str
+
+    # Optional fields
+    ...
 
     @staticmethod
     def _enum_types_to_proto_list(enum_types: dict[str, int] | None) -> list[ChannelEnumTypePb]:
@@ -231,45 +234,24 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         return {enum.name: enum.key for enum in enum_types}
 
     @classmethod
-    def _from_proto(
-        cls, proto: ChannelProto | ChannelConfig, sift_client: SiftClient | None = None
-    ) -> Channel:
-        if isinstance(proto, ChannelProto):
-            return cls(
-                id_=proto.channel_id,
-                name=proto.name,
-                data_type=ChannelDataType(proto.data_type),
-                description=proto.description,
-                unit=proto.unit_id,
-                bit_field_elements=[
-                    ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements
-                ],
-                enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
-                asset_id=proto.asset_id,
-                created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
-                modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
-                created_by_user_id=proto.created_by_user_id,
-                modified_by_user_id=proto.modified_by_user_id,
-                _client=sift_client,
-            )
-        elif isinstance(proto, ChannelConfig):
-            return cls(
-                id_=proto.name,
-                name=proto.name,
-                data_type=ChannelDataType(proto.data_type),
-                _client=sift_client,
-            )
-
-    def _to_config_proto(self) -> ChannelConfig:
-        return ChannelConfig(
-            name=self.name,
-            data_type=self.data_type.value,
-            description=self.description,  # type: ignore
-            unit=self.unit,  # type: ignore
-            bit_field_elements=[el._to_proto() for el in self.bit_field_elements]
-            if self.bit_field_elements
-            else None,
-            enum_types=self._enum_types_to_proto_list(self.enum_types),
+    def _from_proto(cls, proto: ChannelProto, sift_client: SiftClient | None = None) -> Channel:
+        return cls(
+            proto=proto,
+            id_=proto.channel_id,
+            name=proto.name,
+            data_type=ChannelDataType(proto.data_type),
+            description=proto.description,
+            unit=proto.unit_id,
+            bit_field_elements=[
+                ChannelBitFieldElement._from_proto(el) for el in proto.bit_field_elements
+            ],
+            enum_types=cls._enum_types_from_proto_list(proto.enum_types),  # type: ignore
+            asset_id=proto.asset_id,
+            created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
+            modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
+            created_by_user_id=proto.created_by_user_id,
+            modified_by_user_id=proto.modified_by_user_id,
+            _client=sift_client,
         )
 
     def data(
@@ -296,7 +278,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         if as_arrow:
             data = self.client.channels.get_data_as_arrow(
                 channels=[self],
-                run_id=run_id,
+                run=run_id,
                 start_time=start_time,
                 end_time=end_time,
                 limit=limit,  # type: ignore
@@ -304,7 +286,7 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         else:
             data = self.client.channels.get_data(
                 channels=[self],
-                run_id=run_id,
+                run=run_id,
                 start_time=start_time,
                 end_time=end_time,
                 limit=limit,  # type: ignore

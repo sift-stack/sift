@@ -17,7 +17,7 @@ from google.api import field_behavior_pb2 as google_dot_api_dot_field__behavior_
 from protoc_gen_openapiv2.options import annotations_pb2 as protoc__gen__openapiv2_dot_options_dot_annotations__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19sift/roles/v2/roles.proto\x12\rsift.roles.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"U\n\x04Role\x12\x17\n\x07role_id\x18\x01 \x01(\tR\x06roleId\x12\x12\n\x04name\x18\x02 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x03 \x01(\tR\x0b\x64\x65scription\"\x8b\x01\n\x10ListRolesRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\rR\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"f\n\x11ListRolesResponse\x12)\n\x05roles\x18\x01 \x03(\x0b\x32\x13.sift.roles.v2.RoleR\x05roles\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xc7\x01\n\x0bRoleService\x12\xb7\x01\n\tListRoles\x12\x1f.sift.roles.v2.ListRolesRequest\x1a .sift.roles.v2.ListRolesResponse\"g\x92\x41O\x12\tListRoles\x1a)Retrieves roles using an optional filter.*\x17RoleService_ListRolesV2\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v2/rolesB\x88\x01\n\x11\x63om.sift.roles.v2B\nRolesProtoP\x01\xa2\x02\x03SRX\xaa\x02\rSift.Roles.V2\xca\x02\rSift\\Roles\\V2\xe2\x02\x19Sift\\Roles\\V2\\GPBMetadata\xea\x02\x0fSift::Roles::V2\x92\x41\x10\x12\x0e\n\x0cRole Serviceb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19sift/roles/v2/roles.proto\x12\rsift.roles.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"t\n\x04Role\x12\x17\n\x07role_id\x18\x01 \x01(\tR\x06roleId\x12\x12\n\x04name\x18\x02 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x03 \x01(\tR\x0b\x64\x65scription\x12\x1d\n\nrole_order\x18\x04 \x01(\x05R\troleOrder\"\x8b\x01\n\x10ListRolesRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\rR\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n\x06\x66ilter\x18\x03 \x01(\tB\x03\xe0\x41\x01R\x06\x66ilter\x12\x1e\n\x08order_by\x18\x04 \x01(\tB\x03\xe0\x41\x01R\x07orderBy\"f\n\x11ListRolesResponse\x12)\n\x05roles\x18\x01 \x03(\x0b\x32\x13.sift.roles.v2.RoleR\x05roles\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xc7\x01\n\x0bRoleService\x12\xb7\x01\n\tListRoles\x12\x1f.sift.roles.v2.ListRolesRequest\x1a .sift.roles.v2.ListRolesResponse\"g\x92\x41O\x12\tListRoles\x1a)Retrieves roles using an optional filter.*\x17RoleService_ListRolesV2\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v2/rolesB\x88\x01\n\x11\x63om.sift.roles.v2B\nRolesProtoP\x01\xa2\x02\x03SRX\xaa\x02\rSift.Roles.V2\xca\x02\rSift\\Roles\\V2\xe2\x02\x19Sift\\Roles\\V2\\GPBMetadata\xea\x02\x0fSift::Roles::V2\x92\x41\x10\x12\x0e\n\x0cRole Serviceb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,11 +32,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ROLESERVICE'].methods_by_name['ListRoles']._loaded_options = None
   _globals['_ROLESERVICE'].methods_by_name['ListRoles']._serialized_options = b'\222AO\022\tListRoles\032)Retrieves roles using an optional filter.*\027RoleService_ListRolesV2\202\323\344\223\002\017\022\r/api/v2/roles'
   _globals['_ROLE']._serialized_start=155
-  _globals['_ROLE']._serialized_end=240
-  _globals['_LISTROLESREQUEST']._serialized_start=243
-  _globals['_LISTROLESREQUEST']._serialized_end=382
-  _globals['_LISTROLESRESPONSE']._serialized_start=384
-  _globals['_LISTROLESRESPONSE']._serialized_end=486
-  _globals['_ROLESERVICE']._serialized_start=489
-  _globals['_ROLESERVICE']._serialized_end=688
+  _globals['_ROLE']._serialized_end=271
+  _globals['_LISTROLESREQUEST']._serialized_start=274
+  _globals['_LISTROLESREQUEST']._serialized_end=413
+  _globals['_LISTROLESRESPONSE']._serialized_start=415
+  _globals['_LISTROLESRESPONSE']._serialized_end=517
+  _globals['_ROLESERVICE']._serialized_start=520
+  _globals['_ROLESERVICE']._serialized_end=719
 # @@protoc_insertion_point(module_scope)

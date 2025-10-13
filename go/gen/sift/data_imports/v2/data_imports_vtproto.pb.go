@@ -259,6 +259,7 @@ func (m *TDMSConfig) CloneVT() *TDMSConfig {
 	r.AssetName = m.AssetName
 	r.RunName = m.RunName
 	r.StartTimeOverride = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.StartTimeOverride).CloneVT())
+	r.RunId = m.RunId
 	if rhs := m.FileSize; rhs != nil {
 		tmpVal := *rhs
 		r.FileSize = &tmpVal
@@ -798,6 +799,9 @@ func (this *TDMSConfig) EqualVT(that *TDMSConfig) bool {
 		return false
 	}
 	if p, q := this.FileSize, that.FileSize; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
+		return false
+	}
+	if this.RunId != that.RunId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2066,6 +2070,13 @@ func (m *TDMSConfig) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RunId) > 0 {
+		i -= len(m.RunId)
+		copy(dAtA[i:], m.RunId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RunId)))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if m.FileSize != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.FileSize))
@@ -3381,6 +3392,13 @@ func (m *TDMSConfig) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.RunId) > 0 {
+		i -= len(m.RunId)
+		copy(dAtA[i:], m.RunId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RunId)))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.FileSize != nil {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(*m.FileSize))
 		i--
@@ -4289,6 +4307,10 @@ func (m *TDMSConfig) SizeVT() (n int) {
 	}
 	if m.FileSize != nil {
 		n += 1 + protohelpers.SizeOfVarint(uint64(*m.FileSize))
+	}
+	l = len(m.RunId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -6314,6 +6336,38 @@ func (m *TDMSConfig) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.FileSize = &v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RunId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -9753,6 +9807,42 @@ func (m *TDMSConfig) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.FileSize = &v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RunId = stringValue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

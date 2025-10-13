@@ -39,6 +39,10 @@ pub struct Run {
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(bool, tag="18")]
     pub is_adhoc: bool,
+    #[prost(bool, tag="19")]
+    pub is_archived: bool,
+    #[prost(message, optional, tag="20")]
+    pub duration: ::core::option::Option<::pbjson_types::Duration>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

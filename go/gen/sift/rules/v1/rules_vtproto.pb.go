@@ -52,6 +52,8 @@ func (m *Rule) CloneVT() *Rule {
 	r.ContextualChannels = m.ContextualChannels.CloneVT()
 	r.DeletedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.DeletedDate).CloneVT())
 	r.IsExternal = m.IsExternal
+	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
+	r.IsArchived = m.IsArchived
 	if rhs := m.Conditions; rhs != nil {
 		tmpContainer := make([]*RuleCondition, len(rhs))
 		for k, v := range rhs {
@@ -415,6 +417,7 @@ func (m *UpdateRuleRequest) CloneVT() *UpdateRuleRequest {
 	r.AssetConfiguration = m.AssetConfiguration.CloneVT()
 	r.ContextualChannels = m.ContextualChannels.CloneVT()
 	r.IsExternal = m.IsExternal
+	r.IsArchived = m.IsArchived
 	if rhs := m.RuleId; rhs != nil {
 		tmpVal := *rhs
 		r.RuleId = &tmpVal
@@ -705,6 +708,82 @@ func (m *BatchDeleteRulesResponse) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *ArchiveRuleRequest) CloneVT() *ArchiveRuleRequest {
+	if m == nil {
+		return (*ArchiveRuleRequest)(nil)
+	}
+	r := new(ArchiveRuleRequest)
+	r.RuleId = m.RuleId
+	r.ClientKey = m.ClientKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ArchiveRuleRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ArchiveRuleResponse) CloneVT() *ArchiveRuleResponse {
+	if m == nil {
+		return (*ArchiveRuleResponse)(nil)
+	}
+	r := new(ArchiveRuleResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ArchiveRuleResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *BatchArchiveRulesRequest) CloneVT() *BatchArchiveRulesRequest {
+	if m == nil {
+		return (*BatchArchiveRulesRequest)(nil)
+	}
+	r := new(BatchArchiveRulesRequest)
+	if rhs := m.RuleIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RuleIds = tmpContainer
+	}
+	if rhs := m.ClientKeys; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ClientKeys = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *BatchArchiveRulesRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *BatchArchiveRulesResponse) CloneVT() *BatchArchiveRulesResponse {
+	if m == nil {
+		return (*BatchArchiveRulesResponse)(nil)
+	}
+	r := new(BatchArchiveRulesResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *BatchArchiveRulesResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *UndeleteRuleRequest) CloneVT() *UndeleteRuleRequest {
 	if m == nil {
 		return (*UndeleteRuleRequest)(nil)
@@ -778,6 +857,82 @@ func (m *BatchUndeleteRulesResponse) CloneVT() *BatchUndeleteRulesResponse {
 }
 
 func (m *BatchUndeleteRulesResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *UnarchiveRuleRequest) CloneVT() *UnarchiveRuleRequest {
+	if m == nil {
+		return (*UnarchiveRuleRequest)(nil)
+	}
+	r := new(UnarchiveRuleRequest)
+	r.RuleId = m.RuleId
+	r.ClientKey = m.ClientKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *UnarchiveRuleRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *UnarchiveRuleResponse) CloneVT() *UnarchiveRuleResponse {
+	if m == nil {
+		return (*UnarchiveRuleResponse)(nil)
+	}
+	r := new(UnarchiveRuleResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *UnarchiveRuleResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *BatchUnarchiveRulesRequest) CloneVT() *BatchUnarchiveRulesRequest {
+	if m == nil {
+		return (*BatchUnarchiveRulesRequest)(nil)
+	}
+	r := new(BatchUnarchiveRulesRequest)
+	if rhs := m.RuleIds; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RuleIds = tmpContainer
+	}
+	if rhs := m.ClientKeys; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ClientKeys = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *BatchUnarchiveRulesRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *BatchUnarchiveRulesResponse) CloneVT() *BatchUnarchiveRulesResponse {
+	if m == nil {
+		return (*BatchUnarchiveRulesResponse)(nil)
+	}
+	r := new(BatchUnarchiveRulesResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *BatchUnarchiveRulesResponse) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -1076,6 +1231,8 @@ func (m *RuleVersion) CloneVT() *RuleVersion {
 	r.VersionNotes = m.VersionNotes
 	r.GeneratedChangeMessage = m.GeneratedChangeMessage
 	r.DeletedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.DeletedDate).CloneVT())
+	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
+	r.IsArchived = m.IsArchived
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1677,6 +1834,12 @@ func (this *Rule) EqualVT(that *Rule) bool {
 			}
 		}
 	}
+	if !(*timestamppb1.Timestamp)(this.ArchivedDate).EqualVT((*timestamppb1.Timestamp)(that.ArchivedDate)) {
+		return false
+	}
+	if this.IsArchived != that.IsArchived {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2208,6 +2371,9 @@ func (this *UpdateRuleRequest) EqualVT(that *UpdateRuleRequest) bool {
 			}
 		}
 	}
+	if this.IsArchived != that.IsArchived {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2557,6 +2723,94 @@ func (this *BatchDeleteRulesResponse) EqualMessageVT(thatMsg proto.Message) bool
 	}
 	return this.EqualVT(that)
 }
+func (this *ArchiveRuleRequest) EqualVT(that *ArchiveRuleRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RuleId != that.RuleId {
+		return false
+	}
+	if this.ClientKey != that.ClientKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ArchiveRuleRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ArchiveRuleRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ArchiveRuleResponse) EqualVT(that *ArchiveRuleResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ArchiveRuleResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ArchiveRuleResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *BatchArchiveRulesRequest) EqualVT(that *BatchArchiveRulesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.RuleIds) != len(that.RuleIds) {
+		return false
+	}
+	for i, vx := range this.RuleIds {
+		vy := that.RuleIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.ClientKeys) != len(that.ClientKeys) {
+		return false
+	}
+	for i, vx := range this.ClientKeys {
+		vy := that.ClientKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BatchArchiveRulesRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*BatchArchiveRulesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *BatchArchiveRulesResponse) EqualVT(that *BatchArchiveRulesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BatchArchiveRulesResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*BatchArchiveRulesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (this *UndeleteRuleRequest) EqualVT(that *UndeleteRuleRequest) bool {
 	if this == that {
 		return true
@@ -2640,6 +2894,94 @@ func (this *BatchUndeleteRulesResponse) EqualVT(that *BatchUndeleteRulesResponse
 
 func (this *BatchUndeleteRulesResponse) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*BatchUndeleteRulesResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *UnarchiveRuleRequest) EqualVT(that *UnarchiveRuleRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RuleId != that.RuleId {
+		return false
+	}
+	if this.ClientKey != that.ClientKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *UnarchiveRuleRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*UnarchiveRuleRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *UnarchiveRuleResponse) EqualVT(that *UnarchiveRuleResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *UnarchiveRuleResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*UnarchiveRuleResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *BatchUnarchiveRulesRequest) EqualVT(that *BatchUnarchiveRulesRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.RuleIds) != len(that.RuleIds) {
+		return false
+	}
+	for i, vx := range this.RuleIds {
+		vy := that.RuleIds[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.ClientKeys) != len(that.ClientKeys) {
+		return false
+	}
+	for i, vx := range this.ClientKeys {
+		vy := that.ClientKeys[i]
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BatchUnarchiveRulesRequest) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*BatchUnarchiveRulesRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *BatchUnarchiveRulesResponse) EqualVT(that *BatchUnarchiveRulesResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BatchUnarchiveRulesResponse) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*BatchUnarchiveRulesResponse)
 	if !ok {
 		return false
 	}
@@ -3026,6 +3368,12 @@ func (this *RuleVersion) EqualVT(that *RuleVersion) bool {
 		return false
 	}
 	if !(*timestamppb1.Timestamp)(this.DeletedDate).EqualVT((*timestamppb1.Timestamp)(that.DeletedDate)) {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.ArchivedDate).EqualVT((*timestamppb1.Timestamp)(that.ArchivedDate)) {
+		return false
+	}
+	if this.IsArchived != that.IsArchived {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3826,13 +4174,29 @@ type RuleServiceClient interface {
 	UpdateRule(ctx context.Context, in *UpdateRuleRequest, opts ...grpc.CallOption) (*UpdateRuleResponse, error)
 	// Updates existing rules or creates rules that do not exist.
 	BatchUpdateRules(ctx context.Context, in *BatchUpdateRulesRequest, opts ...grpc.CallOption) (*BatchUpdateRulesResponse, error)
-	// Deletes a rule
+	// Deprecated: Do not use.
+	// Deprecated - use ArchiveRule instead.
+	// Archives a rule.
 	DeleteRule(ctx context.Context, in *DeleteRuleRequest, opts ...grpc.CallOption) (*DeleteRuleResponse, error)
-	// Deletes multiple rules
+	// Archives a rule.
+	ArchiveRule(ctx context.Context, in *ArchiveRuleRequest, opts ...grpc.CallOption) (*ArchiveRuleResponse, error)
+	// Deprecated: Do not use.
+	// Deprecated - use BatchArchiveRules instead.
+	// Archives multiple rules.
 	BatchDeleteRules(ctx context.Context, in *BatchDeleteRulesRequest, opts ...grpc.CallOption) (*BatchDeleteRulesResponse, error)
-	// Undeletes a rule
+	// Batch archives rules.
+	BatchArchiveRules(ctx context.Context, in *BatchArchiveRulesRequest, opts ...grpc.CallOption) (*BatchArchiveRulesResponse, error)
+	// Unarchives a rule.
+	UnarchiveRule(ctx context.Context, in *UnarchiveRuleRequest, opts ...grpc.CallOption) (*UnarchiveRuleResponse, error)
+	// Batch unarchives rules.
+	BatchUnarchiveRules(ctx context.Context, in *BatchUnarchiveRulesRequest, opts ...grpc.CallOption) (*BatchUnarchiveRulesResponse, error)
+	// Deprecated: Do not use.
+	// Deprecated - use UnarchiveRule instead.
+	// Unarchives a rule
 	UndeleteRule(ctx context.Context, in *UndeleteRuleRequest, opts ...grpc.CallOption) (*UndeleteRuleResponse, error)
-	// Undeletes multiple rules
+	// Deprecated: Do not use.
+	// Deprecated - use BatchUnarchiveRules instead.
+	// Unarchives multiple rules
 	BatchUndeleteRules(ctx context.Context, in *BatchUndeleteRulesRequest, opts ...grpc.CallOption) (*BatchUndeleteRulesResponse, error)
 	// Deprecated: Do not use.
 	// Deprecated - use RuleEvaluationService instead.
@@ -3923,6 +4287,7 @@ func (c *ruleServiceClient) BatchUpdateRules(ctx context.Context, in *BatchUpdat
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *ruleServiceClient) DeleteRule(ctx context.Context, in *DeleteRuleRequest, opts ...grpc.CallOption) (*DeleteRuleResponse, error) {
 	out := new(DeleteRuleResponse)
 	err := c.cc.Invoke(ctx, "/sift.rules.v1.RuleService/DeleteRule", in, out, opts...)
@@ -3932,6 +4297,16 @@ func (c *ruleServiceClient) DeleteRule(ctx context.Context, in *DeleteRuleReques
 	return out, nil
 }
 
+func (c *ruleServiceClient) ArchiveRule(ctx context.Context, in *ArchiveRuleRequest, opts ...grpc.CallOption) (*ArchiveRuleResponse, error) {
+	out := new(ArchiveRuleResponse)
+	err := c.cc.Invoke(ctx, "/sift.rules.v1.RuleService/ArchiveRule", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Deprecated: Do not use.
 func (c *ruleServiceClient) BatchDeleteRules(ctx context.Context, in *BatchDeleteRulesRequest, opts ...grpc.CallOption) (*BatchDeleteRulesResponse, error) {
 	out := new(BatchDeleteRulesResponse)
 	err := c.cc.Invoke(ctx, "/sift.rules.v1.RuleService/BatchDeleteRules", in, out, opts...)
@@ -3941,6 +4316,34 @@ func (c *ruleServiceClient) BatchDeleteRules(ctx context.Context, in *BatchDelet
 	return out, nil
 }
 
+func (c *ruleServiceClient) BatchArchiveRules(ctx context.Context, in *BatchArchiveRulesRequest, opts ...grpc.CallOption) (*BatchArchiveRulesResponse, error) {
+	out := new(BatchArchiveRulesResponse)
+	err := c.cc.Invoke(ctx, "/sift.rules.v1.RuleService/BatchArchiveRules", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ruleServiceClient) UnarchiveRule(ctx context.Context, in *UnarchiveRuleRequest, opts ...grpc.CallOption) (*UnarchiveRuleResponse, error) {
+	out := new(UnarchiveRuleResponse)
+	err := c.cc.Invoke(ctx, "/sift.rules.v1.RuleService/UnarchiveRule", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ruleServiceClient) BatchUnarchiveRules(ctx context.Context, in *BatchUnarchiveRulesRequest, opts ...grpc.CallOption) (*BatchUnarchiveRulesResponse, error) {
+	out := new(BatchUnarchiveRulesResponse)
+	err := c.cc.Invoke(ctx, "/sift.rules.v1.RuleService/BatchUnarchiveRules", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Deprecated: Do not use.
 func (c *ruleServiceClient) UndeleteRule(ctx context.Context, in *UndeleteRuleRequest, opts ...grpc.CallOption) (*UndeleteRuleResponse, error) {
 	out := new(UndeleteRuleResponse)
 	err := c.cc.Invoke(ctx, "/sift.rules.v1.RuleService/UndeleteRule", in, out, opts...)
@@ -3950,6 +4353,7 @@ func (c *ruleServiceClient) UndeleteRule(ctx context.Context, in *UndeleteRuleRe
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *ruleServiceClient) BatchUndeleteRules(ctx context.Context, in *BatchUndeleteRulesRequest, opts ...grpc.CallOption) (*BatchUndeleteRulesResponse, error) {
 	out := new(BatchUndeleteRulesResponse)
 	err := c.cc.Invoke(ctx, "/sift.rules.v1.RuleService/BatchUndeleteRules", in, out, opts...)
@@ -4071,13 +4475,29 @@ type RuleServiceServer interface {
 	UpdateRule(context.Context, *UpdateRuleRequest) (*UpdateRuleResponse, error)
 	// Updates existing rules or creates rules that do not exist.
 	BatchUpdateRules(context.Context, *BatchUpdateRulesRequest) (*BatchUpdateRulesResponse, error)
-	// Deletes a rule
+	// Deprecated: Do not use.
+	// Deprecated - use ArchiveRule instead.
+	// Archives a rule.
 	DeleteRule(context.Context, *DeleteRuleRequest) (*DeleteRuleResponse, error)
-	// Deletes multiple rules
+	// Archives a rule.
+	ArchiveRule(context.Context, *ArchiveRuleRequest) (*ArchiveRuleResponse, error)
+	// Deprecated: Do not use.
+	// Deprecated - use BatchArchiveRules instead.
+	// Archives multiple rules.
 	BatchDeleteRules(context.Context, *BatchDeleteRulesRequest) (*BatchDeleteRulesResponse, error)
-	// Undeletes a rule
+	// Batch archives rules.
+	BatchArchiveRules(context.Context, *BatchArchiveRulesRequest) (*BatchArchiveRulesResponse, error)
+	// Unarchives a rule.
+	UnarchiveRule(context.Context, *UnarchiveRuleRequest) (*UnarchiveRuleResponse, error)
+	// Batch unarchives rules.
+	BatchUnarchiveRules(context.Context, *BatchUnarchiveRulesRequest) (*BatchUnarchiveRulesResponse, error)
+	// Deprecated: Do not use.
+	// Deprecated - use UnarchiveRule instead.
+	// Unarchives a rule
 	UndeleteRule(context.Context, *UndeleteRuleRequest) (*UndeleteRuleResponse, error)
-	// Undeletes multiple rules
+	// Deprecated: Do not use.
+	// Deprecated - use BatchUnarchiveRules instead.
+	// Unarchives multiple rules
 	BatchUndeleteRules(context.Context, *BatchUndeleteRulesRequest) (*BatchUndeleteRulesResponse, error)
 	// Deprecated: Do not use.
 	// Deprecated - use RuleEvaluationService instead.
@@ -4132,8 +4552,20 @@ func (UnimplementedRuleServiceServer) BatchUpdateRules(context.Context, *BatchUp
 func (UnimplementedRuleServiceServer) DeleteRule(context.Context, *DeleteRuleRequest) (*DeleteRuleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRule not implemented")
 }
+func (UnimplementedRuleServiceServer) ArchiveRule(context.Context, *ArchiveRuleRequest) (*ArchiveRuleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ArchiveRule not implemented")
+}
 func (UnimplementedRuleServiceServer) BatchDeleteRules(context.Context, *BatchDeleteRulesRequest) (*BatchDeleteRulesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchDeleteRules not implemented")
+}
+func (UnimplementedRuleServiceServer) BatchArchiveRules(context.Context, *BatchArchiveRulesRequest) (*BatchArchiveRulesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchArchiveRules not implemented")
+}
+func (UnimplementedRuleServiceServer) UnarchiveRule(context.Context, *UnarchiveRuleRequest) (*UnarchiveRuleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnarchiveRule not implemented")
+}
+func (UnimplementedRuleServiceServer) BatchUnarchiveRules(context.Context, *BatchUnarchiveRulesRequest) (*BatchUnarchiveRulesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchUnarchiveRules not implemented")
 }
 func (UnimplementedRuleServiceServer) UndeleteRule(context.Context, *UndeleteRuleRequest) (*UndeleteRuleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UndeleteRule not implemented")
@@ -4310,6 +4742,24 @@ func _RuleService_DeleteRule_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuleService_ArchiveRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ArchiveRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuleServiceServer).ArchiveRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sift.rules.v1.RuleService/ArchiveRule",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuleServiceServer).ArchiveRule(ctx, req.(*ArchiveRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuleService_BatchDeleteRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BatchDeleteRulesRequest)
 	if err := dec(in); err != nil {
@@ -4324,6 +4774,60 @@ func _RuleService_BatchDeleteRules_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuleServiceServer).BatchDeleteRules(ctx, req.(*BatchDeleteRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuleService_BatchArchiveRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchArchiveRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuleServiceServer).BatchArchiveRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sift.rules.v1.RuleService/BatchArchiveRules",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuleServiceServer).BatchArchiveRules(ctx, req.(*BatchArchiveRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuleService_UnarchiveRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnarchiveRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuleServiceServer).UnarchiveRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sift.rules.v1.RuleService/UnarchiveRule",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuleServiceServer).UnarchiveRule(ctx, req.(*UnarchiveRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuleService_BatchUnarchiveRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchUnarchiveRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuleServiceServer).BatchUnarchiveRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sift.rules.v1.RuleService/BatchUnarchiveRules",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuleServiceServer).BatchUnarchiveRules(ctx, req.(*BatchUnarchiveRulesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -4580,8 +5084,24 @@ var RuleService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuleService_DeleteRule_Handler,
 		},
 		{
+			MethodName: "ArchiveRule",
+			Handler:    _RuleService_ArchiveRule_Handler,
+		},
+		{
 			MethodName: "BatchDeleteRules",
 			Handler:    _RuleService_BatchDeleteRules_Handler,
+		},
+		{
+			MethodName: "BatchArchiveRules",
+			Handler:    _RuleService_BatchArchiveRules_Handler,
+		},
+		{
+			MethodName: "UnarchiveRule",
+			Handler:    _RuleService_UnarchiveRule_Handler,
+		},
+		{
+			MethodName: "BatchUnarchiveRules",
+			Handler:    _RuleService_BatchUnarchiveRules_Handler,
 		},
 		{
 			MethodName: "UndeleteRule",
@@ -4665,6 +5185,30 @@ func (m *Rule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
+	}
+	if m.ArchivedDate != nil {
+		size, err := (*timestamppb1.Timestamp)(m.ArchivedDate).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
 	if len(m.Metadata) > 0 {
 		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
@@ -5700,6 +6244,16 @@ func (m *UpdateRuleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x70
+	}
 	if len(m.Metadata) > 0 {
 		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
 			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
@@ -6421,6 +6975,170 @@ func (m *BatchDeleteRulesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
+func (m *ArchiveRuleRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ArchiveRuleRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ArchiveRuleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ClientKey) > 0 {
+		i -= len(m.ClientKey)
+		copy(dAtA[i:], m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RuleId) > 0 {
+		i -= len(m.RuleId)
+		copy(dAtA[i:], m.RuleId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ArchiveRuleResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ArchiveRuleResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ArchiveRuleResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BatchArchiveRulesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BatchArchiveRulesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BatchArchiveRulesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ClientKeys) > 0 {
+		for iNdEx := len(m.ClientKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ClientKeys[iNdEx])
+			copy(dAtA[i:], m.ClientKeys[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKeys[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.RuleIds) > 0 {
+		for iNdEx := len(m.RuleIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RuleIds[iNdEx])
+			copy(dAtA[i:], m.RuleIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleIds[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BatchArchiveRulesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BatchArchiveRulesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BatchArchiveRulesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *UndeleteRuleRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -6571,6 +7289,170 @@ func (m *BatchUndeleteRulesResponse) MarshalToVT(dAtA []byte) (int, error) {
 }
 
 func (m *BatchUndeleteRulesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UnarchiveRuleRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UnarchiveRuleRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *UnarchiveRuleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ClientKey) > 0 {
+		i -= len(m.ClientKey)
+		copy(dAtA[i:], m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RuleId) > 0 {
+		i -= len(m.RuleId)
+		copy(dAtA[i:], m.RuleId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UnarchiveRuleResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UnarchiveRuleResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *UnarchiveRuleResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BatchUnarchiveRulesRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BatchUnarchiveRulesRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BatchUnarchiveRulesRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ClientKeys) > 0 {
+		for iNdEx := len(m.ClientKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ClientKeys[iNdEx])
+			copy(dAtA[i:], m.ClientKeys[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKeys[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.RuleIds) > 0 {
+		for iNdEx := len(m.RuleIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RuleIds[iNdEx])
+			copy(dAtA[i:], m.RuleIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleIds[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BatchUnarchiveRulesResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BatchUnarchiveRulesResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BatchUnarchiveRulesResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -7349,6 +8231,26 @@ func (m *RuleVersion) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.ArchivedDate != nil {
+		size, err := (*timestamppb1.Timestamp)(m.ArchivedDate).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
 	}
 	if m.DeletedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.DeletedDate).MarshalToSizedBufferVT(dAtA[:i])
@@ -8557,6 +9459,30 @@ func (m *Rule) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
+	}
+	if m.ArchivedDate != nil {
+		size, err := (*timestamppb1.Timestamp)(m.ArchivedDate).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
 	if len(m.Metadata) > 0 {
 		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
 			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
@@ -9591,6 +10517,16 @@ func (m *UpdateRuleRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x70
+	}
 	if len(m.Metadata) > 0 {
 		for iNdEx := len(m.Metadata) - 1; iNdEx >= 0; iNdEx-- {
 			if vtmsg, ok := interface{}(m.Metadata[iNdEx]).(interface {
@@ -10312,6 +11248,170 @@ func (m *BatchDeleteRulesResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (in
 	return len(dAtA) - i, nil
 }
 
+func (m *ArchiveRuleRequest) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ArchiveRuleRequest) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *ArchiveRuleRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ClientKey) > 0 {
+		i -= len(m.ClientKey)
+		copy(dAtA[i:], m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RuleId) > 0 {
+		i -= len(m.RuleId)
+		copy(dAtA[i:], m.RuleId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ArchiveRuleResponse) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ArchiveRuleResponse) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *ArchiveRuleResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BatchArchiveRulesRequest) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BatchArchiveRulesRequest) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *BatchArchiveRulesRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ClientKeys) > 0 {
+		for iNdEx := len(m.ClientKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ClientKeys[iNdEx])
+			copy(dAtA[i:], m.ClientKeys[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKeys[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.RuleIds) > 0 {
+		for iNdEx := len(m.RuleIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RuleIds[iNdEx])
+			copy(dAtA[i:], m.RuleIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleIds[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BatchArchiveRulesResponse) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BatchArchiveRulesResponse) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *BatchArchiveRulesResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *UndeleteRuleRequest) MarshalVTStrict() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -10462,6 +11562,170 @@ func (m *BatchUndeleteRulesResponse) MarshalToVTStrict(dAtA []byte) (int, error)
 }
 
 func (m *BatchUndeleteRulesResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UnarchiveRuleRequest) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UnarchiveRuleRequest) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *UnarchiveRuleRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ClientKey) > 0 {
+		i -= len(m.ClientKey)
+		copy(dAtA[i:], m.ClientKey)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.RuleId) > 0 {
+		i -= len(m.RuleId)
+		copy(dAtA[i:], m.RuleId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UnarchiveRuleResponse) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UnarchiveRuleResponse) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *UnarchiveRuleResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BatchUnarchiveRulesRequest) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BatchUnarchiveRulesRequest) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *BatchUnarchiveRulesRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ClientKeys) > 0 {
+		for iNdEx := len(m.ClientKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.ClientKeys[iNdEx])
+			copy(dAtA[i:], m.ClientKeys[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClientKeys[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.RuleIds) > 0 {
+		for iNdEx := len(m.RuleIds) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.RuleIds[iNdEx])
+			copy(dAtA[i:], m.RuleIds[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RuleIds[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BatchUnarchiveRulesResponse) MarshalVTStrict() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVTStrict(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BatchUnarchiveRulesResponse) MarshalToVTStrict(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVTStrict(dAtA[:size])
+}
+
+func (m *BatchUnarchiveRulesResponse) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -11240,6 +12504,26 @@ func (m *RuleVersion) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsArchived {
+		i--
+		if m.IsArchived {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.ArchivedDate != nil {
+		size, err := (*timestamppb1.Timestamp)(m.ArchivedDate).MarshalToSizedBufferVTStrict(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
 	}
 	if m.DeletedDate != nil {
 		size, err := (*timestamppb1.Timestamp)(m.DeletedDate).MarshalToSizedBufferVTStrict(dAtA[:i])
@@ -12531,6 +13815,13 @@ func (m *Rule) SizeVT() (n int) {
 			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.ArchivedDate != nil {
+		l = (*timestamppb1.Timestamp)(m.ArchivedDate).SizeVT()
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.IsArchived {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -12933,6 +14224,9 @@ func (m *UpdateRuleRequest) SizeVT() (n int) {
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
+	if m.IsArchived {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -13162,6 +14456,66 @@ func (m *BatchDeleteRulesResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *ArchiveRuleRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.RuleId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ClientKey)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ArchiveRuleResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BatchArchiveRulesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.RuleIds) > 0 {
+		for _, s := range m.RuleIds {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ClientKeys) > 0 {
+		for _, s := range m.ClientKeys {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BatchArchiveRulesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *UndeleteRuleRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -13213,6 +14567,66 @@ func (m *BatchUndeleteRulesRequest) SizeVT() (n int) {
 }
 
 func (m *BatchUndeleteRulesResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *UnarchiveRuleRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.RuleId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ClientKey)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *UnarchiveRuleResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BatchUnarchiveRulesRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.RuleIds) > 0 {
+		for _, s := range m.RuleIds {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.ClientKeys) > 0 {
+		for _, s := range m.ClientKeys {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BatchUnarchiveRulesResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -13534,6 +14948,13 @@ func (m *RuleVersion) SizeVT() (n int) {
 	if m.DeletedDate != nil {
 		l = (*timestamppb1.Timestamp)(m.DeletedDate).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ArchivedDate != nil {
+		l = (*timestamppb1.Timestamp)(m.ArchivedDate).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.IsArchived {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -14622,6 +16043,62 @@ func (m *Rule) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ArchivedDate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ArchivedDate == nil {
+				m.ArchivedDate = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.ArchivedDate).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 21:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -17177,6 +18654,26 @@ func (m *UpdateRuleRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18559,6 +20056,338 @@ func (m *BatchDeleteRulesResponse) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *ArchiveRuleRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ArchiveRuleRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ArchiveRuleRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuleId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ClientKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ArchiveRuleResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ArchiveRuleResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ArchiveRuleResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BatchArchiveRulesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BatchArchiveRulesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BatchArchiveRulesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuleIds = append(m.RuleIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKeys", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ClientKeys = append(m.ClientKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BatchArchiveRulesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BatchArchiveRulesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BatchArchiveRulesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *UndeleteRuleRequest) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -18867,6 +20696,338 @@ func (m *BatchUndeleteRulesResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: BatchUndeleteRulesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UnarchiveRuleRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UnarchiveRuleRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UnarchiveRuleRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuleId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ClientKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UnarchiveRuleResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UnarchiveRuleResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UnarchiveRuleResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BatchUnarchiveRulesRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BatchUnarchiveRulesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BatchUnarchiveRulesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RuleIds = append(m.RuleIds, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKeys", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ClientKeys = append(m.ClientKeys, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BatchUnarchiveRulesResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BatchUnarchiveRulesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BatchUnarchiveRulesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
@@ -20909,6 +23070,62 @@ func (m *RuleVersion) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ArchivedDate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ArchivedDate == nil {
+				m.ArchivedDate = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.ArchivedDate).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -24006,6 +26223,62 @@ func (m *Rule) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ArchivedDate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ArchivedDate == nil {
+				m.ArchivedDate = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.ArchivedDate).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 21:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -26689,6 +28962,26 @@ func (m *UpdateRuleRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -28123,6 +30416,354 @@ func (m *BatchDeleteRulesResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *ArchiveRuleRequest) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ArchiveRuleRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ArchiveRuleRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RuleId = stringValue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.ClientKey = stringValue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ArchiveRuleResponse) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ArchiveRuleResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ArchiveRuleResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BatchArchiveRulesRequest) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BatchArchiveRulesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BatchArchiveRulesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RuleIds = append(m.RuleIds, stringValue)
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKeys", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.ClientKeys = append(m.ClientKeys, stringValue)
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BatchArchiveRulesResponse) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BatchArchiveRulesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BatchArchiveRulesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *UndeleteRuleRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -28447,6 +31088,354 @@ func (m *BatchUndeleteRulesResponse) UnmarshalVTUnsafe(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: BatchUndeleteRulesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UnarchiveRuleRequest) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UnarchiveRuleRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UnarchiveRuleRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RuleId = stringValue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.ClientKey = stringValue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UnarchiveRuleResponse) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UnarchiveRuleResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UnarchiveRuleResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BatchUnarchiveRulesRequest) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BatchUnarchiveRulesRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BatchUnarchiveRulesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RuleIds", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RuleIds = append(m.RuleIds, stringValue)
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientKeys", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.ClientKeys = append(m.ClientKeys, stringValue)
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BatchUnarchiveRulesResponse) UnmarshalVTUnsafe(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BatchUnarchiveRulesResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BatchUnarchiveRulesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:
@@ -30589,6 +33578,62 @@ func (m *RuleVersion) UnmarshalVTUnsafe(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ArchivedDate", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ArchivedDate == nil {
+				m.ArchivedDate = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.ArchivedDate).UnmarshalVTUnsafe(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsArchived", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsArchived = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

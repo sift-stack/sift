@@ -50,7 +50,7 @@ gen_python_modules() {
   local sift_grafana="python/lib/sift_grafana"
 
   if [[ ! -d "$python_gen_dir" ]]; then
-    err_and_exit "The '$python_gen_dir' directory could not be located. Failed to generate python modules."
+    mkdir -p "$python_gen_dir" || err_and_exit "Failed to create '$python_gen_dir' directory."
   fi
 
   printf "Generating python modules... "
@@ -82,7 +82,8 @@ gen_python_modules() {
 
 gen_protos() {
   printf "\x1b[?25l"
-  mkdir "$TMP_DIR"
+  mkdir -p "$TMP_DIR"
+  mkdir -p "$OUTPUT_PROTOS"
   buf mod update protos
   buf export protos --output="$OUTPUT_PROTOS" --config="$BUF_CONF"
 
@@ -97,7 +98,17 @@ gen_protos() {
   for lang in ${langs[@]}; do
     printf "Compiling protocol buffers for $lang... "
     if [[ "$lang" == "rust" ]]; then
+      # Clean old generated files to avoid stale code
+      if [[ -d "$lang/crates/sift_rs/src/gen" ]]; then
+        rm -rf "$lang/crates/sift_rs/src/gen"
+      fi
       buf generate "$OUTPUT_PROTOS" --template "$lang/crates/sift_rs/buf.gen.yaml" --output "$lang/crates/sift_rs"
+    elif [[ "$lang" == "go" ]]; then
+      # Clean old generated files to avoid stale code
+      if [[ -d "$lang/gen" ]]; then
+        rm -rf "$lang/gen"
+      fi
+      buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang"
     else
       buf generate "$OUTPUT_PROTOS" --template "$lang/buf.gen.yaml" --output "$lang"
     fi

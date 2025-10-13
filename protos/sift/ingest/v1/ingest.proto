@@ -6,7 +6,6 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 
-
 service IngestService {
   rpc IngestWithConfigDataStream(stream IngestWithConfigDataStreamRequest) returns (IngestWithConfigDataStreamResponse);
   rpc IngestArbitraryProtobufDataStream(stream IngestArbitraryProtobufDataStreamRequest) returns (IngestArbitraryProtobufDataStreamResponse);
@@ -27,6 +26,8 @@ message IngestWithConfigDataStreamRequest {
   bool end_stream_on_validation_error = 6;
   string organization_id = 7;
 }
+
+
 
 message IngestWithConfigDataStreamResponse {}
 

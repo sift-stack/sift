@@ -67,7 +67,6 @@ class IngestionAPIAsync(ResourceBase):
             asset_name=asset_name,
             flows=flows,
             client_key=client_key,
-            organization_id=organization_id,
         )
         for flow in flows:
             flow._apply_client_to_instance(self.client)

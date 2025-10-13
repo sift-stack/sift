@@ -48,6 +48,26 @@ pub struct ListActiveUsersResponse {
     #[prost(string, tag="2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListUsersRequest {
+    #[prost(uint32, tag="1")]
+    pub page_size: u32,
+    #[prost(string, tag="2")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(string, tag="3")]
+    pub filter: ::prost::alloc::string::String,
+    #[prost(string, tag="4")]
+    pub order_by: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListUsersResponse {
+    #[prost(message, repeated, tag="1")]
+    pub users: ::prost::alloc::vec::Vec<super::super::common::r#type::v1::User>,
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
 include!("sift.users.v2.tonic.rs");
 include!("sift.users.v2.serde.rs");
 // @@protoc_insertion_point(module)

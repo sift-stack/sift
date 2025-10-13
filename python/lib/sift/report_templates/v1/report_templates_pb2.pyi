@@ -32,6 +32,7 @@ class ReportTemplate(google.protobuf.message.Message):
     RULES_FIELD_NUMBER: builtins.int
     TAGS_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    IS_ARCHIVED_FIELD_NUMBER: builtins.int
     report_template_id: builtins.str
     organization_id: builtins.str
     client_key: builtins.str
@@ -39,6 +40,8 @@ class ReportTemplate(google.protobuf.message.Message):
     description: builtins.str
     created_by_user_id: builtins.str
     modified_by_user_id: builtins.str
+    is_archived: builtins.bool
+    """Whether the report template is archived. This is inferred from whether archived_date is set."""
     @property
     def archived_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -67,9 +70,10 @@ class ReportTemplate(google.protobuf.message.Message):
         rules: collections.abc.Iterable[global___ReportTemplateRule] | None = ...,
         tags: collections.abc.Iterable[global___ReportTemplateTag] | None = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
+        is_archived: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_date", b"created_date", "description", b"description", "modified_date", b"modified_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_template_id", b"report_template_id", "rules", b"rules", "tags", b"tags"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_archived_date", b"_archived_date", "_client_key", b"_client_key", "_description", b"_description", "archived_date", b"archived_date", "client_key", b"client_key", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "is_archived", b"is_archived", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "report_template_id", b"report_template_id", "rules", b"rules", "tags", b"tags"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_archived_date", b"_archived_date"]) -> typing.Literal["archived_date"] | None: ...
     @typing.overload
@@ -290,7 +294,7 @@ class ListReportTemplatesRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, and `name`.
+    Available fields to filter by are `report_template_id`, `tag_id`, `tag_name`, `client_key`, `metadata`, `name` and 'is_archived'.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/report_templates#report_template). Optional.
     """
@@ -357,7 +361,7 @@ class UpdateReportTemplateRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `description`, `tags`, `rules`, and `metadata`."""
+        """The list of fields to be updated. The fields available to be updated are `name`, `archived_date`, `is_archived`, `description`, `tags`, `rules`, and `metadata`."""
 
     def __init__(
         self,

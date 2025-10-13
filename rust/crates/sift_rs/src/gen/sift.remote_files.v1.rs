@@ -204,6 +204,7 @@ pub enum EntityType {
     Annotation = 2,
     Asset = 3,
     AnnotationLog = 4,
+    TestReport = 5,
 }
 impl EntityType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -217,6 +218,7 @@ impl EntityType {
             EntityType::Annotation => "ENTITY_TYPE_ANNOTATION",
             EntityType::Asset => "ENTITY_TYPE_ASSET",
             EntityType::AnnotationLog => "ENTITY_TYPE_ANNOTATION_LOG",
+            EntityType::TestReport => "ENTITY_TYPE_TEST_REPORT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -227,6 +229,7 @@ impl EntityType {
             "ENTITY_TYPE_ANNOTATION" => Some(Self::Annotation),
             "ENTITY_TYPE_ASSET" => Some(Self::Asset),
             "ENTITY_TYPE_ANNOTATION_LOG" => Some(Self::AnnotationLog),
+            "ENTITY_TYPE_TEST_REPORT" => Some(Self::TestReport),
             _ => None,
         }
     }

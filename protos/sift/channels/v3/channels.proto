@@ -12,7 +12,6 @@ import "sift/common/type/v1/channel_data_type.proto";
 import "sift/common/type/v1/channel_enum_type.proto";
 import "sift/metadata/v1/metadata.proto";
 
-
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {title: "Channel service"}
 };
@@ -21,8 +20,8 @@ service ChannelService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
     description: "Service to programmatically interact with [channels](/glossary#channel)."
     external_docs: {
-      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265453943";
-      description: "Read more about what channels are.";
+      url: "https://customer.support.siftstack.com/servicedesk/customer/portal/2/article/265453943"
+      description: "Read more about what channels are."
     }
   };
 
@@ -45,6 +44,8 @@ service ChannelService {
       operation_id: "ChannelService_ListChannelsV2"
     };
   }
+
+  // EXPERIMENTAL: This RPC is experimental and only available to a limited set of users.
 
   // Update a channel
   rpc UpdateChannel(UpdateChannelRequest) returns (UpdateChannelResponse) {
@@ -104,7 +105,7 @@ message ListChannelsRequest {
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `channel_id`, `asset_id`, `name`, `description`, `active`,
-  // `run_id`, `run_name`, `run_client_key`, `created_date`, and `modified_date`.
+  // `run_id`, `run_name`, `run_client_key`, `created_date`, `modified_date`, `created_by_user_id`, and `modified_by_user_id`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/channels#channel). Optional.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -120,6 +121,65 @@ message ListChannelsRequest {
 // The result of a call to ChannelService_ListChannels.
 message ListChannelsResponse {
   repeated Channel channels = 1;
+  string next_page_token = 2;
+}
+
+message FilterChannel {
+  string channel_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string name = 2 [(google.api.field_behavior) = REQUIRED];
+  reserved 3;
+  string organization_id = 4 [(google.api.field_behavior) = REQUIRED];
+  string asset_id = 5 [(google.api.field_behavior) = REQUIRED];
+  string asset_name = 6 [(google.api.field_behavior) = REQUIRED];
+  string description = 7;
+  string display_description = 8;
+  string unit_id = 9;
+  string display_unit_id = 10;
+  string unit = 11;
+  string display_unit = 12;
+  sift.common.type.v1.ChannelDataType data_type = 13 [(google.api.field_behavior) = REQUIRED];
+  repeated sift.common.type.v1.ChannelEnumType enum_types = 14;
+  repeated sift.common.type.v1.ChannelBitFieldElement bit_field_elements = 15;
+  repeated sift.metadata.v1.MetadataValue metadata = 16 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for a call to ChannelService_FilterChannels.
+message FilterChannelsRequest {
+  uint32 page_size = 1;
+  string page_token = 2;
+
+  // The search term to match against channel names, components and descriptions. Optional.
+  string search_term = 4;
+
+  // If true, the search term is case sensitive. Optional, default false.
+  bool is_search_case_sensitive = 5;
+
+  // If true, the search term is treated as a regular expression. Optional, default false.
+  bool is_search_regexp = 6;
+
+  // If provided, only channels matching these asset_ids are returned. Optional
+  repeated string asset_ids = 7;
+
+  // Only channels for these runs are returned. Optional
+  repeated string run_ids = 8;
+
+  // If provided, only channels matching these channel_ids are returned. Optional
+  repeated string channel_ids = 9;
+
+  // If provided, only channels with assets with these tag_ids are returned. Optional
+  repeated string asset_tag_ids = 10;
+
+  // If provide, only channels with these data types are returned. Optional.
+  repeated sift.common.type.v1.ChannelDataType data_types = 11;
+
+  // If provided, only channels with this metadata are returned. Optional.
+  repeated string metadata_keys = 12;
+  repeated string metadata_values = 13;
+}
+
+// The result of a call to ChannelService_FilterChannels.
+message FilterChannelsResponse {
+  repeated FilterChannel channels = 1;
   string next_page_token = 2;
 }
 

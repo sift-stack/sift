@@ -49,7 +49,6 @@ class ListUnitsRequest(google.protobuf.message.Message):
     page_token: builtins.str
     """A page token, received from a previous `ListUnits` call.
     Provide this to retrieve the subsequent page.
-
     When paginating, all other parameters provided to `ListUnits` must match
     the call that provided the page token.
     """
@@ -101,3 +100,35 @@ class ListUnitsResponse(google.protobuf.message.Message):
     def ClearField(self, field_name: typing.Literal["next_page_token", b"next_page_token", "units", b"units"]) -> None: ...
 
 global___ListUnitsResponse = ListUnitsResponse
+
+@typing.final
+class CreateUnitRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    NAME_FIELD_NUMBER: builtins.int
+    name: builtins.str
+    def __init__(
+        self,
+        *,
+        name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["name", b"name"]) -> None: ...
+
+global___CreateUnitRequest = CreateUnitRequest
+
+@typing.final
+class CreateUnitResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    UNIT_FIELD_NUMBER: builtins.int
+    @property
+    def unit(self) -> global___Unit: ...
+    def __init__(
+        self,
+        *,
+        unit: global___Unit | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["unit", b"unit"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["unit", b"unit"]) -> None: ...
+
+global___CreateUnitResponse = CreateUnitResponse
