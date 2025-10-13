@@ -6,6 +6,8 @@ use std::path::PathBuf;
 pub mod channel;
 use channel::DataType;
 
+pub mod export;
+
 pub mod parquet;
 
 pub mod time;
@@ -35,13 +37,84 @@ pub enum Cmd {
     #[command(subcommand)]
     Config(ConfigCmd),
 
-    /// Import time series files into Sift
-    #[command(subcommand)]
-    Import(ImportCmd),
-
     /// Manage shell autocompletions
     #[command(subcommand)]
     Completions(CompletionsCmd),
+
+    /// Export asset/run data from Sift
+    #[command(subcommand)]
+    Export(ExportCmd),
+
+    /// Import time series files into Sift
+    #[command(subcommand)]
+    Import(ImportCmd),
+}
+
+#[derive(Subcommand)]
+pub enum ExportCmd {
+    /// Export data for a run
+    Run(ExportRunArgs),
+
+    /// Export data for an asset
+    Asset(ExportAssetArgs),
+}
+
+#[derive(clap::Args)]
+pub struct ExportRunArgs {
+    /// The name of the run
+    #[arg(short, long, group = "run_identifier")]
+    pub name: Option<String>,
+
+    /// The ID of the run
+    #[arg(short, long, group = "run_identifier")]
+    pub run_id: Option<String>,
+
+    /// The client key of the run
+    #[arg(short = 'k', long, group = "run_identifier")]
+    pub client_key: Option<String>,
+
+    #[command(flatten)]
+    pub common: ExportArgs,
+}
+
+#[derive(clap::Args)]
+pub struct ExportAssetArgs {
+    /// The name of the asset
+    pub asset: String,
+
+    #[command(flatten)]
+    pub common: ExportArgs,
+}
+
+#[derive(clap::Args)]
+pub struct ExportArgs {
+    /// The file to generate
+    #[arg(short, long)]
+    pub output: PathBuf,
+
+    /// File format for the output file
+    #[arg(short, long)]
+    pub format: export::Format,
+
+    /// Regular expression used to filter channels to include in the export
+    #[arg(short = 'x', long)]
+    pub channel_regex: Option<String>,
+
+    /// Name of channel to include in the export; can be specified multiple times
+    #[arg(short, long)]
+    pub channel: Vec<String>,
+
+    /// ID of channel to include in the export; can be specified multiple times
+    #[arg(long)]
+    pub channel_id: Vec<String>,
+
+    /// Start time in RFC 3339 format (required for asset exports)
+    #[arg(long)]
+    pub start: Option<String>,
+
+    /// Stop time in RFC 3339 format (required for asset exports)
+    #[arg(long)]
+    pub stop: Option<String>,
 }
 
 #[derive(Subcommand)]

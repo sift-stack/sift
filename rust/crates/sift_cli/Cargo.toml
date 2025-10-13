@@ -27,6 +27,7 @@ reqwest = "0.12.23"
 sift_rs = { workspace = true }
 tokio = { version = "1.47.1", features = ["full", "net", "time"] }
 toml = "0.8.23"
+zip = "6.0.0"
 
 [dev-dependencies]
 indoc = "2.0.6"

@@ -6,6 +6,7 @@ use toml::{Table, Value};
 
 pub mod completions;
 pub mod config;
+pub mod export;
 pub mod import;
 
 pub struct Context {
