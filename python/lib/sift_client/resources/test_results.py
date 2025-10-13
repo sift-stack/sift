@@ -467,7 +467,6 @@ class TestResultsAPIAsync(ResourceBase):
             measurements: Measurements to filter by.
             test_steps: Test steps to filter by.
             test_reports: Test reports to filter by.
-            test_report_id: Test report ID to filter by.
             name: Exact name of the test measurement.
             name_contains: Partial name of the test measurement.
             name_regex: Regular expression string to filter test measurements by name.
