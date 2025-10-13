@@ -90,6 +90,7 @@ class ReportsAPIAsync(ResourceBase):
             created_before: Filter reports created before this datetime.
             modified_after: Filter reports modified after this datetime.
             modified_before: Filter reports modified before this datetime.
+
         Returns:
             A list of Reports that matches the filter.
         """

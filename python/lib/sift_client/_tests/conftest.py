@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sift_client import SiftClient,SiftConnectionConfig
+from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.util.util import AsyncAPIs
 
 
