@@ -44,7 +44,7 @@ class TestResultsAPIAsync(ResourceBase):
         self._low_level_client = TestResultsLowLevelClient(grpc_client=self.client.grpc_client)
         self._upload_client = UploadLowLevelClient(rest_client=self.client.rest_client)
 
-    async def import_test_report(self, test_file: str | Path) -> TestReport:
+    async def import_(self, test_file: str | Path) -> TestReport:
         """Import a test report from an already-uploaded file.
 
         Args:
@@ -63,7 +63,7 @@ class TestResultsAPIAsync(ResourceBase):
         test_report = await self._low_level_client.import_test_report(remote_file_id=remote_file_id)
         return self._apply_client_to_instance(test_report)
 
-    async def create_report(
+    async def create(
         self,
         test_report: TestReportCreate | dict,
     ) -> TestReport:
@@ -82,7 +82,7 @@ class TestResultsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(created_report)
 
-    async def get_report(self, *, test_report_id: str) -> TestReport:
+    async def get(self, *, test_report_id: str) -> TestReport:
         """Get a TestReport.
 
         Args:
@@ -94,7 +94,7 @@ class TestResultsAPIAsync(ResourceBase):
         test_report = await self._low_level_client.get_test_report(test_report_id=test_report_id)
         return self._apply_client_to_instance(test_report)
 
-    async def list_reports(
+    async def list_(
         self,
         *,
         name: str | None = None,
@@ -197,17 +197,17 @@ class TestResultsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instances(test_reports)
 
-    async def find_report(self, **kwargs) -> TestReport | None:
+    async def find(self, **kwargs) -> TestReport | None:
         """Find a single test report matching the given query. Takes the same arguments as `list_`. If more than one test report is found,
         raises an error.
 
         Args:
-            **kwargs: Keyword arguments to pass to `list_reports`.
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
             The TestReport found or None.
         """
-        test_reports = await self.list_reports(**kwargs)
+        test_reports = await self.list_(**kwargs)
         if len(test_reports) > 1:
             error_msg = (
                 f"Multiple test reports found for query ({', '.join(report.id_ or 'no id' for report in test_reports)})"
@@ -219,7 +219,7 @@ class TestResultsAPIAsync(ResourceBase):
             return test_reports[0]
         return None
 
-    async def update_report(
+    async def update(
         self, test_report: str | TestReport, update: TestReportUpdate | dict
     ) -> TestReport:
         """Update a TestReport.
@@ -241,23 +241,23 @@ class TestResultsAPIAsync(ResourceBase):
         updated_test_report = await self._low_level_client.update_test_report(update)
         return self._apply_client_to_instance(updated_test_report)
 
-    async def archive_report(self, *, test_report: str | TestReport) -> TestReport:
+    async def archive(self, *, test_report: str | TestReport) -> TestReport:
         """Archive a test report.
 
         Args:
             test_report: The TestReport or test report ID to archive.
         """
-        return await self.update_report(test_report=test_report, update={"is_archived": True})
+        return await self.update(test_report=test_report, update={"is_archived": True})
 
-    async def unarchive_report(self, *, test_report: str | TestReport) -> TestReport:
+    async def unarchive(self, *, test_report: str | TestReport) -> TestReport:
         """Unarchive a test report.
 
         Args:
             test_report: The TestReport or test report ID to unarchive.
         """
-        return await self.update_report(test_report=test_report, update={"is_archived": False})
+        return await self.update(test_report=test_report, update={"is_archived": False})
 
-    async def delete_report(self, *, test_report: str | TestReport) -> None:
+    async def delete(self, *, test_report: str | TestReport) -> None:
         """Delete a test report.
 
         Args:

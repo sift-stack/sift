@@ -840,11 +840,22 @@ class TestResultsAPI:
         ...
 
     def _run(self, coro): ...
-    def archive_report(self, *, test_report: str | TestReport) -> TestReport:
+    def archive(self, *, test_report: str | TestReport) -> TestReport:
         """Archive a test report.
 
         Args:
             test_report: The TestReport or test report ID to archive.
+        """
+        ...
+
+    def create(self, test_report: TestReportCreate | dict) -> TestReport:
+        """Create a new test report.
+
+        Args:
+            test_report: The test report to create (can be TestReport or TestReportCreate).
+
+        Returns:
+            The created TestReport.
         """
         ...
 
@@ -875,17 +886,6 @@ class TestResultsAPI:
         """
         ...
 
-    def create_report(self, test_report: TestReportCreate | dict) -> TestReport:
-        """Create a new test report.
-
-        Args:
-            test_report: The test report to create (can be TestReport or TestReportCreate).
-
-        Returns:
-            The created TestReport.
-        """
-        ...
-
     def create_step(self, test_step: TestStepCreate | dict) -> TestStep:
         """Create a new test step.
 
@@ -897,19 +897,19 @@ class TestResultsAPI:
         """
         ...
 
+    def delete(self, *, test_report: str | TestReport) -> None:
+        """Delete a test report.
+
+        Args:
+            test_report: The TestReport or test report ID to delete.
+        """
+        ...
+
     def delete_measurement(self, *, test_measurement: str | TestMeasurement) -> None:
         """Delete a test measurement.
 
         Args:
             test_measurement: The TestMeasurement or measurement ID to delete.
-        """
-        ...
-
-    def delete_report(self, *, test_report: str | TestReport) -> None:
-        """Delete a test report.
-
-        Args:
-            test_report: The TestReport or test report ID to delete.
         """
         ...
 
@@ -921,19 +921,19 @@ class TestResultsAPI:
         """
         ...
 
-    def find_report(self, **kwargs) -> TestReport | None:
+    def find(self, **kwargs) -> TestReport | None:
         """Find a single test report matching the given query. Takes the same arguments as `list_`. If more than one test report is found,
         raises an error.
 
         Args:
-            **kwargs: Keyword arguments to pass to `list_reports`.
+            **kwargs: Keyword arguments to pass to `list_`.
 
         Returns:
             The TestReport found or None.
         """
         ...
 
-    def get_report(self, *, test_report_id: str) -> TestReport:
+    def get(self, *, test_report_id: str) -> TestReport:
         """Get a TestReport.
 
         Args:
@@ -952,7 +952,7 @@ class TestResultsAPI:
         """
         ...
 
-    def import_test_report(self, test_file: str | Path) -> TestReport:
+    def import_(self, test_file: str | Path) -> TestReport:
         """Import a test report from an already-uploaded file.
 
         Args:
@@ -963,41 +963,7 @@ class TestResultsAPI:
         """
         ...
 
-    def list_measurements(
-        self,
-        *,
-        measurements: list[str] | list[TestMeasurement] | None = None,
-        test_steps: list[str] | list[TestStep] | None = None,
-        test_reports: list[str] | list[TestReport] | None = None,
-        name: str | None = None,
-        name_contains: str | None = None,
-        name_regex: str | re.Pattern | None = None,
-        measurement_type: TestMeasurementType | None = None,
-        passed: bool | None = None,
-        order_by: str | None = None,
-        limit: int | None = None,
-    ) -> list[TestMeasurement]:
-        """List test measurements with optional filtering.
-
-        Args:
-            measurements: Measurements to filter by.
-            test_steps: Test steps to filter by.
-            test_reports: Test reports to filter by.
-            test_report_id: Test report ID to filter by.
-            name: Exact name of the test measurement.
-            name_contains: Partial name of the test measurement.
-            name_regex: Regular expression string to filter test measurements by name.
-            measurement_type: Measurement type to filter by (TestMeasurementType enum).
-            passed: Whether the measurement passed.
-            order_by: How to order the retrieved test measurements.
-            limit: How many test measurements to retrieve. If None, retrieves all matches.
-
-        Returns:
-            A list of TestMeasurements that matches the filter.
-        """
-        ...
-
-    def list_reports(
+    def list_(
         self,
         *,
         name: str | None = None,
@@ -1052,6 +1018,40 @@ class TestResultsAPI:
         """
         ...
 
+    def list_measurements(
+        self,
+        *,
+        measurements: list[str] | list[TestMeasurement] | None = None,
+        test_steps: list[str] | list[TestStep] | None = None,
+        test_reports: list[str] | list[TestReport] | None = None,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        measurement_type: TestMeasurementType | None = None,
+        passed: bool | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[TestMeasurement]:
+        """List test measurements with optional filtering.
+
+        Args:
+            measurements: Measurements to filter by.
+            test_steps: Test steps to filter by.
+            test_reports: Test reports to filter by.
+            test_report_id: Test report ID to filter by.
+            name: Exact name of the test measurement.
+            name_contains: Partial name of the test measurement.
+            name_regex: Regular expression string to filter test measurements by name.
+            measurement_type: Measurement type to filter by (TestMeasurementType enum).
+            passed: Whether the measurement passed.
+            order_by: How to order the retrieved test measurements.
+            limit: How many test measurements to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of TestMeasurements that matches the filter.
+        """
+        ...
+
     def list_steps(
         self,
         *,
@@ -1085,11 +1085,23 @@ class TestResultsAPI:
         """
         ...
 
-    def unarchive_report(self, *, test_report: str | TestReport) -> TestReport:
+    def unarchive(self, *, test_report: str | TestReport) -> TestReport:
         """Unarchive a test report.
 
         Args:
             test_report: The TestReport or test report ID to unarchive.
+        """
+        ...
+
+    def update(self, test_report: str | TestReport, update: TestReportUpdate | dict) -> TestReport:
+        """Update a TestReport.
+
+        Args:
+            test_report: The TestReport or test report ID to update.
+            update: Updates to apply to the TestReport.
+
+        Returns:
+            The updated TestReport.
         """
         ...
 
@@ -1108,20 +1120,6 @@ class TestResultsAPI:
 
         Returns:
             The updated TestMeasurement.
-        """
-        ...
-
-    def update_report(
-        self, test_report: str | TestReport, update: TestReportUpdate | dict
-    ) -> TestReport:
-        """Update a TestReport.
-
-        Args:
-            test_report: The TestReport or test report ID to update.
-            update: Updates to apply to the TestReport.
-
-        Returns:
-            The updated TestReport.
         """
         ...
 

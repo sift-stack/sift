@@ -571,21 +571,19 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
 
     def update(self, update: TestReportUpdate | dict) -> TestReport:
         """Update the TestReport."""
-        updated_test_report = self.client.test_results.update_report(
-            test_report=self, update=update
-        )
+        updated_test_report = self.client.test_results.update(test_report=self, update=update)
         self._update(updated_test_report)
         return self
 
     def archive(self) -> TestReport:
         """Archive the TestReport."""
-        updated_test_report = self.client.test_results.archive_report(test_report=self)
+        updated_test_report = self.client.test_results.archive(test_report=self)
         self._update(updated_test_report)
         return self
 
     def unarchive(self) -> TestReport:
         """Unarchive the TestReport."""
-        updated_test_report = self.client.test_results.unarchive_report(test_report=self)
+        updated_test_report = self.client.test_results.unarchive(test_report=self)
         self._update(updated_test_report)
         return self
 

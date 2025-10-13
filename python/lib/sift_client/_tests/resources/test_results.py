@@ -33,7 +33,7 @@ class TestResultsTest:
     def test_create_test_report(self, sift_client):
         # Create a test report
         simulated_time = datetime.now(timezone.utc)
-        test_report = sift_client.test_results.create_report(
+        test_report = sift_client.test_results.create(
             {
                 "status": TestStatus.PASSED,
                 "name": "Test Report with Steps and Measurements",
@@ -270,7 +270,7 @@ class TestResultsTest:
             pytest.skip("Need to create a test report first")
         new_end_time = test_report.start_time + timedelta(seconds=42)
         # Update the report with metadata
-        updated_report = sift_client.test_results.update_report(
+        updated_report = sift_client.test_results.update(
             test_report=test_report,
             update=TestReportUpdate(
                 metadata={
@@ -304,12 +304,12 @@ class TestResultsTest:
             pytest.skip("Need to create a test report first")
 
         # Archive the report
-        archived_report = sift_client.test_results.archive_report(test_report=test_report)
+        archived_report = sift_client.test_results.archive(test_report=test_report)
         assert archived_report.is_archived
 
-        sift_client.test_results.delete_report(test_report=test_report)
+        sift_client.test_results.delete(test_report=test_report)
         try:
-            deleted_report = sift_client.test_results.get_report(test_report_id=test_report.id_)
+            deleted_report = sift_client.test_results.get(test_report_id=test_report.id_)
             assert deleted_report is None  # Shouldn't reach here so error if we get something.
         except aiogrpc.AioRpcError as e:
             self.test_reports.pop("basic_test_report")
@@ -320,10 +320,10 @@ class TestResultsTest:
         create_time = datetime.now(timezone.utc)
         current_dir = Path(__file__).parent
         test_file = Path(current_dir, "test_files", "demo_test_report.xml")
-        test_report = sift_client.test_results.import_test_report(test_file=test_file)
+        test_report = sift_client.test_results.import_(test_file=test_file)
 
         # Excercise find_report, custom_filter, and filtering by commonon-proto fields such as created_date
-        found_report = sift_client.test_results.find_report(
+        found_report = sift_client.test_results.find(
             filter_query=f"test_report_id == '{test_report.id_}' && created_date >= timestamp('{create_time}')"
         )
         assert found_report is not None
@@ -332,4 +332,4 @@ class TestResultsTest:
 
     def test_delete_test_reports(self, sift_client):
         for test_report in self.test_reports.values():
-            sift_client.test_results.delete_report(test_report=test_report)
+            sift_client.test_results.delete(test_report=test_report)
