@@ -58,6 +58,7 @@ class ResourceBase(ABC):
             filter_parts.append(cel.contains("name", name_contains))
         if name_regex:
             filter_parts.append(cel.match("name", name_regex))
+            print(filter_parts)
         return filter_parts
 
     def _build_time_cel_filters(

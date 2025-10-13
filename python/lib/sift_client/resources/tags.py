@@ -33,14 +33,7 @@ class TagsAPIAsync(ResourceBase):
         name_regex: str | re.Pattern | None = None,
         names: list[str] | None = None,
         tag_ids: list[str] | None = None,
-        created_by: str | None = None,
-        modified_by: str | None = None,
-        include_archived: bool = False,
         filter_query: str | None = None,
-        created_after: datetime | None = None,
-        created_before: datetime | None = None,
-        modified_after: datetime | None = None,
-        modified_before: datetime | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Tag]:
@@ -52,14 +45,7 @@ class TagsAPIAsync(ResourceBase):
             name_regex: Regular expression string to filter tags by name.
             names: List of tag names to filter by.
             tag_ids: List of tag IDs to filter by.
-            created_by: User ID who created the tag.
-            modified_by: User ID who last modified the tag.
-            include_archived: Whether to include archived tags.
             filter_query: Explicit CEL query to filter tags.
-            created_after: Filter tags created after this datetime.
-            created_before: Filter tags created before this datetime.
-            modified_after: Filter tags modified after this datetime.
-            modified_before: Filter tags modified before this datetime.
             order_by: How to order the retrieved tags.
             limit: How many tags to retrieve. If None, retrieves all matches.
 
@@ -71,16 +57,7 @@ class TagsAPIAsync(ResourceBase):
             *self._build_name_cel_filters(
                 name=name, name_contains=name_contains, name_regex=name_regex
             ),
-            *self._build_time_cel_filters(
-                created_after=created_after,
-                created_before=created_before,
-                modified_after=modified_after,
-                modified_before=modified_before,
-                created_by=created_by,
-                modified_by=modified_by,
-            ),
             *self._build_common_cel_filters(
-                include_archived=include_archived,
                 filter_query=filter_query,
             ),
         ]

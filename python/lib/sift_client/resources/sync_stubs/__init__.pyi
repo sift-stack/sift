@@ -623,17 +623,23 @@ class ReportsAPI:
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        description: str | None = None,
+        names: list[str] | None = None,
         description_contains: str | None = None,
         run_id: str | None = None,
         organization_id: str | None = None,
         report_template_id: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
         tag_name: str | None = None,
-        created_by_user_id: str | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         include_archived: bool = False,
+        filter_query: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
     ) -> list[Report]:
         """List reports with optional filtering.
 
@@ -641,17 +647,23 @@ class ReportsAPI:
             name: Exact name of the report.
             name_contains: Partial name of the report.
             name_regex: Regular expression string to filter reports by name.
-            description: Exact description of the report.
+            names: List of report names to filter by.
             description_contains: Partial description of the report.
             run_id: Run ID to filter by.
             organization_id: Organization ID to filter by.
             report_template_id: Report template ID to filter by.
             metadata: Metadata to filter by.
             tag_name: Tag name to filter by.
-            created_by_user_id: The user ID of the creator of the reports.
+            created_by: The user ID of the creator of the reports.
+            modified_by: The user ID of the last modifier of the reports.
             order_by: How to order the retrieved reports.
             limit: How many reports to retrieve. If None, retrieves all matches.
             include_archived: Whether to include archived reports.
+            filter_query: Explicit CEL query to filter reports.
+            created_after: Filter reports created after this datetime.
+            created_before: Filter reports created before this datetime.
+            modified_after: Filter reports modified after this datetime.
+            modified_before: Filter reports modified before this datetime.
 
         Returns:
             A list of Reports that matches the filter.
@@ -1049,7 +1061,13 @@ class TagsAPI:
         name_regex: str | re.Pattern | None = None,
         names: list[str] | None = None,
         tag_ids: list[str] | None = None,
-        created_by_user_id: str | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        filter_query: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Tag]:
@@ -1061,7 +1079,13 @@ class TagsAPI:
             name_regex: Regular expression string to filter tags by name.
             names: List of tag names to filter by.
             tag_ids: List of tag IDs to filter by.
-            created_by_user_id: User ID who created the tag.
+            created_by: User ID who created the tag.
+            modified_by: User ID who last modified the tag.
+            filter_query: Explicit CEL query to filter tags.
+            created_after: Filter tags created after this datetime.
+            created_before: Filter tags created before this datetime.
+            modified_after: Filter tags modified after this datetime.
+            modified_before: Filter tags modified before this datetime.
             order_by: How to order the retrieved tags.
             limit: How many tags to retrieve. If None, retrieves all matches.
 
