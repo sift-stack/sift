@@ -155,7 +155,7 @@ class TestResultsTest:
         """Test updating a test report."""
         updated_report = MagicMock()
         updated_report.status = TestStatus.FAILED
-        mock_client.test_results.update_report.return_value = updated_report
+        mock_client.test_results.update.return_value = updated_report
         with MagicMock() as mock_update:
             mock_test_report._update = mock_update
             # Update the report
@@ -167,7 +167,7 @@ class TestResultsTest:
             )
 
             # Verify the update method was called
-            mock_client.test_results.update_report.assert_called_once_with(
+            mock_client.test_results.update.assert_called_once_with(
                 test_report=mock_test_report,
                 update=update,
             )
@@ -178,14 +178,14 @@ class TestResultsTest:
         # Create archived report mock
         archived_report = MagicMock()
         archived_report.is_archived = True
-        mock_client.test_results.archive_report.return_value = archived_report
+        mock_client.test_results.archive.return_value = archived_report
         with MagicMock() as mock_update:
             mock_test_report._update = mock_update
             # Archive the report
             mock_test_report.archive()
 
             # Verify the archive method was called
-            mock_client.test_results.archive_report.assert_called_once()
+            mock_client.test_results.archive.assert_called_once()
             mock_update.assert_called_once_with(archived_report)
 
     def test_numeric_bounds_eq(self):
