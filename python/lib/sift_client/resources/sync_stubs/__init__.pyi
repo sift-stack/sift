@@ -956,7 +956,7 @@ class TestResultsAPI:
         """Import a test report from an already-uploaded file.
 
         Args:
-            test_file: The path to the test report file to import.
+            test_file: The path to the test report file to import. We currently only support XML files exported from NI TestStand.
 
         Returns:
             The imported TestReport.
@@ -976,8 +976,8 @@ class TestResultsAPI:
         serial_number: str | None = None,
         part_number: str | None = None,
         system_operator: str | None = None,
-        created_by_user: str | None = None,
-        modified_by_user: str | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
         modified_after: datetime | None = None,
@@ -1001,8 +1001,8 @@ class TestResultsAPI:
             serial_number: Serial number to filter by.
             part_number: Part number to filter by.
             system_operator: System operator to filter by.
-            created_by_user: User ID who created the test report.
-            modified_by_user: User ID who last modified the test report.
+            created_by: User ID who created the test report.
+            modified_by: User ID who last modified the test report.
             created_after: Filter test reports created after this datetime.
             created_before: Filter test reports created before this datetime.
             modified_after: Filter test reports modified after this datetime.
@@ -1029,6 +1029,7 @@ class TestResultsAPI:
         name_regex: str | re.Pattern | None = None,
         measurement_type: TestMeasurementType | None = None,
         passed: bool | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestMeasurement]:
@@ -1044,6 +1045,7 @@ class TestResultsAPI:
             name_regex: Regular expression string to filter test measurements by name.
             measurement_type: Measurement type to filter by (TestMeasurementType enum).
             passed: Whether the measurement passed.
+            filter_query: Explicit CEL query to filter test measurements.
             order_by: How to order the retrieved test measurements.
             limit: How many test measurements to retrieve. If None, retrieves all matches.
 
@@ -1063,6 +1065,7 @@ class TestResultsAPI:
         name_regex: str | re.Pattern | None = None,
         status: TestStatus | None = None,
         step_type: TestStepType | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[TestStep]:
@@ -1077,6 +1080,7 @@ class TestResultsAPI:
             name_regex: Regular expression string to filter test steps by name.
             status: Status to filter by (TestStatus enum).
             step_type: Step type to filter by (TestStepType enum).
+            filter_query: Explicit CEL query to filter test steps.
             order_by: How to order the retrieved test steps.
             limit: How many test steps to retrieve. If None, retrieves all matches.
 
