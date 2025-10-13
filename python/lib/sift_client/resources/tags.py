@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.tags import TagsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.util.cel_utils import contains, equals, in_, match
+from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -32,7 +33,14 @@ class TagsAPIAsync(ResourceBase):
         name_regex: str | re.Pattern | None = None,
         names: list[str] | None = None,
         tag_ids: list[str] | None = None,
-        created_by_user_id: str | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
         order_by: str | None = None,
         limit: int | None = None,
     ) -> list[Tag]:
@@ -44,7 +52,14 @@ class TagsAPIAsync(ResourceBase):
             name_regex: Regular expression string to filter tags by name.
             names: List of tag names to filter by.
             tag_ids: List of tag IDs to filter by.
-            created_by_user_id: User ID who created the tag.
+            created_by: User ID who created the tag.
+            modified_by: User ID who last modified the tag.
+            include_archived: Whether to include archived tags.
+            filter_query: Explicit CEL query to filter tags.
+            created_after: Filter tags created after this datetime.
+            created_before: Filter tags created before this datetime.
+            modified_after: Filter tags modified after this datetime.
+            modified_before: Filter tags modified before this datetime.
             order_by: How to order the retrieved tags.
             limit: How many tags to retrieve. If None, retrieves all matches.
 
@@ -52,26 +67,28 @@ class TagsAPIAsync(ResourceBase):
             A list of Tags that matches the filter.
         """
         # Build CEL filter
-        filter_parts = []
-
-        if name:
-            filter_parts.append(equals("name", name))
-        elif name_contains:
-            filter_parts.append(contains("name", name_contains))
-        elif name_regex:
-            if isinstance(name_regex, re.Pattern):
-                name_regex = name_regex.pattern
-            filter_parts.append(match("name", name_regex))  # type: ignore
-
-        if names:
-            filter_parts.append(in_("name", names))
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name, name_contains=name_contains, name_regex=name_regex, names=names
+            ),
+            *self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+                created_by=created_by,
+                modified_by=modified_by,
+            ),
+            *self._build_common_cel_filters(
+                include_archived=include_archived,
+                filter_query=filter_query,
+            ),
+        ]
+      
         if tag_ids:
-            filter_parts.append(in_("tag_id", tag_ids))
+            filter_parts.append(cel.in_("tag_id", tag_ids))
 
-        if created_by_user_id:
-            filter_parts.append(equals("created_by_user_id", created_by_user_id))
-
-        query_filter = " && ".join(filter_parts) if filter_parts else None
+        query_filter = cel.and_(*filter_parts) if filter_parts else None
 
         tags = await self._low_level_client.list_all_tags(
             query_filter=query_filter,

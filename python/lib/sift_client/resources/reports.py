@@ -8,7 +8,7 @@ from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClie
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.report import Report, ReportUpdate
-from sift_client.util.cel_utils import contains, equals, match
+from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -49,17 +49,23 @@ class ReportsAPIAsync(ResourceBase):
         name: str | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
-        description: str | None = None,
+        names: list[str] | None = None,
         description_contains: str | None = None,
         run_id: str | None = None,
         organization_id: str | None = None,
         report_template_id: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
         tag_name: str | None = None,
-        created_by_user_id: str | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         include_archived: bool = False,
+        filter_query: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
     ) -> list[Report]:
         """List reports with optional filtering.
 
@@ -67,58 +73,54 @@ class ReportsAPIAsync(ResourceBase):
             name: Exact name of the report.
             name_contains: Partial name of the report.
             name_regex: Regular expression string to filter reports by name.
-            description: Exact description of the report.
+            names: List of report names to filter by.
             description_contains: Partial description of the report.
             run_id: Run ID to filter by.
             organization_id: Organization ID to filter by.
             report_template_id: Report template ID to filter by.
             metadata: Metadata to filter by.
             tag_name: Tag name to filter by.
-            created_by_user_id: The user ID of the creator of the reports.
+            created_by: The user ID of the creator of the reports.
+            modified_by: The user ID of the last modifier of the reports.
             order_by: How to order the retrieved reports.
             limit: How many reports to retrieve. If None, retrieves all matches.
             include_archived: Whether to include archived reports.
-
+            filter_query: Explicit CEL query to filter reports.
+            created_after: Filter reports created after this datetime.
+            created_before: Filter reports created before this datetime.
+            modified_after: Filter reports modified after this datetime.
+            modified_before: Filter reports modified before this datetime.
         Returns:
             A list of Reports that matches the filter.
         """
         # Build CEL filter
-        filter_parts = []
-
-        if name:
-            filter_parts.append(equals("name", name))
-        elif name_contains:
-            filter_parts.append(contains("name", name_contains))
-        elif name_regex:
-            if isinstance(name_regex, re.Pattern):
-                name_regex = name_regex.pattern
-            filter_parts.append(match("name", name_regex))  # type: ignore
-
-        if description:
-            filter_parts.append(equals("description", description))
-        elif description_contains:
-            filter_parts.append(contains("description", description_contains))
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name, name_contains=name_contains, name_regex=name_regex, names=names
+            ),
+            *self._build_time_cel_filters(
+                created_after=created_after,
+                created_before=created_before,
+                modified_after=modified_after,
+                modified_before=modified_before,
+                created_by=created_by,
+                modified_by=modified_by,
+            ),
+            *self._build_tags_metadata_cel_filters(tag_names=[tag_name], metadata=metadata),
+            *self._build_common_cel_filters(
+                description_contains=description_contains,
+                include_archived=include_archived,
+                filter_query=filter_query,
+            ),
+        ]
 
         if run_id:
-            filter_parts.append(equals("run_id", run_id))
+            filter_parts.append(cel.equals("run_id", run_id))
 
         if report_template_id:
-            filter_parts.append(equals("report_template_id", report_template_id))
+            filter_parts.append(cel.equals("report_template_id", report_template_id))
 
-        if metadata:
-            for key, value in metadata.items():
-                filter_parts.append(equals(f'metadata["{key}"]', value))
-
-        if tag_name:
-            filter_parts.append(contains("tags", tag_name))
-
-        if created_by_user_id:
-            filter_parts.append(equals("created_by_user_id", created_by_user_id))
-
-        if not include_archived:
-            filter_parts.append(equals("archived_date", None))
-
-        query_filter = " && ".join(filter_parts) if filter_parts else None
+        query_filter = cel.and_(*filter_parts) if filter_parts else None
 
         reports = await self._low_level_client.list_all_reports(
             query_filter=query_filter,

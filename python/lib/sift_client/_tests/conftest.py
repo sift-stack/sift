@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sift_client import SiftClient
+from sift_client import SiftClient,SiftConnectionConfig
 from sift_client.util.util import AsyncAPIs
 
 
@@ -21,9 +21,12 @@ def sift_client() -> SiftClient:
     api_key = os.getenv("SIFT_API_KEY", "")
 
     return SiftClient(
-        api_key=api_key,
-        grpc_url=grpc_url,
-        rest_url=rest_url,
+        connection_config=SiftConnectionConfig(
+            api_key=api_key,
+            grpc_url=grpc_url,
+            rest_url=rest_url,
+            use_ssl=False,
+        )
     )
 
 
