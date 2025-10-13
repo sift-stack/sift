@@ -16,6 +16,8 @@ from typing import Any
 
 from sift_py.grpc.transport import (
     CacheConfig as SiftCacheConfig,
+)
+from sift_py.grpc.transport import (
     SiftChannelConfig,
     use_sift_async_channel,
 )
@@ -37,11 +39,16 @@ def _suppress_blocking_io(loop, context):
     loop.default_exception_handler(context)
 
 
+DEFAULT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60  # 1 week
+DEFAULT_CACHE_FOLDER = Path(tempfile.gettempdir()) / "sift_client"
+DEFAULT_CACHE_SIZE_LIMIT_BYTES = 5 * 1024 * 1024 * 1024  # 5GB
+
+
 class CacheConfig:
     """Configuration for gRPC response caching.
-    
+
     Attributes:
-        enabled: Whether to enable caching. Default is False.
+        enabled: Whether to enable caching. Default is True.
         ttl: Time-to-live for cached entries in seconds. Default is 3600 (1 hour).
         cache_path: Path to the cache directory. Default is system temp directory + 'sift_grpc_cache'.
         size_limit: Maximum size of the cache in bytes. Default is 1GB.
@@ -49,22 +56,22 @@ class CacheConfig:
 
     def __init__(
         self,
-        enabled: bool = False,
-        ttl: int = 3600,
-        cache_path: str | None = None,
-        size_limit: int = 1024 * 1024 * 1024,  # 1GB
+        enabled: bool = True,
+        ttl: int = DEFAULT_CACHE_TTL_SECONDS,
+        cache_folder: Path | str | None = DEFAULT_CACHE_FOLDER,
+        size_limit: int = DEFAULT_CACHE_SIZE_LIMIT_BYTES,  # 1GB
     ):
         """Initialize the cache configuration.
 
         Args:
             enabled: Whether to enable caching.
             ttl: Time-to-live for cached entries in seconds.
-            cache_path: Path to the cache directory. If None, uses system temp directory.
+            cache_folder: Path to the cache directory. If None, uses system temp directory.
             size_limit: Maximum size of the cache in bytes.
         """
         self.enabled = enabled
         self.ttl = ttl
-        self.cache_path = cache_path or str(
+        self.cache_path = cache_folder or str(
             Path(tempfile.gettempdir()) / "sift_grpc_cache"
         )
         self.size_limit = size_limit
@@ -123,11 +130,11 @@ class GrpcConfig:
             "use_ssl": self.use_ssl,
             "cert_via_openssl": self.cert_via_openssl,
         }
-        
+
         # Add cache config if enabled
         if self.cache_config and self.cache_config.enabled:
             config["cache_config"] = self.cache_config.to_sift_cache_config()
-        
+
         return config
 
 
@@ -146,7 +153,9 @@ class GrpcClient:
         self._config = config
         # map each asyncio loop to its async channel and stub dict
         self._channels_async: dict[asyncio.AbstractEventLoop, Any] = {}
-        self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = {}
+        self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = (
+            {}
+        )
         # default loop for sync API
         self._default_loop = asyncio.new_event_loop()
         atexit.register(self.close_sync)
@@ -208,7 +217,9 @@ class GrpcClient:
         """Close the sync channel and all async channels."""
         try:
             for ch in self._channels_async.values():
-                asyncio.run_coroutine_threadsafe(ch.close(), self._default_loop).result()
+                asyncio.run_coroutine_threadsafe(
+                    ch.close(), self._default_loop
+                ).result()
             self._default_loop.call_soon_threadsafe(self._default_loop.stop)
             self._default_loop_thread.join(timeout=1.0)
         except ValueError:
