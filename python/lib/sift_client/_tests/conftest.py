@@ -44,3 +44,17 @@ def mock_client():
     client.async_ = MagicMock(spec=AsyncAPIs)
     client.async_.ingestion = MagicMock()
     return client
+
+
+@pytest.fixture(scope="session")
+def test_tag(sift_client):
+    tag = sift_client.tags.find_or_create(names=["test"])[0]
+    assert tag is not None
+    yield tag
+
+
+@pytest.fixture(scope="session")
+def ci_pytest_tag(sift_client):
+    tag = sift_client.tags.find_or_create(names=["sift-client-pytest"])[0]
+    assert tag is not None
+    yield tag

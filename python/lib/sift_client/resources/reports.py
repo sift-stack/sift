@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.report import Report, ReportUpdate
+from sift_client.sift_types.rule import Rule
+from sift_client.sift_types.run import Run
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from datetime import datetime
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.tag import Tag
 
 
 class ReportsAPIAsync(ResourceBase):
@@ -52,11 +55,12 @@ class ReportsAPIAsync(ResourceBase):
         name_regex: str | re.Pattern | None = None,
         names: list[str] | None = None,
         description_contains: str | None = None,
-        run_id: str | None = None,
+        run: Run | str | None = None,
         organization_id: str | None = None,
+        report_ids: list[str] | None = None,
         report_template_id: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
-        tag_name: str | None = None,
+        tag_names: list[str] | list[Tag] | None = None,
         created_by: str | None = None,
         modified_by: str | None = None,
         order_by: str | None = None,
@@ -76,11 +80,12 @@ class ReportsAPIAsync(ResourceBase):
             name_regex: Regular expression string to filter reports by name.
             names: List of report names to filter by.
             description_contains: Partial description of the report.
-            run_id: Run ID to filter by.
+            run: Run/run ID to filter by.
             organization_id: Organization ID to filter by.
+            report_ids: List of report IDs to filter by.
             report_template_id: Report template ID to filter by.
             metadata: Metadata to filter by.
-            tag_name: Tag name to filter by.
+            tag_names: List of tags or tag names to filter by.
             created_by: The user ID of the creator of the reports.
             modified_by: The user ID of the last modifier of the reports.
             order_by: How to order the retrieved reports.
@@ -98,7 +103,10 @@ class ReportsAPIAsync(ResourceBase):
         # Build CEL filter
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex, names=names
+                name=name,
+                names=names,
+                name_contains=name_contains,
+                name_regex=name_regex,
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -108,7 +116,7 @@ class ReportsAPIAsync(ResourceBase):
                 created_by=created_by,
                 modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(tag_names=[tag_name], metadata=metadata),
+            *self._build_tags_metadata_cel_filters(tag_names=tag_names, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
@@ -116,8 +124,12 @@ class ReportsAPIAsync(ResourceBase):
             ),
         ]
 
-        if run_id:
+        if run:
+            run_id = run.id_ if isinstance(run, Run) else run
             filter_parts.append(cel.equals("run_id", run_id))
+
+        if report_ids:
+            filter_parts.append(cel.in_("report_id", report_ids))
 
         if report_template_id:
             filter_parts.append(cel.equals("report_template_id", report_template_id))
@@ -186,17 +198,17 @@ class ReportsAPIAsync(ResourceBase):
         self,
         *,
         name: str,
-        run_id: str | None = None,
+        run: Run | str | None = None,
         organization_id: str | None = None,
-        rule_ids: list[str] | None = None,
+        rules: list[Rule] | list[str],
     ) -> Report | None:
         """Create a new report from rules.
 
         Args:
             name: The name of the report.
-            run_id: The run ID to associate with the report.
+            run: The run or run ID to associate with the report.
             organization_id: The organization ID.
-            rule_ids: List of rule IDs to include in the report.
+            rules: List of rules or rule IDs to include in the report.
 
         Returns:
             The created Report or None if no report was created.
@@ -206,9 +218,10 @@ class ReportsAPIAsync(ResourceBase):
             created_report,
             job_id,
         ) = await self._rules_low_level_client.evaluate_rules(
-            run_id=run_id,
+            run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
-            rule_ids=rule_ids,
+            rule_ids=[rule._id_or_error if isinstance(rule, Rule) else rule for rule in rules]
+            or [],
             report_name=name,
         )
         if created_report:
@@ -218,7 +231,7 @@ class ReportsAPIAsync(ResourceBase):
     async def create_from_applicable_rules(
         self,
         *,
-        run_id: str | None = None,
+        run: Run | str | None = None,
         organization_id: str | None = None,
         name: str | None = None,
         start_time: datetime | None = None,
@@ -228,7 +241,7 @@ class ReportsAPIAsync(ResourceBase):
         If you want to evaluate against assets, use the rules client instead since no report is created in that case.
 
         Args:
-            run_id: The run ID to associate with the report.
+            run: The run or run ID to associate with the report.
             organization_id: The organization ID.
             name: Optional name for the report.
             start_time: Optional start time to evaluate rules against.
@@ -242,7 +255,7 @@ class ReportsAPIAsync(ResourceBase):
             created_report,
             job_id,
         ) = await self._rules_low_level_client.evaluate_rules(
-            run_id=run_id,
+            run_id=run._id_or_error if isinstance(run, Run) else run,
             organization_id=organization_id,
             start_time=start_time,
             end_time=end_time,
@@ -308,7 +321,7 @@ class ReportsAPIAsync(ResourceBase):
     ) -> Report:
         """Archive a report."""
         report_id = report.id_ if isinstance(report, Report) else report
-        update = ReportUpdate(archived_date=datetime.now(timezone.utc))
+        update = ReportUpdate(is_archived=True)
         update.resource_id = report_id
         updated_report = await self._low_level_client.update_report(update=update)
         return self._apply_client_to_instance(updated_report)

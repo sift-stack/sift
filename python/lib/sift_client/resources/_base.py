@@ -47,13 +47,17 @@ class ResourceBase(ABC):
     # Common CEL filters used in resources
     def _build_name_cel_filters(
         self,
+        *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
     ) -> list[str]:
         filter_parts = []
         if name:
             filter_parts.append(cel.equals("name", name))
+        if names:
+            filter_parts.append(cel.in_("name", names))
         if name_contains:
             filter_parts.append(cel.contains("name", name_contains))
         if name_regex:
@@ -147,7 +151,7 @@ class ResourceBase(ABC):
         filter_parts = []
         if description_contains:
             filter_parts.append(cel.contains("description", description_contains))
-        if include_archived is not None:
+        if include_archived is not None and not include_archived:
             filter_parts.append(cel.equals("is_archived", include_archived))
         if filter_query:
             filter_parts.append(filter_query)

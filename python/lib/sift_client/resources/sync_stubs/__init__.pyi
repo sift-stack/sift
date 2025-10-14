@@ -98,6 +98,7 @@ class AssetsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         asset_ids: list[str] | None = None,
@@ -119,6 +120,7 @@ class AssetsAPI:
 
         Args:
             name: Exact name of the asset.
+            names: List of asset names to filter by.
             name_contains: Partial name of the asset.
             name_regex: Regular expression to filter assets by name.
             asset_ids: Filter to assets with any of these Ids.
@@ -241,6 +243,7 @@ class CalculatedChannelsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         calculated_channel_ids: list[str] | None = None,
@@ -266,6 +269,7 @@ class CalculatedChannelsAPI:
 
         Args:
             name: Exact name of the calculated channel.
+            names: List of calculated channel names to filter by.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
             calculated_channel_ids: Filter to calculated channels with any of these IDs.
@@ -298,6 +302,7 @@ class CalculatedChannelsAPI:
         calculated_channel: CalculatedChannel | str | None = None,
         client_key: str | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         created_after: datetime | None = None,
@@ -320,6 +325,7 @@ class CalculatedChannelsAPI:
             calculated_channel: The CalculatedChannel or ID of the calculated channel to get versions for.
             client_key: The client key of the calculated channel.
             name: Exact name of the calculated channel.
+            names: List of calculated channel names to filter by.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
             created_after: Filter versions created after this datetime.
@@ -454,6 +460,7 @@ class ChannelsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         channel_ids: list[str] | None = None,
@@ -473,6 +480,7 @@ class ChannelsAPI:
 
         Args:
             name: Exact name of the channel.
+            names: List of channel names to filter by.
             name_contains: Partial name of the channel.
             name_regex: Regular expression to filter channels by name.
             channel_ids: Filter to channels with any of these IDs.
@@ -640,11 +648,11 @@ class ReportsAPI:
         name_regex: str | re.Pattern | None = None,
         names: list[str] | None = None,
         description_contains: str | None = None,
-        run_id: str | None = None,
+        run: Run | str | None = None,
         organization_id: str | None = None,
         report_template_id: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
-        tag_name: str | None = None,
+        tag_names: list[str] | list[Tag] | None = None,
         created_by: str | None = None,
         modified_by: str | None = None,
         order_by: str | None = None,
@@ -664,11 +672,11 @@ class ReportsAPI:
             name_regex: Regular expression string to filter reports by name.
             names: List of report names to filter by.
             description_contains: Partial description of the report.
-            run_id: Run ID to filter by.
+            run: Run/run ID to filter by.
             organization_id: Organization ID to filter by.
             report_template_id: Report template ID to filter by.
             metadata: Metadata to filter by.
-            tag_name: Tag name to filter by.
+            tag_names: List of tags or tag names to filter by.
             created_by: The user ID of the creator of the reports.
             modified_by: The user ID of the last modifier of the reports.
             order_by: How to order the retrieved reports.
@@ -776,6 +784,7 @@ class RulesAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         rule_ids: list[str] | None = None,
@@ -787,7 +796,7 @@ class RulesAPI:
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
         metadata: list[Any] | None = None,
-        asset_ids: list[str] | None = None,
+        assets: list[str] | list[Asset] | None = None,
         asset_tags: list[str | Tag] | None = None,
         description_contains: str | None = None,
         include_archived: bool = False,
@@ -799,10 +808,11 @@ class RulesAPI:
 
         Args:
             name: Exact name of the rule.
+            names: List of rule names to filter by.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
-            rule_ids: IDs of rules to filter to.
             client_keys: Client keys of rules to filter to.
+            rule_ids: IDs of rules to filter to.
             created_after: Rules created after this datetime.
             created_before: Rules created before this datetime.
             modified_after: Rules modified after this datetime.
@@ -810,7 +820,7 @@ class RulesAPI:
             created_by: Filter rules created by this User or user ID.
             modified_by: Filter rules last modified by this User or user ID.
             metadata: Filter rules by metadata criteria.
-            asset_ids: Filter rules associated with any of these Asset IDs.
+            assets: Filter rules associated with any of these Assets.
             asset_tags: Filter rules associated with any Assets that have these Tag IDs.
             description_contains: Partial description of the rule.
             include_archived: If True, include archived rules in results.
@@ -928,6 +938,7 @@ class RunsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         run_ids: list[str] | None = None,
@@ -959,6 +970,7 @@ class RunsAPI:
 
         Args:
             name: Exact name of the run.
+            names: List of run names to filter by.
             name_contains: Partial name of the run.
             name_regex: Regular expression to filter runs by name.
             run_ids: Filter to runs with any of these IDs.
@@ -1255,6 +1267,7 @@ class TestResultsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         test_report_ids: list[str] | None = None,
@@ -1280,6 +1293,7 @@ class TestResultsAPI:
 
         Args:
             name: Exact name of the test report.
+            names: List of test report names to filter by.
             name_contains: Partial name of the test report.
             name_regex: Regular expression string to filter test reports by name.
             test_report_ids: Test report IDs to filter by.
@@ -1313,6 +1327,7 @@ class TestResultsAPI:
         test_steps: list[str] | list[TestStep] | None = None,
         test_reports: list[str] | list[TestReport] | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         measurement_type: TestMeasurementType | None = None,
@@ -1328,6 +1343,7 @@ class TestResultsAPI:
             test_steps: Test steps to filter by.
             test_reports: Test reports to filter by.
             name: Exact name of the test measurement.
+            names: List of test measurement names to filter by.
             name_contains: Partial name of the test measurement.
             name_regex: Regular expression string to filter test measurements by name.
             measurement_type: Measurement type to filter by (TestMeasurementType enum).
@@ -1348,6 +1364,7 @@ class TestResultsAPI:
         test_reports: list[str] | list[TestReport] | None = None,
         parent_steps: list[str] | list[TestStep] | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         status: TestStatus | None = None,
@@ -1363,6 +1380,7 @@ class TestResultsAPI:
             test_reports: Test reports to filter by.
             parent_steps: Parent steps to filter by.
             name: Exact name of the test step.
+            names: List of test step names to filter by.
             name_contains: Partial name of the test step.
             name_regex: Regular expression string to filter test steps by name.
             status: Status to filter by (TestStatus enum).

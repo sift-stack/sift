@@ -267,7 +267,7 @@ class TestRulesAPIAsync:
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[],
                 ),
-                asset_ids=[assets[0].id_],
+                assets=[assets[0]],
             )
 
             created_rule = await rules_api_async.create(rule_create)
@@ -395,15 +395,15 @@ class TestRulesAPIAsync:
                 await rules_api_async.archive(new_rule.id_)
 
         @pytest.mark.asyncio
-        async def test_update_rule_action(self, rules_api_async, new_rule):
+        async def test_update_rule_action(self, rules_api_async, new_rule, ci_pytest_tag):
             """Test updating a rule's action including annotation type, tags, and assignee."""
             try:
                 # Update the action with new annotation type, tags, and assignee
                 update = RuleUpdate(
                     action=RuleAction.annotation(
                         annotation_type=RuleAnnotationType.PHASE,
-                        tags=["sift-client-pytest"],
-                        default_assignee_user_id=new_rule.created_by_user_id,
+                        tags=[ci_pytest_tag],
+                        default_assignee_user=new_rule.created_by_user_id,
                     ),
                 )
                 updated_rule = await rules_api_async.update(new_rule, update)
@@ -412,8 +412,8 @@ class TestRulesAPIAsync:
                 assert updated_rule.id_ == new_rule.id_
                 assert updated_rule.action.action_type == RuleActionType.ANNOTATION
                 assert updated_rule.action.annotation_type == RuleAnnotationType.PHASE
-                assert set(updated_rule.action.tags) == {"sift-client-pytest"}
-                assert updated_rule.action.default_assignee_user_id == new_rule.created_by_user_id
+                assert set(updated_rule.action.tags_ids) == {ci_pytest_tag.id_}
+                assert updated_rule.action.default_assignee_user == new_rule.created_by_user_id
 
                 # Verify other fields remain unchanged
                 assert updated_rule.name == new_rule.name
@@ -422,7 +422,7 @@ class TestRulesAPIAsync:
                 await rules_api_async.archive(new_rule.id_)
 
         @pytest.mark.asyncio
-        async def test_update_with_complex_expression(self, rules_api_async, sift_client):
+        async def test_update_with_complex_expression(self, rules_api_async, sift_client, test_tag):
             """Test updating a rule with a complex expression (range check)."""
             # Get channels and assets
             channels = await sift_client.async_.channels.list_(limit=2)
@@ -441,7 +441,7 @@ class TestRulesAPIAsync:
                 ],
                 action=RuleAction.annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
-                    tags=["test"],
+                    tags=[test_tag],
                 ),
                 asset_ids=[assets[0].id_],
             )
@@ -472,7 +472,9 @@ class TestRulesAPIAsync:
                 await rules_api_async.archive(created_rule.id_)
 
         @pytest.mark.asyncio
-        async def test_update_with_multiple_channel_references(self, rules_api_async, sift_client):
+        async def test_update_with_multiple_channel_references(
+            self, rules_api_async, sift_client, test_tag
+        ):
             """Test updating a rule expression to use multiple channel references."""
             # Get channels and assets
             channels = await sift_client.async_.channels.list_(limit=3)
@@ -492,7 +494,7 @@ class TestRulesAPIAsync:
                 ],
                 action=RuleAction.annotation(
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
-                    tags=["test"],
+                    tags=[test_tag],
                 ),
                 asset_ids=[assets[0].id_],
             )

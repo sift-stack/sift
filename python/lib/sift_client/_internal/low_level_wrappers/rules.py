@@ -39,6 +39,7 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
+from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.rule import (
     Rule,
     RuleCreate,
@@ -503,20 +504,21 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if start_time and end_time:
             if run_id:
                 kwargs["run_time_range"] = RunTimeRange(
-                    run=run_id, start_time=start_time, end_time=end_time
+                    run=run_id,
+                    start_time=to_pb_timestamp(start_time),
+                    end_time=to_pb_timestamp(end_time),  # type: ignore
                 )
-            else:
                 kwargs["assets"] = AssetsTimeRange(
-                    assets={"ids": {"ids": asset_ids}},
-                    start_time=start_time,
-                    end_time=end_time,
+                    assets={"ids": {"ids": asset_ids}},  # type: ignore
+                    start_time=to_pb_timestamp(start_time),
+                    end_time=to_pb_timestamp(end_time),
                 )
         elif run_id:
             kwargs["run"] = ResourceIdentifier(id=run_id)
         if all_applicable_rules:
             kwargs["all_applicable_rules"] = all_applicable_rules
         if rule_ids:
-            kwargs["rules"] = {"rules": ResourceIdentifiers(ids={"ids": rule_ids})}
+            kwargs["rules"] = {"rules": ResourceIdentifiers(ids={"ids": rule_ids})}  # type: ignore
         if rule_version_ids:
             kwargs["rule_versions"] = rule_version_ids
         if report_template_id:
@@ -528,9 +530,8 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if organization_id:
             kwargs["organization_id"] = organization_id
 
-        print("kwargs: ", kwargs)
-
         request = EvaluateRulesRequest(**kwargs)
+        print("request: ", request)
         response = await self._grpc_client.get_stub(RuleEvaluationServiceStub).EvaluateRules(
             request
         )

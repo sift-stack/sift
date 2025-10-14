@@ -23,7 +23,7 @@ class TagCreateUpdateBase(ModelCreateUpdateBase):
     name: str
 
 
-class TagCreate(TagCreateUpdateBase, ModelCreate[TagProto]):
+class TagCreate(TagCreateUpdateBase, ModelCreate[CreateTagRequestProto]):
     """Create model for Tag."""
 
     def _get_proto_class(self) -> type[CreateTagRequestProto]:

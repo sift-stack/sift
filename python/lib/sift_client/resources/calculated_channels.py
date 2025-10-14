@@ -73,6 +73,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
@@ -105,6 +106,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
 
         Args:
             name: Exact name of the calculated channel.
+            names: List of calculated channel names to filter by.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
             calculated_channel_ids: Filter to calculated channels with any of these IDs.
@@ -131,7 +133,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -281,6 +283,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         calculated_channel: CalculatedChannel | str | None = None,
         client_key: str | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # created/modified ranges
@@ -308,6 +311,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             calculated_channel: The CalculatedChannel or ID of the calculated channel to get versions for.
             client_key: The client key of the calculated channel.
             name: Exact name of the calculated channel.
+            names: List of calculated channel names to filter by.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
             created_after: Filter versions created after this datetime.
@@ -329,7 +333,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,

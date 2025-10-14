@@ -66,6 +66,7 @@ class AssetsAPIAsync(ResourceBase):
         *,
         # name
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
@@ -93,6 +94,7 @@ class AssetsAPIAsync(ResourceBase):
 
         Args:
             name: Exact name of the asset.
+            names: List of asset names to filter by.
             name_contains: Partial name of the asset.
             name_regex: Regular expression to filter assets by name.
             asset_ids: Filter to assets with any of these Ids.
@@ -115,7 +117,7 @@ class AssetsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,

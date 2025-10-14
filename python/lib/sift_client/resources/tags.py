@@ -55,15 +55,13 @@ class TagsAPIAsync(ResourceBase):
         # Build CEL filter
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_common_cel_filters(
                 filter_query=filter_query,
             ),
         ]
 
-        if names:
-            filter_parts.append(cel.in_("name", names))
         if tag_ids:
             filter_parts.append(cel.in_("tag_id", tag_ids))
 

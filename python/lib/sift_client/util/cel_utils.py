@@ -202,7 +202,7 @@ def greater_than(field: str, value: int | float | datetime | timedelta) -> str:
         as_string = f"duration('{value.total_seconds()}s')"
     else:
         as_string = str(value)
-    return f"{field} > timestamp('{as_string}')"
+    return f"{field} > {as_string}"
 
 
 def less_than(field: str, value: int | float | datetime | timedelta) -> str:
@@ -221,4 +221,4 @@ def less_than(field: str, value: int | float | datetime | timedelta) -> str:
         as_string = f"duration('{value.total_seconds()}s')"
     else:
         as_string = str(value)
-    return f"{field} < timestamp('{as_string}')"
+    return f"{field} < {as_string}"

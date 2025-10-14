@@ -60,6 +60,7 @@ class RunsAPIAsync(ResourceBase):
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
@@ -98,6 +99,7 @@ class RunsAPIAsync(ResourceBase):
 
         Args:
             name: Exact name of the run.
+            names: List of run names to filter by.
             name_contains: Partial name of the run.
             name_regex: Regular expression to filter runs by name.
             run_ids: Filter to runs with any of these IDs.
@@ -130,7 +132,7 @@ class RunsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -159,7 +161,9 @@ class RunsAPIAsync(ResourceBase):
                 asset = cast("list[Asset]", assets)  # linting
                 filter_parts.append(cel.in_("asset_id", [a._id_or_error for a in asset]))
         if asset_tags:
-            asset_tag_ids = [tag.id_ if isinstance(tag, Tag) else tag for tag in asset_tags]
+            asset_tag_ids = [
+                tag._id_or_error if isinstance(tag, Tag) else tag or "" for tag in asset_tags
+            ]
             filter_parts.append(cel.in_("asset_tag_id", asset_tag_ids))
         if duration_less_than:
             filter_parts.append(cel.less_than("duration_string", duration_less_than))

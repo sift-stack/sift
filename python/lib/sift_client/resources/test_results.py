@@ -98,6 +98,7 @@ class TestResultsAPIAsync(ResourceBase):
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         test_report_ids: list[str] | None = None,
@@ -123,6 +124,7 @@ class TestResultsAPIAsync(ResourceBase):
 
         Args:
             name: Exact name of the test report.
+            names: List of test report names to filter by.
             name_contains: Partial name of the test report.
             name_regex: Regular expression string to filter test reports by name.
             test_report_ids: Test report IDs to filter by.
@@ -150,7 +152,7 @@ class TestResultsAPIAsync(ResourceBase):
         # Build CEL filter
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -289,6 +291,7 @@ class TestResultsAPIAsync(ResourceBase):
         test_reports: list[str] | list[TestReport] | None = None,
         parent_steps: list[str] | list[TestStep] | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         status: TestStatus | None = None,
@@ -304,6 +307,7 @@ class TestResultsAPIAsync(ResourceBase):
             test_reports: Test reports to filter by.
             parent_steps: Parent steps to filter by.
             name: Exact name of the test step.
+            names: List of test step names to filter by.
             name_contains: Partial name of the test step.
             name_regex: Regular expression string to filter test steps by name.
             status: Status to filter by (TestStatus enum).
@@ -318,7 +322,7 @@ class TestResultsAPIAsync(ResourceBase):
         # Build CEL filter
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_common_cel_filters(
                 filter_query=filter_query,
@@ -453,6 +457,7 @@ class TestResultsAPIAsync(ResourceBase):
         test_steps: list[str] | list[TestStep] | None = None,
         test_reports: list[str] | list[TestReport] | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         measurement_type: TestMeasurementType | None = None,
@@ -468,6 +473,7 @@ class TestResultsAPIAsync(ResourceBase):
             test_steps: Test steps to filter by.
             test_reports: Test reports to filter by.
             name: Exact name of the test measurement.
+            names: List of test measurement names to filter by.
             name_contains: Partial name of the test measurement.
             name_regex: Regular expression string to filter test measurements by name.
             measurement_type: Measurement type to filter by (TestMeasurementType enum).
@@ -482,7 +488,7 @@ class TestResultsAPIAsync(ResourceBase):
         # Build CEL filter
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_common_cel_filters(
                 filter_query=filter_query,
