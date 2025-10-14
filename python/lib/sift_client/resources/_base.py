@@ -152,7 +152,8 @@ class ResourceBase(ABC):
         if description_contains:
             filter_parts.append(cel.contains("description", description_contains))
         if include_archived is not None and not include_archived:
-            filter_parts.append(cel.equals("is_archived", include_archived))
+            # By default, archived resources are included so only need to set if included_archived is explicitly false
+            filter_parts.append(cel.equals("is_archived", False))
         if filter_query:
             filter_parts.append(filter_query)
         return filter_parts

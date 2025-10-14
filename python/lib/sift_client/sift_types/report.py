@@ -162,6 +162,18 @@ class Report(BaseType[ReportProto, "Report"]):
             proto.archived_date.FromDatetime(self.archived_date)
         return proto
 
+    def archive(self) -> Report:
+        """Archive the Report."""
+        updated_report = self.client.reports.archive(report=self)
+        self._update(updated_report)
+        return self
+
+    def unarchive(self) -> Report:
+        """Unarchive the Report."""
+        updated_report = self.client.reports.unarchive(report=self)
+        self._update(updated_report)
+        return self
+
 
 class ReportUpdate(ModelUpdate[ReportProto]):
     """Model of the Report fields that can be updated."""

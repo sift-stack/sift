@@ -554,7 +554,7 @@ class ReportsAPI:
     def create_from_applicable_rules(
         self,
         *,
-        run_id: str | None = None,
+        run: Run | str | None = None,
         organization_id: str | None = None,
         name: str | None = None,
         start_time: datetime | None = None,
@@ -564,7 +564,7 @@ class ReportsAPI:
         If you want to evaluate against assets, use the rules client instead since no report is created in that case.
 
         Args:
-            run_id: The run ID to associate with the report.
+            run: The run or run ID to associate with the report.
             organization_id: The organization ID.
             name: Optional name for the report.
             start_time: Optional start time to evaluate rules against.
@@ -579,17 +579,17 @@ class ReportsAPI:
         self,
         *,
         name: str,
-        run_id: str | None = None,
+        run: Run | str | None = None,
         organization_id: str | None = None,
-        rule_ids: list[str] | None = None,
+        rules: list[Rule] | list[str],
     ) -> Report | None:
         """Create a new report from rules.
 
         Args:
             name: The name of the report.
-            run_id: The run ID to associate with the report.
+            run: The run or run ID to associate with the report.
             organization_id: The organization ID.
-            rule_ids: List of rule IDs to include in the report.
+            rules: List of rules or rule IDs to include in the report.
 
         Returns:
             The created Report or None if no report was created.
@@ -650,6 +650,7 @@ class ReportsAPI:
         description_contains: str | None = None,
         run: Run | str | None = None,
         organization_id: str | None = None,
+        report_ids: list[str] | None = None,
         report_template_id: str | None = None,
         metadata: dict[str, str | float | bool] | None = None,
         tag_names: list[str] | list[Tag] | None = None,
@@ -674,6 +675,7 @@ class ReportsAPI:
             description_contains: Partial description of the report.
             run: Run/run ID to filter by.
             organization_id: Organization ID to filter by.
+            report_ids: List of report IDs to filter by.
             report_template_id: Report template ID to filter by.
             metadata: Metadata to filter by.
             tag_names: List of tags or tag names to filter by.
@@ -702,6 +704,10 @@ class ReportsAPI:
         Returns:
             A tuple of (job_id, new_report_id).
         """
+        ...
+
+    def unarchive(self, *, report: str | Report) -> Report:
+        """Unarchive a report."""
         ...
 
     def update(self, report: str | Report, update: ReportUpdate | dict) -> Report:

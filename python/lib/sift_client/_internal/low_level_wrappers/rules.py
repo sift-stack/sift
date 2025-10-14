@@ -504,7 +504,7 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         if start_time and end_time:
             if run_id:
                 kwargs["run_time_range"] = RunTimeRange(
-                    run=run_id,
+                    run=run_id,  # type: ignore
                     start_time=to_pb_timestamp(start_time),
                     end_time=to_pb_timestamp(end_time),  # type: ignore
                 )

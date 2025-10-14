@@ -36,10 +36,12 @@ def mock_client():
     client = MagicMock(spec=SiftClient)
     # Configure the mock to have the necessary API attributes
     client.assets = MagicMock()
+    client.reports = MagicMock()
     client.runs = MagicMock()
     client.channels = MagicMock()
     client.calculated_channels = MagicMock()
     client.rules = MagicMock()
+    client.tags = MagicMock()
     client.test_results = MagicMock()
     client.async_ = MagicMock(spec=AsyncAPIs)
     client.async_.ingestion = MagicMock()

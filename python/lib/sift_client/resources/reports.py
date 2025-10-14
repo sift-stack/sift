@@ -325,3 +325,15 @@ class ReportsAPIAsync(ResourceBase):
         update.resource_id = report_id
         updated_report = await self._low_level_client.update_report(update=update)
         return self._apply_client_to_instance(updated_report)
+
+    async def unarchive(
+        self,
+        *,
+        report: str | Report,
+    ) -> Report:
+        """Unarchive a report."""
+        report_id = report.id_ if isinstance(report, Report) else report
+        update = ReportUpdate(is_archived=False)
+        update.resource_id = report_id
+        updated_report = await self._low_level_client.update_report(update=update)
+        return self._apply_client_to_instance(updated_report)
