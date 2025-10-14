@@ -49,10 +49,10 @@ def test_rule(sift_client, nostromo_asset, ci_pytest_tag):
         )
         rule = created_rule
     if rule.is_archived:
-        rule = sift_client.rules.unarchive(rule_ids=[rule.id_])
+        rule = rule.unarchive()
     yield rule
     if created_rule:
-        sift_client.rules.archive(rule_ids=[created_rule.id_])
+        created_rule.archive()
 
 
 def test_client_binding(sift_client):
