@@ -32,9 +32,20 @@ from sift_client.transport import (
     WithGrpcClient,
     WithRestClient,
 )
+from sift_client.transport.grpc_transport import (
+    DEFAULT_CACHE_FOLDER,
+    DEFAULT_CACHE_SIZE_LIMIT_BYTES,
+    DEFAULT_CACHE_TTL_SECONDS,
+)
 from sift_client.util.util import AsyncAPIs
 
 _sift_client_experimental_warning()
+
+DEFAULT_CACHE_CONFIG = CacheConfig(
+    ttl=DEFAULT_CACHE_TTL_SECONDS,
+    cache_folder=DEFAULT_CACHE_FOLDER,
+    size_limit=DEFAULT_CACHE_SIZE_LIMIT_BYTES,
+)
 
 
 class SiftClient(
@@ -119,7 +130,7 @@ class SiftClient(
             grpc_url: The Sift gRPC API URL.
             rest_url: The Sift REST API URL.
             connection_config: A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
-            cache_config: Optional cache configuration for gRPC responses. If provided, enables response caching.
+            cache_config: Optional cache configuration override for gRPC responses.
         """
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(

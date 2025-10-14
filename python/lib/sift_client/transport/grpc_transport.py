@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import enum
 import logging
 import tempfile
 import threading
@@ -41,40 +42,62 @@ def _suppress_blocking_io(loop, context):
 
 DEFAULT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60  # 1 week
 DEFAULT_CACHE_FOLDER = Path(tempfile.gettempdir()) / "sift_client"
-DEFAULT_CACHE_SIZE_LIMIT_BYTES = 5 * 1024 * 1024 * 1024  # 5GB
+DEFAULT_CACHE_SIZE_LIMIT_BYTES = 5 * 1024**3  # 5GB
+
+
+class CacheMode(str, enum.Enum):
+    """Cache behavior modes.
+
+    - ENABLED: Cache is enabled and persists across sessions
+    - DISABLED: Cache is completely disabled
+    - CLEAR_ON_INIT: Cache is cleared when client is initialized (useful for notebooks)
+    """
+
+    ENABLED = "enabled"
+    DISABLED = "disabled"
+    CLEAR_ON_INIT = "clear_on_init"
 
 
 class CacheConfig:
     """Configuration for gRPC response caching.
 
     Attributes:
-        enabled: Whether to enable caching. Default is True.
-        ttl: Time-to-live for cached entries in seconds. Default is 3600 (1 hour).
-        cache_path: Path to the cache directory. Default is system temp directory + 'sift_grpc_cache'.
-        size_limit: Maximum size of the cache in bytes. Default is 1GB.
+        mode: Cache behavior mode (enabled, disabled, clear_on_init).
+        ttl: Time-to-live for cached entries in seconds. Default is 1 week.
+        cache_folder: Path to the cache directory. Default is system temp directory.
+        size_limit: Maximum size of the cache in bytes. Default is 5GB.
     """
 
     def __init__(
         self,
-        enabled: bool = True,
+        mode: str = CacheMode.ENABLED,
         ttl: int = DEFAULT_CACHE_TTL_SECONDS,
-        cache_folder: Path | str | None = DEFAULT_CACHE_FOLDER,
-        size_limit: int = DEFAULT_CACHE_SIZE_LIMIT_BYTES,  # 1GB
+        cache_folder: Path | str = DEFAULT_CACHE_FOLDER,
+        size_limit: int = DEFAULT_CACHE_SIZE_LIMIT_BYTES,
     ):
         """Initialize the cache configuration.
 
         Args:
-            enabled: Whether to enable caching.
+            mode: Cache behavior mode (use CacheMode constants).
             ttl: Time-to-live for cached entries in seconds.
-            cache_folder: Path to the cache directory. If None, uses system temp directory.
+            cache_folder: Path to the cache directory.
             size_limit: Maximum size of the cache in bytes.
         """
-        self.enabled = enabled
+        self.mode = mode
         self.ttl = ttl
-        self.cache_path = cache_folder or str(
-            Path(tempfile.gettempdir()) / "sift_grpc_cache"
-        )
+        self.cache_path = str(Path(cache_folder) / "grpc_cache")
         self.size_limit = size_limit
+        self._should_clear_on_init = mode == CacheMode.CLEAR_ON_INIT
+
+    @property
+    def is_enabled(self) -> bool:
+        """Check if caching is enabled."""
+        return self.mode != CacheMode.DISABLED
+
+    @property
+    def should_clear_on_init(self) -> bool:
+        """Check if cache should be cleared on initialization."""
+        return self._should_clear_on_init
 
     def to_sift_cache_config(self) -> SiftCacheConfig:
         """Convert to a SiftCacheConfig for use with sift_py.grpc.transport.
@@ -86,6 +109,7 @@ class CacheConfig:
             "ttl": self.ttl,
             "cache_path": self.cache_path,
             "size_limit": self.size_limit,
+            "clear_on_init": self.should_clear_on_init,
         }
 
 
@@ -132,7 +156,7 @@ class GrpcConfig:
         }
 
         # Add cache config if enabled
-        if self.cache_config and self.cache_config.enabled:
+        if self.cache_config and self.cache_config.is_enabled:
             config["cache_config"] = self.cache_config.to_sift_cache_config()
 
         return config
@@ -153,9 +177,7 @@ class GrpcClient:
         self._config = config
         # map each asyncio loop to its async channel and stub dict
         self._channels_async: dict[asyncio.AbstractEventLoop, Any] = {}
-        self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = (
-            {}
-        )
+        self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = {}
         # default loop for sync API
         self._default_loop = asyncio.new_event_loop()
         atexit.register(self.close_sync)
@@ -217,9 +239,7 @@ class GrpcClient:
         """Close the sync channel and all async channels."""
         try:
             for ch in self._channels_async.values():
-                asyncio.run_coroutine_threadsafe(
-                    ch.close(), self._default_loop
-                ).result()
+                asyncio.run_coroutine_threadsafe(ch.close(), self._default_loop).result()
             self._default_loop.call_soon_threadsafe(self._default_loop.stop)
             self._default_loop_thread.join(timeout=1.0)
         except ValueError:

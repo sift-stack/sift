@@ -18,7 +18,6 @@ from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
 from sift_py.grpc._async_interceptors.caching import CachingAsyncInterceptor
 from sift_py.grpc._async_interceptors.metadata import MetadataAsyncInterceptor
 from sift_py.grpc._interceptors.base import ClientInterceptor
-from sift_py.grpc._interceptors.caching import CachingInterceptor
 from sift_py.grpc._interceptors.metadata import Metadata, MetadataInterceptor
 from sift_py.grpc._retry import RetryPolicy
 from sift_py.grpc.keepalive import DEFAULT_KEEPALIVE_CONFIG, KeepaliveConfig
@@ -133,21 +132,10 @@ def _compute_sift_interceptors(
     Initialized all interceptors here.
     """
     interceptors: List[ClientInterceptor] = []
-    
-    # Add caching interceptor if enabled
-    cache_config = config.get("cache_config")
-    if cache_config:
-        interceptors.append(
-            CachingInterceptor(
-                ttl=cache_config.get("ttl", 3600),
-                cache_path=cache_config.get("cache_path", ".grpc_cache"),
-                size_limit=cache_config.get("size_limit", 1024 * 1024 * 1024),
-            )
-        )
-    
+
     # Metadata interceptor should be last to ensure metadata is always added
     interceptors.append(_metadata_interceptor(config, metadata))
-    
+
     return interceptors
 
 
@@ -155,21 +143,25 @@ def _compute_sift_async_interceptors(
     config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
 ) -> List[grpc_aio.ClientInterceptor]:
     interceptors: List[grpc_aio.ClientInterceptor] = []
-    
+
     # Add caching interceptor if enabled
     cache_config = config.get("cache_config")
-    if cache_config:
+    if cache_config and all(
+        field in ["ttl", "cache_path", "size_limit", "clear_on_init"]
+        for field in cache_config.keys()
+    ):
         interceptors.append(
             CachingAsyncInterceptor(
-                ttl=cache_config.get("ttl", 3600),
-                cache_path=cache_config.get("cache_path", ".grpc_cache"),
-                size_limit=cache_config.get("size_limit", 1024 * 1024 * 1024),
+                ttl=cache_config["ttl"],
+                cache_path=cache_config["cache_path"],
+                size_limit=cache_config["size_limit"],
+                clear_on_init=cache_config["clear_on_init"],
             )
         )
-    
+
     # Metadata interceptor should be last to ensure metadata is always added
     interceptors.append(_metadata_async_interceptor(config, metadata))
-    
+
     return interceptors
 
 
@@ -265,11 +257,13 @@ class CacheConfig(TypedDict):
     - `ttl`: Time-to-live for cached entries in seconds. Default is 3600 (1 hour).
     - `cache_path`: Path to the cache directory. Default is ".grpc_cache".
     - `size_limit`: Maximum size of the cache in bytes. Default is 1GB.
+    - `clear_on_init`: Whether to clear the cache on initialization. Default is False.
     """
 
     ttl: NotRequired[int]
     cache_path: NotRequired[str]
     size_limit: NotRequired[int]
+    clear_on_init: NotRequired[bool]
 
 
 class SiftChannelConfig(TypedDict):
