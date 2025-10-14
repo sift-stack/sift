@@ -49,6 +49,16 @@ def mock_client():
 
 
 @pytest.fixture(scope="session")
+def nostromo_asset(sift_client):
+    return sift_client.assets.find(name="NostromoLV426")
+
+
+@pytest.fixture(scope="session")
+def nostromo_run(nostromo_asset):
+    return nostromo_asset.runs[0]
+
+
+@pytest.fixture(scope="session")
 def test_tag(sift_client):
     tag = sift_client.tags.find_or_create(names=["test"])[0]
     assert tag is not None

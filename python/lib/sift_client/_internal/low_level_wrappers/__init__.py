@@ -8,6 +8,7 @@ from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
+from sift_client._internal.low_level_wrappers.tags import TagsLowLevelClient
 from sift_client._internal.low_level_wrappers.test_results import TestResultsLowLevelClient
 from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 
@@ -20,6 +21,7 @@ __all__ = [
     "ReportsLowLevelClient",
     "RulesLowLevelClient",
     "RunsLowLevelClient",
+    "TagsLowLevelClient",
     "TestResultsLowLevelClient",
     "UploadLowLevelClient",
 ]

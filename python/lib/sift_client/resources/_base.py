@@ -135,7 +135,7 @@ class ResourceBase(ABC):
             tag_names = [tag.name if isinstance(tag, Tag) else tag for tag in tag_names]
             filter_parts.append(cel.in_("tag_name", tag_names))
         if tag_ids:
-            tag_ids = [tag.id_ if isinstance(tag, Tag) else tag for tag in tag_ids]
+            tag_ids = [tag._id_or_error if isinstance(tag, Tag) else tag for tag in tag_ids]
             filter_parts.append(cel.in_("tag_id", tag_ids))
         if metadata:
             filter_parts.extend(self._build_metadata_cel_filters(metadata))

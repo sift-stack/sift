@@ -47,7 +47,7 @@ def test_run(runs_api_sync):
 
 
 @pytest.fixture(scope="function")
-def new_run(runs_api_sync):
+def new_run(runs_api_sync, ci_pytest_tag):
     """Create a test run for update tests."""
     run_name = f"test_run_update_{datetime.now(timezone.utc).isoformat()}"
     description = "Test run created by Sift Client pytest"
@@ -55,7 +55,7 @@ def new_run(runs_api_sync):
         RunCreate(
             name=run_name,
             description=description,
-            tags=["sift-client-pytest"],
+            tags=[ci_pytest_tag.name],
         )
     )
     return created_run

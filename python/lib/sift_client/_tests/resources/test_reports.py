@@ -10,18 +10,8 @@ from sift_client.sift_types import (
 
 
 @pytest.fixture(scope="session")
-def nostromo_asset(sift_client):
-    return sift_client.assets.find(name="NostromoLV426")
-
-
-@pytest.fixture(scope="session")
-def nostromo_run(nostromo_asset):
-    return nostromo_asset.runs[0]
-
-
-@pytest.fixture(scope="session")
-def tags(sift_client):
-    tags = sift_client.tags.find_or_create(names=["test", "api-created"])
+def tags(sift_client, test_tag, ci_pytest_tag):
+    tags = sift_client.tags.find_or_create(names=[test_tag.name, ci_pytest_tag.name])
     return tags
 
 
@@ -35,7 +25,7 @@ def test_rule(sift_client, nostromo_asset, ci_pytest_tag):
                 "name": "test_rule",
                 "description": "Test rule",
                 "expression": "$1 > 0.1",
-                "assets": [nostromo_asset],
+                "asset_ids": [nostromo_asset._id_or_error],
                 "channel_references": [
                     ChannelReference(
                         channel_reference="$1", channel_identifier="mainmotor.velocity"
@@ -78,7 +68,7 @@ class TestReports:
     ):
         if not test_rule.asset_ids:
             # Test rule may exist but be in a state where it no longer applies to the asset associated w/ the run so re-attach it if necessary.
-            test_rule = test_rule.update(update={"asset_ids": [nostromo_asset.id_]})
+            test_rule = test_rule.update(update={"asset_ids": [nostromo_asset._id_or_error]})
         report_from_applicable_rules = sift_client.reports.create_from_applicable_rules(
             name="report_from_applicable_rules_run",
             run=nostromo_run,
@@ -146,7 +136,7 @@ class TestReports:
         for summary in canceled_report.summaries:
             assert summary.status == ReportRuleStatus.CANCELED
 
-    def test_archive(self, nostromo_asset, nostromo_run, test_rule, sift_client):
+    def test_archive(self, nostromo_run, test_rule, sift_client):
         report_from_rules = sift_client.reports.create_from_rules(
             name="report_from_rules",
             run=nostromo_run,

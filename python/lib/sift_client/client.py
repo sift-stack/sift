@@ -142,8 +142,8 @@ class SiftClient(
         self.calculated_channels = CalculatedChannelsAPI(self)
         self.channels = ChannelsAPI(self)
         self.rules = RulesAPI(self)
-        self.runs = RunsAPI(self)
         self.reports = ReportsAPI(self)
+        self.runs = RunsAPI(self)
         self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
         # Accessor for the asynchronous APIs
@@ -153,9 +153,9 @@ class SiftClient(
             calculated_channels=CalculatedChannelsAPIAsync(self),
             channels=ChannelsAPIAsync(self),
             ingestion=IngestionAPIAsync(self),
+            reports=ReportsAPIAsync(self),
             rules=RulesAPIAsync(self),
             runs=RunsAPIAsync(self),
-            reports=ReportsAPIAsync(self),
             tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
         )
