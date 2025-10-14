@@ -531,12 +531,10 @@ class RulesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs["organization_id"] = organization_id
 
         request = EvaluateRulesRequest(**kwargs)
-        print("request: ", request)
         response = await self._grpc_client.get_stub(RuleEvaluationServiceStub).EvaluateRules(
             request
         )
         response = cast("EvaluateRulesResponse", response)
-        print("response: ", response)
         created_annotation_count = response.created_annotation_count
         report_id = response.report_id
         job_id = response.job_id

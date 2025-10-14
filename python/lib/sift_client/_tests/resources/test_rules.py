@@ -267,7 +267,7 @@ class TestRulesAPIAsync:
                     annotation_type=RuleAnnotationType.DATA_REVIEW,
                     tags=[],
                 ),
-                assets=[assets[0]],
+                asset_ids=[assets[0]._id_or_error],
             )
 
             created_rule = await rules_api_async.create(rule_create)

@@ -105,8 +105,7 @@ class TestTags:
         # Create multiple tags with similar names
         name_filter_regex = re.compile(rf".*_tag(1|2)_{re.escape(test_timestamp_str)}")
         with pytest.raises(ValueError, match="Multiple tags found"):
-            res = sift_client.tags.find(name_regex=name_filter_regex)
-            print(res)
+            _ = sift_client.tags.find(name_regex=name_filter_regex)
 
     def test_find_or_create_existing_tags(self, sift_client, test_timestamp_str, test_tags):
         """Test find_or_create with existing tags."""

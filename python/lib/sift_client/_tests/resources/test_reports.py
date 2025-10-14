@@ -157,7 +157,7 @@ class TestReports:
         assert archived_report is not None
         assert archived_report.is_archived == True
 
-    def test_unarchive(self, nostromo_asset, nostromo_run, test_rule, sift_client):
+    def test_unarchive(self, sift_client):
         reports_from_rules = sift_client.reports.list_(
             name="report_from_rules", include_archived=True
         )
