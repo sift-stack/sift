@@ -217,10 +217,11 @@ recent_assets = client.assets.list_(
 import logging
 
 from sift_client.client import SiftClient
-from sift_client.transport import CacheConfig, SiftConnectionConfig
+from sift_client.transport import CacheConfig, CacheMode, SiftConnectionConfig
 
 __all__ = [
     "CacheConfig",
+    "CacheMode",
     "SiftClient",
     "SiftConnectionConfig",
 ]

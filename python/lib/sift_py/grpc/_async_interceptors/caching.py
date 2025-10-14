@@ -14,7 +14,7 @@ Usage:
     metadata = [
         ("use-cache", "true"),  # Enable caching for this call
         # ("force-refresh", "true"),  # Bypass cache and store fresh result
-        # ("clear-cache", "true"),  # Delete cached entry before request
+        # ("ignore-cache", "true"),  # Bypass cache without clearing
     ]
 """
 
@@ -25,6 +25,7 @@ import logging
 from pathlib import Path
 from typing import Any, Optional
 
+import diskcache
 from grpc import aio as grpc_aio
 
 from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
@@ -34,7 +35,8 @@ logger = logging.getLogger(__name__)
 # Metadata keys for cache control
 METADATA_USE_CACHE = "use-cache"
 METADATA_FORCE_REFRESH = "force-refresh"
-METADATA_CLEAR_CACHE = "clear-cache"
+METADATA_IGNORE_CACHE = "ignore-cache"
+METADATA_CACHE_TTL = "cache-ttl"
 
 
 class CachingAsyncInterceptor(ClientAsyncInterceptor):
@@ -58,7 +60,8 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
         self,
         ttl: int = 3600,
         cache_path: str = ".grpc_cache",
-        size_limit: int = 1024 * 1024 * 1024,  # 1GB
+        size_limit: int = 1024**3,  # 1GB
+        clear_on_init: bool = False,
     ):
         """Initialize the async caching interceptor.
 
@@ -66,14 +69,8 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
             ttl: Time-to-live for cached entries in seconds.
             cache_path: Path to the cache directory.
             size_limit: Maximum size of the cache in bytes.
+            clear_on_init: Whether to clear the cache on initialization.
         """
-        try:
-            import diskcache
-        except ImportError:
-            raise ImportError(
-                "diskcache is required for caching. Install it with: pip install diskcache"
-            )
-
         self.ttl = ttl
         self.cache_path = Path(cache_path)
         self.size_limit = size_limit
@@ -84,9 +81,19 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
         # Initialize diskcache
         self._cache = diskcache.Cache(str(self.cache_path), size_limit=size_limit)
 
+        # Clear cache if requested
+        if clear_on_init:
+            logger.info(f"Clearing cache on initialization: {cache_path}")
+            self._cache.clear()
+
+        logger.info(
+            f"gRPC cache initialized at {self.cache_path.absolute()!r} "
+            f"with size {self._cache.volume() / (1024**3):.2f} MB"
+        )
+
         logger.debug(
             f"Initialized CachingAsyncInterceptor with ttl={ttl}s, "
-            f"cache_path={cache_path}, size_limit={size_limit} bytes"
+            f"cache_path={cache_path}, size_limit={size_limit} bytes, clear_on_init={clear_on_init}"
         )
 
     async def intercept(
@@ -109,20 +116,28 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
         metadata_dict = self._extract_metadata(client_call_details.metadata)
         use_cache = metadata_dict.get(METADATA_USE_CACHE, "false").lower() == "true"
         force_refresh = metadata_dict.get(METADATA_FORCE_REFRESH, "false").lower() == "true"
-        clear_cache = metadata_dict.get(METADATA_CLEAR_CACHE, "false").lower() == "true"
+        ignore_cache = metadata_dict.get(METADATA_IGNORE_CACHE, "false").lower() == "true"
+        custom_ttl_str = metadata_dict.get(METADATA_CACHE_TTL)
+
+        # Parse custom TTL if provided
+        custom_ttl = None
+        if custom_ttl_str:
+            try:
+                custom_ttl = int(custom_ttl_str)
+            except ValueError:
+                logger.warning(f"Invalid cache TTL value: {custom_ttl_str}, using default")
+
+        # If ignore_cache is set, bypass cache without clearing
+        if ignore_cache:
+            logger.debug("Ignoring cache for this request")
+            return await method(request_or_iterator, client_call_details)
 
         # If caching is not enabled, just pass through
-        if not use_cache and not clear_cache and not force_refresh:
+        if not use_cache and not force_refresh:
             return await method(request_or_iterator, client_call_details)
 
         # Generate cache key
         cache_key = self._generate_cache_key(client_call_details.method, request_or_iterator)
-
-        # Handle clear-cache flag
-        if clear_cache:
-            logger.debug(f"Clearing cache for key: {cache_key}")
-            self._cache.delete(cache_key)
-            # Continue with the request after clearing
 
         # Handle force-refresh flag
         if force_refresh:
@@ -130,8 +145,9 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
             call = await method(request_or_iterator, client_call_details)
             # For async, we need to await the response
             response = await call
-            # Cache the fresh result
-            self._cache_response(cache_key, response)
+            # Cache the fresh result with custom TTL if provided
+            ttl = custom_ttl if custom_ttl is not None else self.ttl
+            self._cache_response(cache_key, response, ttl)
             return response
 
         # Try to get from cache if use-cache is enabled
@@ -149,7 +165,8 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
 
         # Cache the response if use-cache is enabled
         if use_cache:
-            self._cache_response(cache_key, response)
+            ttl = custom_ttl if custom_ttl is not None else self.ttl
+            self._cache_response(cache_key, response, ttl)
 
         return response
 
@@ -179,16 +196,18 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
 
         return cache_key
 
-    def _cache_response(self, cache_key: str, response: Any) -> None:
+    def _cache_response(self, cache_key: str, response: Any, ttl: int | None = None) -> None:
         """Store a response in the cache with TTL.
 
         Args:
             cache_key: The cache key.
             response: The response to cache.
+            ttl: Optional custom TTL. If None, uses the default TTL.
         """
         try:
-            self._cache.set(cache_key, response, expire=self.ttl)
-            logger.debug(f"Cached response for key: {cache_key} with TTL: {self.ttl}s")
+            effective_ttl = ttl if ttl is not None else self.ttl
+            self._cache.set(cache_key, response, expire=effective_ttl)
+            logger.debug(f"Cached response for key: {cache_key} with TTL: {effective_ttl}s")
         except Exception as e:
             logger.error(f"Failed to cache response for key {cache_key}: {e}")
 

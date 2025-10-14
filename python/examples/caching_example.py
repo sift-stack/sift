@@ -11,7 +11,7 @@ Requirements:
 
 import time
 from sift_client import CacheConfig, SiftClient
-from sift_py.grpc.cache import with_cache, with_force_refresh, clear_cache_for
+from sift_py.grpc.cache import with_cache, with_force_refresh, ignore_cache
 
 # Configure caching
 cache_config = CacheConfig(
@@ -56,13 +56,13 @@ response = client.ping.ping()  # with force_refresh metadata
 elapsed = time.time() - start
 print(f"Force refresh: {elapsed:.3f}s")
 
-# Example 3: Clear cache
-print("\nExample 3: Clear Cache")
+# Example 3: Ignore cache
+print("\nExample 3: Ignore Cache")
 print("-" * 50)
 
-# Clear the cache for this specific request
-response = client.ping.ping()  # with clear_cache_for metadata
-print("Cache cleared for this request")
+# Bypass cache without clearing it
+response = client.ping.ping()  # with ignore_cache metadata
+print("Cache bypassed for this request (entry still exists)")
 
 # Example 4: Conditional caching
 print("\nExample 4: Conditional Caching")
