@@ -38,7 +38,7 @@ def mock_rule(mock_client):
         action=RuleAction(
             action_type=RuleActionType.ANNOTATION,
             annotation_type=RuleAnnotationType.DATA_REVIEW,
-            tags=["tag1"],
+            tags_ids=["tag1"],
         ),
         asset_ids=["asset1", "asset2"],
         asset_tag_ids=["tag1"],
