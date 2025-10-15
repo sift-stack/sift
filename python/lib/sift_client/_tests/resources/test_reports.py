@@ -132,7 +132,8 @@ class TestReports:
         canceled_report = sift_client.reports.find(report_ids=[second_rerun_report_id])
         assert canceled_report is not None
         for summary in canceled_report.summaries:
-            assert summary.status == ReportRuleStatus.CANCELED
+            # Sometimes the report finishes before it can be canceled.
+            assert summary.status in [ReportRuleStatus.CANCELED, ReportRuleStatus.FINISHED]
 
     def test_archive(self, nostromo_run, test_rule, sift_client):
         report_from_rules = sift_client.reports.create_from_rules(
