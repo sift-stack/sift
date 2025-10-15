@@ -6,7 +6,7 @@ use sift_rs::ingest::v1::{
     IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
     ingest_with_config_data_channel_value::Type,
 };
-use std::{fs, sync::Arc};
+use std::sync::Arc;
 use tempdir::TempDir;
 
 #[test]
