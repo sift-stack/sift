@@ -223,6 +223,7 @@ async def test_basic_caching(mocker: MockFixture):
                     "ttl": 3600,
                     "cache_path": str(Path(tmpdir) / "cache"),
                     "size_limit": 1024 * 1024,
+                    "clear_on_init": True,
                 },
             }
             cache = GrpcCache(config["cache_config"])
@@ -270,10 +271,12 @@ async def test_force_refresh(mocker: MockFixture):
                     "ttl": 3600,
                     "cache_path": str(Path(tmpdir) / "cache"),
                     "size_limit": 1024 * 1024,
+                    "clear_on_init": True,
                 },
             }
+            cache = GrpcCache(config["cache_config"])
 
-            async with use_sift_async_channel(config) as channel:
+            async with use_sift_async_channel(config, cache=cache) as channel:
                 stub = DataServiceStub(channel)
                 request = GetDataRequest(page_size=100)
 
@@ -313,10 +316,12 @@ async def test_ignore_cache(mocker: MockFixture):
                     "ttl": 3600,
                     "cache_path": str(Path(tmpdir) / "cache"),
                     "size_limit": 1024 * 1024,
+                    "clear_on_init": True,
                 },
             }
+            cache = GrpcCache(config["cache_config"])
 
-            async with use_sift_async_channel(config) as channel:
+            async with use_sift_async_channel(config, cache=cache) as channel:
                 stub = DataServiceStub(channel)
                 request = GetDataRequest(page_size=100)
 
@@ -349,10 +354,12 @@ async def test_different_requests_different_cache_keys(mocker: MockFixture):
                     "ttl": 3600,
                     "cache_path": str(Path(tmpdir) / "cache"),
                     "size_limit": 1024 * 1024,
+                    "clear_on_init": True,
                 },
             }
+            cache = GrpcCache(config["cache_config"])
 
-            async with use_sift_async_channel(config) as channel:
+            async with use_sift_async_channel(config, cache=cache) as channel:
                 stub = DataServiceStub(channel)
                 request1 = GetDataRequest(page_size=100)
                 request2 = GetDataRequest(page_size=200)
@@ -391,13 +398,15 @@ async def test_cache_persists_across_channels(mocker: MockFixture):
                 "use_ssl": False,
                 "cache_config": {
                     "ttl": 3600,
-                    "cache_path": cache_path,
+                    "cache_path": str(Path(tmpdir) / "cache"),
                     "size_limit": 1024 * 1024,
+                    "clear_on_init": False,
                 },
             }
+            cache = GrpcCache(config["cache_config"])
 
             # First channel - populate cache
-            async with use_sift_async_channel(config) as channel1:
+            async with use_sift_async_channel(config, cache=cache) as channel1:
                 stub1 = DataServiceStub(channel1)
                 request = GetDataRequest(page_size=100)
                 res1 = cast(GetDataResponse, await stub1.GetData(request, metadata=with_cache()))
@@ -405,7 +414,7 @@ async def test_cache_persists_across_channels(mocker: MockFixture):
                 assert data_service.call_count == 1
 
             # Second channel - should use cached value
-            async with use_sift_async_channel(config) as channel2:
+            async with use_sift_async_channel(config, cache=cache) as channel2:
                 stub2 = DataServiceStub(channel2)
                 request = GetDataRequest(page_size=100)
                 res2 = cast(GetDataResponse, await stub2.GetData(request, metadata=with_cache()))
@@ -423,13 +432,16 @@ async def test_custom_ttl(mocker: MockFixture):
                 "apikey": "test-token",
                 "use_ssl": False,
                 "cache_config": {
-                    "ttl": 3600,  # Default TTL
+                    "ttl": 3600,
                     "cache_path": str(Path(tmpdir) / "cache"),
                     "size_limit": 1024 * 1024,
+                    "clear_on_init": True,
                 },
             }
 
-            async with use_sift_async_channel(config) as channel:
+            cache = GrpcCache(config["cache_config"])
+
+            async with use_sift_async_channel(config, cache=cache) as channel:
                 stub = DataServiceStub(channel)
                 request = GetDataRequest(page_size=100)
 
@@ -453,16 +465,18 @@ async def test_metadata_merging(mocker: MockFixture):
         with server_with_service(mocker) as (get_data_spy, data_service, port):
             config: SiftChannelConfig = {
                 "uri": f"localhost:{port}",
-                "apikey": "test-token",  # This adds authorization metadata
+                "apikey": "test-token",
                 "use_ssl": False,
                 "cache_config": {
                     "ttl": 3600,
                     "cache_path": str(Path(tmpdir) / "cache"),
                     "size_limit": 1024 * 1024,
+                    "clear_on_init": True,
                 },
             }
+            cache = GrpcCache(config["cache_config"])
 
-            async with use_sift_async_channel(config) as channel:
+            async with use_sift_async_channel(config, cache=cache) as channel:
                 stub = DataServiceStub(channel)
                 request = GetDataRequest(page_size=100)
 
