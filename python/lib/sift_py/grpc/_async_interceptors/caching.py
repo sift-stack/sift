@@ -23,7 +23,6 @@ Usage:
 
 from __future__ import annotations
 
-import importlib
 import logging
 from typing import Any
 
@@ -65,6 +64,7 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
             cache: Pre-initialized GrpcCache instance (required).
         """
         self.cache = cache
+        self.symbol_db = symbol_database.Default()
 
     async def intercept(
         self,
@@ -98,11 +98,12 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
                 cached_data = self.cache.get(key)
                 if cached_data is not None:
                     logger.debug(f"Cache hit for `{key}`")
-                    # Cached data is a tuple of (response_type_name, response_bytes)
-                    response_type_name, response_bytes = cached_data
-                    # Reconstruct the response from bytes
-                    response = self._deserialize_response(response_type_name, response_bytes)
-                    return response
+                    # Reconstruct the response
+                    response = self._deserialize_response(cached_data)
+                    if response is not None:
+                        return response
+                    else:
+                        logger.warning(f"Failed to deserialize cached response for `{key}`")
             except diskcache.Timeout as e:
                 logger.debug(f"Cache read timeout for `{key}`: {e}")
             except Exception as e:
@@ -135,13 +136,19 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
     @staticmethod
     def _serialize_response(response: message.Message) -> tuple[Any, bytes] | None:
         if isinstance(response, message.Message):
-            return (response.DESCRIPTOR.full_name, response.SerializeToString())
+            return response.DESCRIPTOR.full_name, response.SerializeToString()
         else:
             logger.warning(f"Response is not a protobuf message: {type(response)}")
             return None
 
-    @staticmethod
-    def _deserialize_response(response: tuple[Any, bytes]) -> message.Message:
-        
-        except (ImportError, AttributeError) as e:
-            raise ImportError(f"Failed to import response type {response_type_name} from {python_module}: {e}")
+    def _deserialize_response(self, response: tuple[Any, bytes]) -> message.Message | None:
+        response_type, data = response
+        try:
+            response_type_cls = self.symbol_db.GetSymbol(response_type)
+            message = response_type_cls()
+            message.ParseFromString(data)
+            return message
+        except Exception as e:
+            logger.warning(f"Failed to deserialize response: {e}")
+            return None
+
