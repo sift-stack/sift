@@ -20,119 +20,214 @@ Example:
     response = stub.GetData(request, metadata=metadata)
 """
 
-from typing import List, Tuple
+from __future__ import annotations
+
+import hashlib
+import logging
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, NamedTuple
+
+import diskcache
+from google.protobuf import json_format, message
+
+if TYPE_CHECKING:
+
+
+    from sift_py.grpc.transport import SiftCacheConfig
+
+logger = logging.getLogger(__name__)
+
+
+class CacheSettings(NamedTuple):
+    """Resolved cache metadata from gRPC request."""
+
+    use_cache: bool
+    force_refresh: bool
+    custom_ttl: float | None
 
 # Metadata keys for cache control
 METADATA_USE_CACHE = "use-cache"
 METADATA_FORCE_REFRESH = "force-refresh"
-METADATA_IGNORE_CACHE = "ignore-cache"
 METADATA_CACHE_TTL = "cache-ttl"
 
 
-def with_cache(
-    existing_metadata: List[Tuple[str, str]] | None = None,
-    ttl: int | None = None,
-) -> List[Tuple[str, str]]:
-    """Add cache control metadata to enable caching for a request.
+class GrpcCache(diskcache.Cache):
+    """Subclass of diskcache.Cache for gRPC response caching."""
 
+    def __init__(self, config: SiftCacheConfig):
+        """Initialize the cache from configuration.
+
+        Args:
+            config: Cache configuration with ttl, cache_path, size_limit, clear_on_init.
+        """
+        self.default_ttl = config["ttl"]
+        self.cache_path = Path(config["cache_path"])
+        self.size_limit = config["size_limit"]
+
+        # Create cache directory if it doesn't exist
+        self.cache_path.mkdir(parents=True, exist_ok=True)
+
+        # Initialize parent diskcache.Cache
+        super().__init__(str(self.cache_path), size_limit=self.size_limit)
+
+        # Clear cache if requested
+        if config.get("clear_on_init", False):
+            logger.debug(f"Clearing cache on initialization: {self.cache_path}")
+            self.clear()
+
+        logger.debug(
+            f"Cache initialized at {self.cache_path.absolute()!r} "
+            f"with size {self.volume() / (1024**2):.2f} MB"
+        )
+
+    def set_with_default_ttl(self, key: str, value: Any, expire: float | None = None, **kwargs) -> bool:
+        expire_time = expire if expire is not None else self.default_ttl
+        return super().set(key, value, expire=expire_time, **kwargs)
+
+    @staticmethod
+    def key_from_proto_message(method_name: str | bytes, request: message.Message) -> str:
+        # Serialize the request to bytes
+        request_json = json_format.MessageToJson(request).encode("utf-8")
+
+        if isinstance(method_name, str):
+            method_name = method_name.encode("utf-8")
+
+        # Create a hash of method name + request
+        hasher = hashlib.sha256()
+        hasher.update(method_name)
+        hasher.update(request_json)
+
+        return hasher.hexdigest()
+
+    @staticmethod
+    def resolve_cache_metadata(
+         metadata: tuple[tuple[str, str], ...] | None
+    ) -> CacheSettings:
+        """Extract and resolve cache-related metadata fields.
+
+        Args:
+            metadata: The gRPC request metadata tuple.
+
+        Returns:
+            CacheMetadata named tuple with resolved cache control fields:
+            - use_cache: bool - Whether to use caching
+            - force_refresh: bool - Whether to force refresh
+            - ignore_cache: bool - Whether to ignore cache
+            - custom_ttl: int | None - Custom TTL if specified
+            - should_read: bool - Whether to read from cache
+            - should_cache: bool - Whether to cache the response
+
+        Example:
+            cache_info = cache.resolve_cache_metadata(metadata)
+            if cache_info.should_read:
+                cached = cache.get(key)
+            if cache_info.should_cache:
+                cache.set_with_default_ttl(key, response, expire=cache_info.custom_ttl)
+        """
+        if not metadata:
+            metadata_dict = {}
+        else:
+            # Handle both tuple and grpc.aio.Metadata types
+            metadata_dict = {}
+            for key, value in metadata:
+                metadata_dict[key] = value
+
+        use_cache = metadata_dict.get(METADATA_USE_CACHE, "false").lower() == "true"
+
+        if not use_cache:
+            return CacheSettings(use_cache=False, force_refresh=False, custom_ttl=None)
+
+        force_refresh = metadata_dict.get(METADATA_FORCE_REFRESH, "false").lower() == "true"
+        custom_ttl_str = metadata_dict.get(METADATA_CACHE_TTL)
+
+        # Parse custom TTL if provided
+        custom_ttl = None
+        if custom_ttl_str:
+            try:
+                custom_ttl = int(custom_ttl_str)
+            except ValueError:
+                logger.warning(f"Invalid cache TTL value: {custom_ttl_str}, using default")
+
+        return CacheSettings(
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+            custom_ttl=custom_ttl,
+        )
+
+
+def with_cache(ttl: int | None = None) -> tuple[tuple[str, str], ...]:
+    """Enable caching for a gRPC request.
+    
     Args:
-        existing_metadata: Optional existing metadata to extend.
-        ttl: Optional custom TTL in seconds for this specific request.
-
+        ttl: Optional custom TTL in seconds. If not provided, uses the default TTL.
+    
     Returns:
-        Metadata list with cache enabled.
-
+        Metadata tuple to pass to the gRPC stub method.
+    
     Example:
-        # Use default TTL
         metadata = with_cache()
         response = stub.GetData(request, metadata=metadata)
-
-        # Use custom TTL (5 minutes)
-        metadata = with_cache(ttl=300)
+        
+        # With custom TTL
+        metadata = with_cache(ttl=7200)  # 2 hours
         response = stub.GetData(request, metadata=metadata)
     """
-    metadata = list(existing_metadata) if existing_metadata else []
-    metadata.append((METADATA_USE_CACHE, "true"))
+    metadata = [(METADATA_USE_CACHE, "true")]
     if ttl is not None:
         metadata.append((METADATA_CACHE_TTL, str(ttl)))
-    return metadata
+    return tuple(metadata)
 
 
-def with_force_refresh(
-    existing_metadata: List[Tuple[str, str]] | None = None,
-    ttl: int | None = None,
-) -> List[Tuple[str, str]]:
-    """Add cache control metadata to force refresh (bypass cache and store fresh result).
-
+def with_force_refresh(ttl: int | None = None) -> tuple[tuple[str, str], ...]:
+    """Force refresh the cache for a gRPC request.
+    
+    Bypasses the cache, fetches fresh data from the server, and stores the result.
+    
     Args:
-        existing_metadata: Optional existing metadata to extend.
-        ttl: Optional custom TTL in seconds for the refreshed entry.
-
+        ttl: Optional custom TTL in seconds. If not provided, uses the default TTL.
+    
     Returns:
-        Metadata list with force refresh enabled.
-
+        Metadata tuple to pass to the gRPC stub method.
+    
     Example:
-        # Force refresh with default TTL
         metadata = with_force_refresh()
         response = stub.GetData(request, metadata=metadata)
-
-        # Force refresh with custom TTL
-        metadata = with_force_refresh(ttl=600)
-        response = stub.GetData(request, metadata=metadata)
     """
-    metadata = list(existing_metadata) if existing_metadata else []
-    metadata.append((METADATA_FORCE_REFRESH, "true"))
-    metadata.append((METADATA_USE_CACHE, "true"))  # Also enable caching
+    metadata = [
+        (METADATA_USE_CACHE, "true"),
+        (METADATA_FORCE_REFRESH, "true"),
+    ]
     if ttl is not None:
         metadata.append((METADATA_CACHE_TTL, str(ttl)))
-    return metadata
+    return tuple(metadata)
 
 
-def ignore_cache(
-    existing_metadata: List[Tuple[str, str]] | None = None,
-) -> List[Tuple[str, str]]:
-    """Add metadata to ignore cache for this request without clearing it.
-
-    This is useful when you want to bypass the cache for a specific call
-    but don't want to clear the cached entry.
-
-    Args:
-        existing_metadata: Optional existing metadata to extend.
-
+def ignore_cache() -> tuple[tuple[str, str], ...]:
+    """Ignore the cache for a gRPC request without clearing it.
+    
+    Bypasses the cache for this request but doesn't invalidate the cached entry.
+    The response from this request will not be cached.
+    
     Returns:
-        Metadata list with ignore cache flag.
-
+        Metadata tuple to pass to the gRPC stub method.
+    
     Example:
         metadata = ignore_cache()
         response = stub.GetData(request, metadata=metadata)
     """
-    metadata = list(existing_metadata) if existing_metadata else []
-    metadata.append((METADATA_IGNORE_CACHE, "true"))
-    return metadata
+    return tuple()
 
 
-def without_cache(
-    existing_metadata: List[Tuple[str, str]] | None = None,
-) -> List[Tuple[str, str]]:
-    """Explicitly disable caching for a request.
-
-    This is the default behavior, so this function is mainly for clarity.
-
-    Args:
-        existing_metadata: Optional existing metadata to extend.
-
+def without_cache() -> tuple[tuple[str, str], ...]:
+    """Explicitly disable caching for a gRPC request.
+    
+    This is the default behavior when no cache metadata is provided.
+    
     Returns:
-        Metadata list without cache flags.
-
+        Empty metadata tuple.
+    
     Example:
         metadata = without_cache()
         response = stub.GetData(request, metadata=metadata)
     """
-    metadata = list(existing_metadata) if existing_metadata else []
-    # Remove any cache-related metadata
-    metadata = [
-        (k, v)
-        for k, v in metadata
-        if k not in (METADATA_USE_CACHE, METADATA_FORCE_REFRESH, METADATA_IGNORE_CACHE, METADATA_CACHE_TTL)
-    ]
-    return metadata
+    return tuple()
