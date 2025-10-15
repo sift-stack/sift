@@ -10,6 +10,7 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 from urllib.parse import ParseResult, urlparse
 
+import diskcache
 import grpc
 import grpc.aio as grpc_aio
 from typing_extensions import NotRequired, TypeAlias
@@ -79,7 +80,7 @@ def use_sift_channel(
 
 
 def use_sift_async_channel(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None, cache: Any = None
 ) -> SiftAsyncChannel:
     """
     Like `use_sift_channel` but returns a channel meant to be used within the context
@@ -89,13 +90,13 @@ def use_sift_async_channel(
     cert_via_openssl = config.get("cert_via_openssl", False)
 
     if not use_ssl:
-        return _use_insecure_sift_async_channel(config, metadata)
+        return _use_insecure_sift_async_channel(config, metadata, cache)
 
     return grpc_aio.secure_channel(
         target=_clean_uri(config["uri"], use_ssl),
         credentials=get_ssl_credentials(cert_via_openssl),
         options=_compute_channel_options(config),
-        interceptors=_compute_sift_async_interceptors(config, metadata),
+        interceptors=_compute_sift_async_interceptors(config, metadata, cache),
     )
 
 
@@ -113,7 +114,7 @@ def _use_insecure_sift_channel(
 
 
 def _use_insecure_sift_async_channel(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None, cache: Any = None
 ) -> SiftAsyncChannel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
@@ -121,7 +122,7 @@ def _use_insecure_sift_async_channel(
     return grpc_aio.insecure_channel(
         target=_clean_uri(config["uri"], False),
         options=_compute_channel_options(config),
-        interceptors=_compute_sift_async_interceptors(config, metadata),
+        interceptors=_compute_sift_async_interceptors(config, metadata, cache),
     )
 
 
@@ -140,24 +141,13 @@ def _compute_sift_interceptors(
 
 
 def _compute_sift_async_interceptors(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None, cache: Any = None
 ) -> List[grpc_aio.ClientInterceptor]:
     interceptors: List[grpc_aio.ClientInterceptor] = []
 
-    # Add caching interceptor if enabled
-    cache_config = config.get("cache_config")
-    if cache_config and all(
-        field in ["ttl", "cache_path", "size_limit", "clear_on_init"]
-        for field in cache_config.keys()
-    ):
-        interceptors.append(
-            CachingAsyncInterceptor(
-                ttl=cache_config["ttl"],
-                cache_path=cache_config["cache_path"],
-                size_limit=cache_config["size_limit"],
-                clear_on_init=cache_config["clear_on_init"],
-            )
-        )
+    # Add caching interceptor if cache instance is provided
+    if cache is not None:
+        interceptors.append(CachingAsyncInterceptor(cache=cache))
 
     # Metadata interceptor should be last to ensure metadata is always added
     interceptors.append(_metadata_async_interceptor(config, metadata))
@@ -251,19 +241,19 @@ def _compute_keep_alive_channel_opts(config: KeepaliveConfig) -> List[Tuple[str,
     ]
 
 
-class CacheConfig(TypedDict):
+class SiftCacheConfig(TypedDict):
     """
     Configuration for gRPC response caching.
-    - `ttl`: Time-to-live for cached entries in seconds. Default is 3600 (1 hour).
-    - `cache_path`: Path to the cache directory. Default is ".grpc_cache".
-    - `size_limit`: Maximum size of the cache in bytes. Default is 1GB.
-    - `clear_on_init`: Whether to clear the cache on initialization. Default is False.
+    - `ttl`: Time-to-live for cached entries in seconds.
+    - `cache_path`: Path to the cache directory.
+    - `size_limit`: Maximum size of the cache in bytes.
+    - `clear_on_init`: Whether to clear the cache on initialization.
     """
 
-    ttl: NotRequired[int]
-    cache_path: NotRequired[str]
-    size_limit: NotRequired[int]
-    clear_on_init: NotRequired[bool]
+    ttl: int
+    cache_path: str
+    size_limit: int
+    clear_on_init: bool
 
 
 class SiftChannelConfig(TypedDict):
@@ -287,4 +277,4 @@ class SiftChannelConfig(TypedDict):
     enable_keepalive: NotRequired[Union[bool, KeepaliveConfig]]
     use_ssl: NotRequired[bool]
     cert_via_openssl: NotRequired[bool]
-    cache_config: NotRequired[CacheConfig]
+    cache_config: NotRequired[SiftCacheConfig]

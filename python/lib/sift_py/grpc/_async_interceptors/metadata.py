@@ -26,10 +26,17 @@ class MetadataAsyncInterceptor(ClientAsyncInterceptor):
         client_call_details: grpc_aio.ClientCallDetails,
     ):
         call_details = cast(grpc_aio.ClientCallDetails, client_call_details)
+
+        # Merge existing metadata with interceptor metadata
+        # Existing metadata from the call takes precedence
+        merged_metadata = list(self.metadata)
+        if call_details.metadata:
+            merged_metadata.extend(call_details.metadata)
+
         new_details = grpc_aio.ClientCallDetails(
             call_details.method,
             call_details.timeout,
-            self.metadata,
+            merged_metadata,
             call_details.credentials,
             call_details.wait_for_ready,
         )

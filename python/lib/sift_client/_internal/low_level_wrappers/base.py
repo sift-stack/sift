@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
+
+from sift_py.grpc.cache import ignore_cache, with_cache, with_force_refresh
+
+T = TypeVar("T")
 
 
 class LowLevelClientBase(ABC):
@@ -50,3 +54,67 @@ class LowLevelClientBase(ABC):
         if max_results and len(results) > max_results:
             results = results[:max_results]
         return results
+
+    @staticmethod
+    async def _call_with_cache(
+        stub_method: Callable[[Any, tuple[tuple[str, str], ...]], T],
+        request: Any,
+        *,
+        use_cache: bool = True,
+        force_refresh: bool = False,
+        ttl: int | None = None,
+    ) -> T:
+        """Call a gRPC stub method with cache control.
+        
+        This is a convenience method for low-level wrappers to easily enable caching
+        on their gRPC calls without manually constructing metadata.
+        
+        Args:
+            stub_method: The gRPC stub method to call (e.g., stub.GetData).
+            request: The protobuf request object.
+            use_cache: Whether to enable caching for this request. Default: True.
+            force_refresh: Whether to force refresh the cache. Default: False.
+            ttl: Optional custom TTL in seconds. If not provided, uses the default TTL.
+        
+        Returns:
+            The response from the gRPC call.
+        
+        Example:
+            # Enable caching
+            response = await self._call_with_cache(
+                stub.GetData,
+                request,
+                use_cache=True,
+            )
+            
+            # Force refresh
+            response = await self._call_with_cache(
+                stub.GetData,
+                request,
+                force_refresh=True,
+            )
+            
+            # With custom TTL
+            response = await self._call_with_cache(
+                stub.GetData,
+                request,
+                use_cache=True,
+                ttl=7200,  # 2 hours
+            )
+            
+            # Ignore cache
+            response = await self._call_with_cache(
+                stub.GetData,
+                request,
+                use_cache=False,
+            )
+        """
+
+        if force_refresh:
+            metadata = with_force_refresh(ttl=ttl)
+        elif use_cache:
+            metadata = with_cache(ttl=ttl)
+        else:
+            metadata = ignore_cache()
+
+        return await stub_method(request, metadata=metadata)

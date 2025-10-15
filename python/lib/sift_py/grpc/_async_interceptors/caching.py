@@ -1,14 +1,17 @@
 """Async gRPC caching interceptor for transparent local response caching.
 
 This module provides an async caching interceptor that can be used to cache gRPC
-unary-unary responses locally using diskcache. The cache is persistent across runs
-and supports TTL expiration and per-request control via metadata.
+unary-unary responses locally using diskcache. The cache is initialized at the
+GrpcClient level and passed to the interceptor.
+
+Note: Cache initialization is handled by GrpcClient, not by this interceptor.
 
 Usage:
-    from sift_py.grpc._async_interceptors.caching import CachingAsyncInterceptor
-
-    # Create interceptor with 1 hour TTL
-    cache_interceptor = CachingAsyncInterceptor(ttl=3600, cache_path=".grpc_cache")
+    # Cache is initialized at GrpcClient level
+    cache = diskcache.Cache(".grpc_cache", size_limit=1024**3)
+    
+    # Create interceptor with cache instance
+    cache_interceptor = CachingAsyncInterceptor(ttl=3600, cache_instance=cache)
 
     # Use with metadata to control caching:
     metadata = [
@@ -20,81 +23,48 @@ Usage:
 
 from __future__ import annotations
 
-import hashlib
+import importlib
 import logging
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import diskcache
+from google.protobuf import message
 from grpc import aio as grpc_aio
 
 from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
+from sift_py.grpc.cache import GrpcCache
 
 logger = logging.getLogger(__name__)
-
-# Metadata keys for cache control
-METADATA_USE_CACHE = "use-cache"
-METADATA_FORCE_REFRESH = "force-refresh"
-METADATA_IGNORE_CACHE = "ignore-cache"
-METADATA_CACHE_TTL = "cache-ttl"
-
 
 class CachingAsyncInterceptor(ClientAsyncInterceptor):
     """Async interceptor that caches unary-unary gRPC responses locally.
 
-    This interceptor uses diskcache for persistent storage with TTL support.
+    This interceptor uses a diskcache instance for persistent storage with TTL support.
+    The cache instance must be provided during initialization (typically from GrpcClient).
     Cache keys are generated deterministically based on the gRPC method name
     and serialized request payload.
+
+    Responses are serialized to bytes before caching to avoid pickling issues with
+    async objects.
 
     Note: diskcache operations are synchronous, but the overhead is minimal
     for most use cases. For high-throughput scenarios, consider using an
     async-native cache backend.
 
     Attributes:
-        ttl: Time-to-live for cached entries in seconds. Default is 3600 (1 hour).
-        cache_path: Path to the cache directory. Default is ".grpc_cache".
-        size_limit: Maximum size of the cache in bytes. Default is 1GB.
+        _cache: The GrpcCache instance provided during initialization.
     """
 
     def __init__(
         self,
-        ttl: int = 3600,
-        cache_path: str = ".grpc_cache",
-        size_limit: int = 1024**3,  # 1GB
-        clear_on_init: bool = False,
+        cache: GrpcCache,
     ):
         """Initialize the async caching interceptor.
 
         Args:
-            ttl: Time-to-live for cached entries in seconds.
-            cache_path: Path to the cache directory.
-            size_limit: Maximum size of the cache in bytes.
-            clear_on_init: Whether to clear the cache on initialization.
+            cache: Pre-initialized GrpcCache instance (required).
         """
-        self.ttl = ttl
-        self.cache_path = Path(cache_path)
-        self.size_limit = size_limit
-
-        # Create cache directory if it doesn't exist
-        self.cache_path.mkdir(parents=True, exist_ok=True)
-
-        # Initialize diskcache
-        self._cache = diskcache.Cache(str(self.cache_path), size_limit=size_limit)
-
-        # Clear cache if requested
-        if clear_on_init:
-            logger.info(f"Clearing cache on initialization: {cache_path}")
-            self._cache.clear()
-
-        logger.info(
-            f"gRPC cache initialized at {self.cache_path.absolute()!r} "
-            f"with size {self._cache.volume() / (1024**3):.2f} MB"
-        )
-
-        logger.debug(
-            f"Initialized CachingAsyncInterceptor with ttl={ttl}s, "
-            f"cache_path={cache_path}, size_limit={size_limit} bytes, clear_on_init={clear_on_init}"
-        )
+        self.cache = cache
 
     async def intercept(
         self,
@@ -104,6 +74,8 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
     ) -> Any:
         """Intercept the async gRPC call and apply caching logic.
 
+        Uses GrpcCache.resolve_cache_metadata() to determine caching behavior.
+
         Args:
             method: The continuation to call for the actual RPC.
             request_or_iterator: The request object or iterator.
@@ -112,130 +84,104 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
         Returns:
             The response from the cache or the actual RPC call.
         """
-        # Extract metadata flags
-        metadata_dict = self._extract_metadata(client_call_details.metadata)
-        use_cache = metadata_dict.get(METADATA_USE_CACHE, "false").lower() == "true"
-        force_refresh = metadata_dict.get(METADATA_FORCE_REFRESH, "false").lower() == "true"
-        ignore_cache = metadata_dict.get(METADATA_IGNORE_CACHE, "false").lower() == "true"
-        custom_ttl_str = metadata_dict.get(METADATA_CACHE_TTL)
-
-        # Parse custom TTL if provided
-        custom_ttl = None
-        if custom_ttl_str:
-            try:
-                custom_ttl = int(custom_ttl_str)
-            except ValueError:
-                logger.warning(f"Invalid cache TTL value: {custom_ttl_str}, using default")
-
-        # If ignore_cache is set, bypass cache without clearing
-        if ignore_cache:
-            logger.debug("Ignoring cache for this request")
-            return await method(request_or_iterator, client_call_details)
-
-        # If caching is not enabled, just pass through
-        if not use_cache and not force_refresh:
-            return await method(request_or_iterator, client_call_details)
+        # Resolve cache metadata to determine behavior
+        cache_settings = self.cache.resolve_cache_metadata(client_call_details.metadata)
 
         # Generate cache key
-        cache_key = self._generate_cache_key(client_call_details.method, request_or_iterator)
+        key = self.cache.key_from_proto_message(
+            method_name=client_call_details.method, request=request_or_iterator
+        )
 
-        # Handle force-refresh flag
-        if force_refresh:
-            logger.debug(f"Force refresh for key: {cache_key}")
-            call = await method(request_or_iterator, client_call_details)
-            # For async, we need to await the response
-            response = await call
-            # Cache the fresh result with custom TTL if provided
-            ttl = custom_ttl if custom_ttl is not None else self.ttl
-            self._cache_response(cache_key, response, ttl)
-            return response
+        # Try to read from cache if allowed
+        if cache_settings.use_cache and not cache_settings.force_refresh:
+            try:
+                cached_data = self.cache.get(key)
+                if cached_data is not None:
+                    logger.debug(f"Cache hit for `{key}`")
+                    # Cached data is a tuple of (response_type_name, response_bytes)
+                    response_type_name, response_bytes = cached_data
+                    # Reconstruct the response from bytes
+                    response = self._deserialize_response(response_type_name, response_bytes)
+                    return response
+            except diskcache.Timeout as e:
+                logger.debug(f"Cache read timeout for `{key}`: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to deserialize cached response for `{key}`: {e}")
 
-        # Try to get from cache if use-cache is enabled
-        if use_cache:
-            cached_response = self._cache.get(cache_key)
-            if cached_response is not None:
-                logger.debug(f"Cache hit for key: {cache_key}")
-                return cached_response
-
-            logger.debug(f"Cache miss for key: {cache_key}")
+        # Force refresh if requested
+        if cache_settings.force_refresh:
+            logger.debug(f"Forcing refresh for `{key}`")
+            self.cache.delete(key)
 
         # Make the actual RPC call
         call = await method(request_or_iterator, client_call_details)
+
+        # The call is a UnaryUnaryCall object, we need to await it to get the actual response
         response = await call
 
-        # Cache the response if use-cache is enabled
-        if use_cache:
-            ttl = custom_ttl if custom_ttl is not None else self.ttl
-            self._cache_response(cache_key, response, ttl)
+        # Cache the response if allowed
+        if cache_settings.use_cache:
+            try:
+                # Serialize the protobuf response to bytes before caching
+                if isinstance(response, message.Message):
+                    response_bytes = response.SerializeToString()
+                    response_type_name = type(response).DESCRIPTOR.full_name
+                    # Store both the type name and the serialized bytes
+                    cached_data = (response_type_name, response_bytes)
+                    self.cache.set_with_default_ttl(key, cached_data, expire=cache_settings.custom_ttl)
+                    logger.debug(f"Cached response for `{key}`")
+                else:
+                    logger.warning(f"Response is not a protobuf message, skipping cache for `{key}`")
+                    logger.warning(f"Response type: {type(response)}")
+            except diskcache.Timeout as e:
+                logger.warning(f"Failed to cache response for `{key}`: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to serialize response for caching `{key}`: {e}")
 
         return response
 
-    def _generate_cache_key(self, method_name: str, request: Any) -> str:
-        """Generate a deterministic cache key from method name and request.
+    def _deserialize_response(self, response_type_name: str, response_bytes: bytes) -> message.Message:
+        """Deserialize a cached response from bytes.
 
         Args:
-            method_name: The gRPC method name.
-            request: The request object.
+            response_type_name: The full protobuf type name (e.g., 'sift.data.v2.GetDataResponse')
+            response_bytes: The serialized protobuf bytes
 
         Returns:
-            A SHA256 hash of the method name and serialized request.
+            The deserialized protobuf message
+
+        Raises:
+            ImportError: If the response type cannot be imported
+            Exception: If deserialization fails
         """
+        # Import the response type dynamically
+        # Convert 'sift.data.v2.GetDataResponse' to module and class
+        parts = response_type_name.rsplit('.', 1)
+        if len(parts) != 2:
+            raise ValueError(f"Invalid response type name: {response_type_name}")
+
+        package_name, class_name = parts
+        
+        # Protobuf generates Python modules with _pb2 suffix
+        # e.g., 'sift.data.v2' -> 'sift.data.v2.data_pb2'
+        # Extract the service name from the package (last part before version)
+        package_parts = package_name.split('.')
+        if len(package_parts) >= 2:
+            # Get the service name (e.g., 'data' from 'sift.data.v2')
+            service_name = package_parts[-2]
+            python_module = f"{package_name}.{service_name}_pb2"
+        else:
+            # Fallback: just append _pb2
+            python_module = f"{package_name}_pb2"
+
         try:
-            # Serialize the request using protobuf's SerializeToString
-            request_bytes = request.SerializeToString()
-        except AttributeError:
-            # If the request doesn't have SerializeToString, fall back to str
-            logger.warning(
-                f"Request for {method_name} doesn't have SerializeToString, using str() instead"
-            )
-            request_bytes = str(request).encode()
+            # Import the module
+            module = importlib.import_module(python_module)
+            response_class = getattr(module, class_name)
 
-        # Create a deterministic hash
-        key_material = method_name.encode() + request_bytes
-        cache_key = hashlib.sha256(key_material).hexdigest()
-
-        return cache_key
-
-    def _cache_response(self, cache_key: str, response: Any, ttl: int | None = None) -> None:
-        """Store a response in the cache with TTL.
-
-        Args:
-            cache_key: The cache key.
-            response: The response to cache.
-            ttl: Optional custom TTL. If None, uses the default TTL.
-        """
-        try:
-            effective_ttl = ttl if ttl is not None else self.ttl
-            self._cache.set(cache_key, response, expire=effective_ttl)
-            logger.debug(f"Cached response for key: {cache_key} with TTL: {effective_ttl}s")
-        except Exception as e:
-            logger.error(f"Failed to cache response for key {cache_key}: {e}")
-
-    def _extract_metadata(self, metadata: Optional[tuple[tuple[str, str], ...]]) -> dict[str, str]:
-        """Extract metadata into a dictionary.
-
-        Args:
-            metadata: The metadata tuple.
-
-        Returns:
-            A dictionary of metadata key-value pairs.
-        """
-        if metadata is None:
-            return {}
-        return dict(metadata)
-
-    def clear_all(self) -> None:
-        """Clear all cached entries."""
-        logger.info("Clearing all cached entries")
-        self._cache.clear()
-
-    def close(self) -> None:
-        """Close the cache and release resources."""
-        logger.debug("Closing cache")
-        self._cache.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+            # Deserialize
+            response = response_class()
+            response.ParseFromString(response_bytes)
+            return response
+        except (ImportError, AttributeError) as e:
+            raise ImportError(f"Failed to import response type {response_type_name} from {python_module}: {e}")
