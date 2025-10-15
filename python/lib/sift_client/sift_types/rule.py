@@ -192,7 +192,7 @@ class RuleUpdate(RuleCreateUpdateBase, ModelUpdate[RuleProto]):
     Note:
         - assets applies this rule to those assets.
         - asset_tags applies this rule to assets with those tags.
-        - contextual_channels applies this rule to assets with those channels.
+        - contextual_channels are shown by UI to give context when viewing an annotation, but are not part of rule evaluation. 
     """
 
     name: str | None = None

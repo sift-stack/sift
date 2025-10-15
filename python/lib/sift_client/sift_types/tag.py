@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from sift.tags.v2.tags_pb2 import CreateTagRequest as CreateTagRequestProto
 from sift.tags.v2.tags_pb2 import Tag as TagProto
 
+from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types._base import (
     BaseType,
     ModelCreate,
@@ -53,6 +54,7 @@ class Tag(BaseType[TagProto, "Tag"]):
     def _from_proto(cls, proto: TagProto, sift_client: SiftClient | None = None) -> Tag:
         return cls(
             id_=proto.tag_id,
+            proto=proto,
             name=proto.name,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             created_by_user_id=proto.created_by_user_id,
@@ -65,6 +67,9 @@ class Tag(BaseType[TagProto, "Tag"]):
             tag_id=self.id_ or "",
             name=self.name,
             created_by_user_id=self.created_by_user_id,
-            created_date=self.created_date,  # type: ignore
+            created_date=to_pb_timestamp(self.created_date),
         )
         return proto
+
+    def __str__(self) -> str:
+        return self.name

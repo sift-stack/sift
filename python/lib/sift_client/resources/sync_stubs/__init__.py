@@ -24,7 +24,6 @@ RunsAPI = generate_sync_api(RunsAPIAsync, "RunsAPI")
 ReportsAPI = generate_sync_api(ReportsAPIAsync, "ReportsAPI")
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
 
-__all__ = ["AssetsAPI", "CalculatedChannelsAPI", "PingAPI", "ReportsAPI", "RunsAPI", "TagsAPI"]
 TestResultsAPI = generate_sync_api(TestResultsAPIAsync, "TestResultsAPI")
 
-__all__ = ["AssetsAPI", "CalculatedChannelsAPI", "PingAPI", "RunsAPI", "TestResultsAPI"]
+__all__ = ["AssetsAPI", "CalculatedChannelsAPI", "PingAPI", "ReportsAPI", "RunsAPI", "TagsAPI"]

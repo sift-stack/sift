@@ -47,7 +47,7 @@ from sift_client.sift_types.rule import (
 )
 from sift_client.sift_types.tag import Tag
 from sift_client.transport import GrpcClient, WithGrpcClient
-from sift_client.util.util import count_non_none
+from sift_client._internal.util.util import count_non_none
 
 if TYPE_CHECKING:
     from datetime import datetime
