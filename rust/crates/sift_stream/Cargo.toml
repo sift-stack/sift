@@ -48,7 +48,7 @@ tempdir = "0.3.7"
 tokio-stream = "0.1.17"
 tonic = { workspace = true }
 tower = { version = "0.5.2", features = ["util"] }
-tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
+tracing-subscriber = { version = "0.3.20", features = ["fmt", "env-filter"] }
 tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "sync", "time"] }
 uuid = { version = "1.16.0", features = ["v4"] }
 tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
