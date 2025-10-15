@@ -25,7 +25,7 @@ def sift_client() -> SiftClient:
             api_key=api_key,
             grpc_url=grpc_url,
             rest_url=rest_url,
-            use_ssl=True,
+            # use_ssl=True,
         )
     )
 
@@ -62,11 +62,11 @@ def nostromo_run(nostromo_asset):
 def test_tag(sift_client):
     tag = sift_client.tags.find_or_create(names=["test"])[0]
     assert tag is not None
-    yield tag
+    return tag
 
 
 @pytest.fixture(scope="session")
 def ci_pytest_tag(sift_client):
     tag = sift_client.tags.find_or_create(names=["sift-client-pytest"])[0]
     assert tag is not None
-    yield tag
+    return tag

@@ -63,11 +63,15 @@ impl<T: Into<MetadataEnumValue>> From<(&str, T)> for MetadataValue {
 ///
 ///  # Example
 /// ```
-/// let metadata = metadata![
+/// # #[macro_use] extern crate sift_rs;
+/// # use sift_rs::metadata::v1::MetadataValue;
+/// # fn main() {
+/// let metadata: Vec<MetadataValue> = metadata![
 ///        ("test_number", 5.0),
 ///        ("is_simulation", true),
 ///        ("location", "SiftHQ"),
 /// ];
+/// # }
 /// ```
 #[macro_export]
 macro_rules! metadata {

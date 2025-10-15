@@ -116,10 +116,8 @@ class TestReports:
         assert updated_report.metadata == {"test_type": "ci"}
 
     def test_find_multiple(self, sift_client):
-        try:
+        with pytest.raises(ValueError, match="Multiple reports found for query"):
             sift_client.reports.find(name="report_from_rules")
-        except ValueError as e:
-            assert "Multiple reports found for query" in str(e)
 
     def test_cancel(self, nostromo_asset, nostromo_run, test_rule, sift_client):
         report_from_rules = sift_client.reports.create_from_rules(

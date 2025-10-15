@@ -40,6 +40,7 @@ from sift.rules.v1.rules_pb2_grpc import RuleServiceStub
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
 from sift_client._internal.low_level_wrappers.reports import ReportsLowLevelClient
 from sift_client._internal.util.timestamp import to_pb_timestamp
+from sift_client._internal.util.util import count_non_none
 from sift_client.sift_types.rule import (
     Rule,
     RuleCreate,
@@ -47,7 +48,6 @@ from sift_client.sift_types.rule import (
 )
 from sift_client.sift_types.tag import Tag
 from sift_client.transport import GrpcClient, WithGrpcClient
-from sift_client._internal.util.util import count_non_none
 
 if TYPE_CHECKING:
     from datetime import datetime

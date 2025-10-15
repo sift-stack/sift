@@ -50,6 +50,10 @@ class TestTag:
         assert mock_tag.created_date is not None
         assert mock_tag.created_date.tzinfo == timezone.utc
 
+    def test_tag_str(self, mock_tag):
+        """Test Tag string representation."""
+        assert str(mock_tag) == "test_tag"
+
     def test_tag_to_proto(self, mock_tag):
         """Test that Tag can be converted to proto."""
         proto = mock_tag._to_proto()

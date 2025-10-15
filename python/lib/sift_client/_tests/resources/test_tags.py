@@ -29,7 +29,7 @@ def test_client_binding(sift_client):
 def test_timestamp():
     """Setup a test tag for the session."""
     timestamp = datetime.now(timezone.utc)
-    yield timestamp
+    return timestamp
 
 
 @pytest.fixture(scope="session")
@@ -43,7 +43,7 @@ def test_tags(sift_client, test_timestamp_str):
     """Setup test tags for the session."""
     tag1 = sift_client.tags.create(f"test_tag1_{test_timestamp_str}")
     tag2 = sift_client.tags.create(f"test_tag2_{test_timestamp_str}")
-    yield tag1, tag2
+    return tag1, tag2
     # Would like to archive the tags, but this is not supported by the API
 
 
