@@ -21,6 +21,7 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import ChannelReference
+from sift_client.util import cel_utils as cel
 
 pytestmark = pytest.mark.integration
 
@@ -46,7 +47,9 @@ def calculated_channels_api_sync(sift_client: SiftClient):
 
 @pytest.fixture
 def test_calculated_channel(calculated_channels_api_sync):
-    calculated_channels = calculated_channels_api_sync.list_(limit=1, include_archived=True)
+    calculated_channels = calculated_channels_api_sync.list_(
+        limit=1, include_archived=True, filter_query=cel.not_(cel.equals("client_key", ""))
+    )
     assert calculated_channels
     assert len(calculated_channels) >= 1
     return calculated_channels[0]
