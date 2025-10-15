@@ -54,6 +54,7 @@ def test_rule(rules_api_sync):
     return rules[0]
 
 
+@pytest.fixture
 def new_rule(rules_api_sync, sift_client):
     """Create a test rule for update tests."""
     from datetime import datetime, timezone

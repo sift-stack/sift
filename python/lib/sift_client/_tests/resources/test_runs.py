@@ -46,6 +46,7 @@ def test_run(runs_api_sync):
     return runs[0]
 
 
+@pytest.fixture
 def new_run(runs_api_sync):
     """Create a test run for update tests."""
     run_name = f"test_run_update_{datetime.now(timezone.utc).isoformat()}"

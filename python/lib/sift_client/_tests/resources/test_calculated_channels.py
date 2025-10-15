@@ -52,6 +52,7 @@ def test_calculated_channel(calculated_channels_api_sync):
     return calculated_channels[0]
 
 
+@pytest.fixture
 def new_calculated_channel(calculated_channels_api_sync, sift_client):
     """Create a test calculated channel for update tests."""
     from datetime import datetime, timezone
