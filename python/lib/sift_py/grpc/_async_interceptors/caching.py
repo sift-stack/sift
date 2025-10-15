@@ -28,7 +28,7 @@ import logging
 from typing import Any
 
 import diskcache
-from google.protobuf import message
+from google.protobuf import message, symbol_database
 from grpc import aio as grpc_aio
 
 from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
@@ -123,65 +123,25 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
         if cache_settings.use_cache:
             try:
                 # Serialize the protobuf response to bytes before caching
-                if isinstance(response, message.Message):
-                    response_bytes = response.SerializeToString()
-                    response_type_name = type(response).DESCRIPTOR.full_name
-                    # Store both the type name and the serialized bytes
-                    cached_data = (response_type_name, response_bytes)
+                cached_data = self._serialize_response(response)
+                if cached_data is not None:
                     self.cache.set_with_default_ttl(key, cached_data, expire=cache_settings.custom_ttl)
                     logger.debug(f"Cached response for `{key}`")
-                else:
-                    logger.warning(f"Response is not a protobuf message, skipping cache for `{key}`")
-                    logger.warning(f"Response type: {type(response)}")
             except diskcache.Timeout as e:
                 logger.warning(f"Failed to cache response for `{key}`: {e}")
-            except Exception as e:
-                logger.warning(f"Failed to serialize response for caching `{key}`: {e}")
 
         return response
 
-    def _deserialize_response(self, response_type_name: str, response_bytes: bytes) -> message.Message:
-        """Deserialize a cached response from bytes.
-
-        Args:
-            response_type_name: The full protobuf type name (e.g., 'sift.data.v2.GetDataResponse')
-            response_bytes: The serialized protobuf bytes
-
-        Returns:
-            The deserialized protobuf message
-
-        Raises:
-            ImportError: If the response type cannot be imported
-            Exception: If deserialization fails
-        """
-        # Import the response type dynamically
-        # Convert 'sift.data.v2.GetDataResponse' to module and class
-        parts = response_type_name.rsplit('.', 1)
-        if len(parts) != 2:
-            raise ValueError(f"Invalid response type name: {response_type_name}")
-
-        package_name, class_name = parts
-        
-        # Protobuf generates Python modules with _pb2 suffix
-        # e.g., 'sift.data.v2' -> 'sift.data.v2.data_pb2'
-        # Extract the service name from the package (last part before version)
-        package_parts = package_name.split('.')
-        if len(package_parts) >= 2:
-            # Get the service name (e.g., 'data' from 'sift.data.v2')
-            service_name = package_parts[-2]
-            python_module = f"{package_name}.{service_name}_pb2"
+    @staticmethod
+    def _serialize_response(response: message.Message) -> tuple[Any, bytes] | None:
+        if isinstance(response, message.Message):
+            return (response.DESCRIPTOR.full_name, response.SerializeToString())
         else:
-            # Fallback: just append _pb2
-            python_module = f"{package_name}_pb2"
+            logger.warning(f"Response is not a protobuf message: {type(response)}")
+            return None
 
-        try:
-            # Import the module
-            module = importlib.import_module(python_module)
-            response_class = getattr(module, class_name)
-
-            # Deserialize
-            response = response_class()
-            response.ParseFromString(response_bytes)
-            return response
+    @staticmethod
+    def _deserialize_response(response: tuple[Any, bytes]) -> message.Message:
+        
         except (ImportError, AttributeError) as e:
             raise ImportError(f"Failed to import response type {response_type_name} from {python_module}: {e}")
