@@ -22,7 +22,7 @@ class SiftConnectionConfig:
         grpc_url: str,
         rest_url: str,
         api_key: str,
-        use_ssl: bool = False,
+        use_ssl: bool = True,
         cert_via_openssl: bool = False,
     ):
         """Initialize the connection configuration.
