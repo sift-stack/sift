@@ -200,34 +200,3 @@ def with_force_refresh(ttl: int | None = None) -> tuple[tuple[str, str], ...]:
     if ttl is not None:
         metadata.append((METADATA_CACHE_TTL, str(ttl)))
     return tuple(metadata)
-
-
-def ignore_cache() -> tuple[tuple[str, str], ...]:
-    """Ignore the cache for a gRPC request without clearing it.
-    
-    Bypasses the cache for this request but doesn't invalidate the cached entry.
-    The response from this request will not be cached.
-    
-    Returns:
-        Metadata tuple to pass to the gRPC stub method.
-    
-    Example:
-        metadata = ignore_cache()
-        response = stub.GetData(request, metadata=metadata)
-    """
-    return tuple()
-
-
-def without_cache() -> tuple[tuple[str, str], ...]:
-    """Explicitly disable caching for a gRPC request.
-    
-    This is the default behavior when no cache metadata is provided.
-    
-    Returns:
-        Empty metadata tuple.
-    
-    Example:
-        metadata = without_cache()
-        response = stub.GetData(request, metadata=metadata)
-    """
-    return tuple()

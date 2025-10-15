@@ -41,11 +41,19 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client)
 
-    async def get_run(self, run_id: str) -> Run:
+    async def get_run(
+        self, 
+        run_id: str,
+        *,
+        use_cache: bool = True,
+        force_refresh: bool = False,
+        ttl: int | None = None,
+    ) -> Run:
         """Get a run by run_id.
 
         Args:
             run_id: The run ID to get.
+            metadata: Optional gRPC metadata including cache control.
 
         Returns:
             The Run.
@@ -54,7 +62,14 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             ValueError: If run_id is not provided.
         """
         request = GetRunRequest(run_id=run_id)
-        response = await self._grpc_client.get_stub(RunServiceStub).GetRun(request)
+        stub = self._grpc_client.get_stub(RunServiceStub)
+        response = await self._call_with_cache(
+            stub.GetRun,
+            request,
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+            ttl=ttl,
+        )
         grpc_run = cast("GetRunResponse", response).run
         return Run._from_proto(grpc_run)
 
@@ -65,6 +80,9 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
+        use_cache: bool = True,
+        force_refresh: bool = False,
+        ttl: int | None = None,
     ) -> tuple[list[Run], str]:
         """List runs with optional filtering and pagination.
 
@@ -88,7 +106,14 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request_kwargs["order_by"] = order_by
 
         request = ListRunsRequest(**request_kwargs)
-        response = await self._grpc_client.get_stub(RunServiceStub).ListRuns(request)
+        stub = self._grpc_client.get_stub(RunServiceStub)
+        response = await self._call_with_cache(
+            stub.ListRuns,
+            request,
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+            ttl=ttl,
+        )
         response = cast("ListRunsResponse", response)
 
         runs = [Run._from_proto(run) for run in response.runs]
@@ -100,6 +125,9 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
+        use_cache: bool = True,
+        force_refresh: bool = False,
+        ttl: int | None = None,
     ) -> list[Run]:
         """List all runs with optional filtering.
 
@@ -112,26 +140,68 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             A list of all matching runs.
         """
         return await self._handle_pagination(
-            self.list_runs,
-            kwargs={"query_filter": query_filter},
+            lambda **k: self.list_runs(
+                **k,
+                query_filter=query_filter,
+                order_by=order_by,
+                use_cache=use_cache,
+                force_refresh=force_refresh,
+                ttl=ttl,
+            ),
+            kwargs={},
             order_by=order_by,
             max_results=max_results,
         )
 
-    async def create_run(self, *, create: RunCreate) -> Run:
+    async def create_run(
+        self, 
+        *, 
+        create: RunCreate,
+        use_cache: bool = False,  # Default to False for write operations
+        force_refresh: bool = False,
+        ttl: int | None = None,
+    ) -> Run:
         request_proto = create.to_proto()
-        response = await self._grpc_client.get_stub(RunServiceStub).CreateRun(request_proto)
+        stub = self._grpc_client.get_stub(RunServiceStub)
+        response = await self._call_with_cache(
+            stub.CreateRun,
+            request_proto,
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+            ttl=ttl,
+        )
         grpc_run = cast("CreateRunResponse", response).run
         return Run._from_proto(grpc_run)
 
-    async def update_run(self, update: RunUpdate) -> Run:
+    async def update_run(
+        self, 
+        update: RunUpdate,
+        *,
+        use_cache: bool = False,  # Default to False for write operations
+        force_refresh: bool = False,
+        ttl: int | None = None,
+    ) -> Run:
         grpc_run, update_mask = update.to_proto_with_mask()
         request = UpdateRunRequest(run=grpc_run, update_mask=update_mask)
-        response = await self._grpc_client.get_stub(RunServiceStub).UpdateRun(request)
+        stub = self._grpc_client.get_stub(RunServiceStub)
+        response = await self._call_with_cache(
+            stub.UpdateRun,
+            request,
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+            ttl=ttl,
+        )
         updated_grpc_run = cast("UpdateRunResponse", response).run
         return Run._from_proto(updated_grpc_run)
 
-    async def stop_run(self, run_id: str) -> None:
+    async def stop_run(
+        self, 
+        run_id: str,
+        *,
+        use_cache: bool = False,  # Default to False for write operations
+        force_refresh: bool = False,
+        ttl: int | None = None,
+    ) -> None:
         """Stop a run by setting its stop time to the current time.
 
         Args:
@@ -144,10 +214,23 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             raise ValueError("run_id must be provided")
 
         request = StopRunRequest(run_id=run_id)
-        await self._grpc_client.get_stub(RunServiceStub).StopRun(request)
+        stub = self._grpc_client.get_stub(RunServiceStub)
+        await self._call_with_cache(
+            stub.StopRun,
+            request,
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+            ttl=ttl,
+        )
 
     async def create_automatic_run_association_for_assets(
-        self, run_id: str, asset_names: list[str]
+        self, 
+        run_id: str, 
+        asset_names: list[str],
+        *,
+        use_cache: bool = False,  # Default to False for write operations
+        force_refresh: bool = False,
+        ttl: int | None = None,
     ) -> None:
         """Associate assets with a run for automatic data ingestion.
 
@@ -164,8 +247,14 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             raise ValueError("asset_names must be provided")
 
         request = CreateAutomaticRunAssociationForAssetsRequest(
-            run_id=run_id, asset_names=asset_names
+            run_id=run_id, 
+            asset_names=asset_names
         )
-        await self._grpc_client.get_stub(RunServiceStub).CreateAutomaticRunAssociationForAssets(
-            request
+        stub = self._grpc_client.get_stub(RunServiceStub)
+        await self._call_with_cache(
+            stub.CreateAutomaticRunAssociationForAssets,
+            request,
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+            ttl=ttl,
         )
