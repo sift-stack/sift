@@ -38,7 +38,7 @@ def mock_rule(mock_client):
         action=RuleAction(
             action_type=RuleActionType.ANNOTATION,
             annotation_type=RuleAnnotationType.DATA_REVIEW,
-            tags=["tag1"],
+            tags_ids=["tag1"],
         ),
         asset_ids=["asset1", "asset2"],
         asset_tag_ids=["tag1"],
@@ -63,7 +63,7 @@ class TestRule:
 
         # Verify client method was called with correct parameters
         mock_client.assets.list_.assert_called_once_with(
-            asset_ids=["asset1", "asset2"], _tag_ids=["tag1"]
+            asset_ids=["asset1", "asset2"], tags=["tag1"]
         )
 
     def test_update_calls_client_and_updates_self(self, mock_rule, mock_client):

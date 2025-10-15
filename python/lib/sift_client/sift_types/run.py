@@ -14,6 +14,7 @@ from sift_client.sift_types._base import (
     ModelCreateUpdateBase,
     ModelUpdate,
 )
+from sift_client.sift_types.tag import Tag
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
@@ -123,7 +124,7 @@ class RunBase(ModelCreateUpdateBase):
     description: str | None = None
     start_time: datetime | None = None
     stop_time: datetime | None = None
-    tags: list[str] | None = None
+    tags: list[str] | list[Tag] | None = None
     metadata: dict[str, str | float | bool] | None = None
 
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
@@ -131,6 +132,11 @@ class RunBase(ModelCreateUpdateBase):
             proto_attr_path="metadata",
             update_field="metadata",
             converter=metadata_dict_to_proto,
+        ),
+        "tags": MappingHelper(
+            proto_attr_path="tags",
+            update_field="tags",
+            converter=lambda tags: [tag.name if isinstance(tag, Tag) else tag for tag in tags],
         ),
     }
 
@@ -152,19 +158,7 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
 
     name: str
     client_key: str | None = None
-    tags: list[str] | None = None
-    metadata: dict[str, str | float | bool] | None = None
-    start_time: datetime | None = None
-    stop_time: datetime | None = None
     organization_id: str | None = None
-
-    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
-        "metadata": MappingHelper(
-            proto_attr_path="metadata",
-            update_field="metadata",
-            converter=metadata_dict_to_proto,
-        ),
-    }
 
     def _get_proto_class(self) -> type[CreateRunRequestProto]:
         return CreateRunRequestProto
@@ -174,19 +168,7 @@ class RunUpdate(RunBase, ModelUpdate[RunProto]):
     """Update model for Run."""
 
     name: str | None = None
-    tags: list[str] | None = None
-    metadata: dict[str, str | float | bool] | None = None
-    start_time: datetime | None = None
-    stop_time: datetime | None = None
     is_archived: bool | None = None
-
-    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
-        "metadata": MappingHelper(
-            proto_attr_path="metadata",
-            update_field="metadata",
-            converter=metadata_dict_to_proto,
-        ),
-    }
 
     def _get_proto_class(self) -> type[RunProto]:
         return RunProto

@@ -46,7 +46,7 @@ def calculated_channels_api_sync(sift_client: SiftClient):
 
 @pytest.fixture
 def test_calculated_channel(calculated_channels_api_sync):
-    calculated_channels = calculated_channels_api_sync.list_(limit=1)
+    calculated_channels = calculated_channels_api_sync.list_(limit=1, include_archived=True)
     assert calculated_channels
     assert len(calculated_channels) >= 1
     return calculated_channels[0]
@@ -115,7 +115,9 @@ class TestCalculatedChannelsAPIAsync:
         @pytest.mark.asyncio
         async def test_basic_list(self, calculated_channels_api_async):
             """Test basic calculated channel listing functionality."""
-            calc_channels = await calculated_channels_api_async.list_(limit=5)
+            calc_channels = await calculated_channels_api_async.list_(
+                limit=5, include_archived=True
+            )
 
             assert isinstance(calc_channels, list)
             assert len(calc_channels) == 5
@@ -126,11 +128,13 @@ class TestCalculatedChannelsAPIAsync:
         @pytest.mark.asyncio
         async def test_list_with_name_filter(self, calculated_channels_api_async):
             """Test calculated channel listing with name filtering."""
-            all_calc_channels = await calculated_channels_api_async.list_(limit=10)
+            all_calc_channels = await calculated_channels_api_async.list_(
+                limit=10, include_archived=True
+            )
 
             test_calc_channel_name = all_calc_channels[0].name
             filtered_calc_channels = await calculated_channels_api_async.list_(
-                name=test_calc_channel_name
+                name=test_calc_channel_name, include_archived=True
             )
 
             assert isinstance(filtered_calc_channels, list)
@@ -142,7 +146,9 @@ class TestCalculatedChannelsAPIAsync:
         @pytest.mark.asyncio
         async def test_list_with_name_contains_filter(self, calculated_channels_api_async):
             """Test calculated channel listing with name contains filtering."""
-            calc_channels = await calculated_channels_api_async.list_(name_contains="test", limit=5)
+            calc_channels = await calculated_channels_api_async.list_(
+                name_contains="test", limit=5, include_archived=True
+            )
 
             assert isinstance(calc_channels, list)
             assert calc_channels
@@ -154,7 +160,7 @@ class TestCalculatedChannelsAPIAsync:
         async def test_list_with_name_regex_filter(self, calculated_channels_api_async):
             """Test calculated channel listing with regex name filtering."""
             calc_channels = await calculated_channels_api_async.list_(
-                name_regex=r".*test.*", limit=5
+                name_regex=r".*test.*", limit=5, include_archived=True
             )
 
             assert isinstance(calc_channels, list)
@@ -186,7 +192,7 @@ class TestCalculatedChannelsAPIAsync:
         ):
             """Test finding a single calculated channel."""
             found_calc_channel = await calculated_channels_api_async.find(
-                name=test_calculated_channel.name
+                name=test_calculated_channel.name, include_archived=True
             )
 
             assert found_calc_channel is not None
@@ -196,7 +202,7 @@ class TestCalculatedChannelsAPIAsync:
         async def test_find_nonexistent_calculated_channel(self, calculated_channels_api_async):
             """Test finding a non-existent calculated channel returns None."""
             found_calc_channel = await calculated_channels_api_async.find(
-                name="nonexistent-calculated-channel-name-12345"
+                name="nonexistent-calculated-channel-name-12345", include_archived=True
             )
             assert found_calc_channel is None
 
@@ -204,7 +210,9 @@ class TestCalculatedChannelsAPIAsync:
         async def test_find_multiple_raises_error(self, calculated_channels_api_async):
             """Test finding multiple calculated channels raises an error."""
             with pytest.raises(ValueError, match="Multiple"):
-                await calculated_channels_api_async.find(name_contains="test", limit=5)
+                await calculated_channels_api_async.find(
+                    name_contains="test", limit=5, include_archived=True
+                )
 
     class TestCreate:
         """Tests for the async create method."""
@@ -519,7 +527,7 @@ class TestCalculatedChannelsAPIAsync:
         async def test_list_versions(self, calculated_channels_api_async, test_calculated_channel):
             """Test listing versions of a calculated channel."""
             versions = await calculated_channels_api_async.list_versions(
-                calculated_channel=test_calculated_channel
+                calculated_channel=test_calculated_channel, include_archived=True
             )
 
             assert isinstance(versions, list)

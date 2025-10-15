@@ -18,8 +18,10 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
+from sift_client.sift_types.tag import Tag, TagUpdate
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -96,6 +98,7 @@ class AssetsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         asset_ids: list[str] | None = None,
@@ -105,8 +108,7 @@ class AssetsAPI:
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
-        tags: list[Any] | list[str] | None = None,
-        _tag_ids: list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         metadata: list[Any] | None = None,
         description_contains: str | None = None,
         include_archived: bool = False,
@@ -118,6 +120,7 @@ class AssetsAPI:
 
         Args:
             name: Exact name of the asset.
+            names: List of asset names to filter by.
             name_contains: Partial name of the asset.
             name_regex: Regular expression to filter assets by name.
             asset_ids: Filter to assets with any of these Ids.
@@ -240,6 +243,7 @@ class CalculatedChannelsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         calculated_channel_ids: list[str] | None = None,
@@ -250,7 +254,7 @@ class CalculatedChannelsAPI:
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
-        tags: list[Any] | list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         metadata: list[Any] | None = None,
         asset: Asset | str | None = None,
         run: Run | str | None = None,
@@ -265,6 +269,7 @@ class CalculatedChannelsAPI:
 
         Args:
             name: Exact name of the calculated channel.
+            names: List of calculated channel names to filter by.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
             calculated_channel_ids: Filter to calculated channels with any of these IDs.
@@ -297,6 +302,7 @@ class CalculatedChannelsAPI:
         calculated_channel: CalculatedChannel | str | None = None,
         client_key: str | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         created_after: datetime | None = None,
@@ -305,7 +311,7 @@ class CalculatedChannelsAPI:
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
-        tags: list[Any] | list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         metadata: list[Any] | None = None,
         description_contains: str | None = None,
         include_archived: bool = False,
@@ -319,6 +325,7 @@ class CalculatedChannelsAPI:
             calculated_channel: The CalculatedChannel or ID of the calculated channel to get versions for.
             client_key: The client key of the calculated channel.
             name: Exact name of the calculated channel.
+            names: List of calculated channel names to filter by.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
             created_after: Filter versions created after this datetime.
@@ -453,6 +460,7 @@ class ChannelsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         channel_ids: list[str] | None = None,
@@ -472,6 +480,7 @@ class ChannelsAPI:
 
         Args:
             name: Exact name of the channel.
+            names: List of channel names to filter by.
             name_contains: Partial name of the channel.
             name_regex: Regular expression to filter channels by name.
             channel_ids: Filter to channels with any of these IDs.
@@ -512,6 +521,201 @@ class PingAPI:
 
         Returns:
             The response from the server.
+        """
+        ...
+
+class ReportsAPI:
+    """Sync counterpart to `ReportsAPIAsync`.
+
+    High-level API for interacting with reports.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the ReportsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def archive(self, *, report: str | Report) -> Report:
+        """Archive a report."""
+        ...
+
+    def cancel(self, *, report: str | Report) -> None:
+        """Cancel a report.
+
+        Args:
+            report: The Report or report ID to cancel.
+        """
+        ...
+
+    def create_from_applicable_rules(
+        self,
+        *,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        name: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> Report | None:
+        """Create a new report from applicable rules based on a run.
+        If you want to evaluate against assets, use the rules client instead since no report is created in that case.
+
+        Args:
+            run: The run or run ID to associate with the report.
+            organization_id: The organization ID.
+            name: Optional name for the report.
+            start_time: Optional start time to evaluate rules against.
+            end_time: Optional end time to evaluate rules against.
+
+        Returns:
+            The created Report or None if no report was created.
+        """
+        ...
+
+    def create_from_rules(
+        self,
+        *,
+        name: str,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        rules: list[Rule] | list[str],
+    ) -> Report | None:
+        """Create a new report from rules.
+
+        Args:
+            name: The name of the report.
+            run: The run or run ID to associate with the report.
+            organization_id: The organization ID.
+            rules: List of rules or rule IDs to include in the report.
+
+        Returns:
+            The created Report or None if no report was created.
+        """
+        ...
+
+    def create_from_template(
+        self,
+        *,
+        report_template_id: str,
+        run_id: str,
+        organization_id: str | None = None,
+        name: str | None = None,
+    ) -> Report | None:
+        """Create a new report from a report template.
+
+        Args:
+            report_template_id: The ID of the report template to use.
+            run_id: The run ID to associate with the report.
+            organization_id: The organization ID.
+            name: Optional name for the report.
+
+        Returns:
+            The created Report or None if no report was created.
+        """
+        ...
+
+    def find(self, **kwargs) -> Report | None:
+        """Find a single report matching the given query. Takes the same arguments as `list`. If more than one report is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list`.
+
+        Returns:
+            The Report found or None.
+        """
+        ...
+
+    def get(self, *, report_id: str) -> Report:
+        """Get a Report.
+
+        Args:
+            report_id: The ID of the report.
+
+        Returns:
+            The Report.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        names: list[str] | None = None,
+        description_contains: str | None = None,
+        run: Run | str | None = None,
+        organization_id: str | None = None,
+        report_ids: list[str] | None = None,
+        report_template_id: str | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        tag_names: list[str] | list[Tag] | None = None,
+        created_by: str | None = None,
+        modified_by: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        include_archived: bool = False,
+        filter_query: str | None = None,
+        created_after: datetime | None = None,
+        created_before: datetime | None = None,
+        modified_after: datetime | None = None,
+        modified_before: datetime | None = None,
+    ) -> list[Report]:
+        """List reports with optional filtering.
+
+        Args:
+            name: Exact name of the report.
+            name_contains: Partial name of the report.
+            name_regex: Regular expression string to filter reports by name.
+            names: List of report names to filter by.
+            description_contains: Partial description of the report.
+            run: Run/run ID to filter by.
+            organization_id: Organization ID to filter by.
+            report_ids: List of report IDs to filter by.
+            report_template_id: Report template ID to filter by.
+            metadata: Metadata to filter by.
+            tag_names: List of tags or tag names to filter by.
+            created_by: The user ID of the creator of the reports.
+            modified_by: The user ID of the last modifier of the reports.
+            order_by: How to order the retrieved reports.
+            limit: How many reports to retrieve. If None, retrieves all matches.
+            include_archived: Whether to include archived reports.
+            filter_query: Explicit CEL query to filter reports.
+            created_after: Filter reports created after this datetime.
+            created_before: Filter reports created before this datetime.
+            modified_after: Filter reports modified after this datetime.
+            modified_before: Filter reports modified before this datetime.
+
+        Returns:
+            A list of Reports that matches the filter.
+        """
+        ...
+
+    def rerun(self, *, report: str | Report) -> tuple[str, str]:
+        """Rerun a report.
+
+        Args:
+            report: The Report or report ID to rerun.
+
+        Returns:
+            A tuple of (job_id, new_report_id).
+        """
+        ...
+
+    def unarchive(self, *, report: str | Report) -> Report:
+        """Unarchive a report."""
+        ...
+
+    def update(self, report: str | Report, update: ReportUpdate | dict) -> Report:
+        """Update a report.
+
+        Args:
+            report: The Report or report ID to update.
+            update: The updates to apply.
         """
         ...
 
@@ -586,6 +790,7 @@ class RulesAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         rule_ids: list[str] | None = None,
@@ -597,8 +802,8 @@ class RulesAPI:
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
         metadata: list[Any] | None = None,
-        asset_ids: list[str] | None = None,
-        asset_tag_ids: list[str] | None = None,
+        assets: list[str] | list[Asset] | None = None,
+        asset_tags: list[str | Tag] | None = None,
         description_contains: str | None = None,
         include_archived: bool = False,
         filter_query: str | None = None,
@@ -609,10 +814,11 @@ class RulesAPI:
 
         Args:
             name: Exact name of the rule.
+            names: List of rule names to filter by.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
-            rule_ids: IDs of rules to filter to.
             client_keys: Client keys of rules to filter to.
+            rule_ids: IDs of rules to filter to.
             created_after: Rules created after this datetime.
             created_before: Rules created before this datetime.
             modified_after: Rules modified after this datetime.
@@ -620,8 +826,8 @@ class RulesAPI:
             created_by: Filter rules created by this User or user ID.
             modified_by: Filter rules last modified by this User or user ID.
             metadata: Filter rules by metadata criteria.
-            asset_ids: Filter rules associated with any of these Asset IDs.
-            asset_tag_ids: Filter rules associated with any of these Asset Tag IDs.
+            assets: Filter rules associated with any of these Assets.
+            asset_tags: Filter rules associated with any Assets that have these Tag IDs.
             description_contains: Partial description of the rule.
             include_archived: If True, include archived rules in results.
             filter_query: Explicit CEL query to filter rules.
@@ -738,6 +944,7 @@ class RunsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         run_ids: list[str] | None = None,
@@ -748,8 +955,10 @@ class RunsAPI:
         modified_before: datetime | None = None,
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
+        tags: list[str | Tag] | None = None,
         metadata: list[Any] | None = None,
         assets: list[Asset] | list[str] | None = None,
+        asset_tags: list[str | Tag] | None = None,
         duration_less_than: timedelta | None = None,
         duration_greater_than: timedelta | None = None,
         start_time_after: datetime | None = None,
@@ -767,6 +976,7 @@ class RunsAPI:
 
         Args:
             name: Exact name of the run.
+            names: List of run names to filter by.
             name_contains: Partial name of the run.
             name_regex: Regular expression to filter runs by name.
             run_ids: Filter to runs with any of these IDs.
@@ -777,8 +987,10 @@ class RunsAPI:
             modified_before: Filter runs modified before this datetime.
             created_by: Filter runs created by this User or user ID.
             modified_by: Filter runs last modified by this User or user ID.
+            tags: Filter runs with any of these Tags IDs.
             metadata: Filter runs by metadata criteria.
             assets: Filter runs associated with any of these Assets or asset IDs.
+            asset_tags: Filter runs associated with any Assets that have these Tag IDs.
             duration_less_than: Filter runs with duration less than this time.
             duration_greater_than: Filter runs with duration greater than this time.
             start_time_after: Filter runs that started after this datetime.
@@ -822,6 +1034,100 @@ class RunsAPI:
 
         Returns:
             The updated Run.
+        """
+        ...
+
+class TagsAPI:
+    """Sync counterpart to `TagsAPIAsync`.
+
+    High-level API for interacting with tags.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the TagsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def create(self, name: str) -> Tag:
+        """Create a new tag.
+
+        Args:
+            name: The name of the tag.
+
+        Returns:
+            The created Tag.
+        """
+        ...
+
+    def find(self, **kwargs) -> Tag | None:
+        """Find a single tag matching the given query. Takes the same arguments as `list`. If more than one tag is found,
+        raises an error.
+
+        Args:
+            **kwargs: Keyword arguments to pass to `list`.
+
+        Returns:
+            The Tag found or None.
+        """
+        ...
+
+    def find_or_create(self, names: list[str]) -> list[Tag]:
+        """Find tags by name or create them if they don't exist.
+
+        Args:
+            names: List of tag names to find or create.
+
+        Returns:
+            List of Tags that were found or created.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        name: str | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        names: list[str] | None = None,
+        tag_ids: list[str] | None = None,
+        filter_query: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+    ) -> list[Tag]:
+        """List tags with optional filtering.
+
+        Args:
+            name: Exact name of the tag.
+            name_contains: Partial name of the tag.
+            name_regex: Regular expression string to filter tags by name.
+            names: List of tag names to filter by.
+            tag_ids: List of tag IDs to filter by.
+            filter_query: Explicit CEL query to filter tags.
+            order_by: How to order the retrieved tags.
+            limit: How many tags to retrieve. If None, retrieves all matches.
+
+        Returns:
+            A list of Tags that matches the filter.
+        """
+        ...
+
+    def update(self, tag: str | Tag, update: TagUpdate | dict) -> Tag:
+        """Update a Tag.
+
+        Args:
+            tag: The Tag or tag ID to update.
+            update: Updates to apply to the Tag.
+
+        Returns:
+            The updated Tag.
+
+        Note:
+            The tags API doesn't have an update method in the proto,
+            so this would need to be implemented if the API supports it.
         """
         ...
 
@@ -967,6 +1273,7 @@ class TestResultsAPI:
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         test_report_ids: list[str] | None = None,
@@ -992,6 +1299,7 @@ class TestResultsAPI:
 
         Args:
             name: Exact name of the test report.
+            names: List of test report names to filter by.
             name_contains: Partial name of the test report.
             name_regex: Regular expression string to filter test reports by name.
             test_report_ids: Test report IDs to filter by.
@@ -1025,6 +1333,7 @@ class TestResultsAPI:
         test_steps: list[str] | list[TestStep] | None = None,
         test_reports: list[str] | list[TestReport] | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         measurement_type: TestMeasurementType | None = None,
@@ -1039,8 +1348,8 @@ class TestResultsAPI:
             measurements: Measurements to filter by.
             test_steps: Test steps to filter by.
             test_reports: Test reports to filter by.
-            test_report_id: Test report ID to filter by.
             name: Exact name of the test measurement.
+            names: List of test measurement names to filter by.
             name_contains: Partial name of the test measurement.
             name_regex: Regular expression string to filter test measurements by name.
             measurement_type: Measurement type to filter by (TestMeasurementType enum).
@@ -1061,6 +1370,7 @@ class TestResultsAPI:
         test_reports: list[str] | list[TestReport] | None = None,
         parent_steps: list[str] | list[TestStep] | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         status: TestStatus | None = None,
@@ -1076,6 +1386,7 @@ class TestResultsAPI:
             test_reports: Test reports to filter by.
             parent_steps: Parent steps to filter by.
             name: Exact name of the test step.
+            names: List of test step names to filter by.
             name_contains: Partial name of the test step.
             name_regex: Regular expression string to filter test steps by name.
             status: Status to filter by (TestStatus enum).

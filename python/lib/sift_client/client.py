@@ -11,10 +11,14 @@ from sift_client.resources import (
     IngestionAPIAsync,
     PingAPI,
     PingAPIAsync,
+    ReportsAPI,
+    ReportsAPIAsync,
     RulesAPI,
     RulesAPIAsync,
     RunsAPI,
     RunsAPIAsync,
+    TagsAPI,
+    TagsAPIAsync,
     TestResultsAPI,
     TestResultsAPIAsync,
 )
@@ -82,12 +86,17 @@ class SiftClient(
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making synchronous requests."""
 
+    reports: ReportsAPI
+    """Instance of the Reports API for making synchronous requests."""
+
     rules: RulesAPI
     """Instance of the Rules API for making synchronous requests."""
 
     runs: RunsAPI
     """Instance of the Runs API for making synchronous requests."""
 
+    tags: TagsAPI
+    """Instance of the Tags API for making synchronous requests."""
     test_results: TestResultsAPI
     """Instance of the Test Results API for making synchronous requests."""
 
@@ -133,7 +142,9 @@ class SiftClient(
         self.calculated_channels = CalculatedChannelsAPI(self)
         self.channels = ChannelsAPI(self)
         self.rules = RulesAPI(self)
+        self.reports = ReportsAPI(self)
         self.runs = RunsAPI(self)
+        self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
@@ -142,8 +153,10 @@ class SiftClient(
             calculated_channels=CalculatedChannelsAPIAsync(self),
             channels=ChannelsAPIAsync(self),
             ingestion=IngestionAPIAsync(self),
+            reports=ReportsAPIAsync(self),
             rules=RulesAPIAsync(self),
             runs=RunsAPIAsync(self),
+            tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
         )
 

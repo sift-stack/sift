@@ -61,6 +61,7 @@ class ChannelsAPIAsync(ResourceBase):
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
@@ -84,6 +85,7 @@ class ChannelsAPIAsync(ResourceBase):
 
         Args:
             name: Exact name of the channel.
+            names: List of channel names to filter by.
             name_contains: Partial name of the channel.
             name_regex: Regular expression to filter channels by name.
             channel_ids: Filter to channels with any of these IDs.
@@ -104,7 +106,7 @@ class ChannelsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -113,7 +115,9 @@ class ChannelsAPIAsync(ResourceBase):
                 modified_before=modified_before,
             ),
             *self._build_common_cel_filters(
-                description_contains=description_contains, filter_query=filter_query
+                description_contains=description_contains,
+                filter_query=filter_query,
+                include_archived=include_archived,
             ),
         ]
         if channel_ids:

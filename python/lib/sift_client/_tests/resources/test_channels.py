@@ -158,14 +158,17 @@ class TestChannelsAPIAsync:
         async def test_list_with_description_contains_filter(self, channels_api_async):
             """Test channel listing with description contains filtering."""
             # Test with a common substring that might exist in descriptions
-            channels = await channels_api_async.list_(description_contains="test", limit=5)
+            description_contains = "the"
+            channels = await channels_api_async.list_(
+                description_contains=description_contains, limit=5
+            )
 
             assert isinstance(channels, list)
             assert channels
 
             # If we found channels, verify they contain the substring in description
             for channel in channels:
-                assert "test" in channel.description.lower()
+                assert description_contains in channel.description.lower()
 
         @pytest.mark.asyncio
         async def test_list_with_limit(self, channels_api_async):

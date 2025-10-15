@@ -142,6 +142,7 @@ from sift_client.sift_types.channel import (
     ChannelReference,
 )
 from sift_client.sift_types.ingestion import ChannelConfig, Flow, IngestionConfig
+from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
 from sift_client.sift_types.rule import (
     Rule,
     RuleAction,
@@ -152,6 +153,7 @@ from sift_client.sift_types.rule import (
     RuleVersion,
 )
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
+from sift_client.sift_types.tag import Tag, TagCreate, TagUpdate
 from sift_client.sift_types.test_report import (
     TestMeasurement,
     TestMeasurementCreate,
@@ -178,6 +180,10 @@ __all__ = [
     "ChannelReference",
     "Flow",
     "IngestionConfig",
+    "Report",
+    "ReportRuleStatus",
+    "ReportRuleSummary",
+    "ReportUpdate",
     "Rule",
     "RuleAction",
     "RuleActionType",
@@ -188,6 +194,9 @@ __all__ = [
     "Run",
     "RunCreate",
     "RunUpdate",
+    "Tag",
+    "TagCreate",
+    "TagUpdate",
     "TestMeasurement",
     "TestMeasurementCreate",
     "TestMeasurementType",

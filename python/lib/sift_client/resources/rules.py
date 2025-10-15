@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.rules import RulesLowLevelClient
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.util import cel_utils as cel
 
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.tag import Tag
 
 
 class RulesAPIAsync(ResourceBase):
@@ -55,6 +57,7 @@ class RulesAPIAsync(ResourceBase):
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
@@ -71,8 +74,8 @@ class RulesAPIAsync(ResourceBase):
         # metadata
         metadata: list[Any] | None = None,
         # rule specific
-        asset_ids: list[str] | None = None,
-        asset_tag_ids: list[str] | None = None,
+        assets: list[str] | list[Asset] | None = None,
+        asset_tags: list[str | Tag] | None = None,
         # common filters
         description_contains: str | None = None,
         include_archived: bool = False,
@@ -84,10 +87,11 @@ class RulesAPIAsync(ResourceBase):
 
         Args:
             name: Exact name of the rule.
+            names: List of rule names to filter by.
             name_contains: Partial name of the rule.
             name_regex: Regular expression string to filter rules by name.
-            rule_ids: IDs of rules to filter to.
             client_keys: Client keys of rules to filter to.
+            rule_ids: IDs of rules to filter to.
             created_after: Rules created after this datetime.
             created_before: Rules created before this datetime.
             modified_after: Rules modified after this datetime.
@@ -95,8 +99,8 @@ class RulesAPIAsync(ResourceBase):
             created_by: Filter rules created by this User or user ID.
             modified_by: Filter rules last modified by this User or user ID.
             metadata: Filter rules by metadata criteria.
-            asset_ids: Filter rules associated with any of these Asset IDs.
-            asset_tag_ids: Filter rules associated with any of these Asset Tag IDs.
+            assets: Filter rules associated with any of these Assets.
+            asset_tags: Filter rules associated with any Assets that have these Tag IDs.
             description_contains: Partial description of the rule.
             include_archived: If True, include archived rules in results.
             filter_query: Explicit CEL query to filter rules.
@@ -108,7 +112,10 @@ class RulesAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name,
+                names=names,
+                name_contains=name_contains,
+                name_regex=name_regex,
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -118,7 +125,7 @@ class RulesAPIAsync(ResourceBase):
                 created_by=created_by,
                 modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(metadata=metadata),
+            *self._build_tags_metadata_cel_filters(tag_ids=asset_tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
@@ -129,10 +136,9 @@ class RulesAPIAsync(ResourceBase):
             filter_parts.append(cel.in_("rule_id", rule_ids))
         if client_keys:
             filter_parts.append(cel.in_("client_key", client_keys))
-        if asset_ids:
-            filter_parts.append(cel.in_("asset_id", asset_ids))
-        if asset_tag_ids:
-            filter_parts.append(cel.in_("tag_id", asset_tag_ids))
+        if assets:
+            ids = [a._id_or_error if isinstance(a, Asset) else a or "" for a in assets]
+            filter_parts.append(cel.in_("asset_id", ids))
         query_filter = cel.and_(*filter_parts)
         rules = await self._low_level_client.list_all_rules(
             filter_query=query_filter,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from sift.rules.v1.rules_pb2 import (
     ActionKind,
@@ -29,8 +30,9 @@ from sift.rules.v1.rules_pb2 import (
     RuleVersion as RuleVersionProto,
 )
 
-from sift_client.sift_types._base import BaseType, ModelCreate, ModelUpdate
+from sift_client.sift_types._base import BaseType, ModelCreate, ModelCreateUpdateBase, ModelUpdate
 from sift_client.sift_types.channel import ChannelReference
+from sift_client.sift_types.tag import Tag
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -66,7 +68,7 @@ class Rule(BaseType[RuleProto, "Rule"]):
     @property
     def assets(self) -> list[Asset]:
         """Get the assets that this rule applies to."""
-        return self.client.assets.list_(asset_ids=self.asset_ids, _tag_ids=self.asset_tag_ids)
+        return self.client.assets.list_(asset_ids=self.asset_ids, tags=self.asset_tag_ids)
 
     @property
     def organization(self):
@@ -84,9 +86,9 @@ class Rule(BaseType[RuleProto, "Rule"]):
         raise NotImplementedError("Modified by is not supported yet.")
 
     @property
-    def tags(self):
+    def tags(self) -> list[Tag]:
         """Get the tags that this rule applies to."""
-        raise NotImplementedError("Tags is not supported yet.")
+        return self.client.tags.list_(tag_ids=self.asset_tag_ids)
 
     def update(self, update: RuleUpdate | dict, version_notes: str | None = None) -> Rule:
         """Update the Rule.
@@ -155,7 +157,18 @@ class Rule(BaseType[RuleProto, "Rule"]):
         )
 
 
-class RuleCreate(ModelCreate[CreateRuleRequest]):
+class RuleCreateUpdateBase(ModelCreateUpdateBase):
+    """Base class for Rule create and update models with shared fields and validation."""
+
+    organization_id: str | None = None
+    client_key: str | None = None
+    asset_ids: list[str] | None = None
+    asset_tag_ids: list[str] | None = None
+    contextual_channels: list[str] | None = None
+    is_external: bool = False
+
+
+class RuleCreate(RuleCreateUpdateBase, ModelCreate[CreateRuleRequest]):
     """Model for creating a new Rule.
 
     Note:
@@ -168,23 +181,18 @@ class RuleCreate(ModelCreate[CreateRuleRequest]):
     expression: str
     channel_references: list[ChannelReference]
     action: RuleAction
-    organization_id: str | None = None
-    client_key: str | None = None
-    asset_ids: list[str] | None = None
-    asset_tag_ids: list[str] | None = None
-    contextual_channels: list[str] | None = None
-    is_external: bool = False
 
     def _get_proto_class(self) -> type[CreateRuleRequest]:
         return CreateRuleRequest
 
 
-class RuleUpdate(ModelUpdate[RuleProto]):
+class RuleUpdate(RuleCreateUpdateBase, ModelUpdate[RuleProto]):
     """Model of the Rule fields that can be updated.
 
     Note:
-        - asset_ids applies this rule to those assets.
-        - asset_tag_ids applies this rule to assets with those tags.
+        - assets applies this rule to those assets.
+        - asset_tags applies this rule to assets with those tags.
+        - contextual_channels are shown by UI to give context when viewing an annotation, but are not part of rule evaluation.
     """
 
     name: str | None = None
@@ -192,9 +200,6 @@ class RuleUpdate(ModelUpdate[RuleProto]):
     expression: str | None = None
     channel_references: list[ChannelReference] | None = None
     action: RuleAction | None = None
-    asset_ids: list[str] | None = None
-    asset_tag_ids: list[str] | None = None
-    contextual_channels: list[str] | None = None
     is_archived: bool | None = None
 
     def _get_proto_class(self) -> type[RuleProto]:
@@ -267,28 +272,34 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
     modified_by_user_id: str | None = None
     version_id: str | None = None
     annotation_type: RuleAnnotationType | None = None
-    tags: list[str] | None = None
-    default_assignee_user_id: str | None = None
+    tags_ids: list[str] | None = None
+    default_assignee_user: str | None = None
 
     @classmethod
     def annotation(
         cls,
         annotation_type: RuleAnnotationType,
-        tags: list[str],
-        default_assignee_user_id: str | None = None,
+        tags: list[str | Tag],
+        default_assignee_user: str | None = None,
     ) -> RuleAction:
         """Create an annotation action.
 
         Args:
             annotation_type: Type of annotation to create.
-            default_assignee_user_id: User ID to assign the annotation to.
-            tags: List of tag IDs to add to the annotation.
+            default_assignee_user: User ID to assign the annotation to.
+            tags: List of tags or tag IDs to add to the annotation.
         """
+        validated_tags = (
+            [str(UUID(tag.id_)) if isinstance(tag, Tag) else str(UUID(tag)) for tag in tags]
+            if tags
+            else None
+        )
+
         return cls(
             action_type=RuleActionType.ANNOTATION,
             annotation_type=annotation_type,
-            tags=tags,
-            default_assignee_user_id=default_assignee_user_id,
+            tags_ids=validated_tags,
+            default_assignee_user=default_assignee_user,
         )
 
     @classmethod
@@ -304,12 +315,12 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
             created_by_user_id=proto.created_by_user_id,
             modified_by_user_id=proto.modified_by_user_id,
             version_id=proto.rule_action_version_id,
-            tags=(
+            tags_ids=(
                 list(proto.configuration.annotation.tag_ids)
                 if proto.configuration.annotation.tag_ids
                 else None
             ),
-            default_assignee_user_id=(
+            default_assignee_user=(
                 proto.configuration.annotation.assigned_to_user_id
                 if proto.configuration.annotation.assigned_to_user_id
                 else None
@@ -326,13 +337,14 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
         )
 
     def _to_update_request(self) -> UpdateActionRequest:
+        tags_ids = [str(UUID(tag)) for tag in self.tags_ids] if self.tags_ids else None
         return UpdateActionRequest(
             action_type=self.action_type.value,
             configuration=RuleActionConfiguration(
                 annotation=(
                     AnnotationActionConfiguration(
-                        assigned_to_user_id=self.default_assignee_user_id,
-                        tag_ids=self.tags,
+                        assigned_to_user_id=self.default_assignee_user,
+                        tag_ids=tags_ids,
                         annotation_type=self.annotation_type.value,  # type: ignore
                     )
                     if self.action_type == RuleActionType.ANNOTATION
@@ -340,6 +352,11 @@ class RuleAction(BaseType[RuleActionProto, "RuleAction"]):
                 ),
             ),
         )
+
+    @property
+    def tags(self) -> list[Tag]:
+        """Get the tags that this rule action applies to."""
+        return self.client.tags.list_(tag_ids=self.tags_ids) if self.tags_ids else []
 
 
 class RuleVersion(BaseType[RuleVersionProto, "RuleVersion"]):

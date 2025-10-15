@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.tag import Tag
 
 
 class CalculatedChannelsAPIAsync(ResourceBase):
@@ -72,6 +73,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         self,
         *,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # self ids
@@ -86,7 +88,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
         # tags
-        tags: list[Any] | list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         # metadata
         metadata: list[Any] | None = None,
         # calculated channel specific
@@ -104,6 +106,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
 
         Args:
             name: Exact name of the calculated channel.
+            names: List of calculated channel names to filter by.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
             calculated_channel_ids: Filter to calculated channels with any of these IDs.
@@ -130,7 +133,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -140,7 +143,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
                 created_by=created_by,
                 modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(tags=tags, metadata=metadata),
+            *self._build_tags_metadata_cel_filters(tag_names=tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
@@ -280,6 +283,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         calculated_channel: CalculatedChannel | str | None = None,
         client_key: str | None = None,
         name: str | None = None,
+        names: list[str] | None = None,
         name_contains: str | None = None,
         name_regex: str | re.Pattern | None = None,
         # created/modified ranges
@@ -291,7 +295,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         created_by: Any | str | None = None,
         modified_by: Any | str | None = None,
         # tags
-        tags: list[Any] | list[str] | None = None,
+        tags: list[Any] | list[str] | list[Tag] | None = None,
         # metadata
         metadata: list[Any] | None = None,
         # common filters
@@ -307,6 +311,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
             calculated_channel: The CalculatedChannel or ID of the calculated channel to get versions for.
             client_key: The client key of the calculated channel.
             name: Exact name of the calculated channel.
+            names: List of calculated channel names to filter by.
             name_contains: Partial name of the calculated channel.
             name_regex: Regular expression string to filter calculated channels by name.
             created_after: Filter versions created after this datetime.
@@ -328,7 +333,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
         """
         filter_parts = [
             *self._build_name_cel_filters(
-                name=name, name_contains=name_contains, name_regex=name_regex
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
             ),
             *self._build_time_cel_filters(
                 created_after=created_after,
@@ -338,7 +343,7 @@ class CalculatedChannelsAPIAsync(ResourceBase):
                 created_by=created_by,
                 modified_by=modified_by,
             ),
-            *self._build_tags_metadata_cel_filters(tags=tags, metadata=metadata),
+            *self._build_tags_metadata_cel_filters(tag_names=tags, metadata=metadata),
             *self._build_common_cel_filters(
                 description_contains=description_contains,
                 include_archived=include_archived,
