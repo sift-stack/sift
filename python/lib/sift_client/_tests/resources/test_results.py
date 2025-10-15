@@ -321,7 +321,7 @@ class TestResultsTest:
             assert deleted_report is None  # Shouldn't reach here so error if we get something.
         except aiogrpc.AioRpcError as e:
             self.test_reports.pop("basic_test_report")
-            assert e.code() == grpc.StatusCode.NOT_FOUND
+            assert e.code() == grpc.StatusCode.NOT_FOUND  # noqa: PT017
 
     def test_import_test_report(self, sift_client):
         # Import a test report from a file
