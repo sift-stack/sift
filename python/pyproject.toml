@@ -1,6 +1,6 @@
 [project]
 name = "sift_stack_py"
-version = "0.9.1"
+version = "1.0.0a0"
 description = "Python client library for the Sift API"
 requires-python = ">=3.8"
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -14,7 +14,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 maintainers = [
-    { name = "Sift Software Engineers", email = "engineering@siftstack.com" },
+    { name = "Sift", email = "engineering@siftstack.com" },
 ]
 keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
