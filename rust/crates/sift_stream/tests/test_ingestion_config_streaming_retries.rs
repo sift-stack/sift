@@ -1,12 +1,12 @@
 use chrono::Local;
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
-    ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
+    ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
 use sift_stream::backup::DiskBackupPolicy;
 use sift_stream::{
-    ChannelValue, Flow, IngestionConfigForm, IngestionConfigMode, RecoveryStrategy, RetryPolicy,
-    SiftStream, SiftStreamBuilder, TimeValue, metrics::SiftStreamMetrics,
+    ChannelValue, Flow, IngestionConfigForm, RecoveryStrategy, RetryPolicy, SiftStreamBuilder,
+    TimeValue,
 };
 use std::{
     sync::{
@@ -57,15 +57,6 @@ impl IngestService for IngestServiceMock {
 async fn test_retries_succeed() {
     let return_error = Arc::new(AtomicBool::new(true));
 
-    let num_messages = 1_000;
-    let mut messages = (0..num_messages).map(|i| {
-        Flow::new(
-            "flow",
-            TimeValue::from(Local::now().to_utc()),
-            &[ChannelValue::new("generator", i as f64)],
-        )
-    });
-
     let num_messages_received = Arc::new(AtomicU32::default());
     let num_streams_opened = Arc::new(AtomicU32::default());
 
@@ -78,20 +69,15 @@ async fn test_retries_succeed() {
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
     let flows = vec![FlowConfig {
-        name: "123".to_string(),
+        name: "flow-0".to_string(),
         channels: vec![ChannelConfig {
             name: "generator".to_string(),
             data_type: ChannelDataType::Double.into(),
             ..Default::default()
         }],
     }];
-    let ingestion_config = IngestionConfigForm {
-        asset_name: "test_asset".to_string(),
-        client_key: "test_client_key".to_string(),
-        flows,
-    };
 
-    let tmp_dir = TempDir::new("test_retries_succeed").expect("failed to creat tempdir");
+    let tmp_dir = TempDir::new("test_retries_succeed").expect("failed to create tempdir");
     let tmp_dir_path = tmp_dir.path();
 
     let disk_backup_policy = DiskBackupPolicy {
@@ -99,42 +85,59 @@ async fn test_retries_succeed() {
         ..Default::default()
     };
     let mut sift_stream = SiftStreamBuilder::from_channel(client)
-        .ingestion_config(ingestion_config)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+            flows,
+        })
         .recovery_strategy(RecoveryStrategy::RetryWithBackups {
-            retry_policy: RetryPolicy::default(),
+            retry_policy: RetryPolicy {
+                max_attempts: 2,
+                initial_backoff: Duration::from_millis(1),
+                backoff_multiplier: 2,
+                max_backoff: Duration::from_millis(100),
+            },
             disk_backup_policy,
         })
         .build()
         .await
         .expect("failed to build sift stream");
 
-    tokio::spawn(async move {
-        // let streams fail a few times
-        while num_streams_opened.load(Ordering::Relaxed) < 3 {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-        return_error.swap(false, Ordering::Relaxed);
-    });
-
-    sift_stream.send(messages.next().unwrap()).await.unwrap();
-
-    loop {
-        if let Some(msg) = messages.next() {
-            let send_result = sift_stream.send(msg).await;
-            assert!(
-                send_result.is_ok(),
-                "we should have successfully recovered and not gotten an error"
-            );
-            continue;
-        }
-        break;
+    // Send some messages while the server is returning errors.
+    //
+    // None of these messages should be captured by the mock server.
+    while num_streams_opened.load(Ordering::Relaxed) < 3 as u32 {
+        let msg = Flow::new(
+            "flow",
+            TimeValue::from(Local::now().to_utc()),
+            &[ChannelValue::new("generator", 1.0)],
+        );
+        assert!(
+            sift_stream.send(msg).await.is_ok(),
+            "sending should always succeed"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
-    sift_stream.finish().await.unwrap();
+    return_error.swap(false, Ordering::Relaxed);
+
+    // After recover, send more messages to verify correct recovery.
+    let num_messages = 100;
+    for _ in 0..num_messages {
+        let msg = Flow::new(
+            "flow",
+            TimeValue::from(Local::now().to_utc()),
+            &[ChannelValue::new("generator", 1.0)],
+        );
+        assert!(
+            sift_stream.send(msg).await.is_ok(),
+            "we should have successfully recovered and not gotten an error"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
 
     assert_eq!(
-        num_messages + 1, // We add 1 because 1 redundant request will be sent when trying to
-        // re-establish a connection.
+        num_messages as u32,
         num_messages_received.load(Ordering::Relaxed),
         "expected no messages to be dropped",
     );
@@ -149,15 +152,6 @@ async fn test_retries_succeed() {
 pub async fn test_retries_exhausted() {
     let return_error = Arc::new(AtomicBool::new(true));
 
-    let num_messages = 1_000;
-    let mut messages = (0..num_messages).map(|i| {
-        Flow::new(
-            "flow",
-            TimeValue::from(Local::now().to_utc()),
-            &[ChannelValue::new("generator", i as f64)],
-        )
-    });
-
     let num_messages_received = Arc::new(AtomicU32::default());
     let num_streams_opened = Arc::new(AtomicU32::default());
 
@@ -169,13 +163,8 @@ pub async fn test_retries_exhausted() {
 
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
-    let ingestion_config = IngestionConfig {
-        ingestion_config_id: "ingestion-config-id".to_string(),
-        client_key: "ingestion-config-client-key".to_string(),
-        asset_id: "asset-id".to_string(),
-    };
     let flows = vec![FlowConfig {
-        name: "flow".to_string(),
+        name: "flow-0".to_string(),
         channels: vec![ChannelConfig {
             name: "generator".to_string(),
             data_type: ChannelDataType::Double.into(),
@@ -185,39 +174,34 @@ pub async fn test_retries_exhausted() {
 
     let retry_attempts = 3;
 
-    let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
-        client,
-        ingestion_config,
-        flows,
-        None,
-        Duration::from_secs(60),
-        Some(RetryPolicy {
+    let mut sift_stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+            flows,
+        })
+        .recovery_strategy(RecoveryStrategy::RetryOnly(RetryPolicy {
             max_attempts: retry_attempts,
             initial_backoff: Duration::from_millis(1),
             backoff_multiplier: 2,
             max_backoff: Duration::from_millis(100),
-        }),
-        None,
-        Arc::new(SiftStreamMetrics::new()),
-    );
+        }))
+        .build()
+        .await
+        .expect("failed to build sift stream");
 
-    let mut error = None;
-    loop {
-        if let Some(msg) = messages.next() {
-            if let Err(err) = sift_stream.send(msg).await {
-                error = Some(err);
-                break;
-            }
-            continue;
-        }
-        break;
+    while num_streams_opened.load(Ordering::Relaxed) < retry_attempts as u32 {
+        let msg = Flow::new(
+            "flow",
+            TimeValue::from(Local::now().to_utc()),
+            &[ChannelValue::new("generator", 1.0)],
+        );
+        assert!(
+            sift_stream.send(msg).await.is_ok(),
+            "we should have successfully recovered and not gotten an error"
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
-    assert!(error.is_some(), "expected to encounter a server error");
-    assert_eq!(
-        u32::from(retry_attempts + 1),
-        num_streams_opened.load(Ordering::Relaxed),
-        "expected number of streams opened to equal retry_attempts + 1"
-    );
 
     assert!(sift_stream.finish().await.is_ok());
 

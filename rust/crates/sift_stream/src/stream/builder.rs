@@ -5,11 +5,9 @@ use super::{
     run::{load_run_by_form, load_run_by_id},
 };
 use crate::{
-    backup::{
-        disk::{AsyncBackupsManager, DiskBackupPolicy},
-        sanitize_name,
-    },
+    backup::{disk::DiskBackupPolicy, sanitize_name},
     metrics::SiftStreamMetrics,
+    stream::tasks::{CONTROL_CHANNEL_CAPACITY, DATA_CHANNEL_CAPACITY, RecoveryConfig, TaskConfig},
 };
 use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
 use sift_error::prelude::*;
@@ -24,9 +22,10 @@ use sift_rs::{
     },
 };
 use std::{marker::PhantomData, sync::Arc, time::Duration};
+use uuid::Uuid;
 
 /// The default checkpoint interval (1 minute) to use if left unspecified.
-pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
+pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(120);
 
 /// Configures and builds an instance of [SiftStream]. The quickest way to get started is to simply
 /// pass your [Credentials] to [SiftStreamBuilder::new] as well as your [IngestionConfigForm] and
@@ -56,6 +55,8 @@ pub struct SiftStreamBuilder<C> {
     kind: PhantomData<C>,
     asset_tags: Option<Vec<String>>,
     asset_metadata: Option<Vec<MetadataValue>>,
+    control_channel_capacity: usize,
+    data_channel_capacity: usize,
 
     // Either `run` or `run_id`. If both are provided then the `run_id` will be prioritized.
     run: Option<RunForm>,
@@ -64,7 +65,7 @@ pub struct SiftStreamBuilder<C> {
 
 /// Various recovery strategies users can enable for [SiftStream] when constructing it via
 /// [SiftStreamBuilder].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RecoveryStrategy {
     /// - Enables retries only. Users can provide their own custom retry policy or use the default
     ///   recommended settings via [RetryPolicy::default].
@@ -127,6 +128,20 @@ impl<C> SiftStreamBuilder<C>
 where
     C: SiftStreamMode,
 {
+    /// Sets the control channel capacity. See the [top-level documentation](crate#checkpoints)
+    /// for further details.
+    pub fn control_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
+        self.control_channel_capacity = capacity;
+        self
+    }
+
+    /// Sets the data channel capacity. See the [top-level documentation](crate#checkpoints)
+    /// for further details.
+    pub fn data_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
+        self.data_channel_capacity = capacity;
+        self
+    }
+
     /// Sets the recovery strategy to use. See [RecoveryStrategy].
     pub fn recovery_strategy(mut self, strategy: RecoveryStrategy) -> SiftStreamBuilder<C> {
         self.recovery_strategy = Some(strategy);
@@ -193,6 +208,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             recovery_strategy: None,
             asset_tags: None,
             asset_metadata: None,
+            control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
+            data_channel_capacity: DATA_CHANNEL_CAPACITY,
         }
     }
 
@@ -210,6 +227,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             recovery_strategy: None,
             asset_tags: None,
             asset_metadata: None,
+            control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
+            data_channel_capacity: DATA_CHANNEL_CAPACITY,
         }
     }
 
@@ -240,6 +259,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                 if enable_tls {
                     sift_channel_builder = sift_channel_builder.use_tls(true);
                 }
+
                 sift_channel_builder.build()?
             }
             None => {
@@ -281,50 +301,53 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         )
         .await?;
 
-        let mut backups_manager = None;
-        let mut policy = None;
-
         let metrics = Arc::new(SiftStreamMetrics::new());
 
-        if let Some(strategy) = recovery_strategy {
-            match strategy {
-                RecoveryStrategy::RetryOnly(retry_policy) => {
-                    policy = Some(retry_policy);
+        let recovery_config = match recovery_strategy {
+            Some(RecoveryStrategy::RetryOnly(retry_policy)) => RecoveryConfig {
+                retry_policy: retry_policy.clone(),
+                backups_enabled: false,
+                backups_directory: String::new(),
+                backups_prefix: String::new(),
+                backup_policy: DiskBackupPolicy::default(),
+            },
+            Some(RecoveryStrategy::RetryWithBackups {
+                retry_policy,
+                disk_backup_policy,
+            }) => {
+                let mut dir_name = sanitize_name(&asset_name);
+                if let Some(run) = run.as_ref() {
+                    dir_name.push_str(&format!("/{}", sanitize_name(&run.name)));
                 }
-                RecoveryStrategy::RetryWithBackups {
-                    retry_policy,
-                    disk_backup_policy,
-                } => {
-                    let mut dir_name = sanitize_name(&asset_name);
-                    if let Some(run) = run.as_ref() {
-                        dir_name.push_str(&format!("/{}", sanitize_name(&run.name)));
-                    }
-                    policy = Some(retry_policy.clone());
-                    let manager = AsyncBackupsManager::new(
-                        &dir_name,
-                        &ingestion_config.client_key,
-                        disk_backup_policy,
-                        retry_policy,
-                        channel.clone(),
-                        metrics.clone(),
-                    )
-                    .context("failed to build backups manager")?;
 
-                    backups_manager = Some(manager);
+                RecoveryConfig {
+                    retry_policy: retry_policy.clone(),
+                    backups_enabled: true,
+                    backups_directory: dir_name,
+                    backups_prefix: ingestion_config.client_key.clone(),
+                    backup_policy: disk_backup_policy.clone(),
                 }
             }
-        }
+            None => RecoveryConfig {
+                retry_policy: RetryPolicy::default(),
+                backups_enabled: false,
+                backups_directory: String::new(),
+                backups_prefix: String::new(),
+                backup_policy: DiskBackupPolicy::default(),
+            },
+        };
 
-        Ok(SiftStream::<IngestionConfigMode>::new(
-            channel,
-            ingestion_config,
-            flows,
-            run,
+        let task_config = TaskConfig {
+            sift_stream_id: Uuid::new_v4(),
+            grpc_channel: channel,
+            metrics: metrics.clone(),
             checkpoint_interval,
-            policy,
-            backups_manager,
-            metrics,
-        ))
+            recovery_config,
+            control_channel_capacity: self.control_channel_capacity,
+            data_channel_capacity: self.data_channel_capacity,
+        };
+
+        SiftStream::<IngestionConfigMode>::new(ingestion_config, flows, run, task_config, metrics)
     }
 
     /// Sets the ingestion config used for streaming. See the [top-level

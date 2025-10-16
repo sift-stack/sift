@@ -1,4 +1,5 @@
 use std::fs;
+use std::time::Duration;
 
 use crate::TimeValue;
 use crate::backup::DiskBackupPolicy;
@@ -29,6 +30,7 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_with_run() {
 
     let disk_backup_policy = DiskBackupPolicy {
         backups_dir: Some(tmp_dir_path.to_path_buf()),
+        retain_backups: true,
         ..Default::default()
     };
     let retry_policy = crate::RetryPolicy::default();
@@ -55,6 +57,16 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_with_run() {
             .await
             .expect("failed to send data to backup task");
     }
+
+    // Finish the stream to ensure that the backup manager is shutdown and the backup files are processed.
+    tokio::time::timeout(Duration::from_secs(10), async {
+        assert!(
+            sift_stream.finish().await.is_ok(),
+            "failed to finish sift stream"
+        );
+    })
+    .await
+    .expect("timeout waiting for sift stream to finish");
 
     let test_dir = fs::read_dir(tmp_dir_path)
         .expect("failed to read backups directory")
@@ -97,6 +109,7 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_no_run() {
     };
     let disk_backup_policy = DiskBackupPolicy {
         backups_dir: Some(tmp_dir_path.to_path_buf()),
+        retain_backups: true,
         ..Default::default()
     };
     let retry_policy = crate::RetryPolicy::default();
@@ -122,6 +135,16 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_no_run() {
             .await
             .expect("failed to send data to backup task");
     }
+
+    // Finish the stream to ensure that the backup manager is shutdown and the backup files are processed.
+    tokio::time::timeout(Duration::from_secs(10), async {
+        assert!(
+            sift_stream.finish().await.is_ok(),
+            "failed to finish sift stream"
+        );
+    })
+    .await
+    .expect("timeout waiting for sift stream to finish");
 
     let test_dir = fs::read_dir(tmp_dir_path)
         .expect("failed to read backups directory")

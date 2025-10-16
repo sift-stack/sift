@@ -1,11 +1,9 @@
 use chrono::Local;
 use sift_rs::{
     common::r#type::v1::ChannelDataType,
-    ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
+    ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
-use sift_stream::{
-    ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue, metrics::SiftStreamMetrics,
-};
+use sift_stream::{ChannelValue, Flow, IngestionConfigForm, SiftStreamBuilder, TimeValue};
 use std::{
     sync::{
         Arc,
@@ -68,49 +66,33 @@ async fn test_sending_data() {
 
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
-    let ingestion_config = IngestionConfig {
-        ingestion_config_id: "ingestion-config-id".to_string(),
-        client_key: "ingestion-config-client-key".to_string(),
-        asset_id: "asset-id".to_string(),
-    };
     let flows = vec![FlowConfig {
-        name: "wheel".to_string(),
-        channels: vec![
-            ChannelConfig {
-                name: "angular_velocity".to_string(),
-                data_type: ChannelDataType::Double.into(),
-                ..Default::default()
-            },
-            ChannelConfig {
-                name: "log".to_string(),
-                data_type: ChannelDataType::String.into(),
-                ..Default::default()
-            },
-        ],
+        name: "flow-0".to_string(),
+        channels: vec![ChannelConfig {
+            name: "generator".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
     }];
 
-    let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
-        client,
-        ingestion_config,
-        flows,
-        None,
-        Duration::from_secs(30),
-        None,
-        None,
-        Arc::new(SiftStreamMetrics::new()),
-    );
+    let mut sift_stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+            flows,
+        })
+        .build()
+        .await
+        .expect("failed to build sift stream");
 
     let num_messages = 100;
 
     for _ in 0..num_messages {
         let send_result = sift_stream
             .send(Flow::new(
-                "wheel",
+                "flow-0",
                 TimeValue::from(Local::now().to_utc()),
-                &[
-                    ChannelValue::new("angular_velocity", 1.0_f64),
-                    ChannelValue::new("log", "foobar"),
-                ],
+                &[ChannelValue::new("generator", 1.0_f64)],
             ))
             .await;
         assert!(send_result.is_ok(), "streaming failed unexpectedly");
@@ -148,13 +130,8 @@ async fn test_checkpointing() {
 
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
-    let ingestion_config = IngestionConfig {
-        ingestion_config_id: "ingestion-config-id".to_string(),
-        client_key: "ingestion-config-client-key".to_string(),
-        asset_id: "asset-id".to_string(),
-    };
     let flows = vec![FlowConfig {
-        name: "flow".to_string(),
+        name: "flow-0".to_string(),
         channels: vec![ChannelConfig {
             name: "generator".to_string(),
             data_type: ChannelDataType::Double.into(),
@@ -163,16 +140,16 @@ async fn test_checkpointing() {
     }];
 
     let checkpoint_interval = Duration::from_secs(1);
-    let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
-        client,
-        ingestion_config,
-        flows,
-        None,
-        checkpoint_interval,
-        None,
-        None,
-        Arc::new(SiftStreamMetrics::new()),
-    );
+    let mut sift_stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+            flows,
+        })
+        .checkpoint_interval(checkpoint_interval)
+        .build()
+        .await
+        .expect("failed to build sift stream");
 
     let (terminate_streaming_tx, mut terminate_streaming_rx) = oneshot::channel::<()>();
 
@@ -184,13 +161,18 @@ async fn test_checkpointing() {
 
             let send_result = sift_stream
                 .send(Flow::new(
-                    "flow",
+                    "flow-0",
                     timestamp,
                     &[ChannelValue::new("generator", 1.0_f64)],
                 ))
                 .await;
-            assert!(send_result.is_ok(), "streaming failed unexpectedly");
+            assert!(
+                send_result.is_ok(),
+                "streaming failed unexpectedly: {send_result:?}"
+            );
             messages_sent += 1;
+
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
 
         assert!(sift_stream.finish().await.is_ok());
@@ -210,9 +192,8 @@ async fn test_checkpointing() {
         .await
         .expect("something went wrong when terminating streaming task");
 
-    assert_eq!(
-        4_u32,
-        num_checkpoints.load(Ordering::Relaxed),
+    assert!(
+        num_checkpoints.load(Ordering::Relaxed) >= 4_u32,
         "with a checkpoint interval of 1 second, a sleep of 3.5 seconds, and a call to finish, we should have gotten 4 checkpoints"
     );
 

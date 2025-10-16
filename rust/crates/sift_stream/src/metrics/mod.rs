@@ -1,3 +1,4 @@
+#[cfg(feature = "metrics-unstable")]
 mod server;
 
 #[cfg(feature = "metrics-unstable")]
@@ -154,6 +155,7 @@ impl U64Counter {
         self.0.store(0, Ordering::Relaxed);
     }
 
+    #[cfg_attr(not(feature = "metrics-unstable"), allow(unused))]
     pub fn get(&self) -> u64 {
         self.0.load(Ordering::Relaxed)
     }
@@ -171,6 +173,7 @@ impl U64Signal {
         self.0.fetch_add(val, Ordering::Relaxed)
     }
 
+    #[cfg_attr(not(feature = "metrics-unstable"), allow(unused))]
     pub fn get(&self) -> u64 {
         self.0.load(Ordering::Relaxed)
     }
@@ -297,6 +300,30 @@ impl CheckpointMetrics {
     }
 
     pub fn next_checkpoint(&self) {
+        #[cfg(feature = "tracing")]
+        {
+            let checkpoint_stats = StreamingStats::calculate(
+                self.checkpoint_start_time.get(),
+                self.cur_messages_sent.get(),
+                self.cur_bytes_sent.get(),
+            );
+            let bytes_processed_pretty = bytesize::ByteSize::b(checkpoint_stats.bytes_sent)
+                .display()
+                .iec();
+            let byte_rate_pretty = bytesize::ByteSize::b(checkpoint_stats.byte_rate.ceil() as u64)
+                .display()
+                .iec();
+
+            tracing::info!(
+                checkpoint_count = format!("{}", self.checkpoint_count.get()),
+                stream_duration = format!("{:.1}s", checkpoint_stats.elapsed_secs),
+                messages_processed = checkpoint_stats.messages_sent,
+                message_rate = format!("{} messages/s", checkpoint_stats.message_rate),
+                bytes_processed = format!("{bytes_processed_pretty}"),
+                byte_rate = format!("{byte_rate_pretty}/s"),
+            );
+        }
+
         self.checkpoint_count.increment();
         self.cur_bytes_sent.reset();
         self.cur_messages_sent.reset();
@@ -324,6 +351,7 @@ impl Default for CheckpointMetrics {
 /// instead using the [crate::SiftStreamBuilder]
 #[derive(Debug)]
 pub struct SiftStreamMetrics {
+    #[cfg_attr(not(feature = "metrics-unstable"), allow(unused))]
     creation_time: Instant,
     pub(crate) loaded_flows: U64Counter,
     pub(crate) unique_flows_received: U64Counter,
@@ -331,6 +359,7 @@ pub struct SiftStreamMetrics {
     pub(crate) messages_sent: U64Counter,
     pub(crate) bytes_sent: U64Counter,
     pub(crate) messages_sent_to_backup: U64Counter,
+    pub(crate) old_messages_dropped_for_ingestion: U64Counter,
     pub(crate) cur_retry_count: U64Signal,
     pub(crate) checkpoint: CheckpointMetrics,
     pub(crate) backups: BackupMetrics,
@@ -373,14 +402,6 @@ impl SiftStreamMetrics {
             backups: self.backups.snapshot(),
         }
     }
-
-    pub(crate) fn get_checkpoint_stats(&self) -> StreamingStats {
-        let start_time = self.checkpoint.checkpoint_start_time.get();
-        let messages_sent = self.checkpoint.cur_messages_sent.0.load(Ordering::Relaxed);
-        let bytes_sent = self.checkpoint.cur_bytes_sent.0.load(Ordering::Relaxed);
-
-        StreamingStats::calculate(start_time, messages_sent, bytes_sent)
-    }
 }
 
 impl Default for SiftStreamMetrics {
@@ -393,6 +414,7 @@ impl Default for SiftStreamMetrics {
             messages_sent: U64Counter::default(),
             bytes_sent: U64Counter::default(),
             messages_sent_to_backup: U64Counter::default(),
+            old_messages_dropped_for_ingestion: U64Counter::default(),
             cur_retry_count: U64Signal::default(),
             checkpoint: CheckpointMetrics::default(),
             backups: BackupMetrics::default(),
