@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable, TypeVar
 
-from sift_py.grpc.cache import ignore_cache, with_cache, with_force_refresh
+from sift_py.grpc.cache import with_cache, with_force_refresh
 
 T = TypeVar("T")
 
@@ -56,7 +56,7 @@ class LowLevelClientBase(ABC):
         return results
 
     @staticmethod
-    async def _call_with_cache(
+    async def call_with_cache(
         stub_method: Callable[[Any, tuple[tuple[str, str], ...]], T],
         request: Any,
         *,
@@ -109,12 +109,12 @@ class LowLevelClientBase(ABC):
                 use_cache=False,
             )
         """
+        if not use_cache:
+            return await stub_method(request)
 
         if force_refresh:
             metadata = with_force_refresh(ttl=ttl)
-        elif use_cache:
-            metadata = with_cache(ttl=ttl)
         else:
-            metadata = ignore_cache()
+            metadata = with_cache(ttl=ttl)
 
         return await stub_method(request, metadata=metadata)
