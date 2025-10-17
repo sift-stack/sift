@@ -179,7 +179,7 @@ class GrpcClient:
         self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = {}
 
         # Initialize cache if caching is enabled
-        self._cache = self._init_cache()
+        self.cache = self._init_cache()
 
         # default loop for sync API
         self._default_loop = asyncio.new_event_loop()
@@ -225,6 +225,10 @@ class GrpcClient:
             return None
 
     @property
+    def has_cache(self):
+        return self.cache is not None
+
+    @property
     def default_loop(self) -> asyncio.AbstractEventLoop:
         """Return the default event loop used for synchronous API operations.
 
@@ -246,7 +250,7 @@ class GrpcClient:
 
         if loop not in self._channels_async:
             channel = use_sift_async_channel(
-                self._config._to_sift_channel_config(), self._config.metadata, self._cache
+                self._config._to_sift_channel_config(), self._config.metadata, self.cache
             )
             self._channels_async[loop] = channel
             self._stubs_async_map[loop] = {}
@@ -289,4 +293,4 @@ class GrpcClient:
         self, cfg: SiftChannelConfig, metadata: dict[str, str] | None
     ) -> Any:
         """Helper to create async channel on default loop."""
-        return use_sift_async_channel(cfg, metadata, self._cache)
+        return use_sift_async_channel(cfg, metadata, self.cache)
