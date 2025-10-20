@@ -183,29 +183,52 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Args:
             grpc_client: The gRPC client to use for making API calls.
         """
-        from sift_stream_bindings import (
-            RecoveryStrategyPy,
-            RetryPolicyPy,
-            SiftStreamBuilderPy,
-        )
-
         super().__init__(grpc_client=grpc_client)
+        self._sift_stream_builder = None  # Lazy-initialized
+        self.stream_cache = {}
+        atexit.register(self.cleanup, timeout=0.1)
+
+    def _ensure_sift_stream_bindings(self):
+        """Ensure sift_stream_bindings is available and initialize the stream builder.
+
+        Raises:
+            ImportError: If sift_stream_bindings is not installed.
+        """
+        if self._sift_stream_builder is not None:
+            return
+
+        try:
+            from sift_stream_bindings import (
+                RecoveryStrategyPy,
+                RetryPolicyPy,
+                SiftStreamBuilderPy,
+            )
+        except ImportError as e:
+            raise ImportError(
+                "The 'sift-stream' package is required for ingestion operations. "
+                "Please install it with:` `pip install sift-stack-py[sift-stream]`"
+            ) from e
+
         # Rust GRPC client expects URI to have http(s):// prefix.
-        uri = grpc_client._config.uri
+        uri = self._grpc_client._config.uri
         if not uri.startswith("http"):
-            uri = f"https://{uri}" if grpc_client._config.use_ssl else f"http://{uri}"
-        self.sift_stream_builder = SiftStreamBuilderPy(
+            uri = f"https://{uri}" if self._grpc_client._config.use_ssl else f"http://{uri}"
+        self._sift_stream_builder = SiftStreamBuilderPy(
             uri=uri,
-            apikey=grpc_client._config.api_key,
+            apikey=self._grpc_client._config.api_key,
         )
-        self.sift_stream_builder.enable_tls = grpc_client._config.use_ssl
+        self._sift_stream_builder.enable_tls = self._grpc_client._config.use_ssl
         # FD-177: Expose configuration for recovery strategy.
-        self.sift_stream_builder.recovery_strategy = RecoveryStrategyPy.retry_only(
+        self._sift_stream_builder.recovery_strategy = RecoveryStrategyPy.retry_only(
             RetryPolicyPy.default()
         )
-        self.stream_cache = {}
 
-        atexit.register(self.cleanup, timeout=0.1)
+    @property
+    def sift_stream_builder(self) -> SiftStreamBuilderPy:
+        """Get the sift stream builder, initializing it if necessary."""
+        self._ensure_sift_stream_bindings()
+        assert self._sift_stream_builder is not None
+        return self._sift_stream_builder
 
     def cleanup(self, timeout: float | None = None):
         """Cleanup the ingestion threads.
@@ -266,6 +289,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             ingestion_config_id: The id of the ingestion config for the flows this stream will ingest. Used to cache the stream.
             ingestion_config: The ingestion config to use for ingestion.
         """
+
+        self._ensure_sift_stream_bindings()
         data_queue: Queue[list[IngestWithConfigDataStreamRequestPy]] = Queue()
         existing = self.stream_cache.get(ingestion_config_id)
         if existing:
@@ -329,6 +354,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The id of the new or found ingestion config.
         """
         from sift_stream_bindings import IngestionConfigFormPy
+
+        self._ensure_sift_stream_bindings()
 
         ingestion_config_id = None
         if client_key:
@@ -409,6 +436,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             organization_id: The organization id to use for ingestion. Only relevant if the user is part of several organizations.
         """
         from sift_stream_bindings import IngestWithConfigDataStreamRequestPy
+
+        self._ensure_sift_stream_bindings()
 
         if not flow.ingestion_config_id:
             raise ValueError(
