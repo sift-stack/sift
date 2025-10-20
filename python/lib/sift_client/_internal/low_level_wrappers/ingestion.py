@@ -174,7 +174,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     CacheEntry = namedtuple("CacheEntry", ["data_queue", "ingestion_config", "thread"])
 
-    sift_stream_builder: SiftStreamBuilderPy
+    _sift_stream_builder: SiftStreamBuilderPy | None
     stream_cache: dict[str, CacheEntry]
 
     def __init__(self, grpc_client: GrpcClient):
