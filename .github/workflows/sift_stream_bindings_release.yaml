@@ -15,6 +15,8 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64
           - runner: ubuntu-latest
+            target: aarch64
+          - runner: ubuntu-latest
             target: armv7
     steps:
       - uses: actions/checkout@v4
