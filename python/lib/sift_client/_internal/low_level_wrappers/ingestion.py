@@ -31,7 +31,6 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import (
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-from sift_client._internal.util.timestamp import to_rust_py_timestamp
 from sift_client.sift_types.ingestion import Flow, IngestionConfig, _to_rust_value
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.util import cel_utils as cel
@@ -45,7 +44,25 @@ if TYPE_CHECKING:
         IngestionConfigFormPy,
         IngestWithConfigDataStreamRequestPy,
         SiftStreamBuilderPy,
+        TimeValuePy,
     )
+
+
+def to_rust_py_timestamp(time: datetime) -> TimeValuePy:
+    """Convert a Python datetime to a Rust TimeValuePy.
+
+    Args:
+        time: The datetime to convert
+
+    Returns:
+        A TimeValuePy representation
+    """
+    from sift_stream_bindings import TimeValuePy
+
+    ts = time.timestamp()
+    secs = int(ts)
+    nsecs = int((ts - secs) * 1_000_000_000)
+    return TimeValuePy.from_timestamp(secs, nsecs)
 
 
 class IngestionThread(threading.Thread):
