@@ -5,11 +5,11 @@ import tempfile
 from concurrent import futures
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Iterator, cast
+from typing import Any, Callable, cast
 
 import grpc
 import pytest
-from pytest_mock import MockFixture, MockType
+from pytest_mock import MockFixture
 from sift.data.v2.data_pb2 import GetDataRequest, GetDataResponse
 from sift.data.v2.data_pb2_grpc import (
     DataServiceServicer,
@@ -72,7 +72,7 @@ class AuthInterceptor(ServerInterceptor):
 
 
 @contextmanager
-def server_with_service(mocker: MockFixture) -> Iterator[tuple[MockType, DataService, int]]:
+def server_with_service(mocker: MockFixture):
     """Create a test server with a spy on the DataService.
 
     Returns:
