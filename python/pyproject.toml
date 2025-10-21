@@ -151,6 +151,12 @@ module = "requests_toolbelt"
 ignore_missing_imports = true
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = "diskcache"
+ignore_missing_imports = true
+ignore_errors = true
+
+
 [tool.setuptools.packages.find]
 where = ["lib"]
 

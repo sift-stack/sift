@@ -19,6 +19,7 @@ from sift_client.transport import CacheConfig, CacheMode
 
 pytestmark = pytest.mark.integration
 
+
 # We reimplement this here so that the cache is cleared each time we instantiate
 @pytest.fixture
 def sift_client() -> SiftClient:
@@ -36,7 +37,7 @@ def sift_client() -> SiftClient:
             api_key=api_key,
             grpc_url=grpc_url,
             rest_url=rest_url,
-            cache_config=CacheConfig(mode=CacheMode.CLEAR_ON_INIT)
+            cache_config=CacheConfig(mode=CacheMode.CLEAR_ON_INIT),
         )
     )
 
@@ -112,14 +113,14 @@ class TestPingCacheBehavior:
         assert response2 == response1
 
         # Print timing info
-        print(f"\nFirst ping (server): {duration1*1000:.2f}ms")
-        print(f"Second ping (cache): {duration2*1000:.2f}ms")
-        print(f"Speedup: {duration1/duration2:.2f}x")
+        print(f"\nFirst ping (server): {duration1 * 1000:.2f}ms")
+        print(f"Second ping (cache): {duration2 * 1000:.2f}ms")
+        print(f"Speedup: {duration1 / duration2:.2f}x")
 
         # Cached call should be significantly faster (at least 5x)
         assert duration2 < duration1 / 5, (
             f"Cached ping should be much faster. "
-            f"First: {duration1*1000:.2f}ms, Second: {duration2*1000:.2f}ms"
+            f"First: {duration1 * 1000:.2f}ms, Second: {duration2 * 1000:.2f}ms"
         )
 
         # Disable caching for cleanup
@@ -150,18 +151,18 @@ class TestPingCacheBehavior:
         assert isinstance(response3, str)
 
         # Print timing info
-        print(f"\nFirst ping (server): {duration1*1000:.2f}ms")
-        print(f"Second ping (cache): {duration2*1000:.2f}ms")
-        print(f"Third ping (force_refresh, server): {duration3*1000:.2f}ms")
+        print(f"\nFirst ping (server): {duration1 * 1000:.2f}ms")
+        print(f"Second ping (cache): {duration2 * 1000:.2f}ms")
+        print(f"Third ping (force_refresh, server): {duration3 * 1000:.2f}ms")
 
         # Cached call should be much faster than both server calls
         assert duration2 < duration1 / 5, (
             f"Cached ping should be much faster than first ping. "
-            f"First: {duration1*1000:.2f}ms, Cached: {duration2*1000:.2f}ms"
+            f"First: {duration1 * 1000:.2f}ms, Cached: {duration2 * 1000:.2f}ms"
         )
         assert duration2 < duration3 / 5, (
             f"Cached ping should be much faster than force_refresh ping. "
-            f"Force refresh: {duration3*1000:.2f}ms, Cached: {duration2*1000:.2f}ms"
+            f"Force refresh: {duration3 * 1000:.2f}ms, Cached: {duration2 * 1000:.2f}ms"
         )
 
         # Disable caching for cleanup
@@ -215,14 +216,18 @@ class TestPingCacheBehavior:
         cached_duration = time.perf_counter() - start_time
 
         # Print performance metrics
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Ping Cache Performance ({num_iterations} iterations)")
-        print(f"{'='*60}")
-        print(f"Cached duration:   {cached_duration:.4f}s ({cached_duration/num_iterations*1000:.2f}ms per call)")
-        print(f"Uncached duration: {uncached_duration:.4f}s ({uncached_duration/num_iterations*1000:.2f}ms per call)")
+        print(f"{'=' * 60}")
+        print(
+            f"Cached duration:   {cached_duration:.4f}s ({cached_duration / num_iterations * 1000:.2f}ms per call)"
+        )
+        print(
+            f"Uncached duration: {uncached_duration:.4f}s ({uncached_duration / num_iterations * 1000:.2f}ms per call)"
+        )
         print(f"Speedup:           {uncached_duration / cached_duration:.2f}x")
         print(f"Time saved:        {uncached_duration - cached_duration:.4f}s")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         # Assert that cached is faster
         assert cached_duration < uncached_duration, (
@@ -267,7 +272,7 @@ class TestPingCacheBehavior:
                 grpc_url=grpc_url,
                 rest_url=rest_url,
                 use_ssl=True,
-                cache_config=None
+                cache_config=None,
             )
         )
 
@@ -287,4 +292,3 @@ class TestPingCacheBehavior:
         assert isinstance(response3, str)
 
         print(f"\nPing without cache successful: {response1}")
-

@@ -20,10 +20,8 @@ from sift.data.v2.data_pb2_grpc import (
 from sift_py._internal.test_util.server_interceptor import ServerInterceptor
 from sift_py.grpc.cache import (
     GrpcCache,
-    ignore_cache,
     with_cache,
     with_force_refresh,
-    without_cache,
 )
 from sift_py.grpc.transport import SiftChannelConfig, use_sift_async_channel
 
@@ -116,14 +114,6 @@ def test_cache_helper_functions():
     # Test with_force_refresh with custom TTL
     metadata = with_force_refresh(ttl=3600)
     assert metadata == (("use-cache", "true"), ("force-refresh", "true"), ("cache-ttl", "3600"))
-
-    # Test ignore_cache
-    metadata = ignore_cache()
-    assert metadata == ()
-
-    # Test without_cache
-    metadata = without_cache()
-    assert metadata == ()
 
 
 def test_grpc_cache_initialization():
@@ -324,8 +314,8 @@ async def test_ignore_cache(mocker: MockFixture):
                 assert res1.next_page_token == "token-1"
                 assert data_service.call_count == 1
 
-                # Call with ignore_cache - should hit server
-                res2 = cast(GetDataResponse, await stub.GetData(request, metadata=ignore_cache()))
+                # Call with no metadata - should hit server
+                res2 = cast(GetDataResponse, await stub.GetData(request))
                 assert res2.next_page_token == "token-2"
                 assert data_service.call_count == 2
 

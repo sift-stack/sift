@@ -122,14 +122,12 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
         response = await call
 
         # Cache the response if allowed
-        if cache_settings.use_cache:
+        if cache_settings.use_cache and response is not None:
             try:
                 # Serialize the protobuf response to bytes before caching
-                cached_data = self._serialize_response(response)
-                if cached_data is not None:
-                    self.cache.set_with_default_ttl(
-                        key, cached_data, expire=cache_settings.custom_ttl
-                    )
+                new_data = self._serialize_response(response)
+                if new_data is not None:
+                    self.cache.set_with_default_ttl(key, new_data, expire=cache_settings.custom_ttl)
                     logger.debug(f"Cached response for `{key}`")
             except diskcache.Timeout as e:
                 logger.warning(f"Failed to cache response for `{key}`: {e}")

@@ -36,6 +36,7 @@ from sift_client.util.util import AsyncAPIs
 
 _sift_client_experimental_warning()
 
+
 class SiftClient(
     WithGrpcClient,
     WithRestClient,
@@ -129,7 +130,9 @@ class SiftClient(
             grpc_client = GrpcClient(grpc_config)
             rest_client = RestClient(connection_config.get_rest_config())
         elif api_key and grpc_url and rest_url:
-            grpc_client = GrpcClient(GrpcConfig(grpc_url, api_key, cache_config=DEFAULT_CACHE_CONFIG))
+            grpc_client = GrpcClient(
+                GrpcConfig(grpc_url, api_key, cache_config=DEFAULT_CACHE_CONFIG)
+            )
             rest_client = RestClient(RestConfig(rest_url, api_key))
         else:
             raise ValueError(

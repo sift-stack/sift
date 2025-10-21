@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Callable, TypeVar
+from typing import Any, Awaitable, Callable
 
 from sift_py.grpc.cache import with_cache, with_force_refresh
-
-T = TypeVar("T")
 
 
 class LowLevelClientBase(ABC):
@@ -57,13 +55,13 @@ class LowLevelClientBase(ABC):
 
     @staticmethod
     async def _call_with_cache(
-        stub_method: Callable[[Any, tuple[tuple[str, str], ...]], T],
+        stub_method: Callable[..., Awaitable[Any]],
         request: Any,
         *,
         use_cache: bool = True,
         force_refresh: bool = False,
         ttl: int | None = None,
-    ) -> T:
+    ) -> Any:
         """Call a gRPC stub method with cache control.
 
         This is a convenience method for low-level wrappers to easily enable caching

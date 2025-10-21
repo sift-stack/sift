@@ -27,7 +27,7 @@ def sift_client() -> SiftClient:
             grpc_url=grpc_url,
             rest_url=rest_url,
             use_ssl=True,
-            cache_config=CacheConfig(mode=CacheMode.CLEAR_ON_INIT)
+            cache_config=CacheConfig(mode=CacheMode.CLEAR_ON_INIT),
         )
     )
 

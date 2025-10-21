@@ -33,7 +33,6 @@ class PingLowLevelClient(LowLevelClientBase, WithGrpcClient):
     It handles common concerns like error handling and retries.
     """
 
-
     _cache_results: bool
     """Whether to cache the results of the ping request. Used for testing."""
 
@@ -52,10 +51,6 @@ class PingLowLevelClient(LowLevelClientBase, WithGrpcClient):
         stub = self._grpc_client.get_stub(PingServiceStub)
         request = PingRequest()
         response = await self._call_with_cache(
-            stub.Ping,
-            request,
-            use_cache=self._cache_results,
-            force_refresh=_force_refresh,
-            ttl=1
+            stub.Ping, request, use_cache=self._cache_results, force_refresh=_force_refresh, ttl=1
         )
         return cast("PingResponse", response).response

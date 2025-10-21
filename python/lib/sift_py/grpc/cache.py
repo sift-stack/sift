@@ -123,6 +123,7 @@ class GrpcCache(diskcache.Cache):
             if cache_info.should_cache:
                 cache.set_with_default_ttl(key, response, expire=cache_info.custom_ttl)
         """
+        metadata_dict: dict[str, str]
         if not metadata:
             metadata_dict = {}
         else:
