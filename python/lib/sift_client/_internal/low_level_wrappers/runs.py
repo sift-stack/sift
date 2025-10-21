@@ -41,17 +41,11 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client)
 
-    async def get_run(
-        self,
-        run_id: str,
-        *,
-        force_refresh: bool = False,
-    ) -> Run:
+    async def get_run(self, run_id: str) -> Run:
         """Get a run by run_id.
 
         Args:
             run_id: The run ID to get.
-            metadata: Optional gRPC metadata including cache control.
 
         Returns:
             The Run.
@@ -60,13 +54,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             ValueError: If run_id is not provided.
         """
         request = GetRunRequest(run_id=run_id)
-        stub = self._grpc_client.get_stub(RunServiceStub)
-        response = await self._call_with_cache(
-            stub.GetRun,
-            request,
-            use_cache=self._grpc_client.has_cache,
-            force_refresh=force_refresh,
-        )
+        response = await self._grpc_client.get_stub(RunServiceStub).GetRun(request)
         grpc_run = cast("GetRunResponse", response).run
         return Run._from_proto(grpc_run)
 
@@ -77,7 +65,6 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
-        force_refresh: bool = False,
     ) -> tuple[list[Run], str]:
         """List runs with optional filtering and pagination.
 
@@ -101,13 +88,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request_kwargs["order_by"] = order_by
 
         request = ListRunsRequest(**request_kwargs)
-        stub = self._grpc_client.get_stub(RunServiceStub)
-        response = await self._call_with_cache(
-            stub.ListRuns,
-            request,
-            use_cache=self._grpc_client.has_cache,
-            force_refresh=force_refresh,
-        )
+        response = await self._grpc_client.get_stub(RunServiceStub).ListRuns(request)
         response = cast("ListRunsResponse", response)
 
         runs = [Run._from_proto(run) for run in response.runs]
@@ -119,7 +100,6 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
-        force_refresh: bool = False,
     ) -> list[Run]:
         """List all runs with optional filtering.
 
@@ -133,7 +113,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         return await self._handle_pagination(
             self.list_runs,
-            kwargs={"query_filter": query_filter, "force_refresh": force_refresh},
+            kwargs={"query_filter": query_filter},
             order_by=order_by,
             max_results=max_results,
         )

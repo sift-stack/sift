@@ -383,8 +383,6 @@ async def test_different_requests_different_cache_keys(mocker: MockFixture):
 async def test_cache_persists_across_channels(mocker: MockFixture):
     """Test that cache persists across different channel instances."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        cache_path = str(Path(tmpdir) / "cache")
-
         with server_with_service(mocker) as (get_data_spy, data_service, port):
             config: SiftChannelConfig = {
                 "uri": f"localhost:{port}",

@@ -228,10 +228,6 @@ class GrpcClient:
             return None
 
     @property
-    def has_cache(self):
-        return self.cache is not None
-
-    @property
     def default_loop(self) -> asyncio.AbstractEventLoop:
         """Return the default event loop used for synchronous API operations.
 
