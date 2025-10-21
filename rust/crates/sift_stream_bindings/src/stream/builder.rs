@@ -1,3 +1,4 @@
+use crate::sift::metadata::MetadataPy;
 use crate::stream::SiftStreamPy;
 use crate::stream::config::{IngestionConfigFormPy, RunFormPy};
 use crate::stream::retry::{DurationPy, RecoveryStrategyPy};
@@ -27,6 +28,10 @@ pub struct SiftStreamBuilderPy {
     run: Option<RunFormPy>,
     #[pyo3(get, set)]
     run_id: Option<String>,
+    #[pyo3(get, set)]
+    asset_tags: Option<Vec<String>>,
+    #[pyo3(get, set)]
+    metadata: Option<Vec<MetadataPy>>,
 }
 
 // PyO3 Method Implementations
@@ -44,6 +49,8 @@ impl SiftStreamBuilderPy {
             checkpoint_interval: DurationPy::new(60, 0),
             run: None,
             run_id: None,
+            asset_tags: None,
+            metadata: None,
         }
     }
 
@@ -74,6 +81,15 @@ impl SiftStreamBuilderPy {
         if let Some(run_id) = self.run_id.as_ref() {
             inner = inner.attach_run_id(run_id);
         }
+
+        inner = inner.add_asset_tags(self.asset_tags.clone());
+        
+        let metadata = self.metadata.clone().map(|v| {
+            v.into_iter()
+                .map(|m| m.into())
+                .collect::<Vec<sift_rs::metadata::v1::MetadataValue>>()
+        });
+        inner = inner.add_asset_metadata(metadata);
 
         let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
             match inner.build().await {

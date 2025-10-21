@@ -1,4 +1,4 @@
-use crate::stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy};
+use crate::{sift::metadata::MetadataPy, stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy}};
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
@@ -59,6 +59,8 @@ pub struct RunFormPy {
     description: Option<String>,
     #[pyo3(get, set)]
     tags: Option<Vec<String>>,
+    #[pyo3(get, set)]
+    metadata: Option<Vec<MetadataPy>>,
 }
 
 // Trait Implementations
@@ -80,12 +82,16 @@ impl From<IngestionConfigFormPy> for IngestionConfigForm {
 
 impl From<RunFormPy> for RunForm {
     fn from(form: RunFormPy) -> Self {
+        let metadata = form.metadata.map(|v| {
+            v.into_iter().map(|m| m.into()).collect()
+        });
+
         RunForm {
             name: form.name,
             client_key: form.client_key,
             description: form.description,
             tags: form.tags,
-            metadata: None,
+            metadata,
         }
     }
 }
@@ -162,12 +168,14 @@ impl RunFormPy {
         client_key: &str,
         description: Option<&str>,
         tags: Option<Vec<String>>,
+        metadata: Option<Vec<MetadataPy>>,
     ) -> Self {
         Self {
             name: name.to_string(),
             client_key: client_key.to_string(),
             description: description.map(|s| s.to_string()),
             tags,
+            metadata,
         }
     }
 }
