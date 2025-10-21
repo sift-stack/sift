@@ -9,7 +9,7 @@ Note: Cache initialization is handled by GrpcClient, not by this interceptor.
 Usage:
     # Cache is initialized at GrpcClient level
     cache = diskcache.Cache(".grpc_cache", size_limit=1024**3)
-    
+
     # Create interceptor with cache instance
     cache_interceptor = CachingAsyncInterceptor(ttl=3600, cache_instance=cache)
 
@@ -34,6 +34,7 @@ from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
 from sift_py.grpc.cache import GrpcCache
 
 logger = logging.getLogger(__name__)
+
 
 class CachingAsyncInterceptor(ClientAsyncInterceptor):
     """Async interceptor that caches unary-unary gRPC responses locally.
@@ -126,7 +127,9 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
                 # Serialize the protobuf response to bytes before caching
                 cached_data = self._serialize_response(response)
                 if cached_data is not None:
-                    self.cache.set_with_default_ttl(key, cached_data, expire=cache_settings.custom_ttl)
+                    self.cache.set_with_default_ttl(
+                        key, cached_data, expire=cache_settings.custom_ttl
+                    )
                     logger.debug(f"Cached response for `{key}`")
             except diskcache.Timeout as e:
                 logger.warning(f"Failed to cache response for `{key}`: {e}")
@@ -151,4 +154,3 @@ class CachingAsyncInterceptor(ClientAsyncInterceptor):
         except Exception as e:
             logger.warning(f"Failed to deserialize response: {e}")
             return None
-

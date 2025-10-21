@@ -10,7 +10,6 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 from urllib.parse import ParseResult, urlparse
 
-import diskcache
 import grpc
 import grpc.aio as grpc_aio
 from typing_extensions import NotRequired, TypeAlias

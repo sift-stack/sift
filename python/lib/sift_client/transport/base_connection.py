@@ -3,7 +3,12 @@ from __future__ import annotations
 from abc import ABC
 from typing import TYPE_CHECKING
 
-from sift_client.transport.grpc_transport import CacheConfig, GrpcClient, GrpcConfig
+from sift_client.transport.grpc_transport import (
+    DEFAULT_CACHE_CONFIG,
+    CacheConfig,
+    GrpcClient,
+    GrpcConfig,
+)
 from sift_client.transport.rest_transport import RestClient, RestConfig
 
 if TYPE_CHECKING:
@@ -24,7 +29,7 @@ class SiftConnectionConfig:
         api_key: str,
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
-        cache_config: CacheConfig | None = None,
+        cache_config: CacheConfig | None = DEFAULT_CACHE_CONFIG,
     ):
         """Initialize the connection configuration.
 

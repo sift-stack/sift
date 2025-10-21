@@ -31,8 +31,6 @@ import diskcache
 from google.protobuf import json_format, message
 
 if TYPE_CHECKING:
-
-
     from sift_py.grpc.transport import SiftCacheConfig
 
 logger = logging.getLogger(__name__)
@@ -44,6 +42,7 @@ class CacheSettings(NamedTuple):
     use_cache: bool
     force_refresh: bool
     custom_ttl: float | None
+
 
 # Metadata keys for cache control
 METADATA_USE_CACHE = "use-cache"
@@ -80,7 +79,9 @@ class GrpcCache(diskcache.Cache):
             f"with size {self.volume() / (1024**2):.2f} MB"
         )
 
-    def set_with_default_ttl(self, key: str, value: Any, expire: float | None = None, **kwargs) -> bool:
+    def set_with_default_ttl(
+        self, key: str, value: Any, expire: float | None = None, **kwargs
+    ) -> bool:
         expire_time = expire if expire is not None else self.default_ttl
         return super().set(key, value, expire=expire_time, **kwargs)
 
@@ -100,9 +101,7 @@ class GrpcCache(diskcache.Cache):
         return hasher.hexdigest()
 
     @staticmethod
-    def resolve_cache_metadata(
-         metadata: tuple[tuple[str, str], ...] | None
-    ) -> CacheSettings:
+    def resolve_cache_metadata(metadata: tuple[tuple[str, str], ...] | None) -> CacheSettings:
         """Extract and resolve cache-related metadata fields.
 
         Args:
@@ -157,17 +156,17 @@ class GrpcCache(diskcache.Cache):
 
 def with_cache(ttl: int | None = None) -> tuple[tuple[str, str], ...]:
     """Enable caching for a gRPC request.
-    
+
     Args:
         ttl: Optional custom TTL in seconds. If not provided, uses the default TTL.
-    
+
     Returns:
         Metadata tuple to pass to the gRPC stub method.
-    
+
     Example:
         metadata = with_cache()
         response = stub.GetData(request, metadata=metadata)
-        
+
         # With custom TTL
         metadata = with_cache(ttl=7200)  # 2 hours
         response = stub.GetData(request, metadata=metadata)
@@ -180,15 +179,15 @@ def with_cache(ttl: int | None = None) -> tuple[tuple[str, str], ...]:
 
 def with_force_refresh(ttl: int | None = None) -> tuple[tuple[str, str], ...]:
     """Force refresh the cache for a gRPC request.
-    
+
     Bypasses the cache, fetches fresh data from the server, and stores the result.
-    
+
     Args:
         ttl: Optional custom TTL in seconds. If not provided, uses the default TTL.
-    
+
     Returns:
         Metadata tuple to pass to the gRPC stub method.
-    
+
     Example:
         metadata = with_force_refresh()
         response = stub.GetData(request, metadata=metadata)

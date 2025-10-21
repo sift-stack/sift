@@ -89,7 +89,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         cache_ttl: int | None = None,
     ) -> tuple[list[Any], str | None]:
         """Get the data for a channel during a run.
-        
+
         Args:
             channel_ids: List of channel IDs to fetch data for.
             run_id: Optional run ID to filter data.
@@ -101,7 +101,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             use_cache: Whether to enable caching for this request. Default: False.
             force_refresh: Whether to force refresh the cache. Default: False.
             cache_ttl: Optional custom TTL in seconds for cached responses.
-        
+
         Returns:
             Tuple of (data list, next page token).
         """
@@ -119,7 +119,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         }
 
         request = GetDataRequest(**request_kwargs)
-        
+
         # Use cache helper if caching is enabled
         if use_cache or force_refresh:
             response = await self._call_with_cache(
@@ -131,7 +131,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
         else:
             response = await self._grpc_client.get_stub(DataServiceStub).GetData(request)
-        
+
         response = cast("GetDataResponse", response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 

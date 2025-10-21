@@ -56,7 +56,7 @@ class LowLevelClientBase(ABC):
         return results
 
     @staticmethod
-    async def call_with_cache(
+    async def _call_with_cache(
         stub_method: Callable[[Any, tuple[tuple[str, str], ...]], T],
         request: Any,
         *,
@@ -65,20 +65,20 @@ class LowLevelClientBase(ABC):
         ttl: int | None = None,
     ) -> T:
         """Call a gRPC stub method with cache control.
-        
+
         This is a convenience method for low-level wrappers to easily enable caching
         on their gRPC calls without manually constructing metadata.
-        
+
         Args:
             stub_method: The gRPC stub method to call (e.g., stub.GetData).
             request: The protobuf request object.
             use_cache: Whether to enable caching for this request. Default: True.
             force_refresh: Whether to force refresh the cache. Default: False.
             ttl: Optional custom TTL in seconds. If not provided, uses the default TTL.
-        
+
         Returns:
             The response from the gRPC call.
-        
+
         Example:
             # Enable caching
             response = await self._call_with_cache(
@@ -86,14 +86,14 @@ class LowLevelClientBase(ABC):
                 request,
                 use_cache=True,
             )
-            
+
             # Force refresh
             response = await self._call_with_cache(
                 stub.GetData,
                 request,
                 force_refresh=True,
             )
-            
+
             # With custom TTL
             response = await self._call_with_cache(
                 stub.GetData,
@@ -101,7 +101,7 @@ class LowLevelClientBase(ABC):
                 use_cache=True,
                 ttl=7200,  # 2 hours
             )
-            
+
             # Ignore cache
             response = await self._call_with_cache(
                 stub.GetData,

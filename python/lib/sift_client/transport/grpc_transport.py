@@ -69,7 +69,7 @@ class CacheConfig:
 
     def __init__(
         self,
-        mode: str = CacheMode.ENABLED,
+        mode: CacheMode = CacheMode.ENABLED,
         ttl: int = DEFAULT_CACHE_TTL_SECONDS,
         cache_folder: Path | str = DEFAULT_CACHE_FOLDER,
         size_limit: int = DEFAULT_CACHE_SIZE_LIMIT_BYTES,
@@ -110,6 +110,9 @@ class CacheConfig:
             "size_limit": self.size_limit,
             "clear_on_init": self.should_clear_on_init,
         }
+
+
+DEFAULT_CACHE_CONFIG = CacheConfig()
 
 
 class GrpcConfig:

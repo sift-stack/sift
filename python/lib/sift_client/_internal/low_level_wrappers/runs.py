@@ -61,7 +61,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         request = GetRunRequest(run_id=run_id)
         stub = self._grpc_client.get_stub(RunServiceStub)
-        response = await self.call_with_cache(
+        response = await self._call_with_cache(
             stub.GetRun,
             request,
             use_cache=self._grpc_client.has_cache,
@@ -102,7 +102,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = ListRunsRequest(**request_kwargs)
         stub = self._grpc_client.get_stub(RunServiceStub)
-        response = await self.call_with_cache(
+        response = await self._call_with_cache(
             stub.ListRuns,
             request,
             use_cache=self._grpc_client.has_cache,
@@ -132,13 +132,8 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             A list of all matching runs.
         """
         return await self._handle_pagination(
-            lambda **k: self.list_runs(
-                **k,
-                query_filter=query_filter,
-                order_by=order_by,
-                force_refresh=force_refresh,
-            ),
-            kwargs={},
+            self.list_runs,
+            kwargs={"query_filter": query_filter, "force_refresh": force_refresh},
             order_by=order_by,
             max_results=max_results,
         )
@@ -172,7 +167,7 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         await self._grpc_client.get_stub(RunServiceStub).StopRun(request)
 
     async def create_automatic_run_association_for_assets(
-            self, run_id: str, asset_names: list[str]
+        self, run_id: str, asset_names: list[str]
     ) -> None:
         """Associate assets with a run for automatic data ingestion.
 

@@ -32,21 +32,10 @@ from sift_client.transport import (
     WithGrpcClient,
     WithRestClient,
 )
-from sift_client.transport.grpc_transport import (
-    DEFAULT_CACHE_FOLDER,
-    DEFAULT_CACHE_SIZE_LIMIT_BYTES,
-    DEFAULT_CACHE_TTL_SECONDS,
-)
+from sift_client.transport.grpc_transport import DEFAULT_CACHE_CONFIG
 from sift_client.util.util import AsyncAPIs
 
 _sift_client_experimental_warning()
-
-DEFAULT_CACHE_CONFIG = CacheConfig(
-    ttl=DEFAULT_CACHE_TTL_SECONDS,
-    cache_folder=DEFAULT_CACHE_FOLDER,
-    size_limit=DEFAULT_CACHE_SIZE_LIMIT_BYTES,
-)
-
 
 class SiftClient(
     WithGrpcClient,
@@ -121,7 +110,7 @@ class SiftClient(
         grpc_url: str | None = None,
         rest_url: str | None = None,
         connection_config: SiftConnectionConfig | None = None,
-        cache_config: CacheConfig | None = None,
+        cache_config: CacheConfig | None = DEFAULT_CACHE_CONFIG,
     ):
         """Initialize the SiftClient with specific connection parameters or a connection_config.
 

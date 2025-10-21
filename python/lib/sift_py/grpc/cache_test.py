@@ -29,10 +29,10 @@ from sift_py.grpc.transport import SiftChannelConfig, use_sift_async_channel
 
 # Enable debug logging for cache-related modules
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-logging.getLogger('sift_py').setLevel(logging.DEBUG)
+logging.getLogger("sift_py").setLevel(logging.DEBUG)
+
 
 class DataService(DataServiceServicer):
     """Mock data service that returns a unique response each time."""
@@ -76,7 +76,7 @@ class AuthInterceptor(ServerInterceptor):
 @contextmanager
 def server_with_service(mocker: MockFixture) -> Iterator[tuple[MockType, DataService, int]]:
     """Create a test server with a spy on the DataService.
-    
+
     Returns:
         Tuple of (spy, data_service, port)
     """
@@ -187,25 +187,19 @@ def test_cache_metadata_resolution():
     assert settings.custom_ttl is None
 
     # force-refresh enabled
-    settings = GrpcCache.resolve_cache_metadata(
-        (("use-cache", "true"), ("force-refresh", "true"))
-    )
+    settings = GrpcCache.resolve_cache_metadata((("use-cache", "true"), ("force-refresh", "true")))
     assert settings.use_cache is True
     assert settings.force_refresh is True
     assert settings.custom_ttl is None
 
     # Custom TTL
-    settings = GrpcCache.resolve_cache_metadata(
-        (("use-cache", "true"), ("cache-ttl", "7200"))
-    )
+    settings = GrpcCache.resolve_cache_metadata((("use-cache", "true"), ("cache-ttl", "7200")))
     assert settings.use_cache is True
     assert settings.force_refresh is False
     assert settings.custom_ttl == 7200
 
     # Invalid TTL (should be ignored)
-    settings = GrpcCache.resolve_cache_metadata(
-        (("use-cache", "true"), ("cache-ttl", "invalid"))
-    )
+    settings = GrpcCache.resolve_cache_metadata((("use-cache", "true"), ("cache-ttl", "invalid")))
     assert settings.use_cache is True
     assert settings.custom_ttl is None
 

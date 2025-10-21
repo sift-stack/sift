@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from sift_client import SiftClient, SiftConnectionConfig
+from sift_client.transport import CacheConfig, CacheMode
 from sift_client.util.util import AsyncAPIs
 
 
@@ -26,6 +27,7 @@ def sift_client() -> SiftClient:
             grpc_url=grpc_url,
             rest_url=rest_url,
             use_ssl=True,
+            cache_config=CacheConfig(mode=CacheMode.CLEAR_ON_INIT)
         )
     )
 
