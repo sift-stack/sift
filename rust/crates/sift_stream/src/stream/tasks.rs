@@ -218,13 +218,20 @@ impl IngestionTask {
                 stream = Some(Box::pin(async {
                     let mut client = IngestServiceClient::new(self.config.grpc_channel.clone());
 
+                    let (notified_tx, notified_rx) = tokio::sync::oneshot::channel();
                     let data_stream = DataStream::new(
                         self.data_rx.clone(),
                         self.control_tx.clone(),
+                        notified_rx,
                         self.config.sift_stream_id,
                         self.config.metrics.clone(),
                     );
-                    client.ingest_with_config_data_stream(data_stream).await
+                    let res = client.ingest_with_config_data_stream(data_stream).await;
+
+                    // Send a notification to the data stream to close it.
+                    let _ = notified_tx.send(());
+
+                    res
                 }));
 
                 #[cfg(feature = "tracing")]
