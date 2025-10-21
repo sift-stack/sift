@@ -25,7 +25,7 @@ use std::{marker::PhantomData, sync::Arc, time::Duration};
 use uuid::Uuid;
 
 /// The default checkpoint interval (1 minute) to use if left unspecified.
-pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(120);
+pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
 
 /// Configures and builds an instance of [SiftStream]. The quickest way to get started is to simply
 /// pass your [Credentials] to [SiftStreamBuilder::new] as well as your [IngestionConfigForm] and
