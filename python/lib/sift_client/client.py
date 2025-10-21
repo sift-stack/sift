@@ -23,7 +23,6 @@ from sift_client.resources import (
     TestResultsAPIAsync,
 )
 from sift_client.transport import (
-    CacheConfig,
     GrpcClient,
     GrpcConfig,
     RestClient,
@@ -110,7 +109,6 @@ class SiftClient(
         grpc_url: str | None = None,
         rest_url: str | None = None,
         connection_config: SiftConnectionConfig | None = None,
-        cache_config: CacheConfig | None = DEFAULT_CACHE_CONFIG,
     ):
         """Initialize the SiftClient with specific connection parameters or a connection_config.
 
@@ -118,8 +116,7 @@ class SiftClient(
             api_key: The Sift API key for authentication.
             grpc_url: The Sift gRPC API URL.
             rest_url: The Sift REST API URL.
-            connection_config: A SiftConnectionConfig object to configure the connection behavior of the SiftClient.
-            cache_config: Optional cache configuration override for gRPC responses.
+            connection_config: A SiftConnectionConfig object to configure the connection and cache behavior of the SiftClient.
         """
         if not (api_key and grpc_url and rest_url) and not connection_config:
             raise ValueError(
@@ -129,12 +126,10 @@ class SiftClient(
         if connection_config:
             grpc_config = connection_config.get_grpc_config()
             # Override cache_config if provided directly to SiftClient
-            if cache_config is not None:
-                grpc_config.cache_config = cache_config
             grpc_client = GrpcClient(grpc_config)
             rest_client = RestClient(connection_config.get_rest_config())
         elif api_key and grpc_url and rest_url:
-            grpc_client = GrpcClient(GrpcConfig(grpc_url, api_key, cache_config=cache_config))
+            grpc_client = GrpcClient(GrpcConfig(grpc_url, api_key, cache_config=DEFAULT_CACHE_CONFIG))
             rest_client = RestClient(RestConfig(rest_url, api_key))
         else:
             raise ValueError(

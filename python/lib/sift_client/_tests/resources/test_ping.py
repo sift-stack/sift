@@ -8,14 +8,37 @@ These tests demonstrate and validate the usage of the Ping API including:
 """
 
 import asyncio
+import os
 import time
 
 import pytest
 
-from sift_client import SiftClient
+from sift_client import SiftClient, SiftConnectionConfig
 from sift_client.resources import PingAPI, PingAPIAsync
+from sift_client.transport import CacheConfig, CacheMode
 
 pytestmark = pytest.mark.integration
+
+# We reimplement this here so that the cache is cleared each time we instantiate
+@pytest.fixture
+def sift_client() -> SiftClient:
+    """Create a SiftClient instance for testing.
+
+    This fixture is shared across all test files and is session-scoped
+    to avoid creating multiple client instances.
+    """
+    grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
+    rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
+    api_key = os.getenv("SIFT_API_KEY", "")
+
+    return SiftClient(
+        connection_config=SiftConnectionConfig(
+            api_key=api_key,
+            grpc_url=grpc_url,
+            rest_url=rest_url,
+            cache_config=CacheConfig(mode=CacheMode.CLEAR_ON_INIT)
+        )
+    )
 
 
 def test_client_binding(sift_client):
@@ -225,3 +248,43 @@ class TestPingCacheBehavior:
         assert isinstance(response1, str)
         assert isinstance(response2, str)
         assert isinstance(response3, str)
+
+    @pytest.mark.asyncio
+    async def test_ping_without_grpc_cache(self):
+        """Test that ping works when GrpcCache is not enabled on the SiftClient."""
+        import os
+
+        from sift_client import SiftClient, SiftConnectionConfig
+
+        # Create a client with caching explicitly disabled
+        grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
+        rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
+        api_key = os.getenv("SIFT_API_KEY", "")
+
+        client = SiftClient(
+            connection_config=SiftConnectionConfig(
+                api_key=api_key,
+                grpc_url=grpc_url,
+                rest_url=rest_url,
+                use_ssl=True,
+                cache_config=None
+            )
+        )
+
+        # Verify cache is not initialized
+        assert client.grpc_client.cache is None
+
+        # Ping should still work without cache
+        response1 = await client.async_.ping.ping()
+        assert isinstance(response1, str)
+        assert len(response1) > 0
+
+        # Multiple pings should work
+        response2 = await client.async_.ping.ping()
+        assert isinstance(response2, str)
+
+        response3 = await client.async_.ping.ping()
+        assert isinstance(response3, str)
+
+        print(f"\nPing without cache successful: {response1}")
+

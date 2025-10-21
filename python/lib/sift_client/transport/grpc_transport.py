@@ -10,11 +10,11 @@ import asyncio
 import atexit
 import enum
 import logging
-import tempfile
 import threading
 from pathlib import Path
 from typing import Any
 
+from platformdirs import user_cache_dir
 from sift_py.grpc.cache import GrpcCache
 from sift_py.grpc.transport import (
     SiftCacheConfig,
@@ -40,7 +40,7 @@ def _suppress_blocking_io(loop, context):
 
 
 DEFAULT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60  # 1 week
-DEFAULT_CACHE_FOLDER = Path(tempfile.gettempdir()) / "sift_client"
+DEFAULT_CACHE_FOLDER = Path(user_cache_dir("sift_client"))
 DEFAULT_CACHE_SIZE_LIMIT_BYTES = 5 * 1024**3  # 5GB
 
 
