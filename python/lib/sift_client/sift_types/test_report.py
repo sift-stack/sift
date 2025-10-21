@@ -336,16 +336,27 @@ class TestMeasurementBase(ModelCreateUpdateBase):
     unit: str | None = None
     numeric_bounds: NumericBounds | None = None
     string_expected_value: str | None = None
+    measurement_type: TestMeasurementType | None = None
+
 
     def _get_proto_class(self) -> type[TestMeasurementProto]:
         return TestMeasurementProto
+
+    def _resolve_measurement_type(self) -> TestMeasurementType:
+        if self.numeric_value is not None:
+            return TestMeasurementType.DOUBLE
+        elif self.string_value is not None:
+            return TestMeasurementType.STRING
+        elif self.boolean_value is not None:
+            return TestMeasurementType.BOOLEAN
+        else:
+            raise ValueError("No measurement value provided")
 
 
 class TestMeasurementUpdate(TestMeasurementBase, ModelUpdate[TestMeasurementProto]):
     """Update model for TestMeasurement."""
 
     name: str | None = None
-    measurement_type: int | None = None
     passed: bool | None = None
     timestamp: datetime | None = None
 
@@ -364,16 +375,16 @@ class TestMeasurementUpdate(TestMeasurementBase, ModelUpdate[TestMeasurementProt
 class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProto]):
     """Create model for TestMeasurement."""
 
-    measurement_type: TestMeasurementType
     name: str
     test_step_id: str
     passed: bool
     timestamp: datetime
+    unit: str | None = None
 
     def to_proto(self) -> TestMeasurementProto:
         """Convert to protobuf message with custom logic."""
         proto = TestMeasurementProto(
-            measurement_type=self.measurement_type.value,  # type: ignore
+            measurement_type=self.measurement_type.value if self.measurement_type else self._resolve_measurement_type().value,  # type: ignore
             name=self.name,
             test_step_id=self.test_step_id,
             passed=self.passed,
