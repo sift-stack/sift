@@ -1,7 +1,9 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
 
+mod backup;
 mod error;
+mod metrics;
 mod sift;
 mod stream;
 
