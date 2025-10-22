@@ -195,11 +195,13 @@ impl IngestionTask {
     }
 
     pub(crate) async fn run(&mut self) -> Result<()> {
+        let now = tokio::time::Instant::now();
         let mut timer = tokio::time::interval_at(
-            tokio::time::Instant::now() + self.config.checkpoint_interval,
+            now + self.config.checkpoint_interval,
             self.config.checkpoint_interval,
         );
 
+        let mut stream_created_at = now;
         let mut current_wait = Duration::ZERO;
 
         // The stream needs to be kept alive independently from receiving control messages in the
@@ -215,17 +217,23 @@ impl IngestionTask {
                     "creating new stream"
                 );
 
-                stream = Some(Box::pin(async {
-                    let mut client = IngestServiceClient::new(self.config.grpc_channel.clone());
+                stream_created_at = tokio::time::Instant::now();
 
-                    let (notified_tx, notified_rx) = tokio::sync::oneshot::channel();
-                    let data_stream = DataStream::new(
-                        self.data_rx.clone(),
-                        self.control_tx.clone(),
-                        notified_rx,
-                        self.config.sift_stream_id,
-                        self.config.metrics.clone(),
-                    );
+                // Create the structs needed for the stream outside of the async task to avoid
+                // any race conditions in that task being polled for the first time and other
+                // events occurring in the system.
+                let mut client = IngestServiceClient::new(self.config.grpc_channel.clone());
+                let (notified_tx, notified_rx) = tokio::sync::oneshot::channel();
+                let data_stream = DataStream::new(
+                    self.data_rx.clone(),
+                    self.control_tx.clone(),
+                    notified_rx,
+                    self.config.sift_stream_id,
+                    self.config.metrics.clone(),
+                );
+
+                stream = Some(Box::pin(async move {
+                    // Perform the gRPC stream operation.
                     let res = client.ingest_with_config_data_stream(data_stream).await;
 
                     // Send a notification to the data stream to close it.
@@ -244,6 +252,19 @@ impl IngestionTask {
             // Wait for the stream to complete or for a control message to be received.
             tokio::select! {
                 res = stream.as_mut().unwrap() => {
+
+                    stream = None;
+
+                    // If the stream was healthy for sufficiently long, or the stream completed successfully, reset the
+                    // wait time used for exponential backoff.
+                    if stream_created_at.elapsed() > self.config.recovery_config.retry_policy.max_backoff * 2 || res.is_ok() {
+                        current_wait = Duration::ZERO;
+                        self.config.metrics.cur_retry_count.set(0);
+                    } else {
+                        current_wait = self.config.recovery_config.retry_policy.backoff(current_wait);
+                        self.config.metrics.cur_retry_count.add(1);
+                    }
+
                     match res {
                         Ok(_) => {
                             #[cfg(feature = "tracing")]
@@ -251,10 +272,6 @@ impl IngestionTask {
                                 sift_stream_id = self.config.sift_stream_id.to_string(),
                                 "checkpoint succeeded - data streamed to Sift successfully"
                             );
-
-                            stream = None;
-                            current_wait = Duration::ZERO;
-                            self.config.metrics.cur_retry_count.set(0);
                         }
                         Err(e) => {
                             #[cfg(feature = "tracing")]
@@ -265,9 +282,6 @@ impl IngestionTask {
                                 "checkpoint failed - failed to ingest data to Sift - backup files will be re-ingested"
                             );
 
-                            stream = None;
-                            current_wait = self.config.recovery_config.retry_policy.backoff(current_wait);
-                            self.config.metrics.cur_retry_count.add(1);
                             self.config.metrics.checkpoint.failed_checkpoint_count.increment();
                             self.control_tx.send(ControlMessage::CheckpointNeedsReingestion).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
                         }

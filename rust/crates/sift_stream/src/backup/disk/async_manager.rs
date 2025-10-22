@@ -176,6 +176,9 @@ impl AsyncBackupsManager {
     /// not retaining backups) or sending a reingestion signal for all backup files if the checkpoint was
     /// not successful.
     async fn checkpoint(&mut self) -> Result<()> {
+        // Rotate the current file to ensure it is closed and saved to the backup files list.
+        self.rotate_file().await?;
+
         // Update the metrics.
         self.metrics.backups.log_restart();
 
@@ -1071,11 +1074,15 @@ mod test {
         }
 
         // Save the backup file paths.
-        let backup_file_paths = backup_manager.backup_files.clone();
+        let mut backup_file_paths = backup_manager.backup_files.clone();
         assert!(
             !backup_file_paths.is_empty(),
             "backup files should be present, pending checkpoint completion"
         );
+
+        // During a checkpoint, the current file is rotated to the backup files list so we expect to see it
+        // added to the existing backup files list after the call to `checkpoint()`.
+        backup_file_paths.push(backup_manager.current_file_metadata.path.clone());
 
         // Set the checkpoint needs reingestion flag.
         backup_manager.checkpoint_needs_reingest = true;
