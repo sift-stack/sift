@@ -7,6 +7,7 @@ __all__ = [
     "ChannelEnumTypePy",
     "ChannelValuePy",
     "ChannelValueTypePy",
+    "DiskBackupPolicyPy",
     "DurationPy",
     "FlowConfigPy",
     "FlowPy",
@@ -16,6 +17,7 @@ __all__ = [
     "MetadataPy",
     "RecoveryStrategyPy",
     "RetryPolicyPy",
+    "RollingFilePolicyPy",
     "RunFormPy",
     "SiftStreamBuilderPy",
     "SiftStreamPy",
@@ -100,10 +102,21 @@ class ChannelValueTypePy:
     def empty() -> ChannelValueTypePy: ...
 
 @typing.final
+class DiskBackupPolicyPy:
+    backups_dir: typing.Optional[builtins.str]
+    max_backup_file_size: builtins.int
+    rolling_file_policy: RollingFilePolicyPy
+    retain_backups: builtins.bool
+    def __new__(cls, backups_dir:typing.Optional[builtins.str], max_backup_file_size:builtins.int, rolling_file_policy:RollingFilePolicyPy, retain_backups:builtins.bool) -> DiskBackupPolicyPy: ...
+    @staticmethod
+    def default() -> DiskBackupPolicyPy: ...
+
+@typing.final
 class DurationPy:
     secs: builtins.int
     nanos: builtins.int
     def __new__(cls, secs:builtins.int, nanos:builtins.int) -> DurationPy: ...
+    def __repr__(self) -> builtins.str: ...
 
 @typing.final
 class FlowConfigPy:
@@ -166,24 +179,13 @@ class MetadataPy:
 
 @typing.final
 class RecoveryStrategyPy:
-    strategy_type: builtins.str
-    retry_policy: typing.Optional[RetryPolicyPy]
-    max_buffer_size: typing.Optional[builtins.int]
-    backups_dir: typing.Optional[builtins.str]
-    max_backups_file_size: typing.Optional[builtins.int]
-    def __new__(cls, strategy_type:builtins.str, retry_policy:typing.Optional[RetryPolicyPy], max_buffer_size:typing.Optional[builtins.int], backups_dir:typing.Optional[builtins.str], max_backups_file_size:typing.Optional[builtins.int]) -> RecoveryStrategyPy: ...
     @staticmethod
     def retry_only(retry_policy:RetryPolicyPy) -> RecoveryStrategyPy: ...
     @staticmethod
-    def retry_with_in_memory_backups(retry_policy:RetryPolicyPy, max_buffer_size:typing.Optional[builtins.int]) -> RecoveryStrategyPy: ...
-    @staticmethod
-    def retry_with_disk_backups(retry_policy:RetryPolicyPy, backups_dir:typing.Optional[builtins.str], max_backups_file_size:typing.Optional[builtins.int]) -> RecoveryStrategyPy: ...
+    def retry_with_backups(retry_policy:RetryPolicyPy, disk_backup_policy:DiskBackupPolicyPy) -> RecoveryStrategyPy: ...
     @staticmethod
     def default() -> RecoveryStrategyPy: ...
-    @staticmethod
-    def default_retry_policy_in_memory_backups() -> RecoveryStrategyPy: ...
-    @staticmethod
-    def default_retry_policy_disk_backups() -> RecoveryStrategyPy: ...
+    def __repr__(self) -> builtins.str: ...
 
 @typing.final
 class RetryPolicyPy:
@@ -194,6 +196,12 @@ class RetryPolicyPy:
     def __new__(cls, max_attempts:builtins.int, initial_backoff:DurationPy, max_backoff:DurationPy, backoff_multiplier:builtins.int) -> RetryPolicyPy: ...
     @staticmethod
     def default() -> RetryPolicyPy: ...
+
+@typing.final
+class RollingFilePolicyPy:
+    def __new__(cls, max_file_count:typing.Optional[builtins.int]) -> RollingFilePolicyPy: ...
+    @staticmethod
+    def default() -> RollingFilePolicyPy: ...
 
 @typing.final
 class RunFormPy:

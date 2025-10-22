@@ -64,7 +64,7 @@ pub struct SiftStreamBuilder<C> {
 
 /// Various recovery strategies users can enable for [SiftStream] when constructing it via
 /// [SiftStreamBuilder].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RecoveryStrategy {
     /// - Enables retries only. Users can provide their own custom retry policy or use the default
     ///   recommended settings via [RetryPolicy::default].
