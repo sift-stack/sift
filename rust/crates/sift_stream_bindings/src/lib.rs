@@ -24,6 +24,8 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::retry::DurationPy>()?;
     m.add_class::<stream::retry::RecoveryStrategyPy>()?;
     m.add_class::<stream::retry::RetryPolicyPy>()?;
+    m.add_class::<stream::retry::DiskBackupPolicyPy>()?;
+    m.add_class::<stream::retry::RollingFilePolicyPy>()?;
     m.add_class::<stream::config::RunFormPy>()?;
     m.add_class::<stream::time::TimeValuePy>()?;
     m.add_class::<stream::channel::ChannelValuePy>()?;
