@@ -298,9 +298,6 @@ impl AsyncBackupsManager {
         // Write immediately and sync
         file.write_all(&chunk).await?;
 
-        // Ensure data is persisted to disk and not simply buffered.
-        file.sync_all().await?;
-
         self.current_file_metadata.message_count += 1;
         self.current_file_metadata.file_size += chunk.len();
         self.current_file_metadata.has_dropped_messages |= msg.dropped_for_ingestion;
@@ -316,7 +313,13 @@ impl AsyncBackupsManager {
     /// Rotates the current backup file by closing it and saving the file path to the backup files list.
     async fn rotate_file(&mut self) -> Result<()> {
         // Close out the current file by dropping it.
-        let _ = self.current_file.take();
+        if let Some(file) = self.current_file.take() {
+            // Ensure data is persisted to disk and not simply buffered.
+            if let Err(e) = file.sync_all().await {
+                #[cfg(feature = "tracing")]
+                tracing::warn!("unable to sync backup file, data may be lost: {e:?}");
+            }
+        }
 
         // Save the current file path to the backup files list.
         let file_path = self.current_file_metadata.path.clone();

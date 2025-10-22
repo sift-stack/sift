@@ -241,8 +241,7 @@ impl SiftStream<IngestionConfigMode> {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
-                    "data channel full, dropping oldest message: {:?}",
-                    oldest_message,
+                    "data channel full, dropping oldest message"
                 );
 
                 oldest_message.dropped_for_ingestion = true;
@@ -464,7 +463,7 @@ impl Stream for DataStream {
         // Continue with data streaming.
         match self.data_rx.as_mut().poll_next(ctx) {
             Poll::Ready(Some(DataMessage { request, .. })) => {
-                let message_size = request.encode_length_delimited_to_vec().len() as u64;
+                let message_size = request.encoded_len() as u64;
                 self.metrics.messages_sent.increment();
                 self.metrics.checkpoint.cur_messages_sent.increment();
                 self.metrics.bytes_sent.add(message_size);
