@@ -176,6 +176,10 @@ impl AsyncBackupsManager {
     /// not retaining backups) or sending a reingestion signal for all backup files if the checkpoint was
     /// not successful.
     async fn checkpoint(&mut self) -> Result<()> {
+        if !self.backup_config.enabled {
+            return Ok(());
+        }
+
         // Rotate the current file to ensure it is closed and saved to the backup files list.
         self.rotate_file().await?;
 
@@ -508,6 +512,7 @@ impl BackupIngestTask {
 #[cfg(test)]
 mod test {
     use crate::{TimeValue, backup::disk::RollingFilePolicy};
+    use tracing_test::traced_test;
 
     use super::*;
     use sift_rs::ingest::v1::{
@@ -1017,6 +1022,54 @@ mod test {
         assert!(
             control_rx.try_recv().is_err(),
             "control message should not have been sent"
+        );
+    }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_async_manager_checkpoint_backups_disabled() {
+        let tmp_dir = TempDir::new("test_async_manager").unwrap();
+        let tmp_dir_path = tmp_dir.path();
+        let backup_policy = DiskBackupPolicy {
+            backups_dir: Some(tmp_dir_path.to_path_buf()),
+            max_backup_file_size: 64,
+            rolling_file_policy: RollingFilePolicy {
+                max_file_count: Some(10),
+            },
+            retain_backups: false,
+        };
+        let (control_tx, mut control_rx) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut backup_manager = AsyncBackupsManager::new(
+            false,
+            "test",
+            "test",
+            backup_policy.clone(),
+            control_tx.clone(),
+            control_tx.subscribe(),
+            data_rx,
+            metrics,
+        )
+        .await
+        .unwrap();
+
+        // Processing the checkpoint when disabled should be a no-op.
+        assert!(
+            backup_manager.checkpoint().await.is_ok(),
+            "checkpoint should be processed"
+        );
+
+        // The control message should not have been sent.
+        assert!(
+            control_rx.try_recv().is_err(),
+            "control message should not have been sent"
+        );
+
+        // No backup file deletion should be logged.
+        assert!(
+            !logs_contain("unable to delete backup file"),
+            "no backup file deletion should be logged"
         );
     }
 
