@@ -312,14 +312,17 @@ impl AsyncBackupsManager {
 
     /// Rotates the current backup file by closing it and saving the file path to the backup files list.
     async fn rotate_file(&mut self) -> Result<()> {
-        // Close out the current file by dropping it.
-        if let Some(file) = self.current_file.take() {
-            // Ensure data is persisted to disk and not simply buffered.
-            if let Err(e) = file.sync_all().await {
-                #[cfg(feature = "tracing")]
-                tracing::warn!("unable to sync backup file, data may be lost: {e:?}");
+        // Close out the current file by dropping it, if there is no file, there is nothing to do.
+        match self.current_file.take() {
+            Some(file) => {
+                // Ensure data is persisted to disk and not simply buffered.
+                if let Err(e) = file.sync_all().await {
+                    #[cfg(feature = "tracing")]
+                    tracing::warn!("unable to sync backup file, data may be lost: {e:?}");
+                }
             }
-        }
+            None => return Ok(()),
+        };
 
         // Save the current file path to the backup files list.
         let file_path = self.current_file_metadata.path.clone();
@@ -1025,6 +1028,54 @@ mod test {
         assert!(
             control_rx.try_recv().is_err(),
             "control message should not have been sent"
+        );
+    }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_async_manager_checkpoint_before_file_is_created() {
+        let tmp_dir = TempDir::new("test_async_manager").unwrap();
+        let tmp_dir_path = tmp_dir.path();
+        let backup_policy = DiskBackupPolicy {
+            backups_dir: Some(tmp_dir_path.to_path_buf()),
+            max_backup_file_size: 64,
+            rolling_file_policy: RollingFilePolicy {
+                max_file_count: Some(10),
+            },
+            retain_backups: false,
+        };
+        let (control_tx, mut control_rx) = broadcast::channel(1024);
+        let (_data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut backup_manager = AsyncBackupsManager::new(
+            true,
+            "test",
+            "test",
+            backup_policy.clone(),
+            control_tx.clone(),
+            control_tx.subscribe(),
+            data_rx,
+            metrics,
+        )
+        .await
+        .unwrap();
+
+        // Processing the checkpoint when disabled should be a no-op.
+        assert!(
+            backup_manager.checkpoint().await.is_ok(),
+            "checkpoint should be processed"
+        );
+
+        // The control message should not have been sent.
+        assert!(
+            control_rx.try_recv().is_err(),
+            "control message should not have been sent"
+        );
+
+        // No backup file deletion should be logged.
+        assert!(
+            !logs_contain("unable to delete backup file"),
+            "no backup file deletion should be logged"
         );
     }
 
