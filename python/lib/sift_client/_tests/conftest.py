@@ -72,4 +72,4 @@ def ci_pytest_tag(sift_client):
     return tag
 
 
-from sift_client.util.test_results.pytest import report_context, step # noqa: F401
+from sift_client.util.test_results.pytest import report_context, step, module_substep  # noqa: F401

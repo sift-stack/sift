@@ -145,6 +145,16 @@ class ReportContext:
         self.open_step_results.pop(step.step_path)
         return result
 
+    def exit_step(self, step: TestStep):
+        """Exit a step and update the report context."""
+        self.step_number_at_depth[len(self.step_stack)] = 0
+        stack_top = self.step_stack.pop()
+
+        if stack_top.id_ != step.id_:
+            raise ValueError(
+                "The popped step was not the top of the stack. This should never happen."
+            )
+
 
 class NewStep(AbstractContextManager):
     """Context manager to create a new step in a test report."""
@@ -204,11 +214,7 @@ class NewStep(AbstractContextManager):
             self.current_step.test_report_id,
         )
         # Update the last step to the parent.
-        stack_top = self.report_context.step_stack.pop()
-        if stack_top.id_ != self.current_step.id_:
-            raise ValueError(
-                "The current step is not the top of the stack. This should never happen."
-            )
+        self.report_context.exit_step(self.current_step)
 
     def measure(
         self,
