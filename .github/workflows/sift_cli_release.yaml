@@ -91,8 +91,7 @@ jobs:
       - name: Build artifacts
         working-directory: rust
         run: |
-          dist build ${{ needs.plan.outputs.tag-flag }} \
-            --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
+          dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
           echo "dist ran successfully"
 
       - id: cargo-dist
