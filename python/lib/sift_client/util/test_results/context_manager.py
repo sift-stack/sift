@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
+import getpass
 import os
+import socket
+from contextlib import AbstractContextManager
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from sift_client.sift_types.test_report import (
     NumericBounds,
@@ -15,19 +17,24 @@ from sift_client.sift_types.test_report import (
     TestStepCreate,
     TestStepType,
 )
+from sift_client.util.test_results.bounds import (
+    assign_value_to_measurement,
+    evaluate_measurement_bounds,
+)
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
 class ReportContext:
-    """Context for a new TestReport. Mostly serves as a store to communicate between step context managers since they can be nested or siblings."""
+    """Context for a new TestReport. Is not itself a context manager but serves as a store to communicate between step context managers since they can be nested or siblings."""
 
     report: TestReport
-    step_is_open: bool = False
-    step_stack: ClassVar[list[(int, TestStep)]] = []
-    open_step_results: ClassVar[dict[str, bool]] = {}
-    any_failures: bool = False
+    step_is_open: bool
+    step_stack: list[TestStep]
+    step_number_at_depth: dict[int, int]
+    open_step_results: dict[str, bool]
+    any_failures: bool
 
     def __init__(self, report: TestReport):
         """Initialize a new report context.
@@ -36,14 +43,37 @@ class ReportContext:
             report: The report to create the context for.
         """
         self.report = report
+        self.step_is_open = False
+        self.step_stack = []
+        self.step_number_at_depth = {}
+        self.open_step_results = {}
+        self.any_failures = False
 
     @classmethod
     def create(
-        cls, client: SiftClient, name: str, test_system_name: str, test_case: str | None = None
+        cls,
+        client: SiftClient,
+        name: str,
+        test_system_name: str | None = None,
+        system_operator: str | None = None,
+        test_case: str | None = None,
     ) -> ReportContext:
-        """Create a new report context."""
-        test_case = test_case if test_case else os.path.basename(__file__)
+        """Create a new report context.
 
+        Args:
+            client: The Sift client to use to create the report.
+            name: The name of the report.
+            test_system_name: The name of the test system. Will default to the hostname if not provided.
+            system_operator: The operator of the test system. Will default to the current user if not provided.
+            test_case: The name of the test case. Will default to the basename of the file containing the test if not provided.
+
+        Returns:
+            The new report context.
+        """
+        print(f"Creating new report context: {name} {test_system_name} {test_case}")
+        test_case = test_case if test_case else os.path.basename(__file__)
+        test_system_name = test_system_name if test_system_name else socket.gethostname()
+        system_operator = system_operator if system_operator else getpass.getuser()
         create = TestReportCreate(
             name=name,
             test_system_name=test_system_name,
@@ -51,13 +81,69 @@ class ReportContext:
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
             status=TestStatus.IN_PROGRESS,
+            system_operator=system_operator,
         )
         report = client.test_results.create(create)
         return cls(report)
 
     def new_step(self, name: str, description: str | None = None) -> NewStep:
-        """Create a new step in the report context."""
+        """Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context."""
         return NewStep(self, name=name, description=description)
+
+    def get_next_step_path(self) -> str:
+        """Get the next step path for the current depth."""
+        top_step = self.step_stack[-1] if self.step_stack else None
+        step_path = top_step.step_path if top_step else ""
+        next_step_number = self.step_number_at_depth.get(len(self.step_stack), 0) + 1
+        prefix = f"{step_path}." if step_path else ""
+        return f"{prefix}{next_step_number}"
+
+    def create_step(self, name: str, description: str | None = None) -> TestStep:
+        """Create a new step in the report context."""
+        step_path = self.get_next_step_path()
+        parent_step = self.step_stack[-1] if self.step_stack else None
+
+        step = self.report.client.test_results.create_step(
+            TestStepCreate(
+                test_report_id=self.report.id_,
+                name=name,
+                step_type=TestStepType.ACTION,
+                step_path=step_path,
+                status=TestStatus.IN_PROGRESS,
+                start_time=datetime.now(timezone.utc),
+                end_time=datetime.now(timezone.utc),
+                description=description,
+                parent_step_id=parent_step.id_ if parent_step else None,
+            )
+        )
+
+        # Update the step tracking structures.
+        self.step_number_at_depth[len(self.step_stack)] = (
+            self.step_number_at_depth.get(len(self.step_stack), 0) + 1
+        )
+        self.step_stack.append(step)
+        self.open_step_results[step.step_path] = True
+
+        return step
+
+    def resolve_and_propagate_step_result(
+        self, step: TestStep, parent_step: TestStep | None = None
+    ) -> bool:
+        """Resolve the result of a step and propagate the result to the parent step if it failed."""
+        result = self.open_step_results.get(step.step_path, True)
+        if step.status != TestStatus.IN_PROGRESS:
+            # The step was not manually completed so use that.
+            result = step.status == TestStatus.PASSED
+
+        # Update the parent step results if this step failed (true by default so no need to do anything if we didn't fail).
+        if not result:
+            self.any_failures = True
+            if parent_step:
+                self.open_step_results[parent_step.step_path] = False
+
+        # Cleanup the open step results for this step.
+        self.open_step_results.pop(step.step_path)
+        return result
 
 
 class NewStep(AbstractContextManager):
@@ -67,7 +153,6 @@ class NewStep(AbstractContextManager):
     client: SiftClient
     current_step: TestStep | None = None
     name: str | None = None
-    step_path: str | None = None
     description: str | None = None
     parent_step: TestStep | None = None
 
@@ -86,36 +171,24 @@ class NewStep(AbstractContextManager):
         """
         self.report_context = report_context
         self.client = report_context.report.client
-        self.name = name
         self.description = description
-        self._update_step_stack()
-
+        self.name = name
 
     def __enter__(self):
         """Enter the context manager to create a new step.
 
         returns: The current step.
         """
-        self.current_step = self.client.test_results.create_step(
-            TestStepCreate(
-                test_report_id=self.report_context.report.id_,
-                name=self.name,
-                step_type=TestStepType.ACTION,
-                step_path=self.step_path,
-                status=TestStatus.IN_PROGRESS,
-                start_time=datetime.now(timezone.utc),
-                end_time=datetime.now(timezone.utc),
-                description=self.description,
-                parent_step_id=self.parent_step.id_ if self.parent_step else None,
-            )
-        )
-        self.report_context.step_stack.append((0, self.current_step))
-        # Create an entry in the open step results for this step that can be modified by substeps/measurements.
-        self.report_context.open_step_results[self.step_path] = True
+        print(f"Creating step {self.name} for report {self.report_context.report.id_}")
+        self.current_step = self.report_context.create_step(self.name, self.description)
+        self.name = self.current_step.name
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        result = self._resolve_and_propagate_result()
+        result = self.report_context.resolve_and_propagate_step_result(
+            self.current_step, self.parent_step
+        )
 
         # Mark the step as completed
         self.current_step.update(
@@ -124,88 +197,45 @@ class NewStep(AbstractContextManager):
                 "end_time": datetime.now(timezone.utc),
             }
         )
+        print(
+            "Leaving step",
+            self.current_step.step_path,
+            self.current_step.name,
+            self.current_step.test_report_id,
+        )
         # Update the last step to the parent.
-        _, stack_top = self.report_context.step_stack.pop()
+        stack_top = self.report_context.step_stack.pop()
         if stack_top.id_ != self.current_step.id_:
             raise ValueError(
                 "The current step is not the top of the stack. This should never happen."
             )
 
-    def _update_step_stack(self):
-        """Update the step stack with the new step number if there is an existing stack."""
-        step_number, parent_step = (
-            self.report_context.step_stack[-1] if self.report_context.step_stack else (0, None)
-        )
-        step_number += 1
-        prefix = f"{parent_step.step_path}." if parent_step else ""
-        if parent_step:
-            # Increment the step number in the stack.
-            _, parent_step = self.report_context.step_stack.pop()
-            self.report_context.step_stack.append((step_number, parent_step))
-        self.step_path = f"{prefix}{step_number}"
-
-    def _resolve_and_propagate_result(self) -> bool:
-        """Get the result of the step from the report context and update the report context for the parent step if this step failed."""
-        result = self.report_context.open_step_results.get(self.current_step.step_path, True)
-        if self.current_step.status != TestStatus.IN_PROGRESS:
-            # The step was not manually completed so use that.
-            result = self.current_step.status == TestStatus.PASSED
-
-        # Update the parent step results if this step failed (true by default so no need to do anything if we didn't fail).
-        if self.parent_step and not result:
-            parent_result = self.report_context.open_step_results.get(
-                self.parent_step.step_path, True
-            )
-            self.report_context.open_step_results[self.parent_step.step_path] = (
-                parent_result and result
-            )
-            self.report_context.any_failures = True
-
-        # TODO: Cleanup the open step results for this step?
-
-        return result
-
     def measure(
-        self, *, name: str, value: float | str | bool, bounds: NumericBounds | str | None = None
+        self,
+        *,
+        name: str,
+        value: float | str | bool,
+        bounds: dict[str, float] | NumericBounds | str | None = None,
     ) -> bool:
         """Measure a value and return the result.
 
         returns: The measurement object.
         """
-
         create = TestMeasurementCreate(
             test_step_id=self.current_step.id_,
             name=name,
             passed=True,
             timestamp=datetime.now(timezone.utc),
         )
-
-        if bounds is not None:
-            if isinstance(bounds, str):
-                if not isinstance(value, str):
-                    raise ValueError("Value must be a string if bounds provided is a string")
-                create.string_expected_value = bounds
-                create.string_value = value
-                create.passed = value == bounds
-            elif isinstance(bounds, NumericBounds):
-                if not (isinstance(value, float) or isinstance(value, int)):
-                    raise ValueError(
-                        "Value must be a float or int if bounds provided are numeric bounds"
-                    )
-                create.numeric_bounds = bounds
-                create.numeric_value = float(value)
-                if create.numeric_value.min is not None:
-                    create.passed = (
-                        create.passed and create.numeric_value.min <= create.numeric_value
-                    )
-                if create.numeric_value.max is not None:
-                    create.passed = (
-                        create.passed and create.numeric_value.max >= create.numeric_value
-                    )
+        evaluate_measurement_bounds(create, value, bounds)
+        measurement = self.client.test_results.create_measurement(create)
 
         if not create.passed:
             # Propogate failures to the report context so the step will be marked correctly when it exists context.
             self.report_context.open_step_results[self.current_step.step_path] = False
 
-        measurement = self.client.test_results.create_measurement(create)
         return measurement.passed
+
+    def substep(self, name: str, description: str | None = None) -> NewStep:
+        """Alias to return a new step context manager from the current step. The ReportContext will manage nesting of steps."""
+        return self.report_context.new_step(name=name, description=description)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import socket
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar
@@ -23,7 +24,13 @@ from sift_client.sift_types.test_report import (
     TestStepType,
 )
 
+# from sift_client.util.test_results.pytest import report_context, step
+from sift_client.util.test_results.context_manager import NewStep  # noqa: F401
+
 pytestmark = pytest.mark.integration
+
+case_name = Path(__file__).stem
+test_system_name = socket.gethostname()
 
 
 def test_client_binding(sift_client):
@@ -38,7 +45,8 @@ class TestResultsTest:
     test_steps: ClassVar[dict[str, TestStep]] = {}
     test_measurements: ClassVar[dict[str, TestMeasurement]] = {}
 
-    def test_create_test_report(self, sift_client):
+    def test_create_test_report(self, sift_client, step):
+        print("STEP", step)
         # Create a test report
         simulated_time = datetime.now(timezone.utc)
         test_report = sift_client.test_results.create(
@@ -53,8 +61,13 @@ class TestResultsTest:
         )
         assert test_report.id_ is not None
         self.test_reports["basic_test_report"] = test_report
+        step.measure(name="test_report_created", value=True)
+        with step.substep(name="nested step") as nested_step:
+            nested_step.measure(name="nested_step_created", value=True)
+            with nested_step.substep(name="nested nested step") as nested_nested_step:
+                nested_nested_step.measure(name="nested_nested_step_created", value=True)
 
-    def test_create_test_steps(self, sift_client):
+    def test_create_test_steps(self, sift_client, step):
         test_report = self.test_reports.get("basic_test_report")
         if not test_report:
             pytest.skip("Need to create a test report first")
@@ -74,7 +87,7 @@ class TestResultsTest:
             ),
         )
         simulated_time = simulated_time + timedelta(seconds=10.1)
-
+        step.measure(name="step1_created", value=True)
         # Create a step using a dict
         step1_1 = sift_client.test_results.create_step(
             {

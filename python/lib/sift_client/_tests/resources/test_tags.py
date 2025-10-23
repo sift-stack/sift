@@ -8,15 +8,12 @@ These tests demonstrate and validate the usage of the Tags API including:
 """
 
 import re
-import sys
 from datetime import datetime, timezone
 
 import pytest
 
-from sift_client.client import SiftClient
 from sift_client.resources import TagsAPI, TagsAPIAsync
 from sift_client.sift_types import Tag
-from sift_client.util.test_results import ReportContext
 
 pytestmark = pytest.mark.integration
 
@@ -50,38 +47,21 @@ def test_tags(sift_client, test_timestamp_str):
     # Would like to archive the tags, but this is not supported by the API
 
 
-@pytest.fixture(scope="session")
-def report_context(sift_client: SiftClient):
-    report_context = ReportContext.create(
-        sift_client,
-        name=f"Test Tags {datetime.now(timezone.utc).isoformat()}",
-        test_system_name="sift_client CI",
-    )
-    yield report_context
-    update = {
-        "end_time": datetime.now(timezone.utc),
-    }
-    if report_context.any_failures:
-        update["status"] = 3 # TestStatus.FAILED
-    report_context.report.update(update)
-
 class TestTags:
     """Tests for the Tags API."""
 
-    def test_basic_list(self, sift_client, test_tags, test_timestamp_str, report_context):
+    def test_basic_list(self, sift_client, test_tags, test_timestamp_str):
         """Test basic tag listing functionality."""
-        with report_context.new_step(name="Test basic list") as step:
-            tags = sift_client.tags.list_(limit=5)
+        tags = sift_client.tags.list_(limit=5)
 
-            # Verify we get a list
-            assert isinstance(tags, list)
+        # Verify we get a list
+        assert isinstance(tags, list)
 
-            # If we have tags, verify their structure
-            tag = tags[0]
-            assert isinstance(tag, Tag)
-            assert tag.id_ is not None
-            assert tag.name is not None
-            step.measure(name="tag.id_", value=tag.id_, bounds=tag.id_)
+        # If we have tags, verify their structure
+        tag = tags[0]
+        assert isinstance(tag, Tag)
+        assert tag.id_ is not None
+        assert tag.name is not None
 
     def test_list_with_name_filter(self, sift_client, test_tags, test_timestamp_str):
         """Test tag listing with name filtering."""

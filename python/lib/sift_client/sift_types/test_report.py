@@ -338,7 +338,6 @@ class TestMeasurementBase(ModelCreateUpdateBase):
     string_expected_value: str | None = None
     measurement_type: TestMeasurementType | None = None
 
-
     def _get_proto_class(self) -> type[TestMeasurementProto]:
         return TestMeasurementProto
 
@@ -384,7 +383,9 @@ class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProt
     def to_proto(self) -> TestMeasurementProto:
         """Convert to protobuf message with custom logic."""
         proto = TestMeasurementProto(
-            measurement_type=self.measurement_type.value if self.measurement_type else self._resolve_measurement_type().value,  # type: ignore
+            measurement_type=self.measurement_type.value
+            if self.measurement_type
+            else self._resolve_measurement_type().value,  # type: ignore
             name=self.name,
             test_step_id=self.test_step_id,
             passed=self.passed,

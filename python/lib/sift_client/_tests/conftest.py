@@ -70,3 +70,6 @@ def ci_pytest_tag(sift_client):
     tag = sift_client.tags.find_or_create(names=["sift-client-pytest"])[0]
     assert tag is not None
     return tag
+
+
+from sift_client.util.test_results.pytest import report_context, step # noqa: F401

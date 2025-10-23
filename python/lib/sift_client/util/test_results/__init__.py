@@ -27,5 +27,6 @@ with rc.new_step(name="Example Step", description=desc) as parent_step:
 """
 
 from .context_manager import NewStep, ReportContext
+from .pytest import report_context
 
-__all__ = ["NewStep", "ReportContext"]
+__all__ = ["NewStep", "ReportContext", "report_context"]
