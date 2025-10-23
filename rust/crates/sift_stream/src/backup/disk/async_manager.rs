@@ -272,6 +272,7 @@ impl AsyncBackupsManager {
         // blocking data ingestion due to a full backup files.
         if let Some(max_file_count) = self.backup_config.max_file_count
             && self.backup_files.len() >= max_file_count
+            && !self.signaled_full
         {
             self.control_tx
                 .send(ControlMessage::BackupFull)
@@ -870,6 +871,20 @@ mod test {
         // it reaches the maximum number of backup files.
         assert_eq!(control_rx.try_recv(), Ok(ControlMessage::BackupFull));
         assert!(backup_manager.signaled_full);
+
+        // Since the backup full message was already sent, additional data should
+        // not trigger another message.
+        assert!(
+            backup_manager
+                .handle_data_message(data_message.clone())
+                .await
+                .is_ok(),
+            "data message should be handled"
+        );
+        assert!(
+            control_rx.try_recv().is_err(),
+            "control message should not have been sent"
+        );
     }
 
     #[tokio::test]
