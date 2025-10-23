@@ -26,19 +26,13 @@ jobs:
           submodules: recursive
 
       - name: Install dist
-        run: |
-          curl --proto '=https' --tlsv1.2 -LsSf \
-            https://github.com/axodotdev/cargo-dist/releases/download/v0.29.0/cargo-dist-installer.sh | sh
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.29.0/cargo-dist-installer.sh | sh
 
       - id: plan
         name: Run dist plan
         working-directory: rust
-        run: |
-          dist ${{ (!github.event.pull_request && format('host --steps=create --tag={0}', github.ref_name)) || 'plan' }} \
-            --output-format=json > plan-dist-manifest.json
-          echo "dist ran successfully"
-          cat plan-dist-manifest.json
-          echo "manifest=$(jq -c "." plan-dist-manifest.json)" >> "$GITHUB_OUTPUT"
+        run: dist ${{ (!github.event.pull_request && format('host --steps=create --tag={0}', github.ref_name)) || 'plan' }} --output-format=json > plan-dist-manifest.json
+        shell: bash
 
       - name: Upload dist-manifest.json
         uses: actions/upload-artifact@v4
@@ -76,7 +70,7 @@ jobs:
           fi
 
       - name: Install dist
-        run: ${{ matrix.install_dist.run }}
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.29.0/cargo-dist-installer.sh | sh
 
       - name: Fetch local artifacts
         uses: actions/download-artifact@v4
@@ -90,9 +84,8 @@ jobs:
 
       - name: Build artifacts
         working-directory: rust
-        run: |
-          dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
-          echo "dist ran successfully"
+        run: dist build ${{ needs.plan.outputs.tag-flag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
+        shell: bash
 
       - id: cargo-dist
         name: Post-build
@@ -124,12 +117,8 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
-      - name: Install cached dist
-        uses: actions/download-artifact@v4
-        with:
-          name: cargo-dist-cache
-          path: ~/.cargo/bin/
-      - run: chmod +x ~/.cargo/bin/dist
+      - name: Install dist
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.29.0/cargo-dist-installer.sh | sh
 
       - name: Fetch local artifacts
         uses: actions/download-artifact@v4
@@ -141,14 +130,9 @@ jobs:
       - id: cargo-dist
         shell: bash
         working-directory: rust
-        run: |
-          dist build ${{ needs.plan.outputs.tag-flag }} \
-            --output-format=json "--artifacts=global" > dist-manifest.json
-          echo "dist ran successfully"
-          echo "paths<<EOF" >> "$GITHUB_OUTPUT"
-          jq --raw-output ".upload_files[]" dist-manifest.json >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-          cp dist-manifest.json "$BUILD_MANIFEST_NAME"
+        run: dist build ${{ needs.plan.outputs.tag-flag }} --output-format=json "--artifacts=global" > dist-manifest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -172,12 +156,8 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
-      - name: Install cached dist
-        uses: actions/download-artifact@v4
-        with:
-          name: cargo-dist-cache
-          path: ~/.cargo/bin/
-      - run: chmod +x ~/.cargo/bin/dist
+      - name: Install dist
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.29.0/cargo-dist-installer.sh | sh
 
       - name: Fetch artifacts
         uses: actions/download-artifact@v4
@@ -189,12 +169,7 @@ jobs:
       - id: host
         shell: bash
         working-directory: rust
-        run: |
-          dist host ${{ needs.plan.outputs.tag-flag }} \
-            --steps=upload --steps=release --output-format=json > dist-manifest.json
-          echo "artifacts uploaded and released successfully"
-          cat dist-manifest.json
-          echo "manifest=$(jq -c "." dist-manifest.json)" >> "$GITHUB_OUTPUT"
+        run: dist host ${{ needs.plan.outputs.tag-flag }} --steps=upload --steps=release --output-format=json > dist-manifest.json
 
       - name: Upload dist-manifest.json
         uses: actions/upload-artifact@v4
@@ -209,10 +184,7 @@ jobs:
           ANNOUNCEMENT_BODY: "${{ fromJson(steps.host.outputs.manifest).announcement_github_body }}"
           RELEASE_COMMIT: "${{ github.sha }}"
         working-directory: rust
-        run: |
-          echo "$ANNOUNCEMENT_BODY" > $RUNNER_TEMP/notes.txt
-          gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG \
-            --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
+        run: echo "$ANNOUNCEMENT_BODY" > $RUNNER_TEMP/notes.txt && gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
 
   announce:
     needs: [plan, host]
