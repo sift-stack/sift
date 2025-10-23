@@ -178,13 +178,16 @@ jobs:
           path: rust/dist-manifest.json
 
       - name: Create GitHub Release
-        env:
-          PRERELEASE_FLAG: "${{ fromJson(steps.host.outputs.manifest).announcement_is_prerelease && '--prerelease' || '' }}"
-          ANNOUNCEMENT_TITLE: "${{ fromJson(steps.host.outputs.manifest).announcement_title }}"
-          ANNOUNCEMENT_BODY: "${{ fromJson(steps.host.outputs.manifest).announcement_github_body }}"
-          RELEASE_COMMIT: "${{ github.sha }}"
         working-directory: rust
-        run: echo "$ANNOUNCEMENT_BODY" > $RUNNER_TEMP/notes.txt && gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
+        run: |
+          PRERELEASE_FLAG=$(jq -r '.announcement_is_prerelease | if . then "--prerelease" else "" end' dist-manifest.json)
+          ANNOUNCEMENT_TITLE=$(jq -r '.announcement_title' dist-manifest.json)
+          ANNOUNCEMENT_BODY=$(jq -r '.announcement_github_body' dist-manifest.json)
+          RELEASE_COMMIT="${{ github.sha }}"
+
+          echo "$ANNOUNCEMENT_BODY" > $RUNNER_TEMP/notes.txt
+          gh release create "${{ needs.plan.outputs.tag }}" --target "$RELEASE_COMMIT" $PRERELEASE_FLAG \
+            --title "$ANNOUNCEMENT_TITLE" --notes-file "$RUNNER_TEMP/notes.txt" artifacts/*
 
   announce:
     needs: [plan, host]
