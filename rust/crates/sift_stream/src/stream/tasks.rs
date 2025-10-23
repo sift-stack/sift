@@ -135,12 +135,19 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
         ingestion_task.run().await
     });
 
-    // Start backup re-ingestion task
+    // Re-ingestion task has it's own retry policy to give more time to re-ingest backup files
+    // when the network is slow or may be out for only a minute or two.
     let reingestion_config = config.clone();
+    let reingest_retry_policy = RetryPolicy {
+        max_attempts: 12,
+        initial_backoff: Duration::from_millis(100),
+        max_backoff: Duration::from_secs(15),
+        backoff_multiplier: 5,
+    };
     let reingestion_task = BackupIngestTask::new(
         reingestion_control_tx.subscribe(),
         reingestion_config.grpc_channel,
-        reingestion_config.recovery_config.retry_policy,
+        reingest_retry_policy,
         reingestion_config
             .recovery_config
             .backup_policy
