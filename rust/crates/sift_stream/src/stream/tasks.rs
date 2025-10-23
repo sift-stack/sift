@@ -10,7 +10,7 @@ use sift_error::prelude::*;
 use sift_rs::ingest::v1::{
     IngestWithConfigDataStreamRequest, ingest_service_client::IngestServiceClient,
 };
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{path::PathBuf, pin::Pin, sync::Arc, time::Duration};
 use tokio::{sync::broadcast, task::JoinHandle};
 use uuid::Uuid;
 
@@ -239,7 +239,9 @@ impl IngestionTask {
                     // Send a notification to the data stream to close it.
                     let _ = notified_tx.send(());
 
-                    res
+                    // Currently the stream result is not used, so to simplify we return a unit value.
+                    res.map(|_| ())
+                        .map_err(|e| Error::new(ErrorKind::StreamError, e))
                 }));
 
                 #[cfg(feature = "tracing")]
@@ -286,6 +288,12 @@ impl IngestionTask {
                             self.control_tx.send(ControlMessage::CheckpointNeedsReingestion).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
                         }
                     }
+
+                    // If the data channel has been closed, exit the loop to begin the shutdown process.
+                    // The data channel is closed when SiftStream is dropped or is finished.
+                    if self.data_rx.is_closed() {
+                        break;
+                    }
                 }
                 _ = timer.tick() => {
                     #[cfg(feature = "tracing")]
@@ -316,37 +324,6 @@ impl IngestionTask {
                             self.control_tx.send(ControlMessage::CheckpointComplete).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
                         }
                         Ok(ControlMessage::Shutdown) => {
-                            #[cfg(feature = "tracing")]
-                            tracing::info!(
-                                sift_stream_id = self.config.sift_stream_id.to_string(),
-                                "ingestion task shutting down"
-                            );
-
-                            // During shutdown the data channel is closed, so to let the stream finish sending all data we need to await the stream
-                            // one last time before exiting.
-                            if let Some(stream) = stream.as_mut() {
-                                match stream.await {
-                                    Ok(_) => {
-                                        #[cfg(feature = "tracing")]
-                                        tracing::info!(
-                                            sift_stream_id = self.config.sift_stream_id.to_string(),
-                                            "final stream completed successfully"
-                                        );
-                                    }
-                                    Err(e) => {
-                                        #[cfg(feature = "tracing")]
-                                        tracing::error!(
-                                            sift_stream_id = self.config.sift_stream_id.to_string(),
-                                            error = %e,
-                                            "final stream failed"
-                                        );
-                                    }
-                                }
-                            }
-
-                            // Send the final checkpoint complete signal to the backup manager.
-                            self.control_tx.send(ControlMessage::CheckpointComplete).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
-
                             break;
                         }
                         _ => continue,
@@ -354,6 +331,49 @@ impl IngestionTask {
                 }
             }
         }
+
+        self.shutdown(stream).await?;
+
+        Ok(())
+    }
+
+    /// Shuts down the ingestion task by awaiting the stream one last time and sending the final checkpoint complete signal to the backup manager.
+    async fn shutdown<T: Future<Output = Result<()>> + Send + 'static>(
+        &mut self,
+        mut stream: Option<Pin<Box<T>>>,
+    ) -> Result<()> {
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            sift_stream_id = self.config.sift_stream_id.to_string(),
+            "ingestion task shutting down"
+        );
+
+        // During shutdown the data channel is closed, so to let the stream finish sending all data we need to await the stream
+        // one last time before exiting.
+        if let Some(stream) = stream.as_mut() {
+            match stream.await {
+                Ok(_) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::info!(
+                        sift_stream_id = self.config.sift_stream_id.to_string(),
+                        "final stream completed successfully"
+                    );
+                }
+                Err(e) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!(
+                        sift_stream_id = self.config.sift_stream_id.to_string(),
+                        error = %e,
+                        "final stream failed"
+                    );
+                }
+            }
+        }
+
+        // Send the final checkpoint complete signal to the backup manager.
+        self.control_tx
+            .send(ControlMessage::CheckpointComplete)
+            .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
 
         Ok(())
     }
@@ -439,6 +459,60 @@ mod tests {
             control_tx.send(ControlMessage::Shutdown).is_ok(),
             "failed to send shutdown message to ingestion task"
         );
+
+        // Wait for the ingestion task to complete.
+        assert!(
+            handle.await.is_ok(),
+            "ingestion task should complete successfully"
+        );
+
+        // Verify graceful shutdown drained the data channel and sent the final checkpoint complete message.
+        assert!(data_tx.is_empty(), "data channel should be empty");
+
+        // Each checkpoint expiration should generate a checkpoint complete control message.
+        let mut complete_count = 0;
+        while let Ok(msg) = control_rx.try_recv() {
+            if msg == ControlMessage::CheckpointComplete {
+                complete_count += 1;
+            }
+        }
+        assert_eq!(complete_count, 1, "should have completed 1 checkpoint");
+    }
+
+    #[tokio::test]
+    async fn test_ingestion_task_shutdown_ungracefully() {
+        let (grpc_channel, _mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let (control_tx, mut control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let checkpoint_interval = Duration::from_secs(60);
+        let config = TaskConfig {
+            sift_stream_id: Uuid::new_v4(),
+            grpc_channel,
+            metrics: metrics.clone(),
+            checkpoint_interval,
+            control_channel_capacity: 128,
+            data_channel_capacity: 128,
+            recovery_config: RecoveryConfig {
+                retry_policy: RetryPolicy::default(),
+                backups_enabled: true,
+                backups_directory: "backup_directory".to_string(),
+                backups_prefix: "prefix".to_string(),
+                backup_policy: DiskBackupPolicy::default(),
+            },
+        };
+
+        let mut ingestion_task = IngestionTask::new(control_tx.clone(), data_rx, config);
+
+        // Wait for the ingestion task to drain the data channel.
+        let handle = tokio::spawn(async move { ingestion_task.run().await });
+
+        // Send some messages for ingestion.
+        send_messages_for_ingestion(&data_tx, 100).await;
+
+        // Close the data channel to trigger the shutdown process.
+        data_tx.close();
 
         // Wait for the ingestion task to complete.
         assert!(

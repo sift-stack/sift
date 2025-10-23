@@ -18,6 +18,7 @@ use std::{
 use tokio::fs::{self, File};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::broadcast;
+use tokio::sync::broadcast::error::RecvError;
 use tokio_stream::StreamExt;
 
 #[derive(Clone)]
@@ -143,12 +144,18 @@ impl AsyncBackupsManager {
             }
         }
 
+        #[cfg(feature = "tracing")]
+        tracing::info!("backup manager shutting down");
+
         self.cleanup().await?;
         Ok(())
     }
 
     /// Cleanup the backup manager by clearing the backup files list and resetting the current file.
     async fn cleanup(&mut self) -> Result<()> {
+        #[cfg(feature = "tracing")]
+        tracing::info!("backup manager cleanup started");
+
         // Drain the data channel of any remaining messages.
         while let Ok(data_message) = self.data_rx.recv().await {
             self.handle_data_message(data_message).await?;
@@ -161,10 +168,12 @@ impl AsyncBackupsManager {
         //
         // Since this is the final checkpoint for shutdown, the reingestion flag is false -- trying to
         // reingest could take some time and we don't want to block shutdown.
-        while !matches!(
-            self.control_rx.recv().await,
-            Ok(ControlMessage::CheckpointComplete)
-        ) {}
+        loop {
+            match self.control_rx.recv().await {
+                Ok(ControlMessage::CheckpointComplete) | Err(_) => break,
+                _ => continue,
+            }
+        }
 
         // Process the final checkpoint.
         self.checkpoint().await?;
@@ -401,16 +410,6 @@ impl BackupIngestTask {
                 control_msg = self.control_rx.recv() => {
                     match control_msg {
                         Ok(ControlMessage::Shutdown) => {
-
-                            #[cfg(feature = "tracing")]
-                            tracing::info!("re-ingestion task shutting down - current uploads will complete, remaining backup files will have to be manually re-ingested");
-
-                            // Close the re-ingestion queue which will cause the re-ingestion future to complete
-                            // once the current queue is drained.
-                            self.to_reingest_tx.close();
-
-                            // Wait for the re-ingestion to complete.
-                            reingest_fut.await?;
                             break;
                         },
                         Ok(ControlMessage::ReingestBackups { backup_files }) => {
@@ -421,6 +420,7 @@ impl BackupIngestTask {
                                 }
                             }
                         },
+                        Err(RecvError::Closed) => break,
                         _ => continue,
                     }
                 }
@@ -435,9 +435,13 @@ impl BackupIngestTask {
                             tracing::warn!("reingestion encountered an error: {e:?}");
                         }
                     }
+                    break;
                 }
             }
         }
+
+        #[cfg(feature = "tracing")]
+        tracing::info!("re-ingestion task shutting down");
 
         Ok(())
     }
@@ -1278,6 +1282,55 @@ mod test {
     }
 
     #[tokio::test]
+    #[traced_test]
+    async fn test_async_manager_shutdown_ungracefully() {
+        let tmp_dir = TempDir::new("test_async_manager").unwrap();
+        let tmp_dir_path = tmp_dir.path();
+        let backup_policy = DiskBackupPolicy {
+            backups_dir: Some(tmp_dir_path.to_path_buf()),
+            max_backup_file_size: 1024,
+            rolling_file_policy: RollingFilePolicy {
+                max_file_count: Some(10),
+            },
+            retain_backups: false,
+        };
+        let (control_tx, control_rx) = broadcast::channel(1024);
+        let (data_tx, data_rx) = async_channel::bounded(1024);
+        let metrics = Arc::new(SiftStreamMetrics::default());
+        let mut backup_manager = AsyncBackupsManager::new(
+            true,
+            "test",
+            "test",
+            backup_policy.clone(),
+            control_tx.clone(),
+            control_rx,
+            data_rx.clone(),
+            metrics,
+        )
+        .await
+        .unwrap();
+
+        let backup_task = tokio::spawn(async move { backup_manager.run().await });
+        data_tx.close();
+
+        // Wait for the backup manager to start the cleanup process.
+        while !logs_contain("backup manager cleanup started") {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+
+        // Complete the final checkpoint.
+        assert!(
+            control_tx.send(ControlMessage::CheckpointComplete).is_ok(),
+            "control message should be sent to the backup manager"
+        );
+
+        assert!(
+            backup_task.await.is_ok(),
+            "backup task should complete successfully"
+        );
+    }
+
+    #[tokio::test]
     async fn test_async_manager_end_to_end() {
         let tmp_dir = TempDir::new("test_async_manager").unwrap();
         let tmp_dir_path = tmp_dir.path();
@@ -1733,12 +1786,6 @@ mod test {
             "failed to send control message to reingest task"
         );
 
-        // Send the shutdown message to verify graceful shutdown.
-        assert!(
-            control_tx.send(ControlMessage::Shutdown).is_ok(),
-            "failed to send shutdown message to reingest task"
-        );
-
         // Create the re-ingestion task.
         let retry_policy = RetryPolicy::default();
         let retain_backups = false;
@@ -1753,26 +1800,14 @@ mod test {
             retain_backups,
             metrics,
         );
-        assert!(
-            reingest_task.run().await.is_ok(),
-            "failed to run reingest task"
-        );
+        let reingest_task = tokio::spawn(async move { reingest_task.run().await });
 
-        // The backup files should have been removed.
-        assert!(
-            !backup0_file_path.exists(),
-            "backup0 file should have been removed"
-        );
-        assert!(
-            !backup1_file_path.exists(),
-            "backup1 file should have been removed"
-        );
-        assert!(
-            !backup2_file_path.exists(),
-            "backup2 file should have been removed"
-        );
+        // Wait for the re-ingestion task to complete the uploads.
+        while mock_service.get_captured_data().len() < 300 {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
 
-        // Verify the captured messages were all received (no data lost).
+        // Verify the captured messages.
         let captured = mock_service.get_captured_data();
         assert_eq!(captured.len(), 300, "should have captured 300 messages");
         for (index, message) in captured.iter().enumerate() {
@@ -1793,5 +1828,69 @@ mod test {
                 "channel value should be int32({i})"
             );
         }
+
+        // The backup files should have been removed.
+        assert!(
+            !backup0_file_path.exists(),
+            "backup0 file should have been removed"
+        );
+        assert!(
+            !backup1_file_path.exists(),
+            "backup1 file should have been removed"
+        );
+        assert!(
+            !backup2_file_path.exists(),
+            "backup2 file should have been removed"
+        );
+
+        // Send the shutdown message to verify graceful shutdown.
+        assert!(
+            control_tx.send(ControlMessage::Shutdown).is_ok(),
+            "failed to send shutdown message to reingest task"
+        );
+
+        // Wait for the re-ingestion task to complete.
+        assert!(
+            reingest_task.await.is_ok(),
+            "reingest task should complete successfully"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_backup_ingest_ungraceful_shutdown() {
+        let tmp_dir = TempDir::new("testbackup_ingest_ungraceful_shutdown").unwrap();
+        let backup0_file_path = create_test_backup_file(&tmp_dir, "backup_file_0", 100).await;
+
+        // Verify the backup files exist.
+        assert!(backup0_file_path.exists(), "backup0 file should exist");
+
+        let (control_tx, control_rx) = broadcast::channel(1024);
+
+        // Create the re-ingestion task.
+        let retry_policy = RetryPolicy::default();
+        let retain_backups = false;
+        let (grpc_channel, _mock_service) =
+            crate::test::create_mock_grpc_channel_with_service().await;
+        let metrics = Arc::new(SiftStreamMetrics::default());
+
+        let reingest_task = BackupIngestTask::new(
+            control_rx,
+            grpc_channel,
+            retry_policy,
+            retain_backups,
+            metrics,
+        );
+
+        drop(control_tx);
+        assert!(
+            reingest_task.run().await.is_ok(),
+            "failed to run reingest task"
+        );
+
+        // The backup file should not have been removed.
+        assert!(
+            backup0_file_path.exists(),
+            "backup0 file should not have been removed"
+        );
     }
 }
