@@ -46,6 +46,7 @@ pub struct AsyncBackupsManager {
     data_rx: async_channel::Receiver<DataMessage>,
     backup_files: Vec<PathBuf>,
     checkpoint_needs_reingest: bool,
+    signaled_full: bool,
 
     // State
     current_file: Option<File>,
@@ -109,6 +110,7 @@ impl AsyncBackupsManager {
             data_rx,
             backup_files: Vec::new(),
             checkpoint_needs_reingest: false,
+            signaled_full: false,
             current_file: None,
             current_file_metadata: FileMetadata {
                 path: PathBuf::new(),
@@ -185,12 +187,17 @@ impl AsyncBackupsManager {
     /// not retaining backups) or sending a reingestion signal for all backup files if the checkpoint was
     /// not successful.
     async fn checkpoint(&mut self) -> Result<()> {
+        self.signaled_full = false;
+
         if !self.backup_config.enabled {
             return Ok(());
         }
 
         // Rotate the current file to ensure it is closed and saved to the backup files list.
-        self.rotate_file().await?;
+        if let Err(e) = self.rotate_file().await {
+            #[cfg(feature = "tracing")]
+            tracing::warn!("unable to rotate backup file: {e:?}");
+        }
 
         // Update the metrics.
         self.metrics.backups.log_restart();
@@ -269,6 +276,7 @@ impl AsyncBackupsManager {
             self.control_tx
                 .send(ControlMessage::BackupFull)
                 .map_err(|e| Error::new(ErrorKind::BackupsError, e))?;
+            self.signaled_full = true;
         }
 
         Ok(())
@@ -861,6 +869,7 @@ mod test {
         // The backup manager should send a backup full control message when
         // it reaches the maximum number of backup files.
         assert_eq!(control_rx.try_recv(), Ok(ControlMessage::BackupFull));
+        assert!(backup_manager.signaled_full);
     }
 
     #[tokio::test]
