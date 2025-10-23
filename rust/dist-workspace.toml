@@ -3,7 +3,7 @@ members = ["cargo:crates/sift_cli"]
 
 [dist]
 cargo-dist-version = "0.29.0"
-tag-namespace = "rust/sift_cli/v"
+tag-namespace = "sift_cli-v"
 ci = "github"
 installers = ["shell"]
 targets = [
