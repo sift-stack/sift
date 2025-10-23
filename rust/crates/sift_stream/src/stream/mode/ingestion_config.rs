@@ -25,7 +25,7 @@ use std::{
     sync::Arc,
     task::{Context, Poll},
 };
-use tokio::sync::{broadcast, oneshot};
+use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
 use uuid::Uuid;
 
@@ -58,7 +58,6 @@ pub struct Flow {
 pub(crate) struct DataStream {
     data_rx: Pin<Box<async_channel::Receiver<DataMessage>>>,
     control_rx: Pin<Box<BroadcastStream<ControlMessage>>>,
-    notified: Pin<Box<oneshot::Receiver<()>>>,
     sift_stream_id: Uuid,
     metrics: Arc<SiftStreamMetrics>,
 }
@@ -427,7 +426,6 @@ impl DataStream {
     pub(crate) fn new(
         data_rx: async_channel::Receiver<DataMessage>,
         control_tx: broadcast::Sender<ControlMessage>,
-        notified: oneshot::Receiver<()>,
         sift_stream_id: Uuid,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Self {
@@ -435,7 +433,6 @@ impl DataStream {
         Self {
             data_rx: Box::pin(data_rx),
             control_rx: Box::pin(control_rx),
-            notified: Box::pin(notified),
             sift_stream_id,
             metrics,
         }
@@ -449,14 +446,8 @@ impl Stream for DataStream {
         // Close the stream if a checkpoint complete signal is received.
         if matches!(
             self.control_rx.as_mut().poll_next(ctx),
-            Poll::Ready(Some(Ok(ControlMessage::CheckpointComplete)))
+            Poll::Ready(Some(Ok(ControlMessage::SignalNextCheckpoint)))
         ) {
-            self.metrics.checkpoint.next_checkpoint();
-            return Poll::Ready(None);
-        }
-
-        // Close the stream if a notification is received.
-        if self.notified.as_mut().poll(ctx).is_ready() {
             return Poll::Ready(None);
         }
 
@@ -477,7 +468,6 @@ impl Stream for DataStream {
                     sift_stream_id = self.sift_stream_id.to_string(),
                     "received signal to conclude SiftStream"
                 );
-                self.metrics.checkpoint.next_checkpoint();
                 Poll::Ready(None)
             }
             Poll::Pending => Poll::Pending,

@@ -11,7 +11,7 @@ use sift_rs::ingest::v1::{
     IngestWithConfigDataStreamRequest, ingest_service_client::IngestServiceClient,
 };
 use std::{path::PathBuf, pin::Pin, sync::Arc, time::Duration};
-use tokio::{sync::broadcast, task::JoinHandle};
+use tokio::{sync::broadcast, task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
 /// Capacity for the data channel.
@@ -20,24 +20,27 @@ pub(crate) const DATA_CHANNEL_CAPACITY: usize = 1024 * 10;
 /// Capacity for the control channel.
 pub(crate) const CONTROL_CHANNEL_CAPACITY: usize = 1024;
 
+/// Timeout for the checkpoint operation to complete.
+pub(crate) const CHECKPOINT_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// Control messages sent between tasks via broadcast channel
 /// These are low-frequency control messages, not high-volume data messages
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ControlMessage {
+pub(crate) enum ControlMessage {
     /// Signal that the backup is full and a new checkpoint should be started.
     BackupFull,
 
     /// Request to re-ingest backup files
     ReingestBackups { backup_files: Vec<PathBuf> },
 
+    /// Signal the next checkpoint.
+    SignalNextCheckpoint,
+
     /// Signal to complete the checkpoint.
     CheckpointComplete,
 
     /// Signal the checkpoint needs re-ingestion.
     CheckpointNeedsReingestion,
-
-    /// Error signal
-    ErrorSignal { error: String },
 
     /// Shutdown signal for all tasks
     Shutdown,
@@ -72,13 +75,13 @@ pub struct DataMessage {
 }
 
 /// Handles for the three main tasks
-pub struct StreamSystem {
-    pub backup_manager: JoinHandle<Result<()>>,
-    pub ingestion: JoinHandle<Result<()>>,
-    pub reingestion: JoinHandle<Result<()>>,
-    pub control_tx: broadcast::Sender<ControlMessage>,
-    pub ingestion_tx: async_channel::Sender<DataMessage>,
-    pub backup_tx: async_channel::Sender<DataMessage>,
+pub(crate) struct StreamSystem {
+    pub(crate) backup_manager: JoinHandle<Result<()>>,
+    pub(crate) ingestion: JoinHandle<Result<()>>,
+    pub(crate) reingestion: JoinHandle<Result<()>>,
+    pub(crate) control_tx: broadcast::Sender<ControlMessage>,
+    pub(crate) ingestion_tx: async_channel::Sender<DataMessage>,
+    pub(crate) backup_tx: async_channel::Sender<DataMessage>,
 }
 
 /// Creates and starts all three tasks
@@ -230,21 +233,19 @@ impl IngestionTask {
                 // any race conditions in that task being polled for the first time and other
                 // events occurring in the system.
                 let mut client = IngestServiceClient::new(self.config.grpc_channel.clone());
-                let (notified_tx, notified_rx) = tokio::sync::oneshot::channel();
                 let data_stream = DataStream::new(
                     self.data_rx.clone(),
                     self.control_tx.clone(),
-                    notified_rx,
                     self.config.sift_stream_id,
                     self.config.metrics.clone(),
                 );
 
                 stream = Some(Box::pin(async move {
+                    // Wait for the retry exponential backoff to complete before performing the next gRPC stream operation.
+                    tokio::time::sleep(current_wait).await;
+
                     // Perform the gRPC stream operation.
                     let res = client.ingest_with_config_data_stream(data_stream).await;
-
-                    // Send a notification to the data stream to close it.
-                    let _ = notified_tx.send(());
 
                     // Currently the stream result is not used, so to simplify we return a unit value.
                     res.map(|_| ())
@@ -261,43 +262,18 @@ impl IngestionTask {
             // Wait for the stream to complete or for a control message to be received.
             tokio::select! {
                 res = stream.as_mut().unwrap() => {
+                    match res {
+                        Ok(_) => {
+                            self.config.metrics.cur_retry_count.set(0);
+                            current_wait = Duration::ZERO;
+                        }
+                        Err(e) => {
+                            current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait)?;
+                        }
+                    }
 
                     stream = None;
 
-                    // If the stream was healthy for sufficiently long, or the stream completed successfully, reset the
-                    // wait time used for exponential backoff.
-                    if stream_created_at.elapsed() > self.config.recovery_config.retry_policy.max_backoff * 2 || res.is_ok() {
-                        current_wait = Duration::ZERO;
-                        self.config.metrics.cur_retry_count.set(0);
-                    } else {
-                        current_wait = self.config.recovery_config.retry_policy.backoff(current_wait);
-                        self.config.metrics.cur_retry_count.add(1);
-                    }
-
-                    match res {
-                        Ok(_) => {
-                            #[cfg(feature = "tracing")]
-                            tracing::info!(
-                                sift_stream_id = self.config.sift_stream_id.to_string(),
-                                "checkpoint succeeded - data streamed to Sift successfully"
-                            );
-                        }
-                        Err(e) => {
-                            #[cfg(feature = "tracing")]
-                            tracing::error!(
-                                sift_stream_id = self.config.sift_stream_id.to_string(),
-                                retry_counter = self.config.metrics.cur_retry_count.get(),
-                                error = %e,
-                                "checkpoint failed - failed to ingest data to Sift - backup files will be re-ingested"
-                            );
-
-                            self.config.metrics.checkpoint.failed_checkpoint_count.increment();
-                            self.control_tx.send(ControlMessage::CheckpointNeedsReingestion).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
-                        }
-                    }
-
-                    // If the data channel has been closed, exit the loop to begin the shutdown process.
-                    // The data channel is closed when SiftStream is dropped or is finished.
                     if self.data_rx.is_closed() {
                         break;
                     }
@@ -309,9 +285,37 @@ impl IngestionTask {
                         "checkpoint expired"
                     );
 
-                    stream = None;
+                    // Signal the next checkpoint to the data stream.
+                    self.control_tx.send(ControlMessage::SignalNextCheckpoint).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
                     self.config.metrics.checkpoint.checkpoint_timer_reached_cnt.increment();
+
+                    // Timeout if Sift doesn't respond to the checkpoint signal quickly.
+                    match tokio::time::timeout(CHECKPOINT_TIMEOUT, stream.as_mut().unwrap()).await {
+                        Ok(Ok(_)) => {
+                            #[cfg(feature = "tracing")]
+                            tracing::info!(
+                                sift_stream_id = self.config.sift_stream_id.to_string(),
+                                "checkpoint succeeded - data streamed to Sift successfully"
+                            );
+                            self.config.metrics.cur_retry_count.set(0);
+                        }
+                        Ok(Err(e)) => {
+                            current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait)?;
+                        }
+                        Err(elapsed) => {
+                            #[cfg(feature = "tracing")]
+                            tracing::error!(
+                                sift_stream_id = self.config.sift_stream_id.to_string(),
+                                error = %elapsed,
+                                "timed out waiting for checkpoint completion from Sift"
+                            );
+                            current_wait = self.handle_failed_stream(&Error::new(ErrorKind::StreamError, elapsed), stream_created_at, current_wait)?;
+                        }
+                    }
+
+                    self.config.metrics.checkpoint.next_checkpoint();
                     self.control_tx.send(ControlMessage::CheckpointComplete).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
+                    stream = None;
                 }
                 ctrl_msg = self.control_rx.recv() => {
                     match ctrl_msg {
@@ -322,13 +326,9 @@ impl IngestionTask {
                                 "backup full"
                             );
 
-                            // Since the backup files are full, we need to flush them now.
-                            // Reset the timer to start a new checkpoint interval starting `now`.
-                            timer.reset();
-
-                            stream = None;
+                            // Reset the timer to expire immediately to start a new checkpoint since backups are full.
                             self.config.metrics.checkpoint.checkpoint_manually_reached_cnt.increment();
-                            self.control_tx.send(ControlMessage::CheckpointComplete).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
+                            timer.reset_immediately();
                         }
                         Ok(ControlMessage::Shutdown) => {
                             break;
@@ -342,6 +342,47 @@ impl IngestionTask {
         self.shutdown(stream).await?;
 
         Ok(())
+    }
+
+    /// Handle a failed stream operation, sending the re-ingest signal and logging the error and incrementing metrics.
+    fn handle_failed_stream(
+        &mut self,
+        e: &Error,
+        stream_created_at: Instant,
+        current_wait: Duration,
+    ) -> Result<Duration> {
+        #[cfg(feature = "tracing")]
+        tracing::error!(
+            sift_stream_id = self.config.sift_stream_id.to_string(),
+            retry_counter = self.config.metrics.cur_retry_count.get(),
+            error = %e,
+            "stream failed - failed to ingest data to Sift - if backups are enabled, backup files will be re-ingested"
+        );
+
+        self.config
+            .metrics
+            .checkpoint
+            .failed_checkpoint_count
+            .increment();
+        self.control_tx
+            .send(ControlMessage::CheckpointNeedsReingestion)
+            .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
+
+        // If the stream was healthy for sufficiently long, reset the wait time used for exponential backoff.
+        let backoff = if stream_created_at.elapsed()
+            > self.config.recovery_config.retry_policy.max_backoff * 2
+        {
+            self.config.metrics.cur_retry_count.set(0);
+            Duration::ZERO
+        } else {
+            self.config.metrics.cur_retry_count.add(1);
+            self.config
+                .recovery_config
+                .retry_policy
+                .backoff(current_wait)
+        };
+
+        Ok(backoff)
     }
 
     /// Shuts down the ingestion task by awaiting the stream one last time and sending the final checkpoint complete signal to the backup manager.
@@ -373,6 +414,9 @@ impl IngestionTask {
                         error = %e,
                         "final stream failed"
                     );
+                    self.control_tx
+                        .send(ControlMessage::CheckpointNeedsReingestion)
+                        .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
                 }
             }
         }
@@ -522,10 +566,8 @@ mod tests {
         data_tx.close();
 
         // Wait for the ingestion task to complete.
-        assert!(
-            handle.await.is_ok(),
-            "ingestion task should complete successfully"
-        );
+        let res = tokio::time::timeout(Duration::from_secs(10), handle).await;
+        assert!(res.is_ok(), "ingestion task should complete successfully");
 
         // Verify graceful shutdown drained the data channel and sent the final checkpoint complete message.
         assert!(data_tx.is_empty(), "data channel should be empty");
@@ -685,11 +727,12 @@ mod tests {
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
+        let checkpoint_interval = Duration::from_millis(100);
         let config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
             grpc_channel,
             metrics: metrics.clone(),
-            checkpoint_interval: Duration::from_secs(60),
+            checkpoint_interval,
             control_channel_capacity: 128,
             data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
@@ -716,8 +759,9 @@ mod tests {
         // Wait for the ingestion task to drain the data channel.
         let handle = tokio::spawn(async move { ingestion_task.run().await });
 
-        // Send some messages for ingestion.
+        // Send some messages for ingestion in a few batches, separated by a checkpoint interval.
         send_messages_for_ingestion(&data_tx, 10).await;
+        tokio::time::sleep(checkpoint_interval).await;
 
         // Close the data channel and send the shutdown message.
         data_tx.close();
@@ -727,10 +771,8 @@ mod tests {
         );
 
         // Wait for the ingestion task to complete.
-        assert!(
-            handle.await.is_ok(),
-            "ingestion task should complete successfully"
-        );
+        let res = tokio::time::timeout(Duration::from_secs(10), handle).await;
+        assert!(res.is_ok(), "ingestion task should complete successfully");
 
         // The messages are sent in a batch, so no messages are expected to be captured.
         let captured = mock_service.get_captured_data();
@@ -753,8 +795,8 @@ mod tests {
         );
         assert_eq!(
             metrics.cur_retry_count.get(),
-            4,
-            "should have retried the checkpoint 4 times"
+            0,
+            "success after the intentional errors should reset the retry count"
         );
 
         // Each gRPC call failure should trigger a checkpoint reingestion control message.
@@ -894,11 +936,6 @@ mod tests {
             "ingestion task should complete successfully"
         );
 
-        assert_eq!(
-            metrics.checkpoint.checkpoint_timer_reached_cnt.get(),
-            0,
-            "should have reached the checkpoint timer 0 times"
-        );
         assert_eq!(
             metrics.checkpoint.checkpoint_manually_reached_cnt.get(),
             1,
