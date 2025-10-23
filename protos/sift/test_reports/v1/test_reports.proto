@@ -53,6 +53,9 @@ message TestReport {
 
   // Whether the test run is archived (externally exposed)
   bool is_archived = 13 [(google.api.field_behavior) = OPTIONAL];
+
+  // The run ID for the test run
+  string run_id = 14 [(google.api.field_behavior) = OPTIONAL];
 }
 
 enum TestStatus {
@@ -415,7 +418,7 @@ message ListTestReportsRequest {
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
   // Available fields to filter by are `test_report_id`, `status`, `name`, `test_system_name`,
   // `test_case`, `start_time`, `end_time`, `serial_number`, `created_by_user_id`, `modified_by_user_id`,
-  // `part_number`, `system_operator`, `archived_date`, and `metadata`.
+  // `part_number`, `system_operator`, `run_id`, `archived_date`, and `metadata`.
   // Metadata can be used in filters by using `metadata.{metadata_key_name}` as the field name.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   // For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/test-results#testreport). Optional.
@@ -446,7 +449,7 @@ message UpdateTestReportRequest {
 
   // The field mask specifying which fields to update. The fields available to be updated are
   // `status`, `name`, `test_system_name`, `test_case`, `start_time`, `end_time`, `serial_number`,
-  // `part_number`, `system_operator`, and `is_archived`.
+  // `part_number`, `system_operator`, `run_id`, and `is_archived`.
   google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
 }
 

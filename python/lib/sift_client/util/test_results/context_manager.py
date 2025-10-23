@@ -18,7 +18,6 @@ from sift_client.sift_types.test_report import (
     TestStepType,
 )
 from sift_client.util.test_results.bounds import (
-    assign_value_to_measurement,
     evaluate_measurement_bounds,
 )
 

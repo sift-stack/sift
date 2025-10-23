@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
-import sys
-import pytest
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+import pytest
+
 from sift_client.util.test_results import ReportContext
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
-# TODO FIGURE OUT HOW TO EXPORT THIS BETTER
 @pytest.fixture(scope="session", autouse=True)
 def report_context(sift_client: SiftClient, request: pytest.FixtureRequest) -> ReportContext:
     """Create a report context for the session."""
@@ -34,9 +34,7 @@ def report_context(sift_client: SiftClient, request: pytest.FixtureRequest) -> R
 def step(report_context: ReportContext, request: pytest.FixtureRequest):
     """Create an outer step for the function."""
     name = str(request.node.name)
-    print("Step fixture: function name in step", name)
     with report_context.new_step(name=name) as new_step:
-        print("Step fixture: step", new_step)
         yield new_step
 
 

@@ -69,101 +69,6 @@ class TestMeasurementType(Enum):
     LIMIT = 5
 
 
-class TestReportBase(ModelCreateUpdateBase):
-    """Base model for TestReportUpdate and TestReportCreate. Contains shared fields for all test reports. Update and create models differ mostly in what fields are required vs optional."""
-
-    status: TestStatus | None = None
-    metadata: dict[str, str | float | bool] | None = None
-    serial_number: str | None = None
-    part_number: str | None = None
-    system_operator: str | None = None
-
-    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
-        "metadata": MappingHelper(
-            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
-        ),
-    }
-
-    def _get_proto_class(self) -> type[TestReportProto]:
-        return TestReportProto
-
-
-class TestReportUpdate(TestReportBase, ModelUpdate[TestReportProto]):
-    """Update model for TestReport."""
-
-    name: str | None = None
-    test_system_name: str | None = None
-    test_case: str | None = None
-    start_time: datetime | None = None
-    end_time: datetime | None = None
-
-    is_archived: bool | None = None
-
-    def _add_resource_id_to_proto(self, proto_msg: TestReportProto):
-        if self._resource_id is None:
-            raise ValueError("Resource ID must be set before adding to proto")
-        proto_msg.test_report_id = self._resource_id
-
-
-class TestReportCreate(TestReportBase, ModelCreate[TestReportProto]):
-    """Create model for TestReport."""
-
-    name: str
-    test_system_name: str
-    test_case: str
-    start_time: datetime
-    end_time: datetime
-
-    def to_proto(self) -> TestReportProto:
-        """Convert to protobuf message with custom logic."""
-        proto = TestReportProto(
-            status=self.status.value,  # type: ignore
-            name=self.name,
-            test_system_name=self.test_system_name,
-            test_case=self.test_case,
-            metadata=metadata_dict_to_proto(self.metadata) if self.metadata else {},
-            is_archived=False,
-        )
-
-        proto.start_time.FromDatetime(self.start_time)
-        proto.end_time.FromDatetime(self.end_time)
-
-        if self.serial_number:
-            proto.serial_number = self.serial_number
-
-        if self.part_number:
-            proto.part_number = self.part_number
-
-        if self.system_operator:
-            proto.system_operator = self.system_operator
-
-        return proto
-
-
-class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
-    """ErrorInfo model representing error information in a test step."""
-
-    error_code: int
-    error_message: str
-
-    @classmethod
-    def _from_proto(cls, proto: ErrorInfoProto, sift_client: SiftClient | None = None) -> ErrorInfo:
-        return cls(
-            proto=proto,
-            id_=None,
-            error_code=proto.error_code,
-            error_message=proto.error_message,
-            _client=sift_client,
-        )
-
-    def _to_proto(self) -> ErrorInfoProto:
-        """Convert to protobuf message."""
-        return ErrorInfoProto(
-            error_code=self.error_code,
-            error_message=self.error_message,
-        )
-
-
 class TestStepBase(ModelCreateUpdateBase):
     """Base model for TestStepUpdate and TestStepCreate. Contains shared fields for all test steps. Update and create models differ mostly in what fields are required vs optional."""
 
@@ -510,6 +415,102 @@ class TestMeasurement(BaseType[TestMeasurementProto, "TestMeasurement"]):
         )
         self._update(updated_test_measurement)
         return self
+
+
+class TestReportBase(ModelCreateUpdateBase):
+    """Base model for TestReportUpdate and TestReportCreate. Contains shared fields for all test reports. Update and create models differ mostly in what fields are required vs optional."""
+
+    status: TestStatus | None = None
+    metadata: dict[str, str | float | bool] | None = None
+    serial_number: str | None = None
+    part_number: str | None = None
+    system_operator: str | None = None
+    run_id: str | None = None
+
+    _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {
+        "metadata": MappingHelper(
+            proto_attr_path="metadata", update_field="metadata", converter=metadata_dict_to_proto
+        ),
+    }
+
+    def _get_proto_class(self) -> type[TestReportProto]:
+        return TestReportProto
+
+
+class TestReportUpdate(TestReportBase, ModelUpdate[TestReportProto]):
+    """Update model for TestReport."""
+
+    name: str | None = None
+    test_system_name: str | None = None
+    test_case: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+
+    is_archived: bool | None = None
+
+    def _add_resource_id_to_proto(self, proto_msg: TestReportProto):
+        if self._resource_id is None:
+            raise ValueError("Resource ID must be set before adding to proto")
+        proto_msg.test_report_id = self._resource_id
+
+
+class TestReportCreate(TestReportBase, ModelCreate[TestReportProto]):
+    """Create model for TestReport."""
+
+    name: str
+    test_system_name: str
+    test_case: str
+    start_time: datetime
+    end_time: datetime
+
+    def to_proto(self) -> TestReportProto:
+        """Convert to protobuf message with custom logic."""
+        proto = TestReportProto(
+            status=self.status.value,  # type: ignore
+            name=self.name,
+            test_system_name=self.test_system_name,
+            test_case=self.test_case,
+            metadata=metadata_dict_to_proto(self.metadata) if self.metadata else {},
+            is_archived=False,
+        )
+
+        proto.start_time.FromDatetime(self.start_time)
+        proto.end_time.FromDatetime(self.end_time)
+
+        if self.serial_number:
+            proto.serial_number = self.serial_number
+
+        if self.part_number:
+            proto.part_number = self.part_number
+
+        if self.system_operator:
+            proto.system_operator = self.system_operator
+
+        return proto
+
+
+class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
+    """ErrorInfo model representing error information in a test step."""
+
+    error_code: int
+    error_message: str
+
+    @classmethod
+    def _from_proto(cls, proto: ErrorInfoProto, sift_client: SiftClient | None = None) -> ErrorInfo:
+        return cls(
+            proto=proto,
+            id_=None,
+            error_code=proto.error_code,
+            error_message=proto.error_message,
+            _client=sift_client,
+        )
+
+    def _to_proto(self) -> ErrorInfoProto:
+        """Convert to protobuf message."""
+        return ErrorInfoProto(
+            error_code=self.error_code,
+            error_message=self.error_message,
+        )
 
 
 class TestReport(BaseType[TestReportProto, "TestReport"]):
