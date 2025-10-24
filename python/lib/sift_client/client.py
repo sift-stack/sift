@@ -97,7 +97,7 @@ class SiftClient(
 
     tags: TagsAPI
     """Instance of the Tags API for making synchronous requests."""
-    test_results: TestResultsAPI
+    test_results: TestResultsAPI = None
     """Instance of the Test Results API for making synchronous requests."""
 
     async_: AsyncAPIs

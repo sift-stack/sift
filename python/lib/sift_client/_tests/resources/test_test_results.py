@@ -38,8 +38,7 @@ class TestResultsTest:
     test_steps: ClassVar[dict[str, TestStep]] = {}
     test_measurements: ClassVar[dict[str, TestMeasurement]] = {}
 
-    def test_create_test_report(self, sift_client, step, nostromo_run):
-        print("STEP", step)
+    def test_create_test_report(self, sift_client, nostromo_run):
         # Create a test report
         simulated_time = datetime.now(timezone.utc)
         test_report = sift_client.test_results.create(
@@ -56,13 +55,8 @@ class TestResultsTest:
         assert test_report.id_ is not None
         assert test_report.run_id == nostromo_run.id_
         self.test_reports["basic_test_report"] = test_report
-        step.measure(name="test_report_created", value=True)
-        with step.substep(name="nested step") as nested_step:
-            nested_step.measure(name="nested_step_created", value=True)
-            with nested_step.substep(name="nested nested step") as nested_nested_step:
-                nested_nested_step.measure(name="nested_nested_step_created", value=True)
 
-    def test_create_test_steps(self, sift_client, step):
+    def test_create_test_steps(self, sift_client):
         test_report = self.test_reports.get("basic_test_report")
         if not test_report:
             pytest.skip("Need to create a test report first")
@@ -82,7 +76,6 @@ class TestResultsTest:
             ),
         )
         simulated_time = simulated_time + timedelta(seconds=10.1)
-        step.measure(name="step1_created", value=True)
         # Create a step using a dict
         step1_1 = sift_client.test_results.create_step(
             {
