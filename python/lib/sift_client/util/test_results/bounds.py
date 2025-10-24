@@ -4,6 +4,7 @@ from sift_client.sift_types.test_report import (
     NumericBounds,
     TestMeasurement,
     TestMeasurementCreate,
+    TestMeasurementType,
     TestMeasurementUpdate,
 )
 
@@ -13,12 +14,15 @@ def assign_value_to_measurement(
     value: float | str | bool,
 ) -> None:
     """Assign the resolved value type to a measurement."""
-    if isinstance(value, float):
-        measurement.numeric_value = value
+    if isinstance(value, bool):
+        measurement.boolean_value = value
+        measurement.measurement_type = TestMeasurementType.BOOLEAN
+    elif isinstance(value, float) or isinstance(value, int):
+        measurement.numeric_value = float(value)
+        measurement.measurement_type = TestMeasurementType.DOUBLE
     elif isinstance(value, str):
         measurement.string_value = value
-    elif isinstance(value, bool):
-        measurement.boolean_value = value
+        measurement.measurement_type = TestMeasurementType.STRING
     else:
         raise ValueError("Invalid value type")
 
@@ -52,6 +56,7 @@ def evaluate_measurement_bounds(
                 measurement.passed = value == bounds
         elif isinstance(bounds, NumericBounds):
             measurement.numeric_bounds = bounds
+            measurement.passed = True
             float_value = float(value)
             if measurement.numeric_bounds.min is not None:
                 measurement.passed = (

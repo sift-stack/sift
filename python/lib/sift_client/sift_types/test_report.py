@@ -5,6 +5,9 @@ from enum import Enum
 from typing import TYPE_CHECKING, ClassVar
 
 from sift.test_reports.v1.test_reports_pb2 import (
+    CreateTestReportRequest as CreateTestReportRequestProto,
+)
+from sift.test_reports.v1.test_reports_pb2 import (
     ErrorInfo as ErrorInfoProto,
 )
 from sift.test_reports.v1.test_reports_pb2 import (
@@ -454,7 +457,7 @@ class TestReportUpdate(TestReportBase, ModelUpdate[TestReportProto]):
         proto_msg.test_report_id = self._resource_id
 
 
-class TestReportCreate(TestReportBase, ModelCreate[TestReportProto]):
+class TestReportCreate(TestReportBase, ModelCreate[CreateTestReportRequestProto]):
     """Create model for TestReport."""
 
     name: str
@@ -463,28 +466,22 @@ class TestReportCreate(TestReportBase, ModelCreate[TestReportProto]):
     start_time: datetime
     end_time: datetime
 
-    def to_proto(self) -> TestReportProto:
+    def to_proto(self) -> CreateTestReportRequestProto:
         """Convert to protobuf message with custom logic."""
-        proto = TestReportProto(
+        proto = CreateTestReportRequestProto(
             status=self.status.value,  # type: ignore
             name=self.name,
             test_system_name=self.test_system_name,
             test_case=self.test_case,
+            serial_number=self.serial_number,
+            part_number=self.part_number,
+            system_operator=self.system_operator,
+            run_id=self.run_id,
             metadata=metadata_dict_to_proto(self.metadata) if self.metadata else {},
-            is_archived=False,
         )
 
         proto.start_time.FromDatetime(self.start_time)
         proto.end_time.FromDatetime(self.end_time)
-
-        if self.serial_number:
-            proto.serial_number = self.serial_number
-
-        if self.part_number:
-            proto.part_number = self.part_number
-
-        if self.system_operator:
-            proto.system_operator = self.system_operator
 
         return proto
 
@@ -526,6 +523,7 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
     serial_number: str | None = None
     part_number: str | None = None
     system_operator: str | None = None
+    run_id: str | None = None
     archived_date: datetime | None = None
     is_archived: bool
 
@@ -546,6 +544,7 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
             serial_number=proto.serial_number if proto.serial_number else None,
             part_number=proto.part_number if proto.part_number else None,
             system_operator=proto.system_operator if proto.system_operator else None,
+            run_id=proto.run_id if proto.run_id else None,
             archived_date=proto.archived_date.ToDatetime(tzinfo=timezone.utc)
             if proto.HasField("archived_date")
             else None,
@@ -576,6 +575,9 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
 
         if self.system_operator:
             proto.system_operator = self.system_operator
+
+        if self.run_id:
+            proto.run_id = self.run_id
 
         if self.archived_date:
             proto.archived_date.FromDatetime(self.archived_date)

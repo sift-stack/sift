@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import socket
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar
@@ -24,13 +23,7 @@ from sift_client.sift_types.test_report import (
     TestStepType,
 )
 
-# from sift_client.util.test_results.pytest import report_context, step
-from sift_client.util.test_results.context_manager import NewStep  # noqa: F401
-
 pytestmark = pytest.mark.integration
-
-case_name = Path(__file__).stem
-test_system_name = socket.gethostname()
 
 
 def test_client_binding(sift_client):
@@ -45,7 +38,7 @@ class TestResultsTest:
     test_steps: ClassVar[dict[str, TestStep]] = {}
     test_measurements: ClassVar[dict[str, TestMeasurement]] = {}
 
-    def test_create_test_report(self, sift_client, step):
+    def test_create_test_report(self, sift_client, step, nostromo_run):
         print("STEP", step)
         # Create a test report
         simulated_time = datetime.now(timezone.utc)
@@ -57,9 +50,11 @@ class TestResultsTest:
                 "test_case": "Test Case",
                 "start_time": simulated_time,
                 "end_time": simulated_time,
+                "run_id": nostromo_run.id_,
             },
         )
         assert test_report.id_ is not None
+        assert test_report.run_id == nostromo_run.id_
         self.test_reports["basic_test_report"] = test_report
         step.measure(name="test_report_created", value=True)
         with step.substep(name="nested step") as nested_step:
@@ -301,6 +296,7 @@ class TestResultsTest:
                     "automated": True,
                 },
                 end_time=new_end_time,
+                run_id="",
             ),
         )
 
@@ -316,6 +312,7 @@ class TestResultsTest:
         }
         assert updated_report.status == TestStatus.FAILED
         assert updated_report.end_time == new_end_time
+        assert updated_report.run_id is None
 
         self.test_reports["basic_test_report"] = updated_report
 

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from sift_client.sift_types.test_report import (
+    ErrorInfo,
     NumericBounds,
     TestMeasurementCreate,
     TestReport,
@@ -69,7 +70,6 @@ class ReportContext:
         Returns:
             The new report context.
         """
-        print(f"Creating new report context: {name} {test_system_name} {test_case}")
         test_case = test_case if test_case else os.path.basename(__file__)
         test_system_name = test_system_name if test_system_name else socket.gethostname()
         system_operator = system_operator if system_operator else getpass.getuser()
@@ -126,12 +126,17 @@ class ReportContext:
         return step
 
     def resolve_and_propagate_step_result(
-        self, step: TestStep, parent_step: TestStep | None = None
+        self,
+        step: TestStep,
+        parent_step: TestStep | None = None,
+        error_info: ErrorInfo | None = None,
     ) -> bool:
         """Resolve the result of a step and propagate the result to the parent step if it failed."""
         result = self.open_step_results.get(step.step_path, True)
+        if error_info:
+            result = False
         if step.status != TestStatus.IN_PROGRESS:
-            # The step was not manually completed so use that.
+            # The step was manually completed so use that result.
             result = step.status == TestStatus.PASSED
 
         # Update the parent step results if this step failed (true by default so no need to do anything if we didn't fail).
@@ -140,14 +145,13 @@ class ReportContext:
             if parent_step:
                 self.open_step_results[parent_step.step_path] = False
 
-        # Cleanup the open step results for this step.
-        self.open_step_results.pop(step.step_path)
         return result
 
     def exit_step(self, step: TestStep):
         """Exit a step and update the report context."""
         self.step_number_at_depth[len(self.step_stack)] = 0
         stack_top = self.step_stack.pop()
+        self.open_step_results.pop(step.step_path)
 
         if stack_top.id_ != step.id_:
             raise ValueError(
@@ -188,32 +192,39 @@ class NewStep(AbstractContextManager):
 
         returns: The current step.
         """
-        print(f"Creating step {self.name} for report {self.report_context.report.id_}")
         self.current_step = self.report_context.create_step(self.name, self.description)
         self.name = self.current_step.name
 
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc, exc_value, traceback):
+        error_info = None
+        if exc:
+            error_info = ErrorInfo(
+                error_code=1,
+                error_message=str(exc_value),
+            )
+            print("Captured exception: ", exc_value)
+            print("error info: ", error_info)
         result = self.report_context.resolve_and_propagate_step_result(
-            self.current_step, self.parent_step
+            self.current_step, self.parent_step, error_info
         )
 
         # Mark the step as completed
+        status = TestStatus.PASSED if result else TestStatus.FAILED
+        if error_info:
+            status = TestStatus.ERROR
         self.current_step.update(
             {
-                "status": TestStatus.PASSED if result else TestStatus.FAILED,
+                "status": status,
                 "end_time": datetime.now(timezone.utc),
+                "error_info": error_info,
             }
-        )
-        print(
-            "Leaving step",
-            self.current_step.step_path,
-            self.current_step.name,
-            self.current_step.test_report_id,
         )
         # Update the last step to the parent.
         self.report_context.exit_step(self.current_step)
+
+        return True
 
     def measure(
         self,

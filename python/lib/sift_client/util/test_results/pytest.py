@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
 
 if TYPE_CHECKING:
@@ -26,7 +27,9 @@ def report_context(sift_client: SiftClient, request: pytest.FixtureRequest) -> R
         "end_time": datetime.now(timezone.utc),
     }
     if context.any_failures:
-        update["status"] = 3  # TestStatus.FAILED
+        update["status"] = TestStatus.FAILED
+    else:
+        update["status"] = TestStatus.PASSED
     context.report.update(update)
 
 

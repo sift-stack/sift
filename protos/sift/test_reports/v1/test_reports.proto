@@ -381,6 +381,9 @@ message CreateTestReportRequest {
 
   // Unique identifier for user owner
   string system_operator = 10 [(google.api.field_behavior) = OPTIONAL];
+
+  // The run ID for the test report
+  string run_id = 11 [(google.api.field_behavior) = OPTIONAL];
 }
 
 // Response message for CreateTestReport

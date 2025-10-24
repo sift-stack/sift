@@ -413,6 +413,7 @@ class CreateTestReportRequest(google.protobuf.message.Message):
     SERIAL_NUMBER_FIELD_NUMBER: builtins.int
     PART_NUMBER_FIELD_NUMBER: builtins.int
     SYSTEM_OPERATOR_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
     status: global___TestStatus.ValueType
     """The status of the test run"""
     name: builtins.str
@@ -427,6 +428,8 @@ class CreateTestReportRequest(google.protobuf.message.Message):
     """The part number for the DUT"""
     system_operator: builtins.str
     """Unique identifier for user owner"""
+    run_id: builtins.str
+    """The run ID for the test report"""
     @property
     def start_time(self) -> google.protobuf.timestamp_pb2.Timestamp:
         """The start time of the test run"""
@@ -452,9 +455,10 @@ class CreateTestReportRequest(google.protobuf.message.Message):
         serial_number: builtins.str = ...,
         part_number: builtins.str = ...,
         system_operator: builtins.str = ...,
+        run_id: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["end_time", b"end_time", "start_time", b"start_time"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["end_time", b"end_time", "metadata", b"metadata", "name", b"name", "part_number", b"part_number", "serial_number", b"serial_number", "start_time", b"start_time", "status", b"status", "system_operator", b"system_operator", "test_case", b"test_case", "test_system_name", b"test_system_name"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["end_time", b"end_time", "metadata", b"metadata", "name", b"name", "part_number", b"part_number", "run_id", b"run_id", "serial_number", b"serial_number", "start_time", b"start_time", "status", b"status", "system_operator", b"system_operator", "test_case", b"test_case", "test_system_name", b"test_system_name"]) -> None: ...
 
 global___CreateTestReportRequest = CreateTestReportRequest
 
