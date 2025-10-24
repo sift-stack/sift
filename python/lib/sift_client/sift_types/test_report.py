@@ -436,9 +436,6 @@ class TestReportBase(ModelCreateUpdateBase):
         ),
     }
 
-    def _get_proto_class(self) -> type[TestReportProto]:
-        return TestReportProto
-
 
 class TestReportUpdate(TestReportBase, ModelUpdate[TestReportProto]):
     """Update model for TestReport."""
@@ -450,6 +447,9 @@ class TestReportUpdate(TestReportBase, ModelUpdate[TestReportProto]):
     end_time: datetime | None = None
 
     is_archived: bool | None = None
+
+    def _get_proto_class(self) -> type[TestReportProto]:
+        return TestReportProto
 
     def _add_resource_id_to_proto(self, proto_msg: TestReportProto):
         if self._resource_id is None:
@@ -466,17 +466,20 @@ class TestReportCreate(TestReportBase, ModelCreate[CreateTestReportRequestProto]
     start_time: datetime
     end_time: datetime
 
+    def _get_proto_class(self) -> type[CreateTestReportRequestProto]:
+        return CreateTestReportRequestProto
+
     def to_proto(self) -> CreateTestReportRequestProto:
         """Convert to protobuf message with custom logic."""
         proto = CreateTestReportRequestProto(
             status=self.status.value,  # type: ignore
-            name=self.name,
-            test_system_name=self.test_system_name,
-            test_case=self.test_case,
-            serial_number=self.serial_number,
-            part_number=self.part_number,
-            system_operator=self.system_operator,
-            run_id=self.run_id,
+            name=self.name or "",
+            test_system_name=self.test_system_name or "",
+            test_case=self.test_case or "",
+            serial_number=self.serial_number or "",
+            part_number=self.part_number or "",
+            system_operator=self.system_operator or "",
+            run_id=self.run_id if self.run_id else "",
             metadata=metadata_dict_to_proto(self.metadata) if self.metadata else {},
         )
 

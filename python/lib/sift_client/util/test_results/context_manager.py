@@ -3,6 +3,7 @@ from __future__ import annotations
 import getpass
 import os
 import socket
+import traceback
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
@@ -10,6 +11,7 @@ from typing import TYPE_CHECKING
 from sift_client.sift_types.test_report import (
     ErrorInfo,
     NumericBounds,
+    TestMeasurement,
     TestMeasurementCreate,
     TestReport,
     TestReportCreate,
@@ -107,7 +109,7 @@ class ReportContext(AbstractContextManager):
 
         step = self.report.client.test_results.create_step(
             TestStepCreate(
-                test_report_id=self.report.id_,
+                test_report_id=str(self.report.id_),
                 name=name,
                 step_type=TestStepType.ACTION,
                 step_path=step_path,
@@ -127,6 +129,13 @@ class ReportContext(AbstractContextManager):
         self.open_step_results[step.step_path] = True
 
         return step
+
+    def report_measurement(self, measurement: TestMeasurement, step: TestStep):
+        """Report a failure to the report context."""
+        # Failures will be propogated when the step exits.
+        if not measurement.passed:
+            self.open_step_results[step.step_path] = False
+            self.any_failures = True
 
     def resolve_and_propagate_step_result(
         self,
@@ -200,15 +209,16 @@ class NewStep(AbstractContextManager):
 
         return self
 
-    def __exit__(self, exc, exc_value, traceback):
+    def __exit__(self, exc, exc_value, tb):
         error_info = None
         if exc:
+            trace = "".join(traceback.format_exception(exc, exc_value, tb, limit=10))
             error_info = ErrorInfo(
                 error_code=1,
-                error_message=str(exc_value),
+                error_message=trace,
             )
-            print("Captured exception: ", exc_value)
-            print("error info: ", error_info)
+
+        # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
         result = self.report_context.resolve_and_propagate_step_result(
             self.current_step, self.parent_step, error_info
         )
@@ -224,7 +234,8 @@ class NewStep(AbstractContextManager):
                 "error_info": error_info,
             }
         )
-        # Update the last step to the parent.
+
+        # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
         self.report_context.exit_step(self.current_step)
 
         return True
@@ -240,18 +251,16 @@ class NewStep(AbstractContextManager):
 
         returns: The measurement object.
         """
+        assert self.current_step is not None
         create = TestMeasurementCreate(
-            test_step_id=self.current_step.id_,
+            test_step_id=str(self.current_step.id_),
             name=name,
             passed=True,
             timestamp=datetime.now(timezone.utc),
         )
         evaluate_measurement_bounds(create, value, bounds)
         measurement = self.client.test_results.create_measurement(create)
-
-        if not create.passed:
-            # Propogate failures to the report context so the step will be marked correctly when it exists context.
-            self.report_context.open_step_results[self.current_step.step_path] = False
+        self.report_context.report_measurement(measurement, self.current_step)
 
         return measurement.passed
 

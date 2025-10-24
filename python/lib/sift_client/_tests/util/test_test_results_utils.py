@@ -134,7 +134,7 @@ class TestContextManager:
             raise Exception("Test Error")
         assert test_step.error_info is not None
         assert test_step.error_info.error_code == 1
-        assert test_step.error_info.error_message == "Test Error"
+        assert "Test Error" in test_step.error_info.error_message
         assert test_step.status == TestStatus.ERROR
         # If the parent step is not marked as failed already, make sure it remains passed at this point.
         if initial_open_step_result:

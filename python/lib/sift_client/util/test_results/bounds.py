@@ -66,4 +66,4 @@ def evaluate_measurement_bounds(
                 measurement.passed = (
                     measurement.passed and measurement.numeric_bounds.max >= float_value
                 )
-    return measurement.passed
+    return bool(measurement.passed)
