@@ -5,7 +5,28 @@ use sift_rs::common::r#type::v1::{ChannelBitFieldElement, ChannelDataType, Chann
 use sift_rs::ingest::v1::ingest_with_config_data_channel_value::Type as ChannelValueType;
 use sift_stream::stream::channel::{ChannelValue, Value};
 
-// Type Definitions
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone)]
+pub struct ChannelValuePy {
+    #[pyo3(get, set)]
+    name: String,
+    #[pyo3(get, set)]
+    value: ValuePy
+}
+
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone)]
+pub struct ChannelEnumPy(pub u32);
+
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone)]
+pub struct ValuePy {
+    inner: Value
+}
+
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
@@ -48,12 +69,7 @@ pub enum ChannelDataTypePy {
     Bytes,
 }
 
-#[gen_stub_pyclass]
-#[pyclass]
-#[derive(Clone)]
-pub struct ChannelValuePy {
-    pub inner: ChannelValue,
-}
+
 
 #[gen_stub_pyclass]
 #[pyclass]
@@ -115,6 +131,15 @@ impl From<ChannelDataTypePy> for ChannelDataType {
 
 impl From<ChannelValuePy> for ChannelValue {
     fn from(value: ChannelValuePy) -> Self {
+        ChannelValue {
+            name: value.name,
+            value: value.value.into()
+        }
+    }
+}
+
+impl From<ValuePy> for Value {
+    fn from(value: ValuePy) -> Self {
         value.inner
     }
 }
@@ -143,6 +168,221 @@ impl From<ChannelValueTypePy> for ChannelValueType {
 }
 
 // PyO3 Method Implementations
+#[gen_stub_pymethods]
+#[pymethods]
+impl ValuePy {
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Bool(value: bool) -> Self {
+        Self {
+            inner: Value::Bool(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn String(value: String) -> Self {
+        Self {
+            inner: Value::String(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Float(value: f32) -> Self {
+        Self {
+            inner: Value::Float(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Double(value: f64) -> Self {
+        Self {
+            inner: Value::Double(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Int32(value: i32) -> Self {
+        Self {
+            inner: Value::Int32(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Int64(value: i64) -> Self {
+        Self {
+            inner: Value::Int64(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Uint32(value: u32) -> Self {
+        Self {
+            inner: Value::Uint32(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Uint64(value: u64) -> Self {
+        Self {
+            inner: Value::Uint64(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn Enum(value: u32) -> Self {
+        Self {
+            inner: Value::Enum(value),
+        }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    pub fn BitField(value: Vec<u8>) -> Self {
+        Self {
+            inner: Value::BitField(value),
+        }
+    }
+
+    pub fn is_bool(&self) -> bool {
+        matches!(self.inner, Value::Bool(_))
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self.inner, Value::String(_))
+    }
+
+    pub fn is_float(&self) -> bool {
+        matches!(self.inner, Value::Float(_))
+    }
+
+    pub fn is_double(&self) -> bool {
+        matches!(self.inner, Value::Double(_))
+    }
+
+    pub fn is_int32(&self) -> bool {
+        matches!(self.inner, Value::Int32(_))
+    }
+
+    pub fn is_int64(&self) -> bool {
+        matches!(self.inner, Value::Int64(_))
+    }
+
+    pub fn is_uint32(&self) -> bool {
+        matches!(self.inner, Value::Uint32(_))
+    }
+
+    pub fn is_uint64(&self) -> bool {
+        matches!(self.inner, Value::Uint64(_))
+    }
+
+    pub fn is_enum(&self) -> bool {
+        matches!(self.inner, Value::Enum(_))
+    }
+
+    pub fn is_bitfield(&self) -> bool {
+        matches!(self.inner, Value::BitField(_))
+    }
+
+    pub fn as_bool(&self) -> PyResult<bool> {
+        match &self.inner {
+            Value::Bool(v) => Ok(*v),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Bool")),
+        }
+    }
+
+    pub fn as_string(&self) -> PyResult<String> {
+        match &self.inner {
+            Value::String(v) => Ok(v.clone()),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a String")),
+        }
+    }
+
+    pub fn as_float(&self) -> PyResult<f32> {
+        match &self.inner {
+            Value::Float(v) => Ok(*v),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Float")),
+        }
+    }
+
+    pub fn as_double(&self) -> PyResult<f64> {
+        match &self.inner {
+            Value::Double(v) => Ok(*v),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Double")),
+        }
+    }
+
+    pub fn as_int32(&self) -> PyResult<i32> {
+        match &self.inner {
+            Value::Int32(v) => Ok(*v),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not an Int32")),
+        }
+    }
+
+    pub fn as_int64(&self) -> PyResult<i64> {
+        match &self.inner {
+            Value::Int64(v) => Ok(*v),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not an Int64")),
+        }
+    }
+
+    pub fn as_uint32(&self) -> PyResult<u32> {
+        match &self.inner {
+            Value::Uint32(v) => Ok(*v),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Uint32")),
+        }
+    }
+
+    pub fn as_uint64(&self) -> PyResult<u64> {
+        match &self.inner {
+            Value::Uint64(v) => Ok(*v),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Uint64")),
+        }
+    }
+
+    pub fn as_enum(&self) -> PyResult<u32> {
+        match &self.inner {
+            Value::Enum(v) => Ok(*v),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not an Enum")),
+        }
+    }
+
+    pub fn as_bitfield(&self) -> PyResult<Vec<u8>> {
+        match &self.inner {
+            Value::BitField(v) => Ok(v.clone()),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a BitField")),
+        }
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl ChannelValuePy {
+    #[new]
+    pub fn new(name: String, value: ValuePy) -> Self {
+        Self {
+            name,
+            value,
+        }
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl ChannelEnumPy {
+    #[new]
+    pub fn new(val: u32) -> Self {
+        Self(val)
+    }
+}
+
 #[gen_stub_pymethods]
 #[pymethods]
 impl ChannelBitFieldElementPy {
@@ -174,110 +414,6 @@ impl ChannelEnumTypePy {
             },
             name: name.to_string(),
             key,
-        }
-    }
-}
-
-#[gen_stub_pymethods]
-#[pymethods]
-impl ChannelValuePy {
-    #[staticmethod]
-    pub fn bool(name: &str, value: bool) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::Bool(value),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn string(name: &str, value: String) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::String(value),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn float(name: &str, value: f32) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::Float(value),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn double(name: &str, value: f64) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::Double(value),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn int32(name: &str, value: i32) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::Int32(value),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn uint32(name: &str, value: u32) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::Uint32(value),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn int64(name: &str, value: i64) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::Int64(value),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn uint64(name: &str, value: u64) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::Uint64(value),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn enum_value(name: &str, value: ChannelEnumTypePy) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::Enum(value.key),
-            },
-        }
-    }
-
-    #[staticmethod]
-    pub fn bitfield(name: &str, value: Vec<u8>) -> Self {
-        Self {
-            inner: ChannelValue {
-                name: name.to_string(),
-                value: Value::BitField(value),
-            },
         }
     }
 }
