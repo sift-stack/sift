@@ -6,6 +6,7 @@ pub mod retry;
 pub mod time;
 
 use crate::stream::channel::ChannelValuePy;
+use crate::stream::config::{FlowConfigPy, RunSelectorPy};
 use crate::stream::time::TimeValuePy;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
@@ -136,6 +137,107 @@ impl SiftStreamPy {
 
         match inner_guard.as_ref() {
             Some(stream) => Ok(stream.get_metrics_snapshot().into()),
+            None => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream was already consumed",
+            )),
+        }
+    }
+
+    pub fn add_new_flows(&mut self, py: Python, flow_configs: Vec<FlowConfigPy>) -> PyResult<Py<PyAny>> {
+        let mut inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        let mut inner = match inner_guard.take() {
+            Some(stream) => stream,
+            None => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream was already consumed",
+                ));
+            }
+        };
+
+        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let configs: Vec<sift_rs::ingestion_configs::v2::FlowConfig> =
+                flow_configs.into_iter().map(|f| f.into()).collect();
+            match inner.add_new_flows(&configs).await {
+                Ok(_) => Ok(SiftStreamPy {
+                    inner: Arc::new(Mutex::new(Some(inner))),
+                }),
+                Err(e) => Err(crate::error::SiftErrorWrapper(e).into()),
+            }
+        })?;
+        Ok(awaitable.into())
+    }
+
+    pub fn attach_run(&mut self, py: Python, run_selector: RunSelectorPy) -> PyResult<Py<PyAny>> {
+        let mut inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        let mut inner = match inner_guard.take() {
+            Some(stream) => stream,
+            None => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream was already consumed",
+                ));
+            }
+        };
+
+        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            match inner.attach_run(run_selector.into()).await {
+                Ok(_) => Ok(SiftStreamPy {
+                    inner: Arc::new(Mutex::new(Some(inner))),
+                }),
+                Err(e) => Err(crate::error::SiftErrorWrapper(e).into()),
+            }
+        })?;
+        Ok(awaitable.into())
+    }
+
+    pub fn detach_run(&mut self) -> PyResult<()> {
+        let mut inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        match inner_guard.as_mut() {
+            Some(stream) => {
+                stream.detach_run();
+                Ok(())
+            }
+            None => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream was already consumed",
+            )),
+        }
+    }
+
+    pub fn run(&self) -> PyResult<Option<String>> {
+        let inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        match inner_guard.as_ref() {
+            Some(stream) => Ok(stream.run().map(|r| r.run_id.clone())),
             None => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
                 "Stream was already consumed",
             )),
