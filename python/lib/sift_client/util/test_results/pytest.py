@@ -20,7 +20,11 @@ def report_context(
     """Create a report context for the session."""
     if client_has_connection:
         test_path = Path(request.config.invocation_params.args[0])
-        base_name = test_path.name if test_path.exists() else " ".join(request.config.invocation_params.args)
+        base_name = (
+            test_path.name
+            if test_path.exists()
+            else " ".join(request.config.invocation_params.args)
+        )
         test_case = test_path if test_path.exists() else base_name
         with ReportContext(
             sift_client,
