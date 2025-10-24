@@ -1,6 +1,8 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
-use sift_stream::{backup::disk::RollingFilePolicy, DiskBackupPolicy, RecoveryStrategy, RetryPolicy};
+use sift_stream::{
+    DiskBackupPolicy, RecoveryStrategy, RetryPolicy, backup::disk::RollingFilePolicy,
+};
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -18,7 +20,7 @@ pub struct DurationPy {
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct RecoveryStrategyPy {
-    inner: RecoveryStrategy
+    inner: RecoveryStrategy,
 }
 
 #[gen_stub_pyclass]
@@ -160,23 +162,28 @@ impl RecoveryStrategyPy {
     #[staticmethod]
     pub fn retry_only(retry_policy: RetryPolicyPy) -> Self {
         Self {
-            inner: RecoveryStrategy::RetryOnly(retry_policy.into())
+            inner: RecoveryStrategy::RetryOnly(retry_policy.into()),
         }
     }
 
     #[staticmethod]
-    pub fn retry_with_backups(retry_policy: RetryPolicyPy, disk_backup_policy: DiskBackupPolicyPy) -> Self {
+    pub fn retry_with_backups(
+        retry_policy: RetryPolicyPy,
+        disk_backup_policy: DiskBackupPolicyPy,
+    ) -> Self {
         Self {
             inner: RecoveryStrategy::RetryWithBackups {
                 retry_policy: retry_policy.into(),
-                disk_backup_policy: disk_backup_policy.into()
-            }
+                disk_backup_policy: disk_backup_policy.into(),
+            },
         }
     }
 
     #[staticmethod]
     pub fn default() -> Self {
-        Self { inner: RecoveryStrategy::default() }
+        Self {
+            inner: RecoveryStrategy::default(),
+        }
     }
 }
 
@@ -204,7 +211,6 @@ impl RetryPolicyPy {
     }
 }
 
-
 #[gen_stub_pymethods]
 #[pymethods]
 impl DiskBackupPolicyPy {
@@ -219,7 +225,7 @@ impl DiskBackupPolicyPy {
             backups_dir,
             max_backup_file_size,
             rolling_file_policy,
-            retain_backups
+            retain_backups,
         }
     }
 
@@ -233,12 +239,8 @@ impl DiskBackupPolicyPy {
 #[pymethods]
 impl RollingFilePolicyPy {
     #[new]
-    pub fn new(
-        max_file_count: Option<usize>,
-    ) -> Self {
-        Self {
-            max_file_count
-        }
+    pub fn new(max_file_count: Option<usize>) -> Self {
+        Self { max_file_count }
     }
 
     #[staticmethod]
