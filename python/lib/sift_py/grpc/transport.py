@@ -15,6 +15,7 @@ import grpc.aio as grpc_aio
 from typing_extensions import NotRequired, TypeAlias
 
 from sift_py.grpc._async_interceptors.base import ClientAsyncInterceptor
+from sift_py.grpc._async_interceptors.caching import CachingAsyncInterceptor
 from sift_py.grpc._async_interceptors.metadata import MetadataAsyncInterceptor
 from sift_py.grpc._interceptors.base import ClientInterceptor
 from sift_py.grpc._interceptors.metadata import Metadata, MetadataInterceptor
@@ -78,7 +79,7 @@ def use_sift_channel(
 
 
 def use_sift_async_channel(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None, cache: Any = None
 ) -> SiftAsyncChannel:
     """
     Like `use_sift_channel` but returns a channel meant to be used within the context
@@ -88,13 +89,13 @@ def use_sift_async_channel(
     cert_via_openssl = config.get("cert_via_openssl", False)
 
     if not use_ssl:
-        return _use_insecure_sift_async_channel(config, metadata)
+        return _use_insecure_sift_async_channel(config, metadata, cache)
 
     return grpc_aio.secure_channel(
         target=_clean_uri(config["uri"], use_ssl),
         credentials=get_ssl_credentials(cert_via_openssl),
         options=_compute_channel_options(config),
-        interceptors=_compute_sift_async_interceptors(config, metadata),
+        interceptors=_compute_sift_async_interceptors(config, metadata, cache),
     )
 
 
@@ -112,7 +113,7 @@ def _use_insecure_sift_channel(
 
 
 def _use_insecure_sift_async_channel(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None, cache: Any = None
 ) -> SiftAsyncChannel:
     """
     FOR DEVELOPMENT PURPOSES ONLY
@@ -120,7 +121,7 @@ def _use_insecure_sift_async_channel(
     return grpc_aio.insecure_channel(
         target=_clean_uri(config["uri"], False),
         options=_compute_channel_options(config),
-        interceptors=_compute_sift_async_interceptors(config, metadata),
+        interceptors=_compute_sift_async_interceptors(config, metadata, cache),
     )
 
 
@@ -130,17 +131,27 @@ def _compute_sift_interceptors(
     """
     Initialized all interceptors here.
     """
-    return [
-        _metadata_interceptor(config, metadata),
-    ]
+    interceptors: List[ClientInterceptor] = []
+
+    # Metadata interceptor should be last to ensure metadata is always added
+    interceptors.append(_metadata_interceptor(config, metadata))
+
+    return interceptors
 
 
 def _compute_sift_async_interceptors(
-    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None
+    config: SiftChannelConfig, metadata: Optional[Dict[str, Any]] = None, cache: Any = None
 ) -> List[grpc_aio.ClientInterceptor]:
-    return [
-        _metadata_async_interceptor(config, metadata),
-    ]
+    interceptors: List[grpc_aio.ClientInterceptor] = []
+
+    # Add caching interceptor if cache instance is provided
+    if cache is not None:
+        interceptors.append(CachingAsyncInterceptor(cache=cache))
+
+    # Metadata interceptor should be last to ensure metadata is always added
+    interceptors.append(_metadata_async_interceptor(config, metadata))
+
+    return interceptors
 
 
 def _compute_channel_options(opts: SiftChannelConfig) -> List[Tuple[str, Any]]:
@@ -229,6 +240,21 @@ def _compute_keep_alive_channel_opts(config: KeepaliveConfig) -> List[Tuple[str,
     ]
 
 
+class SiftCacheConfig(TypedDict):
+    """
+    Configuration for gRPC response caching.
+    - `ttl`: Time-to-live for cached entries in seconds.
+    - `cache_path`: Path to the cache directory.
+    - `size_limit`: Maximum size of the cache in bytes.
+    - `clear_on_init`: Whether to clear the cache on initialization.
+    """
+
+    ttl: int
+    cache_path: str
+    size_limit: int
+    clear_on_init: bool
+
+
 class SiftChannelConfig(TypedDict):
     """
     Config class used to instantiate a `SiftChannel` via `use_sift_channel`.
@@ -241,6 +267,8 @@ class SiftChannelConfig(TypedDict):
     Run `pip install sift-stack-py[openssl]` to install the dependencies required to use this option.
     This works around this issue with grpc loading SSL certificates: https://github.com/grpc/grpc/issues/29682.
     Default is False.
+    - `cache_config`: Optional configuration for response caching. If provided, caching will be enabled.
+    Use metadata flags to control caching on a per-request basis.
     """
 
     uri: str
@@ -248,3 +276,4 @@ class SiftChannelConfig(TypedDict):
     enable_keepalive: NotRequired[Union[bool, KeepaliveConfig]]
     use_ssl: NotRequired[bool]
     cert_via_openssl: NotRequired[bool]
+    cache_config: NotRequired[SiftCacheConfig]
