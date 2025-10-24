@@ -16,10 +16,9 @@ if TYPE_CHECKING:
 @pytest.fixture(scope="session", autouse=True)
 def report_context(
     sift_client: SiftClient, client_has_connection: bool, request: pytest.FixtureRequest
-) -> Generator[ReportContext, None, None]:
+) -> Generator[ReportContext | None, None, None]:
     """Create a report context for the session."""
     if client_has_connection:
-        print("Creating report context", sift_client.test_results)
         test_path = Path(request.config.invocation_params.args[0])
         with ReportContext(
             sift_client,
@@ -28,30 +27,30 @@ def report_context(
         ) as context:
             yield context
     else:
-        yield
+        yield None
 
 
 @pytest.fixture(autouse=True)
 def step(
     report_context: ReportContext, client_has_connection: bool, request: pytest.FixtureRequest
-) -> Generator[NewStep, None, None]:
+) -> Generator[NewStep | None, None, None]:
     """Create an outer step for the function."""
     if client_has_connection:
         name = str(request.node.name)
         with report_context.new_step(name=name) as new_step:
             yield new_step
     else:
-        yield
+        yield None
 
 
 @pytest.fixture(scope="module", autouse=True)
 def module_substep(
     report_context: ReportContext, client_has_connection: bool, request: pytest.FixtureRequest
-) -> Generator[NewStep, None, None]:
+) -> Generator[NewStep | None, None, None]:
     """Create a step per module."""
     if client_has_connection:
         name = str(request.node.name)
         with report_context.new_step(name=name) as new_step:
             yield new_step
     else:
-        yield
+        yield None
