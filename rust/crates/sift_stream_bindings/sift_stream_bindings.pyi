@@ -148,7 +148,7 @@ class FlowPy:
 
 @typing.final
 class IngestWithConfigDataChannelValuePy:
-    r#type: ChannelValueTypePy
+    ty: ChannelValueTypePy
     @staticmethod
     def bool(value:builtins.bool) -> IngestWithConfigDataChannelValuePy: ...
     @staticmethod
