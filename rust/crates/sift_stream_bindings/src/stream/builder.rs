@@ -6,7 +6,7 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{Credentials, SiftStreamBuilder};
 use std::sync::Arc;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 // Type Definitions
 #[gen_stub_pyclass]
