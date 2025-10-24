@@ -24,5 +24,6 @@ pyo3-stub-gen = { version = "0.10.0" }
 sift_rs = { workspace = true }
 sift_stream = { workspace = true, features = ["metrics-unstable"] }
 sift_error = { workspace = true }
+tokio = { version = "1.43.0", features = ["rt", "sync", "time", "macros"] }
 pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
 pbjson-types = { workspace = true }
