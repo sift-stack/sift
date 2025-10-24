@@ -133,6 +133,7 @@ fn init_tracing_with_file(
 #[pymodule]
 fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<sift::metadata::MetadataPy>()?;
+    m.add_class::<sift::metadata::MetadataValuePy>()?;
     m.add_class::<metrics::SiftStreamMetricsSnapshotPy>()?;
     m.add_class::<metrics::CheckpointMetricsSnapshotPy>()?;
     m.add_class::<metrics::BackupMetricsSnapshotPy>()?;

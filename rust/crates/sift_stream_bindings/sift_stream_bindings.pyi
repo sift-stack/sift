@@ -18,6 +18,7 @@ __all__ = [
     "IngestWithConfigDataStreamRequestPy",
     "IngestionConfigFormPy",
     "MetadataPy",
+    "MetadataValuePy",
     "RecoveryStrategyPy",
     "RetryPolicyPy",
     "RollingFilePolicyPy",
@@ -192,7 +193,8 @@ class IngestionConfigFormPy:
 @typing.final
 class MetadataPy:
     key: builtins.str
-    value: MetadataValue
+    value: MetadataValuePy
+    def __new__(cls, key:builtins.str, value:MetadataValuePy) -> MetadataPy: ...
 
 @typing.final
 class RecoveryStrategyPy:
@@ -348,7 +350,18 @@ class ChannelDataTypePy(Enum):
     Uint64 = ...
     Bytes = ...
 
-class MetadataValue(Enum):
+@typing.final
+class MetadataValuePy(Enum):
     String = ...
     Number = ...
     Boolean = ...
+
+    def __new__(cls, obj:typing.Any) -> MetadataValuePy: ...
+
+    def __str__(self) -> builtins.str: ...
+
+    def is_variant_string(self) -> builtins.bool: ...
+
+    def is_variant_number(self) -> builtins.bool: ...
+
+    def is_variant_boolean(self) -> builtins.bool: ...
