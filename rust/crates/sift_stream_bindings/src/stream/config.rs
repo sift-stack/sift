@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
 use sift_stream::{IngestionConfigForm, RunForm};
+use sift_stream::stream::run::RunSelector;
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -63,7 +64,28 @@ pub struct RunFormPy {
     metadata: Option<Vec<MetadataPy>>,
 }
 
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone)]
+pub struct RunSelectorPy {
+    run_id: Option<String>,
+    run_form: Option<RunFormPy>,
+}
+
 // Trait Implementations
+impl From<RunSelectorPy> for RunSelector {
+    fn from(selector: RunSelectorPy) -> Self {
+        if let Some(run_id) = selector.run_id {
+            RunSelector::ById(run_id)
+        } else if let Some(form) = selector.run_form {
+            RunSelector::ByForm(form.into())
+        } else {
+            // This shouldn't happen if constructed correctly
+            panic!("Invalid RunSelectorPy: must have either run_id or run_form")
+        }
+    }
+}
+
 impl IngestionConfigFormPy {
     pub fn to_inner(&self) -> IngestionConfigForm {
         IngestionConfigForm {
@@ -93,6 +115,12 @@ impl From<RunFormPy> for RunForm {
             tags: form.tags,
             metadata,
         }
+    }
+}
+
+impl From<FlowConfigPy> for sift_rs::ingestion_configs::v2::FlowConfig {
+    fn from(config: FlowConfigPy) -> Self {
+        config.inner
     }
 }
 
@@ -176,6 +204,26 @@ impl RunFormPy {
             description: description.map(|s| s.to_string()),
             tags,
             metadata,
+        }
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl RunSelectorPy {
+    #[staticmethod]
+    pub fn by_id(run_id: String) -> Self {
+        Self {
+            run_id: Some(run_id),
+            run_form: None,
+        }
+    }
+
+    #[staticmethod]
+    pub fn by_form(form: RunFormPy) -> Self {
+        Self {
+            run_id: None,
+            run_form: Some(form),
         }
     }
 }

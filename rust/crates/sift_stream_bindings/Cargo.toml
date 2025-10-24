@@ -22,7 +22,7 @@ path = "src/bin/stub_gen.rs"
 pyo3 = { version = "0.25.0" }
 pyo3-stub-gen = { version = "0.10.0" }
 sift_rs = { workspace = true }
-sift_stream = { workspace = true, features = ["dev-pyo3", "metrics-unstable"] }
+sift_stream = { workspace = true, features = ["metrics-unstable"] }
 sift_error = { workspace = true }
 pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
 pbjson-types = { workspace = true }

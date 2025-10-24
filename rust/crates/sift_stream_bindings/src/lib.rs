@@ -1,7 +1,6 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
 
-mod backup;
 mod error;
 mod metrics;
 mod sift;
@@ -29,6 +28,7 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::retry::DiskBackupPolicyPy>()?;
     m.add_class::<stream::retry::RollingFilePolicyPy>()?;
     m.add_class::<stream::config::RunFormPy>()?;
+    m.add_class::<stream::config::RunSelectorPy>()?;
     m.add_class::<stream::time::TimeValuePy>()?;
     m.add_class::<stream::channel::ChannelValuePy>()?;
     m.add_class::<stream::channel::ChannelValueTypePy>()?;
