@@ -75,7 +75,8 @@ error handling, and shutdown processes.
 - Handles checkpoint timing and completion
 
 **Control Messages Sent:**
-- `CheckpointComplete` - When checkpoint timer expires or backup is full
+- `SignalNextCheckpoint` - When a new stream is desired to verify messages sent have been successfully received
+- `CheckpointComplete` - When the current stream has concluded at the end of a checkpoint
 - `CheckpointNeedsReingestion` - When gRPC stream fails
 
 **Control Messages Received:**
@@ -83,9 +84,11 @@ error handling, and shutdown processes.
 - `Shutdown` - Initiates graceful shutdown with final stream completion
 
 **Conditions for Sending Messages:**
-- `CheckpointComplete`: 
+- `SignalNextCheckpoint`: 
   - Timer expires (checkpoint_interval reached)
   - Backup full signal received
+- `CheckpointComplete`:
+  - When the existing stream has completed at the end of a checkpoint
   - During shutdown process
 - `CheckpointNeedsReingestion`: When gRPC stream fails with error
 
@@ -142,6 +145,8 @@ The checkpoint system ensures data reliability by periodically creating checkpoi
 3. **Checkpoint Complete**: `CheckpointComplete` control message sent
 4. **Backup Cleanup**: Backup files either deleted (success) or queued for re-ingestion (failure)
 
+When a stream completes, an "ok" gRPC status from Sift indicates all messages for that stream have been received.
+
 Backup files can also be retained regardless of successful checkpoints and re-ingestion processes.
 
 ### Backup File Management
@@ -171,114 +176,6 @@ The backup system is configured through the `DiskBackupPolicy` with two key para
 failures occur, but increase the overhead of checkpoint management and creating new gRPC streams to Sift.
 
 Generally, the default configuration should be good for most use cases, and is the recommended configuration.
-
-##### Max File Size Considerations
-
-**Smaller Files**:
-- **Pros**: 
-  - Faster re-ingestion when failures occur
-  - Lower memory usage during backup operations
-  - More granular recovery options
-- **Cons**: 
-  - More file I/O operations
-  - Higher checkpoint frequency
-- **Use Case**: Lower throughput applications where checkpoint overhead is not a primary concern
-
-**Larger Files**:
-- **Pros**: 
-  - Fewer file operations
-  - Lower checkpoint overhead
-- **Cons**: 
-  - More data re-ingested on failures
-  - Higher memory usage
-  - Longer recovery times
-- **Use Case**: High-throughput, low-latency applications where checkpoint overhead is a concern
-
-##### Max File Count Considerations
-
-**Lower Count (Recommended)**:
-- **Pros**: 
-  - Forces more frequent checkpoints
-  - Limits storage usage
-  - Reduces re-ingestion volume on failures
-- **Cons**: 
-  - More frequent checkpoint operations
-
-**Higher Count**:
-- **Pros**: 
-  - Fewer checkpoint operations
-  - Better throughput for high-volume applications
-- **Cons**: 
-  - More data at risk during failures
-  - Higher storage requirements
-  - Longer recovery times
-
-#### Re-ingestion Impact Analysis
-
-The backup file configuration directly impacts the cost of failures:
-
-**Example Scenarios**:
-
-1. **Conservative Configuration** (2 files, 1MB each):
-   - Failure impact: ~2MB of data re-ingested
-   - Recovery time: Fast
-   - Storage overhead: Low
-
-2. **Aggressive Configuration** (10 files, 100MB each):
-   - Failure impact: Up to 1GB of data re-ingested
-   - Recovery time: Slow
-   - Storage overhead: High
-
-3. **Balanced Configuration** (5 files, 10MB each):
-   - Failure impact: ~50MB of data re-ingested
-   - Recovery time: Moderate
-   - Storage overhead: Moderate
-
-#### Configuration Guidelines
-
-**For High-Reliability Applications**:
-```rust
-DiskBackupPolicy {
-    max_file_size: 5 * 1024 * 1024,  // 5MB
-    max_file_count: Some(3),          // 3 files max
-    retain_backups: false,            // Clean up on success
-}
-```
-
-**For High-Throughput Applications**:
-```rust
-DiskBackupPolicy {
-    max_file_size: 50 * 1024 * 1024, // 50MB
-    max_file_count: Some(10),         // 10 files max
-    retain_backups: false,            // Clean up on success
-}
-```
-
-**For Development/Testing**:
-```rust
-DiskBackupPolicy {
-    max_file_size: 1024 * 1024,      // 1MB
-    max_file_count: Some(2),          // 2 files max
-    retain_backups: true,             // Keep files for debugging
-}
-```
-
-#### Monitoring Backup File Behavior
-
-Key metrics to monitor for backup file optimization:
-
-- **Checkpoint frequency**: How often checkpoints are triggered
-- **Re-ingestion volume**: Amount of data re-ingested on failures
-- **Storage usage**: Total disk space used by backup files
-- **Recovery time**: Time to recover from failures
-
-#### Best Practices
-
-1. **Start Conservative**: Begin with smaller files and lower counts, then optimize based on observed behavior
-2. **Monitor Re-ingestion**: Track how much data is being re-ingested to optimize file sizes
-3. **Consider Network Conditions**: In unreliable network environments, prefer smaller files for faster recovery
-4. **Balance Storage vs. Recovery**: Larger files reduce storage overhead but increase recovery time
-5. **Test Failure Scenarios**: Validate that your configuration provides acceptable recovery times
 
 ## Error Handling and Recovery
 
@@ -315,6 +212,14 @@ The shutdown process ensures graceful termination with data preservation:
 4. **Checkpoint Complete**: Final `CheckpointComplete` message sent
 5. **Task Completion**: All tasks complete and return results
 6. **Cleanup**: Backup files are cleaned up based on success/failure status
+
+In order to shutdown quickly and not block the calling application, re-ingestion will be halted, though backup files
+not re-ingested will remain on disk for manual ingestion. 
+
+The data channel will be drained, and the final backup file will be sync'd/flushed to disk to preserve all data.
+
+**IMPORTANT**: Calling applications must ensure graceful shutdown by calling `finish()` prior to dropping the `SiftStream`,
+otherwise data loss may occur.
 
 ## Data Flow Architecture
 
