@@ -1,7 +1,7 @@
 [package]
 name = "sift_cli"
+version = "0.1.0-alpha.1"
 authors.workspace = true
-version.workspace = true
 edition.workspace = true
 categories.workspace = true
 homepage.workspace = true
