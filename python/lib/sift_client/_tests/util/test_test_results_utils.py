@@ -32,6 +32,7 @@ class TestContextManager:
             prefix = f"{'.'.join(first_step_path_parts[:-1])}."
         second_step_path = f"{prefix}{int(first_step_path_parts[-1]) + 1}"
         test_step = None
+        # Test NewStep as a context manager directly
         with NewStep(report_context, "Test Step", "Test Description") as new_step:
             test_step = new_step.current_step
             assert test_step.test_report_id == report_context.report.id_

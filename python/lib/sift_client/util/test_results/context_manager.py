@@ -26,8 +26,8 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
 
 
-class ReportContext:
-    """Context for a new TestReport. Is not itself a context manager but serves as a store to communicate between step context managers since they can be nested or siblings."""
+class ReportContext(AbstractContextManager):
+    """Context for a new TestReport."""
 
     report: TestReport
     step_is_open: bool
@@ -36,29 +36,15 @@ class ReportContext:
     open_step_results: dict[str, bool]
     any_failures: bool
 
-    def __init__(self, report: TestReport):
-        """Initialize a new report context.
-
-        Args:
-            report: The report to create the context for.
-        """
-        self.report = report
-        self.step_is_open = False
-        self.step_stack = []
-        self.step_number_at_depth = {}
-        self.open_step_results = {}
-        self.any_failures = False
-
-    @classmethod
-    def create(
-        cls,
+    def __init__(
+        self,
         client: SiftClient,
         name: str,
         test_system_name: str | None = None,
         system_operator: str | None = None,
         test_case: str | None = None,
-    ) -> ReportContext:
-        """Create a new report context.
+    ):
+        """Initialize a new report context.
 
         Args:
             client: The Sift client to use to create the report.
@@ -66,10 +52,14 @@ class ReportContext:
             test_system_name: The name of the test system. Will default to the hostname if not provided.
             system_operator: The operator of the test system. Will default to the current user if not provided.
             test_case: The name of the test case. Will default to the basename of the file containing the test if not provided.
-
-        Returns:
-            The new report context.
         """
+        self.step_is_open = False
+        self.step_stack = []
+        self.step_number_at_depth = {}
+        self.open_step_results = {}
+        self.any_failures = False
+
+        # Create the report.
         test_case = test_case if test_case else os.path.basename(__file__)
         test_system_name = test_system_name if test_system_name else socket.gethostname()
         system_operator = system_operator if system_operator else getpass.getuser()
@@ -82,8 +72,21 @@ class ReportContext:
             status=TestStatus.IN_PROGRESS,
             system_operator=system_operator,
         )
-        report = client.test_results.create(create)
-        return cls(report)
+        self.report = client.test_results.create(create)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        update = {
+            "end_time": datetime.now(timezone.utc),
+        }
+        if self.any_failures or exc_type:
+            update["status"] = TestStatus.FAILED
+        else:
+            update["status"] = TestStatus.PASSED
+        self.report.update(update)
+        return True
 
     def new_step(self, name: str, description: str | None = None) -> NewStep:
         """Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context."""

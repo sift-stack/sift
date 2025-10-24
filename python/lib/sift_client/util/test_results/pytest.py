@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
 
 if TYPE_CHECKING:
@@ -17,20 +16,12 @@ if TYPE_CHECKING:
 def report_context(sift_client: SiftClient, request: pytest.FixtureRequest) -> ReportContext:
     """Create a report context for the session."""
     test_path = Path(request.config.invocation_params.args[0])
-    context = ReportContext.create(
+    with ReportContext(
         sift_client,
         name=f"{test_path.name} {datetime.now(timezone.utc).isoformat()}",
         test_case=str(test_path),
-    )
-    yield context
-    update = {
-        "end_time": datetime.now(timezone.utc),
-    }
-    if context.any_failures:
-        update["status"] = TestStatus.FAILED
-    else:
-        update["status"] = TestStatus.PASSED
-    context.report.update(update)
+    ) as context:
+        yield context
 
 
 @pytest.fixture(autouse=True)
