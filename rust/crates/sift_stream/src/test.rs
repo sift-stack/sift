@@ -31,6 +31,7 @@ use sift_rs::runs::v2::{
     DeleteRunRequest, DeleteRunResponse, GetRunRequest, GetRunResponse, ListRunsRequest,
     ListRunsResponse, Run, StopRunRequest, StopRunResponse, UpdateRunRequest, UpdateRunResponse,
 };
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use tonic::transport::{Endpoint, Server, Uri};
 use tonic::{Request, Response, Status};
@@ -79,7 +80,6 @@ impl IngestionConfigService for MockIngestionConfigService {
         &self,
         _: Request<ListIngestionConfigsRequest>,
     ) -> Result<Response<ListIngestionConfigsResponse>, Status> {
-        println!("list_ingestion_configs");
         Ok(Response::new(ListIngestionConfigsResponse {
             ingestion_configs: vec![IngestionConfig {
                 ingestion_config_id: "123".to_string(),
@@ -257,17 +257,24 @@ impl RunService for MockRunService {
 #[derive(Debug, Clone)]
 pub(crate) struct MockIngestService {
     captured_data: Arc<Mutex<Vec<IngestWithConfigDataStreamRequest>>>,
+    num_errors_to_return: Arc<AtomicUsize>,
 }
 
 impl MockIngestService {
     pub(crate) fn new() -> Self {
         Self {
             captured_data: Arc::new(Mutex::new(Vec::new())),
+            num_errors_to_return: Arc::new(AtomicUsize::new(0)),
         }
     }
 
     pub(crate) fn get_captured_data(&self) -> Vec<IngestWithConfigDataStreamRequest> {
         self.captured_data.lock().unwrap().clone()
+    }
+
+    pub(crate) fn set_num_errors_to_return(&self, num_errors_to_return: usize) {
+        self.num_errors_to_return
+            .store(num_errors_to_return, Ordering::Relaxed);
     }
 }
 
@@ -277,6 +284,11 @@ impl IngestService for MockIngestService {
         &self,
         request: Request<tonic::Streaming<IngestWithConfigDataStreamRequest>>,
     ) -> Result<Response<IngestWithConfigDataStreamResponse>, Status> {
+        if self.num_errors_to_return.load(Ordering::Relaxed) > 0 {
+            self.num_errors_to_return.fetch_sub(1, Ordering::Relaxed);
+            return Err(Status::internal("test error"));
+        }
+
         let mut stream = request.into_inner();
 
         while let Some(data) = stream.message().await? {

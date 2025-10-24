@@ -1,4 +1,5 @@
 use std::fs;
+use std::time::Duration;
 
 use crate::TimeValue;
 use crate::backup::DiskBackupPolicy;
@@ -6,6 +7,7 @@ use crate::{
     ChannelValue, Flow, IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder,
 };
 use tempdir::TempDir;
+use tracing_test::traced_test;
 
 #[tokio::test]
 async fn test_sift_stream_builder_backup_manager_directory_naming_with_run() {
@@ -29,6 +31,7 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_with_run() {
 
     let disk_backup_policy = DiskBackupPolicy {
         backups_dir: Some(tmp_dir_path.to_path_buf()),
+        retain_backups: true,
         ..Default::default()
     };
     let retry_policy = crate::RetryPolicy::default();
@@ -55,6 +58,16 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_with_run() {
             .await
             .expect("failed to send data to backup task");
     }
+
+    // Finish the stream to ensure that the backup manager is shutdown and the backup files are processed.
+    tokio::time::timeout(Duration::from_secs(10), async {
+        assert!(
+            sift_stream.finish().await.is_ok(),
+            "failed to finish sift stream"
+        );
+    })
+    .await
+    .expect("timeout waiting for sift stream to finish");
 
     let test_dir = fs::read_dir(tmp_dir_path)
         .expect("failed to read backups directory")
@@ -97,6 +110,7 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_no_run() {
     };
     let disk_backup_policy = DiskBackupPolicy {
         backups_dir: Some(tmp_dir_path.to_path_buf()),
+        retain_backups: true,
         ..Default::default()
     };
     let retry_policy = crate::RetryPolicy::default();
@@ -122,6 +136,16 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_no_run() {
             .await
             .expect("failed to send data to backup task");
     }
+
+    // Finish the stream to ensure that the backup manager is shutdown and the backup files are processed.
+    tokio::time::timeout(Duration::from_secs(10), async {
+        assert!(
+            sift_stream.finish().await.is_ok(),
+            "failed to finish sift stream"
+        );
+    })
+    .await
+    .expect("timeout waiting for sift stream to finish");
 
     let test_dir = fs::read_dir(tmp_dir_path)
         .expect("failed to read backups directory")
@@ -149,4 +173,60 @@ async fn test_sift_stream_builder_backup_manager_directory_naming_no_run() {
             .is_file(),
         "expected to be a file",
     );
+}
+
+#[tokio::test]
+#[traced_test]
+async fn test_sift_stream_drop_without_finish() {
+    let backups_dir = uuid::Uuid::new_v4().to_string();
+
+    let tmp_dir = TempDir::new(&backups_dir).expect("failed to creat tempdir");
+    let tmp_dir_path = tmp_dir.path();
+
+    let ingestion_config = IngestionConfigForm {
+        asset_name: "test_asset".to_string(),
+        client_key: "test_client_key".to_string(),
+        flows: vec![],
+    };
+    let run = RunForm {
+        name: "test_run".to_string(),
+        client_key: "test_client_key".to_string(),
+        description: None,
+        tags: None,
+        metadata: None,
+    };
+
+    let disk_backup_policy = DiskBackupPolicy {
+        backups_dir: Some(tmp_dir_path.to_path_buf()),
+        retain_backups: true,
+        ..Default::default()
+    };
+    let retry_policy = crate::RetryPolicy::default();
+    let (grpc_channel, _mock_service) = crate::test::create_mock_grpc_channel_with_service().await;
+
+    let sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
+        .ingestion_config(ingestion_config)
+        .attach_run(run)
+        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
+            retry_policy,
+            disk_backup_policy,
+        })
+        .build()
+        .await
+        .expect("failed to build sift stream");
+
+    drop(sift_stream);
+
+    let final_check = async move {
+        while !logs_contain("ingestion task shutting down")
+            && !logs_contain("re-ingestion task shutting down")
+            && !logs_contain("backup manager shutting down")
+        {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    };
+
+    tokio::time::timeout(Duration::from_secs(10), final_check)
+        .await
+        .expect("timeout waiting for tasks to shutdown");
 }

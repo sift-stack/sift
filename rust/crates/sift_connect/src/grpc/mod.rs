@@ -56,7 +56,7 @@ impl SiftChannelBuilder {
         let channel = Endpoint::from_shared(uri)
             .map(|conn| {
                 let mut chan = conn
-                    .keep_alive_while_idle(true)
+                    .keep_alive_while_idle(self.keep_alive_while_idle)
                     .keep_alive_timeout(self.keep_alive_timeout)
                     .http2_keep_alive_interval(self.keep_alive_interval)
                     .user_agent(self.user_agent)

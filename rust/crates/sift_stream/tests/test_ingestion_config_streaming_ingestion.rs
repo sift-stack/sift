@@ -4,17 +4,12 @@ use sift_rs::{
         IngestWithConfigDataChannelValue,
         ingest_with_config_data_channel_value::Type as RawChannelValue,
     },
-    ingestion_configs::v2::{ChannelConfig, FlowConfig, IngestionConfig},
+    ingestion_configs::v2::{ChannelConfig, FlowConfig},
 };
-use sift_stream::{
-    ChannelValue, Flow, IngestionConfigMode, SiftStream, TimeValue, metrics::SiftStreamMetrics,
-};
-use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicU32, Ordering},
-    },
-    time::Duration,
+use sift_stream::{ChannelValue, Flow, IngestionConfigForm, SiftStreamBuilder, TimeValue};
+use std::sync::{
+    Arc,
+    atomic::{AtomicU32, Ordering},
 };
 use tokio_stream::StreamExt;
 use tracing_test::traced_test;
@@ -67,85 +62,52 @@ async fn test_sending_raw_ingest_request() {
 
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
-    let ingestion_config_id = "ingestion-config-id";
-
-    let ingestion_config = IngestionConfig {
-        ingestion_config_id: ingestion_config_id.into(),
-        client_key: "ingestion-config-client-key".into(),
-        asset_id: "asset-id".into(),
-    };
-
-    let flow_name = "wheel";
-    let angular_velocity = "angular_velocity";
-    let torque = "torque";
-    let log = "log";
-
     let flows = vec![FlowConfig {
-        name: "wheel".into(),
-        channels: vec![
-            ChannelConfig {
-                name: angular_velocity.into(),
-                data_type: ChannelDataType::Double.into(),
-                ..Default::default()
-            },
-            ChannelConfig {
-                name: torque.into(),
-                data_type: ChannelDataType::Double.into(),
-                ..Default::default()
-            },
-            ChannelConfig {
-                name: log.into(),
-                data_type: ChannelDataType::String.into(),
-                ..Default::default()
-            },
-        ],
+        name: "flow-0".to_string(),
+        channels: vec![ChannelConfig {
+            name: "generator".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
     }];
 
-    let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
-        client,
-        ingestion_config,
-        flows,
-        None,
-        Duration::from_secs(30),
-        None,
-        None,
-        Arc::new(SiftStreamMetrics::new()),
-    );
+    let mut sift_stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+            flows,
+        })
+        .build()
+        .await
+        .expect("failed to build sift stream");
 
     let num_messages = 100;
 
     let requests = (0..num_messages).map(|i| IngestWithConfigDataStreamRequest {
-        ingestion_config_id: ingestion_config_id.into(),
-        flow: flow_name.into(),
+        ingestion_config_id: "ingestion-config-0".into(),
+        flow: "flow-0".into(),
         timestamp: Some(pbjson_types::Timestamp::default()),
-        channel_values: vec![
-            IngestWithConfigDataChannelValue {
-                r#type: Some(RawChannelValue::Double(i as f64)),
-            },
-            IngestWithConfigDataChannelValue {
-                r#type: Some(RawChannelValue::Empty(pbjson_types::Empty {})),
-            },
-            IngestWithConfigDataChannelValue {
-                r#type: Some(RawChannelValue::String("value".into())),
-            },
-        ],
+        channel_values: vec![IngestWithConfigDataChannelValue {
+            r#type: Some(RawChannelValue::Double(i as f64)),
+        }],
         ..Default::default()
     });
 
-    sift_stream
-        .send_requests(requests)
-        .await
-        .expect("failed to send requests");
-    sift_stream.finish().await.expect("finish call failed");
+    assert!(
+        sift_stream.send_requests(requests).await.is_ok(),
+        "failed to send requests"
+    );
+    assert!(sift_stream.finish().await.is_ok(), "finish call failed");
 
     assert_eq!(
         num_messages,
         messages_received.load(Ordering::Relaxed),
         "messages sent and received don't match",
     );
-    server
-        .await
-        .expect("test server shutdown failed unexpectedly");
+    assert!(
+        server.await.is_ok(),
+        "test server shutdown failed unexpectedly"
+    );
 }
 
 #[tokio::test]
@@ -158,81 +120,52 @@ async fn test_sending_flow() {
 
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
-    let ingestion_config_id = "ingestion-config-id";
-
-    let ingestion_config = IngestionConfig {
-        ingestion_config_id: ingestion_config_id.into(),
-        client_key: "ingestion-config-client-key".into(),
-        asset_id: "asset-id".into(),
-    };
-
-    let flow_name = "wheel";
-    let angular_velocity = "angular_velocity";
-    let torque = "torque";
-    let log = "log";
-
     let flows = vec![FlowConfig {
-        name: "wheel".into(),
-        channels: vec![
-            ChannelConfig {
-                name: angular_velocity.into(),
-                data_type: ChannelDataType::Double.into(),
-                ..Default::default()
-            },
-            ChannelConfig {
-                name: torque.into(),
-                data_type: ChannelDataType::Double.into(),
-                ..Default::default()
-            },
-            ChannelConfig {
-                name: log.into(),
-                data_type: ChannelDataType::String.into(),
-                ..Default::default()
-            },
-        ],
+        name: "flow-0".to_string(),
+        channels: vec![ChannelConfig {
+            name: "generator".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
     }];
 
-    let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
-        client,
-        ingestion_config,
-        flows,
-        None,
-        Duration::from_secs(30),
-        None,
-        None,
-        Arc::new(SiftStreamMetrics::new()),
-    );
+    let mut sift_stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+            flows,
+        })
+        .build()
+        .await
+        .expect("failed to build sift stream");
 
     let num_messages = 100;
 
     let messages = (0..num_messages).map(|i| {
         Flow::new(
-            flow_name,
+            "flow-0".to_string(),
             TimeValue::default(),
-            &[
-                ChannelValue::new(angular_velocity, i as f64),
-                ChannelValue::new(torque, i as f64),
-                ChannelValue::new(log, "some_log"),
-            ],
+            &[ChannelValue::new("generator", i as f64)],
         )
     });
 
     for message in messages {
-        sift_stream
-            .send(message)
-            .await
-            .expect("failed to send requests");
+        assert!(
+            sift_stream.send(message).await.is_ok(),
+            "failed to send requests"
+        );
     }
-    sift_stream.finish().await.expect("finish call failed");
+    assert!(sift_stream.finish().await.is_ok(), "finish call failed");
 
     assert_eq!(
         num_messages,
         messages_received.load(Ordering::Relaxed),
         "messages sent and received don't match",
     );
-    server
-        .await
-        .expect("test server shutdown failed unexpectedly");
+    assert!(
+        server.await.is_ok(),
+        "test server shutdown failed unexpectedly"
+    );
 }
 
 #[tokio::test]
@@ -246,70 +179,48 @@ async fn test_sending_flow_not_in_flow_cache() {
 
     let (client, server) = common::start_test_ingest_server(ingest_service).await;
 
-    let ingestion_config_id = "ingestion-config-id";
-
-    let ingestion_config = IngestionConfig {
-        ingestion_config_id: ingestion_config_id.into(),
-        client_key: "ingestion-config-client-key".into(),
-        asset_id: "asset-id".into(),
-    };
-
-    let flow_name = "wheel";
-    let angular_velocity = "angular_velocity";
-    let torque = "torque";
-    let log = "log";
-
-    let flows = vec![FlowConfig {
-        name: "wheel".into(),
-        channels: vec![
-            ChannelConfig {
-                name: angular_velocity.into(),
-                data_type: ChannelDataType::Double.into(),
-                ..Default::default()
-            },
-            ChannelConfig {
-                name: torque.into(),
-                data_type: ChannelDataType::Double.into(),
-                ..Default::default()
-            },
-            ChannelConfig {
-                name: log.into(),
-                data_type: ChannelDataType::String.into(),
-                ..Default::default()
-            },
-        ],
+    let expected_flows = vec![FlowConfig {
+        name: "flow-0".to_string(),
+        channels: vec![ChannelConfig {
+            name: "generator".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
     }];
 
-    let mut sift_stream = SiftStream::<IngestionConfigMode>::new(
-        client,
-        ingestion_config,
-        flows,
-        None,
-        Duration::from_secs(30),
-        None,
-        None,
-        Arc::new(SiftStreamMetrics::new()),
-    );
+    let mut sift_stream = SiftStreamBuilder::from_channel(client)
+        .ingestion_config(IngestionConfigForm {
+            asset_name: "test_asset".to_string(),
+            client_key: "test_client_key".to_string(),
+            flows: expected_flows,
+        })
+        .build()
+        .await
+        .expect("failed to build sift stream");
 
     let num_messages = 100;
 
+    // First send some messages that have a channel not in the expected flow.
     let messages = (0..num_messages / 2).map(|i| {
         Flow::new(
-            flow_name,
+            "flow-0".to_string(),
             TimeValue::default(),
             &[ChannelValue::new("unregistered_channel", i as f64)],
         )
     });
+
     for message in messages {
-        sift_stream
-            .send(message)
-            .await
-            .expect("failed to send requests");
+        assert!(
+            sift_stream.send(message).await.is_ok(),
+            "failed to send requests"
+        );
     }
+
     assert!(logs_contain(
         "encountered a message that doesn't match any cached flows"
     ));
 
+    // Next, send some messages that have a flow name not in the expected flows.
     let messages = (0..num_messages / 2).map(|i| {
         Flow::new(
             "unregistered_flow",
@@ -319,23 +230,24 @@ async fn test_sending_flow_not_in_flow_cache() {
     });
 
     for message in messages {
-        sift_stream
-            .send(message)
-            .await
-            .expect("failed to send requests");
+        assert!(
+            sift_stream.send(message).await.is_ok(),
+            "failed to send requests"
+        );
     }
     assert!(logs_contain(
         "flow 'unregistered_flow' not found in local flow cache"
     ));
 
-    sift_stream.finish().await.expect("finish call failed");
+    assert!(sift_stream.finish().await.is_ok(), "finish call failed");
 
     assert_eq!(
         num_messages,
         messages_received.load(Ordering::Relaxed),
         "messages sent and received don't match",
     );
-    server
-        .await
-        .expect("test server shutdown failed unexpectedly");
+    assert!(
+        server.await.is_ok(),
+        "test server shutdown failed unexpectedly"
+    );
 }

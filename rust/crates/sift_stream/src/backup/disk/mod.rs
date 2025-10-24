@@ -1,10 +1,9 @@
-use super::Message;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
 use std::{fs::File, io::BufReader, path::Path};
 
 mod async_manager;
-pub(crate) use async_manager::AsyncBackupsManager;
+pub(crate) use async_manager::{AsyncBackupsManager, BackupIngestTask};
 
 mod policy;
 pub use policy::{DiskBackupPolicy, RollingFilePolicy};
