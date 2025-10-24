@@ -31,6 +31,8 @@ pub struct RemoteFile {
     pub created_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(message, optional, tag="16")]
     pub modified_date: ::core::option::Option<::pbjson_types::Timestamp>,
+    #[prost(message, repeated, tag="18")]
+    pub metadata_values: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
     #[prost(oneof="remote_file::Metadata", tags="11, 12, 17")]
     pub metadata: ::core::option::Option<remote_file::Metadata>,
 }
@@ -128,6 +130,8 @@ pub struct CreateRemoteFileRequest {
     pub organization_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="11")]
     pub custom_uuid: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag="13")]
+    pub metadata_values: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
     #[prost(oneof="create_remote_file_request::Metadata", tags="9, 10, 12")]
     pub metadata: ::core::option::Option<create_remote_file_request::Metadata>,
 }
