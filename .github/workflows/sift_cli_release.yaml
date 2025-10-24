@@ -6,8 +6,8 @@ on:
   pull_request:
   push:
     tags:
-      - 'sift_cli-v*.*.*'
-      - 'sift_cli-v*.*.*-*'
+      - 'rust/sift_cli/v*.*.*'
+      - 'rust/sift_cli/v*.*.*-*'
 
 jobs:
   plan:
