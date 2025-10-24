@@ -126,8 +126,8 @@ class TestContextManager:
     def test_error_info(self, report_context, step):
         test_step = None
         parent_step_path = step.current_step.step_path
-        open_step_result = report_context.open_step_results.get(parent_step_path, False)
-        any_failures = report_context.any_failures
+        initial_open_step_result = report_context.open_step_results.get(parent_step_path, True)
+        initial_any_failures = report_context.any_failures
 
         with report_context.new_step("Test Error", "Test Error Description") as new_step:
             test_step = new_step.current_step
@@ -137,9 +137,9 @@ class TestContextManager:
         assert test_step.error_info.error_message == "Test Error"
         assert test_step.status == TestStatus.ERROR
         # If the parent step is not marked as failed already, make sure it remains passed at this point.
-        if not open_step_result:
+        if initial_open_step_result:
             report_context.open_step_results[parent_step_path] = True
-        if not any_failures:
+        if not initial_any_failures:
             report_context.any_failures = False
 
 
