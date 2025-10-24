@@ -28,4 +28,4 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Publish crates (dry run)
-        run: cargo publish --workspace --exclude sift-stream-bindings --manifest-path ./rust/Cargo.toml --locked --dry-run
+        run: cargo publish --workspace --exclude sift-stream-bindings --exclude sift_cli --manifest-path ./rust/Cargo.toml --locked --dry-run
