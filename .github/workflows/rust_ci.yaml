@@ -46,7 +46,8 @@ jobs:
           set -e
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install sift-stream-bindings --find-links dist --force-reinstall
-          pip install pytest pytest-asyncio ruff
-          ruff check rust/crates/sift_stream_bindings/sift_stream_bindings.pyi
-          pytest rust/crates/sift_stream_bindings/tests
+          pip install maturin pytest pytest-asyncio ruff
+          cd rust/crates/sift_stream_bindings
+          maturin develop --release
+          ruff check sift_stream_bindings.pyi
+          pytest tests

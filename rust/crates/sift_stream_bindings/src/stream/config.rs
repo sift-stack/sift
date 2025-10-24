@@ -1,7 +1,11 @@
-use crate::stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy};
+use crate::{
+    sift::metadata::MetadataPy,
+    stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy},
+};
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
+use sift_stream::stream::run::RunSelector;
 use sift_stream::{IngestionConfigForm, RunForm};
 
 // Type Definitions
@@ -59,9 +63,32 @@ pub struct RunFormPy {
     description: Option<String>,
     #[pyo3(get, set)]
     tags: Option<Vec<String>>,
+    #[pyo3(get, set)]
+    metadata: Option<Vec<MetadataPy>>,
+}
+
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone)]
+pub struct RunSelectorPy {
+    run_id: Option<String>,
+    run_form: Option<RunFormPy>,
 }
 
 // Trait Implementations
+impl From<RunSelectorPy> for RunSelector {
+    fn from(selector: RunSelectorPy) -> Self {
+        if let Some(run_id) = selector.run_id {
+            RunSelector::ById(run_id)
+        } else if let Some(form) = selector.run_form {
+            RunSelector::ByForm(form.into())
+        } else {
+            // This shouldn't happen if constructed correctly
+            panic!("Invalid RunSelectorPy: must have either run_id or run_form")
+        }
+    }
+}
+
 impl IngestionConfigFormPy {
     pub fn to_inner(&self) -> IngestionConfigForm {
         IngestionConfigForm {
@@ -80,13 +107,23 @@ impl From<IngestionConfigFormPy> for IngestionConfigForm {
 
 impl From<RunFormPy> for RunForm {
     fn from(form: RunFormPy) -> Self {
+        let metadata = form
+            .metadata
+            .map(|v| v.into_iter().map(|m| m.into()).collect());
+
         RunForm {
             name: form.name,
             client_key: form.client_key,
             description: form.description,
             tags: form.tags,
-            metadata: None,
+            metadata,
         }
+    }
+}
+
+impl From<FlowConfigPy> for sift_rs::ingestion_configs::v2::FlowConfig {
+    fn from(config: FlowConfigPy) -> Self {
+        config.inner
     }
 }
 
@@ -162,12 +199,34 @@ impl RunFormPy {
         client_key: &str,
         description: Option<&str>,
         tags: Option<Vec<String>>,
+        metadata: Option<Vec<MetadataPy>>,
     ) -> Self {
         Self {
             name: name.to_string(),
             client_key: client_key.to_string(),
             description: description.map(|s| s.to_string()),
             tags,
+            metadata,
+        }
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl RunSelectorPy {
+    #[staticmethod]
+    pub fn by_id(run_id: String) -> Self {
+        Self {
+            run_id: Some(run_id),
+            run_form: None,
+        }
+    }
+
+    #[staticmethod]
+    pub fn by_form(form: RunFormPy) -> Self {
+        Self {
+            run_id: None,
+            run_form: Some(form),
         }
     }
 }

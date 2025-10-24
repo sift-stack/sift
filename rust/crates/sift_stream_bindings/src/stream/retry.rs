@@ -1,11 +1,13 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
-use sift_stream::{RecoveryStrategy, RetryPolicy};
+use sift_stream::{
+    DiskBackupPolicy, RecoveryStrategy, RetryPolicy, backup::disk::RollingFilePolicy,
+};
 
 // Type Definitions
 #[gen_stub_pyclass]
 #[pyclass]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct DurationPy {
     #[pyo3(get, set)]
     secs: u64,
@@ -13,25 +15,17 @@ pub struct DurationPy {
     nanos: u32,
 }
 
+// Pyo3 doesn't support nested enums, so we need to build RecoveryStrategy differently
 #[gen_stub_pyclass]
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RecoveryStrategyPy {
-    #[pyo3(get, set)]
-    strategy_type: String,
-    #[pyo3(get, set)]
-    retry_policy: Option<RetryPolicyPy>,
-    #[pyo3(get, set)]
-    max_buffer_size: Option<usize>,
-    #[pyo3(get, set)]
-    backups_dir: Option<String>,
-    #[pyo3(get, set)]
-    max_backups_file_size: Option<usize>,
+    inner: RecoveryStrategy,
 }
 
 #[gen_stub_pyclass]
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RetryPolicyPy {
     #[pyo3(get, set)]
     max_attempts: u8,
@@ -41,6 +35,27 @@ pub struct RetryPolicyPy {
     max_backoff: DurationPy,
     #[pyo3(get, set)]
     backoff_multiplier: u8,
+}
+
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone, Debug)]
+pub struct DiskBackupPolicyPy {
+    #[pyo3(get, set)]
+    backups_dir: Option<String>,
+    #[pyo3(get, set)]
+    max_backup_file_size: usize,
+    #[pyo3(get, set)]
+    rolling_file_policy: RollingFilePolicyPy,
+    #[pyo3(get, set)]
+    retain_backups: bool,
+}
+
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct RollingFilePolicyPy {
+    max_file_count: Option<usize>,
 }
 
 // Trait Implementations
@@ -61,13 +76,7 @@ impl From<DurationPy> for std::time::Duration {
 
 impl From<RecoveryStrategyPy> for RecoveryStrategy {
     fn from(strategy: RecoveryStrategyPy) -> Self {
-        match strategy.strategy_type.as_str() {
-            "RetryOnly" => match strategy.retry_policy {
-                Some(policy) => RecoveryStrategy::RetryOnly(policy.into()),
-                None => panic!("RetryOnly strategy requires retry policy"),
-            },
-            _ => panic!("Invalid strategy type"),
-        }
+        strategy.inner
     }
 }
 
@@ -88,6 +97,55 @@ impl From<RetryPolicyPy> for RetryPolicy {
     }
 }
 
+impl From<RetryPolicy> for RetryPolicyPy {
+    fn from(policy: RetryPolicy) -> Self {
+        RetryPolicyPy {
+            max_attempts: policy.max_attempts,
+            initial_backoff: policy.initial_backoff.into(),
+            max_backoff: policy.max_backoff.into(),
+            backoff_multiplier: policy.backoff_multiplier,
+        }
+    }
+}
+
+impl From<DiskBackupPolicyPy> for DiskBackupPolicy {
+    fn from(policy: DiskBackupPolicyPy) -> Self {
+        DiskBackupPolicy {
+            backups_dir: policy.backups_dir.map(|p| p.into()),
+            max_backup_file_size: policy.max_backup_file_size,
+            rolling_file_policy: policy.rolling_file_policy.into(),
+            retain_backups: policy.retain_backups,
+        }
+    }
+}
+
+impl From<DiskBackupPolicy> for DiskBackupPolicyPy {
+    fn from(policy: DiskBackupPolicy) -> Self {
+        DiskBackupPolicyPy {
+            backups_dir: policy.backups_dir.map(|p| p.to_string_lossy().to_string()),
+            max_backup_file_size: policy.max_backup_file_size,
+            rolling_file_policy: policy.rolling_file_policy.into(),
+            retain_backups: policy.retain_backups,
+        }
+    }
+}
+
+impl From<RollingFilePolicyPy> for RollingFilePolicy {
+    fn from(policy: RollingFilePolicyPy) -> Self {
+        RollingFilePolicy {
+            max_file_count: policy.max_file_count,
+        }
+    }
+}
+
+impl From<RollingFilePolicy> for RollingFilePolicyPy {
+    fn from(policy: RollingFilePolicy) -> Self {
+        RollingFilePolicyPy {
+            max_file_count: policy.max_file_count,
+        }
+    }
+}
+
 // PyO3 Method Implementations
 #[gen_stub_pymethods]
 #[pymethods]
@@ -101,76 +159,31 @@ impl DurationPy {
 #[gen_stub_pymethods]
 #[pymethods]
 impl RecoveryStrategyPy {
-    #[new]
-    pub fn new(
-        strategy_type: &str,
-        retry_policy: Option<RetryPolicyPy>,
-        max_buffer_size: Option<usize>,
-        backups_dir: Option<String>,
-        max_backups_file_size: Option<usize>,
-    ) -> Self {
-        Self {
-            strategy_type: strategy_type.to_string(),
-            retry_policy,
-            max_buffer_size,
-            backups_dir,
-            max_backups_file_size,
-        }
-    }
-
     #[staticmethod]
     pub fn retry_only(retry_policy: RetryPolicyPy) -> Self {
         Self {
-            strategy_type: "RetryOnly".to_string(),
-            retry_policy: Some(retry_policy),
-            max_buffer_size: None,
-            backups_dir: None,
-            max_backups_file_size: None,
+            inner: RecoveryStrategy::RetryOnly(retry_policy.into()),
         }
     }
 
     #[staticmethod]
-    pub fn retry_with_in_memory_backups(
+    pub fn retry_with_backups(
         retry_policy: RetryPolicyPy,
-        max_buffer_size: Option<usize>,
+        disk_backup_policy: DiskBackupPolicyPy,
     ) -> Self {
         Self {
-            strategy_type: "RetryWithInMemoryBackups".to_string(),
-            retry_policy: Some(retry_policy),
-            max_buffer_size,
-            backups_dir: None,
-            max_backups_file_size: None,
-        }
-    }
-
-    #[staticmethod]
-    pub fn retry_with_disk_backups(
-        retry_policy: RetryPolicyPy,
-        backups_dir: Option<String>,
-        max_backups_file_size: Option<usize>,
-    ) -> Self {
-        Self {
-            strategy_type: "RetryWithDiskBackups".to_string(),
-            retry_policy: Some(retry_policy),
-            max_buffer_size: None,
-            backups_dir,
-            max_backups_file_size,
+            inner: RecoveryStrategy::RetryWithBackups {
+                retry_policy: retry_policy.into(),
+                disk_backup_policy: disk_backup_policy.into(),
+            },
         }
     }
 
     #[staticmethod]
     pub fn default() -> Self {
-        Self::retry_only(RetryPolicyPy::default())
-    }
-
-    #[staticmethod]
-    pub fn default_retry_policy_in_memory_backups() -> Self {
-        Self::retry_with_in_memory_backups(RetryPolicyPy::default(), None)
-    }
-
-    #[staticmethod]
-    pub fn default_retry_policy_disk_backups() -> Self {
-        Self::retry_with_disk_backups(RetryPolicyPy::default(), None, None)
+        Self {
+            inner: RecoveryStrategy::default(),
+        }
     }
 }
 
@@ -194,11 +207,44 @@ impl RetryPolicyPy {
 
     #[staticmethod]
     pub fn default() -> Self {
+        RetryPolicy::default().into()
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl DiskBackupPolicyPy {
+    #[new]
+    pub fn new(
+        backups_dir: Option<String>,
+        max_backup_file_size: usize,
+        rolling_file_policy: RollingFilePolicyPy,
+        retain_backups: bool,
+    ) -> Self {
         Self {
-            max_attempts: 5,
-            initial_backoff: DurationPy::new(0, 50_000_000), // 50ms
-            max_backoff: DurationPy::new(5, 0),              // 5s
-            backoff_multiplier: 5,
+            backups_dir,
+            max_backup_file_size,
+            rolling_file_policy,
+            retain_backups,
         }
+    }
+
+    #[staticmethod]
+    pub fn default() -> Self {
+        DiskBackupPolicy::default().into()
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl RollingFilePolicyPy {
+    #[new]
+    pub fn new(max_file_count: Option<usize>) -> Self {
+        Self { max_file_count }
+    }
+
+    #[staticmethod]
+    pub fn default() -> Self {
+        RollingFilePolicy::default().into()
     }
 }
