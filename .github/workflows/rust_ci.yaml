@@ -29,16 +29,16 @@ jobs:
           components: clippy, rustfmt
 
       - name: Run cargo check
-        run: cargo check --locked --manifest-path rust/Cargo.toml --all-features
+        run: cargo check --locked --all-features
 
       - name: Run cargo clippy
-        run: cargo clippy --locked --manifest-path rust/Cargo.toml --all-features
+        run: cargo clippy --locked --all-features
 
       - name: Run cargo fmt
-        run: cargo fmt --check --all --manifest-path rust/Cargo.toml
+        run: cargo fmt --check --all
 
       - name: Run cargo test
-        run: cargo test --locked --manifest-path rust/Cargo.toml --all-features
+        run: cargo test --locked --all-features
 
       - name: Run sift-stream-bindings lint & test
         shell: bash
