@@ -9,34 +9,35 @@ pub struct MetadataPy {
     #[pyo3(get, set)]
     key: String,
     #[pyo3(get, set)]
-    value: MetadataValue,
+    value: MetadataValuePy,
 }
 
 #[gen_stub_pyclass_enum]
 #[pyclass]
 #[derive(Debug, Clone)]
-pub enum MetadataValue {
+pub enum MetadataValuePy {
     String(String),
     Number(f64),
     Boolean(bool),
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
-impl MetadataValue {
+impl MetadataValuePy {
     #[new]
     fn new(obj: &Bound<'_, PyAny>) -> PyResult<Self> {
         if obj.is_instance_of::<pyo3::types::PyString>() {
             let s: String = obj.extract()?;
-            Ok(MetadataValue::String(s))
+            Ok(MetadataValuePy::String(s))
         } else if obj.is_instance_of::<pyo3::types::PyInt>() {
             let i: i64 = obj.extract()?;
-            Ok(MetadataValue::Number(i as f64))
+            Ok(MetadataValuePy::Number(i as f64))
         } else if obj.is_instance_of::<pyo3::types::PyFloat>() {
             let f: f64 = obj.extract()?;
-            Ok(MetadataValue::Number(f))
+            Ok(MetadataValuePy::Number(f))
         } else if obj.is_instance_of::<pyo3::types::PyBool>() {
             let b: bool = obj.extract()?;
-            Ok(MetadataValue::Boolean(b))
+            Ok(MetadataValuePy::Boolean(b))
         } else {
             Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "Expected a string, integer, float, or boolean",
@@ -49,15 +50,15 @@ impl MetadataValue {
     }
 
     fn is_variant_string(&self) -> bool {
-        matches!(self, MetadataValue::String(_))
+        matches!(self, MetadataValuePy::String(_))
     }
 
     fn is_variant_number(&self) -> bool {
-        matches!(self, MetadataValue::Number(_))
+        matches!(self, MetadataValuePy::Number(_))
     }
 
     fn is_variant_boolean(&self) -> bool {
-        matches!(self, MetadataValue::Boolean(_))
+        matches!(self, MetadataValuePy::Boolean(_))
     }
 }
 
@@ -67,10 +68,19 @@ impl From<MetadataPy> for sift_rs::metadata::v1::MetadataValue {
         use sift_rs::wrappers::metadata::MetadataEnumValue;
 
         let value: MetadataEnumValue = match metadata.value {
-            MetadataValue::String(s) => s.into(),
-            MetadataValue::Number(n) => n.into(),
-            MetadataValue::Boolean(b) => b.into(),
+            MetadataValuePy::String(s) => s.into(),
+            MetadataValuePy::Number(n) => n.into(),
+            MetadataValuePy::Boolean(b) => b.into(),
         };
         (metadata.key.as_str(), value).into()
+    }
+}
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl MetadataPy {
+    #[new]
+    fn new(key: String, value: MetadataValuePy) -> MetadataPy {
+        MetadataPy { key, value }
     }
 }

@@ -171,13 +171,27 @@ class TestRunForm:
 
     def test_create_run_form(self):
         """Test creating a run form."""
+        from sift_stream_bindings import MetadataPy, MetadataValuePy
+
+        metadata = [
+            MetadataPy(key="environment", value=MetadataValuePy("production")),
+            MetadataPy(key="version", value=MetadataValuePy(1.5)),
+            MetadataPy(key="enabled", value=MetadataValuePy(True)),
+        ]
+
         run_form = RunFormPy(
             name="Test Run",
-            description="Test run description",
             client_key="test-run-key",
+            description="Test run description",
             tags=["tag1", "tag2", "tag3"],
+            metadata=metadata,
         )
-        assert run_form.name == run_form.name
-        assert run_form.description == run_form.description
-        assert run_form.client_key == run_form.client_key
-        assert run_form.tags == run_form.tags
+        assert run_form.name == "Test Run"
+        assert run_form.description == "Test run description"
+        assert run_form.client_key == "test-run-key"
+        assert run_form.tags == ["tag1", "tag2", "tag3"]
+        assert run_form.metadata is not None
+        assert len(run_form.metadata) == 3
+        assert run_form.metadata[0].key == "environment"
+        assert run_form.metadata[1].key == "version"
+        assert run_form.metadata[2].key == "enabled"
