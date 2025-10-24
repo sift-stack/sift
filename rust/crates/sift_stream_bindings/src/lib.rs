@@ -35,5 +35,10 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::request::IngestWithConfigDataStreamRequestPy>()?;
     m.add_class::<stream::request::IngestWithConfigDataChannelValuePy>()?;
     m.add_class::<sift::metadata::MetadataPy>()?;
+    m.add_class::<stream::channel::ValuePy>()?;
+    m.add_class::<stream::channel::ChannelEnumPy>()?;
+    m.add_class::<metrics::SiftStreamMetricsSnapshotPy>()?;
+    m.add_class::<metrics::CheckpointMetricsSnapshotPy>()?;
+    m.add_class::<metrics::BackupMetricsSnapshotPy>()?;
     Ok(())
 }

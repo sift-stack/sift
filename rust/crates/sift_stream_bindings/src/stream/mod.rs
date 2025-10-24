@@ -124,6 +124,24 @@ impl SiftStreamPy {
         Ok(awaitable.into())
     }
 
+    pub fn get_metrics_snapshot(&self) -> PyResult<crate::metrics::SiftStreamMetricsSnapshotPy> {
+        let inner_guard = match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to acquire lock on stream",
+                ));
+            }
+        };
+
+        match inner_guard.as_ref() {
+            Some(stream) => Ok(stream.get_metrics_snapshot().into()),
+            None => Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream was already consumed",
+            )),
+        }
+    }
+
     pub fn finish(&mut self, py: Python) -> PyResult<Py<PyAny>> {
         let mut inner_guard = match self.inner.lock() {
             Ok(guard) => guard,
