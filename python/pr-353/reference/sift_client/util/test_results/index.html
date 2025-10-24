@@ -1021,6 +1021,21 @@ You're not viewing the latest version.
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results--pytest-fixtures" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pytest Fixtures
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1255,6 +1270,15 @@ You're not viewing the latest version.
   <a href="#sift_client.util.test_results.ReportContext.new_step" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;new_step
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.ReportContext.report_measurement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;report_measurement
     </span>
   </a>
   
@@ -1508,6 +1532,21 @@ You're not viewing the latest version.
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results--pytest-fixtures" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pytest Fixtures
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1748,6 +1787,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.ReportContext.report_measurement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;report_measurement
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.ReportContext.resolve_and_propagate_step_result" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;resolve_and_propagate_step_result
@@ -1805,25 +1853,28 @@ You're not viewing the latest version.
 <p>This module provides utilities for working with test results.</p>
 <h2 id="sift_client.util.test_results--context-managers">Context Managers<a class="headerlink" href="#sift_client.util.test_results--context-managers" title="Permanent link">&para;</a></h2>
 <ul>
+<li><code>ReportContext</code> - Context manager for a new TestReport.</li>
 <li><code>NewStep</code> - Context manager to create a new step in a test report.</li>
-<li><code>ReportContext</code> - Context for a new TestReport. Mostly serves as a store to communicate between step context managers since they can be nested or siblings.</li>
 </ul>
 <h4 id="sift_client.util.test_results--examples">Examples<a class="headerlink" href="#sift_client.util.test_results--examples" title="Permanent link">&para;</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">rc</span> <span class="o">=</span> <span class="n">ReportContext</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Report&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Example Report&quot;</span><span class="p">)</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">with</span> <span class="n">rc</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Setup&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">step</span><span class="p">:</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">controller_setup</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">with</span> <span class="n">rc</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Step&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">desc</span><span class="p">)</span> <span class="k">as</span> <span class="n">parent_step</span><span class="p">:</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">cmd_interface</span><span class="o">.</span><span class="n">cmd</span><span class="p">(</span><span class="s2">&quot;ec1&quot;</span><span class="p">,</span> <span class="s2">&quot;rtv.cmd&quot;</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">)</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">with</span> <span class="n">rc</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Substep 1&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Measure position&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">step</span><span class="p">:</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">ec</span> <span class="o">=</span> <span class="s2">&quot;ec1&quot;</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">pos_channel</span> <span class="o">=</span> <span class="s2">&quot;rtv.pos&quot;</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">pos</span> <span class="o">=</span> <span class="n">tlm</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span> <span class="n">pos_channel</span><span class="p">)</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">success</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ec</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">pos_channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">74.9</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mf">75.1</span><span class="p">))</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="k">return</span> <span class="n">success</span> <span class="c1"># This is optional for other uses, but the step and its parents will be updated correctly i.e. failed if the measurement fails.</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">with</span> <span class="n">ReportContext</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Report&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Example Report&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rc</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">with</span> <span class="n">rc</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Setup&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">step</span><span class="p">:</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n">controller_setup</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">with</span> <span class="n">rc</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Step&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">desc</span><span class="p">)</span> <span class="k">as</span> <span class="n">parent_step</span><span class="p">:</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="n">cmd_interface</span><span class="o">.</span><span class="n">cmd</span><span class="p">(</span><span class="s2">&quot;ec1&quot;</span><span class="p">,</span> <span class="s2">&quot;rtv.cmd&quot;</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="k">with</span> <span class="n">parent_step</span><span class="o">.</span><span class="n">substep</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Substep 1&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Measure position&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">substep</span><span class="p">:</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">ec</span> <span class="o">=</span> <span class="s2">&quot;ec1&quot;</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">pos_channel</span> <span class="o">=</span> <span class="s2">&quot;rtv.pos&quot;</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">pos</span> <span class="o">=</span> <span class="n">tlm</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span> <span class="n">pos_channel</span><span class="p">)</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">substep</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ec</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">pos_channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">74.9</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mf">75.1</span><span class="p">))</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="k">return</span> <span class="n">result</span> <span class="c1"># This is optional for other uses, but the step and its parents will be updated correctly i.e. failed if the measurement fails.</span>
 </span></code></pre></div>
+<h5 id="sift_client.util.test_results--pytest-fixtures">Pytest Fixtures<a class="headerlink" href="#sift_client.util.test_results--pytest-fixtures" title="Permanent link">&para;</a></h5>
+<p>The report context and steps can also be accessed in pytest via the <code>report_context</code> and <code>step</code> fixtures.
+These fixtures are set to autouse and will automatically create a report and steps for each test function.
+If you want each module(file) to be marked as a step w/ each test as a substep, import the <code>module_substep</code> fixture.</p>
 
 
 
@@ -2433,7 +2484,7 @@ You're not viewing the latest version.
 
 
 <a href="#sift_client.util.test_results.NewStep.__exit__" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">__exit__</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">__exit__</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2702,6 +2753,14 @@ You're not viewing the latest version.
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            report_measurement (sift_client.util.test_results.ReportContext.report_measurement)" href="#sift_client.util.test_results.ReportContext.report_measurement">report_measurement</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Report a failure to the report context.</p>
                 </div>
               </td>
             </tr>
@@ -3134,6 +3193,38 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
 
         <p>Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.util.test_results.ReportContext.report_measurement" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">report_measurement</span>
+
+
+<a href="#sift_client.util.test_results.ReportContext.report_measurement" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">report_measurement</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">measurement</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Report a failure to the report context.</p>
 
 
     </div>

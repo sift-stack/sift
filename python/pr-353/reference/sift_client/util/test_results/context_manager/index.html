@@ -1274,6 +1274,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.context_manager.ReportContext.report_measurement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;report_measurement
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.context_manager.ReportContext.resolve_and_propagate_step_result" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;resolve_and_propagate_step_result
@@ -1667,6 +1676,15 @@ You're not viewing the latest version.
   <a href="#sift_client.util.test_results.context_manager.ReportContext.new_step" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;new_step
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.context_manager.ReportContext.report_measurement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;report_measurement
     </span>
   </a>
   
@@ -2247,7 +2265,7 @@ You're not viewing the latest version.
 
 
 <a href="#sift_client.util.test_results.context_manager.NewStep.__exit__" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">__exit__</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">__exit__</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2516,6 +2534,14 @@ You're not viewing the latest version.
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            report_measurement (sift_client.util.test_results.context_manager.ReportContext.report_measurement)" href="#sift_client.util.test_results.context_manager.ReportContext.report_measurement">report_measurement</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Report a failure to the report context.</p>
                 </div>
               </td>
             </tr>
@@ -2948,6 +2974,38 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
 
         <p>Alias to return a new step context manager from this report context. Use create_step for actually creating a TestStep in the current context.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.util.test_results.context_manager.ReportContext.report_measurement" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">report_measurement</span>
+
+
+<a href="#sift_client.util.test_results.context_manager.ReportContext.report_measurement" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">report_measurement</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">measurement</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurement
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestMeasurement)" href="../../../sift_types/test_report/#sift_client.sift_types.test_report.TestMeasurement">TestMeasurement</a></span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Report a failure to the report context.</p>
 
 
     </div>
