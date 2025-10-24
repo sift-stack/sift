@@ -23,7 +23,7 @@ def report_context(
         base_name = (
             test_path.name
             if test_path.exists()
-            else " ".join(request.config.invocation_params.args)
+            else "pytest " + " ".join(request.config.invocation_params.args)
         )
         test_case = test_path if test_path.exists() else base_name
         with ReportContext(
