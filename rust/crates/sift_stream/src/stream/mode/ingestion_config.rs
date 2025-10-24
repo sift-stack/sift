@@ -214,6 +214,14 @@ impl SiftStream<IngestionConfigMode> {
             }
         }
 
+        // Track the channel depths.
+        self.metrics
+            .ingestion_channel_depth
+            .set(self.mode.stream_system.ingestion_tx.len() as u64);
+        self.metrics
+            .backup_channel_depth
+            .set(self.mode.stream_system.backup_tx.len() as u64);
+
         let data_msg = DataMessage {
             request: req.clone(),
             dropped_for_ingestion: false,
@@ -238,7 +246,7 @@ impl SiftStream<IngestionConfigMode> {
             Ok(None) => Ok(()),
             Ok(Some(mut oldest_message)) => {
                 #[cfg(feature = "tracing")]
-                tracing::warn!(
+                tracing::debug!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
                     "data channel full, dropping oldest message"
                 );

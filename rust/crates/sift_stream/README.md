@@ -1,5 +1,8 @@
 # sift_stream
 
+[![Crates.io](https://img.shields.io/crates/v/sift_stream.svg)](https://crates.io/crates/sift_stream)
+[![docs.rs](https://img.shields.io/docsrs/sift_stream)](https://docs.rs/sift_stream/latest/sift_stream/)
+
 ## Overview
 
 SiftStream is a Rust-based telemetry streaming system that provides reliable, high-throughput data ingestion to the
@@ -39,30 +42,6 @@ The SiftStream architecture consists of three main async tasks that work togethe
 
 Control messages are low-frequency messages sent between tasks via broadcast channels to coordinate checkpointing,
 error handling, and shutdown processes.
-
-### ControlMessage Enum
-
-```rust
-pub enum ControlMessage {
-    /// Signal that the backup is full and a new checkpoint should be started
-    BackupFull,
-    
-    /// Request to re-ingest backup files
-    ReingestBackups { backup_files: Vec<PathBuf> },
-    
-    /// Signal to complete the checkpoint
-    CheckpointComplete,
-    
-    /// Signal the checkpoint needs re-ingestion
-    CheckpointNeedsReingestion,
-    
-    /// Error signal
-    ErrorSignal { error: String },
-    
-    /// Shutdown signal for all tasks
-    Shutdown,
-}
-```
 
 ## Task Responsibilities and Control Message Flow
 
@@ -167,7 +146,9 @@ Backup files can also be retained regardless of successful checkpoints and re-in
 
 ### Backup File Management
 
-The backup system manages files through a rotation policy that balances data reliability with storage efficiency. Understanding how backup files are handled is crucial for optimizing checkpoint behavior and minimizing unnecessary re-ingestion.
+The backup system manages files through a rotation policy that balances data reliability with storage efficiency.
+Understanding how backup files are handled is crucial for optimizing checkpoint behavior and minimizing unnecessary
+re-ingestion.
 
 #### Backup File Lifecycle
 
@@ -186,11 +167,14 @@ The backup system is configured through the `DiskBackupPolicy` with two key para
 
 #### Selecting Optimal Backup File Parameters
 
-**Key Principle**: Smaller, more frequent checkpoints reduce the amount of data that needs to be re-ingested when failures occur, but increase the overhead of checkpoint management and creating new gRPC streams to Sift.
+**Key Principle**: Smaller, more frequent checkpoints reduce the amount of data that needs to be re-ingested when
+failures occur, but increase the overhead of checkpoint management and creating new gRPC streams to Sift.
+
+Generally, the default configuration should be good for most use cases, and is the recommended configuration.
 
 ##### Max File Size Considerations
 
-**Smaller Files (Recommended for most use cases)**:
+**Smaller Files**:
 - **Pros**: 
   - Faster re-ingestion when failures occur
   - Lower memory usage during backup operations
@@ -303,7 +287,7 @@ Key metrics to monitor for backup file optimization:
 1. **gRPC Stream Failure**: 
    - Ingestion task sends `CheckpointNeedsReingestion`
    - Backup manager queues the current checkpoint's backup files for re-ingestion
-   - Re-ingestion task processes backup files
+   - Re-ingestion task processes backup files asynchronously/concurrently to regular ingestion
 
 2. **gRPC Re-Ingest Failure**:
    - Backoff retries for automated recovery

@@ -107,6 +107,10 @@ pub struct SiftStreamMetricsSnapshot {
     pub messages_sent_to_backup: u64,
     /// Current retry attempt count
     pub cur_retry_count: u64,
+    /// Depth of the ingestion channel
+    pub ingestion_channel_depth: u64,
+    /// Depth of the backup channel
+    pub backup_channel_depth: u64,
     /// Checkpoint-specific metrics
     pub checkpoint: CheckpointMetricsSnapshot,
     /// Backup-specific metrics
@@ -361,6 +365,8 @@ pub struct SiftStreamMetrics {
     pub(crate) messages_sent_to_backup: U64Counter,
     pub(crate) old_messages_dropped_for_ingestion: U64Counter,
     pub(crate) cur_retry_count: U64Signal,
+    pub(crate) ingestion_channel_depth: U64Signal,
+    pub(crate) backup_channel_depth: U64Signal,
     pub(crate) checkpoint: CheckpointMetrics,
     pub(crate) backups: BackupMetrics,
 }
@@ -384,6 +390,8 @@ impl SiftStreamMetrics {
         let bytes_sent = self.bytes_sent.get();
         let messages_sent_to_backup = self.messages_sent_to_backup.get();
         let cur_retry_count = self.cur_retry_count.get();
+        let ingestion_channel_depth = self.ingestion_channel_depth.get();
+        let backup_channel_depth = self.backup_channel_depth.get();
 
         let stats = StreamingStats::calculate(self.creation_time, messages_sent, bytes_sent);
 
@@ -398,6 +406,8 @@ impl SiftStreamMetrics {
             byte_rate: stats.byte_rate,
             messages_sent_to_backup,
             cur_retry_count,
+            ingestion_channel_depth,
+            backup_channel_depth,
             checkpoint: self.checkpoint.snapshot(),
             backups: self.backups.snapshot(),
         }
@@ -416,6 +426,8 @@ impl Default for SiftStreamMetrics {
             messages_sent_to_backup: U64Counter::default(),
             old_messages_dropped_for_ingestion: U64Counter::default(),
             cur_retry_count: U64Signal::default(),
+            ingestion_channel_depth: U64Signal::default(),
+            backup_channel_depth: U64Signal::default(),
             checkpoint: CheckpointMetrics::default(),
             backups: BackupMetrics::default(),
         }

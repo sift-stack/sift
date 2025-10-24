@@ -63,10 +63,15 @@ impl AsyncBackupsManager {
     ///
     /// # Arguments
     ///
+    /// * `enabled` - Whether the backup manager is enabled
     /// * `new_dir_name` - The name of the directory used for storing backup files
     /// * `backup_prefix` - The prefix added to all backup files
-    /// * `disk_backup_policy` - The policy for disk backups
-    /// * `backup_retry_policy` - The retry policy used if backup ingestion is required, but with unlimited retries
+    /// * `disk_backup_policy` - The policy for disk backups, including the root directory to store backups in,
+    ///   the maximum size of each backup file, and the rolling file policy
+    /// * `control_tx` - The sender for control messages
+    /// * `control_rx` - The receiver for control messages
+    /// * `data_rx` - The receiver for data messages
+    /// * `metrics` - The metrics for the backup manager
     #[allow(clippy::too_many_arguments)]
     pub(crate) async fn new(
         enabled: bool,
@@ -295,8 +300,6 @@ impl AsyncBackupsManager {
                 file_size: 0,
             };
             self.current_file = Some(file);
-
-            #[cfg(feature = "tracing")]
             self.metrics.backups.log_new_file();
         }
 
@@ -364,6 +367,36 @@ impl AsyncBackupsManager {
             .help("please contact Sift")?;
 
         Ok((backup_file_path, backup_file))
+    }
+}
+
+impl Drop for AsyncBackupsManager {
+    fn drop(&mut self) {
+        if let Some(file) = self.current_file.take() {
+            #[cfg(feature = "tracing")]
+            tracing::warn!(
+                "graceful shutdown was not used -- attempting to sync backup file during drop to prevent data loss"
+            );
+
+            // Conver to standard file for blocking sync_all.
+            let std_file = match file.try_into_std() {
+                Ok(std_file) => std_file,
+                Err(_) => {
+                    #[cfg(feature = "tracing")]
+                    tracing::error!("failed to convert backup file to std file, data may be lost");
+                    return;
+                }
+            };
+
+            // Attempt to sync the file.
+            if let Err(e) = std_file.sync_all() {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    error = %e,
+                    "unable to sync backup file during drop, data may be lost"
+                );
+            }
+        }
     }
 }
 
