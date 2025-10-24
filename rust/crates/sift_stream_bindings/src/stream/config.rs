@@ -1,9 +1,12 @@
-use crate::{sift::metadata::MetadataPy, stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy}};
+use crate::{
+    sift::metadata::MetadataPy,
+    stream::channel::{ChannelBitFieldElementPy, ChannelDataTypePy, ChannelEnumTypePy},
+};
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
-use sift_stream::{IngestionConfigForm, RunForm};
 use sift_stream::stream::run::RunSelector;
+use sift_stream::{IngestionConfigForm, RunForm};
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -104,9 +107,9 @@ impl From<IngestionConfigFormPy> for IngestionConfigForm {
 
 impl From<RunFormPy> for RunForm {
     fn from(form: RunFormPy) -> Self {
-        let metadata = form.metadata.map(|v| {
-            v.into_iter().map(|m| m.into()).collect()
-        });
+        let metadata = form
+            .metadata
+            .map(|v| v.into_iter().map(|m| m.into()).collect());
 
         RunForm {
             name: form.name,

@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::define_stub_info_gatherer;
+use std::sync::{Mutex, Once};
 use tracing::Level;
 use tracing_subscriber::{Layer, filter, layer::SubscriberExt};
-use std::sync::{Once, Mutex};
 
 mod error;
 mod metrics;
@@ -12,7 +12,8 @@ mod stream;
 define_stub_info_gatherer!(stub_info);
 
 static INIT_TRACING: Once = Once::new();
-static FILE_APPENDER_GUARD: Mutex<Option<tracing_appender::non_blocking::WorkerGuard>> = Mutex::new(None);
+static FILE_APPENDER_GUARD: Mutex<Option<tracing_appender::non_blocking::WorkerGuard>> =
+    Mutex::new(None);
 
 /// Initialize tracing to stdout for Python environments.
 /// Can only be called once per process. Subsequent calls will raise an error.
@@ -25,7 +26,7 @@ static FILE_APPENDER_GUARD: Mutex<Option<tracing_appender::non_blocking::WorkerG
 fn init_tracing(level: &str) -> PyResult<()> {
     if INIT_TRACING.is_completed() {
         return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            "Tracing has already been initialized. It can only be initialized once per process."
+            "Tracing has already been initialized. It can only be initialized once per process.",
         ));
     }
 
@@ -35,9 +36,12 @@ fn init_tracing(level: &str) -> PyResult<()> {
         "info" => Level::INFO,
         "warn" => Level::WARN,
         "error" => Level::ERROR,
-        _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            format!("Invalid log level '{}'. Must be one of: trace, debug, info, warn, error", level)
-        )),
+        _ => {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid log level '{}'. Must be one of: trace, debug, info, warn, error",
+                level
+            )));
+        }
     };
 
     INIT_TRACING.call_once(|| {
@@ -47,11 +51,9 @@ fn init_tracing(level: &str) -> PyResult<()> {
 
         let stdout_fmt_layer = tracing_subscriber::fmt::layer().with_filter(filter.clone());
 
-        let subscriber = tracing_subscriber::Registry::default()
-            .with(stdout_fmt_layer);
+        let subscriber = tracing_subscriber::Registry::default().with(stdout_fmt_layer);
 
-        tracing::subscriber::set_global_default(subscriber)
-            .expect("Unable to setup tracing");
+        tracing::subscriber::set_global_default(subscriber).expect("Unable to setup tracing");
     });
     Ok(())
 }
@@ -75,7 +77,7 @@ fn init_tracing_with_file(
 ) -> PyResult<()> {
     if INIT_TRACING.is_completed() {
         return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-            "Tracing has already been initialized. It can only be initialized once per process."
+            "Tracing has already been initialized. It can only be initialized once per process.",
         ));
     }
 
@@ -85,9 +87,12 @@ fn init_tracing_with_file(
         "info" => Level::INFO,
         "warn" => Level::WARN,
         "error" => Level::ERROR,
-        _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            format!("Invalid log level '{}'. Must be one of: trace, debug, info, warn, error", level)
-        )),
+        _ => {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid log level '{}'. Must be one of: trace, debug, info, warn, error",
+                level
+            )));
+        }
     };
 
     INIT_TRACING.call_once(|| {
@@ -120,12 +125,10 @@ fn init_tracing_with_file(
             .with(stdout_fmt_layer)
             .with(log_layer);
 
-        tracing::subscriber::set_global_default(subscriber)
-            .expect("Unable to setup tracing");
+        tracing::subscriber::set_global_default(subscriber).expect("Unable to setup tracing");
     });
     Ok(())
 }
-
 
 // Cannot organize into submodules right now
 // See below for issues with submodules using pyo3

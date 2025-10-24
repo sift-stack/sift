@@ -100,7 +100,9 @@ impl From<SiftStreamMetricsSnapshot> for SiftStreamMetricsSnapshotPy {
                 checkpoint_count: snapshot.checkpoint.checkpoint_count,
                 failed_checkpoint_count: snapshot.checkpoint.failed_checkpoint_count,
                 checkpoint_timer_reached_cnt: snapshot.checkpoint.checkpoint_timer_reached_cnt,
-                checkpoint_manually_reached_cnt: snapshot.checkpoint.checkpoint_manually_reached_cnt,
+                checkpoint_manually_reached_cnt: snapshot
+                    .checkpoint
+                    .checkpoint_manually_reached_cnt,
                 cur_elapsed_secs: snapshot.checkpoint.cur_elapsed_secs,
                 cur_messages_sent: snapshot.checkpoint.cur_messages_sent,
                 cur_message_rate: snapshot.checkpoint.cur_message_rate,

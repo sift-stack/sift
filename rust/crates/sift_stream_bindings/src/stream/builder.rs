@@ -83,7 +83,7 @@ impl SiftStreamBuilderPy {
         }
 
         inner = inner.add_asset_tags(self.asset_tags.clone());
-        
+
         let metadata = self.metadata.clone().map(|v| {
             v.into_iter()
                 .map(|m| m.into())

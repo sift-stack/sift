@@ -12,7 +12,7 @@ pub struct ChannelValuePy {
     #[pyo3(get, set)]
     name: String,
     #[pyo3(get, set)]
-    value: ValuePy
+    value: ValuePy,
 }
 
 #[gen_stub_pyclass]
@@ -24,7 +24,7 @@ pub struct ChannelEnumPy(pub u32);
 #[pyclass]
 #[derive(Clone)]
 pub struct ValuePy {
-    inner: Value
+    inner: Value,
 }
 
 #[gen_stub_pyclass]
@@ -68,8 +68,6 @@ pub enum ChannelDataTypePy {
     Uint64,
     Bytes,
 }
-
-
 
 #[gen_stub_pyclass]
 #[pyclass]
@@ -133,7 +131,7 @@ impl From<ChannelValuePy> for ChannelValue {
     fn from(value: ChannelValuePy) -> Self {
         ChannelValue {
             name: value.name,
-            value: value.value.into()
+            value: value.value.into(),
         }
     }
 }
@@ -294,70 +292,90 @@ impl ValuePy {
     pub fn as_bool(&self) -> PyResult<bool> {
         match &self.inner {
             Value::Bool(v) => Ok(*v),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Bool")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not a Bool",
+            )),
         }
     }
 
     pub fn as_string(&self) -> PyResult<String> {
         match &self.inner {
             Value::String(v) => Ok(v.clone()),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a String")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not a String",
+            )),
         }
     }
 
     pub fn as_float(&self) -> PyResult<f32> {
         match &self.inner {
             Value::Float(v) => Ok(*v),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Float")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not a Float",
+            )),
         }
     }
 
     pub fn as_double(&self) -> PyResult<f64> {
         match &self.inner {
             Value::Double(v) => Ok(*v),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Double")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not a Double",
+            )),
         }
     }
 
     pub fn as_int32(&self) -> PyResult<i32> {
         match &self.inner {
             Value::Int32(v) => Ok(*v),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not an Int32")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not an Int32",
+            )),
         }
     }
 
     pub fn as_int64(&self) -> PyResult<i64> {
         match &self.inner {
             Value::Int64(v) => Ok(*v),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not an Int64")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not an Int64",
+            )),
         }
     }
 
     pub fn as_uint32(&self) -> PyResult<u32> {
         match &self.inner {
             Value::Uint32(v) => Ok(*v),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Uint32")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not a Uint32",
+            )),
         }
     }
 
     pub fn as_uint64(&self) -> PyResult<u64> {
         match &self.inner {
             Value::Uint64(v) => Ok(*v),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a Uint64")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not a Uint64",
+            )),
         }
     }
 
     pub fn as_enum(&self) -> PyResult<u32> {
         match &self.inner {
             Value::Enum(v) => Ok(*v),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not an Enum")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not an Enum",
+            )),
         }
     }
 
     pub fn as_bitfield(&self) -> PyResult<Vec<u8>> {
         match &self.inner {
             Value::BitField(v) => Ok(v.clone()),
-            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Value is not a BitField")),
+            _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Value is not a BitField",
+            )),
         }
     }
 }
@@ -367,10 +385,7 @@ impl ValuePy {
 impl ChannelValuePy {
     #[new]
     pub fn new(name: String, value: ValuePy) -> Self {
-        Self {
-            name,
-            value,
-        }
+        Self { name, value }
     }
 }
 
