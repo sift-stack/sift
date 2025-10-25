@@ -795,6 +795,9 @@ impl serde::Serialize for CreateTestReportRequest {
         if !self.system_operator.is_empty() {
             len += 1;
         }
+        if !self.run_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.CreateTestReportRequest", len)?;
         if self.status != 0 {
             let v = TestStatus::try_from(self.status)
@@ -828,6 +831,9 @@ impl serde::Serialize for CreateTestReportRequest {
         if !self.system_operator.is_empty() {
             struct_ser.serialize_field("systemOperator", &self.system_operator)?;
         }
+        if !self.run_id.is_empty() {
+            struct_ser.serialize_field("runId", &self.run_id)?;
+        }
         struct_ser.end()
     }
 }
@@ -855,6 +861,8 @@ impl<'de> serde::Deserialize<'de> for CreateTestReportRequest {
             "partNumber",
             "system_operator",
             "systemOperator",
+            "run_id",
+            "runId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -869,6 +877,7 @@ impl<'de> serde::Deserialize<'de> for CreateTestReportRequest {
             SerialNumber,
             PartNumber,
             SystemOperator,
+            RunId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -900,6 +909,7 @@ impl<'de> serde::Deserialize<'de> for CreateTestReportRequest {
                             "serialNumber" | "serial_number" => Ok(GeneratedField::SerialNumber),
                             "partNumber" | "part_number" => Ok(GeneratedField::PartNumber),
                             "systemOperator" | "system_operator" => Ok(GeneratedField::SystemOperator),
+                            "runId" | "run_id" => Ok(GeneratedField::RunId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -929,6 +939,7 @@ impl<'de> serde::Deserialize<'de> for CreateTestReportRequest {
                 let mut serial_number__ = None;
                 let mut part_number__ = None;
                 let mut system_operator__ = None;
+                let mut run_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Status => {
@@ -991,6 +1002,12 @@ impl<'de> serde::Deserialize<'de> for CreateTestReportRequest {
                             }
                             system_operator__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::RunId => {
+                            if run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runId"));
+                            }
+                            run_id__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(CreateTestReportRequest {
@@ -1004,6 +1021,7 @@ impl<'de> serde::Deserialize<'de> for CreateTestReportRequest {
                     serial_number: serial_number__.unwrap_or_default(),
                     part_number: part_number__.unwrap_or_default(),
                     system_operator: system_operator__.unwrap_or_default(),
+                    run_id: run_id__.unwrap_or_default(),
                 })
             }
         }
@@ -3658,6 +3676,9 @@ impl serde::Serialize for TestReport {
         if self.is_archived {
             len += 1;
         }
+        if !self.run_id.is_empty() {
+            len += 1;
+        }
         let mut struct_ser = serializer.serialize_struct("sift.test_reports.v1.TestReport", len)?;
         if !self.test_report_id.is_empty() {
             struct_ser.serialize_field("testReportId", &self.test_report_id)?;
@@ -3700,6 +3721,9 @@ impl serde::Serialize for TestReport {
         if self.is_archived {
             struct_ser.serialize_field("isArchived", &self.is_archived)?;
         }
+        if !self.run_id.is_empty() {
+            struct_ser.serialize_field("runId", &self.run_id)?;
+        }
         struct_ser.end()
     }
 }
@@ -3733,6 +3757,8 @@ impl<'de> serde::Deserialize<'de> for TestReport {
             "archivedDate",
             "is_archived",
             "isArchived",
+            "run_id",
+            "runId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -3750,6 +3776,7 @@ impl<'de> serde::Deserialize<'de> for TestReport {
             SystemOperator,
             ArchivedDate,
             IsArchived,
+            RunId,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -3784,6 +3811,7 @@ impl<'de> serde::Deserialize<'de> for TestReport {
                             "systemOperator" | "system_operator" => Ok(GeneratedField::SystemOperator),
                             "archivedDate" | "archived_date" => Ok(GeneratedField::ArchivedDate),
                             "isArchived" | "is_archived" => Ok(GeneratedField::IsArchived),
+                            "runId" | "run_id" => Ok(GeneratedField::RunId),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -3816,6 +3844,7 @@ impl<'de> serde::Deserialize<'de> for TestReport {
                 let mut system_operator__ = None;
                 let mut archived_date__ = None;
                 let mut is_archived__ = None;
+                let mut run_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::TestReportId => {
@@ -3896,6 +3925,12 @@ impl<'de> serde::Deserialize<'de> for TestReport {
                             }
                             is_archived__ = Some(map_.next_value()?);
                         }
+                        GeneratedField::RunId => {
+                            if run_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("runId"));
+                            }
+                            run_id__ = Some(map_.next_value()?);
+                        }
                     }
                 }
                 Ok(TestReport {
@@ -3912,6 +3947,7 @@ impl<'de> serde::Deserialize<'de> for TestReport {
                     system_operator: system_operator__.unwrap_or_default(),
                     archived_date: archived_date__,
                     is_archived: is_archived__.unwrap_or_default(),
+                    run_id: run_id__.unwrap_or_default(),
                 })
             }
         }

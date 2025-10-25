@@ -29,6 +29,8 @@ pub struct TestReport {
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(bool, tag="13")]
     pub is_archived: bool,
+    #[prost(string, tag="14")]
+    pub run_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -158,6 +160,8 @@ pub struct CreateTestReportRequest {
     pub part_number: ::prost::alloc::string::String,
     #[prost(string, tag="10")]
     pub system_operator: ::prost::alloc::string::String,
+    #[prost(string, tag="11")]
+    pub run_id: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

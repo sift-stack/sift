@@ -38,7 +38,7 @@ class TestResultsTest:
     test_steps: ClassVar[dict[str, TestStep]] = {}
     test_measurements: ClassVar[dict[str, TestMeasurement]] = {}
 
-    def test_create_test_report(self, sift_client):
+    def test_create_test_report(self, sift_client, nostromo_run):
         # Create a test report
         simulated_time = datetime.now(timezone.utc)
         test_report = sift_client.test_results.create(
@@ -49,9 +49,11 @@ class TestResultsTest:
                 "test_case": "Test Case",
                 "start_time": simulated_time,
                 "end_time": simulated_time,
+                "run_id": nostromo_run.id_,
             },
         )
         assert test_report.id_ is not None
+        assert test_report.run_id == nostromo_run.id_
         self.test_reports["basic_test_report"] = test_report
 
     def test_create_test_steps(self, sift_client):
@@ -74,7 +76,6 @@ class TestResultsTest:
             ),
         )
         simulated_time = simulated_time + timedelta(seconds=10.1)
-
         # Create a step using a dict
         step1_1 = sift_client.test_results.create_step(
             {
@@ -288,6 +289,7 @@ class TestResultsTest:
                     "automated": True,
                 },
                 end_time=new_end_time,
+                run_id="",
             ),
         )
 
@@ -303,6 +305,7 @@ class TestResultsTest:
         }
         assert updated_report.status == TestStatus.FAILED
         assert updated_report.end_time == new_end_time
+        assert updated_report.run_id is None
 
         self.test_reports["basic_test_report"] = updated_report
 

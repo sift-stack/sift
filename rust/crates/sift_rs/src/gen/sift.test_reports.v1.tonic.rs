@@ -435,6 +435,8 @@ pub mod test_report_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Creates multiple test measurements in a single request
+*/
         pub async fn create_test_measurements(
             &mut self,
             request: impl tonic::IntoRequest<super::CreateTestMeasurementsRequest>,
@@ -721,6 +723,8 @@ pub mod test_report_service_server {
             tonic::Response<super::CreateTestMeasurementResponse>,
             tonic::Status,
         >;
+        /** Creates multiple test measurements in a single request
+*/
         async fn create_test_measurements(
             &self,
             request: tonic::Request<super::CreateTestMeasurementsRequest>,

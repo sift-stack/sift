@@ -20,7 +20,7 @@ def sift_client() -> SiftClient:
     rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
     api_key = os.getenv("SIFT_API_KEY", "")
 
-    return SiftClient(
+    client = SiftClient(
         connection_config=SiftConnectionConfig(
             api_key=api_key,
             grpc_url=grpc_url,
@@ -28,6 +28,23 @@ def sift_client() -> SiftClient:
             use_ssl=True,
         )
     )
+
+    return client
+
+
+@pytest.fixture(scope="session")
+def client_has_connection(sift_client):
+    """Check if the SiftClient has a connection to the Sift server.
+
+    Can be used to skip tests that require a connection to the Sift server.
+    """
+    has_connection = False
+    try:
+        sift_client.ping.ping()
+        has_connection = True
+    except Exception:
+        has_connection = False
+    return has_connection
 
 
 @pytest.fixture
@@ -70,3 +87,6 @@ def ci_pytest_tag(sift_client):
     tag = sift_client.tags.find_or_create(names=["sift-client-pytest"])[0]
     assert tag is not None
     return tag
+
+
+from sift_client.util.test_results.pytest import module_substep, report_context, step  # noqa: F401

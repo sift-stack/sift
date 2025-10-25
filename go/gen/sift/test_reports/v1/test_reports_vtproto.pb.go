@@ -49,6 +49,7 @@ func (m *TestReport) CloneVT() *TestReport {
 	r.SystemOperator = m.SystemOperator
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
 	r.IsArchived = m.IsArchived
+	r.RunId = m.RunId
 	if rhs := m.Metadata; rhs != nil {
 		tmpContainer := make([]*v1.MetadataValue, len(rhs))
 		for k, v := range rhs {
@@ -290,6 +291,7 @@ func (m *CreateTestReportRequest) CloneVT() *CreateTestReportRequest {
 	r.SerialNumber = m.SerialNumber
 	r.PartNumber = m.PartNumber
 	r.SystemOperator = m.SystemOperator
+	r.RunId = m.RunId
 	if rhs := m.Metadata; rhs != nil {
 		tmpContainer := make([]*v1.MetadataValue, len(rhs))
 		for k, v := range rhs {
@@ -943,6 +945,9 @@ func (this *TestReport) EqualVT(that *TestReport) bool {
 	if this.IsArchived != that.IsArchived {
 		return false
 	}
+	if this.RunId != that.RunId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1324,6 +1329,9 @@ func (this *CreateTestReportRequest) EqualVT(that *CreateTestReportRequest) bool
 		return false
 	}
 	if this.SystemOperator != that.SystemOperator {
+		return false
+	}
+	if this.RunId != that.RunId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2758,6 +2766,13 @@ func (m *TestReport) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.RunId) > 0 {
+		i -= len(m.RunId)
+		copy(dAtA[i:], m.RunId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RunId)))
+		i--
+		dAtA[i] = 0x72
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -3444,6 +3459,13 @@ func (m *CreateTestReportRequest) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RunId) > 0 {
+		i -= len(m.RunId)
+		copy(dAtA[i:], m.RunId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RunId)))
+		i--
+		dAtA[i] = 0x5a
 	}
 	if len(m.SystemOperator) > 0 {
 		i -= len(m.SystemOperator)
@@ -4955,6 +4977,13 @@ func (m *TestReport) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.RunId) > 0 {
+		i -= len(m.RunId)
+		copy(dAtA[i:], m.RunId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RunId)))
+		i--
+		dAtA[i] = 0x72
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -5658,6 +5687,13 @@ func (m *CreateTestReportRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.RunId) > 0 {
+		i -= len(m.RunId)
+		copy(dAtA[i:], m.RunId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RunId)))
+		i--
+		dAtA[i] = 0x5a
 	}
 	if len(m.SystemOperator) > 0 {
 		i -= len(m.SystemOperator)
@@ -7203,6 +7239,10 @@ func (m *TestReport) SizeVT() (n int) {
 	if m.IsArchived {
 		n += 2
 	}
+	l = len(m.RunId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -7488,6 +7528,10 @@ func (m *CreateTestReportRequest) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.SystemOperator)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RunId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -8427,6 +8471,38 @@ func (m *TestReport) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RunId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -10065,6 +10141,38 @@ func (m *CreateTestReportRequest) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.SystemOperator = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RunId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -13537,6 +13645,42 @@ func (m *TestReport) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RunId = stringValue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -15255,6 +15399,42 @@ func (m *CreateTestReportRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
 			}
 			m.SystemOperator = stringValue
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var stringValue string
+			if intStringLen > 0 {
+				stringValue = unsafe.String(&dAtA[iNdEx], intStringLen)
+			}
+			m.RunId = stringValue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
