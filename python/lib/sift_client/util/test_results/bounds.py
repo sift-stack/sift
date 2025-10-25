@@ -43,27 +43,29 @@ def evaluate_measurement_bounds(
         True if the value is within the bounds, False otherwise.
     """
     assign_value_to_measurement(measurement, value)
-    if bounds is not None:
-        if isinstance(bounds, dict):
-            bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))
-        if isinstance(bounds, str):
-            if not (isinstance(value, str) or isinstance(value, bool)):
-                raise ValueError("Value must be a string if bounds provided is a string")
-            measurement.string_expected_value = bounds
-            if isinstance(value, bool):
-                measurement.passed = str(value).lower() == str(bounds).lower()
-            else:
-                measurement.passed = value == bounds
-        elif isinstance(bounds, NumericBounds):
-            measurement.numeric_bounds = bounds
-            measurement.passed = True
-            float_value = float(value)
-            if measurement.numeric_bounds.min is not None:
-                measurement.passed = (
-                    measurement.passed and measurement.numeric_bounds.min <= float_value
-                )
-            if measurement.numeric_bounds.max is not None:
-                measurement.passed = (
-                    measurement.passed and measurement.numeric_bounds.max >= float_value
-                )
+    if bounds is None:
+        return bool(measurement.passed)
+
+    if isinstance(bounds, dict):
+        bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))
+    if isinstance(bounds, str):
+        if not (isinstance(value, str) or isinstance(value, bool)):
+            raise ValueError("Value must be a string if bounds provided is a string")
+        measurement.string_expected_value = bounds
+        if isinstance(value, bool):
+            measurement.passed = str(value).lower() == str(bounds).lower()
+        else:
+            measurement.passed = value == bounds
+    elif isinstance(bounds, NumericBounds):
+        measurement.numeric_bounds = bounds
+        measurement.passed = True
+        float_value = float(value)
+        if measurement.numeric_bounds.min is not None:
+            measurement.passed = (
+                measurement.passed and measurement.numeric_bounds.min <= float_value
+            )
+        if measurement.numeric_bounds.max is not None:
+            measurement.passed = (
+                measurement.passed and measurement.numeric_bounds.max >= float_value
+            )
     return bool(measurement.passed)
