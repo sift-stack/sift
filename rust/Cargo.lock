@@ -3008,7 +3008,7 @@ dependencies = [
 
 [[package]]
 name = "sift_cli"
-version = "0.6.0"
+version = "0.7.0-rc.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3031,7 +3031,7 @@ dependencies = [
 
 [[package]]
 name = "sift_connect"
-version = "0.6.0"
+version = "0.7.0-rc.1"
 dependencies = [
  "dirs",
  "sift_error",
@@ -3042,14 +3042,14 @@ dependencies = [
 
 [[package]]
 name = "sift_error"
-version = "0.6.0"
+version = "0.7.0-rc.1"
 dependencies = [
  "indoc",
 ]
 
 [[package]]
 name = "sift_rs"
-version = "0.6.0"
+version = "0.7.0-rc.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3068,7 +3068,7 @@ dependencies = [
 
 [[package]]
 name = "sift_stream"
-version = "0.6.0"
+version = "0.7.0-rc.1"
 dependencies = [
  "async-channel",
  "async-trait",
