@@ -182,7 +182,11 @@ class TestRunsAPIAsync:
         async def test_find_run(self, runs_api_async, test_run):
             """Test finding a single run."""
             # Find the same run by name
-            found_run = await runs_api_async.find(name=test_run.name)
+            found_run = await runs_api_async.find(
+                name=test_run.name,
+                created_after=test_run.created_date - timedelta(seconds=10),
+                created_before=test_run.created_date + timedelta(seconds=10),
+            )
 
             assert found_run is not None
             assert found_run.id_ == test_run.id_

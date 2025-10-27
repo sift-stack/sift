@@ -3,13 +3,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
-from google.protobuf.timestamp_pb2 import Timestamp
 from sift.test_reports.v1.test_reports_pb2 import (
     CreateTestMeasurementRequest,
     CreateTestMeasurementResponse,
     CreateTestMeasurementsRequest,
     CreateTestMeasurementsResponse,
-    CreateTestReportRequest,
     CreateTestReportResponse,
     CreateTestStepRequest,
     CreateTestStepResponse,
@@ -43,13 +41,11 @@ from sift_client.sift_types.test_report import (
     TestReport,
     TestReportCreate,
     TestReportUpdate,
-    TestStatus,
     TestStep,
     TestStepCreate,
     TestStepUpdate,
 )
 from sift_client.transport import WithGrpcClient
-from sift_client.util.metadata import metadata_dict_to_proto
 
 if TYPE_CHECKING:
     from sift_client.transport.grpc_transport import GrpcClient
@@ -105,37 +101,7 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The created TestReport.
         """
-        request_kwargs: dict[str, Any] = {
-            "status": test_report.status.value
-            if isinstance(test_report.status, TestStatus)
-            else test_report.status,
-            "name": test_report.name,
-            "test_system_name": test_report.test_system_name,
-            "test_case": test_report.test_case,
-        }
-
-        # Handle timestamps
-        start_ts = Timestamp()
-        start_ts.FromDatetime(test_report.start_time)
-        request_kwargs["start_time"] = start_ts
-
-        end_ts = Timestamp()
-        end_ts.FromDatetime(test_report.end_time)
-        request_kwargs["end_time"] = end_ts
-
-        if test_report.metadata is not None:
-            request_kwargs["metadata"] = metadata_dict_to_proto(test_report.metadata)
-
-        if test_report.serial_number is not None:
-            request_kwargs["serial_number"] = test_report.serial_number
-
-        if test_report.part_number is not None:
-            request_kwargs["part_number"] = test_report.part_number
-
-        if test_report.system_operator is not None:
-            request_kwargs["system_operator"] = test_report.system_operator
-
-        request = CreateTestReportRequest(**request_kwargs)
+        request = test_report.to_proto()
         response = await self._grpc_client.get_stub(TestReportServiceStub).CreateTestReport(request)
         grpc_test_report = cast("CreateTestReportResponse", response).test_report
         return TestReport._from_proto(grpc_test_report)
@@ -336,7 +302,9 @@ class TestResultsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The updated TestStep.
         """
         test_step_proto, field_mask = update.to_proto_with_mask()
-
+        has_error_info = test_step_proto.HasField("error_info")
+        if has_error_info:
+            field_mask.paths.append("error_info")
         request = UpdateTestStepRequest(test_step=test_step_proto, update_mask=field_mask)
         response = await self._grpc_client.get_stub(TestReportServiceStub).UpdateTestStep(request)
         grpc_test_step = cast("UpdateTestStepResponse", response).test_step
