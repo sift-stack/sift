@@ -57,6 +57,7 @@ pub struct SiftStreamBuilder<C> {
     asset_metadata: Option<Vec<MetadataValue>>,
     control_channel_capacity: usize,
     data_channel_capacity: usize,
+    enable_compression_for_ingestion: bool,
 
     // Either `run` or `run_id`. If both are provided then the `run_id` will be prioritized.
     run: Option<RunForm>,
@@ -167,6 +168,14 @@ where
         self
     }
 
+    /// Sets whether compression is enabled.
+    ///
+    /// Currently only gzip is supported.
+    pub fn enable_compression_for_ingestion(mut self, enable: bool) -> SiftStreamBuilder<C> {
+        self.enable_compression_for_ingestion = enable;
+        self
+    }
+
     /// Disables TLS. Useful for testing. This is ignored if [SiftStreamBuilder::from_channel] is
     /// used to initialize the builder.
     pub fn disable_tls(mut self) -> SiftStreamBuilder<C> {
@@ -200,6 +209,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             credentials: Some(credentials),
             channel: None,
             enable_tls: true,
+            enable_compression_for_ingestion: false,
             ingestion_config: None,
             run: None,
             run_id: None,
@@ -219,6 +229,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             credentials: None,
             channel: Some(channel),
             enable_tls: true,
+            enable_compression_for_ingestion: false,
             ingestion_config: None,
             run: None,
             run_id: None,
@@ -240,6 +251,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             channel: grpc_channel,
             credentials,
             enable_tls,
+            enable_compression_for_ingestion,
             ingestion_config,
             recovery_strategy,
             run,
@@ -342,6 +354,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             grpc_channel: channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion,
             recovery_config,
             control_channel_capacity: self.control_channel_capacity,
             data_channel_capacity: self.data_channel_capacity,
