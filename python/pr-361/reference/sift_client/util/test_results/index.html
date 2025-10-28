@@ -1052,6 +1052,15 @@ You're not viewing the latest version.
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results--then-in-your-test-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Then in your test file:
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1587,6 +1596,15 @@ You're not viewing the latest version.
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results--then-in-your-test-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Then in your test file:
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1953,7 +1971,7 @@ You're not viewing the latest version.
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.util.test_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">report_context</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">module_substep</span>
 </span></code></pre></div>
-<p>Then in your test file:</p>
+<h6 id="sift_client.util.test_results--then-in-your-test-file">Then in your test file:<a class="headerlink" href="#sift_client.util.test_results--then-in-your-test-file" title="Permanent link">&para;</a></h6>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Because step was already imported and set autouse=True, this test will automatically get a step created for it.</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_no_includes</span><span class="p">():</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">assert</span> <span class="n">condition</span><span class="p">,</span> <span class="s2">&quot;Example failure&quot;</span>
@@ -2025,7 +2043,7 @@ You're not viewing the latest version.
             <td><code><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.NewStep)" href="#sift_client.util.test_results.NewStep">NewStep</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Context manager to create a new step in a test report.</p>
+                <p>Context manager to create a new step in a test report. See usage example in <strong>init</strong>.py.</p>
               </div>
             </td>
           </tr>
@@ -2033,7 +2051,7 @@ You're not viewing the latest version.
             <td><code><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="#sift_client.util.test_results.ReportContext">ReportContext</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Context for a new TestReport.</p>
+                <p>Context manager for a new TestReport. See usage example in <strong>init</strong>.py.</p>
               </div>
             </td>
           </tr>
@@ -2141,7 +2159,7 @@ You're not viewing the latest version.
               Bases: <code><a class="autorefs autorefs-external" title="contextlib.AbstractContextManager" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager">AbstractContextManager</a></code></p>
 
 
-        <p>Context manager to create a new step in a test report.</p>
+        <p>Context manager to create a new step in a test report. See usage example in <strong>init</strong>.py.</p>
 
         <p>Initialize a new step context.</p>
 
@@ -2607,7 +2625,7 @@ You're not viewing the latest version.
               Bases: <code><a class="autorefs autorefs-external" title="contextlib.AbstractContextManager" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager">AbstractContextManager</a></code></p>
 
 
-        <p>Context for a new TestReport.</p>
+        <p>Context manager for a new TestReport. See usage example in <strong>init</strong>.py.</p>
 
         <p>Initialize a new report context.</p>
 
