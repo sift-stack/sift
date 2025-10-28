@@ -171,6 +171,9 @@ where
     /// Sets whether compression is enabled.
     ///
     /// Currently only gzip is supported.
+    ///
+    /// WARNING: Compression adds additional overhead both on the client and server, so can reduce
+    /// the overall throughput of a stream. It is not recommended to enable compression by default.
     pub fn enable_compression_for_ingestion(mut self, enable: bool) -> SiftStreamBuilder<C> {
         self.enable_compression_for_ingestion = enable;
         self
