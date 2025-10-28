@@ -13,7 +13,12 @@ def assign_value_to_measurement(
     measurement: TestMeasurement | TestMeasurementCreate | TestMeasurementUpdate,
     value: float | str | bool,
 ) -> None:
-    """Assign the resolved value type to a measurement."""
+    """Resolve value type from a given value and assign it to a measurement.
+
+    Args:
+        measurement: The measurement to assign the value to.
+        value: The value to resolve and assign to the measurement.
+    """
     if isinstance(value, bool):
         measurement.boolean_value = value
         measurement.measurement_type = TestMeasurementType.BOOLEAN

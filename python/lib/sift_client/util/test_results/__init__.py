@@ -6,10 +6,11 @@ This module provides utilities for working with test results.
 - `ReportContext` - Context manager for a new TestReport.
 - `NewStep` - Context manager to create a new step in a test report.
 
-### Examples
+### Example
 
 ```python
-with ReportContext(client, name="Example Report", description="Example Report") as rc:
+client = SiftClient(api_key=api_key,grpc_url=grpc_url,rest_url=rest_url)
+with ReportContext(client, name="Example Report") as rc:
     with rc.new_step(name="Setup") as step:
         controller_setup(step)
     with rc.new_step(name="Example Step", description=desc) as parent_step:
@@ -23,15 +24,65 @@ with ReportContext(client, name="Example Report", description="Example Report") 
             result = substep.measure(pos, name=f"{ec}.{pos_channel}", bounds=(min=74.9, max=75.1))
             return result # This is optional for other uses, but the step and its parents will be updated correctly i.e. failed if the measurement fails.
 ```
-#### Pytest Fixtures
 
-The report context and steps can also be accessed in pytest via the `report_context` and `step` fixtures.
-These fixtures are set to autouse and will automatically create a report and steps for each test function.
-If you want each module(file) to be marked as a step w/ each test as a substep, import the `module_substep` fixture.
+For a larger class or script, consider creating the context in a setup method and passing it to the test functions.
+```python
+def main(self):
+    self.sift_client = SiftClient(api_key=api_key,grpc_url=grpc_url,rest_url=rest_url)
+    with ReportContext(self.sift_client, name="Test Class", description="Test Class") as rc:
+        setup(rc)
+        test_one(rc)
+        test_two(rc)
+        teardown(rc)
+    cleanup()
+```
 
+## Pytest Fixtures
+
+The report context and steps can also be accessed in pytest by importing the `report_context` and `step` fixtures.
+
+### How to use:
+- These fixtures are set to autouse and will automatically create a report and steps for each test function.
+  - If you want each module(file) to be marked as a step w/ each test as a substep, import the `module_substep` fixture as well.
+- The `report_context` fixture requires a fixture `sift_client` returning an `SiftClient` instance to be passed in.
+
+###### Example at top of your test file or in your conftest.py file:
+
+```python
+import pytest
+
+@pytest.fixture(scope="session")
+def sift_client() -> SiftClient:
+    grpc_url = os.getenv("SIFT_GRPC_URI", "localhost:50051")
+    rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
+    api_key = os.getenv("SIFT_API_KEY", "")
+
+    client = SiftClient(api_key=api_key,grpc_url=grpc_url,rest_url=rest_url)
+
+    return client
+
+from sift_client.util.test_results import report_context, step, module_substep
+```
+
+###### Then in your test file:
+
+```python
+# Because step was already imported and set autouse=True, this test will automatically get a step created for it.
+def test_no_includes():
+    assert condition, "Example failure"
+
+# Passing the fixtures to the test function allows you to take measurements or create substeps.
+def test_example(report_context, step):
+    # This will add a measurement to the current step for this function
+    step.measure(name="Example Measurement", value=test_string_value, bounds="expected_string_value")
+
+    with report_context.new_step(name="Example Step") as substep:
+        example_measurement = tlm.read(channel_name)
+        substep.measure(name="Substep Measurement", value=example_measurement, bounds=(min=74.9, max=75.1))
+```
 """
 
 from .context_manager import NewStep, ReportContext
-from .pytest import report_context
+from .pytest_util import module_substep, report_context, step
 
-__all__ = ["NewStep", "ReportContext", "report_context"]
+__all__ = ["NewStep", "ReportContext", "module_substep", "report_context", "step"]
