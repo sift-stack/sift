@@ -8,6 +8,7 @@ use async_channel::{Receiver, Sender};
 use chrono::Utc;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
+use sift_rs::CompressionEncoding;
 use sift_rs::{SiftChannel, ingest::v1::ingest_service_client::IngestServiceClient};
 use std::time::Duration;
 use std::{
@@ -407,6 +408,7 @@ pub(crate) struct BackupIngestTask {
     control_rx: broadcast::Receiver<ControlMessage>,
     to_reingest_rx: Receiver<PathBuf>,
     to_reingest_tx: Sender<PathBuf>,
+    enable_compression_for_ingestion: bool,
     grpc_channel: SiftChannel,
     retry_policy: RetryPolicy,
     retain_backups: bool,
@@ -417,6 +419,7 @@ impl BackupIngestTask {
     pub(crate) fn new(
         control_rx: broadcast::Receiver<ControlMessage>,
         grpc_channel: SiftChannel,
+        enable_compression_for_ingestion: bool,
         retry_policy: RetryPolicy,
         retain_backups: bool,
         metrics: Arc<SiftStreamMetrics>,
@@ -426,6 +429,7 @@ impl BackupIngestTask {
             control_rx,
             to_reingest_rx,
             to_reingest_tx,
+            enable_compression_for_ingestion,
             grpc_channel,
             retry_policy,
             retain_backups,
@@ -442,6 +446,7 @@ impl BackupIngestTask {
             self.to_reingest_rx.clone(),
             self.grpc_channel.clone(),
             self.retry_policy,
+            self.enable_compression_for_ingestion,
             self.retain_backups,
             self.metrics.clone(),
         ));
@@ -493,10 +498,18 @@ impl BackupIngestTask {
         to_reingest_rx: Receiver<PathBuf>,
         grpc_channel: SiftChannel,
         retry_policy: RetryPolicy,
+        enable_compression_for_ingestion: bool,
         retain_backups: bool,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Result<()> {
         let mut client = IngestServiceClient::new(grpc_channel);
+
+        // If compression is enabled, add the compression codecs to the client.
+        if enable_compression_for_ingestion {
+            client = client
+                .send_compressed(CompressionEncoding::Gzip)
+                .accept_compressed(CompressionEncoding::Gzip);
+        }
 
         while let Ok(backup_file_path) = to_reingest_rx.recv().await {
             metrics
@@ -1578,6 +1591,7 @@ mod test {
         let (to_reingest_tx, to_reingest_rx) = async_channel::bounded(1024);
         let retry_policy = RetryPolicy::default();
         let retain_backups = false;
+        let enable_compression_for_ingestion = false;
         let (grpc_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
         let metrics = Arc::new(SiftStreamMetrics::default());
@@ -1595,6 +1609,7 @@ mod test {
                 to_reingest_rx,
                 grpc_channel,
                 retry_policy,
+                enable_compression_for_ingestion,
                 retain_backups,
                 metrics
             )
@@ -1637,6 +1652,7 @@ mod test {
         let (to_reingest_tx, to_reingest_rx) = async_channel::bounded(1024);
         let retry_policy = RetryPolicy::default();
         let retain_backups = true;
+        let enable_compression_for_ingestion = false;
         let (grpc_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
         let metrics = Arc::new(SiftStreamMetrics::default());
@@ -1654,6 +1670,7 @@ mod test {
                 to_reingest_rx,
                 grpc_channel,
                 retry_policy,
+                enable_compression_for_ingestion,
                 retain_backups,
                 metrics
             )
@@ -1701,6 +1718,7 @@ mod test {
             backoff_multiplier: 5,
         };
         let retain_backups = false;
+        let enable_compression_for_ingestion = false;
         let (grpc_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
         let metrics = Arc::new(SiftStreamMetrics::default());
@@ -1722,6 +1740,7 @@ mod test {
                 to_reingest_rx,
                 grpc_channel,
                 retry_policy,
+                enable_compression_for_ingestion,
                 retain_backups,
                 metrics.clone()
             )
@@ -1776,6 +1795,7 @@ mod test {
             backoff_multiplier: 5,
         };
         let retain_backups = false;
+        let enable_compression_for_ingestion = false;
         let (grpc_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
         let metrics = Arc::new(SiftStreamMetrics::default());
@@ -1797,6 +1817,7 @@ mod test {
                 to_reingest_rx,
                 grpc_channel,
                 retry_policy,
+                enable_compression_for_ingestion,
                 retain_backups,
                 metrics.clone()
             )
@@ -1846,6 +1867,7 @@ mod test {
         // Create the re-ingestion task.
         let retry_policy = RetryPolicy::default();
         let retain_backups = false;
+        let enable_compression_for_ingestion = false;
         let (grpc_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
         let metrics = Arc::new(SiftStreamMetrics::default());
@@ -1853,6 +1875,7 @@ mod test {
         let reingest_task = BackupIngestTask::new(
             control_rx,
             grpc_channel,
+            enable_compression_for_ingestion,
             retry_policy,
             retain_backups,
             metrics,
@@ -1926,6 +1949,7 @@ mod test {
         // Create the re-ingestion task.
         let retry_policy = RetryPolicy::default();
         let retain_backups = false;
+        let enable_compression_for_ingestion = false;
         let (grpc_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
         let metrics = Arc::new(SiftStreamMetrics::default());
@@ -1933,6 +1957,7 @@ mod test {
         let reingest_task = BackupIngestTask::new(
             control_rx,
             grpc_channel,
+            enable_compression_for_ingestion,
             retry_policy,
             retain_backups,
             metrics,

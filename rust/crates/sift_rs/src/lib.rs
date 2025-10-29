@@ -50,3 +50,4 @@ pub use r#gen::sift::*;
 pub mod wrappers;
 
 pub use sift_connect::{Credentials, SiftChannel, SiftChannelBuilder};
+pub use tonic::codec::CompressionEncoding;
