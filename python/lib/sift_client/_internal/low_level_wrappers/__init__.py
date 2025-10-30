@@ -3,6 +3,7 @@ from sift_client._internal.low_level_wrappers.calculated_channels import (
     CalculatedChannelsLowLevelClient,
 )
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
+from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client._internal.low_level_wrappers.ingestion import IngestionLowLevelClient
 from sift_client._internal.low_level_wrappers.ping import PingLowLevelClient
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
@@ -17,6 +18,7 @@ __all__ = [
     "AssetsLowLevelClient",
     "CalculatedChannelsLowLevelClient",
     "ChannelsLowLevelClient",
+    "DataImportsLowLevelClient",
     "IngestionLowLevelClient",
     "PingLowLevelClient",
     "RemoteFilesLowLevelClient",
