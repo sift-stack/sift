@@ -227,15 +227,25 @@ impl SiftStream<IngestionConfigMode> {
             dropped_for_ingestion: false,
         };
 
-        // Send the message for backup first. If this fails, return an error.
+        // Send the message for backup first. If this fails, log an error and continue.
         //
-        // Failure to backup leads to data loss and should be treated as very critical.
-        self.mode
+        // Failure to backup can lead to data loss though it is preferable to attempt
+        // to stream the message to Sift rather than return the error and prevent both.
+        if let Err(e) = self
+            .mode
             .stream_system
             .backup_tx
             .try_send(data_msg.clone())
             .map_err(|e| Error::new(ErrorKind::StreamError, e))
-            .context("failed to send data to backup task system")?;
+            .context("failed to send data to backup task system")
+        {
+            #[cfg(feature = "tracing")]
+            tracing::error!(
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
+                "failed to send data to backup task system, data loss may occur: {}",
+                e
+            );
+        };
         self.metrics.messages_sent_to_backup.increment();
 
         // Send the message for ingestion.
