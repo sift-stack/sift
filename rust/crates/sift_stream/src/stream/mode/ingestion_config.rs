@@ -239,26 +239,10 @@ impl SiftStream<IngestionConfigMode> {
             #[cfg(feature = "tracing")]
             tracing::warn!(
                 sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "failed to send data to backup system, data loss may occur: {}",
-                e
+                "failed to send data to backup system, data loss may occur: {e}"
             );
         }
 
-        if let Err(e) = self
-            .mode
-            .stream_system
-            .backup_tx
-            .try_send(data_msg.clone())
-            .map_err(|e| Error::new(ErrorKind::StreamError, e))
-            .context("failed to send data to backup task system")
-        {
-            #[cfg(feature = "tracing")]
-            tracing::error!(
-                sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "failed to send data to backup task system, data loss may occur: {}",
-                e
-            );
-        };
         self.metrics.messages_sent_to_backup.increment();
 
         // Send the message for ingestion.
@@ -290,7 +274,7 @@ impl SiftStream<IngestionConfigMode> {
             }
             Err(e) => Err(Error::new_msg(
                 ErrorKind::StreamError,
-                format!("queueing data for ingestion failed: {}", e),
+                format!("queueing data for ingestion failed: {e}"),
             )),
         }
     }
