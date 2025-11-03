@@ -15,7 +15,7 @@ use tokio::{sync::broadcast, task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
 /// Capacity for the data channel.
-pub(crate) const DATA_CHANNEL_CAPACITY: usize = 1024 * 10;
+pub(crate) const DATA_CHANNEL_CAPACITY: usize = 1024 * 100;
 
 /// Capacity for the control channel.
 pub(crate) const CONTROL_CHANNEL_CAPACITY: usize = 1024;
@@ -64,7 +64,8 @@ pub struct TaskConfig {
     pub checkpoint_interval: Duration,
     pub recovery_config: RecoveryConfig,
     pub control_channel_capacity: usize,
-    pub data_channel_capacity: usize,
+    pub ingestion_data_channel_capacity: usize,
+    pub backup_data_channel_capacity: usize,
 }
 
 /// Data message with stream ID for routing
@@ -90,8 +91,9 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     let (control_tx, _control_rx) = broadcast::channel(config.control_channel_capacity);
 
     // Create data channel for high-frequency data messages
-    let (ingestion_tx, ingestion_rx) = async_channel::bounded(config.data_channel_capacity);
-    let (backup_tx, backup_rx) = async_channel::bounded(config.data_channel_capacity);
+    let (ingestion_tx, ingestion_rx) =
+        async_channel::bounded(config.ingestion_data_channel_capacity);
+    let (backup_tx, backup_rx) = async_channel::bounded(config.backup_data_channel_capacity);
 
     // Clone the sender for each task
     let backup_control_tx = control_tx.clone();
@@ -486,7 +488,8 @@ mod tests {
             metrics: metrics.clone(),
             checkpoint_interval,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -544,7 +547,8 @@ mod tests {
             metrics: metrics.clone(),
             checkpoint_interval,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -596,7 +600,8 @@ mod tests {
             metrics: metrics.clone(),
             checkpoint_interval,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -658,7 +663,8 @@ mod tests {
             metrics: metrics.clone(),
             checkpoint_interval: Duration::from_secs(60),
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -734,7 +740,8 @@ mod tests {
             metrics: metrics.clone(),
             checkpoint_interval,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy {
                     max_attempts: 3,
@@ -826,7 +833,8 @@ mod tests {
             metrics: metrics.clone(),
             checkpoint_interval,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -896,7 +904,8 @@ mod tests {
             metrics: metrics.clone(),
             checkpoint_interval,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
