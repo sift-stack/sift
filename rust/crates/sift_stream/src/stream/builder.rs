@@ -62,6 +62,7 @@ pub struct SiftStreamBuilder<C> {
     ingestion_data_channel_capacity: usize,
     backup_data_channel_capacity: usize,
     backup_timeout: Duration,
+    enable_compression_for_ingestion: bool,
 
     // Either `run` or `run_id`. If both are provided then the `run_id` will be prioritized.
     run: Option<RunForm>,
@@ -179,6 +180,17 @@ where
         self
     }
 
+    /// Sets whether compression is enabled.
+    ///
+    /// Currently only gzip is supported.
+    ///
+    /// WARNING: Compression adds additional overhead both on the client and server, so can reduce
+    /// the overall throughput of a stream. It is not recommended to enable compression by default.
+    pub fn enable_compression_for_ingestion(mut self, enable: bool) -> SiftStreamBuilder<C> {
+        self.enable_compression_for_ingestion = enable;
+        self
+    }
+
     /// Disables TLS. Useful for testing. This is ignored if [SiftStreamBuilder::from_channel] is
     /// used to initialize the builder.
     pub fn disable_tls(mut self) -> SiftStreamBuilder<C> {
@@ -219,6 +231,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             credentials: Some(credentials),
             channel: None,
             enable_tls: true,
+            enable_compression_for_ingestion: false,
             ingestion_config: None,
             run: None,
             run_id: None,
@@ -240,6 +253,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             credentials: None,
             channel: Some(channel),
             enable_tls: true,
+            enable_compression_for_ingestion: false,
             ingestion_config: None,
             run: None,
             run_id: None,
@@ -263,6 +277,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             channel: grpc_channel,
             credentials,
             enable_tls,
+            enable_compression_for_ingestion,
             ingestion_config,
             recovery_strategy,
             run,
@@ -366,6 +381,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             grpc_channel: channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion,
             recovery_config,
             control_channel_capacity: self.control_channel_capacity,
             ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,
