@@ -239,7 +239,7 @@ impl SiftStream<IngestionConfigMode> {
             #[cfg(feature = "tracing")]
             tracing::warn!(
                 sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "failed to send data to backup system, data loss may occur: {e}"
+                "failed to send data to backup system, data will still be streamed to Sift: {e}"
             );
         }
 
