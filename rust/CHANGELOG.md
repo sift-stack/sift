@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.2] - November 3, 2025
+### What's New
+#### Improvements For Constrained Environments
+Compression support has been added for streaming data into Sift. This can be useful in low-bandwidth or network
+constrained environments. Since compression does add overhead to streaming, it is not recommended for high
+throughput streaming systems.
+
+Additionally, changes have been made to ensure data is streamed to Sift even when writing backup files lags
+behind ingestion.
 
 ## [v0.7.0-rc.1] - October 24, 2025
 ### What's New
