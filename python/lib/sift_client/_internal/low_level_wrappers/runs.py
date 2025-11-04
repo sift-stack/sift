@@ -4,6 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Any, cast
 
 from sift.runs.v2.runs_pb2 import (
+    CreateAdhocRunRequest,
+    CreateAdhocRunResponse,
     CreateAutomaticRunAssociationForAssetsRequest,
     CreateRunResponse,
     GetRunRequest,
@@ -17,10 +19,13 @@ from sift.runs.v2.runs_pb2 import (
 from sift.runs.v2.runs_pb2_grpc import RunServiceStub
 
 from sift_client._internal.low_level_wrappers.base import LowLevelClientBase
+from sift_client._internal.util.timestamp import to_pb_timestamp
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.transport import WithGrpcClient
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from sift_client.transport.grpc_transport import GrpcClient
 
 # Configure logging
@@ -169,3 +174,50 @@ class RunsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         await self._grpc_client.get_stub(RunServiceStub).CreateAutomaticRunAssociationForAssets(
             request
         )
+
+    async def create_adhoc_run(
+        self,
+        *,
+        name: str,
+        description: str | None = None,
+        asset_ids: list[str],
+        start_time: datetime | None = None,
+        stop_time: datetime | None = None,
+        tag_names: list[str] | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        client_key: str | None = None,
+    ) -> Run:
+        """Create an adhoc run.
+
+        Args:
+            name: The name of the run.
+            description: Optional description of the run.
+            asset_ids: List of asset IDs to associate with the run.
+            start_time: Optional start time of the run.
+            stop_time: Optional stop time of the run.
+            tag_names: Optional list of tag names to associate with the run.
+            metadata: Optional metadata to associate with the run.
+            client_key: Optional client key for the run.
+
+        Returns:
+            The created Run.
+
+        Raises:
+            ValueError: If name is not provided or if start_time/stop_time are invalid.
+        """
+        from sift_client.util.metadata import metadata_dict_to_proto
+
+        request = CreateAdhocRunRequest(
+            name=name,
+            description=description or "",
+            start_time=to_pb_timestamp(start_time) if start_time else None,
+            stop_time=to_pb_timestamp(stop_time) if stop_time else None,
+            asset_ids=asset_ids,
+            tags=tag_names,
+            metadata=metadata_dict_to_proto(metadata) if metadata else None,
+            client_key=client_key,
+        )
+
+        response = await self._grpc_client.get_stub(RunServiceStub).CreateAdhocRun(request)
+        grpc_run = cast("CreateAdhocRunResponse", response).run
+        return Run._from_proto(grpc_run)

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.sift_types.tag import Tag
 from sift_client.util import cel_utils as cel
@@ -13,7 +14,6 @@ if TYPE_CHECKING:
     from datetime import datetime, timedelta
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.asset import Asset
 
 
 class RunsAPIAsync(ResourceBase):
@@ -277,17 +277,80 @@ class RunsAPIAsync(ResourceBase):
 
     async def create_automatic_association_for_assets(
         self,
-        run: str | Run,
         *,
-        asset_names: list[str],
+        run: str | Run,
+        assets: list[str | Asset],
     ) -> None:
-        """Associate assets with a run for automatic data ingestion.
+        """Associate asset data with a given Run before ingesting it. Any data for the given assets that falls within the given Run's time period will be associated with the Run. For associating data after ingestion, use the create_adhoc_run method.
 
         Args:
             run: The Run or run ID.
-            asset_names: List of asset names to associate.
+            assets: List of assets or asset names to associate.
         """
+        asset_names = []
+        for asset in assets:
+            if isinstance(asset, Asset):
+                asset_names.append(asset.name)
+            else:
+                asset_names.append(asset)
         run_id = run._id_or_error or "" if isinstance(run, Run) else run
         await self._low_level_client.create_automatic_run_association_for_assets(
             run_id=run_id, asset_names=asset_names
         )
+
+    async def create_adhoc_run(
+        self,
+        *,
+        name: str,
+        description: str | None = None,
+        assets: list[str | Asset],
+        start_time: datetime | None = None,
+        stop_time: datetime | None = None,
+        tags: list[str | Tag] | None = None,
+        metadata: dict[str, str | float | bool] | None = None,
+        client_key: str | None = None,
+    ) -> Run:
+        """Create an ad-hoc run.
+
+        These runs act like views onto data in given assets potentially over a specific time period. This can be created after the data has been ingested.
+
+        Args:
+            name: The name of the run.
+            description: Optional description of the run.
+            assets: List of assets to associate with the run.
+            start_time: Optional start time of the run.
+            stop_time: Optional stop time of the run.
+            asset_ids: Optional list of asset IDs to associate with the run.
+            tags: Optional list of tags or tag names to associate with the run.
+            metadata: Optional metadata dictionary to associate with the run.
+            client_key: Optional client key for the run.
+
+        Returns:
+            The created Run.
+
+        Raises:
+            ValueError: If name is not provided or if start_time/stop_time are invalid.
+        """
+        asset_ids = []
+        for asset in assets:
+            if isinstance(asset, Asset):
+                asset_ids.append(asset._id_or_error)
+            else:
+                asset_ids.append(asset)
+        tag_names = []
+        for tag in tags or []:
+            if isinstance(tag, Tag):
+                tag_names.append(tag.name)
+            else:
+                tag_names.append(tag)
+        created_run = await self._low_level_client.create_adhoc_run(
+            name=name,
+            description=description,
+            asset_ids=asset_ids,
+            start_time=start_time,
+            stop_time=stop_time,
+            tag_names=tag_names,
+            metadata=metadata,
+            client_key=client_key,
+        )
+        return self._apply_client_to_instance(created_run)
