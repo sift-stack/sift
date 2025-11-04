@@ -132,17 +132,15 @@ impl SiftStream<IngestionConfigMode> {
     /// to register the flow before calling [SiftStream::send]; otherwise users should monitor the
     /// Sift DLQ either in the Sift UI or Sift API to ensure successful transmission.
     ///
-    /// In the case where the underlying error was closed due to an error, this method will invoke
-    /// the configured [RetryPolicy] to attempt to reconnect and resend data to Sift. If the amount
-    /// of retry attempts exceeds the maximum configured, then an [ErrorKind::RetriesExhausted] is
-    /// returned. If backups are enabled, then all messages since the last successful checkpoint
-    /// will be reingested.
+    /// When "sending" messages, first the message will sent to the backup system. This system
+    /// is used to backup data to disk until the data is confirmed received by Sift. If streaming
+    /// encounters errors, the backed up data will be re-ingested ensuring all data is received
+    /// by Sift.
     ///
-    /// Lastly, if the underlying stream was gracefully closed due to a checkpoint, this method
-    /// will automatically establish a new connection.
+    /// If the backup system has fallen behind and the backup queue/channel is full, it will
+    /// proceed to sending the message to Sift.
     ///
-    /// TODO: To preserve the API, this function is remaining async even though it no longer has
-    /// any `await`s. This should be changed to a blocking function in the next major version.
+    /// This ensures data is sent to Sift even if the backup system is lagging.
     pub async fn send(&mut self, message: Flow) -> Result<()> {
         self.metrics.messages_received.increment();
 
@@ -227,15 +225,18 @@ impl SiftStream<IngestionConfigMode> {
             dropped_for_ingestion: false,
         };
 
-        // Send the message for backup first. If this fails, return an error.
+        // Send the message for backup first. If this fails, log an error and continue.
         //
-        // Failure to backup leads to data loss and should be treated as very critical.
-        self.mode
-            .stream_system
-            .backup_tx
-            .try_send(data_msg.clone())
-            .map_err(|e| Error::new(ErrorKind::StreamError, e))
-            .context("failed to send data to backup task system")?;
+        // Failure to backup can lead to data loss though it is preferable to attempt
+        // to stream the message to Sift rather than return the error and prevent both.
+        if let Err(e) = self.mode.stream_system.backup_tx.try_send(data_msg.clone()) {
+            #[cfg(feature = "tracing")]
+            tracing::warn!(
+                sift_stream_id = self.mode.sift_stream_id.to_string(),
+                "failed to send data to backup system, data will still be streamed to Sift: {e}"
+            );
+        }
+
         self.metrics.messages_sent_to_backup.increment();
 
         // Send the message for ingestion.
@@ -267,7 +268,7 @@ impl SiftStream<IngestionConfigMode> {
             }
             Err(e) => Err(Error::new_msg(
                 ErrorKind::StreamError,
-                format!("queueing data for ingestion failed: {}", e),
+                format!("queueing data for ingestion failed: {e}"),
             )),
         }
     }

@@ -111,19 +111,23 @@ error handling, and shutdown processes.
 - **backup_tx/backup_rx**: Bounded channel for backup data messages
 
 **IMPORTANT**:
-Data reliability is among the most important requirements of sift-stream, thus if the data channel used for backups
-becomes full, an error is returned to the caller. This is in contrast to the data channel used for the primary
-ingestion into Sift -- if this channel becomes full, the oldest data will be removed in favor of streaming newer
-data. The data removed during this process will have been backed up to disk and will be re-ingested at the next
-checkpoint.
+Data reliability is among the most important goals of sift-stream, however if the backup system falls
+behind (slow disk writes), a warning will be emitted but data will still be sent for ingestion.
+Streaming data in this situation is preferred over preventing it entirely. It is **highly** recommended
+however that write speeds be sufficiently high for the given data stream being backed up to ensure data
+is reliably backed up.
+
+In contrast, if the primary ingestion channel becomes full, the oldest data will be removed in favor of
+streaming newer data. The data removed during this process will be forwarded to the backup system and
+will be re-ingested at the next checkpoint.
 
 ### Control Channel
-- **control_tx/control_rx**: Broadcast channel (1,024 capacity) for low-frequency control messages
+- **control_tx/control_rx**: Broadcast channel for low-frequency control messages
 
 ### Channel Capacities
 
 The default capacities are as follows:
-- **data**: 10,240
+- **data**: 102,400
 - **control**: 1024
 
 These can be configured however, based on individual streaming needs.
