@@ -8,7 +8,9 @@ if TYPE_CHECKING:
         CalculatedChannelsAPIAsync,
         ChannelsAPIAsync,
         FileAttachmentsAPIAsync,
+        DataImportsAPIAsync,
         IngestionAPIAsync,
+        JobsAPIAsync,
         PingAPIAsync,
         ReportsAPIAsync,
         RulesAPIAsync,
@@ -36,8 +38,14 @@ class AsyncAPIs(NamedTuple):
     file_attachments: FileAttachmentsAPIAsync
     """Instance of the File Attachments API for making asynchronous requests."""
 
+    data_imports: DataImportsAPIAsync
+    """Instance of the Data Imports API for making asynchronous requests."""
+
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making asynchronous requests."""
+
+    jobs: JobsAPIAsync
+    """Instance of the Jobs API for making asynchronous requests."""
 
     reports: ReportsAPIAsync
     """Instance of the Reports API for making asynchronous requests."""

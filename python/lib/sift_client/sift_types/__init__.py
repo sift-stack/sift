@@ -162,6 +162,12 @@ from sift_client.sift_types.ingestion import (
     FlowConfig,
     IngestionConfig,
     IngestionConfigCreate,
+)from sift_client.sift_types.job import (
+    Job,
+    JobDetails,
+    JobStatus,
+    JobStatusDetails,
+    JobType,
 )
 from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
 from sift_client.sift_types.rule import (
@@ -208,6 +214,11 @@ __all__ = [
     "FlowConfig",
     "IngestionConfig",
     "IngestionConfigCreate",
+    "Job",
+    "JobDetails",
+    "JobStatus",
+    "JobStatusDetails",
+    "JobType",
     "ParquetComplexTypesImportMode",
     "ParquetConfig",
     "ParquetDataColumn",
