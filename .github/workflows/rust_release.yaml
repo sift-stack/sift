@@ -28,6 +28,6 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Publish crates
-        run: cargo publish --workspace --exclude sift-stream-bindings --exclude sift_cli --manifest-path ./rust/Cargo.toml --locked --token ${CARGO_REGISTRY_TOKEN}
+        run: cargo publish --workspace --exclude sift-stream-bindings --exclude sift_cli --manifest-path ./Cargo.toml --locked --token ${CARGO_REGISTRY_TOKEN}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
