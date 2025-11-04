@@ -24,7 +24,6 @@ use std::{
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
-    time::Duration,
 };
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
@@ -38,7 +37,6 @@ pub struct IngestionConfigMode {
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
     flows_seen: HashSet<String>,
     sift_stream_id: Uuid,
-    backup_timeout: Duration,
 
     // Task-based architecture components for non-blocking operation
     stream_system: StreamSystem,
@@ -85,7 +83,6 @@ impl SiftStream<IngestionConfigMode> {
         flows: Vec<FlowConfig>,
         run: Option<Run>,
         task_config: TaskConfig,
-        backup_timeout: Duration,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Result<Self> {
         let mut flows_by_name = HashMap::<String, Vec<FlowConfig>>::new();
@@ -121,7 +118,6 @@ impl SiftStream<IngestionConfigMode> {
                 flows_by_name,
                 flows_seen: HashSet::new(),
                 sift_stream_id,
-                backup_timeout,
                 run,
                 stream_system,
             },
@@ -141,8 +137,8 @@ impl SiftStream<IngestionConfigMode> {
     /// encounters errors, the backed up data will be re-ingested ensuring all data is received
     /// by Sift.
     ///
-    /// If the backup system has fallen behind and the backup queue/channel is full, sending to
-    /// the backup system will timeout and it will proceed to sending the message to Sift.
+    /// If the backup system has fallen behind and the backup queue/channel is full, it will
+    /// proceed to sending the message to Sift.
     ///
     /// This ensures data is sent to Sift even if the backup system is lagging.
     pub async fn send(&mut self, message: Flow) -> Result<()> {
@@ -159,7 +155,7 @@ impl SiftStream<IngestionConfigMode> {
                 message.flow_name,
             );
             let req = Self::message_to_ingest_req_direct(&message, ingestion_config_id, run_id);
-            return self.send_impl(req).await;
+            return self.send_impl(req);
         };
         let Some(req) = Self::message_to_ingest_req(
             &message,
@@ -174,9 +170,9 @@ impl SiftStream<IngestionConfigMode> {
                 "encountered a message that doesn't match any cached flows - message will still be transmitted but will not show in Sift if the flow was not registered"
             );
             let req = Self::message_to_ingest_req_direct(&message, ingestion_config_id, run_id);
-            return self.send_impl(req).await;
+            return self.send_impl(req);
         };
-        self.send_impl(req).await
+        self.send_impl(req)
     }
 
     /// This method offers a way to send data in a manner that's identical to the raw
@@ -195,14 +191,14 @@ impl SiftStream<IngestionConfigMode> {
     {
         for req in requests {
             self.metrics.messages_received.increment();
-            self.send_impl(req).await?;
+            self.send_impl(req)?;
         }
         Ok(())
     }
 
     /// Concerned with sending the actual ingest request to [DataStream] which will then write it
     /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
-    async fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
+    fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
         #[cfg(feature = "tracing")]
         {
             if !self.mode.flows_seen.contains(&req.flow) {
@@ -233,9 +229,7 @@ impl SiftStream<IngestionConfigMode> {
         //
         // Failure to backup can lead to data loss though it is preferable to attempt
         // to stream the message to Sift rather than return the error and prevent both.
-        let send_backup_fut = self.mode.stream_system.backup_tx.send(data_msg.clone());
-
-        if let Err(e) = tokio::time::timeout(self.mode.backup_timeout, send_backup_fut).await {
+        if let Err(e) = self.mode.stream_system.backup_tx.try_send(data_msg.clone()) {
             #[cfg(feature = "tracing")]
             tracing::warn!(
                 sift_stream_id = self.mode.sift_stream_id.to_string(),

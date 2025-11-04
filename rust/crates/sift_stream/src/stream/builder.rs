@@ -27,9 +27,6 @@ use uuid::Uuid;
 /// The default checkpoint interval (1 minute) to use if left unspecified.
 pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
 
-/// The default backup timeout to use for sending messages to the backup channel.
-const DEFAULT_BACKUP_TIMEOUT: Duration = Duration::from_secs(1);
-
 /// Configures and builds an instance of [SiftStream]. The quickest way to get started is to simply
 /// pass your [Credentials] to [SiftStreamBuilder::new] as well as your [IngestionConfigForm] and
 /// call [SiftStreamBuilder::build] like so:
@@ -61,7 +58,6 @@ pub struct SiftStreamBuilder<C> {
     control_channel_capacity: usize,
     ingestion_data_channel_capacity: usize,
     backup_data_channel_capacity: usize,
-    backup_timeout: Duration,
     enable_compression_for_ingestion: bool,
 
     // Either `run` or `run_id`. If both are provided then the `run_id` will be prioritized.
@@ -198,13 +194,6 @@ where
         self
     }
 
-    /// Sets the backup timeout, which is used to timeout sending message to the backup channel
-    /// in the event that the backup channel is full.
-    pub fn backup_timeout(mut self, timeout: Duration) -> SiftStreamBuilder<C> {
-        self.backup_timeout = timeout;
-        self
-    }
-
     /// Creates or updates the asset tags. If Some is provided, asset tags will be replaced
     /// with the tags provided. If None, no update to tags will occur.
     pub fn add_asset_tags(mut self, tags: Option<Vec<String>>) -> SiftStreamBuilder<C> {
@@ -243,7 +232,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
             ingestion_data_channel_capacity: DATA_CHANNEL_CAPACITY,
             backup_data_channel_capacity: DATA_CHANNEL_CAPACITY,
-            backup_timeout: DEFAULT_BACKUP_TIMEOUT,
         }
     }
 
@@ -265,7 +253,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
             ingestion_data_channel_capacity: DATA_CHANNEL_CAPACITY,
             backup_data_channel_capacity: DATA_CHANNEL_CAPACITY,
-            backup_timeout: DEFAULT_BACKUP_TIMEOUT,
         }
     }
 
@@ -282,7 +269,6 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             recovery_strategy,
             run,
             run_id,
-            backup_timeout,
             ..
         } = self;
 
@@ -388,14 +374,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             backup_data_channel_capacity: self.backup_data_channel_capacity,
         };
 
-        SiftStream::<IngestionConfigMode>::new(
-            ingestion_config,
-            flows,
-            run,
-            task_config,
-            backup_timeout,
-            metrics,
-        )
+        SiftStream::<IngestionConfigMode>::new(ingestion_config, flows, run, task_config, metrics)
     }
 
     /// Sets the ingestion config used for streaming. See the [top-level
