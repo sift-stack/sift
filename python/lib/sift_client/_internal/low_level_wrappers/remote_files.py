@@ -4,13 +4,8 @@ from typing import Any, cast
 
 from sift.remote_files.v1.remote_files_pb2 import (
     BatchDeleteRemoteFilesRequest,
-    BatchDeleteRemoteFilesResponse,
-    CreateRemoteFileRequest,
-    CreateRemoteFileResponse,
     DeleteRemoteFileRequest,
-    DeleteRemoteFileResponse,
     GetRemoteFileDownloadUrlRequest,
-    GetRemoteFileDownloadUrlResponse,
     GetRemoteFileRequest,
     GetRemoteFileResponse,
     ListRemoteFilesRequest,
@@ -158,5 +153,5 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         request = GetRemoteFileDownloadUrlRequest(remote_file_id=remote_file_id)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).GetRemoteFileDownloadUrl(request)
-        return cast("GetRemoteFileDownloadUrlResponse", response).download_url
+        return response.download_url
 

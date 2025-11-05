@@ -4,14 +4,13 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.remote_file import RemoteFileUpdate
+from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate, RemoteFileEntityType
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.remote_file import RemoteFile, RemoteFileEntityType
 
 
 class RemoteFilesAPIAsync(ResourceBase):
@@ -24,9 +23,8 @@ class RemoteFilesAPIAsync(ResourceBase):
     representation of a remote file using standard Python data structures and types.
     """
 
-    def __init__(self, sift_client: SiftClient):       
-        """
-        Initialize the RemoteFilesAPI.
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the RemoteFilesAPI.
 
         Args:
             sift_client: The Sift client to use.
@@ -43,7 +41,7 @@ class RemoteFilesAPIAsync(ResourceBase):
 
         Args:
             remote_file_id: The ID of the remote file.
-        
+
         Returns:
             The RemoteFile.
         """
@@ -77,7 +75,7 @@ class RemoteFilesAPIAsync(ResourceBase):
             names: List of file names.
             name_contains: String that the name should contain.
             name_regex: Regex pattern for the name.
-        
+
         Returns:
             A list of RemoteFiles matching the filters.
         """

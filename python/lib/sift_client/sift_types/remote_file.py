@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from datetime import datetime, timezone
 from enum import Enum
+from typing import TYPE_CHECKING
 
-from sift.remote_files.v1.remote_files_pb2 import RemoteFile as RemoteFileProto
 from sift.remote_files.v1.remote_files_pb2 import EntityType
+from sift.remote_files.v1.remote_files_pb2 import RemoteFile as RemoteFileProto
+
 from sift_client.sift_types._base import BaseType, ModelUpdate
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.run import Run
     from sift_client.sift_types.annotation import Annotation
-    from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.annotation_log import AnnotationLog
+    from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.run import Run
     from sift_client.sift_types.test_report import TestReport
 
 
@@ -34,7 +35,7 @@ class RemoteFileEntityType(Enum):
             for item in cls:
                 if "ENTITY_TYPE_" + item.name == val:
                     return item
-    
+
         return cls(int(val))
 
     def __str__(self) -> str:
@@ -47,13 +48,6 @@ class RemoteFileEntityType(Enum):
             if "ENTITY_TYPE_" + item.name == val:
                 return item
         return None
-
-    @staticmethod
-    def from_str(val: str) -> RemoteFileEntityType | None:
-        """Convert string representation to RemoteFileEntityType."""
-        if isinstance(val, str) and val.startswith("ENTITY_TYPE_"):
-            return RemoteFileEntityType.from_api_format(val)
-        raise Exception(f"Unknown remote file entity type: {val}")
 
     @staticmethod
     def from_proto_value(proto_value: int) -> RemoteFileEntityType:
@@ -101,6 +95,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
 
     @property
     def entity(self) -> Run | Annotation | Asset | AnnotationLog | TestReport:
+        """Get the entity that this remote file is attached to."""
         if self.entity_type == RemoteFileEntityType.RUN:
             return self.client.runs.get(self.entity_id)
         elif self.entity_type == RemoteFileEntityType.ANNOTATION:
