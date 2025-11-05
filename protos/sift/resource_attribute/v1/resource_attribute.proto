@@ -1,0 +1,549 @@
+syntax = "proto3";
+
+package sift.resource_attribute.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "sift/resource_attribute/v1;resourceattributev1pb";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {title: "Resource Attribute service"}
+};
+
+service ResourceAttributeService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {description: "Service to manage ABAC resource attributes (entity attributes)."};
+
+  rpc CreateResourceAttributeKey(CreateResourceAttributeKeyRequest) returns (CreateResourceAttributeKeyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attribute-keys"
+      body: "*"
+    };
+  }
+
+  rpc GetResourceAttributeKey(GetResourceAttributeKeyRequest) returns (GetResourceAttributeKeyResponse) {
+    option (google.api.http) = {get: "/api/v1/resource-attribute-keys/{resource_attribute_key_id}"};
+  }
+
+  rpc ListResourceAttributeKeys(ListResourceAttributeKeysRequest) returns (ListResourceAttributeKeysResponse) {
+    option (google.api.http) = {get: "/api/v1/resource-attribute-keys"};
+  }
+
+  rpc UpdateResourceAttributeKey(UpdateResourceAttributeKeyRequest) returns (UpdateResourceAttributeKeyResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/resource-attribute-keys/{resource_attribute_key.resource_attribute_key_id}"
+      body: "*"
+    };
+  }
+
+  // Archives a resource_attribute key AND all its associated enum values AND all its associated resource-attributes.
+  rpc ArchiveResourceAttributeKey(ArchiveResourceAttributeKeyRequest) returns (ArchiveResourceAttributeKeyResponse) {
+    option (google.api.http) = {post: "/api/v1/resource-attribute-keys/{resource_attribute_key_id}/archive"};
+  }
+
+  // Unarchives a resource_attribute key BUT NOT its associated enum values OR resource-attributes.
+  rpc UnarchiveResourceAttributeKey(UnarchiveResourceAttributeKeyRequest) returns (UnarchiveResourceAttributeKeyResponse) {
+    option (google.api.http) = {post: "/api/v1/resource-attribute-keys/{resource_attribute_key_id}/unarchive"};
+  }
+
+  // Archives multiple resource_attribute keys AND all their associated enum values AND all their associated resource-attributes.
+  rpc BatchArchiveResourceAttributeKeys(BatchArchiveResourceAttributeKeysRequest) returns (BatchArchiveResourceAttributeKeysResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attribute-keys/batch-archive"
+      body: "*"
+    };
+  }
+
+  // Unarchives multiple resource_attribute keys BUT NOT their associated enum values OR resource-attributes.
+  rpc BatchUnarchiveResourceAttributeKeys(BatchUnarchiveResourceAttributeKeysRequest) returns (BatchUnarchiveResourceAttributeKeysResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attribute-keys/batch-unarchive"
+      body: "*"
+    };
+  }
+
+  rpc CreateResourceAttributeEnumValue(CreateResourceAttributeEnumValueRequest) returns (CreateResourceAttributeEnumValueResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attribute-enum-values"
+      body: "*"
+    };
+  }
+
+  rpc GetResourceAttributeEnumValue(GetResourceAttributeEnumValueRequest) returns (GetResourceAttributeEnumValueResponse) {
+    option (google.api.http) = {get: "/api/v1/resource-attribute-enum-values/{resource_attribute_enum_value_id}"};
+  }
+
+  rpc ListResourceAttributeEnumValues(ListResourceAttributeEnumValuesRequest) returns (ListResourceAttributeEnumValuesResponse) {
+    option (google.api.http) = {get: "/api/v1/resource-attribute-keys/{resource_attribute_key_id}/enum-values"};
+  }
+
+  rpc UpdateResourceAttributeEnumValue(UpdateResourceAttributeEnumValueRequest) returns (UpdateResourceAttributeEnumValueResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/resource-attribute-enum-values/{resource_attribute_enum_value.resource_attribute_enum_value_id}"
+      body: "*"
+    };
+  }
+
+  // Archives an enum value and migrates all resource-attributes with that value to a replacement value.
+  rpc ArchiveResourceAttributeEnumValue(ArchiveResourceAttributeEnumValueRequest) returns (ArchiveResourceAttributeEnumValueResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attribute-enum-values/{archived_enum_value_id}/archive"
+      body: "*"
+    };
+  }
+
+  // Unarchives an enum value BUT DOES NOT migrate resource-attributes with a replacement value back to the original value.
+  rpc UnarchiveResourceAttributeEnumValue(UnarchiveResourceAttributeEnumValueRequest) returns (UnarchiveResourceAttributeEnumValueResponse) {
+    option (google.api.http) = {post: "/api/v1/resource-attribute-enum-values/{resource_attribute_enum_value_id}/unarchive"};
+  }
+
+  // Archives multiple enum values and migrates all resource-attributes with those values to their respective replacement values.
+  rpc BatchArchiveResourceAttributeEnumValues(BatchArchiveResourceAttributeEnumValuesRequest) returns (BatchArchiveResourceAttributeEnumValuesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attribute-enum-values/batch-archive"
+      body: "*"
+    };
+  }
+
+  // Unarchives multiple enum values BUT DOES NOT migrate resource-attributes with a replacement value back to the original value.
+  rpc BatchUnarchiveResourceAttributeEnumValues(BatchUnarchiveResourceAttributeEnumValuesRequest) returns (BatchUnarchiveResourceAttributeEnumValuesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attribute-enum-values/batch-unarchive"
+      body: "*"
+    };
+  }
+
+  // Creates relation between an Entity and a ResourceAttribute Key and Value.
+  rpc CreateResourceAttribute(CreateResourceAttributeRequest) returns (CreateResourceAttributeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attributes"
+      body: "*"
+    };
+  }
+
+  // Creates resource-attributes for multiple entities with the same key-value pair.
+  rpc BatchCreateResourceAttributes(BatchCreateResourceAttributesRequest) returns (BatchCreateResourceAttributesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attributes/batch"
+      body: "*"
+    };
+  }
+
+  rpc GetResourceAttribute(GetResourceAttributeRequest) returns (GetResourceAttributeResponse) {
+    option (google.api.http) = {get: "/api/v1/resource-attributes/{resource_attribute_id}"};
+  }
+
+  rpc ListResourceAttributes(ListResourceAttributesRequest) returns (ListResourceAttributesResponse) {
+    option (google.api.http) = {get: "/api/v1/resource-attributes"};
+  }
+
+  // Lists all resource-attributes for a specific entity. Excludes archived by default.
+  rpc ListResourceAttributesByEntity(ListResourceAttributesByEntityRequest) returns (ListResourceAttributesByEntityResponse) {
+    option (google.api.http) = {get: "/api/v1/entities/{entity.entity_id}/resource-attributes"};
+  }
+
+  rpc ArchiveResourceAttribute(ArchiveResourceAttributeRequest) returns (ArchiveResourceAttributeResponse) {
+    option (google.api.http) = {post: "/api/v1/resource-attributes/{resource_attribute_id}/archive"};
+  }
+
+  rpc UnarchiveResourceAttribute(UnarchiveResourceAttributeRequest) returns (UnarchiveResourceAttributeResponse) {
+    option (google.api.http) = {post: "/api/v1/resource-attributes/{resource_attribute_id}/unarchive"};
+  }
+
+  // Archives multiple resource-attributes.
+  rpc BatchArchiveResourceAttributes(BatchArchiveResourceAttributesRequest) returns (BatchArchiveResourceAttributesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attributes/batch-archive"
+      body: "*"
+    };
+  }
+
+  // Unarchives multiple resource-attributes.
+  rpc BatchUnarchiveResourceAttributes(BatchUnarchiveResourceAttributesRequest) returns (BatchUnarchiveResourceAttributesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resource-attributes/batch-unarchive"
+      body: "*"
+    };
+  }
+}
+
+// Values become selectable enumerable options.
+enum ResourceAttributeKeyType {
+  RESOURCE_ATTRIBUTE_KEY_TYPE_UNSPECIFIED = 0;
+  RESOURCE_ATTRIBUTE_KEY_TYPE_ENUM = 1;
+  RESOURCE_ATTRIBUTE_KEY_TYPE_BOOLEAN = 2;
+  RESOURCE_ATTRIBUTE_KEY_TYPE_NUMBER = 3;
+}
+
+// A ResourceAttribute Key defines an attribute that can be assigned to Entities for the purpose of attribute based access control (ABAC).
+message ResourceAttributeKey {
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 3 [(google.api.field_behavior) = REQUIRED];
+  string description = 4 [(google.api.field_behavior) = OPTIONAL];
+  ResourceAttributeKeyType type = 5 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp created_date = 6 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 7 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 8 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 9 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp archived_date = 10 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Represents a possible enumerable value for ENUM type resource_attribute keys.
+// Users can add new enum values as needed.
+message ResourceAttributeEnumValue {
+  string resource_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string resource_attribute_key_id = 2 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 3 [(google.api.field_behavior) = REQUIRED];
+  string description = 4 [(google.api.field_behavior) = OPTIONAL];
+  google.protobuf.Timestamp created_date = 5 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 6 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp modified_date = 7 [(google.api.field_behavior) = REQUIRED];
+  string modified_by_user_id = 8 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp archived_date = 9 [(google.api.field_behavior) = OPTIONAL];
+}
+
+enum ResourceAttributeEntityType {
+  RESOURCE_ATTRIBUTE_ENTITY_TYPE_UNSPECIFIED = 0;
+  RESOURCE_ATTRIBUTE_ENTITY_TYPE_ASSET = 1;
+  RESOURCE_ATTRIBUTE_ENTITY_TYPE_CHANNEL = 2;
+}
+
+// Represents the assignment of a resource_attribute key-value pair to an entity (asset or channel).
+message ResourceAttribute {
+  string resource_attribute_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 2 [(google.api.field_behavior) = REQUIRED];
+  ResourceAttributeEntityIdentifier entity = 3 [(google.api.field_behavior) = REQUIRED];
+  string resource_attribute_key_id = 4 [(google.api.field_behavior) = REQUIRED];
+  // Populated in responses with full key details.
+  ResourceAttributeKey key = 5 [(google.api.field_behavior) = OPTIONAL];
+  oneof value {
+    string resource_attribute_enum_value_id = 6;
+    bool boolean_value = 7;
+    double number_value = 8;
+  }
+  // Populated in responses with full enum value details.
+  ResourceAttributeEnumValue enum_value_details = 9 [(google.api.field_behavior) = OPTIONAL];
+  // The timestamp when the relation between the Entity and ResourceAttribute Key and Value was created.
+  google.protobuf.Timestamp created_date = 10 [(google.api.field_behavior) = REQUIRED];
+  string created_by_user_id = 11 [(google.api.field_behavior) = REQUIRED];
+  google.protobuf.Timestamp archived_date = 12 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Represents an entity to which a resource_attribute will be assigned.
+message ResourceAttributeEntityIdentifier {
+  string entity_id = 1 [(google.api.field_behavior) = REQUIRED];
+  ResourceAttributeEntityType entity_type = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// ResourceAttribute Key RPC messages
+message CreateResourceAttributeKeyRequest {
+  ResourceAttributeKey resource_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+  // Optional initial enum values to create alongside the key. Only applicable for ENUM type keys.
+  // The resource_attribute_key_id field on each enum value will be ignored and set to the created key's ID.
+  repeated ResourceAttributeEnumValue initial_enum_values = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message CreateResourceAttributeKeyResponse {
+  ResourceAttributeKey resource_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+  // The enum values created alongside the key, if any were provided in the request.
+  repeated ResourceAttributeEnumValue enum_values = 2;
+}
+
+message GetResourceAttributeKeyRequest {
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetResourceAttributeKeyResponse {
+  ResourceAttributeKey resource_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListResourceAttributeKeysRequest {
+  // The maximum number of resource_attribute keys to return. The service may return fewer than this value.
+  // If unspecified, at most 50 resource_attribute keys will be returned. The maximum value is 100; values above
+  // 100 will be coerced to 100.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListResourceAttributeKeys` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListResourceAttributeKeys` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `resource_attribute_key_id`, `name`, `description`, `type`,
+  // `created_by_user_id`, `modified_by_user_id`, `created_date`, `modified_date`, and `archived_date`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved resource_attribute keys. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`, `modified_date`, and `name`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "created_date desc,name"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Whether to include archived resource_attribute keys. Defaults to false.
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListResourceAttributeKeysResponse {
+  repeated ResourceAttributeKey resource_attribute_keys = 1;
+  string next_page_token = 2;
+}
+
+message UpdateResourceAttributeKeyRequest {
+  ResourceAttributeKey resource_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+  // The list of fields to be updated. The fields available to be updated are `name`, `description`, and `archived_date`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateResourceAttributeKeyResponse {
+  ResourceAttributeKey resource_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveResourceAttributeKeyRequest {
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveResourceAttributeKeyResponse {}
+
+message UnarchiveResourceAttributeKeyRequest {
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchiveResourceAttributeKeyResponse {}
+
+message BatchArchiveResourceAttributeKeysRequest {
+  repeated string resource_attribute_key_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchArchiveResourceAttributeKeysResponse {}
+
+message BatchUnarchiveResourceAttributeKeysRequest {
+  repeated string resource_attribute_key_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchUnarchiveResourceAttributeKeysResponse {}
+
+// ResourceAttribute Enum Value RPC messages
+message CreateResourceAttributeEnumValueRequest {
+  ResourceAttributeEnumValue resource_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateResourceAttributeEnumValueResponse {
+  ResourceAttributeEnumValue resource_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetResourceAttributeEnumValueRequest {
+  string resource_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetResourceAttributeEnumValueResponse {
+  ResourceAttributeEnumValue resource_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListResourceAttributeEnumValuesRequest {
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of enum values to return. The service may return fewer than this value.
+  // If unspecified, at most 50 enum values will be returned. The maximum value is 100; values above
+  // 100 will be coerced to 100.
+  uint32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListResourceAttributeEnumValues` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListResourceAttributeEnumValues` must match
+  // the call that provided the page token.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `resource_attribute_enum_value_id`, `name`, `description`,
+  // `created_by_user_id`, `modified_by_user_id`, `created_date`, `modified_date`, and `archived_date`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved enum values. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date`, `modified_date`, and `name`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "name,created_date desc"
+  string order_by = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Whether to include archived enum values. Defaults to false.
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListResourceAttributeEnumValuesResponse {
+  repeated ResourceAttributeEnumValue resource_attribute_enum_values = 1;
+  string next_page_token = 2;
+}
+
+message UpdateResourceAttributeEnumValueRequest {
+  ResourceAttributeEnumValue resource_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+  // The list of fields to be updated. The fields available to be updated are `name`, `description`, and `archived_date`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateResourceAttributeEnumValueResponse {
+  ResourceAttributeEnumValue resource_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveResourceAttributeEnumValueRequest {
+  string archived_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+  // When the archived_enum_value_id is archived all resource-attributes that reference it will be migrated to the replacement_enum_value_id.
+  string replacement_enum_value_id = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveResourceAttributeEnumValueResponse {
+  // Total number of resource-attributes migrated to the replacement enum value.
+  int32 resource_attributes_migrated = 1;
+}
+
+message UnarchiveResourceAttributeEnumValueRequest {
+  string resource_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchiveResourceAttributeEnumValueResponse {}
+
+message BatchArchiveResourceAttributeEnumValuesRequest {
+  message EnumValueArchival {
+    // The enum value ID to archive.
+    string archived_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+    // The enum value ID to migrate resource-attributes to.
+    string replacement_enum_value_id = 2 [(google.api.field_behavior) = REQUIRED];
+  }
+
+  repeated EnumValueArchival archival_requests = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchArchiveResourceAttributeEnumValuesResponse {
+  // Total number of resource-attributes migrated across all archived enum values.
+  int32 total_resource_attributes_migrated = 1;
+}
+
+message BatchUnarchiveResourceAttributeEnumValuesRequest {
+  repeated string resource_attribute_enum_value_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchUnarchiveResourceAttributeEnumValuesResponse {}
+
+// ResourceAttribute RPC messages
+message CreateResourceAttributeRequest {
+  ResourceAttribute resource_attribute = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateResourceAttributeResponse {
+  ResourceAttribute resource_attribute = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchCreateResourceAttributesRequest {
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  oneof value {
+    string resource_attribute_enum_value_id = 2;
+    bool boolean_value = 3;
+    double number_value = 4;
+  }
+  repeated ResourceAttributeEntityIdentifier entities = 5 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchCreateResourceAttributesResponse {
+  repeated ResourceAttribute resource_attributes = 1;
+}
+
+message GetResourceAttributeRequest {
+  string resource_attribute_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetResourceAttributeResponse {
+  ResourceAttribute resource_attribute = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ListResourceAttributesRequest {
+  // The maximum number of resource-attributes to return. The service may return fewer than this value.
+  // If unspecified, at most 50 resource-attributes will be returned. The maximum value is 100; values above
+  // 100 will be coerced to 100.
+  uint32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListResourceAttributes` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListResourceAttributes` must match
+  // the call that provided the page token.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
+  // Available fields to filter by are `resource_attribute_id`, `entity.entity_id`, `entity.entity_type`, `resource_attribute_key_id`,
+  // `resource_attribute_enum_value_id`, `boolean_value`, `number_value`, `created_by_user_id`, `created_date`, and `archived_date`.
+  // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // How to order the retrieved resource-attributes. Formatted as a comma-separated string i.e. "FIELD_NAME[ desc],...".
+  // Available fields to order_by are `created_date` and `entity.entity_id`.
+  // If left empty, items are ordered by `created_date` in descending order (newest-first).
+  // For more information about the format of this field, read [this](https://google.aip.dev/132#ordering)
+  // Example: "entity.entity_id,created_date desc"
+  string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // This field is only required if your user belongs to multiple organizations.
+  string organization_id = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Whether to include archived resource-attributes. Defaults to false.
+  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListResourceAttributesResponse {
+  repeated ResourceAttribute resource_attributes = 1;
+  string next_page_token = 2;
+}
+
+message ListResourceAttributesByEntityRequest {
+  ResourceAttributeEntityIdentifier entity = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Whether to include archived resource-attributes. Defaults to false.
+  bool include_archived = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The maximum number of resource-attributes to return. The service may return fewer than this value.
+  // If unspecified, at most 50 resource-attributes will be returned. The maximum value is 100; values above
+  // 100 will be coerced to 100.
+  uint32 page_size = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // A page token, received from a previous `ListResourceAttributesByEntity` call.
+  // Provide this to retrieve the subsequent page.
+  // When paginating, all other parameters provided to `ListResourceAttributesByEntity` must match
+  // the call that provided the page token.
+  string page_token = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+message ListResourceAttributesByEntityResponse {
+  repeated ResourceAttribute resource_attributes = 1;
+  string next_page_token = 2;
+}
+
+message ArchiveResourceAttributeRequest {
+  string resource_attribute_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message ArchiveResourceAttributeResponse {}
+
+message UnarchiveResourceAttributeRequest {
+  string resource_attribute_id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UnarchiveResourceAttributeResponse {}
+
+message BatchArchiveResourceAttributesRequest {
+  repeated string resource_attribute_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchArchiveResourceAttributesResponse {}
+
+message BatchUnarchiveResourceAttributesRequest {
+  repeated string resource_attribute_ids = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message BatchUnarchiveResourceAttributesResponse {}
