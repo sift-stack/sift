@@ -3,17 +3,31 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from sift_client._internal.low_level_wrappers.ingestion import IngestionConfigStreamingLowLevelClient, IngestionLowLevelClient
+from sift_client._internal.low_level_wrappers.ingestion import (
+    IngestionConfigStreamingLowLevelClient,
+    IngestionLowLevelClient,
+)
 from sift_client.resources._base import ResourceBase
 from sift_client._internal.util.sift_stream import to_runFormPy
+from sift_client.sift_types.ingestion import IngestionConfig
+from sift_client.sift_types.run import Run, RunCreate, Tag
+from sift_stream_bindings import (
+    DurationPy,
+    IngestionConfigFormPy,
+    MetadataPy,
+    RecoveryStrategyPy,
+    RetryPolicyPy,
+    RunSelectorPy,
+    MetadataValuePy,
+    IngestWithConfigDataStreamRequestPy,
+    SiftStreamMetricsSnapshotPy,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.ingestion import Flow, IngestionConfig
-    from sift_client.sift_types.run import Run, RunCreate, Tag
-    from sift_stream_bindings import RunFormPy, RunSelectorPy
+    from sift_client.sift_types.ingestion import Flow
 
 logger = logging.getLogger(__name__)
 
@@ -38,64 +52,41 @@ class IngestionAPIAsync(ResourceBase):
         self._low_level_client = IngestionLowLevelClient(grpc_client=self.client.grpc_client)
 
 
-    def create_ingestion_config_streaming_client(
+    async def create_ingestion_config_streaming_client(
         self,
         *,
-        ingestion_config,
-        run,
-        asset_tags,
-        asset_metadata,
-        recovery_strategy,
-        checkpoint_interval,
+        ingestion_config: IngestionConfig | None = None,
+        run: RunCreate | dict | str | Run | None = None,
+        asset_tags: list[str] | list[Tag] | None = None,
+        asset_metadata: dict[str, str | float | bool] | None = None,
+        recovery_strategy: RecoveryStrategyPy | None = None,
+        checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
     ) -> IngestionConfigStreamingClient:
-        return IngestionConfigStreamingClient(
+        """Create an IngestionConfigStreamingClient.
+
+        Args:
+            ingestion_config: The ingestion config.
+            run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
+            asset_tags: Tags to associate with the asset.
+            asset_metadata: Metadata to associate with the asset.
+            recovery_strategy: The recovery strategy to use for ingestion.
+            checkpoint_interval_seconds: The checkpoint interval in seconds.
+            enable_tls: Whether to enable TLS for the connection.
+
+        Returns:
+            An initialized IngestionConfigStreamingClient.
+        """
+        return await IngestionConfigStreamingClient.create(
             self.client,
             ingestion_config=ingestion_config,
             run=run,
             asset_tags=asset_tags,
             asset_metadata=asset_metadata,
             recovery_strategy=recovery_strategy,
-            checkpoint_interval=checkpoint_interval,
-            enable_tls=enable_tls
+            checkpoint_interval_seconds=checkpoint_interval_seconds,
+            enable_tls=enable_tls,
         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
 
     async def create_ingestion_config(
         self,
@@ -104,9 +95,8 @@ class IngestionAPIAsync(ResourceBase):
         run_id: str | None = None,
         flows: list[Flow],
         client_key: str | None = None,
-        organization_id: str | None = None,
     ) -> str:
-        """Create an ingestion config.
+        """Create an ingestion config. This is provided for direct use of the ingestion config API, and not the preferred way to create ingestion configs for streaming through SiftClient.
 
         Args:
             asset_name: The name of the asset for this ingestion config.
@@ -138,74 +128,90 @@ class IngestionAPIAsync(ResourceBase):
 
         return ingestion_config_id
 
-    def ingest(
-        self,
-        *,
-        flow: Flow,
-        timestamp: datetime,
-        channel_values: dict[str, Any],
-    ):
-        """Ingest data for a flow.
-
-        Args:
-            flow: The flow to ingest data for.
-            timestamp: The timestamp of the data.
-            channel_values: Dictionary mapping channel names to their values.
-        """
-        self._low_level_client.ingest_flow(
-            flow=flow,
-            timestamp=timestamp,
-            channel_values=channel_values,
-        )
-
-    def wait_for_ingestion_to_complete(self, timeout: float | None = None):
-        """Wait for all ingestion to complete.
-
-        Args:
-            run_id: The id of the run to wait for.
-            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
-        """
-        logger.info("Waiting for ingestion to complete")
-        self._low_level_client.wait_for_ingestion_to_complete(timeout)
-
 
 class IngestionConfigStreamingClient(ResourceBase):
-    def __init__(
-        self,
+    """A client for streaming ingestion with an ingestion config.
+
+    This client provides a high-level interface for streaming ingestion using
+    an ingestion config. It handles conversion of user-friendly types to the
+    low-level Rust bindings.
+    """
+    def __init__(self, sift_client: SiftClient, low_level_client: IngestionConfigStreamingLowLevelClient):
+        """Initialize an IngestionConfigStreamingClient. Users should not initialize this class directly, but rather use the create classmethod."""
+        super().__init__(sift_client)
+        self._low_level_client = low_level_client
+
+    @classmethod
+    async def create(
+        cls,
         sift_client: SiftClient,
         *,
-        ingestion_config: IngestionConfig | None = None,
+        ingestion_config: IngestionConfigFormPy | None = None,
         run: RunCreate | dict | str | Run | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        recovery_strategy: IngestionRecoveryStrategy | None = None,
+        recovery_strategy: RecoveryStrategyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
-    ):
-        super().__init__(sift_client)
+    ) -> IngestionConfigStreamingClient:
+        """Create an IngestionConfigStreamingClient.
 
-        # Convert the various run varients to a RunSelectorPy
-        if isinstance(run, dict):
-            run_create = RunCreate.model_validate(run)
-            run_form = to_runFormPy(run_create)
-            run_selector = RunSelectorPy.by_form(run_form)
-        elif isinstance(run, Run):
-            run_selector = RunSelectorPy.by_id(run.id_)
-        elif isinstance(run, RunCreate):
-            run_form = to_runFormPy(run)
-            run_selector = RunSelectorPy.by_form(run_form)
-        elif isinstance(run, str):
-            run_selector = RunSelectorPy.by_id(run)
-        else:
-            run_selector = None
+        Args:
+            sift_client: The Sift client to use.
+            ingestion_config: The ingestion config (IngestionConfig or IngestionConfigFormPy).
+                If IngestionConfig is provided, you must also provide flows separately.
+            run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
+            asset_tags: Tags to associate with the asset.
+            asset_metadata: Metadata to associate with the asset.
+            recovery_strategy: The recovery strategy to use for ingestion.
+            checkpoint_interval_seconds: The checkpoint interval in seconds.
+            enable_tls: Whether to enable TLS for the connection.
 
+        Returns:
+            An initialized IngestionConfigStreamingClient.
+        """
+        instance = cls.__new__(cls)
+        instance._sift_client = sift_client
 
-        self._low_level_client = await IngestionConfigStreamingLowLevelClient(
-            ingestion_config,
-            run = run_selector,
-            asset_tags,
-            asset_metadata,
+        # Get API key and gRPC URI from the client
+        grpc_config = sift_client.grpc_client._config
+        api_key = grpc_config.api_key
+        grpc_uri = grpc_config.uri
+
+        low_level_client = await IngestionConfigStreamingLowLevelClient.create_sift_stream_instance(
+            api_key=api_key,
+            grpc_uri=grpc_uri,
+            ingestion_config=ingestion_config,
+            run=run,
+            asset_tags=asset_tags,
+            asset_metadata=asset_metadata,
             recovery_strategy=recovery_strategy,
-            checkpoint_interval=checkpoint_interval,
+            checkpoint_interval_seconds=checkpoint_interval_seconds,
             enable_tls=enable_tls,
         )
+
+        return cls(sift_client, low_level_client)
+
+    async def send(self, flow: Flow):
+        pass
+
+    async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
+        pass
+
+    async def add_new_flows(self, flow_configs: list[FlowConfigPy]):
+        pass
+
+    async def attach_run(self, run: RunFormPy):
+        pass
+
+    def detach_run(self):
+        pass
+
+    def get_run_id(self) -> str | None:
+        pass
+
+    async def finish(self):
+        pass
+
+    def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy:
+        pass

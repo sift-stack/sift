@@ -32,14 +32,29 @@ from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
 from sift_client.sift_types.ingestion import Flow, IngestionConfig, _to_rust_value
+from sift_client._internal.util.sift_stream import to_runFormPy
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.util import cel_utils as cel
-from sift_stream_bindings import RunSelectorPy, SiftStreamBuilderPy
+from sift_stream_bindings import (
+    DurationPy,
+    IngestionConfigFormPy,
+    MetadataPy,
+    RecoveryStrategyPy,
+    RetryPolicyPy,
+    RunSelectorPy,
+    MetadataValuePy,
+    SiftStreamBuilderPy,
+    FlowPy,
+    FlowConfigPy,
+    SiftStreamMetricsSnapshotPy,
+)
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from datetime import datetime
+
+    from sift_client.sift_types.run import RunCreate, Run, Tag
 
     from sift_stream_bindings import (
         IngestionConfigFormPy,
@@ -482,19 +497,59 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
 class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     _sift_stream_instance: SiftStreamPy
-    async def __init__(
-        self,
+
+    def __init__(self, sift_stream_instance: SiftStreamPy):
+        super().__init__()
+        self._sift_stream_instance = sift_stream_instance
+
+    @classmethod
+    async def create_sift_stream_instance(
+        cls,
         api_key: str,
         grpc_uri: str,
         ingestion_config: IngestionConfigFormPy | None = None,
-        run_selector: str | RunFormPy | None = None,
-        asset_tags: list[str] | None = None,
-        asset_metadata: list[MetadataPy] | None = None,
+        run: RunCreate | dict | str | Run | None = None,
+        asset_tags: list[str] | list[Tag] | None = None,
+        asset_metadata: dict[str, str | float | bool] | None = None,
         recovery_strategy: RecoveryStrategyPy | None = None,
-        checkpoint_interval: DurationPy | None = None,
-        enable_tls: bool = True
-    ):
-        super().__init__()
+        checkpoint_interval_seconds: int | None = None,
+        enable_tls: bool = True,
+    ) -> IngestionConfigStreamingLowLevelClient:
+        # Convert the various run variants to a run or run_id
+        run_form: RunFormPy | None = None
+        run_id: str | None = None
+
+        if isinstance(run, dict):
+            run_create = RunCreate.model_validate(run)
+            run_form = to_runFormPy(run_create)
+        elif isinstance(run, Run):
+            run_id = run.id_
+        elif isinstance(run, RunCreate):
+            run_form = to_runFormPy(run)
+        elif isinstance(run, str):
+            run_id = run
+
+        # Convert checkpoint_interval_seconds to DurationPy
+        checkpoint_interval: DurationPy | None = None
+        if checkpoint_interval_seconds is not None:
+            checkpoint_interval = DurationPy(secs=checkpoint_interval_seconds, nanos=0)
+
+        # Convert asset_tags to list of strings
+        asset_tags_list: list[str] | None = None
+        if asset_tags is not None:
+            asset_tags_list = [
+                tag.name if isinstance(tag, Tag) else tag for tag in asset_tags
+            ]
+
+        # Convert asset_metadata dict to list of MetadataPy
+        asset_metadata_list: list[MetadataPy] | None = None
+        if asset_metadata is not None:
+            from sift_stream_bindings import MetadataPy
+
+            asset_metadata_list = [
+                MetadataPy(key=key, value=MetadataValuePy(value)) for key, value in asset_metadata.items()
+            ]
+
         builder = SiftStreamBuilderPy(
             uri = grpc_uri,
             apikey = api_key,
@@ -504,12 +559,35 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         builder.ingestion_config = ingestion_config
         builder.recovery_strategy = recovery_strategy
         builder.checkpoint_interval = checkpoint_interval
-        builder.asset_tags = asset_tags
-        builder.asset_metadata = asset_metadata
+        builder.asset_tags = asset_tags_list
+        builder.asset_metadata = asset_metadata_list
+        builder.run = run_form
+        builder.run_id = run_id
 
-        if isinstance(run_selector, str):
-            builder.run_id = run_selector
-        elif isinstance(run_selector, RunFormPy):
-            builder.run = run_selector
+        sift_stream_instance = await builder.build()
 
-        self._sift_stream_instance = await builder.build()
+        return cls(sift_stream_instance)
+
+    async def send(self, flow: FlowPy):
+        await self._sift_stream_instance.send(flow)
+
+    async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
+        await self._sift_stream_instance.send_requests(requests)
+
+    async def add_new_flows(self, flow_configs: list[FlowConfigPy]):
+        await self._sift_stream_instance.add_new_flows(flow_configs)
+
+    async def attach_run(self, run_selector: RunSelectorPy):
+        await self._sift_stream_instance.attach_run(run_selector)
+
+    def detach_run(self):
+        self._sift_stream_instance.detach_run()
+
+    def get_run_id(self) -> str | None:
+        return self._sift_stream_instance.run()
+
+    async def finish(self):
+        await self._sift_stream_instance.finish()
+
+    def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy:
+        return self._sift_stream_instance.get_metrics_snapshot()
