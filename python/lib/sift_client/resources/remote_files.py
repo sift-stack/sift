@@ -4,7 +4,11 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate, RemoteFileEntityType
+from sift_client.sift_types.remote_file import (
+    RemoteFile,
+    RemoteFileEntityType,
+    RemoteFileUpdate,
+)
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
