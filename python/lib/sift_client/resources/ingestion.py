@@ -3,14 +3,17 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from sift_client._internal.low_level_wrappers.ingestion import IngestionLowLevelClient
+from sift_client._internal.low_level_wrappers.ingestion import IngestionConfigStreamingLowLevelClient, IngestionLowLevelClient
 from sift_client.resources._base import ResourceBase
+from sift_client._internal.util.sift_stream import to_runFormPy
 
 if TYPE_CHECKING:
     from datetime import datetime
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.ingestion import Flow
+    from sift_client.sift_types.ingestion import Flow, IngestionConfig
+    from sift_client.sift_types.run import Run, RunCreate, Tag
+    from sift_stream_bindings import RunFormPy, RunSelectorPy
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +36,66 @@ class IngestionAPIAsync(ResourceBase):
         """
         super().__init__(sift_client)
         self._low_level_client = IngestionLowLevelClient(grpc_client=self.client.grpc_client)
+
+
+    def create_ingestion_config_streaming_client(
+        self,
+        *,
+        ingestion_config,
+        run,
+        asset_tags,
+        asset_metadata,
+        recovery_strategy,
+        checkpoint_interval,
+        enable_tls: bool = True,
+    ) -> IngestionConfigStreamingClient:
+        return IngestionConfigStreamingClient(
+            self.client,
+            ingestion_config=ingestion_config,
+            run=run,
+            asset_tags=asset_tags,
+            asset_metadata=asset_metadata,
+            recovery_strategy=recovery_strategy,
+            checkpoint_interval=checkpoint_interval,
+            enable_tls=enable_tls
+        )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
     async def create_ingestion_config(
         self,
@@ -104,3 +167,45 @@ class IngestionAPIAsync(ResourceBase):
         """
         logger.info("Waiting for ingestion to complete")
         self._low_level_client.wait_for_ingestion_to_complete(timeout)
+
+
+class IngestionConfigStreamingClient(ResourceBase):
+    def __init__(
+        self,
+        sift_client: SiftClient,
+        *,
+        ingestion_config: IngestionConfig | None = None,
+        run: RunCreate | dict | str | Run | None = None,
+        asset_tags: list[str] | list[Tag] | None = None,
+        asset_metadata: dict[str, str | float | bool] | None = None,
+        recovery_strategy: IngestionRecoveryStrategy | None = None,
+        checkpoint_interval_seconds: int | None = None,
+        enable_tls: bool = True,
+    ):
+        super().__init__(sift_client)
+
+        # Convert the various run varients to a RunSelectorPy
+        if isinstance(run, dict):
+            run_create = RunCreate.model_validate(run)
+            run_form = to_runFormPy(run_create)
+            run_selector = RunSelectorPy.by_form(run_form)
+        elif isinstance(run, Run):
+            run_selector = RunSelectorPy.by_id(run.id_)
+        elif isinstance(run, RunCreate):
+            run_form = to_runFormPy(run)
+            run_selector = RunSelectorPy.by_form(run_form)
+        elif isinstance(run, str):
+            run_selector = RunSelectorPy.by_id(run)
+        else:
+            run_selector = None
+
+
+        self._low_level_client = await IngestionConfigStreamingLowLevelClient(
+            ingestion_config,
+            run = run_selector,
+            asset_tags,
+            asset_metadata,
+            recovery_strategy=recovery_strategy,
+            checkpoint_interval=checkpoint_interval,
+            enable_tls=enable_tls,
+        )

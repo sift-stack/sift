@@ -34,6 +34,7 @@ from sift_client._internal.low_level_wrappers.base import (
 from sift_client.sift_types.ingestion import Flow, IngestionConfig, _to_rust_value
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.util import cel_utils as cel
+from sift_stream_bindings import RunSelectorPy, SiftStreamBuilderPy
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +44,12 @@ if TYPE_CHECKING:
     from sift_stream_bindings import (
         IngestionConfigFormPy,
         IngestWithConfigDataStreamRequestPy,
-        SiftStreamBuilderPy,
         TimeValuePy,
+        SiftStreamPy,
+        RecoveryStrategyPy,
+        DurationPy,
+        RunFormPy,
+        MetadataPy,
     )
 
 
@@ -471,3 +476,40 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             self.stream_cache[flow.ingestion_config_id] = self._new_ingestion_thread(
                 flow.ingestion_config_id, ingestion_config
             )
+
+
+
+
+class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
+    _sift_stream_instance: SiftStreamPy
+    async def __init__(
+        self,
+        api_key: str,
+        grpc_uri: str,
+        ingestion_config: IngestionConfigFormPy | None = None,
+        run_selector: str | RunFormPy | None = None,
+        asset_tags: list[str] | None = None,
+        asset_metadata: list[MetadataPy] | None = None,
+        recovery_strategy: RecoveryStrategyPy | None = None,
+        checkpoint_interval: DurationPy | None = None,
+        enable_tls: bool = True
+    ):
+        super().__init__()
+        builder = SiftStreamBuilderPy(
+            uri = grpc_uri,
+            apikey = api_key,
+        )
+
+        builder.enable_tls = enable_tls
+        builder.ingestion_config = ingestion_config
+        builder.recovery_strategy = recovery_strategy
+        builder.checkpoint_interval = checkpoint_interval
+        builder.asset_tags = asset_tags
+        builder.asset_metadata = asset_metadata
+
+        if isinstance(run_selector, str):
+            builder.run_id = run_selector
+        elif isinstance(run_selector, RunFormPy):
+            builder.run = run_selector
+
+        self._sift_stream_instance = await builder.build()
