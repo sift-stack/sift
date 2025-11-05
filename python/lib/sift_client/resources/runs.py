@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.sift_types.tag import Tag
 from sift_client.util import cel_utils as cel
@@ -14,6 +13,7 @@ if TYPE_CHECKING:
     from datetime import datetime, timedelta
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset
 
 
 class RunsAPIAsync(ResourceBase):
@@ -208,11 +208,22 @@ class RunsAPIAsync(ResourceBase):
     async def create(
         self,
         create: RunCreate | dict,
+        asset_names: list[str] | None = None,
+        asset_ids: list[str] | None = None,
+        data_exists: bool = False,
     ) -> Run:
         """Create a new run.
 
+        Note on assets: You do not need to provide asset info when creating a run.
+        If you pass a Run to future ingestion configs associated with assets, the association will happen automatically then.
+        However, if you do pass assets, _future_ ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run. This may be useful if you want to capture a time range for a specific asset or won't know about this Run when ingesting to that asset.
+        If the data has already been ingested, it will not be associated with the Run unless you pass data_exists=True.
+
         Args:
             create: The Run definition to create.
+            asset_names: List of asset names to associate with the run.
+            asset_ids: List of asset IDs to associate with the run.
+            data_exists: If True, the run will be created as an ad-hoc run on the given assets.
 
         Returns:
             The created Run.
@@ -220,8 +231,43 @@ class RunsAPIAsync(ResourceBase):
         if isinstance(create, dict):
             create = RunCreate.model_validate(create)
 
+        if asset_names and asset_ids:
+            raise ValueError("Either asset_names or asset_ids must be provided, not both")
+
+        create_association = False
+        if asset_names or asset_ids or data_exists:
+            if data_exists:
+                if asset_names:
+                    assets = self.client.assets.list_(names=asset_names)
+                    asset_ids = [asset._id_or_error for asset in assets]
+                tag_names = (
+                    [tag.name if isinstance(tag, Tag) else tag for tag in create.tags]
+                    if create.tags
+                    else None
+                )
+                created_run = await self._low_level_client.create_adhoc_run(
+                    name=create.name,
+                    description=create.description,
+                    asset_ids=asset_ids or [],
+                    start_time=create.start_time,
+                    stop_time=create.stop_time,
+                    tag_names=tag_names,
+                    metadata=create.metadata,
+                    client_key=create.client_key,
+                )
+                return self._apply_client_to_instance(created_run)
+            else:
+                if asset_ids:
+                    assets = self.client.assets.list_(asset_ids=asset_ids)
+                    asset_names = [asset.name for asset in assets]
+                create_association = True
         created_run = await self._low_level_client.create_run(create=create)
-        return self._apply_client_to_instance(created_run)
+        created_run = self._apply_client_to_instance(created_run)
+        if create_association:
+            await self._low_level_client.create_automatic_run_association_for_assets(
+                run_id=created_run._id_or_error, asset_names=asset_names or []
+            )
+        return created_run
 
     async def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
         """Update a Run.
@@ -274,83 +320,3 @@ class RunsAPIAsync(ResourceBase):
         run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.stop_run(run_id=run_id or "")
         return await self.get(run_id=run_id)
-
-    async def create_automatic_association_for_assets(
-        self,
-        *,
-        run: str | Run,
-        assets: list[str | Asset],
-    ) -> None:
-        """Associate asset data with a given Run before ingesting it. Any data for the given assets that falls within the given Run's time period will be associated with the Run. For associating data after ingestion, use the create_adhoc_run method.
-
-        Args:
-            run: The Run or run ID.
-            assets: List of assets or asset names to associate.
-        """
-        asset_names = []
-        for asset in assets:
-            if isinstance(asset, Asset):
-                asset_names.append(asset.name)
-            else:
-                asset_names.append(asset)
-        run_id = run._id_or_error or "" if isinstance(run, Run) else run
-        await self._low_level_client.create_automatic_run_association_for_assets(
-            run_id=run_id, asset_names=asset_names
-        )
-
-    async def create_adhoc_run(
-        self,
-        *,
-        name: str,
-        description: str | None = None,
-        assets: list[str | Asset],
-        start_time: datetime | None = None,
-        stop_time: datetime | None = None,
-        tags: list[str | Tag] | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
-        client_key: str | None = None,
-    ) -> Run:
-        """Create an ad-hoc run.
-
-        These runs act like views onto data in given assets potentially over a specific time period. This can be created after the data has been ingested.
-
-        Args:
-            name: The name of the run.
-            description: Optional description of the run.
-            assets: List of assets to associate with the run.
-            start_time: Optional start time of the run.
-            stop_time: Optional stop time of the run.
-            asset_ids: Optional list of asset IDs to associate with the run.
-            tags: Optional list of tags or tag names to associate with the run.
-            metadata: Optional metadata dictionary to associate with the run.
-            client_key: Optional client key for the run.
-
-        Returns:
-            The created Run.
-
-        Raises:
-            ValueError: If name is not provided or if start_time/stop_time are invalid.
-        """
-        asset_ids = []
-        for asset in assets:
-            if isinstance(asset, Asset):
-                asset_ids.append(asset._id_or_error)
-            else:
-                asset_ids.append(asset)
-        tag_names = []
-        for tag in tags or []:
-            if isinstance(tag, Tag):
-                tag_names.append(tag.name)
-            else:
-                tag_names.append(tag)
-        created_run = await self._low_level_client.create_adhoc_run(
-            name=name,
-            description=description,
-            asset_ids=asset_ids,
-            start_time=start_time,
-            stop_time=stop_time,
-            tag_names=tag_names,
-            metadata=metadata,
-            client_key=client_key,
-        )
-        return self._apply_client_to_instance(created_run)

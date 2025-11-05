@@ -469,6 +469,7 @@ class ChannelsAPI:
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
         asset: Asset | str | None = None,
+        assets: list[str | Asset] | None = None,
         run: Run | str | None = None,
         description_contains: str | None = None,
         include_archived: bool | None = None,
@@ -484,11 +485,12 @@ class ChannelsAPI:
             name_contains: Partial name of the channel.
             name_regex: Regular expression to filter channels by name.
             channel_ids: Filter to channels with any of these IDs.
-            created_after: Filter channels created after this datetime.
-            created_before: Filter channels created before this datetime.
+            created_after: Filter channels created after this datetime. Note: This is related to the channel creation time, not the timestamp of the underlying data.
+            created_before: Filter channels created before this datetime. Note: This is related to the channel creation time, not the timestamp of the underlying data.
             modified_after: Filter channels modified after this datetime.
             modified_before: Filter channels modified before this datetime.
             asset: Filter channels associated with this Asset or asset ID.
+            assets: Filter channels associated with these Assets or asset IDs.
             run: Filter channels associated with this Run or run ID.
             description_contains: Partial description of the channel.
             include_archived: If True, include archived channels in results.
@@ -894,60 +896,28 @@ class RunsAPI:
         """
         ...
 
-    def create(self, create: RunCreate | dict) -> Run:
+    def create(
+        self,
+        create: RunCreate | dict,
+        asset_names: list[str] | None = None,
+        asset_ids: list[str] | None = None,
+        data_exists: bool = False,
+    ) -> Run:
         """Create a new run.
+
+        Note on assets: You do not need to provide asset info when creating a run.
+        If you pass a Run to future ingestion configs associated with assets, the association will happen automatically then.
+        However, if you do pass assets, _future_ ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run. This may be useful if you want to capture a time range for a specific asset or won't know about this Run when ingesting to that asset.
+        If the data has already been ingested, it will not be associated with the Run unless you pass data_exists=True.
 
         Args:
             create: The Run definition to create.
+            asset_names: List of asset names to associate with the run.
+            asset_ids: List of asset IDs to associate with the run.
+            data_exists: If True, the run will be created as an ad-hoc run on the given assets.
 
         Returns:
             The created Run.
-        """
-        ...
-
-    def create_adhoc_run(
-        self,
-        *,
-        name: str,
-        description: str | None = None,
-        assets: list[str | Asset],
-        start_time: datetime | None = None,
-        stop_time: datetime | None = None,
-        tags: list[str | Tag] | None = None,
-        metadata: dict[str, str | float | bool] | None = None,
-        client_key: str | None = None,
-    ) -> Run:
-        """Create an ad-hoc run.
-
-        These runs act like views onto data in given assets potentially over a specific time period. This can be created after the data has been ingested.
-
-        Args:
-            name: The name of the run.
-            description: Optional description of the run.
-            assets: List of assets to associate with the run.
-            start_time: Optional start time of the run.
-            stop_time: Optional stop time of the run.
-            asset_ids: Optional list of asset IDs to associate with the run.
-            tags: Optional list of tags or tag names to associate with the run.
-            metadata: Optional metadata dictionary to associate with the run.
-            client_key: Optional client key for the run.
-
-        Returns:
-            The created Run.
-
-        Raises:
-            ValueError: If name is not provided or if start_time/stop_time are invalid.
-        """
-        ...
-
-    def create_automatic_association_for_assets(
-        self, *, run: str | Run, assets: list[str | Asset]
-    ) -> None:
-        """Associate asset data with a given Run before ingesting it. Any data for the given assets that falls within the given Run's time period will be associated with the Run. For associating data after ingestion, use the create_adhoc_run method.
-
-        Args:
-            run: The Run or run ID.
-            assets: List of assets or asset names to associate.
         """
         ...
 

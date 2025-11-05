@@ -528,7 +528,7 @@ class TestRunsAPIAsync:
                 start_time=datetime.now(timezone.utc),
                 stop_time=datetime.now(timezone.utc) + timedelta(seconds=11),
             )
-            created_run = await runs_api_async.create(run_create)
+            created_run = None
 
             try:
                 # Get some assets to associate
@@ -536,8 +536,8 @@ class TestRunsAPIAsync:
                 assert len(assets) >= 2
 
                 # Associate assets with the run
-                await runs_api_async.create_automatic_association_for_assets(
-                    run=created_run, assets=assets
+                created_run = await runs_api_async.create(
+                    run_create, asset_names=[asset.name for asset in assets]
                 )
 
                 for asset in assets:
@@ -571,14 +571,16 @@ class TestRunsAPIAsync:
             assert len(assets) == 2
             tags = [test_tag, ci_pytest_tag]
 
-            created_run = await runs_api_async.create_adhoc_run(
+            run_create = RunCreate(
                 name=run_name,
-                assets=assets,
                 description="Test adhoc run",
                 start_time=start_time,
                 stop_time=stop_time,
                 tags=tags,
                 metadata={"test_key": "test_value", "number": 42.5, "flag": True},
+            )
+            created_run = await runs_api_async.create(
+                run_create, asset_ids=[asset._id_or_error for asset in assets], data_exists=True
             )
 
             try:
@@ -601,8 +603,11 @@ class TestRunsAPIAsync:
         async def test_create_adhoc_run_missing_assets(self, runs_api_async):
             """Test creating an adhoc run with missing assets."""
             run_name = f"test_adhoc_run_missing_assets_{datetime.now(timezone.utc).isoformat()}"
+            run_create = RunCreate(
+                name=run_name,
+            )
             with pytest.raises(AioRpcError, match="asset_ids: value must contain at least 1 item"):
-                await runs_api_async.create_adhoc_run(name=run_name, assets=[])
+                await runs_api_async.create(run_create, asset_ids=[], data_exists=True)
 
 
 class TestRunsAPISync:
