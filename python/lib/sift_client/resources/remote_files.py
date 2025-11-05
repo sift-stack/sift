@@ -104,7 +104,9 @@ class RemoteFilesAPIAsync(ResourceBase):
         remote_files = await self._low_level_client.list_all_remote_files(query_filter=query_filter)
         return [self._apply_client_to_instance(rf) for rf in remote_files]
 
-    async def update(self, remote_file: str | RemoteFile, update: RemoteFileUpdate | dict) -> RemoteFile:
+    async def update(
+        self, remote_file: str | RemoteFile, update: RemoteFileUpdate | dict
+    ) -> RemoteFile:
         """Update a remote file.
 
         Args:
@@ -115,7 +117,9 @@ class RemoteFilesAPIAsync(ResourceBase):
             The updated RemoteFile.
 
         """
-        remote_file_id = remote_file._id_or_error if isinstance(remote_file, RemoteFile) else remote_file
+        remote_file_id = (
+            remote_file._id_or_error if isinstance(remote_file, RemoteFile) else remote_file
+        )
         if isinstance(update, dict):
             update = RemoteFileUpdate.model_validate(update)
         update._resource_id = remote_file_id
@@ -128,7 +132,9 @@ class RemoteFilesAPIAsync(ResourceBase):
         Args:
             remote_file: The RemoteFile or remote file ID to delete.
         """
-        remote_file_id = remote_file._id_or_error if isinstance(remote_file, RemoteFile) else remote_file
+        remote_file_id = (
+            remote_file._id_or_error if isinstance(remote_file, RemoteFile) else remote_file
+        )
         await self._low_level_client.delete_remote_file(remote_file_id=remote_file_id)
 
     async def batch_delete(self, remote_files: list[str | RemoteFile]) -> None:
@@ -137,7 +143,10 @@ class RemoteFilesAPIAsync(ResourceBase):
         Args:
             remote_files: The RemoteFiles or remote file IDs to delete.
         """
-        remote_file_ids = [remote_file._id_or_error if isinstance(remote_file, RemoteFile) else remote_file for remote_file in remote_files]
+        remote_file_ids = [
+            remote_file._id_or_error if isinstance(remote_file, RemoteFile) else remote_file
+            for remote_file in remote_files
+        ]
         await self._low_level_client.batch_delete_remote_files(remote_file_ids=remote_file_ids)
 
     async def get_download_url(self, remote_file: str | RemoteFile) -> str:
@@ -146,5 +155,9 @@ class RemoteFilesAPIAsync(ResourceBase):
         Args:
             remote_file: The RemoteFile or remote file ID to get the download URL for.
         """
-        remote_file_id = remote_file._id_or_error if isinstance(remote_file, RemoteFile) else remote_file
-        return await self._low_level_client.get_remote_file_download_url(remote_file_id=remote_file_id)
+        remote_file_id = (
+            remote_file._id_or_error if isinstance(remote_file, RemoteFile) else remote_file
+        )
+        return await self._low_level_client.get_remote_file_download_url(
+            remote_file_id=remote_file_id
+        )

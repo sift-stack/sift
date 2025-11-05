@@ -107,7 +107,9 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = ListRemoteFilesRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).ListRemoteFiles(request)
         response = cast("ListRemoteFilesResponse", response)
-        return [RemoteFile._from_proto(rf) for rf in response.remote_files], response.next_page_token
+        return [
+            RemoteFile._from_proto(rf) for rf in response.remote_files
+        ], response.next_page_token
 
     async def update_remote_file(self, update: RemoteFileUpdate) -> RemoteFile:
         """Update a remote file.
@@ -152,6 +154,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             The download URL for the remote file.
         """
         request = GetRemoteFileDownloadUrlRequest(remote_file_id=remote_file_id)
-        response = await self._grpc_client.get_stub(RemoteFileServiceStub).GetRemoteFileDownloadUrl(request)
+        response = await self._grpc_client.get_stub(RemoteFileServiceStub).GetRemoteFileDownloadUrl(
+            request
+        )
         return response.download_url
-

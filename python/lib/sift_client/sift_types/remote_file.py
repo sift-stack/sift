@@ -74,7 +74,9 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
     modified_date: datetime
 
     @classmethod
-    def _from_proto(cls, proto: RemoteFileProto, sift_client: SiftClient | None = None) -> RemoteFile:
+    def _from_proto(
+        cls, proto: RemoteFileProto, sift_client: SiftClient | None = None
+    ) -> RemoteFile:
         return cls(
             id_=proto.remote_file_id,
             organization_id=proto.organization_id,
