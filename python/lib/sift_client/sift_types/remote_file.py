@@ -55,7 +55,6 @@ class RemoteFileEntityType(Enum):
 class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
     """Model of the Sift RemoteFile."""
 
-    id_: str
     organization_id: str
     entity_id: str
     entity_type: RemoteFileEntityType
