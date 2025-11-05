@@ -11,11 +11,8 @@ from sift_client.sift_types._base import BaseType, ModelUpdate
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.annotation import Annotation
-    from sift_client.sift_types.annotation_log import AnnotationLog
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.run import Run
-    from sift_client.sift_types.test_report import TestReport
 
 
 class RemoteFileEntityType(Enum):
@@ -96,20 +93,14 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         )
 
     @property
-    def entity(self) -> Run | Annotation | Asset | AnnotationLog | TestReport:
+    def entity(self) -> Run | Annotation:
         """Get the entity that this remote file is attached to."""
-        if self.entity_type == RemoteFileEntityType.RUN:
-            return self.client.runs.get(self.entity_id)
-        elif self.entity_type == RemoteFileEntityType.ANNOTATION:
-            return self.client.annotations.get(self.entity_id)
-        elif self.entity_type == RemoteFileEntityType.ASSET:
-            return self.client.assets.get(self.entity_id)
-        elif self.entity_type == RemoteFileEntityType.ANNOTATION_LOG:
-            return self.client.annotation_logs.get(self.entity_id)
-        elif self.entity_type == RemoteFileEntityType.TEST_REPORT:
-            return self.client.test_reports.get(self.entity_id)
+        if self.entity_type == RemoteFileEntityType.RUNS:
+            return self.client.runs.get(run_id=self.entity_id)
+        elif self.entity_type == RemoteFileEntityType.ASSETS:
+            return self.client.assets.get(asset_id=self.entity_id)
         else:
-            raise Exception(f"Unknown remote file entity type: {self.entity_type}")
+            raise Exception(f"Unknown or not implemented remote file entity type: {self.entity_type}")
 
 
 class RemoteFileUpdate(ModelUpdate[RemoteFileProto]):
