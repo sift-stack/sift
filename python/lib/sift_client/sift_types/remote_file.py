@@ -100,7 +100,9 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         elif self.entity_type == RemoteFileEntityType.ASSETS:
             return self.client.assets.get(asset_id=self.entity_id)
         else:
-            raise Exception(f"Unknown or not implemented remote file entity type: {self.entity_type}")
+            raise Exception(
+                f"Unknown or not implemented remote file entity type: {self.entity_type}"
+            )
 
 
 class RemoteFileUpdate(ModelUpdate[RemoteFileProto]):
