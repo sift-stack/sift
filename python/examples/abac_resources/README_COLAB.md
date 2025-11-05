@@ -7,12 +7,19 @@ The package name is **`sift-stack-py`** (not `sift-py`), and it's published to P
 2. Committed to the repository
 3. Published to PyPI (or available in the GitHub repo)
 
-## Option 1: Install from GitHub (Recommended)
+## Option 1: Install from GitHub Branch (Recommended)
 
-If the repository has the generated proto files committed, you can install directly from GitHub:
+Install directly from the branch with the ABAC proto files:
 
 ```python
-# Install the package from GitHub
+# Install the package from the specific branch
+!pip install git+https://github.com/sift-stack/sift.git@eng-000-abac-test-protos#subdirectory=python
+```
+
+Or from the main branch (once merged):
+
+```python
+# Install from main branch
 !pip install git+https://github.com/sift-stack/sift.git@main#subdirectory=python
 ```
 
