@@ -240,10 +240,13 @@ message ResourceAttributeEntityIdentifier {
 
 // ResourceAttribute Key RPC messages
 message CreateResourceAttributeKeyRequest {
-  ResourceAttributeKey resource_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 1 [(google.api.field_behavior) = REQUIRED];
+  string description = 2 [(google.api.field_behavior) = OPTIONAL];
+  ResourceAttributeKeyType type = 3 [(google.api.field_behavior) = REQUIRED];
+  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
   // Optional initial enum values to create alongside the key. Only applicable for ENUM type keys.
   // The resource_attribute_key_id field on each enum value will be ignored and set to the created key's ID.
-  repeated ResourceAttributeEnumValue initial_enum_values = 2 [(google.api.field_behavior) = OPTIONAL];
+  repeated ResourceAttributeEnumValue initial_enum_values = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateResourceAttributeKeyResponse {
