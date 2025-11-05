@@ -141,21 +141,22 @@ from sift_client.sift_types.channel import (
     ChannelDataType,
     ChannelReference,
 )
-from sift_client.sift_types.data_import import (
-    Ch10Config,
-    CsvConfig,
-    CsvTimeColumn,
-    DataImport,
-    DataImportStatus,
-    ParquetComplexTypesImportMode,
-    ParquetConfig,
-    ParquetDataColumn,
-    ParquetFlatDatasetConfig,
-    ParquetTimeColumn,
-    TDMSConfig,
-    TimeColumn,
-    TimeFormat,
-)
+
+# from sift_client.sift_types.data_import import (
+#     Ch10Config,
+#     CsvConfig,
+#     CsvTimeColumn,
+#     DataImport,
+#     DataImportStatus,
+#     ParquetComplexTypesImportMode,
+#     ParquetConfig,
+#     ParquetDataColumn,
+#     ParquetFlatDatasetConfig,
+#     ParquetTimeColumn,
+#     TDMSConfig,
+#     TimeColumn,
+#     TimeFormat,
+# )
 from sift_client.sift_types.ingestion import (
     ChannelConfig,
     Flow,
@@ -238,11 +239,10 @@ __all__ = [
     "Run",
     "RunCreate",
     "RunUpdate",
+    "TDMSConfig",
     "Tag",
     "TagCreate",
     "TagUpdate",
-    "TDMSConfig",
-    "TimeColumn",
     "TestMeasurement",
     "TestMeasurementCreate",
     "TestMeasurementType",
@@ -253,5 +253,6 @@ __all__ = [
     "TestStep",
     "TestStepCreate",
     "TestStepType",
+    "TimeColumn",
     "TimeFormat",
 ]

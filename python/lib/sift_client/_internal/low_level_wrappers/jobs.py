@@ -12,7 +12,6 @@ from typing import Any, cast
 
 from sift.jobs.v1.jobs_pb2 import (
     CancelJobRequest,
-    CancelJobResponse,
     ListJobsRequest,
     ListJobsResponse,
     RetryJobRequest,
@@ -47,7 +46,7 @@ class JobsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         organization_id: str | None = None,
         order_by: str | None = None,
-    ) -> ListJobsResponse:
+    ) ->  tuple[list[Job], str]:
         """List jobs with pagination.
 
         Args:
@@ -74,7 +73,9 @@ class JobsLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         request = ListJobsRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(JobServiceStub).ListJobs(request)
-        return cast("ListJobsResponse", response)
+        response =  cast("ListJobsResponse", response)
+        jobs = [Job._from_proto(job) for job in response.jobs]
+        return jobs, response.next_page_token
 
     async def list_all_jobs(
         self,
@@ -108,7 +109,7 @@ class JobsLowLevelClient(LowLevelClientBase, WithGrpcClient):
             max_results=max_results,
         )
 
-        return [Job._from_proto(job) for job in jobs]
+        return jobs
 
     async def get_job(self, job_id: str) -> Job:
         """Get a job by ID.

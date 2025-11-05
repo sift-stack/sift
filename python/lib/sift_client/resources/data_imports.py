@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.data_import import (
-    Ch10Config,
-    CsvConfig,
-    DataImport,
-    ParquetConfig,
-    TDMSConfig,
-)
+
+# from sift_client.sift_types.data_import import (
+#     Ch10Config,
+#     CsvConfig,
+#     DataImport,
+#     ParquetConfig,
+#     TDMSConfig,
+# )
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -96,13 +97,13 @@ class DataImportsAPIAsync(ResourceBase):
         if isinstance(source, Path) or (isinstance(source, str) and not self._is_url(source)):
             # Local file - upload it first
             path = Path(source) if isinstance(source, str) else source
-            
+
             if not path.exists():
                 raise FileNotFoundError(f"File not found: {path}")
-            
+
             if not path.is_file():
                 raise ValueError(f"Path is not a file: {path}")
-            
+
             # Get upload URL and data import ID
             upload_url, data_import_id = await self._low_level_client.create_data_import_from_upload(
                 csv_config=csv_config,
@@ -110,10 +111,10 @@ class DataImportsAPIAsync(ResourceBase):
                 tdms_config=tdms_config,
                 parquet_config=parquet_config,
             )
-            
+
             # Upload the file
             await self._upload_file(path, upload_url)
-            
+
             return data_import_id
         else:
             # URL - import directly
@@ -155,7 +156,7 @@ class DataImportsAPIAsync(ResourceBase):
 
         with open(path, "rb") as f:
             response = requests.put(upload_url, data=f)
-            
+
         if response.status_code not in (200, 201, 204):
             raise Exception(
                 f"File upload failed with status {response.status_code}: {response.text}"

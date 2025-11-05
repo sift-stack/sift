@@ -23,20 +23,20 @@ from sift.data_imports.v2.data_imports_pb2 import (
     ListDataImportsRequest,
     ListDataImportsResponse,
     RetryDataImportRequest,
-    RetryDataImportResponse,
 )
 from sift.data_imports.v2.data_imports_pb2_grpc import DataImportServiceStub
 
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-from sift_client.sift_types.data_import import (
-    Ch10Config,
-    CsvConfig,
-    DataImport,
-    ParquetConfig,
-    TDMSConfig,
-)
+
+# from sift_client.sift_types.data_import import (
+#     Ch10Config,
+#     CsvConfig,
+#     DataImport,
+#     ParquetConfig,
+#     TDMSConfig,
+# )
 from sift_client.transport import GrpcClient, WithGrpcClient
 
 
@@ -141,15 +141,15 @@ class DataImportsLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = DetectConfigRequest(data=data, type=data_type)
         response = await self._grpc_client.get_stub(DataImportServiceStub).DetectConfig(request)
         response = cast("DetectConfigResponse", response)
-        
+
         csv_config = None
         if response.HasField("csv_config"):
             csv_config = CsvConfig.from_proto(response.csv_config)
-        
+
         parquet_config = None
         if response.HasField("parquet_config"):
             parquet_config = ParquetConfig.from_proto(response.parquet_config)
-        
+
         return csv_config, parquet_config
 
     async def get_data_import(self, data_import_id: str) -> DataImport:

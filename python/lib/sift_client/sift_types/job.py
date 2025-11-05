@@ -26,6 +26,10 @@ class JobType(str, Enum):
     DATA_IMPORT = "DATA_IMPORT"
     DATA_EXPORT = "DATA_EXPORT"
 
+    def to_filter_str(self) -> str:
+        """Convert to string representation."""
+        return f"JOB_TYPE_{self.value}"
+
     def to_proto(self) -> int:
         """Convert to proto enum value."""
         mapping = {
@@ -58,6 +62,10 @@ class JobStatus(str, Enum):
     CANCELLED = "CANCELLED"
     CANCEL_REQUESTED = "CANCEL_REQUESTED"
 
+    def to_filter_str(self) -> str:
+        """Convert to string representation."""
+        return f"JOB_STATUS_{self.value}"
+
     @classmethod
     def from_proto(cls, proto_value: int) -> JobStatus:
         """Create from proto enum value."""
@@ -76,7 +84,7 @@ class JobStatus(str, Enum):
 
 class JobStatusDetails(BaseModel):
     """Status details for a job.
-    
+
     Fields are populated based on job_type:
     - DATA_IMPORT: points_processed, points_total
     - DATA_EXPORT: error_message
@@ -113,7 +121,7 @@ class JobStatusDetails(BaseModel):
 
 class JobDetails(BaseModel):
     """Job details for a job.
-    
+
     Fields are populated based on job_type:
     - RULE_EVALUATION: report_id
     - DATA_IMPORT: data_import_id
@@ -203,27 +211,42 @@ class Job(BaseType[JobProto, "Job"]):
         )
 
     @property
-    def is_in_progress(self):
+    def is_in_progress(self) -> bool:
+        """Return True if the job is in progress, False otherwise.
+
+        A job is in progress if its status is RUNNING.
+        """
         return self.job_status == JobStatus.RUNNING
 
     @property
-    def is_failed(self):
+    def is_failed(self) -> bool:
+        """Return True if the job has failed, False otherwise.
+
+        A job has failed if its status is FAILED.
+        """
         return self.job_status == JobStatus.FAILED
 
     @property
-    def is_finished(self):
+    def is_finished(self) -> bool:
+        """Return True if the job has finished, False otherwise.
+
+        A job has finished if its status is FINISHED.
+        """
         return self.job_status == JobStatus.FINISHED
 
     @property
-    def is_cancelled(self):
-        return self.job_status == JobStatus.CANCELLED
+    def is_cancelled(self) -> bool:
+        """Return True if the job has been cancelled, False otherwise.
 
+        A job has been cancelled if its status is CANCELLED.
+        """
+        return self.job_status == JobStatus.CANCELLED
 
     def refresh(self) -> Job:
         """Refresh this job with the latest data from the API.
 
         Returns:
-            The updated Job object (self).
+            The updated Job object.
         """
         updated_job = self.client.jobs.get(self._id_or_error)
         self._update(updated_job)
@@ -236,6 +259,7 @@ class Job(BaseType[JobProto, "Job"]):
         Jobs that are already finished, failed, or cancelled are not affected.
         """
         self.client.jobs.cancel(self)
+        self.refresh()
 
     def retry(self) -> Job:
         """Retry this job.
