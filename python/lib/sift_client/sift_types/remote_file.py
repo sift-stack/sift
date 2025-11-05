@@ -93,7 +93,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         )
 
     @property
-    def entity(self) -> Run | Annotation:
+    def entity(self) -> Run | Asset:
         """Get the entity that this remote file is attached to."""
         if self.entity_type == RemoteFileEntityType.RUNS:
             return self.client.runs.get(run_id=self.entity_id)
