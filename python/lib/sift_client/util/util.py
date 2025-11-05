@@ -9,6 +9,7 @@ if TYPE_CHECKING:
         ChannelsAPIAsync,
         IngestionAPIAsync,
         PingAPIAsync,
+        RemoteFilesAPIAsync,
         ReportsAPIAsync,
         RulesAPIAsync,
         RunsAPIAsync,
@@ -34,6 +35,9 @@ class AsyncAPIs(NamedTuple):
 
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making asynchronous requests."""
+
+    remote_files: RemoteFilesAPIAsync
+    """Instance of the Remote Files API for making asynchronous requests."""
 
     reports: ReportsAPIAsync
     """Instance of the Reports API for making asynchronous requests."""

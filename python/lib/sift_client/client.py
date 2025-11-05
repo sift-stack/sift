@@ -11,6 +11,8 @@ from sift_client.resources import (
     IngestionAPIAsync,
     PingAPI,
     PingAPIAsync,
+    RemoteFilesAPI,
+    RemoteFilesAPIAsync,
     ReportsAPI,
     ReportsAPIAsync,
     RulesAPI,
@@ -86,6 +88,9 @@ class SiftClient(
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making synchronous requests."""
 
+    remote_files: RemoteFilesAPI
+    """Instance of the Remote Files API for making synchronous requests."""
+
     reports: ReportsAPI
     """Instance of the Reports API for making synchronous requests."""
 
@@ -141,6 +146,7 @@ class SiftClient(
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
         self.channels = ChannelsAPI(self)
+        self.remote_files = RemoteFilesAPI(self)
         self.rules = RulesAPI(self)
         self.reports = ReportsAPI(self)
         self.runs = RunsAPI(self)
@@ -153,6 +159,7 @@ class SiftClient(
             calculated_channels=CalculatedChannelsAPIAsync(self),
             channels=ChannelsAPIAsync(self),
             ingestion=IngestionAPIAsync(self),
+            remote_files=RemoteFilesAPIAsync(self),
             reports=ReportsAPIAsync(self),
             rules=RulesAPIAsync(self),
             runs=RunsAPIAsync(self),

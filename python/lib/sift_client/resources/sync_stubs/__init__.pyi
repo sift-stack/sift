@@ -18,6 +18,7 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.remote_file import RemoteFile, RemoteFileEntityType, RemoteFileUpdate
 from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
@@ -521,6 +522,110 @@ class PingAPI:
 
         Returns:
             The response from the server.
+        """
+        ...
+
+class RemoteFilesAPI:
+    """Sync counterpart to `RemoteFilesAPIAsync`.
+
+    High-level API for interacting with remote files.
+
+    This class provides a Pythonic, notebook-friendly interface for interacting with the RemoteFilesAPI.
+    It handles automatic handling of gRPC services, seamless type conversion, and clear error handling.
+
+    All methods in this class use the RemoteFile class from the low-level wrapper, which is a user-friendly
+    representation of a remote file using standard Python data structures and types.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the RemoteFilesAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def get(self, *, remote_file_id: str) -> RemoteFile:
+        """Get a RemoteFile.
+
+        Args:
+            remote_file_id: The ID of the remote file.
+
+        Returns:
+            The RemoteFile.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        remote_file_id: str | None = None,
+        remote_file_ids: list[str] | None = None,
+        entity_id: str | None = None,
+        entity_ids: list[str] | None = None,
+        entity_type: RemoteFileEntityType | None = None,
+        entity_types: list[RemoteFileEntityType] | None = None,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+    ) -> list[RemoteFile]:
+        """List RemoteFiles.
+
+        Args:
+            remote_file_id: The ID of the remote file.
+            remote_file_ids: List of remote file IDs.
+            entity_id: The entity ID.
+            entity_ids: List of entity IDs.
+            entity_type: The entity type.
+            entity_types: List of entity types.
+            name: The name of the file.
+            names: List of file names.
+            name_contains: String that the name should contain.
+            name_regex: Regex pattern for the name.
+
+        Returns:
+            A list of RemoteFiles matching the filters.
+        """
+        ...
+
+    def update(self, remote_file: str | RemoteFile, update: RemoteFileUpdate | dict) -> RemoteFile:
+        """Update a remote file.
+
+        Args:
+            remote_file: The RemoteFile or remote file ID to update.
+            update: Updates to apply to the RemoteFile.
+
+        Returns:
+            The updated RemoteFile.
+        """
+        ...
+
+    def delete(self, remote_file: str | RemoteFile) -> None:
+        """Delete a RemoteFile.
+
+        Args:
+            remote_file: The RemoteFile or remote file ID to delete.
+        """
+        ...
+
+    def batch_delete(self, remote_files: list[str | RemoteFile]) -> None:
+        """Batch delete RemoteFiles.
+
+        Args:
+            remote_files: The RemoteFiles or remote file IDs to delete.
+        """
+        ...
+
+    def get_download_url(self, remote_file: str | RemoteFile) -> str:
+        """Get a download URL for a RemoteFile.
+
+        Args:
+            remote_file: The RemoteFile or remote file ID to get the download URL for.
+
+        Returns:
+            The download URL for the remote file.
         """
         ...
 
