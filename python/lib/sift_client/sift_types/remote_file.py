@@ -9,7 +9,6 @@ import requests
 
 from sift.remote_files.v1.remote_files_pb2 import EntityType
 from sift.remote_files.v1.remote_files_pb2 import RemoteFile as RemoteFileProto
-
 from sift_client.sift_types._base import BaseType, ModelUpdate
 
 if TYPE_CHECKING:
