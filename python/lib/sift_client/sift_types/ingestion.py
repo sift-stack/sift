@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING, Any
 from google.protobuf.empty_pb2 import Empty
 from pydantic import ConfigDict, model_validator
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
+from sift.ingest.v1.ingest_pb2 import (
+    IngestWithConfigDataStreamRequest as IngestWithConfigDataStreamRequestProto,
+)
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigProto,
 )
@@ -21,6 +24,7 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 )
 from sift_stream_bindings import IngestionConfigFormPy
 
+from sift_client._internal.low_level_wrappers.ingestion import to_rust_py_timestamp
 from sift_client.sift_types._base import (
     BaseType,
     ModelCreate,
@@ -30,11 +34,13 @@ from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataTy
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from datetime import datetime
 
     from sift_stream_bindings import (
         ChannelConfigPy,
         ChannelDataTypePy,
         FlowConfigPy,
+        FlowPy,
         IngestWithConfigDataChannelValuePy,
     )
 
@@ -181,11 +187,28 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             ],
         )
 
+    def as_channel_value(self, value: Any) -> ChannelValue:
+        """Create a ChannelValue from a value using this channel's configuration.
+
+        Args:
+            value: The value to wrap in a ChannelValue. The type should match
+                this channel's data_type.
+
+        Returns:
+            A ChannelValue instance with this channel's name and data type,
+            containing the provided value.
+        """
+        return ChannelValue(
+            name=self.name,
+            ty=self.data_type,
+            value=value,
+        )
+
 
 class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
-    """Model representing a data flow for ingestion.
+    """Model representing a data flow config for ingestion.
 
-    A FlowConfig represents a collection of channels that are ingested together.
+    A FlowConfig represents the configuration of a collection of channels that are ingested together.
     """
 
     model_config = ConfigDict(frozen=False)
@@ -230,6 +253,73 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
             raise ValueError("Cannot add a channel to a flow after creation")
         self.channels.append(channel)
 
+
+class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
+    """Model representing a data flow for ingestion.
+
+    A Flow represents a collection of channels that are ingested together.
+
+    A representation of the IngestWithConfigDataStreamRequest proto
+    """
+
+    ingestion_config_id: str | None
+    flow: str
+    timestamp: datetime
+    channel_values: list[ChannelValue]
+    run_id: str | None
+    end_stream_on_validation_error: bool | None
+    organization_id: str | None
+
+    def _to_rust_form(self) -> FlowPy:
+        from sift_stream_bindings import FlowPy
+
+        return FlowPy(
+            flow_name = self.flow,
+            timestamp = to_rust_py_timestamp(self.timestamp),
+            values = [channel_value.to_rust_form() for channel_value in self.channel_values]
+        )
+
+
+class ChannelValue:
+    """Model representing a channel value for ingestion.
+
+    A ChannelValue represents the data of a channel to be ingested.
+    """
+
+    name: str
+    ty: ChannelDataType
+    value: Any
+
+    def _to_rust_form(self):
+        from sift_stream_bindings import ChannelValuePy, ValuePy
+
+        if self.ty == ChannelDataType.BIT_FIELD:
+            value_py = ValuePy.BitField(self.value)
+        elif self.ty == ChannelDataType.ENUM:
+            value_py = ValuePy.Enum(self.value)
+        elif self.ty == ChannelDataType.BOOL:
+            value_py = ValuePy.Bool(self.value)
+        elif self.ty == ChannelDataType.FLOAT:
+            value_py = ValuePy.Float(self.value)
+        elif self.ty == ChannelDataType.DOUBLE:
+            value_py = ValuePy.Double(self.value)
+        elif self.ty == ChannelDataType.INT_32:
+            value_py = ValuePy.Int32(self.value)
+        elif self.ty == ChannelDataType.INT_64:
+            value_py = ValuePy.Int64(self.value)
+        elif self.ty == ChannelDataType.UINT_32:
+            value_py = ValuePy.Uint32(self.value)
+        elif self.ty == ChannelDataType.UINT_64:
+            value_py = ValuePy.Uint64(self.value)
+        elif self.ty == ChannelDataType.STRING:
+            value_py = ValuePy.String(self.value)
+        else:
+            raise ValueError(f"Invalid data type: {self.ty}")
+
+        return ChannelValuePy(
+            name = self.name,
+            value = value_py,
+        )
 
 
 # Converter functions.

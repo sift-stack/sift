@@ -23,7 +23,7 @@ from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionLowLevelClient,
 )
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.ingestion import IngestionConfig, IngestionConfigCreate
+from sift_client.sift_types.ingestion import Flow, IngestionConfig, IngestionConfigCreate
 from sift_client.sift_types.run import Run, RunCreate, Tag
 
 if TYPE_CHECKING:
@@ -429,7 +429,7 @@ class IngestionConfigStreamingClient(ResourceBase):
 
         return cls(sift_client, low_level_client)
 
-    async def send(self, flow: FlowPy):
+    async def send(self, flow: Flow | FlowPy):
         """Send telemetry to Sift in the form of a Flow.
 
         This is the entry-point to send actual telemetry to Sift. If a message is sent that
@@ -546,3 +546,6 @@ class IngestionConfigStreamingClient(ResourceBase):
             A snapshot of the current stream metrics.
         """
         return self._low_level_client.get_metrics_snapshot()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.finish()
