@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 import requests
 from sift.remote_files.v1.remote_files_pb2 import EntityType
 from sift.remote_files.v1.remote_files_pb2 import RemoteFile as RemoteFileProto
-from typing_extensions import Self
 
 from sift_client.sift_types._base import BaseType, ModelUpdate
 
@@ -127,7 +126,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
             remote_files_client.delete_remote_file(remote_file_id=self.id_), loop
         ).result()
 
-    def update(self, update: RemoteFileUpdate | dict) -> Self:
+    def update(self, update: RemoteFileUpdate | dict) -> RemoteFile:
         """Update the remote file."""
         from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
 
@@ -142,6 +141,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         updated_remote_file = asyncio.run_coroutine_threadsafe(
             remote_file_client.update_remote_file(update=update), loop
         ).result()
+        updated_remote_file._client = self.client
         return updated_remote_file
 
     def download_url(self) -> str:
