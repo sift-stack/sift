@@ -18,7 +18,7 @@ from sift.remote_files.v1.remote_files_pb2_grpc import RemoteFileServiceStub
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate
+from ...sift_types.remote_file import RemoteFile, RemoteFileUpdate
 from sift_client.transport import GrpcClient, WithGrpcClient
 
 
