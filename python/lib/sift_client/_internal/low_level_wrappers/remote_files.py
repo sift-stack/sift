@@ -137,7 +137,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated RemoteFile.
         """
-        from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate
+        from sift_client.sift_types.remote_file import RemoteFile
 
         grpc_remote_file, update_mask = update.to_proto_with_mask()
         request = UpdateRemoteFileRequest(remote_file=grpc_remote_file, update_mask=update_mask)
