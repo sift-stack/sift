@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sift.remote_files.v1.remote_files_pb2 import (
     BatchDeleteRemoteFilesRequest,
@@ -21,6 +21,9 @@ from sift_client._internal.low_level_wrappers.base import (
 from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate
 from sift_client.transport import GrpcClient, WithGrpcClient
 
+if TYPE_CHECKING:
+    from sift_client.client import SiftClient
+
 
 class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
     """Low-level client for the RemoteFilesAPI.
@@ -36,11 +39,14 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client)
 
-    async def get_remote_file(self, remote_file_id: str) -> RemoteFile:
+    async def get_remote_file(
+        self, remote_file_id: str, sift_client: SiftClient | None = None
+    ) -> RemoteFile:
         """Get a remote file by ID.
 
         Args:
             remote_file_id: The ID of the remote file to retrieve.
+            sift_client: The SiftClient to attach to the returned RemoteFile.
 
         Returns:
             The RemoteFile.
@@ -48,7 +54,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = GetRemoteFileRequest(remote_file_id=remote_file_id)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).GetRemoteFile(request)
         grpc_remote_file = cast("GetRemoteFileResponse", response).remote_file
-        return RemoteFile._from_proto(grpc_remote_file)
+        return RemoteFile._from_proto(grpc_remote_file, sift_client)
 
     async def list_all_remote_files(
         self,
@@ -56,6 +62,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         order_by: str | None = None,
         max_results: int | None = None,
         page_size: int | None = None,
+        sift_client: SiftClient | None = None,
     ) -> list[RemoteFile]:
         """List all remote files matching the given query.
 
@@ -64,13 +71,14 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             order_by: The field to order by.
             max_results: The maximum number of results to return.
             page_size: The number of results to return per page.
+            sift_client: The SiftClient to attach to the returned RemoteFiles.
 
         Returns:
             A list of RemoteFiles matching the given query.
         """
         return await self._handle_pagination(
             self.list_remote_files,
-            kwargs={"query_filter": query_filter},
+            kwargs={"query_filter": query_filter, "sift_client": sift_client},
             page_size=page_size,
             order_by=order_by,
             max_results=max_results,
@@ -82,6 +90,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_token: str | None = None,
         query_filter: str | None = None,
         order_by: str | None = None,
+        sift_client: SiftClient | None = None,
     ) -> tuple[list[RemoteFile], str]:
         """List remote files with pagination support.
 
@@ -90,6 +99,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_token: The page token for pagination.
             query_filter: The CEL query filter.
             order_by: The field to order by.
+            sift_client: The SiftClient to attach to the returned RemoteFiles.
 
         Returns:
             A tuple of (list of RemoteFiles, next_page_token).
@@ -108,14 +118,17 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).ListRemoteFiles(request)
         response = cast("ListRemoteFilesResponse", response)
         return [
-            RemoteFile._from_proto(rf) for rf in response.remote_files
+            RemoteFile._from_proto(rf, sift_client) for rf in response.remote_files
         ], response.next_page_token
 
-    async def update_remote_file(self, update: RemoteFileUpdate) -> RemoteFile:
+    async def update_remote_file(
+        self, update: RemoteFileUpdate, sift_client: SiftClient | None = None
+    ) -> RemoteFile:
         """Update a remote file.
 
         Args:
             update: The RemoteFileUpdate containing the fields to update.
+            sift_client: The SiftClient to attach to the returned RemoteFile.
 
         Returns:
             The updated RemoteFile.
@@ -124,7 +137,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         request = UpdateRemoteFileRequest(remote_file=grpc_remote_file, update_mask=update_mask)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).UpdateRemoteFile(request)
         updated_grpc_remote_file = cast("UpdateRemoteFileResponse", response).remote_file
-        return RemoteFile._from_proto(updated_grpc_remote_file)
+        return RemoteFile._from_proto(updated_grpc_remote_file, sift_client)
 
     async def delete_remote_file(self, remote_file_id: str) -> None:
         """Delete a remote file.
