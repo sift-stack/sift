@@ -18,11 +18,12 @@ from sift.remote_files.v1.remote_files_pb2_grpc import RemoteFileServiceStub
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate
+from sift_client.sift_types.remote_file import RemoteFileUpdate
 from sift_client.transport import GrpcClient, WithGrpcClient
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
+    from sift_client.sift_types.remote_file import RemoteFile
 
 
 class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -51,6 +52,8 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The RemoteFile.
         """
+        from sift_client.sift_types.remote_file import RemoteFile
+
         request = GetRemoteFileRequest(remote_file_id=remote_file_id)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).GetRemoteFile(request)
         grpc_remote_file = cast("GetRemoteFileResponse", response).remote_file
@@ -104,6 +107,8 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             A tuple of (list of RemoteFiles, next_page_token).
         """
+        from sift_client.sift_types.remote_file import RemoteFile
+
         request_kwargs: dict[str, Any] = {}
         if page_size is not None:
             request_kwargs["page_size"] = page_size
@@ -133,6 +138,8 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated RemoteFile.
         """
+        from sift_client.sift_types.remote_file import RemoteFile
+
         grpc_remote_file, update_mask = update.to_proto_with_mask()
         request = UpdateRemoteFileRequest(remote_file=grpc_remote_file, update_mask=update_mask)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).UpdateRemoteFile(request)
