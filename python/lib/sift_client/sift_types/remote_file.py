@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -97,15 +98,15 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
     @property
     def entity(self) -> Run | Asset | TestReport:
         """Get the entity that this remote file is attached to."""
-        if self.entity_type == RemoteFileEntityType.RUN:
+        if self.entity_type == RemoteFileEntityType.RUNS:
             return self.client.runs.get(run_id=self.entity_id)
-        elif self.entity_type == RemoteFileEntityType.ASSET:
+        elif self.entity_type == RemoteFileEntityType.ASSETS:
             return self.client.assets.get(asset_id=self.entity_id)
-        elif self.entity_type == RemoteFileEntityType.TEST_REPORT:
-            return self.client.test_reports.get(test_report_id=self.entity_id)
+        elif self.entity_type == RemoteFileEntityType.TEST_REPORTS:
+            return self.client.test_results.get(test_report_id=self.entity_id)
         elif self.entity_type in (
-            RemoteFileEntityType.ANNOTATION,
-            RemoteFileEntityType.ANNOTATION_LOG,
+            RemoteFileEntityType.ANNOTATIONS,
+            RemoteFileEntityType.ANNOTATION_LOGS,
         ):
             raise NotImplementedError(
                 f"Entity type {self.entity_type} is not yet supported for entity access"
@@ -115,18 +116,43 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
 
     def delete(self) -> None:
         """Delete the remote file."""
-        self.client.remote_files.delete(remote_file=self)
-        return self
+        if self.id_ is None:
+            raise ValueError("Remote file ID is not set")
+        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
+        remote_files_client = RemoteFilesLowLevelClient(self.client.grpc_client)
+        loop = self.client.get_asyncio_loop()
+        asyncio.run_coroutine_threadsafe(
+            remote_files_client.delete_remote_file(remote_file_id=self.id_),
+            loop
+        ).result()
 
     def update(self, update: RemoteFileUpdate | dict) -> RemoteFile:
         """Update the remote file."""
-        updated_remote_file = self.client.remote_files.update(remote_file=self, update=update)
-        self._update(updated_remote_file)
-        return self
+        if isinstance(update, dict):
+            update = RemoteFileUpdate.model_validate(update)
+        if self.id_ is None:
+            raise ValueError("Remote file ID is not set")
+        update.resource_id = self.id_
+        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
+        remote_file_client = RemoteFilesLowLevelClient(self.client.grpc_client)
+        loop = self.client.get_asyncio_loop()
+        updated_remote_file = asyncio.run_coroutine_threadsafe(
+            remote_file_client.update_remote_file(update=update),
+            loop
+        ).result()
+        return updated_remote_file
 
     def download_url(self) -> str:
         """Get the download URL for the remote file."""
-        return self.client.remote_files.get_download_url(remote_file=self)
+        if self.id_ is None:
+            raise ValueError("Remote file ID is not set")
+        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
+        remote_files_client = RemoteFilesLowLevelClient(self.client.grpc_client)
+        loop = self.client.get_asyncio_loop()
+        return asyncio.run_coroutine_threadsafe(
+            remote_files_client.get_remote_file_download_url(remote_file_id=self.id_),
+            loop
+        ).result()
 
     def download(self, output_path: str | Path) -> None:
         """Download the remote file to a local path."""
