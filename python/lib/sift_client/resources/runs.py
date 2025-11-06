@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from sift_client._internal.low_level_wrappers.runs import RunsLowLevelClient
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
 from sift_client.sift_types.tag import Tag
 from sift_client.util import cel_utils as cel
@@ -13,7 +14,6 @@ if TYPE_CHECKING:
     from datetime import datetime, timedelta
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.asset import Asset
 
 
 class RunsAPIAsync(ResourceBase):
@@ -208,11 +208,20 @@ class RunsAPIAsync(ResourceBase):
     async def create(
         self,
         create: RunCreate | dict,
+        assets: list[str | Asset] | None = None,
+        associate_new_data: bool = False,
     ) -> Run:
         """Create a new run.
 
+        Note on assets: You do not need to provide asset info when creating a run.
+        If you pass a Run to future ingestion configs associated with assets, the association will happen automatically then.
+        However, if you do pass assets and set associate_new_data=True, future ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run. This may be useful if you want to capture a time range for a specific asset or won't know about this Run when ingesting to that asset.
+        If the data has already been ingested, leave associate_new_data=False.
+
         Args:
             create: The Run definition to create.
+            assets: List of assets to associate with the run. Note: if you are associating new data, you must provide assets/asset names.
+            associate_new_data: If True, future ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run.
 
         Returns:
             The created Run.
@@ -220,8 +229,40 @@ class RunsAPIAsync(ResourceBase):
         if isinstance(create, dict):
             create = RunCreate.model_validate(create)
 
+        asset_names: list[str] = []
+        if associate_new_data:
+            if not assets:
+                raise ValueError(
+                    "Assets/asset names must be provided when associate_new_data is True"
+                )
+            asset_names = [asset.name if isinstance(asset, Asset) else asset for asset in assets]
+        elif assets:
+            asset_ids = [
+                asset._id_or_error if isinstance(asset, Asset) else asset for asset in assets
+            ]
+            tag_names = (
+                [tag.name if isinstance(tag, Tag) else tag for tag in create.tags]
+                if create.tags
+                else None
+            )
+            created_run = await self._low_level_client.create_adhoc_run(
+                name=create.name,
+                description=create.description,
+                asset_ids=asset_ids or [],
+                start_time=create.start_time,
+                stop_time=create.stop_time,
+                tag_names=tag_names,
+                metadata=create.metadata,
+                client_key=create.client_key,
+            )
+            return self._apply_client_to_instance(created_run)
         created_run = await self._low_level_client.create_run(create=create)
-        return self._apply_client_to_instance(created_run)
+        created_run = self._apply_client_to_instance(created_run)
+        if associate_new_data:
+            await self._low_level_client.create_automatic_run_association_for_assets(
+                run_id=created_run._id_or_error, asset_names=asset_names
+            )
+        return created_run
 
     async def update(self, run: str | Run, update: RunUpdate | dict) -> Run:
         """Update a Run.
@@ -274,20 +315,3 @@ class RunsAPIAsync(ResourceBase):
         run_id = run._id_or_error if isinstance(run, Run) else run
         await self._low_level_client.stop_run(run_id=run_id or "")
         return await self.get(run_id=run_id)
-
-    async def create_automatic_association_for_assets(
-        self,
-        run: str | Run,
-        *,
-        asset_names: list[str],
-    ) -> None:
-        """Associate assets with a run for automatic data ingestion.
-
-        Args:
-            run: The Run or run ID.
-            asset_names: List of asset names to associate.
-        """
-        run_id = run._id_or_error or "" if isinstance(run, Run) else run
-        await self._low_level_client.create_automatic_run_association_for_assets(
-            run_id=run_id, asset_names=asset_names
-        )

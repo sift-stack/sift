@@ -10,10 +10,11 @@ These tests demonstrate and validate the usage of the Runs API including:
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from grpc.aio import AioRpcError
 
 from sift_client import SiftClient
 from sift_client.resources import RunsAPI, RunsAPIAsync
-from sift_client.sift_types import Run
+from sift_client.sift_types import ChannelConfig, ChannelDataType, Flow, Run
 from sift_client.sift_types.run import RunCreate, RunUpdate
 
 pytestmark = pytest.mark.integration
@@ -491,6 +492,30 @@ class TestRunsAPIAsync:
     class TestAssetAssociation:
         """Tests for the async asset association methods."""
 
+        async def ingest_data_to_asset(self, sift_client, asset_name):
+            """Ingest some data into an asset."""
+            flow = Flow(
+                name="test-double-flow",
+                channels=[
+                    ChannelConfig(name="double-channel", data_type=ChannelDataType.DOUBLE),
+                ],
+            )
+
+            await sift_client.async_.ingestion.create_ingestion_config(
+                asset_name=asset_name,
+                flows=[flow],
+            )
+
+            start_time = datetime.now(tz=timezone.utc)
+            for i in range(10):
+                timestamp = start_time + timedelta(seconds=i)
+                flow.ingest(
+                    timestamp=timestamp,
+                    channel_values={"double-channel": float(i)},
+                )
+
+            sift_client.async_.ingestion.wait_for_ingestion_to_complete(timeout=2)
+
         @pytest.mark.asyncio
         async def test_create_automatic_association_for_assets(self, runs_api_async, sift_client):
             """Test associating assets with a run for automatic data ingestion."""
@@ -500,28 +525,96 @@ class TestRunsAPIAsync:
                 name=run_name,
                 description="Test run for asset association",
                 tags=["sift-client-pytest"],
+                start_time=datetime.now(timezone.utc),
+                stop_time=datetime.now(timezone.utc) + timedelta(seconds=11),
             )
-            created_run = await runs_api_async.create(run_create)
+            created_run = None
 
             try:
                 # Get some assets to associate
                 assets = await sift_client.async_.assets.list_(limit=2)
-                assert len(assets) >= 1
-
-                asset_names = [asset.name for asset in assets[:2]]
+                assert len(assets) >= 2
 
                 # Associate assets with the run
-                await runs_api_async.create_automatic_association_for_assets(
-                    run=created_run, asset_names=asset_names
+                created_run = await runs_api_async.create(
+                    run_create, assets=assets, associate_new_data=True
                 )
 
+                for asset in assets:
+                    await self.ingest_data_to_asset(sift_client, asset.name)
                 # Verify the association by getting the run and checking asset_ids
-                updated_run = await runs_api_async.get(run_id=created_run.id_)
+                updated_run = await runs_api_async.get(run_id=created_run._id_or_error)
                 assert updated_run.asset_ids is not None
-                assert len(updated_run.asset_ids) >= len(asset_names)
+                assert len(updated_run.asset_ids) >= len(assets)
+                for asset in assets:
+                    assert asset.id_ in updated_run.asset_ids
+
+                # Fetching these channels is flaky/slow depending on how long update monitor takes to run.
+                # channels = await sift_client.async_.channels.list_(run=created_run)
+                # assert channels is not None
+                # assert "double-channel" in [channel.name for channel in channels]
 
             finally:
                 await runs_api_async.archive(created_run)
+
+        @pytest.mark.asyncio
+        async def test_create_adhoc_run_all(
+            self, runs_api_async, sift_client, test_tag, ci_pytest_tag
+        ):
+            """Test creating an adhoc run with associated assets."""
+            run_name = f"test_adhoc_run_assets_{datetime.now(timezone.utc).isoformat()}"
+
+            start_time = datetime.now(timezone.utc) - timedelta(hours=2)
+            stop_time = datetime.now(timezone.utc) - timedelta(hours=1)
+            # Get some assets to associate
+            assets = await sift_client.async_.assets.list_(limit=2)
+            assert len(assets) == 2
+            tags = [test_tag, ci_pytest_tag]
+
+            run_create = RunCreate(
+                name=run_name,
+                description="Test adhoc run",
+                start_time=start_time,
+                stop_time=stop_time,
+                tags=tags,
+                metadata={"test_key": "test_value", "number": 42.5, "flag": True},
+            )
+            created_run = await runs_api_async.create(
+                run_create, assets=assets, associate_new_data=False
+            )
+
+            try:
+                assert created_run.name == run_name
+                assert created_run.is_adhoc is True
+                assert created_run.asset_ids is not None
+                assert len(created_run.asset_ids) >= len(assets)
+                # Verify all requested assets are in the run's asset_ids
+                for asset in assets:
+                    assert asset.id_ in created_run.asset_ids
+                assert created_run.metadata is not None
+                assert created_run.metadata["test_key"] == "test_value"
+                assert created_run.metadata["number"] == 42.5
+                assert created_run.metadata["flag"] is True
+                assert set(created_run.tags) == {tag.name for tag in tags}
+            finally:
+                await runs_api_async.archive(created_run)
+
+        @pytest.mark.asyncio
+        async def test_create_adhoc_run_missing_assets(self, runs_api_async):
+            """Test creating an adhoc run with missing assets."""
+            run_name = f"test_adhoc_run_missing_assets_{datetime.now(timezone.utc).isoformat()}"
+            run_create = RunCreate(
+                name=run_name,
+                start_time=datetime.now(timezone.utc),
+                stop_time=datetime.now(timezone.utc) + timedelta(seconds=11),
+            )
+            with pytest.raises(
+                AioRpcError,
+                match='invalid argument: invalid input syntax for type uuid: "asset-name-not-id"',
+            ):
+                await runs_api_async.create(
+                    run_create, assets=["asset-name-not-id"], associate_new_data=False
+                )
 
 
 class TestRunsAPISync:

@@ -469,6 +469,7 @@ class ChannelsAPI:
         modified_after: datetime | None = None,
         modified_before: datetime | None = None,
         asset: Asset | str | None = None,
+        assets: list[str | Asset] | None = None,
         run: Run | str | None = None,
         description_contains: str | None = None,
         include_archived: bool | None = None,
@@ -484,11 +485,12 @@ class ChannelsAPI:
             name_contains: Partial name of the channel.
             name_regex: Regular expression to filter channels by name.
             channel_ids: Filter to channels with any of these IDs.
-            created_after: Filter channels created after this datetime.
-            created_before: Filter channels created before this datetime.
+            created_after: Filter channels created after this datetime. Note: This is related to the channel creation time, not the timestamp of the underlying data.
+            created_before: Filter channels created before this datetime. Note: This is related to the channel creation time, not the timestamp of the underlying data.
             modified_after: Filter channels modified after this datetime.
             modified_before: Filter channels modified before this datetime.
             asset: Filter channels associated with this Asset or asset ID.
+            assets: Filter channels associated with these Assets or asset IDs.
             run: Filter channels associated with this Run or run ID.
             description_contains: Partial description of the channel.
             include_archived: If True, include archived channels in results.
@@ -894,25 +896,26 @@ class RunsAPI:
         """
         ...
 
-    def create(self, create: RunCreate | dict) -> Run:
+    def create(
+        self,
+        create: RunCreate | dict,
+        assets: list[str | Asset] | None = None,
+        associate_new_data: bool = False,
+    ) -> Run:
         """Create a new run.
+
+        Note on assets: You do not need to provide asset info when creating a run.
+        If you pass a Run to future ingestion configs associated with assets, the association will happen automatically then.
+        However, if you do pass assets and set associate_new_data=True, future ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run. This may be useful if you want to capture a time range for a specific asset or won't know about this Run when ingesting to that asset.
+        If the data has already been ingested, leave associate_new_data=False.
 
         Args:
             create: The Run definition to create.
+            assets: List of assets to associate with the run. Note: if you are associating new data, you must provide assets/asset names.
+            associate_new_data: If True, future ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run.
 
         Returns:
             The created Run.
-        """
-        ...
-
-    def create_automatic_association_for_assets(
-        self, run: str | Run, *, asset_names: list[str]
-    ) -> None:
-        """Associate assets with a run for automatic data ingestion.
-
-        Args:
-            run: The Run or run ID.
-            asset_names: List of asset names to associate.
         """
         ...
 
