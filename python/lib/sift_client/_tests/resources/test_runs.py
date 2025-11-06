@@ -537,7 +537,7 @@ class TestRunsAPIAsync:
 
                 # Associate assets with the run
                 created_run = await runs_api_async.create(
-                    run_create, asset_names=[asset.name for asset in assets]
+                    run_create, assets=assets, associate_new_data=True
                 )
 
                 for asset in assets:
@@ -580,7 +580,7 @@ class TestRunsAPIAsync:
                 metadata={"test_key": "test_value", "number": 42.5, "flag": True},
             )
             created_run = await runs_api_async.create(
-                run_create, asset_ids=[asset._id_or_error for asset in assets], data_exists=True
+                run_create, assets=assets, associate_new_data=False
             )
 
             try:
@@ -605,9 +605,16 @@ class TestRunsAPIAsync:
             run_name = f"test_adhoc_run_missing_assets_{datetime.now(timezone.utc).isoformat()}"
             run_create = RunCreate(
                 name=run_name,
+                start_time=datetime.now(timezone.utc),
+                stop_time=datetime.now(timezone.utc) + timedelta(seconds=11),
             )
-            with pytest.raises(AioRpcError, match="asset_ids: value must contain at least 1 item"):
-                await runs_api_async.create(run_create, asset_ids=[], data_exists=True)
+            with pytest.raises(
+                AioRpcError,
+                match='invalid argument: invalid input syntax for type uuid: "asset-name-not-id"',
+            ):
+                await runs_api_async.create(
+                    run_create, assets=["asset-name-not-id"], associate_new_data=False
+                )
 
 
 class TestRunsAPISync:
