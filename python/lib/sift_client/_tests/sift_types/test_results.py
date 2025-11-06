@@ -225,7 +225,7 @@ class TestResultsTest:
             "sift_client.sift_types.test_report.RemoteFilesLowLevelClient"
         ) as mock_low_level_client:
             mock_low_level_client_instance = AsyncMock()
-            mock_low_level_instance.list_all_remote_files.return_value = mock_remote_files
+            mock_low_level_client_instance.list_all_remote_files.return_value = mock_remote_files
             mock_low_level_client.return_value = mock_low_level_client_instance
 
             # Call remote_files property
