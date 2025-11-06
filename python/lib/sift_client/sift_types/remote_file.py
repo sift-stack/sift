@@ -104,7 +104,10 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
             return self.client.assets.get(asset_id=self.entity_id)
         elif self.entity_type == RemoteFileEntityType.TEST_REPORT:
             return self.client.test_reports.get(test_report_id=self.entity_id)
-        elif self.entity_type in (RemoteFileEntityType.ANNOTATION, RemoteFileEntityType.ANNOTATION_LOG):
+        elif self.entity_type in (
+            RemoteFileEntityType.ANNOTATION,
+            RemoteFileEntityType.ANNOTATION_LOG,
+        ):
             raise NotImplementedError(
                 f"Entity type {self.entity_type} is not yet supported for entity access"
             )
@@ -115,7 +118,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         """Delete the remote file."""
         self.client.remote_files.delete(remote_file=self)
         return self
-    
+
     def update(self, update: RemoteFileUpdate | dict) -> RemoteFile:
         """Update the remote file."""
         updated_remote_file = self.client.remote_files.update(remote_file=self, update=update)
@@ -130,19 +133,20 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         """Download the remote file to a local path."""
         # Get the download URL
         download_url = self.download_url()
-        
+
         # Convert output_path to Path object for easier handling
         output_path = Path(output_path)
-        
+
         # Ensure the parent directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Download the file content
         response = requests.get(download_url)
         response.raise_for_status()
-        
+
         # Write the content to the output file
         output_path.write_bytes(response.content)
+
 
 class RemoteFileUpdate(ModelUpdate[RemoteFileProto]):
     """Model of the RemoteFile fields that can be updated."""
