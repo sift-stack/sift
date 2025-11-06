@@ -150,6 +150,13 @@ class Run(BaseType[RunProto, "Run"]):
         low_level_client = RemoteFilesLowLevelClient(self.client.grpc_client)
         return await low_level_client.get_remote_file(file_id)
 
+    def stop(self) -> Run:
+        """Stop the run."""
+        self.client.runs.stop(run=self)
+        updated_run = self.client.runs.get(run_id=self.id_)
+        self._update(updated_run)
+        return self
+
 
 class RunBase(ModelCreateUpdateBase):
     """Base class for Run create and update models with shared fields and validation."""
