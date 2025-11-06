@@ -1,7 +1,7 @@
 # Sift Python
 [![pypi](https://img.shields.io/pypi/v/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
 [![pypi](https://img.shields.io/pypi/pyversions/sift-stack-py)](https://pypi.org/project/sift-stack-py/)
-[![docs](https://readthedocs.org/projects/pip/badge/)](https://docs.siftstack.com/sift_py/sift_py.html)
+[![docs](https://readthedocs.org/projects/pip/badge/)](https://sift-stack.github.io/sift/python/latest/)
 
 This library offers a Python API on top of Sift's protocol buffers to ergonomically interface with the Sift gRPC API.
 
@@ -15,36 +15,9 @@ $ pip install sift-stack-py
 
 ## Documentation
 
-Documentation can be found at [this link](https://docs.siftstack.com/sift_py/sift_py.html), however, if you need
-to build the documentation for offline use, read on.
+Documentation can be found at [this link](https://sift-stack.github.io/sift/python/latest/).
 
-### Offline documentation
+### Offline Documentation
 
-To build the documentation locally:
-
-Clone the main `sift` repository:
-
-```
-$ git clone https://github.com/sift-stack/sift.git
-```
-
-Set your working directory to this project sub-directory:
-
-```
-$ cd python
-```
-
-Install [pdoc](https://pypi.org/project/pdoc/):
-
-```
-$ pip install pdoc
-```
-
-Run `pdoc`.
-
-```
-$ pdoc lib/sift_py
-```
-
-You may optionally set the host and port used by the `pdoc` web-server using the `-p` and `-h` options.
-See `pdoc --help` for more info.
+If you require offline documentation, different versions of the documentation can be found on the [gh-pages
+branch](https://github.com/sift-stack/sift/tree/gh-pages/python). 

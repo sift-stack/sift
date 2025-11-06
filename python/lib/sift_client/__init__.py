@@ -29,7 +29,7 @@ from sift_client import SiftClient
 # Initialize with credentials
 client = SiftClient(
     api_key="your-api-key",
-    grpc_url="grpc.siftstack.com:443",
+    grpc_url="https://grpc-api.siftstack.com",
     rest_url="https://api.siftstack.com"
 )
 ```
@@ -113,7 +113,7 @@ from sift_client.transport import SiftConnectionConfig, GrpcConfig, RestConfig
 
 config = SiftConnectionConfig(
     grpc_config=GrpcConfig(
-        uri="grpc.siftstack.com:443",
+        uri="https://grpc-api.siftstack.com",
         api_key="your-api-key",
         use_ssl=True
     ),
