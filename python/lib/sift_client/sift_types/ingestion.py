@@ -10,7 +10,7 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigProto,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
-    FlowConfig,
+    FlowConfig as FlowConfigProto,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         ChannelDataTypePy,
         FlowConfigPy,
         IngestWithConfigDataChannelValuePy,
+        IngestionConfigFormPy,
     )
 
     from sift_client.client import SiftClient
@@ -150,10 +151,10 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
         )
 
 
-class Flow(BaseType[FlowConfig, "Flow"]):
+class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
     """Model representing a data flow for ingestion.
 
-    A Flow represents a collection of channels that are ingested together.
+    A FlowConfig represents a collection of channels that are ingested together.
     """
 
     model_config = ConfigDict(frozen=False)
@@ -163,7 +164,7 @@ class Flow(BaseType[FlowConfig, "Flow"]):
     run_id: str | None = None
 
     @classmethod
-    def _from_proto(cls, proto: FlowConfig, sift_client: SiftClient | None = None) -> Flow:
+    def _from_proto(cls, proto: FlowConfigProto, sift_client: SiftClient | None = None) -> FlowConfig:
         return cls(
             proto=proto,
             name=proto.name,
@@ -171,8 +172,8 @@ class Flow(BaseType[FlowConfig, "Flow"]):
             _client=sift_client,
         )
 
-    def _to_proto(self) -> FlowConfig:
-        return FlowConfig(
+    def _to_proto(self) -> FlowConfigProto:
+        return FlowConfigProto(
             name=self.name,
             channels=[channel._to_config_proto() for channel in self.channels],
         )
@@ -182,7 +183,7 @@ class Flow(BaseType[FlowConfig, "Flow"]):
 
         return FlowConfigPy(
             name=self.name,
-            channels=[_channel_to_rust_config(channel) for channel in self.channels],
+            channels=[_channel_config_to_rust_config(channel) for channel in self.channels],
         )
 
     def add_channel(self, channel: ChannelConfig):
@@ -198,27 +199,10 @@ class Flow(BaseType[FlowConfig, "Flow"]):
             raise ValueError("Cannot add a channel to a flow after creation")
         self.channels.append(channel)
 
-    def ingest(self, *, timestamp: datetime, channel_values: dict[str, Any]):
-        """Ingest data for this Flow.
-
-        Args:
-            timestamp: The timestamp of the data.
-            channel_values: Dictionary mapping Channel names to their values.
-
-        Raises:
-            ValueError: If the ingestion config ID is not set.
-        """
-        if self.ingestion_config_id is None:
-            raise ValueError("Ingestion config ID is not set.")
-        self.client.async_.ingestion.ingest(
-            flow=self,
-            timestamp=timestamp,
-            channel_values=channel_values,
-        )
 
 
 # Converter functions.
-def _channel_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
+def _channel_config_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
     from sift_stream_bindings import (
         ChannelBitFieldElementPy,
         ChannelConfigPy,

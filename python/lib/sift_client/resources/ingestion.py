@@ -9,10 +9,11 @@ from sift_client._internal.low_level_wrappers.ingestion import (
 )
 from sift_client.resources._base import ResourceBase
 from sift_client._internal.util.sift_stream import to_runFormPy
-from sift_client.sift_types.ingestion import IngestionConfig
+from sift_client.sift_types.ingestion import IngestionConfig, FlowConfig
 from sift_client.sift_types.run import Run, RunCreate, Tag
 from sift_stream_bindings import (
     DurationPy,
+    FlowPy,
     IngestionConfigFormPy,
     MetadataPy,
     RecoveryStrategyPy,
@@ -21,6 +22,7 @@ from sift_stream_bindings import (
     MetadataValuePy,
     IngestWithConfigDataStreamRequestPy,
     SiftStreamMetricsSnapshotPy,
+    RunFormPy,
 )
 
 if TYPE_CHECKING:
@@ -147,7 +149,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         sift_client: SiftClient,
         *,
         ingestion_config: IngestionConfigFormPy | None = None,
-        run: RunCreate | dict | str | Run | None = None,
+        run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
         recovery_strategy: RecoveryStrategyPy | None = None,
@@ -178,40 +180,93 @@ class IngestionConfigStreamingClient(ResourceBase):
         api_key = grpc_config.api_key
         grpc_uri = grpc_config.uri
 
+        # Convert the run variants to a run or run_id
+        run_form: RunFormPy | None = None
+        run_id: str | None = None
+        if isinstance(run, RunFormPy):
+            run_form = run
+        elif isinstance(run, str):
+            run_id = run
+        elif isinstance(run, dict):
+            run_create = RunCreate.model_validate(run)
+            run_form = to_runFormPy(run_create)
+        elif isinstance(run, Run):
+            run_id = run._id_or_error
+        elif isinstance(run, RunCreate):
+            run_form = to_runFormPy(run)
+
+        # Convert asset_tags to list of strings
+        asset_tags_list: list[str] | None = None
+        if asset_tags is not None:
+            asset_tags_list = [
+                tag.name if isinstance(tag, Tag) else tag for tag in asset_tags
+            ]
+
+         # Convert asset_metadata dict to list of MetadataPy
+        asset_metadata_list: list[MetadataPy] | None = None
+        if asset_metadata is not None:
+            from sift_stream_bindings import MetadataPy
+
+            asset_metadata_list = [
+                MetadataPy(key=key, value=MetadataValuePy(value)) for key, value in asset_metadata.items()
+            ]
+
+        # Convert checkpoint_interval_seconds to DurationPy
+        checkpoint_interval: DurationPy | None = None
+        if checkpoint_interval_seconds is not None:
+            checkpoint_interval = DurationPy(secs=checkpoint_interval_seconds, nanos=0)
+
         low_level_client = await IngestionConfigStreamingLowLevelClient.create_sift_stream_instance(
             api_key=api_key,
             grpc_uri=grpc_uri,
             ingestion_config=ingestion_config,
-            run=run,
-            asset_tags=asset_tags,
-            asset_metadata=asset_metadata,
+            run_form=run_form,
+            run_id=run_id,
+            asset_tags=asset_tags_list,
+            asset_metadata=asset_metadata_list,
             recovery_strategy=recovery_strategy,
-            checkpoint_interval_seconds=checkpoint_interval_seconds,
+            checkpoint_interval=checkpoint_interval,
             enable_tls=enable_tls,
         )
 
         return cls(sift_client, low_level_client)
 
-    async def send(self, flow: Flow):
-        pass
+    async def send(self, flow: FlowPy):
+        flow_py = flow._to_rust_config()
+        await self._low_level_client.send(flow_py)
 
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
-        pass
+        await self._low_level_client.send_requests(requests)
 
-    async def add_new_flows(self, flow_configs: list[FlowConfigPy]):
-        pass
+    async def add_new_flows(self, flow_configs: list[FlowConfig]):
+        flow_configs_py = [flow_config._to_rust_config() for flow_config in flow_configs]
+        await self._low_level_client.add_new_flows(flow_configs_py)
 
-    async def attach_run(self, run: RunFormPy):
-        pass
+    async def attach_run(self, run: RunCreate | dict | str | Run | RunFormPy):
+        if isinstance(run, RunFormPy):
+            run_selector_py = RunSelectorPy.by_form(run)
+        elif isinstance(run, dict):
+            run_create = RunCreate.model_validate(run)
+            run_form_py = to_runFormPy(run_create)
+            run_selector_py = RunSelectorPy.by_form(run_form_py)
+        elif isinstance(run, Run):
+            run_selector_py = RunSelectorPy.by_id(run.id_)
+        elif isinstance(run, RunCreate):
+            run_form_py = to_runFormPy(run)
+            run_selector_py = RunSelectorPy.by_form(run_form_py)
+        elif isinstance(run, str):
+            run_selector_py = RunSelectorPy.by_id(run)
+
+        await self._low_level_client.attach_run(run_selector_py)
 
     def detach_run(self):
-        pass
+        self._low_level_client.detach_run()
 
     def get_run_id(self) -> str | None:
-        pass
+        return self._low_level_client.get_run_id()
 
     async def finish(self):
-        pass
+        await self._low_level_client.finish()
 
     def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy:
-        pass
+        return self._low_level_client.get_metrics_snapshot()

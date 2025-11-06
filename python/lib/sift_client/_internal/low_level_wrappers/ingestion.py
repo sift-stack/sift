@@ -508,48 +508,14 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         api_key: str,
         grpc_uri: str,
         ingestion_config: IngestionConfigFormPy | None = None,
-        run: RunCreate | dict | str | Run | None = None,
-        asset_tags: list[str] | list[Tag] | None = None,
-        asset_metadata: dict[str, str | float | bool] | None = None,
+        run_form: RunFormPy | None = None,
+        run_id: str | None = None,
+        asset_tags: list[str] | None = None,
+        asset_metadata: list[MetadataPy] | None = None,
         recovery_strategy: RecoveryStrategyPy | None = None,
-        checkpoint_interval_seconds: int | None = None,
+        checkpoint_interval: DurationPy | None = None,
         enable_tls: bool = True,
     ) -> IngestionConfigStreamingLowLevelClient:
-        # Convert the various run variants to a run or run_id
-        run_form: RunFormPy | None = None
-        run_id: str | None = None
-
-        if isinstance(run, dict):
-            run_create = RunCreate.model_validate(run)
-            run_form = to_runFormPy(run_create)
-        elif isinstance(run, Run):
-            run_id = run.id_
-        elif isinstance(run, RunCreate):
-            run_form = to_runFormPy(run)
-        elif isinstance(run, str):
-            run_id = run
-
-        # Convert checkpoint_interval_seconds to DurationPy
-        checkpoint_interval: DurationPy | None = None
-        if checkpoint_interval_seconds is not None:
-            checkpoint_interval = DurationPy(secs=checkpoint_interval_seconds, nanos=0)
-
-        # Convert asset_tags to list of strings
-        asset_tags_list: list[str] | None = None
-        if asset_tags is not None:
-            asset_tags_list = [
-                tag.name if isinstance(tag, Tag) else tag for tag in asset_tags
-            ]
-
-        # Convert asset_metadata dict to list of MetadataPy
-        asset_metadata_list: list[MetadataPy] | None = None
-        if asset_metadata is not None:
-            from sift_stream_bindings import MetadataPy
-
-            asset_metadata_list = [
-                MetadataPy(key=key, value=MetadataValuePy(value)) for key, value in asset_metadata.items()
-            ]
-
         builder = SiftStreamBuilderPy(
             uri = grpc_uri,
             apikey = api_key,
@@ -559,8 +525,8 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         builder.ingestion_config = ingestion_config
         builder.recovery_strategy = recovery_strategy
         builder.checkpoint_interval = checkpoint_interval
-        builder.asset_tags = asset_tags_list
-        builder.asset_metadata = asset_metadata_list
+        builder.asset_tags = asset_tags
+        builder.asset_metadata = asset_metadata
         builder.run = run_form
         builder.run_id = run_id
 
