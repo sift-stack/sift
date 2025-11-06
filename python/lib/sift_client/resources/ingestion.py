@@ -1,32 +1,31 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from sift_stream_bindings import (
+    DurationPy,
+    FlowPy,
+    IngestionConfigFormPy,
+    IngestWithConfigDataStreamRequestPy,
+    MetadataPy,
+    MetadataValuePy,
+    RecoveryStrategyPy,
+    RunFormPy,
+    RunSelectorPy,
+    SiftStreamMetricsSnapshotPy,
+)
 
 from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionConfigStreamingLowLevelClient,
     IngestionLowLevelClient,
 )
-from sift_client.resources._base import ResourceBase
 from sift_client._internal.util.sift_stream import to_runFormPy
-from sift_client.sift_types.ingestion import IngestionConfig, FlowConfig
+from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.ingestion import FlowConfig, IngestionConfig
 from sift_client.sift_types.run import Run, RunCreate, Tag
-from sift_stream_bindings import (
-    DurationPy,
-    FlowPy,
-    IngestionConfigFormPy,
-    MetadataPy,
-    RecoveryStrategyPy,
-    RetryPolicyPy,
-    RunSelectorPy,
-    MetadataValuePy,
-    IngestWithConfigDataStreamRequestPy,
-    SiftStreamMetricsSnapshotPy,
-    RunFormPy,
-)
 
 if TYPE_CHECKING:
-    from datetime import datetime
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.ingestion import Flow
@@ -134,9 +133,11 @@ class IngestionAPIAsync(ResourceBase):
 class IngestionConfigStreamingClient(ResourceBase):
     """A client for streaming ingestion with an ingestion config.
 
-    This client provides a high-level interface for streaming ingestion using
-    an ingestion config. It handles conversion of user-friendly types to the
-    low-level Rust bindings.
+    This client provides a high-level interface for streaming data to Sift using
+    an ingestion config. Under the hood, this client uses the Rust powered SiftStream library to provide
+    a high-performance, low-latency, and reliable streaming interface to Sift.
+
+    This client should be initialized using the create classmethod, and not directly. Once streaming has ended, the client should be shutdown using the finish method.
     """
     def __init__(self, sift_client: SiftClient, low_level_client: IngestionConfigStreamingLowLevelClient):
         """Initialize an IngestionConfigStreamingClient. Users should not initialize this class directly, but rather use the create classmethod."""
@@ -160,8 +161,7 @@ class IngestionConfigStreamingClient(ResourceBase):
 
         Args:
             sift_client: The Sift client to use.
-            ingestion_config: The ingestion config (IngestionConfig or IngestionConfigFormPy).
-                If IngestionConfig is provided, you must also provide flows separately.
+            ingestion_config: The ingestion config to use for streaming.
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
@@ -232,17 +232,68 @@ class IngestionConfigStreamingClient(ResourceBase):
         return cls(sift_client, low_level_client)
 
     async def send(self, flow: FlowPy):
+        """Send telemetry to Sift in the form of a Flow.
+
+        This is the entry-point to send actual telemetry to Sift. If a message is sent that
+        doesn't match any flows that the stream knows about locally, the message will still be
+        transmitted and a warning log emitted. If you are certain that the message corresponds
+        to an unregistered flow then `add_new_flows` should be called first to register the flow
+        before calling `send`; otherwise you should monitor the Sift DLQ either in the Sift UI
+        or Sift API to ensure successful transmission.
+
+        When sending messages, if backups are enabled, first the message is sent to the backup system. This system is
+        used to backup data to disk until the data is confirmed received by Sift. If streaming
+        encounters errors, the backed up data will be re-ingested ensuring all data is received
+        by Sift.
+
+        If the backup system has fallen behind and the backup queue/channel is full, it will still
+        proceed to sending the message to Sift. This ensures data is sent to Sift even if the
+        backup system is lagging.
+
+        Args:
+            flow: The flow to send to Sift.
+        """
         flow_py = flow._to_rust_config()
         await self._low_level_client.send(flow_py)
 
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
+        """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.
+
+        This method offers a way to send data that matches the raw gRPC service interface. You are
+        expected to handle channel value ordering as well as empty values correctly.
+
+        Important:
+            Most users should prefer to use `send`. This method primarily exists to make it easier
+            for existing integrations to utilize sift-stream.
+
+        Args:
+            requests: List of ingestion requests to send to Sift.
+        """
         await self._low_level_client.send_requests(requests)
 
     async def add_new_flows(self, flow_configs: list[FlowConfig]):
+        """Modify the existing ingestion config by adding new flows that weren't accounted for during initialization.
+
+        This allows you to dynamically add new flow configurations to the ingestion config after
+        the stream has been initialized. The new flows will be registered with Sift and can then
+        be used in subsequent `send` calls.
+
+        Args:
+            flow_configs: List of flow configurations to add to the ingestion config.
+        """
         flow_configs_py = [flow_config._to_rust_config() for flow_config in flow_configs]
         await self._low_level_client.add_new_flows(flow_configs_py)
 
     async def attach_run(self, run: RunCreate | dict | str | Run | RunFormPy):
+        """Attach a run to the stream.
+
+        Any data provided through `send` after this function returns will be associated with
+        the run. The run can be specified as a Run object, RunCreate object, dict, run ID string,
+        or RunFormPy object.
+
+        Args:
+            run: The run to attach. Can be a Run, RunCreate, dict, run ID string, or RunFormPy.
+        """
         if isinstance(run, RunFormPy):
             run_selector_py = RunSelectorPy.by_form(run)
         elif isinstance(run, dict):
@@ -260,13 +311,41 @@ class IngestionConfigStreamingClient(ResourceBase):
         await self._low_level_client.attach_run(run_selector_py)
 
     def detach_run(self):
+        """Detach the run, if any, associated with the stream.
+
+        Any data provided through `send` after this function is called will not be associated
+        with a run.
+        """
         self._low_level_client.detach_run()
 
     def get_run_id(self) -> str | None:
+        """Retrieve the ID of the attached run, if one exists.
+
+        Returns:
+            The run ID if a run is attached, None otherwise.
+        """
         return self._low_level_client.get_run_id()
 
     async def finish(self):
+        """Conclude the stream and return when Sift has sent its final response.
+
+        It is important that this method be called in order to obtain the final checkpoint
+        acknowledgement from Sift, otherwise some tail-end data may fail to send. This method
+        will gracefully shut down the streaming system and ensure all data has been properly
+        sent to Sift.
+        """
         await self._low_level_client.finish()
 
     def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy:
+        """Retrieve a snapshot of the current metrics for this stream.
+
+        NOTE: The returned metrics snapshot is currently an unstable feature and may change at any time.
+
+        Metrics are recorded related to the performance and operational status of the stream.
+        Snapshots are taken at any time this method is called. Metrics are internally updated
+        atomically, and calls to get metric snapshots are non-blocking to stream operation.
+
+        Returns:
+            A snapshot of the current stream metrics.
+        """
         return self._low_level_client.get_metrics_snapshot()

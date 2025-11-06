@@ -27,45 +27,41 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )
+from sift_stream_bindings import (
+    DurationPy,
+    FlowConfigPy,
+    FlowPy,
+    IngestionConfigFormPy,
+    MetadataPy,
+    RecoveryStrategyPy,
+    RunSelectorPy,
+    SiftStreamBuilderPy,
+    SiftStreamMetricsSnapshotPy,
+)
 
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
 from sift_client.sift_types.ingestion import Flow, IngestionConfig, _to_rust_value
-from sift_client._internal.util.sift_stream import to_runFormPy
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.util import cel_utils as cel
-from sift_stream_bindings import (
-    DurationPy,
-    IngestionConfigFormPy,
-    MetadataPy,
-    RecoveryStrategyPy,
-    RetryPolicyPy,
-    RunSelectorPy,
-    MetadataValuePy,
-    SiftStreamBuilderPy,
-    FlowPy,
-    FlowConfigPy,
-    SiftStreamMetricsSnapshotPy,
-)
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from sift_client.sift_types.run import RunCreate, Run, Tag
-
     from sift_stream_bindings import (
+        DurationPy,
         IngestionConfigFormPy,
         IngestWithConfigDataStreamRequestPy,
-        TimeValuePy,
-        SiftStreamPy,
-        RecoveryStrategyPy,
-        DurationPy,
-        RunFormPy,
         MetadataPy,
+        RecoveryStrategyPy,
+        RunFormPy,
+        SiftStreamPy,
+        TimeValuePy,
     )
+
 
 
 def to_rust_py_timestamp(time: datetime) -> TimeValuePy:

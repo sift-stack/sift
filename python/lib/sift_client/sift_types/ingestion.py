@@ -20,14 +20,12 @@ from sift_client.sift_types._base import BaseType
 from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 
 if TYPE_CHECKING:
-    from datetime import datetime
 
     from sift_stream_bindings import (
         ChannelConfigPy,
         ChannelDataTypePy,
         FlowConfigPy,
         IngestWithConfigDataChannelValuePy,
-        IngestionConfigFormPy,
     )
 
     from sift_client.client import SiftClient

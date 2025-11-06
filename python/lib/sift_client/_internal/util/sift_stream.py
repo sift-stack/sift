@@ -1,5 +1,7 @@
-from sift_client.sift_types.run import Run, RunCreate, Tag
-from sift_stream_bindings import MetadataPy, MetadataValuePy, RunFormPy, RunSelectorPy
+from sift_stream_bindings import MetadataPy, MetadataValuePy, RunFormPy
+
+from sift_client.sift_types.run import RunCreate, Tag
+
 
 def to_runFormPy(create: RunCreate) -> RunFormPy:
 
