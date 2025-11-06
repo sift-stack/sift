@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
 from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING
+
+import requests
 
 from sift.remote_files.v1.remote_files_pb2 import EntityType
 from sift.remote_files.v1.remote_files_pb2 import RemoteFile as RemoteFileProto
@@ -13,6 +16,7 @@ if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.run import Run
+    from sift_client.sift_types.test_report import TestReport
 
 
 class RemoteFileEntityType(Enum):
@@ -92,17 +96,53 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         )
 
     @property
-    def entity(self) -> Run | Asset:
+    def entity(self) -> Run | Asset | TestReport:
         """Get the entity that this remote file is attached to."""
-        if self.entity_type == RemoteFileEntityType.RUNS:
+        if self.entity_type == RemoteFileEntityType.RUN:
             return self.client.runs.get(run_id=self.entity_id)
-        elif self.entity_type == RemoteFileEntityType.ASSETS:
+        elif self.entity_type == RemoteFileEntityType.ASSET:
             return self.client.assets.get(asset_id=self.entity_id)
-        else:
-            raise Exception(
-                f"Unknown or not implemented remote file entity type: {self.entity_type}"
+        elif self.entity_type == RemoteFileEntityType.TEST_REPORT:
+            return self.client.test_reports.get(test_report_id=self.entity_id)
+        elif self.entity_type in (RemoteFileEntityType.ANNOTATION, RemoteFileEntityType.ANNOTATION_LOG):
+            raise NotImplementedError(
+                f"Entity type {self.entity_type} is not yet supported for entity access"
             )
+        else:
+            raise Exception(f"Unknown remote file entity type: {self.entity_type}")
 
+    def delete(self) -> None:
+        """Delete the remote file."""
+        self.client.remote_files.delete(remote_file=self)
+        return self
+    
+    def update(self, update: RemoteFileUpdate | dict) -> RemoteFile:
+        """Update the remote file."""
+        updated_remote_file = self.client.remote_files.update(remote_file=self, update=update)
+        self._update(updated_remote_file)
+        return self
+
+    def download_url(self) -> str:
+        """Get the download URL for the remote file."""
+        return self.client.remote_files.get_download_url(remote_file=self)
+
+    def download(self, output_path: str | Path) -> None:
+        """Download the remote file to a local path."""
+        # Get the download URL
+        download_url = self.download_url()
+        
+        # Convert output_path to Path object for easier handling
+        output_path = Path(output_path)
+        
+        # Ensure the parent directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Download the file content
+        response = requests.get(download_url)
+        response.raise_for_status()
+        
+        # Write the content to the output file
+        output_path.write_bytes(response.content)
 
 class RemoteFileUpdate(ModelUpdate[RemoteFileProto]):
     """Model of the RemoteFile fields that can be updated."""

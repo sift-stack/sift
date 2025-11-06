@@ -163,3 +163,63 @@ class TestAsset:
             mock_update.assert_called_once_with(updated_asset)
             # Verify it returns self
             assert result is mock_asset
+
+    @pytest.mark.asyncio
+    async def test_remote_files_property_fetches_files(self, mock_asset, mock_client):
+        """Test that remote_files property fetches files from low-level client."""
+        from unittest.mock import AsyncMock, patch
+        
+        # Create mock remote files
+        mock_remote_file = MagicMock()
+        mock_remote_file.entity_id = mock_asset.id_
+        mock_remote_files = [mock_remote_file]
+        
+        # Mock the low-level client
+        with patch('sift_client.sift_types.asset.RemoteFilesLowLevelClient') as MockLowLevelClient:
+            mock_low_level_instance = AsyncMock()
+            mock_low_level_instance.list_all_remote_files.return_value = mock_remote_files
+            MockLowLevelClient.return_value = mock_low_level_instance
+            
+            # Call remote_files property
+            result = await mock_asset.remote_files()
+            
+            # Verify low-level client was instantiated with grpc_client
+            MockLowLevelClient.assert_called_once_with(grpc_client=mock_client.grpc_client)
+            
+            # Verify list_all_remote_files was called with correct filter
+            mock_low_level_instance.list_all_remote_files.assert_called_once()
+            call_kwargs = mock_low_level_instance.list_all_remote_files.call_args.kwargs
+            assert 'query_filter' in call_kwargs
+            assert mock_asset.id_ in call_kwargs['query_filter']
+            
+            # Verify result
+            assert result == mock_remote_files
+
+    @pytest.mark.asyncio
+    async def test_remote_file_fetches_single_file(self, mock_asset, mock_client):
+        """Test that remote_file fetches a single file by ID from low-level client."""
+        from unittest.mock import AsyncMock, patch
+        
+        # Create mock remote file
+        file_id = "remote_file_123"
+        mock_remote_file = MagicMock()
+        mock_remote_file.id_ = file_id
+        mock_remote_file.entity_id = mock_asset.id_
+        
+        # Mock the low-level client
+        with patch('sift_client.sift_types.asset.RemoteFilesLowLevelClient') as MockLowLevelClient:
+            mock_low_level_instance = AsyncMock()
+            mock_low_level_instance.get_remote_file.return_value = mock_remote_file
+            MockLowLevelClient.return_value = mock_low_level_instance
+            
+            # Call remote_file method
+            result = await mock_asset.remote_file(file_id)
+            
+            # Verify low-level client was instantiated with grpc_client
+            MockLowLevelClient.assert_called_once_with(grpc_client=mock_client.grpc_client)
+            
+            # Verify get_remote_file was called with correct file_id
+            mock_low_level_instance.get_remote_file.assert_called_once_with(file_id)
+            
+            # Verify result
+            assert result == mock_remote_file
