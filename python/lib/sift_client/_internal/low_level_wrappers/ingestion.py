@@ -37,6 +37,9 @@ from sift_stream_bindings import (
     RunSelectorPy,
     SiftStreamBuilderPy,
     SiftStreamMetricsSnapshotPy,
+    init_tracing,
+    init_tracing_with_file,
+    is_tracing_initialized,
 )
 
 from sift_client._internal.low_level_wrappers.base import (
@@ -45,6 +48,7 @@ from sift_client._internal.low_level_wrappers.base import (
 from sift_client.sift_types.ingestion import Flow, IngestionConfig, _to_rust_value
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.util import cel_utils as cel
+from sift_client.resources.ingestion import TracingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -511,7 +515,24 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         recovery_strategy: RecoveryStrategyPy | None = None,
         checkpoint_interval: DurationPy | None = None,
         enable_tls: bool = True,
+        tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingLowLevelClient:
+        if not is_tracing_initialized():
+            if tracing_config is None:
+                tracing_config = TracingConfig.console_only()
+
+            if tracing_config.log_dir is not None:
+                # Use file logging
+                init_tracing_with_file(
+                    tracing_config.level,
+                    tracing_config.log_dir,
+                    tracing_config.filename_prefix or "sift_stream_bindings.log",
+                    tracing_config.max_log_files or 7,
+                )
+            else:
+                # Use stdout/stderr only
+                init_tracing(tracing_config.level)
+
         builder = SiftStreamBuilderPy(
             uri = grpc_uri,
             apikey = api_key,

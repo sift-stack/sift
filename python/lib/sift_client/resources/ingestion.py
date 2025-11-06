@@ -32,6 +32,90 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class TracingConfig:
+    """Configuration for tracing in SiftStream.
+
+    This class provides factory methods to create tracing configurations for use
+    with IngestionConfigStreamingClient. Tracing will only be initialized once per process.
+    """
+
+    def __init__(
+        self,
+        is_enabled: bool = True,
+        level: str = "info",
+        log_dir: str | None = None,
+        filename_prefix: str | None = None,
+        max_log_files: int | None = None,
+    ):
+        """Initialize a TracingConfig.
+
+        Args:
+            is_enabled: Whether tracing is enabled. Defaults to True.
+            level: Logging level as string - one of "trace", "debug", "info", "warn", "error".
+                Defaults to "info".
+            log_dir: Directory path for log files. Required if using file logging.
+                Defaults to "./logs" when using with_file.
+            filename_prefix: Prefix for log filenames. Required if using file logging.
+                Defaults to "sift_stream_bindings.log" when using with_file.
+            max_log_files: Maximum number of log files to keep. Required if using file logging.
+                Defaults to 7 when using with_file.
+        """
+        self.is_enabled = is_enabled
+        self.level = level
+        self.log_dir = log_dir
+        self.filename_prefix = filename_prefix
+        self.max_log_files = max_log_files
+
+    @classmethod
+    def disabled(cls) -> TracingConfig:
+        """Create a configuration that disables tracing.
+
+        Returns:
+            A TracingConfig with tracing disabled.
+        """
+        return cls(is_enabled=False)
+
+    @classmethod
+    def console_only(cls, level: str = "info") -> TracingConfig:
+        """Create a configuration that enables tracing to stdout/stderr only.
+
+        Args:
+            level: Logging level as string - one of "trace", "debug", "info", "warn", "error".
+                Defaults to "info".
+
+        Returns:
+            A TracingConfig with tracing enabled (outputs to stdout/stderr only).
+        """
+        return cls(level=level)
+
+    @classmethod
+    def with_file(
+        cls,
+        level: str = "info",
+        log_dir: str = "./logs",
+        filename_prefix: str = "sift_stream_bindings.log",
+        max_log_files: int = 7,
+    ) -> TracingConfig:
+        """Create a configuration that enables tracing to both stdout and rolling log files.
+
+        Args:
+            level: Logging level as string - one of "trace", "debug", "info", "warn", "error".
+                Defaults to "info".
+            log_dir: Directory path for log files. Defaults to "./logs".
+            filename_prefix: Prefix for log filenames. Defaults to "sift_stream_bindings.log".
+            max_log_files: Maximum number of log files to keep. Defaults to 7.
+
+        Returns:
+            A TracingConfig with tracing enabled for both stdout and file output.
+        """
+        return cls(
+            level=level,
+            log_dir=log_dir,
+            filename_prefix=filename_prefix,
+            max_log_files=max_log_files,
+        )
+
+
 class IngestionAPIAsync(ResourceBase):
     """High-level API for interacting with ingestion services.
 
@@ -62,6 +146,7 @@ class IngestionAPIAsync(ResourceBase):
         recovery_strategy: RecoveryStrategyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
+        tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingClient:
         """Create an IngestionConfigStreamingClient.
 
@@ -73,6 +158,10 @@ class IngestionAPIAsync(ResourceBase):
             recovery_strategy: The recovery strategy to use for ingestion.
             checkpoint_interval_seconds: The checkpoint interval in seconds.
             enable_tls: Whether to enable TLS for the connection.
+            tracing_config: Configuration for SiftStream tracing. Use TracingConfig.stdout_only()
+                to enable tracing to stdout only, or TracingConfig.stdout_with_file() to enable
+                tracing to both stdout and rolling log files. Defaults to None (tracing will be
+                initialized with default settings if not already initialized).
 
         Returns:
             An initialized IngestionConfigStreamingClient.
@@ -86,6 +175,7 @@ class IngestionAPIAsync(ResourceBase):
             recovery_strategy=recovery_strategy,
             checkpoint_interval_seconds=checkpoint_interval_seconds,
             enable_tls=enable_tls,
+            tracing_config=tracing_config,
         )
 
     async def create_ingestion_config(
@@ -155,6 +245,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         recovery_strategy: RecoveryStrategyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
+        tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingClient:
         """Create an IngestionConfigStreamingClient.
 
@@ -167,6 +258,10 @@ class IngestionConfigStreamingClient(ResourceBase):
             recovery_strategy: The recovery strategy to use for ingestion.
             checkpoint_interval_seconds: The checkpoint interval in seconds.
             enable_tls: Whether to enable TLS for the connection.
+            tracing_config: Configuration for SiftStream tracing. Use TracingConfig.stdout_only()
+                to enable tracing to stdout only, or TracingConfig.stdout_with_file() to enable
+                tracing to both stdout and rolling log files. Defaults to None (tracing will be
+                initialized with default settings if not already initialized).
 
         Returns:
             An initialized IngestionConfigStreamingClient.
@@ -226,6 +321,7 @@ class IngestionConfigStreamingClient(ResourceBase):
             recovery_strategy=recovery_strategy,
             checkpoint_interval=checkpoint_interval,
             enable_tls=enable_tls,
+            tracing_config=tracing_config,
         )
 
         return cls(sift_client, low_level_client)
