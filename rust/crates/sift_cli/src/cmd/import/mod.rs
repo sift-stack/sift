@@ -11,6 +11,7 @@ use sift_rs::{
 
 use crate::util::{job::JobServiceWrapper, progress::Spinner, tty::Output, user::get_user_id};
 
+pub mod backup;
 pub mod csv;
 pub mod parquet;
 mod utils;

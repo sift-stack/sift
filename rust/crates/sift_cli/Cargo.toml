@@ -24,8 +24,10 @@ indicatif = "0.18.0"
 parquet = "56.2.0"
 pbjson-types = { workspace = true }
 reqwest = "0.12.23"
+sift_pbfs = { workspace = true }
 sift_rs = { workspace = true }
 tokio = { version = "1.47.1", features = ["full", "net", "time"] }
+tokio-stream = "0.1.17"
 toml = "0.8.23"
 zip = "6.0.0"
 

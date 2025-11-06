@@ -73,6 +73,7 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                     run_future(cmd::import::parquet::flat_dataset::run(ctx, args))
                 }
             },
+            cli::ImportCmd::Backup(args) => run_future(cmd::import::backup::run(ctx, args)),
         },
         Cmd::Export(cmd) => match cmd {
             cli::ExportCmd::Run(args) => run_future(cmd::export::run(ctx, args)),
