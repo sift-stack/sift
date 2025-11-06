@@ -13,16 +13,16 @@ from sift.remote_files.v1.remote_files_pb2 import (
     UpdateRemoteFileRequest,
     UpdateRemoteFileResponse,
 )
+from sift.remote_files.v1.remote_files_pb2_grpc import RemoteFileServiceStub
 
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-from sift_client.sift_types.remote_file import RemoteFileUpdate
 from sift_client.transport import GrpcClient, WithGrpcClient
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.remote_file import RemoteFile, RemoteFileServiceStub
+    from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate
 
 
 class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -137,7 +137,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated RemoteFile.
         """
-        from sift_client.sift_types.remote_file import RemoteFile
+        from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate
 
         grpc_remote_file, update_mask = update.to_proto_with_mask()
         request = UpdateRemoteFileRequest(remote_file=grpc_remote_file, update_mask=update_mask)
