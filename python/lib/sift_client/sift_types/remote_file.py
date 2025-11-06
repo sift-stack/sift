@@ -128,12 +128,13 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
 
     def update(self, update: RemoteFileUpdate | dict) -> RemoteFile:
         """Update the remote file."""
+        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
+
         if isinstance(update, dict):
             update = RemoteFileUpdate.model_validate(update)
         if self.id_ is None:
             raise ValueError("Remote file ID is not set")
         update.resource_id = self.id_
-        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
 
         remote_file_client = RemoteFilesLowLevelClient(self.client.grpc_client)
         loop = self.client.get_asyncio_loop()
