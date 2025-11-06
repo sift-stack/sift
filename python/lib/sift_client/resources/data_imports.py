@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.data_imports import DataImportsLowLevelClient
 from sift_client.resources._base import ResourceBase
+from sift_client.sift_types.job import Job
 
 # from sift_client.sift_types.data_import import (
 #     Ch10Config,
@@ -42,7 +43,7 @@ class DataImportsAPIAsync(ResourceBase):
         ch10_config: Ch10Config | None = None,
         tdms_config: TDMSConfig | None = None,
         parquet_config: ParquetConfig | None = None,
-    ) -> str:
+    ) -> Job:
         """Import data from a local file or URL.
 
         This method handles both local files and remote URLs. For local files, it will
@@ -57,7 +58,7 @@ class DataImportsAPIAsync(ResourceBase):
             parquet_config: Configuration for Parquet files.
 
         Returns:
-            The data import ID (which corresponds to a Job).
+            The Job object representing the data import operation.
 
         Example:
             ```python
@@ -75,22 +76,29 @@ class DataImportsAPIAsync(ResourceBase):
             )
 
             # Import from local file
-            job_id = await client.data_imports.import_data(
+            job = await client.data_imports.import_data(
                 source=Path("data.csv"),
                 csv_config=csv_config
             )
+            print(f"Import job created: {job.id_}")
 
             # Import from URL
-            job_id = await client.data_imports.import_data(
+            job = await client.data_imports.import_data(
                 source="https://example.com/data.csv",
                 csv_config=csv_config
             )
 
             # Import from S3
-            job_id = await client.data_imports.import_data(
+            job = await client.data_imports.import_data(
                 source="s3://bucket/data.csv",
                 csv_config=csv_config
             )
+
+            # Check job status
+            if job.is_finished:
+                print("Import completed successfully")
+            elif job.is_failed:
+                print(f"Import failed: {job.job_status_details}")
             ```
         """
         # Check if source is a local file path
@@ -115,16 +123,21 @@ class DataImportsAPIAsync(ResourceBase):
             # Upload the file
             await self._upload_file(path, upload_url)
 
-            return data_import_id
+            # Get the job for this data import
+            job = await self.client.jobs.get(data_import_id)
+            return job
         else:
             # URL - import directly
-            return await self._low_level_client.create_data_import_from_url(
+            data_import_id = await self._low_level_client.create_data_import_from_url(
                 url=str(source),
                 csv_config=csv_config,
                 ch10_config=ch10_config,
                 tdms_config=tdms_config,
                 parquet_config=parquet_config,
             )
+            # Get the job for this data import
+            job = await self.client.jobs.get(data_import_id)
+            return job
 
     @staticmethod
     def _is_url(source: str) -> bool:
@@ -222,10 +235,29 @@ class DataImportsAPIAsync(ResourceBase):
             limit=limit,
         )
 
-    async def retry(self, data_import_id: str) -> None:
+    async def cancel(self, data_import: Job | str) -> None:
+        """Cancel a data import job.
+
+        If the job hasn't started yet, it will be cancelled immediately.
+        Jobs that are already finished, failed, or cancelled are not affected.
+
+        Args:
+            data_import: The Job object or job ID of the data import to cancel.
+        """
+        data_import_id = data_import._id_or_error if isinstance(data_import, Job) else data_import
+        await self.client.jobs.cancel(data_import_id)
+
+    async def retry(self, data_import: Job | str) -> Job:
         """Retry a failed data import.
 
         Args:
-            data_import_id: The ID of the data import to retry.
+            data_import: The Job object or job ID of the data import to retry.
+
+        Returns:
+            The updated Job object after retry.
         """
+        data_import_id = data_import._id_or_error if isinstance(data_import, Job) else data_import
         await self._low_level_client.retry_data_import(data_import_id)
+        # Get the updated job
+        job = await self.client.jobs.get(data_import_id)
+        return job
