@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 from typing import TYPE_CHECKING, Any
 
@@ -10,14 +11,23 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigProto,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
+    CreateIngestionConfigRequest as CreateIngestionConfigRequestProto,
+)
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigProto,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
 )
+from sift_stream_bindings import IngestionConfigFormPy
 
-from sift_client.sift_types._base import BaseType
+from sift_client.sift_types._base import (
+    BaseType,
+    ModelCreate,
+)
 from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
 
@@ -49,6 +59,29 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
             client_key=proto.client_key,
             _client=sift_client,
         )
+
+
+class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
+    """Create model for IngestionConfig."""
+
+    asset_name: str
+    flows: list[FlowConfig] = None
+    organization_id: str | None = None
+    client_key: str | None = None
+
+    def _get_proto_class(self) -> type[CreateIngestionConfigRequestProto]:
+        return CreateIngestionConfigRequestProto
+
+    def _to_rust_form(self) -> IngestionConfigFormPy:
+        if self.organization_id:
+            logger.warning("OrgId is ignored when passing an IngestionConfigCreate to the ingestion client")
+
+        return IngestionConfigFormPy(
+            asset_name = self.asset_name,
+            flows = [flow_config._to_rust_config() for flow_config in self.flows],
+            client_key = self.client_key or self.asset_name     # Default to using asset_name as the client_key
+        )
+
 
 
 class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):

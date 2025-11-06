@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from sift_stream_bindings import (
+    DiskBackupPolicyPy,
     DurationPy,
     FlowPy,
     IngestionConfigFormPy,
@@ -11,6 +12,7 @@ from sift_stream_bindings import (
     MetadataPy,
     MetadataValuePy,
     RecoveryStrategyPy,
+    RetryPolicyPy,
     RunFormPy,
     RunSelectorPy,
     SiftStreamMetricsSnapshotPy,
@@ -21,13 +23,13 @@ from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionLowLevelClient,
 )
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.ingestion import IngestionConfig
+from sift_client.sift_types.ingestion import IngestionConfig, IngestionConfigCreate
 from sift_client.sift_types.run import Run, RunCreate, Tag
 
 if TYPE_CHECKING:
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.ingestion import FlowConfig, IngestionConfig
+    from sift_client.sift_types.ingestion import FlowConfig
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +118,87 @@ class TracingConfig:
         )
 
 
+class RecoveryStrategyConfig:
+    """Configuration for the SiftStream recovery strategy.
+
+    This class provides a Python-friendly interface for configuring the recovery strategy used in SiftStream.
+    Recovery strategies determine how SiftStream handles failures and retries when ingesting data.
+
+    Recovery strategies control:
+    - How frequently to retry a failed connection to Sift.
+    - Whether to use per checkpoint backups to allow re-ingestion of data to Sift after a streaming failure.
+    - Settings to control the number and size of backup files, and whether to retain backups after verification of successful ingestion into sift.
+
+    Most users should use one of the factory methods:
+    - `retry_only()` - Only attempt to reconnect to Sift after a connection failure. Any data which failed to be ingested will be lost.
+      - More performant, but with no guarantee of data ingestion.
+    - `retry_with_backups()` - Ingestion is checkpointed. If an ingestion issue occurs during a checkpoint, that data will be re-ingested into Sift
+      asynchronously along with incoming live data. Backup files are generated and by default, cleared after a successful checkpoint or re-ingestion.
+    """
+
+    def __init__(self, recovery_strategy_py: RecoveryStrategyPy | None):
+        """Initialize a RecoveryStrategyConfig.
+
+        Args:
+            recovery_strategy_py: The underlying RecoveryStrategyPy instance.
+                If None, uses the default retry-only strategy.
+
+        Note:
+            Most users should use the factory methods (`retry_only()` or `retry_with_backups()`)
+            instead of calling this constructor directly.
+        """
+        self._recovery_strategy_py = recovery_strategy_py or RecoveryStrategyPy.default()
+
+    def to_rust_config(self) -> RecoveryStrategyPy:
+        """Convert to RecoveryStrategyPy for use with the ingestion client.
+
+        Returns:
+            A RecoveryStrategyPy instance that can be passed to the ingestion client.
+        """
+        return self._recovery_strategy_py
+
+    @classmethod
+    def retry_only(cls, retry_policy: RetryPolicyPy | None = None) -> RecoveryStrategyConfig:
+        """Create a recovery strategy that only retries connection failures.
+
+        Args:
+            retry_policy: Retry policy configuration specifying retry attempts, backoff timing, etc.
+                If None, uses the default retry policy (5 attempts, 50ms initial backoff,
+                5s max backoff, multiplier of 5).
+
+        Returns:
+            A RecoveryStrategyConfig configured for retry-only strategy.
+        """
+        retry_policy_py = retry_policy or RetryPolicyPy.default()
+
+        recovery_strategy_py = RecoveryStrategyPy.retry_only(retry_policy_py)
+        return cls(recovery_strategy_py = recovery_strategy_py)
+
+    @classmethod
+    def retry_with_backups(cls, retry_policy: RetryPolicyPy | None = None, disk_backup_policy: DiskBackupPolicyPy | None = None) -> RecoveryStrategyConfig:
+        """Create a recovery strategy with retries re-ingestion using disk based backups.
+
+        Args:
+            retry_policy: Retry policy configuration specifying retry attempts, backoff timing, etc.
+                If None, uses the default retry policy (5 attempts, 50ms initial backoff,
+                5s max backoff, multiplier of 5).
+            disk_backup_policy: Disk backup policy configuration specifying backup directory,
+                file size limits, etc. If None, uses the default disk backup policy.
+
+        Returns:
+            A RecoveryStrategyConfig configured for retry with disk backups.
+        """
+        retry_policy_py = retry_policy or RetryPolicyPy.default()
+        disk_backup_policy_py = disk_backup_policy or DiskBackupPolicyPy.default()
+
+        recovery_strategy_py = RecoveryStrategyPy.retry_with_backups(
+            retry_policy = retry_policy_py,
+            disk_backup_policy = disk_backup_policy_py,
+        )
+        return cls(recovery_strategy_py = recovery_strategy_py)
+
+
+
 class IngestionAPIAsync(ResourceBase):
     """High-level API for interacting with ingestion services.
 
@@ -138,12 +221,12 @@ class IngestionAPIAsync(ResourceBase):
 
     async def create_ingestion_config_streaming_client(
         self,
+        ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
         *,
-        ingestion_config: IngestionConfig | None = None,
         run: RunCreate | dict | str | Run | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        recovery_strategy: RecoveryStrategyPy | None = None,
+        recovery_strategy: RecoveryStrategyConfig | RecoveryStrategyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
@@ -151,7 +234,7 @@ class IngestionAPIAsync(ResourceBase):
         """Create an IngestionConfigStreamingClient.
 
         Args:
-            ingestion_config: The ingestion config.
+            ingestion_config: The ingestion config. Can be a IngestionConfig or IngestionConfigFormPy.
             run: The run to associate with ingestion. Can be a Run, RunCreate, dict, or run ID string.
             asset_tags: Tags to associate with the asset.
             asset_metadata: Metadata to associate with the asset.
@@ -237,12 +320,12 @@ class IngestionConfigStreamingClient(ResourceBase):
     async def create(
         cls,
         sift_client: SiftClient,
-        ingestion_config: IngestionConfigFormPy,
+        ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
         *,
         run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
-        recovery_strategy: RecoveryStrategyPy | None = None,
+        recovery_strategy: RecoveryStrategyConfig | RecoveryStrategyPy | None = None,
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
@@ -273,6 +356,26 @@ class IngestionConfigStreamingClient(ResourceBase):
         grpc_config = sift_client.grpc_client._config
         api_key = grpc_config.api_key
         grpc_uri = grpc_config.uri
+
+        # Convert the ingestion_config variants to a IngestionConfigFormPy
+        if isinstance(ingestion_config, IngestionConfig):
+            # SiftStream will retrieve the existing config from the client_key
+            asset_name = sift_client.assets.get(asset_id=ingestion_config.asset_id)
+            ingestion_config_form = IngestionConfigFormPy(
+                asset_name = asset_name,
+                client_key = ingestion_config.client_key,
+                flows = [],
+            )
+        elif isinstance(ingestion_config, IngestionConfigCreate):
+            ingestion_config_form = ingestion_config.to_rust_form()
+        else:
+            ingestion_config_form = ingestion_config
+
+        # Convert the recovery strategy variants
+        if isinstance(recovery_strategy, RecoveryStrategyConfig):
+            recovery_strategy_py = recovery_strategy.to_rust_config()
+        else:
+            recovery_strategy_py = recovery_strategy
 
         # Convert the run variants to a run or run_id
         run_form: RunFormPy | None = None
@@ -313,12 +416,12 @@ class IngestionConfigStreamingClient(ResourceBase):
         low_level_client = await IngestionConfigStreamingLowLevelClient.create_sift_stream_instance(
             api_key=api_key,
             grpc_uri=grpc_uri,
-            ingestion_config=ingestion_config,
+            ingestion_config=ingestion_config_form,
             run_form=run_form,
             run_id=run_id,
             asset_tags=asset_tags_list,
             asset_metadata=asset_metadata_list,
-            recovery_strategy=recovery_strategy,
+            recovery_strategy=recovery_strategy_py,
             checkpoint_interval=checkpoint_interval,
             enable_tls=enable_tls,
             tracing_config=tracing_config,
