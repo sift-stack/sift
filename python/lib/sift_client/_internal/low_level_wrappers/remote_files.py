@@ -137,13 +137,13 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated RemoteFile.
         """
-        from sift_client.sift_types.remote_file import RemoteFile
+        from sift_client.sift_types.remote_file import RemoteFile as RemoteFileClass
 
         grpc_remote_file, update_mask = update.to_proto_with_mask()
         request = UpdateRemoteFileRequest(remote_file=grpc_remote_file, update_mask=update_mask)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).UpdateRemoteFile(request)
         updated_grpc_remote_file = cast("UpdateRemoteFileResponse", response).remote_file
-        return RemoteFile._from_proto(updated_grpc_remote_file, sift_client)
+        return RemoteFileClass._from_proto(updated_grpc_remote_file, sift_client)
 
     async def delete_remote_file(self, remote_file_id: str) -> None:
         """Delete a remote file.
