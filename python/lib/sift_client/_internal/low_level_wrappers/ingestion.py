@@ -285,7 +285,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         builder.recovery_strategy = recovery_strategy
         builder.checkpoint_interval = checkpoint_interval
         builder.asset_tags = asset_tags
-        builder.asset_metadata = asset_metadata
+        builder.metadata = asset_metadata
         builder.run = run_form
         builder.run_id = run_id
 

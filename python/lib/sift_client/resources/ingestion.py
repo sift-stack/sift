@@ -348,8 +348,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         Args:
             flow: The flow to send to Sift.
         """
-        flow_py = flow._to_rust_config()
-        await self._low_level_client.send(flow_py)
+        await self._low_level_client.send(flow)
 
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.
