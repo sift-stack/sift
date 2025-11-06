@@ -8,15 +8,10 @@ It provides an asynchronous client for the IngestionAPI.
 
 from __future__ import annotations
 
-import asyncio
-import atexit
 import hashlib
 import logging
-import threading
-import time
 from collections import namedtuple
-from queue import Queue
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     GetIngestionConfigRequest,
@@ -45,10 +40,9 @@ from sift_stream_bindings import (
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
-from sift_client.sift_types.ingestion import Flow, IngestionConfig, _to_rust_value
+from sift_client.sift_types.ingestion import FlowConfig, IngestionConfig
 from sift_client.transport import GrpcClient, WithGrpcClient
 from sift_client.util import cel_utils as cel
-from sift_client.resources.ingestion import TracingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +60,7 @@ if TYPE_CHECKING:
         TimeValuePy,
     )
 
+    from sift_client.resources.ingestion import TracingConfig
 
 
 def to_rust_py_timestamp(time: datetime) -> TimeValuePy:
@@ -83,106 +78,6 @@ def to_rust_py_timestamp(time: datetime) -> TimeValuePy:
     secs = int(ts)
     nsecs = int((ts - secs) * 1_000_000_000)
     return TimeValuePy.from_timestamp(secs, nsecs)
-
-
-class IngestionThread(threading.Thread):
-    """Manages ingestion for a single ingestion config."""
-
-    IDLE_LOOP_PERIOD = 0.1  # Time of intervals loop will sleep while waiting for data.
-    SIFT_STREAM_FINISH_TIMEOUT = 0.06  # Measured ~0.05s to finish stream.
-    CLEANUP_TIMEOUT = IDLE_LOOP_PERIOD + SIFT_STREAM_FINISH_TIMEOUT
-
-    def __init__(
-        self,
-        sift_stream_builder: SiftStreamBuilderPy,
-        data_queue: Queue,
-        ingestion_config: IngestionConfigFormPy,
-        no_data_timeout: int = 1,
-        metric_interval: float = 0.5,
-    ):
-        """Initialize the IngestionThread.
-
-        Args:
-            sift_stream_builder: The sift stream builder to build a new stream.
-            data_queue: The queue to put IngestWithConfigDataStreamRequestPy requests into for ingestion.
-            ingestion_config: The ingestion config to use for ingestion.
-            no_data_timeout: The number of (whole number) seconds to wait for data before stopping the thread (Saves minorly on startup resources. Ingesting new data will always restart the thread if it is stopped).
-            metric_interval: Time (seconds) to wait between logging metrics.
-        """
-        super().__init__(daemon=True)
-        self.data_queue = data_queue
-        self._stop_event = threading.Event()
-        self.sift_stream_builder = sift_stream_builder
-        self.ingestion_config = ingestion_config
-        self.no_data_timeout = no_data_timeout
-        self.metric_interval = metric_interval
-        self.initialized = False
-
-    def stop(self):
-        self._stop_event.set()
-        # Give a brief chance to finish the stream (should take < 50ms).
-        time.sleep(self.CLEANUP_TIMEOUT)
-        self.task.cancel()
-
-    async def await_stream_build(self):
-        while not self.initialized:
-            await asyncio.sleep(0.01)
-
-    async def main(self):
-        logger.debug("Ingestion thread started")
-        self.sift_stream_builder.ingestion_config = self.ingestion_config
-        sift_stream = await self.sift_stream_builder.build()
-        time_of_last_metric = time.time()
-        time_of_last_data = time.time()
-        count = 0
-        self.initialized = True
-        try:
-            while True:
-                while not self.data_queue.empty():
-                    if self._stop_event.is_set():
-                        # Being forced to stop. Try to finish the stream.
-                        logger.info(
-                            f"Ingestion thread received stop signal. Exiting. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
-                        )
-                        await sift_stream.finish()
-                        return
-                    time_of_last_metric = time.time()
-                    item = self.data_queue.get()
-                    sift_stream = await sift_stream.send_requests(item)
-                    count += 1
-                    time_since_last_metric = time.time() - time_of_last_metric
-                    if time_since_last_metric > self.metric_interval:
-                        logger.debug(
-                            f"Ingestion thread sent {count} requests, remaining: {self.data_queue.qsize()}"
-                        )
-                        time_of_last_metric = time.time()
-
-                # Queue empty, check if we should stop.
-                time_since_last_data = time.time() - time_of_last_data
-                if self._stop_event.is_set() or time_since_last_data > self.no_data_timeout:
-                    logger.debug(
-                        f"No more requests. Stopping. Sent {count} requests. {self.data_queue.qsize()} requests remaining."
-                    )
-                    await sift_stream.finish()
-                    return
-                else:
-                    await asyncio.sleep(self.IDLE_LOOP_PERIOD)
-
-        except asyncio.CancelledError:
-            # It's possible the thread was joined while sleeping waiting for data. Only note error if we have data left.
-            if self.data_queue.qsize() > 0:
-                logger.error(
-                    f"Ingestion thread cancelled without finishing stream. {self.data_queue.qsize()} requests were not sent."
-                )
-
-    async def _run(self):
-        self.task = asyncio.create_task(self.main())
-        await self.task
-
-    def run(self):
-        """This thread will handle sending data to Sift."""
-        # Even thought this is a thread, we need to run this async task to await send_requests otherwise we get sift_stream consumed errors.
-        asyncio.run(self._run())
 
 
 class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -204,76 +99,15 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             grpc_client: The gRPC client to use for making API calls.
         """
         super().__init__(grpc_client=grpc_client)
-        self._sift_stream_builder = None  # Lazy-initialized
-        self.stream_cache = {}
-        atexit.register(self.cleanup, timeout=0.1)
 
-    def _ensure_sift_stream_bindings(self):
-        """Ensure sift_stream_bindings is available and initialize the stream builder.
 
-        Raises:
-            ImportError: If sift_stream_bindings is not installed.
-        """
-        if self._sift_stream_builder is not None:
-            return
-
-        try:
-            from sift_stream_bindings import (
-                RecoveryStrategyPy,
-                RetryPolicyPy,
-                SiftStreamBuilderPy,
-            )
-        except ImportError as e:
-            raise ImportError(
-                "The 'sift-stream' package is required for ingestion operations. "
-                "Please install it with:` `pip install sift-stack-py[sift-stream]`"
-            ) from e
-
-        # Rust GRPC client expects URI to have http(s):// prefix.
-        uri = self._grpc_client._config.uri
-        if not uri.startswith("http"):
-            uri = f"https://{uri}" if self._grpc_client._config.use_ssl else f"http://{uri}"
-        self._sift_stream_builder = SiftStreamBuilderPy(
-            uri=uri,
-            apikey=self._grpc_client._config.api_key,
-        )
-        self._sift_stream_builder.enable_tls = self._grpc_client._config.use_ssl
-        # FD-177: Expose configuration for recovery strategy.
-        self._sift_stream_builder.recovery_strategy = RecoveryStrategyPy.retry_only(
-            RetryPolicyPy.default()
-        )
-
-    @property
-    def sift_stream_builder(self) -> SiftStreamBuilderPy:
-        """Get the sift stream builder, initializing it if necessary."""
-        self._ensure_sift_stream_bindings()
-        assert self._sift_stream_builder is not None
-        return self._sift_stream_builder
-
-    def cleanup(self, timeout: float | None = None):
-        """Cleanup the ingestion threads.
-
-        Args:
-            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
-        """
-        for cache_entry in self.stream_cache.values():
-            data_queue, ingestion_config, thread = cache_entry
-            # "None" value on the queue signals its loop to terminate.
-            if thread:
-                thread.join(timeout=timeout)
-                if thread.is_alive():
-                    logger.error(
-                        f"Ingestion thread did not finish after {timeout} seconds. Forcing stop."
-                    )
-                    thread.stop()
-
-    async def get_ingestion_config_flows(self, ingestion_config_id: str) -> list[Flow]:
+    async def get_ingestion_config_flows(self, ingestion_config_id: str) -> list[FlowConfig]:
         """Get the flows for an ingestion config."""
         res = await self._grpc_client.get_stub(IngestionConfigServiceStub).GetIngestionConfig(
             GetIngestionConfigRequest(ingestion_config_id=ingestion_config_id)
         )
         res = cast("ListIngestionConfigFlowsResponse", res)
-        return [Flow._from_proto(flow) for flow in res.flows]
+        return [FlowConfig._from_proto(flow) for flow in res.flows]
 
     async def list_ingestion_configs(self, filter_query: str) -> list[IngestionConfig]:
         """List ingestion configs."""
@@ -295,39 +129,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             )
         return ingestion_configs[0].id_
 
-    def _new_ingestion_thread(
-        self,
-        ingestion_config_id: str,
-        ingestion_config: IngestionConfigFormPy | None = None,
-    ):
-        """Start a new ingestion thread.
-        This allows ingestion to happen in the background regardless of if the user is using the sync or async client
-        and without them having to set up threading themselves. We are using a thread vs asyncio since our
-        sync wrapper will block on incomlete tasks.
-
-        Args:
-            ingestion_config_id: The id of the ingestion config for the flows this stream will ingest. Used to cache the stream.
-            ingestion_config: The ingestion config to use for ingestion.
-        """
-
-        self._ensure_sift_stream_bindings()
-        data_queue: Queue[list[IngestWithConfigDataStreamRequestPy]] = Queue()
-        existing = self.stream_cache.get(ingestion_config_id)
-        if existing:
-            existing_data_queue, existing_ingestion_config, existing_thread = existing
-            if existing_thread.is_alive():
-                return existing_thread
-            else:
-                ingestion_config = existing_ingestion_config
-                # Re-use existing queue since ingest_flow has already put data on it.
-                data_queue = existing_data_queue
-        assert ingestion_config is not None  # Appease mypy.
-        thread = IngestionThread(self.sift_stream_builder, data_queue, ingestion_config)
-        thread.start()
-
-        return self.CacheEntry(data_queue, ingestion_config, thread)
-
-    def _hash_flows(self, asset_name: str, flows: list[Flow]) -> str:
+    def _hash_flows(self, asset_name: str, flows: list[FlowConfig]) -> str:
         """Generate a client key that should be unique but deterministic for the given asset and flow configuration."""
         # TODO:  Taken from sift_py/ingestion/config/telemetry.py. Confirm intent from Marc.
         m = hashlib.sha256()
@@ -359,7 +161,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         self,
         *,
         asset_name: str,
-        flows: list[Flow],
+        flows: list[FlowConfig],
         client_key: str | None = None,
     ) -> str:
         """Create an ingestion config.
@@ -430,68 +232,6 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
             raise ValueError("No ingestion config id found")
         return ingestion_config_id
 
-    def wait_for_ingestion_to_complete(self, timeout: float | None = None):
-        """Blocks until all ingestion to complete.
-
-        Args:
-            timeout: The timeout in seconds to wait for ingestion to complete. If None, will wait forever.
-        """
-        logger.debug("Waiting for ingestion to complete")
-        self.cleanup(timeout)
-
-    def ingest_flow(
-        self,
-        *,
-        flow: Flow,
-        timestamp: datetime,
-        channel_values: dict[str, Any],
-        organization_id: str | None = None,
-    ):
-        """Ingest a flow. This is a synchronous call that queues an ingestion request that will be processed asynchronously on a background thread.
-
-        Args:
-            flow: The flow to ingest.
-            timestamp: The timestamp of the flow.
-            channel_values: The channel values to ingest.
-            organization_id: The organization id to use for ingestion. Only relevant if the user is part of several organizations.
-        """
-        from sift_stream_bindings import IngestWithConfigDataStreamRequestPy
-
-        self._ensure_sift_stream_bindings()
-
-        if not flow.ingestion_config_id:
-            raise ValueError(
-                "Flow has no ingestion config id -- have you created an ingestion config for this flow?"
-            )
-        cache_entry = self.stream_cache.get(flow.ingestion_config_id)
-        if not cache_entry:
-            raise ValueError(
-                f"Ingestion config {flow.ingestion_config_id} not found. Have you created an ingestion config for this flow?"
-            )
-        rust_channel_values = []
-        # Iterate through all expected channels for flow and convert to ingestion types (missing channels use a special empty type)
-        for channel in flow.channels:
-            val = channel_values.get(channel.name)
-            rust_channel_values.append(_to_rust_value(channel, val))
-        req = IngestWithConfigDataStreamRequestPy(
-            ingestion_config_id=flow.ingestion_config_id,
-            run_id=flow.run_id or "",
-            flow=flow.name,
-            timestamp=to_rust_py_timestamp(timestamp),
-            channel_values=rust_channel_values,
-            end_stream_on_validation_error=False,
-            organization_id=organization_id or "",  # This will be filled in by the server
-        )
-        data_queue, ingestion_config, thread = cache_entry
-        assert data_queue is not None
-        # Put data on queue before potentially starting a new thread so it doesn't initially sleep waiting for data.
-        data_queue.put([req])
-        if not (thread and thread.is_alive()):
-            # We previously had a thread for this ingestion config but it finished ingestion so create a new one.
-            self.stream_cache[flow.ingestion_config_id] = self._new_ingestion_thread(
-                flow.ingestion_config_id, ingestion_config
-            )
-
 
 
 
@@ -517,6 +257,8 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingLowLevelClient:
+        from sift_client.resources.ingestion import TracingConfig
+
         if not is_tracing_initialized():
             if tracing_config is None:
                 tracing_config = TracingConfig.console_only()
