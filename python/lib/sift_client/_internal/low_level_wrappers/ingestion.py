@@ -503,7 +503,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         cls,
         api_key: str,
         grpc_uri: str,
-        ingestion_config: IngestionConfigFormPy | None = None,
+        ingestion_config: IngestionConfigFormPy,
         run_form: RunFormPy | None = None,
         run_id: str | None = None,
         asset_tags: list[str] | None = None,

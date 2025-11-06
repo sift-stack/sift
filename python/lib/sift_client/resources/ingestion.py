@@ -20,15 +20,14 @@ from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionConfigStreamingLowLevelClient,
     IngestionLowLevelClient,
 )
-from sift_client._internal.util.sift_stream import to_runFormPy
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.ingestion import FlowConfig, IngestionConfig
+from sift_client.sift_types.ingestion import IngestionConfig
 from sift_client.sift_types.run import Run, RunCreate, Tag
 
 if TYPE_CHECKING:
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.ingestion import Flow
+    from sift_client.sift_types.ingestion import FlowConfig, IngestionConfig
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +93,7 @@ class IngestionAPIAsync(ResourceBase):
         *,
         asset_name: str,
         run_id: str | None = None,
-        flows: list[Flow],
+        flows: list[FlowConfig],
         client_key: str | None = None,
     ) -> str:
         """Create an ingestion config. This is provided for direct use of the ingestion config API, and not the preferred way to create ingestion configs for streaming through SiftClient.
@@ -148,8 +147,8 @@ class IngestionConfigStreamingClient(ResourceBase):
     async def create(
         cls,
         sift_client: SiftClient,
+        ingestion_config: IngestionConfigFormPy,
         *,
-        ingestion_config: IngestionConfigFormPy | None = None,
         run: RunCreate | dict | str | Run | RunFormPy | None = None,
         asset_tags: list[str] | list[Tag] | None = None,
         asset_metadata: dict[str, str | float | bool] | None = None,
@@ -189,11 +188,11 @@ class IngestionConfigStreamingClient(ResourceBase):
             run_id = run
         elif isinstance(run, dict):
             run_create = RunCreate.model_validate(run)
-            run_form = to_runFormPy(run_create)
+            run_form = run_create._to_rust_form()
         elif isinstance(run, Run):
             run_id = run._id_or_error
         elif isinstance(run, RunCreate):
-            run_form = to_runFormPy(run)
+            run_form = run._to_rust_form()
 
         # Convert asset_tags to list of strings
         asset_tags_list: list[str] | None = None
@@ -298,12 +297,12 @@ class IngestionConfigStreamingClient(ResourceBase):
             run_selector_py = RunSelectorPy.by_form(run)
         elif isinstance(run, dict):
             run_create = RunCreate.model_validate(run)
-            run_form_py = to_runFormPy(run_create)
+            run_form_py = run_create._to_rust_form()
             run_selector_py = RunSelectorPy.by_form(run_form_py)
         elif isinstance(run, Run):
             run_selector_py = RunSelectorPy.by_id(run.id_)
         elif isinstance(run, RunCreate):
-            run_form_py = to_runFormPy(run)
+            run_form_py = run._to_rust_form()
             run_selector_py = RunSelectorPy.by_form(run_form_py)
         elif isinstance(run, str):
             run_selector_py = RunSelectorPy.by_id(run)

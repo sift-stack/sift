@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, ClassVar
 from pydantic import model_validator
 from sift.runs.v2.runs_pb2 import CreateRunRequest as CreateRunRequestProto
 from sift.runs.v2.runs_pb2 import Run as RunProto
+from sift_stream_bindings import MetadataPy, MetadataValuePy, RunFormPy
 
 from sift_client.sift_types._base import (
     BaseType,
@@ -169,6 +170,33 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
 
     def _get_proto_class(self) -> type[CreateRunRequestProto]:
         return CreateRunRequestProto
+
+
+    def _to_rust_form(self) -> RunFormPy:
+        if self.client_key:
+            client_key = self.client_key
+        else:
+            client_key = self.name
+
+        if self.tags:
+            tags = [tag.name if isinstance(tag, Tag) else tag for tag in self.tags]
+        else:
+            tags = None
+
+        if self.metadata:
+            metadata = []
+            for key, value in self.metadata.items():
+                metadata.append(MetadataPy(key=key, value=MetadataValuePy(value)))
+        else:
+            metadata = None
+
+        return RunFormPy(
+            name=self.name,
+            client_key=client_key,
+            description=self.description,
+            tags=tags,
+            metadata=metadata,
+        )
 
 
 class RunUpdate(RunBase, ModelUpdate[RunProto]):
