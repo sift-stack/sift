@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import requests
 from sift.remote_files.v1.remote_files_pb2 import EntityType
 from sift.remote_files.v1.remote_files_pb2 import RemoteFile as RemoteFileProto
+from typing_extensions import Self
 
 from sift_client.sift_types._base import BaseType, ModelUpdate
 
@@ -126,7 +127,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
             remote_files_client.delete_remote_file(remote_file_id=self.id_), loop
         ).result()
 
-    def update(self, update: RemoteFileUpdate | dict) -> RemoteFile:
+    def update(self, update: RemoteFileUpdate | dict) -> Self:
         """Update the remote file."""
         from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
 
