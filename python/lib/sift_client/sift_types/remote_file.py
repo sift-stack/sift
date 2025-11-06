@@ -119,11 +119,11 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         if self.id_ is None:
             raise ValueError("Remote file ID is not set")
         from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
+
         remote_files_client = RemoteFilesLowLevelClient(self.client.grpc_client)
         loop = self.client.get_asyncio_loop()
         asyncio.run_coroutine_threadsafe(
-            remote_files_client.delete_remote_file(remote_file_id=self.id_),
-            loop
+            remote_files_client.delete_remote_file(remote_file_id=self.id_), loop
         ).result()
 
     def update(self, update: RemoteFileUpdate | dict) -> RemoteFile:
@@ -134,11 +134,11 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
             raise ValueError("Remote file ID is not set")
         update.resource_id = self.id_
         from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
+
         remote_file_client = RemoteFilesLowLevelClient(self.client.grpc_client)
         loop = self.client.get_asyncio_loop()
         updated_remote_file = asyncio.run_coroutine_threadsafe(
-            remote_file_client.update_remote_file(update=update),
-            loop
+            remote_file_client.update_remote_file(update=update), loop
         ).result()
         return updated_remote_file
 
@@ -147,11 +147,11 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
         if self.id_ is None:
             raise ValueError("Remote file ID is not set")
         from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
+
         remote_files_client = RemoteFilesLowLevelClient(self.client.grpc_client)
         loop = self.client.get_asyncio_loop()
         return asyncio.run_coroutine_threadsafe(
-            remote_files_client.get_remote_file_download_url(remote_file_id=self.id_),
-            loop
+            remote_files_client.get_remote_file_download_url(remote_file_id=self.id_), loop
         ).result()
 
     def download(self, output_path: str | Path) -> None:
