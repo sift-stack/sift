@@ -899,22 +899,20 @@ class RunsAPI:
     def create(
         self,
         create: RunCreate | dict,
-        asset_names: list[str] | None = None,
-        asset_ids: list[str] | None = None,
-        data_exists: bool = False,
+        assets: list[str | Asset] | None = None,
+        associate_new_data: bool = False,
     ) -> Run:
         """Create a new run.
 
         Note on assets: You do not need to provide asset info when creating a run.
         If you pass a Run to future ingestion configs associated with assets, the association will happen automatically then.
-        However, if you do pass assets, _future_ ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run. This may be useful if you want to capture a time range for a specific asset or won't know about this Run when ingesting to that asset.
-        If the data has already been ingested, it will not be associated with the Run unless you pass data_exists=True.
+        However, if you do pass assets and set associate_new_data=True, future ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run. This may be useful if you want to capture a time range for a specific asset or won't know about this Run when ingesting to that asset.
+        If the data has already been ingested, leave associate_new_data=False.
 
         Args:
             create: The Run definition to create.
-            asset_names: List of asset names to associate with the run.
-            asset_ids: List of asset IDs to associate with the run.
-            data_exists: If True, the run will be created as an ad-hoc run on the given assets.
+            assets: List of assets to associate with the run. Note: if you are associating new data, you must provide assets/asset names.
+            associate_new_data: If True, future ingested data that falls within the Run's time period will be associated with the Run. Even if that data's timestamp is in the past, if it has not been ingested yet and the Run's timestamp envelopes it, it will be associated with the Run.
 
         Returns:
             The created Run.
