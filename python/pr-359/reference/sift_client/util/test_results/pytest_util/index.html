@@ -8,7 +8,7 @@
       
       
       
-        <link rel="canonical" href="https://sift-stack.github.io/sift/python/pr-359/reference/sift_client/util/test_results/pytest/">
+        <link rel="canonical" href="https://sift-stack.github.io/sift/python/pr-359/reference/sift_client/util/test_results/pytest_util/">
       
       
         <link rel="prev" href="../context_manager/">
@@ -18,11 +18,11 @@
       
       
       <link rel="icon" href="../../../../../stylesheets/sift-favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.22">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.23">
     
     
       
-        <title>pytest - Sift | Python Client Library</title>
+        <title>pytest_util - Sift | Python Client Library</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sift_client.util.test_results.pytest" class="md-skip">
+        <a href="#sift_client.util.test_results.pytest_util" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@ You're not viewing the latest version.
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              pytest
+              pytest_util
             
           </span>
         </div>
@@ -1036,7 +1036,7 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    pytest
+    pytest_util
     
   </span>
   
@@ -1049,7 +1049,7 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    pytest
+    pytest_util
     
   </span>
   
@@ -1074,7 +1074,16 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.pytest.module_substep" class="md-nav__link">
+  <a href="#sift_client.util.test_results.pytest_util.client_has_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;client_has_connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.module_substep" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;module_substep
     </span>
@@ -1083,7 +1092,25 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.pytest.report_context" class="md-nav__link">
+  <a href="#sift_client.util.test_results.pytest_util.module_substep_check_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;module_substep_check_connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.pytest_runtest_makereport" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_runtest_makereport
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.report_context" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;report_context
     </span>
@@ -1092,9 +1119,27 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.pytest.step" class="md-nav__link">
+  <a href="#sift_client.util.test_results.pytest_util.report_context_check_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;report_context_check_connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.step" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;step
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.step_check_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;step_check_connection
     </span>
   </a>
   
@@ -1240,7 +1285,16 @@ You're not viewing the latest version.
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.pytest.module_substep" class="md-nav__link">
+  <a href="#sift_client.util.test_results.pytest_util.client_has_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;client_has_connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.module_substep" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;module_substep
     </span>
@@ -1249,7 +1303,25 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.pytest.report_context" class="md-nav__link">
+  <a href="#sift_client.util.test_results.pytest_util.module_substep_check_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;module_substep_check_connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.pytest_runtest_makereport" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pytest_runtest_makereport
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.report_context" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;report_context
     </span>
@@ -1258,9 +1330,27 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.pytest.step" class="md-nav__link">
+  <a href="#sift_client.util.test_results.pytest_util.report_context_check_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;report_context_check_connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.step" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;step
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.pytest_util.step_check_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;step_check_connection
     </span>
   </a>
   
@@ -1289,11 +1379,11 @@ You're not viewing the latest version.
 
 
 
-<h1 id="sift_client.util.test_results.pytest" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">sift_client.util.test_results.pytest</span>
+<h1 id="sift_client.util.test_results.pytest_util" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">sift_client.util.test_results.pytest_util</span>
 
 
-<a href="#sift_client.util.test_results.pytest" class="headerlink" title="Permanent link">&para;</a></h1>
+<a href="#sift_client.util.test_results.pytest_util" class="headerlink" title="Permanent link">&para;</a></h1>
 
     <div class="doc doc-contents first">
 
@@ -1317,7 +1407,15 @@ You're not viewing the latest version.
       </thead>
       <tbody>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            module_substep (sift_client.util.test_results.pytest.module_substep)" href="#sift_client.util.test_results.pytest.module_substep">module_substep</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="            client_has_connection (sift_client.util.test_results.pytest_util.client_has_connection)" href="#sift_client.util.test_results.pytest_util.client_has_connection">client_has_connection</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Check if the SiftClient has a connection to the Sift server.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            module_substep (sift_client.util.test_results.pytest_util.module_substep)" href="#sift_client.util.test_results.pytest_util.module_substep">module_substep</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Create a step per module.</p>
@@ -1325,7 +1423,23 @@ You're not viewing the latest version.
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            report_context (sift_client.util.test_results.pytest.report_context)" href="#sift_client.util.test_results.pytest.report_context">report_context</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="            module_substep_check_connection (sift_client.util.test_results.pytest_util.module_substep_check_connection)" href="#sift_client.util.test_results.pytest_util.module_substep_check_connection">module_substep_check_connection</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Create a step per module. Doesn't run if the client has no connection to the Sift server.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            pytest_runtest_makereport (sift_client.util.test_results.pytest_util.pytest_runtest_makereport)" href="#sift_client.util.test_results.pytest_util.pytest_runtest_makereport">pytest_runtest_makereport</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>You should import this hook to capture any AssertionErrors that occur during the test. If not included, any assert failures in a test will not automatically fail the step.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            report_context (sift_client.util.test_results.pytest_util.report_context)" href="#sift_client.util.test_results.pytest_util.report_context">report_context</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Create a report context for the session.</p>
@@ -1333,10 +1447,26 @@ You're not viewing the latest version.
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            step (sift_client.util.test_results.pytest.step)" href="#sift_client.util.test_results.pytest.step">step</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="            report_context_check_connection (sift_client.util.test_results.pytest_util.report_context_check_connection)" href="#sift_client.util.test_results.pytest_util.report_context_check_connection">report_context_check_connection</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Create a report context for the session. Doesn't run if the client has no connection to the Sift server.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            step (sift_client.util.test_results.pytest_util.step)" href="#sift_client.util.test_results.pytest_util.step">step</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Create an outer step for the function.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            step_check_connection (sift_client.util.test_results.pytest_util.step_check_connection)" href="#sift_client.util.test_results.pytest_util.step_check_connection">step_check_connection</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Create an outer step for the function. Doesn't run if the client has no connection to the Sift server.</p>
                 </div>
               </td>
             </tr>
@@ -1361,16 +1491,35 @@ You're not viewing the latest version.
 <div class="doc doc-object doc-function">
 
 
-<h2 id="sift_client.util.test_results.pytest.module_substep" class="doc doc-heading">
+<h2 id="sift_client.util.test_results.pytest_util.client_has_connection" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">client_has_connection</span>
+
+
+<a href="#sift_client.util.test_results.pytest_util.client_has_connection" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">client_has_connection</span><span class="p">(</span><span class="n">sift_client</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Check if the SiftClient has a connection to the Sift server.</p>
+<p>Can be used to skip tests that require a connection to the Sift server.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.util.test_results.pytest_util.module_substep" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">module_substep</span>
 
 
-<a href="#sift_client.util.test_results.pytest.module_substep" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#sift_client.util.test_results.pytest_util.module_substep" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">module_substep</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">report_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../#sift_client.util.test_results.ReportContext">ReportContext</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">client_has_connection</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Generator" href="https://docs.python.org/3/library/typing.html#typing.Generator">Generator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">report_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../#sift_client.util.test_results.ReportContext">ReportContext</a></span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Generator" href="https://docs.python.org/3/library/typing.html#typing.Generator">Generator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1385,16 +1534,58 @@ You're not viewing the latest version.
 <div class="doc doc-object doc-function">
 
 
-<h2 id="sift_client.util.test_results.pytest.report_context" class="doc doc-heading">
+<h2 id="sift_client.util.test_results.pytest_util.module_substep_check_connection" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">module_substep_check_connection</span>
+
+
+<a href="#sift_client.util.test_results.pytest_util.module_substep_check_connection" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">module_substep_check_connection</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">report_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../#sift_client.util.test_results.ReportContext">ReportContext</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">client_has_connection</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Generator" href="https://docs.python.org/3/library/typing.html#typing.Generator">Generator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create a step per module. Doesn't run if the client has no connection to the Sift server.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.util.test_results.pytest_util.pytest_runtest_makereport" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">pytest_runtest_makereport</span>
+
+
+<a href="#sift_client.util.test_results.pytest_util.pytest_runtest_makereport" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">pytest_runtest_makereport</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="n"><span title="pytest.Item">Item</span></span><span class="p">,</span> <span class="n">call</span><span class="p">:</span> <span class="n"><span title="pytest.CallInfo">CallInfo</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">])</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>You should import this hook to capture any AssertionErrors that occur during the test. If not included, any assert failures in a test will not automatically fail the step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.util.test_results.pytest_util.report_context" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">report_context</span>
 
 
-<a href="#sift_client.util.test_results.pytest.report_context" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#sift_client.util.test_results.pytest_util.report_context" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">report_context</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">sift_client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="../../../client/#sift_client.client.SiftClient">SiftClient</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">client_has_connection</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Generator" href="https://docs.python.org/3/library/typing.html#typing.Generator">Generator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../#sift_client.util.test_results.ReportContext">ReportContext</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">sift_client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="../../../client/#sift_client.client.SiftClient">SiftClient</a></span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Generator" href="https://docs.python.org/3/library/typing.html#typing.Generator">Generator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../#sift_client.util.test_results.ReportContext">ReportContext</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1409,12 +1600,58 @@ You're not viewing the latest version.
 <div class="doc doc-object doc-function">
 
 
-<h2 id="sift_client.util.test_results.pytest.step" class="doc doc-heading">
+<h2 id="sift_client.util.test_results.pytest_util.report_context_check_connection" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">report_context_check_connection</span>
+
+
+<a href="#sift_client.util.test_results.pytest_util.report_context_check_connection" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">report_context_check_connection</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">sift_client</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="../../../client/#sift_client.client.SiftClient">SiftClient</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">client_has_connection</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Generator" href="https://docs.python.org/3/library/typing.html#typing.Generator">Generator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../#sift_client.util.test_results.ReportContext">ReportContext</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create a report context for the session. Doesn't run if the client has no connection to the Sift server.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.util.test_results.pytest_util.step" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">step</span>
 
 
-<a href="#sift_client.util.test_results.pytest.step" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#sift_client.util.test_results.pytest_util.step" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">step</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">report_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../#sift_client.util.test_results.ReportContext">ReportContext</a></span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Generator" href="https://docs.python.org/3/library/typing.html#typing.Generator">Generator</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="../context_manager/#sift_client.util.test_results.context_manager.NewStep">NewStep</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create an outer step for the function.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="sift_client.util.test_results.pytest_util.step_check_connection" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">step_check_connection</span>
+
+
+<a href="#sift_client.util.test_results.pytest_util.step_check_connection" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">step_check_connection</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">report_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.ReportContext)" href="../#sift_client.util.test_results.ReportContext">ReportContext</a></span><span class="p">,</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">client_has_connection</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">request</span><span class="p">:</span> <span class="n"><span title="pytest.FixtureRequest">FixtureRequest</span></span><span class="p">,</span>
@@ -1423,7 +1660,7 @@ You're not viewing the latest version.
 
     <div class="doc doc-contents ">
 
-        <p>Create an outer step for the function.</p>
+        <p>Create an outer step for the function. Doesn't run if the client has no connection to the Sift server.</p>
 
 
     </div>

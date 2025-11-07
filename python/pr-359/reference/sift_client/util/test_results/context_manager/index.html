@@ -14,11 +14,11 @@
         <link rel="prev" href="../bounds/">
       
       
-        <link rel="next" href="../pytest/">
+        <link rel="next" href="../pytest_util/">
       
       
       <link rel="icon" href="../../../../../stylesheets/sift-favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.22">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.23">
     
     
       
@@ -1079,24 +1079,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.context_manager.NewStep.description" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;description
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.context_manager.NewStep.name" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.context_manager.NewStep.parent_step" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;parent_step
@@ -1145,6 +1127,15 @@ You're not viewing the latest version.
   <a href="#sift_client.util.test_results.context_manager.NewStep.substep" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;substep
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.context_manager.NewStep.update_step_from_result" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update_step_from_result
     </span>
   </a>
   
@@ -1312,12 +1303,12 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="../pytest/" class="md-nav__link">
+      <a href="../pytest_util/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    pytest
+    pytest_util
     
   </span>
   
@@ -1487,24 +1478,6 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.context_manager.NewStep.description" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;description
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.context_manager.NewStep.name" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.util.test_results.context_manager.NewStep.parent_step" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;parent_step
@@ -1553,6 +1526,15 @@ You're not viewing the latest version.
   <a href="#sift_client.util.test_results.context_manager.NewStep.substep" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;substep
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results.context_manager.NewStep.update_step_from_result" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update_step_from_result
     </span>
   </a>
   
@@ -1756,7 +1738,7 @@ You're not viewing the latest version.
             <td><code><a class="autorefs autorefs-internal" title="            NewStep (sift_client.util.test_results.context_manager.NewStep)" href="#sift_client.util.test_results.context_manager.NewStep">NewStep</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Context manager to create a new step in a test report.</p>
+                <p>Context manager to create a new step in a test report. See usage example in <strong>init</strong>.py.</p>
               </div>
             </td>
           </tr>
@@ -1764,7 +1746,7 @@ You're not viewing the latest version.
             <td><code><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.context_manager.ReportContext)" href="#sift_client.util.test_results.context_manager.ReportContext">ReportContext</a></code></td>
             <td class="doc-class-details">
               <div class="doc-md-description">
-                <p>Context for a new TestReport.</p>
+                <p>Context manager for a new TestReport. See usage example in <strong>init</strong>.py.</p>
               </div>
             </td>
           </tr>
@@ -1798,7 +1780,7 @@ You're not viewing the latest version.
 <a href="#sift_client.util.test_results.context_manager.NewStep" class="headerlink" title="Permanent link">&para;</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">NewStep</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">report_context</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ReportContext (sift_client.util.test_results.context_manager.ReportContext)" href="#sift_client.util.test_results.context_manager.ReportContext">ReportContext</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">description</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
 </span></code></pre></div>
@@ -1808,7 +1790,7 @@ You're not viewing the latest version.
               Bases: <code><a class="autorefs autorefs-external" title="contextlib.AbstractContextManager" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager">AbstractContextManager</a></code></p>
 
 
-        <p>Context manager to create a new step in a test report.</p>
+        <p>Context manager to create a new step in a test report. See usage example in <strong>init</strong>.py.</p>
 
         <p>Initialize a new step context.</p>
 
@@ -1848,11 +1830,7 @@ You're not viewing the latest version.
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
-                  </span>
-                  <span class="doc-param-default">
-                    <b>DEFAULT:</b>
-                      <code>None</code>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
                   </span>
               </p>
             </td>
@@ -1931,6 +1909,14 @@ You're not viewing the latest version.
                 </div>
               </td>
             </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            update_step_from_result (sift_client.util.test_results.context_manager.NewStep.update_step_from_result)" href="#sift_client.util.test_results.context_manager.NewStep.update_step_from_result">update_step_from_result</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Update the step based on its substeps and if there was an exception while executing the step.</p>
+                </div>
+              </td>
+            </tr>
       </tbody>
     </table>
 
@@ -1985,46 +1971,6 @@ You're not viewing the latest version.
   
       pydantic-model
    (sift_client.sift_types.test_report.TestStep)" href="../../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            description
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.util.test_results.context_manager.NewStep.description)" href="#sift_client.util.test_results.context_manager.NewStep.description">description</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                
-              </div>
-              <p>
-                  <span class="doc-attribute-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            name
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.util.test_results.context_manager.NewStep.name)" href="#sift_client.util.test_results.context_manager.NewStep.name">name</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                
-              </div>
-              <p>
-                  <span class="doc-attribute-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
                   </span>
               </p>
             </td>
@@ -2128,53 +2074,9 @@ You're not viewing the latest version.
 
   
       pydantic-model
-   (sift_client.sift_types.test_report.TestStep)" href="../../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sift_client.util.test_results.context_manager.NewStep.description" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">description</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
-      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
-  </span>
-
-<a href="#sift_client.util.test_results.context_manager.NewStep.description" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">description</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client.util.test_results.context_manager.NewStep(description)">description</span></span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sift_client.util.test_results.context_manager.NewStep.name" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">name</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
-      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
-  </span>
-
-<a href="#sift_client.util.test_results.context_manager.NewStep.name" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client.util.test_results.context_manager.NewStep(name)">name</span></span>
+   (sift_client.sift_types.test_report.TestStep)" href="../../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client.util.test_results.context_manager.NewStep(self).report_context.create_step">create_step</span></span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift_client.util.test_results.context_manager.NewStep(name)">name</span></span><span class="p">,</span> <span class="n"><span title="sift_client.util.test_results.context_manager.NewStep(description)">description</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2331,6 +2233,90 @@ You're not viewing the latest version.
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.util.test_results.context_manager.NewStep.update_step_from_result" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">update_step_from_result</span>
+
+
+<a href="#sift_client.util.test_results.context_manager.NewStep.update_step_from_result" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_step_from_result</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">exc</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#Exception">Exception</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">exc_value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#Exception">Exception</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">tb</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="traceback.TracebackException" href="https://docs.python.org/3/library/traceback.html#traceback.TracebackException">TracebackException</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Update the step based on its substeps and if there was an exception while executing the step.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>exc</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The class of Exception that was raised.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#Exception">Exception</a>] | None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>exc_value</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The exception value.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#Exception">Exception</a> | None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>tb</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The traceback object.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="traceback.TracebackException" href="https://docs.python.org/3/library/traceback.html#traceback.TracebackException">TracebackException</a> | None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
 
 
   </div>
@@ -2362,7 +2348,7 @@ You're not viewing the latest version.
               Bases: <code><a class="autorefs autorefs-external" title="contextlib.AbstractContextManager" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager">AbstractContextManager</a></code></p>
 
 
-        <p>Context for a new TestReport.</p>
+        <p>Context manager for a new TestReport. See usage example in <strong>init</strong>.py.</p>
 
         <p>Initialize a new report context.</p>
 
@@ -2907,6 +2893,83 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
 
         <p>Create a new step in the report context.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The name of the step.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>description</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The description of the step.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            TestStep
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.test_report.TestStep)" href="../../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The created step.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
