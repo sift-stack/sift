@@ -56,7 +56,9 @@ pub struct SiftStreamBuilder<C> {
     asset_tags: Option<Vec<String>>,
     asset_metadata: Option<Vec<MetadataValue>>,
     control_channel_capacity: usize,
-    data_channel_capacity: usize,
+    ingestion_data_channel_capacity: usize,
+    backup_data_channel_capacity: usize,
+    enable_compression_for_ingestion: bool,
 
     // Either `run` or `run_id`. If both are provided then the `run_id` will be prioritized.
     run: Option<RunForm>,
@@ -135,10 +137,17 @@ where
         self
     }
 
-    /// Sets the data channel capacity. See the [top-level documentation](crate#checkpoints)
+    /// Sets the ingestion data channel capacity. See the [top-level documentation](crate#checkpoints)
     /// for further details.
-    pub fn data_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
-        self.data_channel_capacity = capacity;
+    pub fn ingestion_data_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
+        self.ingestion_data_channel_capacity = capacity;
+        self
+    }
+
+    /// Sets the backup data channel capacity. See the [top-level documentation](crate#checkpoints)
+    /// for further details.
+    pub fn backup_data_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
+        self.backup_data_channel_capacity = capacity;
         self
     }
 
@@ -164,6 +173,17 @@ where
     // for whatever reason both are used, this will take precedent.
     pub fn attach_run_id(mut self, run_id: &str) -> SiftStreamBuilder<C> {
         self.run_id = Some(run_id.into());
+        self
+    }
+
+    /// Sets whether compression is enabled.
+    ///
+    /// Currently only gzip is supported.
+    ///
+    /// WARNING: Compression adds additional overhead both on the client and server, so can reduce
+    /// the overall throughput of a stream. It is not recommended to enable compression by default.
+    pub fn enable_compression_for_ingestion(mut self, enable: bool) -> SiftStreamBuilder<C> {
+        self.enable_compression_for_ingestion = enable;
         self
     }
 
@@ -200,6 +220,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             credentials: Some(credentials),
             channel: None,
             enable_tls: true,
+            enable_compression_for_ingestion: false,
             ingestion_config: None,
             run: None,
             run_id: None,
@@ -209,7 +230,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             asset_tags: None,
             asset_metadata: None,
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
-            data_channel_capacity: DATA_CHANNEL_CAPACITY,
+            ingestion_data_channel_capacity: DATA_CHANNEL_CAPACITY,
+            backup_data_channel_capacity: DATA_CHANNEL_CAPACITY,
         }
     }
 
@@ -219,6 +241,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             credentials: None,
             channel: Some(channel),
             enable_tls: true,
+            enable_compression_for_ingestion: false,
             ingestion_config: None,
             run: None,
             run_id: None,
@@ -228,7 +251,8 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             asset_tags: None,
             asset_metadata: None,
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
-            data_channel_capacity: DATA_CHANNEL_CAPACITY,
+            ingestion_data_channel_capacity: DATA_CHANNEL_CAPACITY,
+            backup_data_channel_capacity: DATA_CHANNEL_CAPACITY,
         }
     }
 
@@ -240,6 +264,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             channel: grpc_channel,
             credentials,
             enable_tls,
+            enable_compression_for_ingestion,
             ingestion_config,
             recovery_strategy,
             run,
@@ -342,9 +367,11 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             grpc_channel: channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion,
             recovery_config,
             control_channel_capacity: self.control_channel_capacity,
-            data_channel_capacity: self.data_channel_capacity,
+            ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,
+            backup_data_channel_capacity: self.backup_data_channel_capacity,
         };
 
         SiftStream::<IngestionConfigMode>::new(ingestion_config, flows, run, task_config, metrics)

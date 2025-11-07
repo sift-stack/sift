@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 class ReportContext(AbstractContextManager):
-    """Context for a new TestReport."""
+    """Context manager for a new TestReport. See usage example in __init__.py."""
 
     report: TestReport
     step_is_open: bool
@@ -103,7 +103,15 @@ class ReportContext(AbstractContextManager):
         return f"{prefix}{next_step_number}"
 
     def create_step(self, name: str, description: str | None = None) -> TestStep:
-        """Create a new step in the report context."""
+        """Create a new step in the report context.
+
+        Args:
+            name: The name of the step.
+            description: The description of the step.
+
+        Returns:
+            The created step.
+        """
         step_path = self.get_next_step_path()
         parent_step = self.step_stack[-1] if self.step_stack else None
 
@@ -172,19 +180,17 @@ class ReportContext(AbstractContextManager):
 
 
 class NewStep(AbstractContextManager):
-    """Context manager to create a new step in a test report."""
+    """Context manager to create a new step in a test report. See usage example in __init__.py."""
 
     report_context: ReportContext
     client: SiftClient
     current_step: TestStep | None = None
-    name: str | None = None
-    description: str | None = None
     parent_step: TestStep | None = None
 
     def __init__(
         self,
         report_context: ReportContext,
-        name: str | None = None,
+        name: str,
         description: str | None = None,
     ):
         """Initialize a new step context.
@@ -196,27 +202,38 @@ class NewStep(AbstractContextManager):
         """
         self.report_context = report_context
         self.client = report_context.report.client
-        self.description = description
-        self.name = name
+        self.current_step = self.report_context.create_step(name, description)
 
     def __enter__(self):
         """Enter the context manager to create a new step.
 
         returns: The current step.
         """
-        self.current_step = self.report_context.create_step(self.name, self.description)
-        self.name = self.current_step.name
-
         return self
 
-    def __exit__(self, exc, exc_value, tb):
+    def update_step_from_result(
+        self,
+        exc: type[Exception] | None,
+        exc_value: Exception | None,
+        tb: traceback.TracebackException | None,
+    ):
+        """Update the step based on its substeps and if there was an exception while executing the step.
+
+        Args:
+            exc: The class of Exception that was raised.
+            exc_value: The exception value.
+            tb: The traceback object.
+        """
         error_info = None
         if exc:
-            trace = "".join(traceback.format_exception(exc, exc_value, tb, limit=10))
+            stack = traceback.format_exception(exc, exc_value, tb)  # type: ignore
+            stack = [stack[0], *stack[-10:]] if len(stack) > 10 else stack
+            trace = "".join(stack)
             error_info = ErrorInfo(
                 error_code=1,
                 error_message=trace,
             )
+        assert self.current_step is not None
 
         # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
         result = self.report_context.resolve_and_propagate_step_result(
@@ -224,7 +241,9 @@ class NewStep(AbstractContextManager):
         )
 
         # Mark the step as completed
-        status = TestStatus.PASSED if result else TestStatus.FAILED
+        status = self.current_step.status
+        if status == TestStatus.IN_PROGRESS:
+            status = TestStatus.PASSED if result else TestStatus.FAILED
         if error_info:
             status = TestStatus.ERROR
         self.current_step.update(
@@ -234,6 +253,9 @@ class NewStep(AbstractContextManager):
                 "error_info": error_info,
             }
         )
+
+    def __exit__(self, exc, exc_value, tb):
+        self.update_step_from_result(exc, exc_value, tb)
 
         # Now that the step is updated. Let the report context handle removing it from the stack and updating the report context.
         self.report_context.exit_step(self.current_step)

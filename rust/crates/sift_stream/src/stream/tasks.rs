@@ -7,15 +7,16 @@ use crate::{
 use async_channel;
 use sift_connect::SiftChannel;
 use sift_error::prelude::*;
-use sift_rs::ingest::v1::{
-    IngestWithConfigDataStreamRequest, ingest_service_client::IngestServiceClient,
+use sift_rs::{
+    CompressionEncoding,
+    ingest::v1::{IngestWithConfigDataStreamRequest, ingest_service_client::IngestServiceClient},
 };
 use std::{path::PathBuf, pin::Pin, sync::Arc, time::Duration};
 use tokio::{sync::broadcast, task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
 /// Capacity for the data channel.
-pub(crate) const DATA_CHANNEL_CAPACITY: usize = 1024 * 10;
+pub(crate) const DATA_CHANNEL_CAPACITY: usize = 1024 * 100;
 
 /// Capacity for the control channel.
 pub(crate) const CONTROL_CHANNEL_CAPACITY: usize = 1024;
@@ -47,31 +48,33 @@ pub(crate) enum ControlMessage {
 }
 
 #[derive(Clone)]
-pub struct RecoveryConfig {
-    pub retry_policy: RetryPolicy,
-    pub backups_enabled: bool,
-    pub backups_directory: String,
-    pub backups_prefix: String,
-    pub backup_policy: DiskBackupPolicy,
+pub(crate) struct RecoveryConfig {
+    pub(crate) retry_policy: RetryPolicy,
+    pub(crate) backups_enabled: bool,
+    pub(crate) backups_directory: String,
+    pub(crate) backups_prefix: String,
+    pub(crate) backup_policy: DiskBackupPolicy,
 }
 
 /// Configuration for the task-based SiftStream
 #[derive(Clone)]
-pub struct TaskConfig {
-    pub sift_stream_id: Uuid,
-    pub grpc_channel: SiftChannel,
-    pub metrics: Arc<SiftStreamMetrics>,
-    pub checkpoint_interval: Duration,
-    pub recovery_config: RecoveryConfig,
-    pub control_channel_capacity: usize,
-    pub data_channel_capacity: usize,
+pub(crate) struct TaskConfig {
+    pub(crate) sift_stream_id: Uuid,
+    pub(crate) grpc_channel: SiftChannel,
+    pub(crate) metrics: Arc<SiftStreamMetrics>,
+    pub(crate) checkpoint_interval: Duration,
+    pub(crate) enable_compression_for_ingestion: bool,
+    pub(crate) recovery_config: RecoveryConfig,
+    pub(crate) control_channel_capacity: usize,
+    pub(crate) ingestion_data_channel_capacity: usize,
+    pub(crate) backup_data_channel_capacity: usize,
 }
 
 /// Data message with stream ID for routing
 #[derive(Debug, Clone)]
-pub struct DataMessage {
-    pub request: IngestWithConfigDataStreamRequest,
-    pub dropped_for_ingestion: bool,
+pub(crate) struct DataMessage {
+    pub(crate) request: IngestWithConfigDataStreamRequest,
+    pub(crate) dropped_for_ingestion: bool,
 }
 
 /// Handles for the three main tasks
@@ -90,8 +93,9 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     let (control_tx, _control_rx) = broadcast::channel(config.control_channel_capacity);
 
     // Create data channel for high-frequency data messages
-    let (ingestion_tx, ingestion_rx) = async_channel::bounded(config.data_channel_capacity);
-    let (backup_tx, backup_rx) = async_channel::bounded(config.data_channel_capacity);
+    let (ingestion_tx, ingestion_rx) =
+        async_channel::bounded(config.ingestion_data_channel_capacity);
+    let (backup_tx, backup_rx) = async_channel::bounded(config.backup_data_channel_capacity);
 
     // Clone the sender for each task
     let backup_control_tx = control_tx.clone();
@@ -150,6 +154,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     let reingestion_task = BackupIngestTask::new(
         reingestion_control_tx.subscribe(),
         reingestion_config.grpc_channel,
+        reingestion_config.enable_compression_for_ingestion,
         reingest_retry_policy,
         reingestion_config
             .recovery_config
@@ -233,6 +238,14 @@ impl IngestionTask {
                 // any race conditions in that task being polled for the first time and other
                 // events occurring in the system.
                 let mut client = IngestServiceClient::new(self.config.grpc_channel.clone());
+
+                // If compression is enabled, add the compression codecs to the client.
+                if self.config.enable_compression_for_ingestion {
+                    client = client
+                        .send_compressed(CompressionEncoding::Gzip)
+                        .accept_compressed(CompressionEncoding::Gzip);
+                }
+
                 let data_stream = DataStream::new(
                     self.data_rx.clone(),
                     self.control_tx.clone(),
@@ -485,8 +498,10 @@ mod tests {
             grpc_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion: false,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -543,8 +558,10 @@ mod tests {
             grpc_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion: false,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -595,8 +612,10 @@ mod tests {
             grpc_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion: false,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -657,8 +676,10 @@ mod tests {
             grpc_channel,
             metrics: metrics.clone(),
             checkpoint_interval: Duration::from_secs(60),
+            enable_compression_for_ingestion: false,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -733,8 +754,10 @@ mod tests {
             grpc_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion: false,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy {
                     max_attempts: 3,
@@ -825,8 +848,10 @@ mod tests {
             grpc_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion: false,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -895,8 +920,10 @@ mod tests {
             grpc_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
+            enable_compression_for_ingestion: false,
             control_channel_capacity: 128,
-            data_channel_capacity: 128,
+            ingestion_data_channel_capacity: 128,
+            backup_data_channel_capacity: 128,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,

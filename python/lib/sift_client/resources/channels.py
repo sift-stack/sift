@@ -73,6 +73,7 @@ class ChannelsAPIAsync(ResourceBase):
         modified_before: datetime | None = None,
         # channel specific
         asset: Asset | str | None = None,
+        assets: list[str | Asset] | None = None,
         run: Run | str | None = None,
         # common filters
         description_contains: str | None = None,
@@ -89,11 +90,12 @@ class ChannelsAPIAsync(ResourceBase):
             name_contains: Partial name of the channel.
             name_regex: Regular expression to filter channels by name.
             channel_ids: Filter to channels with any of these IDs.
-            created_after: Filter channels created after this datetime.
-            created_before: Filter channels created before this datetime.
+            created_after: Filter channels created after this datetime. Note: This is related to the channel creation time, not the timestamp of the underlying data.
+            created_before: Filter channels created before this datetime. Note: This is related to the channel creation time, not the timestamp of the underlying data.
             modified_after: Filter channels modified after this datetime.
             modified_before: Filter channels modified before this datetime.
             asset: Filter channels associated with this Asset or asset ID.
+            assets: Filter channels associated with these Assets or asset IDs.
             run: Filter channels associated with this Run or run ID.
             description_contains: Partial description of the channel.
             include_archived: If True, include archived channels in results.
@@ -123,8 +125,13 @@ class ChannelsAPIAsync(ResourceBase):
         if channel_ids:
             filter_parts.append(cel.in_("channel_id", channel_ids))
         if asset is not None:
-            asset_id = asset.id_ if isinstance(asset, Asset) else asset
+            asset_id = asset._id_or_error if isinstance(asset, Asset) else asset
             filter_parts.append(cel.equals("asset_id", asset_id))
+        if assets:
+            asset_ids = [
+                asset._id_or_error if isinstance(asset, Asset) else asset for asset in assets
+            ]
+            filter_parts.append(cel.in_("asset_id", asset_ids))
         if run is not None:
             run_id = run.id_ if isinstance(run, Run) else run
             filter_parts.append(cel.equals("run_id", run_id))
