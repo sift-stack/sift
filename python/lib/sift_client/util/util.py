@@ -7,6 +7,7 @@ if TYPE_CHECKING:
         AssetsAPIAsync,
         CalculatedChannelsAPIAsync,
         ChannelsAPIAsync,
+        FileAttachmentsAPIAsync,
         IngestionAPIAsync,
         PingAPIAsync,
         ReportsAPIAsync,
@@ -49,6 +50,9 @@ class AsyncAPIs(NamedTuple):
 
     test_results: TestResultsAPIAsync
     """Instance of the Test Results API for making asynchronous requests."""
+
+    file_attachments: FileAttachmentsAPIAsync
+    """Instance of the File Attachments API for making asynchronous requests."""
 
 
 def count_non_none(*args: Any) -> int:

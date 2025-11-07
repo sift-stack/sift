@@ -33,11 +33,11 @@ from sift_client.sift_types._base import (
     ModelCreateUpdateBase,
     ModelUpdate,
 )
+from sift_client.sift_types._mixins.file_attachments import AttachmentsMixin
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.remote_file import RemoteFile
 
 
 class TestStatus(Enum):
@@ -514,7 +514,7 @@ class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
         )
 
 
-class TestReport(BaseType[TestReportProto, "TestReport"]):
+class TestReport(BaseType[TestReportProto, "TestReport"], AttachmentsMixin):
     """TestReport model representing a test report."""
 
     status: TestStatus
@@ -605,38 +605,6 @@ class TestReport(BaseType[TestReportProto, "TestReport"]):
         updated_test_report = self.client.test_results.unarchive(test_report=self)
         self._update(updated_test_report)
         return self
-
-    async def remote_files(self) -> list[RemoteFile]:
-        """Get the remote files associated with this test report.
-
-        Returns:
-            A list of RemoteFile objects attached to this test report.
-        """
-        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
-        from sift_client.util import cel_utils as cel
-
-        low_level_client = RemoteFilesLowLevelClient(self.client.grpc_client)
-
-        # Build CEL filter for entity_id and entity_type
-        filter_expr = cel.and_(
-            cel.equals("entity_id", self.id_), cel.equals("entity_type", "ENTITY_TYPE_TEST_REPORT")
-        )
-
-        return await low_level_client.list_all_remote_files(query_filter=filter_expr)
-
-    async def remote_file(self, file_id: str) -> RemoteFile:
-        """Get a specific remote file by ID.
-
-        Args:
-            file_id: The ID of the remote file to retrieve.
-
-        Returns:
-            The RemoteFile object.
-        """
-        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
-
-        low_level_client = RemoteFilesLowLevelClient(self.client.grpc_client)
-        return await low_level_client.get_remote_file(file_id)
 
     @property
     def steps(self) -> list[TestStep]:  # type: ignore

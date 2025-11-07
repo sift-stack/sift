@@ -22,6 +22,7 @@ from sift_client.resources import (
     TestResultsAPI,
     TestResultsAPIAsync,
 )
+from sift_client.resources.sync_stubs import FileAttachmentsAPI
 from sift_client.transport import (
     GrpcClient,
     GrpcConfig,
@@ -146,6 +147,8 @@ class SiftClient(
         self.runs = RunsAPI(self)
         self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
+        self.file_attachments = FileAttachmentsAPI(self)
+
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
             ping=PingAPIAsync(self),
@@ -158,6 +161,7 @@ class SiftClient(
             runs=RunsAPIAsync(self),
             tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
+            file_attachments=FileAttachmentsAPIAsync(self),
         )
 
     @property
