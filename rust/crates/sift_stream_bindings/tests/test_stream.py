@@ -50,8 +50,7 @@ class TestSiftStreamBuilder:
         assert builder.enable_tls is True
         assert builder.ingestion_config is None
         assert builder.recovery_strategy is None
-        assert builder.checkpoint_interval.secs == 60
-        assert builder.checkpoint_interval.nanos == 0
+        assert builder.checkpoint_interval is None
 
     def test_set_ingestion_config(self):
         """Test setting ingestion config on builder."""

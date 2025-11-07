@@ -1,6 +1,6 @@
 [package]
 name = "sift-stream-bindings"
-version = "0.2.0"
+version = "0.2.0-rc.1"
 edition = { workspace = true }
 authors = { workspace = true }
 homepage = { workspace = true }
@@ -21,9 +21,9 @@ path = "src/bin/stub_gen.rs"
 [dependencies]
 pyo3 = { version = "0.25.0" }
 pyo3-stub-gen = { version = "0.10.0" }
-sift_rs = { version = "0.7.0-rc" }
-sift_stream = { version = "0.7.0-rc", features = ["metrics-unstable"] }
-sift_error = { version = "0.7.0-rc" }
+sift_rs = { version = "0.7.0-rc.2" }
+sift_stream = { version = "0.7.0-rc.2", features = ["metrics-unstable"] }
+sift_error = { version = "0.7.0-rc.2" }
 tokio = { version = "1.43.0", features = ["rt", "sync", "time", "macros"] }
 pyo3-async-runtimes = { version = "0.25.0", features = ["tokio-runtime"] }
 pbjson-types = { workspace = true }
