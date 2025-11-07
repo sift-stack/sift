@@ -270,10 +270,8 @@ class TestResultsTest:
             # Verify low-level client was instantiated with grpc_client
             mock_low_level_client.assert_called_once_with(mock_client.grpc_client)
 
-            # Verify get_remote_file was called with correct file_id and sift_client
-            mock_low_level_client_instance.get_remote_file.assert_called_once_with(
-                file_id, sift_client=None
-            )
+            # Verify get_remote_file was called with correct file_id
+            mock_low_level_client_instance.get_remote_file.assert_called_once_with(file_id)
 
             # Verify result
             assert result == mock_remote_file
