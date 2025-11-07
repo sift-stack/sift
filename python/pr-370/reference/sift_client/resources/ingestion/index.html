@@ -949,6 +949,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_flow_config
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_metrics_snapshot" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_metrics_snapshot
@@ -1644,6 +1653,15 @@ You're not viewing the latest version.
   <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.finish" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;finish
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_flow_config
     </span>
   </a>
   
@@ -2695,6 +2713,14 @@ a high-performance, low-latency, and reliable streaming interface to Sift.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            get_flow_config (sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config">get_flow_config</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Retrieve a flow configuration by name.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            get_metrics_snapshot (sift_client.resources.ingestion.IngestionConfigStreamingClient.get_metrics_snapshot)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_metrics_snapshot">get_metrics_snapshot</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -2811,7 +2837,7 @@ a high-performance, low-latency, and reliable streaming interface to Sift.</p>
   </span>
 
 <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.add_new_flows" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_new_flows</span><span class="p">(</span><span class="n">flow_configs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            FlowConfig
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_new_flows</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">flow_configs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            FlowConfig
 
 
   
@@ -2876,7 +2902,8 @@ be used in subsequent <code>send</code> calls.</p>
   </span>
 
 <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.attach_run" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">attach_run</span><span class="p">(</span><span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RunCreate
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">attach_run</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            RunCreate
 
 
   
@@ -2886,7 +2913,8 @@ be used in subsequent <code>send</code> calls.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="sift_stream_bindings.RunFormPy">RunFormPy</span></span><span class="p">)</span>
+   (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a></span> <span class="o">|</span> <span class="n"><span title="sift_stream_bindings.RunFormPy">RunFormPy</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3299,6 +3327,112 @@ sent to Sift.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_flow_config</span>
+
+
+<a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_flow_config</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">flow_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            FlowConfig
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.FlowConfig)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retrieve a flow configuration by name.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>flow_name</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The name of the flow configuration to retrieve.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            FlowConfig
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.FlowConfig)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The FlowConfig associated with the given flow name.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+              <span class="doc-raises-annotation">
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#KeyError">KeyError</a></code>
+              </span>
+            </td>
+            <td class="doc-raises-details">
+              <div class="doc-md-description">
+                <p>If the flow name is not found in the known flows.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="sift_client.resources.ingestion.IngestionConfigStreamingClient.get_metrics_snapshot" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_metrics_snapshot</span>
 
@@ -3400,7 +3534,7 @@ atomically, and calls to get metric snapshots are non-blocking to stream operati
   </span>
 
 <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.send" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">send</span><span class="p">(</span><span class="n">flow</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Flow
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">send</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">flow</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Flow
 
 
   
@@ -3476,7 +3610,7 @@ backup system is lagging.</p>
 
 <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">send_requests</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">requests</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><span title="sift_stream_bindings.IngestWithConfigDataStreamRequestPy">IngestWithConfigDataStreamRequestPy</span></span><span class="p">],</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">requests</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><span title="sift_stream_bindings.IngestWithConfigDataStreamRequestPy">IngestWithConfigDataStreamRequestPy</span></span><span class="p">]</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </span></code></pre></div>
 
