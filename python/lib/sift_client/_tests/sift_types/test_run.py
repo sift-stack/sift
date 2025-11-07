@@ -217,7 +217,7 @@ class TestRun:
         mock_remote_files = [mock_remote_file]
 
         # Mock the low-level client
-        with patch("sift_client.sift_types.run.RemoteFilesLowLevelClient") as mock_low_level_client:
+        with patch("sift_client._internal.low_level_wrappers.RemoteFilesLowLevelClient") as mock_low_level_client:
             mock_low_level_client_instance = AsyncMock()
             mock_low_level_client_instance.list_all_remote_files.return_value = mock_remote_files
             mock_low_level_client.return_value = mock_low_level_client_instance
@@ -250,7 +250,7 @@ class TestRun:
         mock_remote_file.entity_id = mock_run.id_
 
         # Mock the low-level client
-        with patch("sift_client.sift_types.run.RemoteFilesLowLevelClient") as mock_low_level_client:
+        with patch("sift_client._internal.low_level_wrappers.RemoteFilesLowLevelClient") as mock_low_level_client:
             mock_low_level_client_instance = AsyncMock()
             mock_low_level_client_instance.get_remote_file.return_value = mock_remote_file
             mock_low_level_client.return_value = mock_low_level_client_instance
