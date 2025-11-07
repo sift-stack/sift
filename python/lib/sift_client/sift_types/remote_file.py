@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import requests
 from sift.remote_files.v1.remote_files_pb2 import EntityType
@@ -138,9 +138,12 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
 
         remote_file_client = RemoteFilesLowLevelClient(self.client.grpc_client)
         loop = self.client.get_asyncio_loop()
-        updated_remote_file: RemoteFile = asyncio.run_coroutine_threadsafe(
-            remote_file_client.update_remote_file(update=update, sift_client=self.client), loop
-        ).result()
+        updated_remote_file = cast(
+            RemoteFile,
+            asyncio.run_coroutine_threadsafe(
+                remote_file_client.update_remote_file(update=update, sift_client=self.client), loop
+            ).result(),
+        )
         return updated_remote_file
 
     def download_url(self) -> str:
