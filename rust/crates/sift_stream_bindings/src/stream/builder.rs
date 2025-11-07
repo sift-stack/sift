@@ -23,7 +23,7 @@ pub struct SiftStreamBuilderPy {
     #[pyo3(get, set)]
     recovery_strategy: Option<RecoveryStrategyPy>,
     #[pyo3(get, set)]
-    checkpoint_interval: DurationPy,
+    checkpoint_interval: Option<DurationPy>,
     #[pyo3(get, set)]
     run: Option<RunFormPy>,
     #[pyo3(get, set)]
@@ -46,7 +46,7 @@ impl SiftStreamBuilderPy {
             enable_tls: true,
             ingestion_config: None,
             recovery_strategy: None,
-            checkpoint_interval: DurationPy::new(60, 0),
+            checkpoint_interval: None,
             run: None,
             run_id: None,
             asset_tags: None,
@@ -72,7 +72,9 @@ impl SiftStreamBuilderPy {
             inner = inner.recovery_strategy(strategy.clone().into());
         }
 
-        inner = inner.checkpoint_interval(self.checkpoint_interval.into());
+        if let Some(checkpoint_interval) = self.checkpoint_interval.as_ref() {
+            inner = inner.checkpoint_interval((*checkpoint_interval).into())
+        }
 
         if let Some(run) = self.run.as_ref() {
             inner = inner.attach_run(run.clone().into());

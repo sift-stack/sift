@@ -47,7 +47,7 @@ fn init_tracing(level: &str) -> PyResult<()> {
     INIT_TRACING.call_once(|| {
         let filter = filter::Targets::new()
             .with_target("sift_stream", parsed_level)
-            .with_default(parsed_level);
+            .with_default(Level::WARN);
 
         let stdout_fmt_layer = tracing_subscriber::fmt::layer().with_filter(filter.clone());
 
@@ -98,7 +98,7 @@ fn init_tracing_with_file(
     INIT_TRACING.call_once(|| {
         let filter = filter::Targets::new()
             .with_target("sift_stream", parsed_level)
-            .with_default(parsed_level);
+            .with_default(Level::WARN);
 
         let stdout_fmt_layer = tracing_subscriber::fmt::layer().with_filter(filter.clone());
 
@@ -128,6 +128,11 @@ fn init_tracing_with_file(
         tracing::subscriber::set_global_default(subscriber).expect("Unable to setup tracing");
     });
     Ok(())
+}
+
+#[pyfunction]
+fn is_tracing_initialized() -> bool {
+    INIT_TRACING.is_completed()
 }
 
 // Cannot organize into submodules right now
@@ -165,5 +170,6 @@ fn sift_stream_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<stream::time::TimeValuePy>()?;
     m.add_function(wrap_pyfunction!(init_tracing, m)?)?;
     m.add_function(wrap_pyfunction!(init_tracing_with_file, m)?)?;
+    m.add_function(wrap_pyfunction!(is_tracing_initialized, m)?)?;
     Ok(())
 }
