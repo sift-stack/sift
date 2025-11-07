@@ -9,7 +9,7 @@ This module provides utilities for working with test results.
 ### Example
 
 ```python
-client = SiftClient(api_key=api_key,grpc_url=grpc_url,rest_url=rest_url)
+client = SiftClient(api_key=api_key, grpc_url=grpc_url, rest_url=rest_url)
 with ReportContext(client, name="Example Report") as rc:
     with rc.new_step(name="Setup") as step:
         controller_setup(step)
@@ -28,7 +28,7 @@ with ReportContext(client, name="Example Report") as rc:
 For a larger class or script, consider creating the context in a setup method and passing it to the test functions.
 ```python
 def main(self):
-    self.sift_client = SiftClient(api_key=api_key,grpc_url=grpc_url,rest_url=rest_url)
+    self.sift_client = SiftClient(api_key=api_key, grpc_url=grpc_url, rest_url=rest_url)
     with ReportContext(self.sift_client, name="Test Class", description="Test Class") as rc:
         setup(rc)
         test_one(rc)
@@ -57,11 +57,11 @@ def sift_client() -> SiftClient:
     rest_url = os.getenv("SIFT_REST_URI", "localhost:8080")
     api_key = os.getenv("SIFT_API_KEY", "")
 
-    client = SiftClient(api_key=api_key,grpc_url=grpc_url,rest_url=rest_url)
+    client = SiftClient(api_key=api_key, grpc_url=grpc_url, rest_url=rest_url)
 
     return client
 
-from sift_client.util.test_results import report_context, step, module_substep
+from sift_client.util.test_results import pytest_runtest_makereport, report_context, step, module_substep
 ```
 
 ###### Then in your test file:
@@ -83,6 +83,26 @@ def test_example(report_context, step):
 """
 
 from .context_manager import NewStep, ReportContext
-from .pytest_util import module_substep, report_context, step
+from .pytest_util import (
+    client_has_connection,
+    module_substep,
+    module_substep_check_connection,
+    pytest_runtest_makereport,
+    report_context,
+    report_context_check_connection,
+    step,
+    step_check_connection,
+)
 
-__all__ = ["NewStep", "ReportContext", "module_substep", "report_context", "step"]
+__all__ = [
+    "NewStep",
+    "ReportContext",
+    "client_has_connection",
+    "module_substep",
+    "module_substep_check_connection",
+    "pytest_runtest_makereport",
+    "report_context",
+    "report_context_check_connection",
+    "step",
+    "step_check_connection",
+]
