@@ -244,7 +244,7 @@ class SiftStreamBuilderPy:
     enable_tls: builtins.bool
     ingestion_config: typing.Optional[IngestionConfigFormPy]
     recovery_strategy: typing.Optional[RecoveryStrategyPy]
-    checkpoint_interval: DurationPy
+    checkpoint_interval: typing.Optional[DurationPy]
     run: typing.Optional[RunFormPy]
     run_id: typing.Optional[builtins.str]
     asset_tags: typing.Optional[builtins.list[builtins.str]]
