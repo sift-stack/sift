@@ -17,19 +17,57 @@ use sift_rs::{
 use tokio_stream::StreamExt;
 
 use crate::{
-    cli::ImportBackupArgs,
+    cli::{BackupLsArgs, ImportBackupArgs},
     cmd::Context,
     util::{api::create_grpc_channel, progress::Spinner, tty::Output},
 };
 
+pub async fn ls(_ctx: Context, args: BackupLsArgs) -> Result<ExitCode> {
+    // Use provided path or default to data directory
+    let path = args
+        .path
+        .unwrap_or_else(|| dirs::data_dir().expect("failed to determine data directory"));
+
+    // Collect all backup files recursively
+    let backup_files = collect_backup_files(&path)?;
+
+    if backup_files.is_empty() {
+        let mut output = Output::new();
+        output
+            .line(format!("No backup files found in {}", path.display()))
+            .eprint();
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    // Display the files
+    let mut output = Output::new();
+    output.line(format!(
+        "Found {} backup file(s) in {}:",
+        backup_files.len(),
+        path.display()
+    ));
+
+    for file in &backup_files {
+        output.line(format!("  {}", file.display()));
+    }
+    output.print();
+
+    Ok(ExitCode::SUCCESS)
+}
+
 pub async fn run(ctx: Context, args: ImportBackupArgs) -> Result<ExitCode> {
     let grpc_channel = create_grpc_channel(&ctx)?;
 
+    // Use provided path or default to data directory
+    let path = args
+        .path
+        .unwrap_or_else(|| dirs::data_dir().expect("failed to determine data directory"));
+
     // Collect all backup files recursively
-    let backup_files = collect_backup_files(&args.path)?;
+    let backup_files = collect_backup_files(&path)?;
 
     if backup_files.is_empty() {
-        return Err(anyhow!("no backup files found in {}", args.path.display()));
+        return Err(anyhow!("no backup files found in {}", path.display()));
     }
 
     // Process each backup file
@@ -48,7 +86,7 @@ pub async fn run(ctx: Context, args: ImportBackupArgs) -> Result<ExitCode> {
             .unwrap_or_else(|| backup_file.display().to_string());
 
         // Create a spinner for this file with standardized prefix
-        let spinner_prefix = format!("File {} of {}: {}", file_num, total_files, file_name);
+        let spinner_prefix = format!("File {file_num} of {total_files}: {file_name}");
 
         match process_backup_file(
             backup_file,
@@ -60,9 +98,9 @@ pub async fn run(ctx: Context, args: ImportBackupArgs) -> Result<ExitCode> {
         {
             Ok(_) => {
                 // Show complete state
-                spinner.set_message(format!("{} - {}", spinner_prefix, "Complete".green()));
+                spinner.set_message(format!("{spinner_prefix} - {}", "Complete".green()));
 
-                if args.delete_after_upload
+                if args.cleanup
                     && let Err(e) = std::fs::remove_file(backup_file)
                 {
                     failed_files.push((
@@ -73,7 +111,7 @@ pub async fn run(ctx: Context, args: ImportBackupArgs) -> Result<ExitCode> {
             }
             Err(e) => {
                 // Show error state
-                spinner.set_message(format!("{} - {}", spinner_prefix, "Error".red()));
+                spinner.set_message(format!("{spinner_prefix} - {}", "Error".red()));
                 failed_files.push((backup_file.clone(), e));
             }
         }
@@ -87,7 +125,7 @@ pub async fn run(ctx: Context, args: ImportBackupArgs) -> Result<ExitCode> {
         let mut output = Output::new();
         output.line(format!("Failed to process {} file(s):", failed_files.len()));
         for (file, error) in &failed_files {
-            output.line(format!("  {}: {}", file.display(), error));
+            output.line(format!("  {}: {error}", file.display()));
         }
         output.eprint();
         return Ok(ExitCode::FAILURE);
@@ -130,7 +168,7 @@ async fn process_backup_file(
     spinner_prefix: String,
 ) -> Result<()> {
     // Update spinner to show reading phase
-    spinner.set_message(format!("{} - {}", spinner_prefix, "Reading".green()));
+    spinner.set_message(format!("{spinner_prefix} - {}", "Reading".green()));
 
     // Read all messages into memory
     let file = File::open(backup_file).context("failed to open backup file")?;
@@ -143,7 +181,10 @@ async fn process_backup_file(
             Ok(msg) => messages.push(msg),
             Err(e) => {
                 Output::new()
-                    .line(format!("Warning: failed to decode message: {}", e))
+                    .line(format!(
+                        "{}: failed to decode message: {e}",
+                        "Warning".yellow()
+                    ))
                     .eprint();
             }
         }
@@ -163,10 +204,8 @@ async fn process_backup_file(
 
     // Initialize streaming message
     spinner_clone.set_message(format!(
-        "{} - {} (0% - 0/{} messages)",
-        spinner_prefix_clone,
-        "Streaming".green(),
-        total_messages
+        "{spinner_prefix_clone} - {} (0% - 0/{total_messages} messages)",
+        "Streaming".green()
     ));
 
     let message_stream = tokio_stream::iter(messages.into_iter()).map(move |msg| {
@@ -178,12 +217,8 @@ async fn process_backup_file(
             0
         };
         spinner_clone.set_message(format!(
-            "{} - {} ({}% - {}/{} messages)",
-            spinner_prefix_clone,
-            "Streaming".green(),
-            percentage,
-            current,
-            total_messages
+            "{spinner_prefix_clone} - {} ({percentage}% - {current}/{total_messages} messages)",
+            "Streaming".green()
         ));
 
         msg
@@ -199,11 +234,8 @@ async fn process_backup_file(
 
     // Show 100% completion before returning (caller will show Complete state)
     spinner.set_message(format!(
-        "{} - {} (100% - {}/{} messages)",
-        spinner_prefix,
-        "Streaming".green(),
-        total_messages,
-        total_messages
+        "{spinner_prefix} - {} (100% - {total_messages}/{total_messages} messages)",
+        "Streaming".green()
     ));
 
     Ok(())

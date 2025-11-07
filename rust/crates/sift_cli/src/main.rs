@@ -1,6 +1,6 @@
 use anyhow::{Context as AnyhowContext, Result};
 use crossterm::style::Stylize;
-use std::process::ExitCode;
+use std::{future::Future, process::ExitCode};
 use tokio::runtime;
 
 mod cli;
@@ -73,7 +73,12 @@ fn run(clargs: cli::Args) -> Result<ExitCode> {
                     run_future(cmd::import::parquet::flat_dataset::run(ctx, args))
                 }
             },
-            cli::ImportCmd::Backup(args) => run_future(cmd::import::backup::run(ctx, args)),
+            cli::ImportCmd::Backup(args) => match args.cmd {
+                Some(cli::BackupCmd::Ls(ls_args)) => {
+                    run_future(cmd::import::backup::ls(ctx, ls_args))
+                }
+                None => run_future(cmd::import::backup::run(ctx, args.import_args)),
+            },
         },
         Cmd::Export(cmd) => match cmd {
             cli::ExportCmd::Run(args) => run_future(cmd::export::run(ctx, args)),
