@@ -18,7 +18,6 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import Channel
-from sift_client.sift_types.remote_file import RemoteFile, RemoteFileEntityType, RemoteFileUpdate
 from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
