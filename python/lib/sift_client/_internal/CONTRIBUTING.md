@@ -1,3 +1,5 @@
+from sift_client import SiftClient
+
 # Contributing
 
 ## Style Guidelines
@@ -158,4 +160,68 @@ The `ResourceBase` class provides helper methods to build consistent CEL filter 
 
 To generate a sync API from an async API, add a `generate_sync_api` function call in `sift_client/resources/sync_stubs/__init__.py` and
 run the `dev gen-stubs` script to generate the associated type stubs.
+
+#### Complex Sift Resources
+
+For more complex Sift objects, such as `Reports` and `ReportTemplates`, 
+where the relationship is tightly coupled and there is a clear hierarchy, 
+the high-level API should implement a nested resource. 
+
+This is to:
+
+* Avoid too many top-level resources by logically grouping based on the domain
+* Ensure consistent CRUD method signatures - users should not need to look up the docs to know what methods are available
+
+For example, `Reports` should be implemented as a nested resource of `ReportTemplates`:
+
+```python
+# resources/reports.py
+
+class ReportTemplates(ResourceBase):
+    def __init__(self, client: SiftClient):
+        super().__init__(sift_client)
+        self._low_level_client = ReportTemplatesLowLevelClient(grpc_client=self.client.grpc_client)
+        
+    def get(self, report_template_id: str) -> ReportTemplate:
+        ...
+        
+    def list_(self, ...) -> List[ReportTemplate]:
+        ...
+    
+    def create(self, ...) -> ReportTemplate:
+        ...
+    
+    def update(self, ...) -> ReportTemplate:
+        ...
+
+class Reports(ResourceBase):
+
+    def __init__(self, client: SiftClient):
+        super().__init__(sift_client)
+        self._low_level_client = ReportsLowLevelClient(grpc_client=self.client.grpc_client)
+        self.report_templates = ReportTemplates(client=self.client)
+
+    def get(self, report_template_id: str) -> Report:
+        ...
+
+    def list_(self, ...) -> List[Report]:
+        ...
+
+    def create(self, ...) -> Report:
+        ...
+
+    def update(self, ...) -> Report:
+        ...
+        
+# Sift client access
+
+sc = SiftClient()
+
+# Get a specific report
+report = sc.reports.get(report_id)
+
+report_template = sc.reports.report_templates.get(report_template_id)
+```
+
+
 
