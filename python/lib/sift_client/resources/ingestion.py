@@ -314,6 +314,7 @@ class IngestionConfigStreamingClient(ResourceBase):
 
     This client should be initialized using the create classmethod, and not directly. Once streaming has ended, the client should be shutdown using the finish method.
     """
+
     def __init__(self, sift_client: SiftClient, low_level_client: IngestionConfigStreamingLowLevelClient):
         """Initialize an IngestionConfigStreamingClient. Users should not initialize this class directly, but rather use the create classmethod."""
         super().__init__(sift_client)
@@ -441,7 +442,7 @@ class IngestionConfigStreamingClient(ResourceBase):
 
         return cls(sift_client, low_level_client)
 
-    async def send(self, flow: Flow | FlowPy):
+    async def send(self, *, flow: Flow | FlowPy):
         """Send telemetry to Sift in the form of a Flow.
 
         This is the entry-point to send actual telemetry to Sift. If a message is sent that
@@ -469,7 +470,7 @@ class IngestionConfigStreamingClient(ResourceBase):
             flow_py = flow
         await self._low_level_client.send(flow_py)
 
-    async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
+    async def send_requests(self, *, requests: list[IngestWithConfigDataStreamRequestPy]):
         """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.
 
         This method offers a way to send data that matches the raw gRPC service interface. You are
@@ -484,7 +485,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         """
         await self._low_level_client.send_requests(requests)
 
-    async def add_new_flows(self, flow_configs: list[FlowConfig]):
+    async def add_new_flows(self, *, flow_configs: list[FlowConfig]):
         """Modify the existing ingestion config by adding new flows that weren't accounted for during initialization.
 
         This allows you to dynamically add new flow configurations to the ingestion config after
@@ -497,7 +498,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         flow_configs_py = [flow_config._to_rust_config() for flow_config in flow_configs]
         await self._low_level_client.add_new_flows(flow_configs_py)
 
-    async def attach_run(self, run: RunCreate | dict | str | Run | RunFormPy):
+    async def attach_run(self, *, run: RunCreate | dict | str | Run | RunFormPy):
         """Attach a run to the stream.
 
         Any data provided through `send` after this function returns will be associated with
@@ -564,6 +565,23 @@ class IngestionConfigStreamingClient(ResourceBase):
             A snapshot of the current stream metrics.
         """
         return self._low_level_client.get_metrics_snapshot()
+
+    def get_flow_config(self, *, flow_name: str) -> FlowConfig:
+        """Retrieve a flow configuration by name.
+
+        Args:
+            flow_name: The name of the flow configuration to retrieve.
+
+        Returns:
+            The FlowConfig associated with the given flow name.
+
+        Raises:
+            KeyError: If the flow name is not found in the known flows.
+        """
+        flow_config = self._low_level_client._known_flows.get(flow_name)
+        if flow_config is None:
+            raise KeyError(f"FlowConfig {flow_name} is unknown to the ingestion client")
+        return flow_config
 
     async def __aenter__(self):
         return self

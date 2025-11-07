@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from google.protobuf.empty_pb2 import Empty
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataStreamRequest as IngestWithConfigDataStreamRequestProto,
@@ -33,8 +33,6 @@ from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataTy
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from sift_stream_bindings import (
         ChannelConfigPy,
         ChannelDataTypePy,
@@ -89,6 +87,7 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
             flows = [flow_config._to_rust_config() for flow_config in self.flows],
             client_key = self.client_key or self.asset_name     # Default to using asset_name as the client_key
         )
+
 
 
 
@@ -161,6 +160,17 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             enum_types=channel.enum_types,
         )
 
+    @classmethod
+    def _from_rust_config(cls, channel_config_py: ChannelConfigPy) -> ChannelConfig:
+        return ChannelConfig(
+            name = channel_config_py.name,
+            description = channel_config_py.description or None,
+            unit = channel_config_py.unit or None,
+            data_type = ChannelDataType._from_rust_type(channel_config_py.data_type),
+            bit_field_elements = [ChannelBitFieldElement._from_rust_type(bfe) for bfe in channel_config_py.bit_field_elements],
+            enum_types = {enum.name: enum.key for enum in channel_config_py.enum_types},
+        )
+
     def _to_config_proto(self) -> ChannelConfigProto:
         """Convert to ChannelConfigProto for ingestion."""
         from sift.common.type.v1.channel_bit_field_element_pb2 import (
@@ -228,6 +238,13 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
             _client=sift_client,
         )
 
+    @classmethod
+    def _from_rust_config(cls, flow_config_py: FlowConfigPy) -> FlowConfig:
+        return FlowConfig(
+            name = flow_config_py.name,
+            channels = [ChannelConfig._from_rust_config(channel) for channel in flow_config_py.channels]
+        )
+
     def _to_proto(self) -> FlowConfigProto:
         return FlowConfigProto(
             name=self.name,
@@ -255,6 +272,34 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
             raise ValueError("Cannot add a channel to a flow after creation")
         self.channels.append(channel)
 
+    def as_flow(self, *, timestamp: datetime | None, values: dict[str, Any]) -> Flow:
+        """Create a Flow from this FlowConfig with the provided values.
+
+        Args:
+            timestamp: The timestamp for the flow. If None, uses the current UTC time.
+            values: A dictionary mapping channel names to their values. Only channels
+                present in this dictionary will be included in the resulting Flow.
+
+        Returns:
+            A Flow object with channel values created from the provided values dictionary.
+        """
+        found_values = {}
+        channel_values = []
+        for channel in self.channels:
+            if channel.name in values:
+                channel_values.append(channel.as_channel_value(values[channel.name]))
+                found_values[channel.name] = None
+
+        missing_values = values.keys() - found_values.keys()
+        if missing_values:
+            raise ValueError(f"Provided channel values which do not exist in the flow config: {missing_values}")
+
+        return Flow(
+            flow = self.name,
+            timestamp = timestamp or datetime.now(timezone.utc),
+            channel_values = channel_values
+        )
+
 
 class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
     """Model representing a data flow for ingestion.
@@ -267,7 +312,7 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
     model_config = ConfigDict(frozen=False)
     ingestion_config_id: str | None = None
     flow: str
-    timestamp: datetime
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     channel_values: list[ChannelValue]
     run_id: str | None = None
     end_stream_on_validation_error: bool | None = None

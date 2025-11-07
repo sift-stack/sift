@@ -228,10 +228,12 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
 class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     _sift_stream_instance: SiftStreamPy
+    _known_flows: dict[str, FlowConfig]
 
-    def __init__(self, sift_stream_instance: SiftStreamPy):
+    def __init__(self, sift_stream_instance: SiftStreamPy, known_flows: dict[str, FlowConfig]):
         super().__init__()
         self._sift_stream_instance = sift_stream_instance
+        self._known_flows = known_flows
 
     @classmethod
     async def create_sift_stream_instance(
@@ -289,7 +291,9 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
 
         sift_stream_instance = await builder.build()
 
-        return cls(sift_stream_instance)
+        known_flows = {flow.name: FlowConfig._from_rust_config(flow) for flow in ingestion_config.flows}
+
+        return cls(sift_stream_instance, known_flows)
 
     async def send(self, flow: FlowPy):
         await self._sift_stream_instance.send(flow)
@@ -298,6 +302,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         await self._sift_stream_instance.send_requests(requests)
 
     async def add_new_flows(self, flow_configs: list[FlowConfigPy]):
+        self._known_flows.update({flow_config.name: FlowConfig._from_rust_config(flow_config) for flow_config in flow_configs})
         await self._sift_stream_instance.add_new_flows(flow_configs)
 
     async def attach_run(self, run_selector: RunSelectorPy):
