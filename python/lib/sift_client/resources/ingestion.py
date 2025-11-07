@@ -367,7 +367,7 @@ class IngestionConfigStreamingClient(ResourceBase):
                 flows = [],
             )
         elif isinstance(ingestion_config, IngestionConfigCreate):
-            ingestion_config_form = ingestion_config.to_rust_form()
+            ingestion_config_form = ingestion_config._to_rust_form()
         else:
             ingestion_config_form = ingestion_config
 
@@ -451,7 +451,11 @@ class IngestionConfigStreamingClient(ResourceBase):
         Args:
             flow: The flow to send to Sift.
         """
-        await self._low_level_client.send(flow)
+        if isinstance(flow, Flow):
+            flow_py = flow._to_rust_form()
+        else:
+            flow_py = flow
+        await self._low_level_client.send(flow_py)
 
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.
@@ -546,6 +550,9 @@ class IngestionConfigStreamingClient(ResourceBase):
             A snapshot of the current stream metrics.
         """
         return self._low_level_client.get_metrics_snapshot()
+
+    async def __aenter__(self):
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.finish()

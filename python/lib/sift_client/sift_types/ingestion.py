@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 import math
 from typing import TYPE_CHECKING, Any
+from datetime import datetime, timezone
 
 from google.protobuf.empty_pb2 import Empty
-from pydantic import ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
 from sift.ingest.v1.ingest_pb2 import (
     IngestWithConfigDataStreamRequest as IngestWithConfigDataStreamRequestProto,
@@ -18,13 +19,13 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigProto,
+    CreateIngestionConfigFlowsRequest as FlowConfigsCreateProto,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
 )
 from sift_stream_bindings import IngestionConfigFormPy
 
-from sift_client._internal.low_level_wrappers.ingestion import to_rust_py_timestamp
 from sift_client.sift_types._base import (
     BaseType,
     ModelCreate,
@@ -262,16 +263,33 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
     A representation of the IngestWithConfigDataStreamRequest proto
     """
 
-    ingestion_config_id: str | None
+    model_config = ConfigDict(frozen=False)
+    ingestion_config_id: str | None = None
     flow: str
     timestamp: datetime
     channel_values: list[ChannelValue]
-    run_id: str | None
-    end_stream_on_validation_error: bool | None
-    organization_id: str | None
+    run_id: str | None = None
+    end_stream_on_validation_error: bool | None = None
+    organization_id: str | None = None
+
+    @classmethod
+    def _from_proto(
+        cls, proto: IngestWithConfigDataStreamRequestProto, sift_client: SiftClient | None = None
+    ) -> IngestionConfig:
+        return cls(
+            proto=proto,
+            ingestion_config_id = proto.ingestion_config_id,
+            flow = proto.flow,
+            timestamp = proto.timestamp.ToDatetime(tzinfo=timezone.utc),
+            channel_values = proto.channel_values,
+            run_id = proto.run_id,
+            end_stream_on_validation_error = proto.end_stream_on_validation_error,
+            organization_id = proto.organization_id,
+        )
 
     def _to_rust_form(self) -> FlowPy:
         from sift_stream_bindings import FlowPy
+        from sift_client._internal.low_level_wrappers.ingestion import to_rust_py_timestamp
 
         return FlowPy(
             flow_name = self.flow,
@@ -280,17 +298,19 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
         )
 
 
-class ChannelValue:
+class ChannelValue(BaseModel):
     """Model representing a channel value for ingestion.
 
     A ChannelValue represents the data of a channel to be ingested.
     """
 
+    model_config = ConfigDict(frozen=False)
     name: str
     ty: ChannelDataType
     value: Any
 
-    def _to_rust_form(self):
+    def to_rust_form(self):
+        """Convert this ChannelValue to its Rust form for ingestion."""
         from sift_stream_bindings import ChannelValuePy, ValuePy
 
         if self.ty == ChannelDataType.BIT_FIELD:

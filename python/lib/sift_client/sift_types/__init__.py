@@ -144,9 +144,9 @@ from sift_client.sift_types.channel import (
 from sift_client.sift_types.ingestion import (
     ChannelConfig,
     FlowConfig,
+    Flow,
     IngestionConfig,
-    RecoveryStrategyConfig,
-    RetryPolicyConfig,
+    IngestionConfigCreate,
 )
 from sift_client.sift_types.report import Report, ReportRuleStatus, ReportRuleSummary, ReportUpdate
 from sift_client.sift_types.rule import (
@@ -184,14 +184,14 @@ __all__ = [
     "ChannelConfig",
     "ChannelDataType",
     "ChannelReference",
+    "Flow",
     "FlowConfig",
     "IngestionConfig",
-    "RecoveryStrategyConfig",
+    "IngestionConfigCreate",
     "Report",
     "ReportRuleStatus",
     "ReportRuleSummary",
     "ReportUpdate",
-    "RetryPolicyConfig",
     "Rule",
     "RuleAction",
     "RuleActionType",
