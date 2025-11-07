@@ -138,7 +138,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
 
         remote_file_client = RemoteFilesLowLevelClient(self.client.grpc_client)
         loop = self.client.get_asyncio_loop()
-        updated_remote_file = asyncio.run_coroutine_threadsafe(
+        updated_remote_file: RemoteFile = asyncio.run_coroutine_threadsafe(
             remote_file_client.update_remote_file(update=update, sift_client=self.client), loop
         ).result()
         return updated_remote_file
