@@ -117,7 +117,7 @@ class ChannelDataType(Enum):
         # Use enum name for comparison to avoid PyO3 enum comparison issues
         # Extract the enum name from the string representation
         enum_str = str(channel_data_type_py)
-        enum_name = enum_str.split('.')[-1] if '.' in enum_str else enum_str
+        enum_name = enum_str.split(".")[-1] if "." in enum_str else enum_str
 
         mapping = {
             "Double": ChannelDataType.DOUBLE,
@@ -223,11 +223,13 @@ class ChannelBitFieldElement(BaseModel):
         )
 
     @classmethod
-    def _from_rust_type(cls, bit_field_element_py: ChannelBitFieldElementPy) -> ChannelBitFieldElement:
+    def _from_rust_type(
+        cls, bit_field_element_py: ChannelBitFieldElementPy
+    ) -> ChannelBitFieldElement:
         return ChannelBitFieldElement(
-            name = bit_field_element_py.name,
-            index = bit_field_element_py.index,
-            bit_count = bit_field_element_py.bit_count
+            name=bit_field_element_py.name,
+            index=bit_field_element_py.index,
+            bit_count=bit_field_element_py.bit_count,
         )
 
     def _to_proto(self) -> ChannelBitFieldElementPb:

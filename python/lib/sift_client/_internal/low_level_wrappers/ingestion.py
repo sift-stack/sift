@@ -91,7 +91,6 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         super().__init__(grpc_client=grpc_client)
 
-
     async def get_ingestion_config_flows(self, ingestion_config_id: str) -> list[FlowConfig]:
         """Get the flows for an ingestion config."""
         res = await self._grpc_client.get_stub(IngestionConfigServiceStub).GetIngestionConfig(
@@ -224,8 +223,6 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return ingestion_config_id
 
 
-
-
 class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     _sift_stream_instance: SiftStreamPy
     _known_flows: dict[str, FlowConfig]
@@ -276,8 +273,8 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
                 init_tracing(tracing_config.level)
 
         builder = SiftStreamBuilderPy(
-            uri = grpc_uri,
-            apikey = api_key,
+            uri=grpc_uri,
+            apikey=api_key,
         )
 
         builder.enable_tls = enable_tls
@@ -291,7 +288,9 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
 
         sift_stream_instance = await builder.build()
 
-        known_flows = {flow.name: FlowConfig._from_rust_config(flow) for flow in ingestion_config.flows}
+        known_flows = {
+            flow.name: FlowConfig._from_rust_config(flow) for flow in ingestion_config.flows
+        }
 
         return cls(sift_stream_instance, known_flows)
 
@@ -302,7 +301,12 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         await self._sift_stream_instance.send_requests(requests)
 
     async def add_new_flows(self, flow_configs: list[FlowConfigPy]):
-        self._known_flows.update({flow_config.name: FlowConfig._from_rust_config(flow_config) for flow_config in flow_configs})
+        self._known_flows.update(
+            {
+                flow_config.name: FlowConfig._from_rust_config(flow_config)
+                for flow_config in flow_configs
+            }
+        )
         await self._sift_stream_instance.add_new_flows(flow_configs)
 
     async def attach_run(self, run_selector: RunSelectorPy):

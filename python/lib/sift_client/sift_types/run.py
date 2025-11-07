@@ -172,7 +172,6 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
     def _get_proto_class(self) -> type[CreateRunRequestProto]:
         return CreateRunRequestProto
 
-
     def _to_rust_form(self) -> RunFormPy:
         from sift_stream_bindings import MetadataPy, MetadataValuePy, RunFormPy
 

@@ -80,15 +80,16 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
         from sift_stream_bindings import IngestionConfigFormPy
 
         if self.organization_id:
-            logger.warning("OrgId is ignored when passing an IngestionConfigCreate to the ingestion client")
+            logger.warning(
+                "OrgId is ignored when passing an IngestionConfigCreate to the ingestion client"
+            )
 
         return IngestionConfigFormPy(
-            asset_name = self.asset_name,
-            flows = [flow_config._to_rust_config() for flow_config in self.flows],
-            client_key = self.client_key or self.asset_name     # Default to using asset_name as the client_key
+            asset_name=self.asset_name,
+            flows=[flow_config._to_rust_config() for flow_config in self.flows],
+            client_key=self.client_key
+            or self.asset_name,  # Default to using asset_name as the client_key
         )
-
-
 
 
 class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
@@ -163,12 +164,15 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
     @classmethod
     def _from_rust_config(cls, channel_config_py: ChannelConfigPy) -> ChannelConfig:
         return ChannelConfig(
-            name = channel_config_py.name,
-            description = channel_config_py.description or None,
-            unit = channel_config_py.unit or None,
-            data_type = ChannelDataType._from_rust_type(channel_config_py.data_type),
-            bit_field_elements = [ChannelBitFieldElement._from_rust_type(bfe) for bfe in channel_config_py.bit_field_elements],
-            enum_types = {enum.name: enum.key for enum in channel_config_py.enum_types},
+            name=channel_config_py.name,
+            description=channel_config_py.description or None,
+            unit=channel_config_py.unit or None,
+            data_type=ChannelDataType._from_rust_type(channel_config_py.data_type),
+            bit_field_elements=[
+                ChannelBitFieldElement._from_rust_type(bfe)
+                for bfe in channel_config_py.bit_field_elements
+            ],
+            enum_types={enum.name: enum.key for enum in channel_config_py.enum_types},
         )
 
     def _to_config_proto(self) -> ChannelConfigProto:
@@ -230,7 +234,9 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
     run_id: str | None = None
 
     @classmethod
-    def _from_proto(cls, proto: FlowConfigProto, sift_client: SiftClient | None = None) -> FlowConfig:
+    def _from_proto(
+        cls, proto: FlowConfigProto, sift_client: SiftClient | None = None
+    ) -> FlowConfig:
         return cls(
             proto=proto,
             name=proto.name,
@@ -241,8 +247,10 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
     @classmethod
     def _from_rust_config(cls, flow_config_py: FlowConfigPy) -> FlowConfig:
         return FlowConfig(
-            name = flow_config_py.name,
-            channels = [ChannelConfig._from_rust_config(channel) for channel in flow_config_py.channels]
+            name=flow_config_py.name,
+            channels=[
+                ChannelConfig._from_rust_config(channel) for channel in flow_config_py.channels
+            ],
         )
 
     def _to_proto(self) -> FlowConfigProto:
@@ -292,12 +300,14 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
 
         missing_values = values.keys() - found_values.keys()
         if missing_values:
-            raise ValueError(f"Provided channel values which do not exist in the flow config: {missing_values}")
+            raise ValueError(
+                f"Provided channel values which do not exist in the flow config: {missing_values}"
+            )
 
         return Flow(
-            flow = self.name,
-            timestamp = timestamp or datetime.now(timezone.utc),
-            channel_values = channel_values
+            flow=self.name,
+            timestamp=timestamp or datetime.now(timezone.utc),
+            channel_values=channel_values,
         )
 
 
@@ -324,13 +334,13 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
     ) -> IngestionConfig:
         return cls(
             proto=proto,
-            ingestion_config_id = proto.ingestion_config_id,
-            flow = proto.flow,
-            timestamp = proto.timestamp.ToDatetime(tzinfo=timezone.utc),
-            channel_values = proto.channel_values,
-            run_id = proto.run_id,
-            end_stream_on_validation_error = proto.end_stream_on_validation_error,
-            organization_id = proto.organization_id,
+            ingestion_config_id=proto.ingestion_config_id,
+            flow=proto.flow,
+            timestamp=proto.timestamp.ToDatetime(tzinfo=timezone.utc),
+            channel_values=proto.channel_values,
+            run_id=proto.run_id,
+            end_stream_on_validation_error=proto.end_stream_on_validation_error,
+            organization_id=proto.organization_id,
         )
 
     def _to_rust_form(self) -> FlowPy:
@@ -339,9 +349,9 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
         from sift_client._internal.low_level_wrappers.ingestion import to_rust_py_timestamp
 
         return FlowPy(
-            flow_name = self.flow,
-            timestamp = to_rust_py_timestamp(self.timestamp),
-            values = [channel_value.to_rust_form() for channel_value in self.channel_values]
+            flow_name=self.flow,
+            timestamp=to_rust_py_timestamp(self.timestamp),
+            values=[channel_value.to_rust_form() for channel_value in self.channel_values],
         )
 
 
@@ -384,8 +394,8 @@ class ChannelValue(BaseModel):
             raise ValueError(f"Invalid data type: {self.ty}")
 
         return ChannelValuePy(
-            name = self.name,
-            value = value_py,
+            name=self.name,
+            value=value_py,
         )
 
 

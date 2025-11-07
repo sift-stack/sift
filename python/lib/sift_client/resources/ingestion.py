@@ -173,10 +173,14 @@ class RecoveryStrategyConfig:
         retry_policy_py = retry_policy or RetryPolicyPy.default()
 
         recovery_strategy_py = RecoveryStrategyPy.retry_only(retry_policy_py)
-        return cls(recovery_strategy_py = recovery_strategy_py)
+        return cls(recovery_strategy_py=recovery_strategy_py)
 
     @classmethod
-    def retry_with_backups(cls, retry_policy: RetryPolicyPy | None = None, disk_backup_policy: DiskBackupPolicyPy | None = None) -> RecoveryStrategyConfig:
+    def retry_with_backups(
+        cls,
+        retry_policy: RetryPolicyPy | None = None,
+        disk_backup_policy: DiskBackupPolicyPy | None = None,
+    ) -> RecoveryStrategyConfig:
         """Create a recovery strategy with retries re-ingestion using disk based backups.
 
         Args:
@@ -195,11 +199,10 @@ class RecoveryStrategyConfig:
         disk_backup_policy_py = disk_backup_policy or DiskBackupPolicyPy.default()
 
         recovery_strategy_py = RecoveryStrategyPy.retry_with_backups(
-            retry_policy = retry_policy_py,
-            disk_backup_policy = disk_backup_policy_py,
+            retry_policy=retry_policy_py,
+            disk_backup_policy=disk_backup_policy_py,
         )
-        return cls(recovery_strategy_py = recovery_strategy_py)
-
+        return cls(recovery_strategy_py=recovery_strategy_py)
 
 
 class IngestionAPIAsync(ResourceBase):
@@ -220,7 +223,6 @@ class IngestionAPIAsync(ResourceBase):
         """
         super().__init__(sift_client)
         self._low_level_client = IngestionLowLevelClient(grpc_client=self.client.grpc_client)
-
 
     async def create_ingestion_config_streaming_client(
         self,
@@ -315,7 +317,9 @@ class IngestionConfigStreamingClient(ResourceBase):
     This client should be initialized using the create classmethod, and not directly. Once streaming has ended, the client should be shutdown using the finish method.
     """
 
-    def __init__(self, sift_client: SiftClient, low_level_client: IngestionConfigStreamingLowLevelClient):
+    def __init__(
+        self, sift_client: SiftClient, low_level_client: IngestionConfigStreamingLowLevelClient
+    ):
         """Initialize an IngestionConfigStreamingClient. Users should not initialize this class directly, but rather use the create classmethod."""
         super().__init__(sift_client)
         self._low_level_client = low_level_client
@@ -373,9 +377,9 @@ class IngestionConfigStreamingClient(ResourceBase):
             # SiftStream will retrieve the existing config from the client_key
             asset_name = sift_client.assets.get(asset_id=ingestion_config.asset_id)
             ingestion_config_form = IngestionConfigFormPy(
-                asset_name = asset_name,
-                client_key = ingestion_config.client_key,
-                flows = [],
+                asset_name=asset_name,
+                client_key=ingestion_config.client_key,
+                flows=[],
             )
         elif isinstance(ingestion_config, IngestionConfigCreate):
             ingestion_config_form = ingestion_config._to_rust_form()
@@ -406,17 +410,16 @@ class IngestionConfigStreamingClient(ResourceBase):
         # Convert asset_tags to list of strings
         asset_tags_list: list[str] | None = None
         if asset_tags is not None:
-            asset_tags_list = [
-                tag.name if isinstance(tag, Tag) else tag for tag in asset_tags
-            ]
+            asset_tags_list = [tag.name if isinstance(tag, Tag) else tag for tag in asset_tags]
 
-         # Convert asset_metadata dict to list of MetadataPy
+        # Convert asset_metadata dict to list of MetadataPy
         asset_metadata_list: list[MetadataPy] | None = None
         if asset_metadata is not None:
             from sift_stream_bindings import MetadataPy
 
             asset_metadata_list = [
-                MetadataPy(key=key, value=MetadataValuePy(value)) for key, value in asset_metadata.items()
+                MetadataPy(key=key, value=MetadataValuePy(value))
+                for key, value in asset_metadata.items()
             ]
 
         # Convert checkpoint_interval_seconds to DurationPy
