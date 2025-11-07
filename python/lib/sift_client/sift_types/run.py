@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, ClassVar
 from pydantic import model_validator
 from sift.runs.v2.runs_pb2 import CreateRunRequest as CreateRunRequestProto
 from sift.runs.v2.runs_pb2 import Run as RunProto
-from sift_stream_bindings import MetadataPy, MetadataValuePy, RunFormPy
 
 from sift_client.sift_types._base import (
     BaseType,
@@ -19,6 +18,8 @@ from sift_client.sift_types.tag import Tag
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
+    from sift_stream_bindings import RunFormPy
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
 
@@ -173,6 +174,8 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
 
 
     def _to_rust_form(self) -> RunFormPy:
+        from sift_stream_bindings import MetadataPy, MetadataValuePy, RunFormPy
+
         if self.client_key:
             client_key = self.client_key
         else:

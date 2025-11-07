@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import TYPE_CHECKING, Any
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any
 
 from google.protobuf.empty_pb2 import Empty
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -19,12 +19,10 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     FlowConfig as FlowConfigProto,
-    CreateIngestionConfigFlowsRequest as FlowConfigsCreateProto,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
 )
-from sift_stream_bindings import IngestionConfigFormPy
 
 from sift_client.sift_types._base import (
     BaseType,
@@ -42,6 +40,7 @@ if TYPE_CHECKING:
         ChannelDataTypePy,
         FlowConfigPy,
         FlowPy,
+        IngestionConfigFormPy,
         IngestWithConfigDataChannelValuePy,
     )
 
@@ -80,6 +79,8 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
         return CreateIngestionConfigRequestProto
 
     def _to_rust_form(self) -> IngestionConfigFormPy:
+        from sift_stream_bindings import IngestionConfigFormPy
+
         if self.organization_id:
             logger.warning("OrgId is ignored when passing an IngestionConfigCreate to the ingestion client")
 
@@ -289,6 +290,7 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
 
     def _to_rust_form(self) -> FlowPy:
         from sift_stream_bindings import FlowPy
+
         from sift_client._internal.low_level_wrappers.ingestion import to_rust_py_timestamp
 
         return FlowPy(

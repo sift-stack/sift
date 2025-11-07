@@ -3,21 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from sift_stream_bindings import (
-    DiskBackupPolicyPy,
-    DurationPy,
-    FlowPy,
-    IngestionConfigFormPy,
-    IngestWithConfigDataStreamRequestPy,
-    MetadataPy,
-    MetadataValuePy,
-    RecoveryStrategyPy,
-    RetryPolicyPy,
-    RunFormPy,
-    RunSelectorPy,
-    SiftStreamMetricsSnapshotPy,
-)
-
 from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionConfigStreamingLowLevelClient,
     IngestionLowLevelClient,
@@ -27,6 +12,18 @@ from sift_client.sift_types.ingestion import Flow, IngestionConfig, IngestionCon
 from sift_client.sift_types.run import Run, RunCreate, Tag
 
 if TYPE_CHECKING:
+    from sift_stream_bindings import (
+        DiskBackupPolicyPy,
+        DurationPy,
+        FlowPy,
+        IngestionConfigFormPy,
+        IngestWithConfigDataStreamRequestPy,
+        MetadataPy,
+        RecoveryStrategyPy,
+        RetryPolicyPy,
+        RunFormPy,
+        SiftStreamMetricsSnapshotPy,
+    )
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.ingestion import FlowConfig
@@ -147,6 +144,8 @@ class RecoveryStrategyConfig:
             Most users should use the factory methods (`retry_only()` or `retry_with_backups()`)
             instead of calling this constructor directly.
         """
+        from sift_stream_bindings import RecoveryStrategyPy
+
         self._recovery_strategy_py = recovery_strategy_py or RecoveryStrategyPy.default()
 
     def to_rust_config(self) -> RecoveryStrategyPy:
@@ -169,6 +168,8 @@ class RecoveryStrategyConfig:
         Returns:
             A RecoveryStrategyConfig configured for retry-only strategy.
         """
+        from sift_stream_bindings import RecoveryStrategyPy, RetryPolicyPy
+
         retry_policy_py = retry_policy or RetryPolicyPy.default()
 
         recovery_strategy_py = RecoveryStrategyPy.retry_only(retry_policy_py)
@@ -188,6 +189,8 @@ class RecoveryStrategyConfig:
         Returns:
             A RecoveryStrategyConfig configured for retry with disk backups.
         """
+        from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
+
         retry_policy_py = retry_policy or RetryPolicyPy.default()
         disk_backup_policy_py = disk_backup_policy or DiskBackupPolicyPy.default()
 
@@ -349,6 +352,13 @@ class IngestionConfigStreamingClient(ResourceBase):
         Returns:
             An initialized IngestionConfigStreamingClient.
         """
+        from sift_stream_bindings import (
+            DurationPy,
+            IngestionConfigFormPy,
+            MetadataValuePy,
+            RunFormPy,
+        )
+
         instance = cls.__new__(cls)
         instance._sift_client = sift_client
 
@@ -411,6 +421,8 @@ class IngestionConfigStreamingClient(ResourceBase):
         # Convert checkpoint_interval_seconds to DurationPy
         checkpoint_interval: DurationPy | None = None
         if checkpoint_interval_seconds is not None:
+            from sift_stream_bindings import DurationPy
+
             checkpoint_interval = DurationPy(secs=checkpoint_interval_seconds, nanos=0)
 
         low_level_client = await IngestionConfigStreamingLowLevelClient.create_sift_stream_instance(
@@ -495,6 +507,8 @@ class IngestionConfigStreamingClient(ResourceBase):
         Args:
             run: The run to attach. Can be a Run, RunCreate, dict, run ID string, or RunFormPy.
         """
+        from sift_stream_bindings import RunFormPy, RunSelectorPy
+
         if isinstance(run, RunFormPy):
             run_selector_py = RunSelectorPy.by_form(run)
         elif isinstance(run, dict):

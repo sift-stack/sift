@@ -22,20 +22,6 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
 from sift.ingestion_configs.v2.ingestion_configs_pb2_grpc import (
     IngestionConfigServiceStub,
 )
-from sift_stream_bindings import (
-    DurationPy,
-    FlowConfigPy,
-    FlowPy,
-    IngestionConfigFormPy,
-    MetadataPy,
-    RecoveryStrategyPy,
-    RunSelectorPy,
-    SiftStreamBuilderPy,
-    SiftStreamMetricsSnapshotPy,
-    init_tracing,
-    init_tracing_with_file,
-    is_tracing_initialized,
-)
 
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
@@ -51,11 +37,16 @@ if TYPE_CHECKING:
 
     from sift_stream_bindings import (
         DurationPy,
+        FlowConfigPy,
+        FlowPy,
         IngestionConfigFormPy,
         IngestWithConfigDataStreamRequestPy,
         MetadataPy,
         RecoveryStrategyPy,
         RunFormPy,
+        RunSelectorPy,
+        SiftStreamBuilderPy,
+        SiftStreamMetricsSnapshotPy,
         SiftStreamPy,
         TimeValuePy,
     )
@@ -257,6 +248,13 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingLowLevelClient:
+        from sift_stream_bindings import (
+            SiftStreamBuilderPy,
+            init_tracing,
+            init_tracing_with_file,
+            is_tracing_initialized,
+        )
+
         from sift_client.resources.ingestion import TracingConfig
 
         if not is_tracing_initialized():

@@ -143,8 +143,8 @@ from sift_client.sift_types.channel import (
 )
 from sift_client.sift_types.ingestion import (
     ChannelConfig,
-    FlowConfig,
     Flow,
+    FlowConfig,
     IngestionConfig,
     IngestionConfigCreate,
 )
