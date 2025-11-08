@@ -74,8 +74,6 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                     )
             self.channel_cache.name_id_map[channel.name] = str(channel.id_)
 
-    # TODO: Cache calls. Only read cache if end_time is more than 30 min in the past.
-    #       Also, consider manually caching full channel data and evaluating start/end times while ignoring pagination. Do this ful caching at a higher  level though to handle case where pagination fails.
     async def _get_data_impl(
         self,
         *,
@@ -86,8 +84,27 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = None,
         page_token: str | None = None,
         order_by: str | None = None,
+        use_cache: bool = False,
+        force_refresh: bool = False,
+        cache_ttl: int | None = None,
     ) -> tuple[list[Any], str | None]:
-        """Get the data for a channel during a run."""
+        """Get the data for a channel during a run.
+
+        Args:
+            channel_ids: List of channel IDs to fetch data for.
+            run_id: Optional run ID to filter data.
+            start_time: Optional start time for the data range.
+            end_time: End time for the data range.
+            page_size: Number of results per page.
+            page_token: Token for pagination.
+            order_by: Field to order results by.
+            use_cache: Whether to enable caching for this request. Default: False.
+            force_refresh: Whether to force refresh the cache. Default: False.
+            cache_ttl: Optional custom TTL in seconds for cached responses.
+
+        Returns:
+            Tuple of (data list, next page token).
+        """
         queries = [
             Query(channel=ChannelQuery(channel_id=channel_id, run_id=run_id))
             for channel_id in channel_ids
@@ -102,7 +119,19 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         }
 
         request = GetDataRequest(**request_kwargs)
-        response = await self._grpc_client.get_stub(DataServiceStub).GetData(request)
+
+        # Use cache helper if caching is enabled
+        if use_cache or force_refresh:
+            response = await self._call_with_cache(
+                self._grpc_client.get_stub(DataServiceStub).GetData,
+                request,
+                use_cache=use_cache,
+                force_refresh=force_refresh,
+                ttl=cache_ttl,
+            )
+        else:
+            response = await self._grpc_client.get_stub(DataServiceStub).GetData(request)
+
         response = cast("GetDataResponse", response)
         return response.data, response.next_page_token  # type: ignore # mypy doesn't know RepeatedCompositeFieldContainer can be treated like a list
 

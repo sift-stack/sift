@@ -8,11 +8,16 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import enum
 import logging
 import threading
+from pathlib import Path
 from typing import Any
 
+from platformdirs import user_cache_dir
+from sift_py.grpc.cache import GrpcCache
 from sift_py.grpc.transport import (
+    SiftCacheConfig,
     SiftChannelConfig,
     use_sift_async_channel,
 )
@@ -34,6 +39,82 @@ def _suppress_blocking_io(loop, context):
     loop.default_exception_handler(context)
 
 
+DEFAULT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60  # 1 week
+DEFAULT_CACHE_FOLDER = Path(user_cache_dir("sift_client"))
+DEFAULT_CACHE_SIZE_LIMIT_BYTES = 5 * 1024**3  # 5GB
+
+
+class CacheMode(str, enum.Enum):
+    """Cache behavior modes.
+
+    - ENABLED: Cache is enabled and persists across sessions
+    - DISABLED: Cache is completely disabled
+    - CLEAR_ON_INIT: Cache is cleared when client is initialized (useful for notebooks)
+    """
+
+    ENABLED = "enabled"
+    DISABLED = "disabled"
+    CLEAR_ON_INIT = "clear_on_init"
+
+
+class CacheConfig:
+    """Configuration for gRPC response caching.
+
+    Attributes:
+        mode: Cache behavior mode (enabled, disabled, clear_on_init).
+        ttl: Time-to-live for cached entries in seconds. Default is 1 week.
+        cache_folder: Path to the cache directory. Default is system temp directory.
+        size_limit: Maximum size of the cache in bytes. Default is 5GB.
+    """
+
+    def __init__(
+        self,
+        mode: CacheMode = CacheMode.ENABLED,
+        ttl: int = DEFAULT_CACHE_TTL_SECONDS,
+        cache_folder: Path | str = DEFAULT_CACHE_FOLDER,
+        size_limit: int = DEFAULT_CACHE_SIZE_LIMIT_BYTES,
+    ):
+        """Initialize the cache configuration.
+
+        Args:
+            mode: Cache behavior mode (use CacheMode constants).
+            ttl: Time-to-live for cached entries in seconds.
+            cache_folder: Path to the cache directory.
+            size_limit: Maximum size of the cache in bytes.
+        """
+        self.mode = mode
+        self.ttl = ttl
+        self.cache_path = str(Path(cache_folder) / "grpc_cache")
+        self.size_limit = size_limit
+        self._should_clear_on_init = mode == CacheMode.CLEAR_ON_INIT
+
+    @property
+    def is_enabled(self) -> bool:
+        """Check if caching is enabled."""
+        return self.mode != CacheMode.DISABLED
+
+    @property
+    def should_clear_on_init(self) -> bool:
+        """Check if cache should be cleared on initialization."""
+        return self._should_clear_on_init
+
+    def to_sift_cache_config(self) -> SiftCacheConfig:
+        """Convert to a SiftCacheConfig for use with sift_py.grpc.transport.
+
+        Returns:
+            A SiftCacheConfig dictionary.
+        """
+        return {
+            "ttl": self.ttl,
+            "cache_path": self.cache_path,
+            "size_limit": self.size_limit,
+            "clear_on_init": self.should_clear_on_init,
+        }
+
+
+DEFAULT_CACHE_CONFIG = CacheConfig()
+
+
 class GrpcConfig:
     """Configuration for gRPC API clients."""
 
@@ -44,6 +125,7 @@ class GrpcConfig:
         use_ssl: bool = True,
         cert_via_openssl: bool = False,
         metadata: dict[str, str] | None = None,
+        cache_config: CacheConfig | None = None,
     ):
         """Initialize the gRPC configuration.
 
@@ -52,14 +134,15 @@ class GrpcConfig:
             api_key: The API key for authentication.
             use_ssl: Whether to use SSL/TLS.
             cert_via_openssl: Whether to use OpenSSL for SSL/TLS.
-            use_async: Whether to use async gRPC client.
             metadata: Additional metadata to include in all requests.
+            cache_config: Optional cache configuration. If None, caching is disabled.
         """
         self.uri = url
         self.api_key = api_key
         self.use_ssl = use_ssl
         self.cert_via_openssl = cert_via_openssl
         self.metadata = metadata or {}
+        self.cache_config = cache_config
 
     def _to_sift_channel_config(self) -> SiftChannelConfig:
         """Convert to a SiftChannelConfig.
@@ -67,12 +150,18 @@ class GrpcConfig:
         Returns:
             A SiftChannelConfig.
         """
-        return {
+        config: SiftChannelConfig = {
             "uri": self.uri,
             "apikey": self.api_key,
             "use_ssl": self.use_ssl,
             "cert_via_openssl": self.cert_via_openssl,
         }
+
+        # Add cache config if enabled
+        if self.cache_config and self.cache_config.is_enabled:
+            config["cache_config"] = self.cache_config.to_sift_cache_config()
+
+        return config
 
 
 class GrpcClient:
@@ -91,6 +180,10 @@ class GrpcClient:
         # map each asyncio loop to its async channel and stub dict
         self._channels_async: dict[asyncio.AbstractEventLoop, Any] = {}
         self._stubs_async_map: dict[asyncio.AbstractEventLoop, dict[type[Any], Any]] = {}
+
+        # Initialize cache if caching is enabled
+        self.cache = self._init_cache()
+
         # default loop for sync API
         self._default_loop = asyncio.new_event_loop()
         atexit.register(self.close_sync)
@@ -116,6 +209,24 @@ class GrpcClient:
         self._channels_async[self._default_loop] = channel
         self._stubs_async_map[self._default_loop] = {}
 
+    def _init_cache(self) -> GrpcCache | None:
+        """Initialize the GrpcCache instance if caching is enabled."""
+        if not self._config.cache_config or not self._config.cache_config.is_enabled:
+            return None
+
+        try:
+            cache_config = self._config.cache_config
+            sift_cache_config: SiftCacheConfig = {
+                "ttl": cache_config.ttl,
+                "cache_path": cache_config.cache_path,
+                "size_limit": cache_config.size_limit,
+                "clear_on_init": cache_config.mode == CacheMode.CLEAR_ON_INIT,
+            }
+            return GrpcCache(sift_cache_config)
+        except Exception as e:
+            logger.warning(f"Failed to initialize cache: {e}")
+            return None
+
     @property
     def default_loop(self) -> asyncio.AbstractEventLoop:
         """Return the default event loop used for synchronous API operations.
@@ -138,7 +249,7 @@ class GrpcClient:
 
         if loop not in self._channels_async:
             channel = use_sift_async_channel(
-                self._config._to_sift_channel_config(), self._config.metadata
+                self._config._to_sift_channel_config(), self._config.metadata, self.cache
             )
             self._channels_async[loop] = channel
             self._stubs_async_map[loop] = {}
@@ -181,4 +292,4 @@ class GrpcClient:
         self, cfg: SiftChannelConfig, metadata: dict[str, str] | None
     ) -> Any:
         """Helper to create async channel on default loop."""
-        return use_sift_async_channel(cfg, metadata)
+        return use_sift_async_channel(cfg, metadata, self.cache)

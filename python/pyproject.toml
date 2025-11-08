@@ -36,6 +36,8 @@ dependencies = [
     "types-protobuf>=5.0",
     "typing-extensions~=4.6",
     "types-requests~=2.25",
+    "diskcache~=5.6",
+    "platformdirs~=4.0"
 ]
 
 [project.urls]
@@ -148,6 +150,12 @@ ignore_errors = true
 module = "requests_toolbelt"
 ignore_missing_imports = true
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "diskcache"
+ignore_missing_imports = true
+ignore_errors = true
+
 
 [tool.setuptools.packages.find]
 where = ["lib"]

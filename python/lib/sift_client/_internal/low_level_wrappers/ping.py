@@ -33,6 +33,9 @@ class PingLowLevelClient(LowLevelClientBase, WithGrpcClient):
     It handles common concerns like error handling and retries.
     """
 
+    _cache_results: bool
+    """Whether to cache the results of the ping request. Used for testing."""
+
     def __init__(self, grpc_client: GrpcClient):
         """Initialize the PingLowLevelClient.
 
@@ -40,11 +43,14 @@ class PingLowLevelClient(LowLevelClientBase, WithGrpcClient):
             grpc_client: The gRPC client to use for making API calls.
         """
         super().__init__(grpc_client=grpc_client)
+        self._cache_results = False
 
-    async def ping(self) -> str:
+    async def ping(self, _force_refresh: bool = False) -> str:
         """Send a ping request to the server in the current event loop."""
         # get stub bound to this loop
         stub = self._grpc_client.get_stub(PingServiceStub)
         request = PingRequest()
-        response = await stub.Ping(request)
+        response = await self._call_with_cache(
+            stub.Ping, request, use_cache=self._cache_results, force_refresh=_force_refresh, ttl=1
+        )
         return cast("PingResponse", response).response
