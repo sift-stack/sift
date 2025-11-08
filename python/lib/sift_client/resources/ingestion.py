@@ -321,6 +321,7 @@ class IngestionConfigStreamingClient(ResourceBase):
             DurationPy,
             IngestionConfigFormPy,
             MetadataValuePy,
+            RecoveryStrategyPy,
             RunFormPy,
         )
 
