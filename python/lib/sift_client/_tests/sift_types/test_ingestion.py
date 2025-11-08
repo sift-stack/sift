@@ -6,7 +6,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
-from sift_client.sift_types.ingestion import ChannelConfig, Flow, IngestionConfig
+from sift_client.sift_types.ingestion import (
+    ChannelConfig,
+    Flow,
+    FlowConfig,
+    IngestionConfig,
+)
 
 
 class TestChannelConfig:
@@ -161,6 +166,69 @@ class TestFlow:
 
         with pytest.raises(ValueError, match="Ingestion config ID is not set"):
             flow.ingest(timestamp=timestamp, channel_values=channel_values)
+
+
+class TestFlowConfig:
+    """Unit tests for FlowConfig model."""
+
+    def test_as_flow_creates_flow_with_values(self):
+        """Test that as_flow creates a Flow with correct channel values."""
+        flow_config = FlowConfig(
+            name="test_flow",
+            channels=[
+                ChannelConfig(name="channel1", data_type=ChannelDataType.DOUBLE),
+                ChannelConfig(name="channel2", data_type=ChannelDataType.INT_64),
+            ],
+        )
+
+        timestamp = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        values = {"channel1": 42.5, "channel2": 100}
+
+        flow = flow_config.as_flow(timestamp=timestamp, values=values)
+
+        assert flow.flow == "test_flow"
+        assert flow.timestamp == timestamp
+        assert len(flow.channel_values) == 2
+        assert flow.channel_values[0].name == "channel1"
+        assert flow.channel_values[0].value == 42.5
+        assert flow.channel_values[1].name == "channel2"
+        assert flow.channel_values[1].value == 100
+
+    def test_as_flow_raises_on_unknown_channel(self):
+        """Test that as_flow raises ValueError for unknown channel values."""
+        flow_config = FlowConfig(
+            name="test_flow",
+            channels=[ChannelConfig(name="channel1", data_type=ChannelDataType.DOUBLE)],
+        )
+
+        timestamp = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        values = {"channel1": 42.5, "unknown_channel": 100}
+
+        with pytest.raises(
+            ValueError,
+            match="Provided channel values which do not exist in the flow config",
+        ):
+            flow_config.as_flow(timestamp=timestamp, values=values)
+
+    def test_as_flow_only_includes_provided_channels(self):
+        """Test that as_flow only includes channels with provided values."""
+        flow_config = FlowConfig(
+            name="test_flow",
+            channels=[
+                ChannelConfig(name="channel1", data_type=ChannelDataType.DOUBLE),
+                ChannelConfig(name="channel2", data_type=ChannelDataType.FLOAT),
+                ChannelConfig(name="channel3", data_type=ChannelDataType.INT_64),
+            ],
+        )
+
+        timestamp = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        values = {"channel1": 42.5, "channel3": 100}
+
+        flow = flow_config.as_flow(timestamp=timestamp, values=values)
+
+        assert len(flow.channel_values) == 2
+        assert flow.channel_values[0].name == "channel1"
+        assert flow.channel_values[1].name == "channel3"
 
 
 class TestIngestionConfig:

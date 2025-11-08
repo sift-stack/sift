@@ -442,3 +442,56 @@ class TestIngestionAPIAsync:
             flow.ingest(timestamp=timestamp2, channel_values={"test-channel": 2.0})
 
             sift_client.async_.ingestion.wait_for_ingestion_to_complete(timeout=2)
+
+    class TestIngestionConfigStreamingClient:
+        """Tests for IngestionConfigStreamingClient methods."""
+
+        @pytest.mark.asyncio
+        async def test_get_flow_config_retrieves_known_flow(self, sift_client, test_run):
+            """Test that get_flow_config retrieves a known flow configuration."""
+            from sift_client.sift_types.ingestion import FlowConfig, IngestionConfigCreate
+
+            flow_config = FlowConfig(
+                name="test-flow-config",
+                channels=[
+                    ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
+                ],
+            )
+
+            ingestion_config = IngestionConfigCreate(
+                asset_name=ASSET_NAME,
+                flows=[flow_config],
+            )
+
+            async with await sift_client.async_.ingestion.create_ingestion_config_streaming_client(
+                ingestion_config=ingestion_config,
+                run=test_run,
+            ) as client:
+                retrieved_flow = client.get_flow_config(flow_name="test-flow-config")
+                assert retrieved_flow.name == "test-flow-config"
+                assert len(retrieved_flow.channels) == 1
+                assert retrieved_flow.channels[0].name == "test-channel"
+
+        @pytest.mark.asyncio
+        async def test_get_flow_config_raises_on_unknown_flow(self, sift_client, test_run):
+            """Test that get_flow_config raises KeyError for unknown flow."""
+            from sift_client.sift_types.ingestion import FlowConfig, IngestionConfigCreate
+
+            flow_config = FlowConfig(
+                name="test-flow-config",
+                channels=[
+                    ChannelConfig(name="test-channel", data_type=ChannelDataType.DOUBLE),
+                ],
+            )
+
+            ingestion_config = IngestionConfigCreate(
+                asset_name=ASSET_NAME,
+                flows=[flow_config],
+            )
+
+            async with await sift_client.async_.ingestion.create_ingestion_config_streaming_client(
+                ingestion_config=ingestion_config,
+                run=test_run,
+            ) as client:
+                with pytest.raises(KeyError, match="FlowConfig unknown-flow is unknown"):
+                    client.get_flow_config(flow_name="unknown-flow")

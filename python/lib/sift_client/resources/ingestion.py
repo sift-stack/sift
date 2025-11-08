@@ -266,46 +266,6 @@ class IngestionAPIAsync(ResourceBase):
             tracing_config=tracing_config,
         )
 
-    async def create_ingestion_config(
-        self,
-        *,
-        asset_name: str,
-        run_id: str | None = None,
-        flows: list[FlowConfig],
-        client_key: str | None = None,
-    ) -> str:
-        """Create an ingestion config. This is provided for direct use of the ingestion config API, and not the preferred way to create ingestion configs for streaming through SiftClient.
-
-        Args:
-            asset_name: The name of the asset for this ingestion config.
-            run_id: Optionally provide a run ID to create a run for the given asset.
-            flows: List of flow configurations.
-            client_key: Optional client key for identifying this config.
-            organization_id: The organization ID.
-
-        Returns:
-            The ingestion config ID.
-
-        Raises:
-            ValueError: If asset_name is not provided or flows is empty.
-        """
-        if not asset_name:
-            raise ValueError("asset_name must be provided")
-        if not flows:
-            raise ValueError("flows must not be empty")
-
-        ingestion_config_id = await self._low_level_client.create_ingestion_config(
-            asset_name=asset_name,
-            flows=flows,
-            client_key=client_key,
-        )
-        for flow in flows:
-            flow._apply_client_to_instance(self.client)
-            if run_id:
-                flow.run_id = run_id
-
-        return ingestion_config_id
-
 
 class IngestionConfigStreamingClient(ResourceBase):
     """A client for streaming ingestion with an ingestion config.
@@ -375,9 +335,9 @@ class IngestionConfigStreamingClient(ResourceBase):
         # Convert the ingestion_config variants to a IngestionConfigFormPy
         if isinstance(ingestion_config, IngestionConfig):
             # SiftStream will retrieve the existing config from the client_key
-            asset_name = sift_client.assets.get(asset_id=ingestion_config.asset_id)
+            asset = sift_client.assets.get(asset_id=ingestion_config.asset_id)
             ingestion_config_form = IngestionConfigFormPy(
-                asset_name=asset_name,
+                asset_name=asset.name,
                 client_key=ingestion_config.client_key,
                 flows=[],
             )
@@ -387,9 +347,10 @@ class IngestionConfigStreamingClient(ResourceBase):
             ingestion_config_form = ingestion_config
 
         # Convert the recovery strategy variants
+        recovery_strategy_py: RecoveryStrategyPy | None = None
         if isinstance(recovery_strategy, RecoveryStrategyConfig):
             recovery_strategy_py = recovery_strategy.to_rust_config()
-        else:
+        elif isinstance(recovery_strategy, RecoveryStrategyPy):
             recovery_strategy_py = recovery_strategy
 
         # Convert the run variants to a run or run_id
@@ -520,6 +481,8 @@ class IngestionConfigStreamingClient(ResourceBase):
             run_form_py = run_create._to_rust_form()
             run_selector_py = RunSelectorPy.by_form(run_form_py)
         elif isinstance(run, Run):
+            if run.id_ is None:
+                raise ValueError("The Run object must contain a run_id")
             run_selector_py = RunSelectorPy.by_id(run.id_)
         elif isinstance(run, RunCreate):
             run_form_py = run._to_rust_form()

@@ -69,7 +69,7 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
     """Create model for IngestionConfig."""
 
     asset_name: str
-    flows: list[FlowConfig] = None
+    flows: list[FlowConfig] | None = None
     organization_id: str | None = None
     client_key: str | None = None
 
@@ -86,7 +86,7 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
 
         return IngestionConfigFormPy(
             asset_name=self.asset_name,
-            flows=[flow_config._to_rust_config() for flow_config in self.flows],
+            flows=[flow_config._to_rust_config() for flow_config in self.flows] if self.flows else [],
             client_key=self.client_key
             or self.asset_name,  # Default to using asset_name as the client_key
         )
@@ -280,7 +280,7 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
             raise ValueError("Cannot add a channel to a flow after creation")
         self.channels.append(channel)
 
-    def as_flow(self, *, timestamp: datetime | None, values: dict[str, Any]) -> Flow:
+    def as_flow(self, *, timestamp: datetime | None = None, values: dict[str, Any]) -> Flow:
         """Create a Flow from this FlowConfig with the provided values.
 
         Args:
@@ -291,7 +291,7 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
         Returns:
             A Flow object with channel values created from the provided values dictionary.
         """
-        found_values = {}
+        found_values: dict[str, None] = {}
         channel_values = []
         for channel in self.channels:
             if channel.name in values:
@@ -331,7 +331,7 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
     @classmethod
     def _from_proto(
         cls, proto: IngestWithConfigDataStreamRequestProto, sift_client: SiftClient | None = None
-    ) -> IngestionConfig:
+    ) -> Flow:
         return cls(
             proto=proto,
             ingestion_config_id=proto.ingestion_config_id,
