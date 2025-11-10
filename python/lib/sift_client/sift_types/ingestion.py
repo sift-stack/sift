@@ -24,6 +24,7 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
 )
 
+from sift_client._internal.low_level_wrappers.ingestion import _hash_flows
 from sift_client.sift_types._base import (
     BaseType,
     ModelCreate,
@@ -85,11 +86,15 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
                 "OrgId is ignored when passing an IngestionConfigCreate to the ingestion client"
             )
 
+        if self.client_key:
+            client_key = self.client_key
+        else:
+            client_key = _hash_flows(self.asset_name, self.flows)
+
         return IngestionConfigFormPy(
             asset_name=self.asset_name,
             flows=[flow_config._to_rust_config() for flow_config in self.flows] if self.flows else [],
-            client_key=self.client_key
-            or self.asset_name,  # Default to using asset_name as the client_key
+            client_key=client_key
         )
 
 

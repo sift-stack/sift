@@ -122,31 +122,7 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     def _hash_flows(self, asset_name: str, flows: list[FlowConfig]) -> str:
         """Generate a client key that should be unique but deterministic for the given asset and flow configuration."""
-        # TODO:  Taken from sift_py/ingestion/config/telemetry.py. Confirm intent from Marc.
-        m = hashlib.sha256()
-        m.update(asset_name.encode())
-        for flow in sorted(flows, key=lambda f: f.name):
-            m.update(flow.name.encode())
-            # Do not sort channels in alphabetical order since order matters.
-            for channel in flow.channels:
-                m.update(channel.name.encode())
-                # Use api_format for data type since that should be consistent between languages.
-                m.update(channel.data_type.hash_str(api_format=True).encode())
-                m.update((channel.description or "").encode())
-                m.update((channel.unit or "").encode())
-                if channel.bit_field_elements:
-                    for bfe in sorted(channel.bit_field_elements, key=lambda bfe: bfe.index):
-                        m.update(bfe.name.encode())
-                        m.update(str(bfe.index).encode())
-                        m.update(str(bfe.bit_count).encode())
-                if channel.enum_types:
-                    for enum_name, enum_key in sorted(
-                        channel.enum_types.items(), key=lambda it: it[1]
-                    ):
-                        m.update(str(enum_key).encode())
-                        m.update(enum_name.encode())
-
-        return m.hexdigest()
+        return _hash_flows(asset_name=asset_name, flows=flows)
 
 class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     _sift_stream_instance: SiftStreamPy
@@ -250,3 +226,32 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
 
     def get_metrics_snapshot(self) -> SiftStreamMetricsSnapshotPy:
         return self._sift_stream_instance.get_metrics_snapshot()
+
+
+def _hash_flows(asset_name: str, flows: list[FlowConfig]) -> str:
+    """Generate a client key that should be unique but deterministic for the given asset and flow configuration."""
+    # TODO:  Taken from sift_py/ingestion/config/telemetry.py. Confirm intent from Marc.
+    m = hashlib.sha256()
+    m.update(asset_name.encode())
+    for flow in sorted(flows, key=lambda f: f.name):
+        m.update(flow.name.encode())
+        # Do not sort channels in alphabetical order since order matters.
+        for channel in flow.channels:
+            m.update(channel.name.encode())
+            # Use api_format for data type since that should be consistent between languages.
+            m.update(channel.data_type.hash_str(api_format=True).encode())
+            m.update((channel.description or "").encode())
+            m.update((channel.unit or "").encode())
+            if channel.bit_field_elements:
+                for bfe in sorted(channel.bit_field_elements, key=lambda bfe: bfe.index):
+                    m.update(bfe.name.encode())
+                    m.update(str(bfe.index).encode())
+                    m.update(str(bfe.bit_count).encode())
+            if channel.enum_types:
+                for enum_name, enum_key in sorted(
+                    channel.enum_types.items(), key=lambda it: it[1]
+                ):
+                    m.update(str(enum_key).encode())
+                    m.update(enum_name.encode())
+
+    return m.hexdigest()
