@@ -31,9 +31,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = RemoteFilesLowLevelClient(grpc_client=self.client.grpc_client)
 
-    def get(
-        self, *, file_id: str | None = None, client_key: str | None = None
-    ) -> FileAttachment:
+    def get(self, *, file_id: str | None = None, client_key: str | None = None) -> FileAttachment:
         """Get a file attachment by ID."""
         ...
 
