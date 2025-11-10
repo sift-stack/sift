@@ -1898,6 +1898,7 @@ You're not viewing the latest version.
               Bases: <code><a class="autorefs autorefs-external" title="typing.TypedDict" href="https://docs.python.org/3/library/typing.html#typing.TypedDict">TypedDict</a></code></p>
 
 
+
         <p>Represents a single flow that will be sent to Sift. Because this class uses <code>sift_py.ingestion.channel.ChannelValue</code>
 which is a fully qualified channel value, a specific ordering of items in <code>channel_values</code> is not required. If a
 particular flow has 5 channels, it is okay to send only data for 3 channels using this class.</p>
@@ -2088,6 +2089,7 @@ particular flow has 5 channels, it is okay to send only data for 3 channels usin
               Bases: <code><span title="sift_py._internal.convert.protobuf.AsProtobuf">AsProtobuf</span></code></p>
 
 
+
         <p>Describes a flow which is a set of channels whose values are often ingested together, allowing
 users to send multiple data points for multiple channels in a single request.</p>
 <p><code>channel_by_fqn</code>:
@@ -2233,8 +2235,8 @@ users to send multiple data points for multiple channels in a single request.</p
 
 <a href="#sift_py.ingestion.flow.FlowConfig.channel_by_fqn" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel_by_fqn</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Dict" href="https://docs.python.org/3/library/typing.html#typing.Dict">Dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="            channel_fqn (sift_py.ingestion.channel.channel_fqn)" href="../channel/#sift_py.ingestion.channel.channel_fqn">channel_fqn</a></span><span class="p">(</span><span class="n"><span title="c">c</span></span><span class="p">)):</span> <span class="n">_efor</span><span class="p">(</span><span class="n"><span title="i">i</span></span><span class="p">,</span> <span class="n"><span title="c">c</span></span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="ow">in</span> <span class="p">(</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#enumerate">enumerate</a></span><span class="p">(</span><span class="n"><span title="sift_py.ingestion.flow.FlowConfig(channels)">channels</span></span><span class="p">))</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="            channel_fqn (sift_py.ingestion.channel.channel_fqn)" href="../channel/#sift_py.ingestion.channel.channel_fqn">channel_fqn</a></span><span class="p">(</span><span class="n"><span title="c">c</span></span><span class="p">)):</span> <span class="n"><span title="i">i</span></span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="k">for</span> <span class="n"><span title="i">i</span></span><span class="p">,</span> <span class="n"><span title="c">c</span></span> <span class="ow">in</span> <span class="p">(</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#enumerate">enumerate</a></span><span class="p">(</span><span class="n"><span title="sift_py.ingestion.flow.FlowConfig(channels)">channels</span></span><span class="p">))</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">}</span>
 </span></code></pre></div>
 
@@ -2353,6 +2355,7 @@ users to send multiple data points for multiple channels in a single request.</p
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="typing.TypedDict" href="https://docs.python.org/3/library/typing.html#typing.TypedDict">TypedDict</a></code></p>
+
 
 
         <p>Represents a single flow that will be sent to Sift. Unlike <code>sift_py.ingestion.flow.Flow</code>, this class requires

@@ -831,12 +831,12 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="../ingestion/" class="md-nav__link">
+      <a href="../file_attachment/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    ingestion
+    file_attachment
     
   </span>
   
@@ -854,12 +854,12 @@ You're not viewing the latest version.
   
   
     <li class="md-nav__item">
-      <a href="../remote_file/" class="md-nav__link">
+      <a href="../ingestion/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    remote_file
+    ingestion
     
   </span>
   
@@ -1616,24 +1616,6 @@ You're not viewing the latest version.
   <a href="#sift_client.sift_types.test_report.TestReport.archive" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;archive
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.sift_types.test_report.TestReport.remote_file" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;remote_file
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.sift_types.test_report.TestReport.remote_files" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;remote_files
     </span>
   </a>
   
@@ -3139,24 +3121,6 @@ You're not viewing the latest version.
   <a href="#sift_client.sift_types.test_report.TestReport.archive" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;archive
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.sift_types.test_report.TestReport.remote_file" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;remote_file
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.sift_types.test_report.TestReport.remote_files" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;remote_files
     </span>
   </a>
   
@@ -5537,6 +5501,7 @@ You're not viewing the latest version.
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>TestMeasurementType enum.</p>
 
 
@@ -6017,7 +5982,7 @@ You're not viewing the latest version.
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="sift_client.sift_types._base.BaseType">BaseType</span>[<span title="sift.test_reports.v1.test_reports_pb2.TestReport">TestReport</span>, &#39;TestReport&#39;]</code></p>
+              Bases: <code><span title="sift_client.sift_types._base.BaseType">BaseType</span>[<span title="sift.test_reports.v1.test_reports_pb2.TestReport">TestReport</span>, &#39;TestReport&#39;]</code>, <code><span title="sift_client.sift_types._mixins.file_attachments.AttachmentsMixin">AttachmentsMixin</span></code></p>
 
         <p>TestReport model representing a test report.</p>
 
@@ -6504,150 +6469,6 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
 
         <p>Archive the TestReport.</p>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sift_client.sift_types.test_report.TestReport.remote_file" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">remote_file</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-async"><code>async</code></small>
-  </span>
-
-<a href="#sift_client.sift_types.test_report.TestReport.remote_file" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">remote_file</span><span class="p">(</span><span class="n">file_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            RemoteFile
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.remote_file.RemoteFile)" href="../remote_file/#sift_client.sift_types.remote_file.RemoteFile">RemoteFile</a></span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Get a specific remote file by ID.</p>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">PARAMETER</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>file_id</code>
-            </td>
-            <td class="doc-param-details">
-              <div class="doc-md-description">
-                <p>The ID of the remote file to retrieve.</p>
-              </div>
-              <p>
-                  <span class="doc-param-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RETURNS</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            RemoteFile
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.remote_file.RemoteFile)" href="../remote_file/#sift_client.sift_types.remote_file.RemoteFile">RemoteFile</a></code>
-                </span>
-            </td>
-            <td class="doc-returns-details">
-              <div class="doc-md-description">
-                <p>The RemoteFile object.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sift_client.sift_types.test_report.TestReport.remote_files" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">remote_files</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-async"><code>async</code></small>
-  </span>
-
-<a href="#sift_client.sift_types.test_report.TestReport.remote_files" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">remote_files</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            RemoteFile
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.remote_file.RemoteFile)" href="../remote_file/#sift_client.sift_types.remote_file.RemoteFile">RemoteFile</a></span><span class="p">]</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Get the remote files associated with this test report.</p>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RETURNS</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            RemoteFile
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.remote_file.RemoteFile)" href="../remote_file/#sift_client.sift_types.remote_file.RemoteFile">RemoteFile</a>]</code>
-                </span>
-            </td>
-            <td class="doc-returns-details">
-              <div class="doc-md-description">
-                <p>A list of RemoteFile objects attached to this test report.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
 
 
     </div>
@@ -7550,6 +7371,7 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>TestStatus enum.</p>
@@ -8843,6 +8665,7 @@ You're not viewing the latest version.
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>TestStepType enum.</p>
