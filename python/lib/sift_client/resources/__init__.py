@@ -160,6 +160,7 @@ from sift_client.resources.rules import RulesAPIAsync
 from sift_client.resources.runs import RunsAPIAsync
 from sift_client.resources.tags import TagsAPIAsync
 from sift_client.resources.test_results import TestResultsAPIAsync
+from sift_client.resources.file_attachments import FileAttachmentsAPIAsync
 
 # ruff: noqa All imports needs to be imported before sync_stubs to avoid circular import
 from sift_client.resources.sync_stubs import (
@@ -172,6 +173,7 @@ from sift_client.resources.sync_stubs import (
     RunsAPI,
     TagsAPI,
     TestResultsAPI,
+    # FileAttachmentsAPI
 )
 
 __all__ = [
@@ -194,4 +196,6 @@ __all__ = [
     "TagsAPIAsync",
     "TestResultsAPI",
     "TestResultsAPIAsync",
+    "FileAttachmentsAPIAsync",
+    # "FileAttachmentsAPI"
 ]

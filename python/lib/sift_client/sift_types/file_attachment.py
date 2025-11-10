@@ -56,7 +56,7 @@ class RemoteFileEntityType(Enum):
         return RemoteFileEntityType(proto_value)
 
 
-class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
+class FileAttachment(BaseType[RemoteFileProto, "RemoteFile"]):
     """Model of the Sift RemoteFile."""
 
     organization_id: str
@@ -76,7 +76,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
     @classmethod
     def _from_proto(
         cls, proto: RemoteFileProto, sift_client: SiftClient | None = None
-    ) -> RemoteFile:
+    ) -> FileAttachment:
         return cls(
             id_=proto.remote_file_id,
             organization_id=proto.organization_id,
@@ -126,7 +126,7 @@ class RemoteFile(BaseType[RemoteFileProto, "RemoteFile"]):
             remote_files_client.delete_remote_file(remote_file_id=self.id_), loop
         ).result()
 
-    def update(self, update: RemoteFileUpdate | dict) -> RemoteFile:
+    def update(self, update: RemoteFileUpdate | dict) -> FileAttachment:
         """Update the remote file."""
         from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
 

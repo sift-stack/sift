@@ -22,7 +22,7 @@ from sift_client.transport import GrpcClient, WithGrpcClient
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.remote_file import RemoteFile, RemoteFileUpdate
+    from sift_client.sift_types.file_attachment import FileAttachment, RemoteFileUpdate
 
 
 class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -41,7 +41,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def get_remote_file(
         self, remote_file_id: str, sift_client: SiftClient | None = None
-    ) -> RemoteFile:
+    ) -> FileAttachment:
         """Get a remote file by ID.
 
         Args:
@@ -51,12 +51,12 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The RemoteFile.
         """
-        from sift_client.sift_types.remote_file import RemoteFile
+        from sift_client.sift_types.file_attachment import FileAttachment
 
         request = GetRemoteFileRequest(remote_file_id=remote_file_id)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).GetRemoteFile(request)
         grpc_remote_file = cast("GetRemoteFileResponse", response).remote_file
-        return RemoteFile._from_proto(grpc_remote_file, sift_client)
+        return FileAttachment._from_proto(grpc_remote_file, sift_client)
 
     async def list_all_remote_files(
         self,
@@ -65,7 +65,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         max_results: int | None = None,
         page_size: int | None = None,
         sift_client: SiftClient | None = None,
-    ) -> list[RemoteFile]:
+    ) -> list[FileAttachment]:
         """List all remote files matching the given query.
 
         Args:
@@ -93,7 +93,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         order_by: str | None = None,
         sift_client: SiftClient | None = None,
-    ) -> tuple[list[RemoteFile], str]:
+    ) -> tuple[list[FileAttachment], str]:
         """List remote files with pagination support.
 
         Args:
@@ -106,7 +106,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             A tuple of (list of RemoteFiles, next_page_token).
         """
-        from sift_client.sift_types.remote_file import RemoteFile
+        from sift_client.sift_types.file_attachment import FileAttachment
 
         request_kwargs: dict[str, Any] = {}
         if page_size is not None:
@@ -122,12 +122,12 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).ListRemoteFiles(request)
         response = cast("ListRemoteFilesResponse", response)
         return [
-            RemoteFile._from_proto(rf, sift_client) for rf in response.remote_files
+            FileAttachment._from_proto(rf, sift_client) for rf in response.remote_files
         ], response.next_page_token
 
     async def update_remote_file(
         self, update: RemoteFileUpdate, sift_client: SiftClient | None = None
-    ) -> RemoteFile:
+    ) -> FileAttachment:
         """Update a remote file.
 
         Args:
@@ -137,13 +137,13 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The updated RemoteFile.
         """
-        from sift_client.sift_types.remote_file import RemoteFile
+        from sift_client.sift_types.file_attachment import FileAttachment
 
         grpc_remote_file, update_mask = update.to_proto_with_mask()
         request = UpdateRemoteFileRequest(remote_file=grpc_remote_file, update_mask=update_mask)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).UpdateRemoteFile(request)
         updated_grpc_remote_file = cast("UpdateRemoteFileResponse", response).remote_file
-        return RemoteFile._from_proto(updated_grpc_remote_file, sift_client)
+        return FileAttachment._from_proto(updated_grpc_remote_file, sift_client)
 
     async def delete_remote_file(self, remote_file_id: str) -> None:
         """Delete a remote file.
