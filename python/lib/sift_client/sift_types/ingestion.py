@@ -77,6 +77,7 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
         return CreateIngestionConfigRequestProto
 
     def _to_rust_form(self) -> IngestionConfigFormPy:
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import IngestionConfigFormPy
 
         if self.organization_id:
@@ -260,6 +261,7 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
         )
 
     def _to_rust_config(self) -> FlowConfigPy:
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import FlowConfigPy
 
         return FlowConfigPy(
@@ -344,6 +346,7 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
         )
 
     def _to_rust_form(self) -> FlowPy:
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import FlowPy
 
         from sift_client._internal.low_level_wrappers.ingestion import _to_rust_py_timestamp
@@ -368,6 +371,7 @@ class ChannelValue(BaseModel):
 
     def _to_rust_form(self):
         """Convert this ChannelValue to its Rust form for ingestion."""
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import ChannelValuePy, ValuePy
 
         if self.ty == ChannelDataType.BIT_FIELD:
@@ -401,6 +405,7 @@ class ChannelValue(BaseModel):
 
 # Converter functions.
 def _channel_config_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import (
         ChannelBitFieldElementPy,
         ChannelConfigPy,
@@ -441,6 +446,7 @@ def _rust_channel_value_from_bitfield(
     Returns:
         A ChannelValuePy object.
     """
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import IngestWithConfigDataChannelValuePy
 
     assert channel.bit_field_elements is not None
@@ -467,6 +473,7 @@ def _rust_channel_value_from_bitfield(
 
 
 def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataChannelValuePy:
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import IngestWithConfigDataChannelValuePy
 
     if value is None:
@@ -507,6 +514,7 @@ def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataCh
 
 
 def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import ChannelDataTypePy
 
     if data_type == ChannelDataType.DOUBLE:

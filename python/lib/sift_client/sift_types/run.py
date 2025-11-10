@@ -173,6 +173,7 @@ class RunCreate(RunBase, ModelCreate[CreateRunRequestProto]):
         return CreateRunRequestProto
 
     def _to_rust_form(self) -> RunFormPy:
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import MetadataPy, MetadataValuePy, RunFormPy
 
         if self.client_key:

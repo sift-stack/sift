@@ -63,6 +63,7 @@ def _to_rust_py_timestamp(time: datetime) -> TimeValuePy:
     Returns:
         A TimeValuePy representation
     """
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import TimeValuePy
 
     ts = time.timestamp()
@@ -171,6 +172,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
     ) -> IngestionConfigStreamingLowLevelClient:
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import (
             SiftStreamBuilderPy,
             init_tracing,
@@ -186,6 +188,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
 
             if tracing_config.log_dir is not None:
                 # Use file logging
+                # If no max_log_files provided, default to 7 (1 week of logs)
                 init_tracing_with_file(
                     tracing_config.level,
                     tracing_config.log_dir,

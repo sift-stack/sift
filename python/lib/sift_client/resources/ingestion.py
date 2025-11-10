@@ -144,6 +144,7 @@ class RecoveryStrategyConfig:
             Most users should use the factory methods (`retry_only()` or `retry_with_backups()`)
             instead of calling this constructor directly.
         """
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import RecoveryStrategyPy
 
         self._recovery_strategy_py = recovery_strategy_py or RecoveryStrategyPy.default()
@@ -168,6 +169,7 @@ class RecoveryStrategyConfig:
         Returns:
             A RecoveryStrategyConfig configured for retry-only strategy.
         """
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import RecoveryStrategyPy, RetryPolicyPy
 
         retry_policy_py = retry_policy or RetryPolicyPy.default()
@@ -193,6 +195,7 @@ class RecoveryStrategyConfig:
         Returns:
             A RecoveryStrategyConfig configured for retry with disk backups.
         """
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
 
         retry_policy_py = retry_policy or RetryPolicyPy.default()
@@ -317,9 +320,11 @@ class IngestionConfigStreamingClient(ResourceBase):
         Returns:
             An initialized IngestionConfigStreamingClient.
         """
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import (
             DurationPy,
             IngestionConfigFormPy,
+            MetadataPy,
             MetadataValuePy,
             RecoveryStrategyPy,
             RunFormPy,
@@ -377,8 +382,6 @@ class IngestionConfigStreamingClient(ResourceBase):
         # Convert asset_metadata dict to list of MetadataPy
         asset_metadata_list: list[MetadataPy] | None = None
         if asset_metadata is not None:
-            from sift_stream_bindings import MetadataPy
-
             asset_metadata_list = [
                 MetadataPy(key=key, value=MetadataValuePy(value))
                 for key, value in asset_metadata.items()
@@ -387,8 +390,6 @@ class IngestionConfigStreamingClient(ResourceBase):
         # Convert checkpoint_interval_seconds to DurationPy
         checkpoint_interval: DurationPy | None = None
         if checkpoint_interval_seconds is not None:
-            from sift_stream_bindings import DurationPy
-
             checkpoint_interval = DurationPy(secs=checkpoint_interval_seconds, nanos=0)
 
         low_level_client = await IngestionConfigStreamingLowLevelClient.create_sift_stream_instance(
@@ -473,6 +474,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         Args:
             run: The run to attach. Can be a Run, RunCreate, dict, run ID string, or RunFormPy.
         """
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import RunFormPy, RunSelectorPy
 
         if isinstance(run, RunFormPy):
