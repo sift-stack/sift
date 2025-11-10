@@ -125,6 +125,8 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         return _hash_flows(asset_name=asset_name, flows=flows)
 
 class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
+    DEFAULT_MAX_LOG_FILES = 7 # Equal to 1 week of logs
+    DEFAULT_LOGFILE_PREFIX = "sift_stream_bindings.log"
     _sift_stream_instance: SiftStreamPy
     _known_flows: dict[str, FlowConfig]
 
@@ -164,12 +166,11 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
 
             if tracing_config.log_dir is not None:
                 # Use file logging
-                # If no max_log_files provided, default to 7 (1 week of logs)
                 init_tracing_with_file(
                     tracing_config.level,
                     tracing_config.log_dir,
-                    tracing_config.filename_prefix or "sift_stream_bindings.log",
-                    tracing_config.max_log_files or 7,
+                    tracing_config.filename_prefix or cls.DEFAULT_LOGFILE_PREFIX,
+                    tracing_config.max_log_files or cls.DEFAULT_MAX_LOG_FILES,
                 )
             else:
                 # Use stdout/stderr only
