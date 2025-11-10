@@ -329,7 +329,8 @@ class RuleService:
         res = cast(BatchUpdateRulesResponse, self._rule_service_stub.BatchUpdateRules(req))
 
         if not res.success:
-            raise Exception("Failed to create external rules")
+            reason = "\n".join(str(vr) for vr in res.validation_results)
+            raise Exception("Failed to create external rules\n" + reason)
 
         return [RuleIdentifier(r.rule_id, r.name) for r in res.created_rule_identifiers]
 

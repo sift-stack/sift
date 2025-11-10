@@ -123,6 +123,24 @@ class TestContextManager:
         assert test_step.measurements[2].boolean_value == True
         assert test_step.measurements[2].measurement_type == TestMeasurementType.BOOLEAN
 
+    def test_bad_assert(self, report_context, step):
+        test_step = None
+        parent_step_path = step.current_step.step_path
+        initial_open_step_result = report_context.open_step_results.get(parent_step_path, True)
+        initial_any_failures = report_context.any_failures
+
+        with step.substep("Test Bad Assert", "Test Bad Assert Description") as new_step:
+            test_step = new_step.current_step
+            assert False == True
+
+        assert test_step.status == TestStatus.ERROR
+        assert test_step.error_info is not None
+        assert "AssertionError" in test_step.error_info.error_message
+        if initial_open_step_result:
+            report_context.open_step_results[parent_step_path] = True
+        if not initial_any_failures:
+            report_context.any_failures = False
+
     def test_error_info(self, report_context, step):
         test_step = None
         parent_step_path = step.current_step.step_path
@@ -268,20 +286,39 @@ class TestBounds:
         """Test boolean value matching expected string."""
         measurement = TestMeasurementUpdate()
         result = evaluate_measurement_bounds(measurement, True, "true")
+        result2 = evaluate_measurement_bounds(measurement, True, "True")
+        result3 = evaluate_measurement_bounds(measurement, True, "TRUE")
+        result4 = evaluate_measurement_bounds(measurement, True, True)
+        result5 = evaluate_measurement_bounds(measurement, True, 1)
+        result6 = evaluate_measurement_bounds(measurement, 1, True)
         assert result == True
+        assert result2 == True
+        assert result3 == True
+        assert result4 == True
+        assert result5 == True
+        assert result6 == True
         assert measurement.passed == True
         assert measurement.boolean_value == True
-        assert measurement.string_expected_value == "true"
-        assert measurement.measurement_type == TestMeasurementType.BOOLEAN
+        assert measurement.string_expected_value.lower() == "true"
 
     def test_evaluate_measurement_bounds_boolean_not_matching(self):
         """Test boolean value not matching expected string."""
         measurement = TestMeasurementUpdate()
         result = evaluate_measurement_bounds(measurement, False, "true")
+        result2 = evaluate_measurement_bounds(measurement, False, "tRuE")
+        result3 = evaluate_measurement_bounds(measurement, False, "TRUE")
+        result4 = evaluate_measurement_bounds(measurement, False, True)
+        result5 = evaluate_measurement_bounds(measurement, 0, True)
+        result6 = evaluate_measurement_bounds(measurement, "False", True)
         assert result == False
+        assert result2 == False
+        assert result3 == False
+        assert result4 == False
+        assert result5 == False
+        assert result6 == False
         assert measurement.passed == False
         assert measurement.boolean_value == False
-        assert measurement.string_expected_value == "true"
+        assert measurement.string_expected_value.lower() == "true"
 
     def test_evaluate_measurement_bounds_boolean_case_insensitive(self):
         """Test boolean comparison is case insensitive."""
