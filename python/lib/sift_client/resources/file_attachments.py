@@ -136,4 +136,3 @@ class FileAttachmentsAPIAsync(ResourceBase):
         return await self._low_level_client.get_remote_file_download_url(
             remote_file_id=file_attachment_id
         )
-
