@@ -33,7 +33,7 @@ from sift_client.sift_types._base import (
     ModelCreateUpdateBase,
     ModelUpdate,
 )
-from sift_client.sift_types._mixins.file_attachments import AttachmentsMixin
+from sift_client.sift_types._mixins.file_attachments import FileAttachmentsMixin
 from sift_client.util.metadata import metadata_dict_to_proto, metadata_proto_to_dict
 
 if TYPE_CHECKING:
@@ -514,7 +514,7 @@ class ErrorInfo(BaseType[ErrorInfoProto, "ErrorInfo"]):
         )
 
 
-class TestReport(BaseType[TestReportProto, "TestReport"], AttachmentsMixin):
+class TestReport(BaseType[TestReportProto, "TestReport"], FileAttachmentsMixin):
     """TestReport model representing a test report."""
 
     status: TestStatus
