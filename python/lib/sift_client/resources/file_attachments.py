@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client.resources._base import ResourceBase
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.file_attachment import FileAttachment
 
@@ -32,14 +33,26 @@ class FileAttachmentsAPIAsync(ResourceBase):
 
     def get(
         self, *, file_id: str | None = None, client_key: str | None = None
-    ) -> FileAttachment: ...
+    ) -> FileAttachment:
+        """Get a file attachment by ID."""
+        ...
 
-    def list_(self) -> list[FileAttachment]: ...
+    def list_(self) -> list[FileAttachment]:
+        """List all file attachments."""
+        ...
 
-    def find(self) -> FileAttachment: ...
+    def find(self) -> FileAttachment:
+        """Find a file attachment by ID."""
+        ...
 
-    def update(self) -> FileAttachment | list[FileAttachment]: ...
+    def update(self) -> FileAttachment | list[FileAttachment]:
+        """Update a file attachment."""
+        ...
 
-    def delete(self) -> None: ...
+    def delete(self) -> None:
+        """Delete a file attachment."""
+        ...
 
-    def download(self, output_path: str | Path) -> None: ...
+    def download(self, output_path: str | Path) -> None:
+        """Download a file attachment."""
+        ...

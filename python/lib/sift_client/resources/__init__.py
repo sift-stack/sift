@@ -173,7 +173,7 @@ from sift_client.resources.sync_stubs import (
     RunsAPI,
     TagsAPI,
     TestResultsAPI,
-    # FileAttachmentsAPI
+    FileAttachmentsAPI,
 )
 
 __all__ = [
@@ -196,6 +196,6 @@ __all__ = [
     "TagsAPIAsync",
     "TestResultsAPI",
     "TestResultsAPIAsync",
+    "FileAttachmentsAPI",
     "FileAttachmentsAPIAsync",
-    # "FileAttachmentsAPI"
 ]

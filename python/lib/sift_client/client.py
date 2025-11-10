@@ -8,6 +8,7 @@ from sift_client.resources import (
     CalculatedChannelsAPIAsync,
     ChannelsAPI,
     ChannelsAPIAsync,
+    FileAttachmentsAPIAsync,
     IngestionAPIAsync,
     PingAPI,
     PingAPIAsync,
