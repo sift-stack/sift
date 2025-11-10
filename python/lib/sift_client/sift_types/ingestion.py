@@ -24,7 +24,6 @@ from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
 )
 
-from sift_client._internal.low_level_wrappers.ingestion import _hash_flows
 from sift_client.sift_types._base import (
     BaseType,
     ModelCreate,
@@ -80,6 +79,9 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
     def _to_rust_form(self) -> IngestionConfigFormPy:
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import IngestionConfigFormPy
+
+        # Imported here to avoid circular dependancy
+        from sift_client._internal.low_level_wrappers.ingestion import _hash_flows
 
         if self.organization_id:
             logger.warning(
