@@ -228,13 +228,13 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         await self._sift_stream_instance.send_requests(requests)
 
     async def add_new_flows(self, flow_configs: list[FlowConfigPy]):
+        await self._sift_stream_instance.add_new_flows(flow_configs)
         self._known_flows.update(
             {
                 flow_config.name: FlowConfig._from_rust_config(flow_config)
                 for flow_config in flow_configs
             }
         )
-        await self._sift_stream_instance.add_new_flows(flow_configs)
 
     async def attach_run(self, run_selector: RunSelectorPy):
         await self._sift_stream_instance.attach_run(run_selector)
