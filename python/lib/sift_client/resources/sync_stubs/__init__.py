@@ -25,7 +25,7 @@ RunsAPI = generate_sync_api(RunsAPIAsync, "RunsAPI")
 ReportsAPI = generate_sync_api(ReportsAPIAsync, "ReportsAPI")
 TagsAPI = generate_sync_api(TagsAPIAsync, "TagsAPI")
 TestResultsAPI = generate_sync_api(TestResultsAPIAsync, "TestResultsAPI")
-FileAttachmentsAPI = generate_sync_api(FileAttachmentsAPIAsync, "AttachmentsAPI")
+FileAttachmentsAPI = generate_sync_api(FileAttachmentsAPIAsync, "FileAttachmentsAPI")
 
 __all__ = [
     "AssetsAPI",

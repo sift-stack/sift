@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from sift_client.sift_types.file_attachment import FileAttachment
 
 
-class AttachmentsMixin:
+class FileAttachmentsMixin:
     """Mixin for sift_types that support file attachments (remote files).
 
     This mixin assumes the class also inherits from BaseType, which provides:
@@ -42,7 +42,7 @@ class AttachmentsMixin:
         if not entity_type:
             raise ValueError(
                 f"{class_name} is not configured for attachments. "
-                f"Add it to AttachmentsMixin._ENTITY_TYPE_MAP"
+                f"Add it to FileAttachmentsMixin._ENTITY_TYPE_MAP"
             )
 
         return entity_type
@@ -53,15 +53,6 @@ class AttachmentsMixin:
         return self.client.file_attachments.list(
             entity_type=self._get_entity_type_name(),
             entity_id=self.id_,
-        )
-
-    def add_attachment(
-        self: BaseType, file_attachment: FileAttachment | list[FileAttachment]
-    ) -> FileAttachment:
-        return self.client.file_attachments.add(
-            entity_type=self._get_entity_type_name(),
-            entity=self.id_,
-            file_attachment=file_attachment,
         )
 
     def delete_attachment(
