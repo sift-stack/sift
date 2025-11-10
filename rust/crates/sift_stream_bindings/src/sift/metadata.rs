@@ -49,15 +49,15 @@ impl MetadataValuePy {
         format!("{:?}", self)
     }
 
-    fn is_variant_string(&self) -> bool {
+    fn is_string(&self) -> bool {
         matches!(self, MetadataValuePy::String(_))
     }
 
-    fn is_variant_number(&self) -> bool {
+    fn is_number(&self) -> bool {
         matches!(self, MetadataValuePy::Number(_))
     }
 
-    fn is_variant_boolean(&self) -> bool {
+    fn is_boolean(&self) -> bool {
         matches!(self, MetadataValuePy::Boolean(_))
     }
 }
