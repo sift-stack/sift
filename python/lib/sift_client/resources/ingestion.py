@@ -148,7 +148,7 @@ class RecoveryStrategyConfig:
 
         self._recovery_strategy_py = recovery_strategy_py or RecoveryStrategyPy.default()
 
-    def to_rust_config(self) -> RecoveryStrategyPy:
+    def _to_rust_config(self) -> RecoveryStrategyPy:
         """Convert to RecoveryStrategyPy for use with the ingestion client.
 
         Returns:
@@ -350,7 +350,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         # Convert the recovery strategy variants
         recovery_strategy_py: RecoveryStrategyPy | None = None
         if isinstance(recovery_strategy, RecoveryStrategyConfig):
-            recovery_strategy_py = recovery_strategy.to_rust_config()
+            recovery_strategy_py = recovery_strategy._to_rust_config()
         elif isinstance(recovery_strategy, RecoveryStrategyPy):
             recovery_strategy_py = recovery_strategy
 

@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     from sift_client.resources.ingestion import TracingConfig
 
 
-def to_rust_py_timestamp(time: datetime) -> TimeValuePy:
+def _to_rust_py_timestamp(time: datetime) -> TimeValuePy:
     """Convert a Python datetime to a Rust TimeValuePy.
 
     Args:

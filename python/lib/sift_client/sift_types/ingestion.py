@@ -346,12 +346,12 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
     def _to_rust_form(self) -> FlowPy:
         from sift_stream_bindings import FlowPy
 
-        from sift_client._internal.low_level_wrappers.ingestion import to_rust_py_timestamp
+        from sift_client._internal.low_level_wrappers.ingestion import _to_rust_py_timestamp
 
         return FlowPy(
             flow_name=self.flow,
-            timestamp=to_rust_py_timestamp(self.timestamp),
-            values=[channel_value.to_rust_form() for channel_value in self.channel_values],
+            timestamp=_to_rust_py_timestamp(self.timestamp),
+            values=[channel_value._to_rust_form() for channel_value in self.channel_values],
         )
 
 
@@ -366,7 +366,7 @@ class ChannelValue(BaseModel):
     ty: ChannelDataType
     value: Any
 
-    def to_rust_form(self):
+    def _to_rust_form(self):
         """Convert this ChannelValue to its Rust form for ingestion."""
         from sift_stream_bindings import ChannelValuePy, ValuePy
 
