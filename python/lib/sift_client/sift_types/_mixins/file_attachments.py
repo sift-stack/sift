@@ -1,10 +1,20 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 if TYPE_CHECKING:
-    from sift_client.sift_types._base import BaseType
+    from sift_client.client import SiftClient
     from sift_client.sift_types.file_attachment import FileAttachment
+
+
+class _SupportsFileAttachments(Protocol):
+    """Protocol for types that support file attachments."""
+
+    @property
+    def client(self) -> SiftClient: ...
+
+    @property
+    def id_(self) -> str | None: ...
 
 
 class FileAttachmentsMixin:
@@ -48,18 +58,29 @@ class FileAttachmentsMixin:
         return entity_type
 
     @property
-    def attachments(self: BaseType) -> list[FileAttachment]:
-        # Type ignore because mixin assumes BaseType attributes (client, id_)
+    def attachments(self: _SupportsFileAttachments) -> list[FileAttachment]:
+        """Get all file attachments for this entity.
+
+        Returns:
+            A list of FileAttachments associated with this entity.
+        """
         return self.client.file_attachments.list(
-            entity_type=self._get_entity_type_name(),
+            entity_type=self._get_entity_type_name(),  # type: ignore[attr-defined]
             entity_id=self.id_,
         )
 
     def delete_attachment(
-        self: BaseType, file_attachment: FileAttachment | list[FileAttachment]
-    ) -> FileAttachment:
-        return self.client.file_attachments.add(
-            entity_type=self._get_entity_type_name(),
-            entity=self.id_,
-            file_attachment=file_attachment,
-        )
+        self: _SupportsFileAttachments, file_attachment: FileAttachment | list[FileAttachment]
+    ) -> None:
+        """Delete one or more file attachments.
+
+        Args:
+            file_attachment: A single FileAttachment or list of FileAttachments to delete.
+        """
+        if isinstance(file_attachment, list):
+            file_ids = [fa.id_ for fa in file_attachment if fa.id_]
+            if file_ids:
+                self.client.file_attachments.batch_delete(file_attachment_ids=file_ids)
+        else:
+            if file_attachment.id_:
+                self.client.file_attachments.delete(file_attachment_id=file_attachment.id_)

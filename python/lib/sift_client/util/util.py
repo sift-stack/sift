@@ -33,6 +33,9 @@ class AsyncAPIs(NamedTuple):
     channels: ChannelsAPIAsync
     """Instance of the Channels API for making asynchronous requests."""
 
+    file_attachments: FileAttachmentsAPIAsync
+    """Instance of the File Attachments API for making asynchronous requests."""
+
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making asynchronous requests."""
 
@@ -50,9 +53,6 @@ class AsyncAPIs(NamedTuple):
 
     test_results: TestResultsAPIAsync
     """Instance of the Test Results API for making asynchronous requests."""
-
-    file_attachments: FileAttachmentsAPIAsync
-    """Instance of the File Attachments API for making asynchronous requests."""
 
 
 def count_non_none(*args: Any) -> int:

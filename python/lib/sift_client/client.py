@@ -8,6 +8,7 @@ from sift_client.resources import (
     CalculatedChannelsAPIAsync,
     ChannelsAPI,
     ChannelsAPIAsync,
+    FileAttachmentsAPI,
     FileAttachmentsAPIAsync,
     IngestionAPIAsync,
     PingAPI,
@@ -23,7 +24,6 @@ from sift_client.resources import (
     TestResultsAPI,
     TestResultsAPIAsync,
 )
-from sift_client.resources.sync_stubs import FileAttachmentsAPI
 from sift_client.transport import (
     GrpcClient,
     GrpcConfig,
@@ -85,6 +85,9 @@ class SiftClient(
     channels: ChannelsAPI
     """Instance of the Channels API for making synchronous requests."""
 
+    file_attachments: FileAttachmentsAPI
+    """Instance of the File Attachments API for making synchronous requests."""
+
     ingestion: IngestionAPIAsync
     """Instance of the Ingestion API for making synchronous requests."""
 
@@ -143,12 +146,12 @@ class SiftClient(
         self.assets = AssetsAPI(self)
         self.calculated_channels = CalculatedChannelsAPI(self)
         self.channels = ChannelsAPI(self)
+        self.file_attachments = FileAttachmentsAPI(self)
         self.rules = RulesAPI(self)
         self.reports = ReportsAPI(self)
         self.runs = RunsAPI(self)
         self.tags = TagsAPI(self)
         self.test_results = TestResultsAPI(self)
-        self.file_attachments = FileAttachmentsAPI(self)
 
         # Accessor for the asynchronous APIs
         self.async_ = AsyncAPIs(
@@ -156,13 +159,13 @@ class SiftClient(
             assets=AssetsAPIAsync(self),
             calculated_channels=CalculatedChannelsAPIAsync(self),
             channels=ChannelsAPIAsync(self),
+            file_attachments=FileAttachmentsAPIAsync(self),
             ingestion=IngestionAPIAsync(self),
             reports=ReportsAPIAsync(self),
             rules=RulesAPIAsync(self),
             runs=RunsAPIAsync(self),
             tags=TagsAPIAsync(self),
             test_results=TestResultsAPIAsync(self),
-            file_attachments=FileAttachmentsAPIAsync(self),
         )
 
     @property

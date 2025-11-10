@@ -56,7 +56,7 @@ class RemoteFileEntityType(Enum):
         return RemoteFileEntityType(proto_value)
 
 
-class FileAttachment(BaseType[RemoteFileProto, "RemoteFile"]):
+class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
     """Model of the Sift RemoteFile."""
 
     organization_id: str
