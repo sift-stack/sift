@@ -64,7 +64,7 @@ class FileAttachmentsMixin:
         Returns:
             A list of FileAttachments associated with this entity.
         """
-        return self.client.file_attachments.list(
+        return self.client.file_attachments.list_(
             entity_type=self._get_entity_type_name(),  # type: ignore[attr-defined]
             entity_id=self.id_,
         )

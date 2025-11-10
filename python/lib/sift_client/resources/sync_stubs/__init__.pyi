@@ -18,6 +18,7 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import Channel
+from sift_client.sift_types.file_attachment import FileAttachment, RemoteFileUpdate
 from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
@@ -500,6 +501,102 @@ class ChannelsAPI:
 
         Returns:
             A list of Channels that matches the filter criteria.
+        """
+        ...
+
+class FileAttachmentsAPI:
+    """Sync counterpart to `FileAttachmentsAPIAsync`.
+
+    High-level API for interacting with file attachments (remote files).
+
+    This class provides a Pythonic interface for managing file attachments
+    on Sift entities like runs, assets, and test reports.
+    """
+
+    def __init__(self, sift_client: SiftClient):
+        """Initialize the FileAttachmentsAPI.
+
+        Args:
+            sift_client: The Sift client to use.
+        """
+        ...
+
+    def _run(self, coro): ...
+    def get(self, *, file_attachment_id: str) -> FileAttachment:
+        """Get a file attachment by ID.
+
+        Args:
+            file_attachment_id: The ID of the file attachment to retrieve.
+
+        Returns:
+            The FileAttachment.
+        """
+        ...
+
+    def list_(
+        self,
+        *,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        query_filter: str | None = None,
+        order_by: str | None = None,
+        limit: int | None = None,
+        page_size: int | None = None,
+    ) -> list[FileAttachment]:
+        """List file attachments with optional filtering.
+
+        Args:
+            entity_type: Filter by entity type (e.g., 'ENTITY_TYPE_ASSET', 'ENTITY_TYPE_RUN').
+            entity_id: Filter by entity ID.
+            query_filter: Optional CEL query filter.
+            order_by: The field to order by.
+            limit: Maximum number of results to return.
+            page_size: Number of results per page.
+
+        Returns:
+            A list of FileAttachments.
+        """
+        ...
+
+    def update(
+        self,
+        *,
+        file_attachment: RemoteFileUpdate | dict,
+    ) -> FileAttachment:
+        """Update a file attachment.
+
+        Args:
+            file_attachment: The RemoteFileUpdate with fields to update.
+
+        Returns:
+            The updated FileAttachment.
+        """
+        ...
+
+    def delete(self, *, file_attachment_id: str) -> None:
+        """Delete a file attachment.
+
+        Args:
+            file_attachment_id: The ID of the file attachment to delete.
+        """
+        ...
+
+    def batch_delete(self, *, file_attachment_ids: list[str]) -> None:
+        """Batch delete multiple file attachments.
+
+        Args:
+            file_attachment_ids: List of file attachment IDs to delete (up to 1000).
+        """
+        ...
+
+    def get_download_url(self, *, file_attachment_id: str) -> str:
+        """Get a download URL for a file attachment.
+
+        Args:
+            file_attachment_id: The ID of the file attachment.
+
+        Returns:
+            The download URL for the file attachment.
         """
         ...
 
