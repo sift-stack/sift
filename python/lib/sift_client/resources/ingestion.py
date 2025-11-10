@@ -238,7 +238,7 @@ class IngestionAPIAsync(ResourceBase):
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
-    ) -> IngestionConfigStreamingClient:
+    ) -> _IngestionConfigStreamingClient:
         """Create an IngestionConfigStreamingClient.
 
         Args:
@@ -257,7 +257,7 @@ class IngestionAPIAsync(ResourceBase):
         Returns:
             An initialized IngestionConfigStreamingClient.
         """
-        return await IngestionConfigStreamingClient.create(
+        return await _IngestionConfigStreamingClient.create(
             self.client,
             ingestion_config=ingestion_config,
             run=run,
@@ -270,7 +270,7 @@ class IngestionAPIAsync(ResourceBase):
         )
 
 
-class IngestionConfigStreamingClient(ResourceBase):
+class _IngestionConfigStreamingClient(ResourceBase):
     """A client for streaming ingestion with an ingestion config.
 
     This client provides a high-level interface for streaming data to Sift using
@@ -300,7 +300,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
-    ) -> IngestionConfigStreamingClient:
+    ) -> _IngestionConfigStreamingClient:
         """Create an IngestionConfigStreamingClient.
 
         Args:
