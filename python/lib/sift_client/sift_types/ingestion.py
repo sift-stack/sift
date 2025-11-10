@@ -298,14 +298,17 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
         Returns:
             A Flow object with channel values created from the provided values dictionary.
         """
-        found_values: dict[str, None] = {}
+        # Get current timestamp ASAP if not provided
+        timestamp = timestamp or datetime.now(timezone.utc)
+
+        found_values = set[str]()
         channel_values = []
         for channel in self.channels:
             if channel.name in values:
                 channel_values.append(channel.as_channel_value(values[channel.name]))
-                found_values[channel.name] = None
+                found_values.add(channel.name)
 
-        missing_values = values.keys() - found_values.keys()
+        missing_values = values.keys() - found_values
         if missing_values:
             raise ValueError(
                 f"Provided channel values which do not exist in the flow config: {missing_values}"
@@ -313,7 +316,7 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
 
         return Flow(
             flow=self.name,
-            timestamp=timestamp or datetime.now(timezone.utc),
+            timestamp=timestamp,
             channel_values=channel_values,
         )
 
