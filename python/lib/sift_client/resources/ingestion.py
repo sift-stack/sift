@@ -242,7 +242,7 @@ class IngestionAPIAsync(ResourceBase):
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
-    ) -> _IngestionConfigStreamingClient:
+    ) -> IngestionConfigStreamingClient:
         """Create an IngestionConfigStreamingClient.
 
         Args:
@@ -261,7 +261,7 @@ class IngestionAPIAsync(ResourceBase):
         Returns:
             An initialized IngestionConfigStreamingClient.
         """
-        return await _IngestionConfigStreamingClient.create(
+        return await IngestionConfigStreamingClient._create(
             self.client,
             ingestion_config=ingestion_config,
             run=run,
@@ -274,7 +274,7 @@ class IngestionAPIAsync(ResourceBase):
         )
 
 
-class _IngestionConfigStreamingClient(ResourceBase):
+class IngestionConfigStreamingClient(ResourceBase):
     """A client for streaming ingestion with an ingestion config.
 
     This client provides a high-level interface for streaming data to Sift using
@@ -292,7 +292,7 @@ class _IngestionConfigStreamingClient(ResourceBase):
         self._low_level_client = low_level_client
 
     @classmethod
-    async def create(
+    async def _create(
         cls,
         sift_client: SiftClient,
         ingestion_config: IngestionConfig | IngestionConfigCreate | IngestionConfigFormPy,
@@ -304,7 +304,7 @@ class _IngestionConfigStreamingClient(ResourceBase):
         checkpoint_interval_seconds: int | None = None,
         enable_tls: bool = True,
         tracing_config: TracingConfig | None = None,
-    ) -> _IngestionConfigStreamingClient:
+    ) -> IngestionConfigStreamingClient:
         """Create an IngestionConfigStreamingClient.
 
         Args:
@@ -412,7 +412,7 @@ class _IngestionConfigStreamingClient(ResourceBase):
 
         return cls(sift_client, low_level_client)
 
-    async def send(self, *, flow: Flow | FlowPy):
+    async def send(self, flow: Flow | FlowPy):
         """Send telemetry to Sift in the form of a Flow.
 
         This is the entry-point to send actual telemetry to Sift. If a message is sent that
@@ -440,7 +440,7 @@ class _IngestionConfigStreamingClient(ResourceBase):
             flow_py = flow
         await self._low_level_client.send(flow_py)
 
-    async def send_requests(self, *, requests: list[IngestWithConfigDataStreamRequestPy]):
+    async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.
 
         This method offers a way to send data that matches the raw gRPC service interface. You are
@@ -455,7 +455,7 @@ class _IngestionConfigStreamingClient(ResourceBase):
         """
         await self._low_level_client.send_requests(requests)
 
-    async def add_new_flows(self, *, flow_configs: list[FlowConfig]):
+    async def add_new_flows(self, flow_configs: list[FlowConfig]):
         """Modify the existing ingestion config by adding new flows that weren't accounted for during initialization.
 
         This allows you to dynamically add new flow configurations to the ingestion config after
@@ -468,7 +468,7 @@ class _IngestionConfigStreamingClient(ResourceBase):
         flow_configs_py = [flow_config._to_rust_config() for flow_config in flow_configs]
         await self._low_level_client.add_new_flows(flow_configs_py)
 
-    async def attach_run(self, *, run: RunCreate | dict | str | Run | RunFormPy):
+    async def attach_run(self, run: RunCreate | dict | str | Run | RunFormPy):
         """Attach a run to the stream.
 
         Any data provided through `send` after this function returns will be associated with
@@ -539,7 +539,7 @@ class _IngestionConfigStreamingClient(ResourceBase):
         """
         return self._low_level_client.get_metrics_snapshot()
 
-    def get_flow_config(self, *, flow_name: str) -> FlowConfig:
+    def get_flow_config(self, flow_name: str) -> FlowConfig:
         """Retrieve a flow configuration by name.
 
         Args:
