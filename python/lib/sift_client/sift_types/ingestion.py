@@ -95,8 +95,10 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
 
         return IngestionConfigFormPy(
             asset_name=self.asset_name,
-            flows=[flow_config._to_rust_config() for flow_config in self.flows] if self.flows else [],
-            client_key=client_key
+            flows=[flow_config._to_rust_config() for flow_config in self.flows]
+            if self.flows
+            else [],
+            client_key=client_key,
         )
 
 

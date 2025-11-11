@@ -124,8 +124,9 @@ class IngestionLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """Generate a client key that should be unique but deterministic for the given asset and flow configuration."""
         return _hash_flows(asset_name=asset_name, flows=flows)
 
+
 class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
-    DEFAULT_MAX_LOG_FILES = 7 # Equal to 1 week of logs
+    DEFAULT_MAX_LOG_FILES = 7  # Equal to 1 week of logs
     DEFAULT_LOGFILE_PREFIX = "sift_stream_bindings.log"
     _sift_stream_instance: SiftStreamPy
     _known_flows: dict[str, FlowConfig]
@@ -249,9 +250,7 @@ def _hash_flows(asset_name: str, flows: list[FlowConfig]) -> str:
                     m.update(str(bfe.index).encode())
                     m.update(str(bfe.bit_count).encode())
             if channel.enum_types:
-                for enum_name, enum_key in sorted(
-                    channel.enum_types.items(), key=lambda it: it[1]
-                ):
+                for enum_name, enum_key in sorted(channel.enum_types.items(), key=lambda it: it[1]):
                     m.update(str(enum_key).encode())
                     m.update(enum_name.encode())
 
