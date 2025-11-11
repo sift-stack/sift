@@ -826,7 +826,6 @@ message NotificationActionConfiguration {
   repeated string recipient_user_ids = 1 [(google.api.field_behavior) = REQUIRED];
 }
 
-
 message AnnotationActionConfiguration {
   repeated string tag_ids = 1 [(google.api.field_behavior) = REQUIRED];
   sift.annotations.v1.AnnotationType annotation_type = 2;
