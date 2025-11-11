@@ -8,7 +8,6 @@ import pytest
 from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 from sift_client.sift_types.ingestion import (
     ChannelConfig,
-    Flow,
     FlowConfig,
     IngestionConfig,
 )
@@ -72,100 +71,6 @@ class TestChannelConfig:
             data_type=ChannelDataType.DOUBLE,
         )
         assert channel.data_type == ChannelDataType.DOUBLE
-
-
-@pytest.fixture
-def mock_flow(mock_client):
-    """Create a mock Flow instance for testing."""
-    flow = Flow(
-        proto=MagicMock(),
-        name="test_flow",
-        channels=[
-            ChannelConfig(
-                name="channel1",
-                data_type=ChannelDataType.DOUBLE,
-                description="Test channel 1",
-            ),
-            ChannelConfig(
-                name="channel2",
-                data_type=ChannelDataType.FLOAT,
-                description="Test channel 2",
-            ),
-        ],
-        ingestion_config_id="test_config_id",
-        run_id="test_run_id",
-    )
-    flow._apply_client_to_instance(mock_client)
-    return flow
-
-
-class TestFlow:
-    """Unit tests for Flow model - tests methods."""
-
-    def test_add_channel_success(self):
-        """Test that add_channel() adds a channel when no ingestion_config_id is set."""
-        flow = Flow(
-            name="test_flow",
-            channels=[],
-            ingestion_config_id=None,
-        )
-
-        channel = ChannelConfig(
-            name="new_channel",
-            data_type=ChannelDataType.DOUBLE,
-        )
-
-        # Should not raise
-        flow.add_channel(channel)
-
-        assert len(flow.channels) == 1
-        assert flow.channels[0].name == "new_channel"
-
-    def test_add_channel_raises_after_creation(self):
-        """Test that add_channel() raises ValueError when ingestion_config_id is set."""
-        flow = Flow(
-            name="test_flow",
-            channels=[],
-            ingestion_config_id="config123",
-        )
-
-        channel = ChannelConfig(
-            name="new_channel",
-            data_type=ChannelDataType.DOUBLE,
-        )
-
-        with pytest.raises(ValueError, match="Cannot add a channel to a flow after creation"):
-            flow.add_channel(channel)
-
-    def test_ingest_calls_client(self, mock_flow, mock_client):
-        """Test that ingest() calls client.async_.ingestion.ingest with correct parameters."""
-        timestamp = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        channel_values = {"channel1": 42.5, "channel2": 100.0}
-
-        # Call ingest
-        mock_flow.ingest(timestamp=timestamp, channel_values=channel_values)
-
-        # Verify client method was called with correct parameters
-        mock_client.async_.ingestion.ingest.assert_called_once_with(
-            flow=mock_flow,
-            timestamp=timestamp,
-            channel_values=channel_values,
-        )
-
-    def test_ingest_raises_without_config_id(self, mock_client):
-        """Test that ingest() raises ValueError when ingestion_config_id is not set."""
-        flow = Flow(
-            name="test_flow",
-            channels=[],
-            ingestion_config_id=None,
-        )
-        flow._apply_client_to_instance(mock_client)
-
-        timestamp = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        channel_values = {"channel1": 42.5}
-
-        with pytest.raises(ValueError, match="Ingestion config ID is not set"):
-            flow.ingest(timestamp=timestamp, channel_values=channel_values)
 
 
 class TestFlowConfig:
