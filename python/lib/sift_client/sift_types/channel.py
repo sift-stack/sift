@@ -28,6 +28,8 @@ from sift.data.v2.data_pb2 import (
 from sift_client.sift_types._base import BaseType
 
 if TYPE_CHECKING:
+    from sift_stream_bindings import ChannelBitFieldElementPy, ChannelDataTypePy
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.run import Run
@@ -111,6 +113,32 @@ class ChannelDataType(Enum):
         raise Exception(f"Unknown channel data type: {raw}")
 
     @staticmethod
+    def _from_rust_type(channel_data_type_py: ChannelDataTypePy) -> ChannelDataType:
+        # Use enum name for comparison to avoid PyO3 enum comparison issues
+        # Extract the enum name from the string representation
+        enum_str = str(channel_data_type_py)
+        enum_name = enum_str.split(".")[-1] if "." in enum_str else enum_str
+
+        mapping = {
+            "Double": ChannelDataType.DOUBLE,
+            "String": ChannelDataType.STRING,
+            "Enum": ChannelDataType.ENUM,
+            "BitField": ChannelDataType.BIT_FIELD,
+            "Bool": ChannelDataType.BOOL,
+            "Float": ChannelDataType.FLOAT,
+            "Int32": ChannelDataType.INT_32,
+            "Uint32": ChannelDataType.UINT_32,
+            "Int64": ChannelDataType.INT_64,
+            "Uint64": ChannelDataType.UINT_64,
+            "Bytes": ChannelDataType.BYTES,
+        }
+
+        if enum_name in mapping:
+            return mapping[enum_name]
+        else:
+            raise ValueError(f"Unknown channel data type: {channel_data_type_py}")
+
+    @staticmethod
     def proto_data_class(data_type: ChannelDataType):
         """Return the appropriate protobuf class for the given channel data type.
 
@@ -192,6 +220,16 @@ class ChannelBitFieldElement(BaseModel):
             name=message.name,
             index=message.index,
             bit_count=message.bit_count,
+        )
+
+    @classmethod
+    def _from_rust_type(
+        cls, bit_field_element_py: ChannelBitFieldElementPy
+    ) -> ChannelBitFieldElement:
+        return ChannelBitFieldElement(
+            name=bit_field_element_py.name,
+            index=bit_field_element_py.index,
+            bit_count=bit_field_element_py.bit_count,
         )
 
     def _to_proto(self) -> ChannelBitFieldElementPb:
