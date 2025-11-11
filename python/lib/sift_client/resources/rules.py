@@ -82,6 +82,7 @@ class RulesAPIAsync(ResourceBase):
         filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
+        is_live_evaluation_enabled: bool | None = None,
     ) -> list[Rule]:
         """List rules with optional filtering.
 
@@ -103,6 +104,7 @@ class RulesAPIAsync(ResourceBase):
             asset_tags: Filter rules associated with any Assets that have these Tag IDs.
             description_contains: Partial description of the rule.
             include_archived: If True, include archived rules in results.
+            is_live_evaluation_enabled: If True, only include live rules. If False, only include rules that are nove live. None for both.
             filter_query: Explicit CEL query to filter rules.
             order_by: Field and direction to order results by.
             limit: Maximum number of rules to return. If None, returns all matches.
@@ -136,9 +138,12 @@ class RulesAPIAsync(ResourceBase):
             filter_parts.append(cel.in_("rule_id", rule_ids))
         if client_keys:
             filter_parts.append(cel.in_("client_key", client_keys))
+        if is_live_evaluation_enabled:
+            filter_parts.append(cel.equals("is_live_evaluation_enabled", is_live_evaluation_enabled))
         if assets:
             ids = [a._id_or_error if isinstance(a, Asset) else a or "" for a in assets]
             filter_parts.append(cel.in_("asset_id", ids))
+
         query_filter = cel.and_(*filter_parts)
         rules = await self._low_level_client.list_all_rules(
             filter_query=query_filter,
