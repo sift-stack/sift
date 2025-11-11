@@ -20,8 +20,6 @@ keywords = ["sift", "sift-stack", "siftstack", "sift_py"]
 dependencies = [
     "grpcio~=1.13",
     "PyYAML~=6.0",
-    "pandas~=2.0",
-    "pyarrow>=17.0.0", # sift_client, older version to support py3.8
     "protobuf>=5.0",
     "pydantic~=2.10",
     # Support python 3.9+ typing in older versons of python.
@@ -73,6 +71,7 @@ tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
 sift-stream = ["sift-stream-bindings>=0.2.0-rc"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]
+data_review = ["pandas~=2.0", "pyarrow>=17.0.0"]
 # Ensure any new user build extras are added to .github/workflows/python_build.yaml
 
 [build-system]

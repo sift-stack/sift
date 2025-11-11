@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pyarrow as pa
-
 from sift_client._internal.low_level_wrappers.channels import ChannelsLowLevelClient
-from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.asset import Asset
 from sift_client.sift_types.run import Run
@@ -16,6 +13,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     import pandas as pd
+    import pyarrow as pa
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.channel import Channel
@@ -39,7 +37,7 @@ class ChannelsAPIAsync(ResourceBase):
         """
         super().__init__(sift_client)
         self._low_level_client = ChannelsLowLevelClient(grpc_client=self.client.grpc_client)
-        self._data_low_level_client = DataLowLevelClient(grpc_client=self.client.grpc_client)
+        self._data_low_level_client = None
 
     async def get(
         self,
@@ -165,6 +163,13 @@ class ChannelsAPIAsync(ResourceBase):
             return channels[0]
         return None
 
+    def _ensure_data_low_level_client(self):
+        """Ensure that the data low level client is initialized. Separated out like this to not require large dependencies (pandas/pyarrow) for the client if not fetching data."""
+        if self._data_low_level_client is None:
+            from sift_client._internal.low_level_wrappers.data import DataLowLevelClient
+
+            self._data_low_level_client = DataLowLevelClient(grpc_client=self.client.grpc_client)
+
     async def get_data(
         self,
         *,
@@ -186,6 +191,9 @@ class ChannelsAPIAsync(ResourceBase):
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
         """
+        self._ensure_data_low_level_client()
+        assert self._data_low_level_client is not None
+
         run_id = run._id_or_error if isinstance(run, Run) else run
         return await self._data_low_level_client.get_channel_data(
             channels=channels,
@@ -205,6 +213,8 @@ class ChannelsAPIAsync(ResourceBase):
         limit: int | None = None,
     ) -> dict[str, pa.Table]:
         """Get data for one or more channels as pyarrow tables."""
+        from pyarrow import Table as ArrowTable
+
         run_id = run.id_ if isinstance(run, Run) else run
         data = await self.get_data(
             channels=channels,
@@ -213,4 +223,4 @@ class ChannelsAPIAsync(ResourceBase):
             end_time=end_time,
             limit=limit,
         )
-        return {k: pa.Table.from_pandas(v) for k, v in data.items()}
+        return {k: ArrowTable.from_pandas(v) for k, v in data.items()}
