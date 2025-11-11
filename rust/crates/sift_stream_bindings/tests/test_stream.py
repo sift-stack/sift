@@ -4,14 +4,14 @@ import pytest
 from sift_stream_bindings import (
     ChannelConfigPy,
     ChannelDataTypePy,
-    ChannelValuePy,
     FlowConfigPy,
     FlowPy,
     IngestionConfigFormPy,
-    IngestWithConfigDataStreamRequestPy,
     RunFormPy,
     SiftStreamBuilderPy,
     TimeValuePy,
+    ValuePy,
+    IngestWithConfigDataStreamRequestPy
 )
 
 
@@ -26,12 +26,13 @@ class TestFlow:
 
     def test_create_flow_with_multiple_values(self):
         """Test creating a flow with multiple channel values."""
+        from sift_stream_bindings import ChannelValuePy
         timestamp = TimeValuePy.from_timestamp(int(time.time()), 0)
         values = [
-            ChannelValuePy.float("temperature", 23.5),
-            ChannelValuePy.bool("active", True),
-            ChannelValuePy.string("status", "running"),
-            ChannelValuePy.int32("count", 42),
+            ChannelValuePy("temperature", ValuePy.Float(23.5)),
+            ChannelValuePy("active", ValuePy.Bool(True)),
+            ChannelValuePy("status", ValuePy.String("running")),
+            ChannelValuePy("count", ValuePy.Int32(42)),
         ]
         flow = FlowPy("test_flow", timestamp, values)
         assert flow
@@ -49,8 +50,7 @@ class TestSiftStreamBuilder:
         assert builder.enable_tls is True
         assert builder.ingestion_config is None
         assert builder.recovery_strategy is None
-        assert builder.checkpoint_interval.secs == 60
-        assert builder.checkpoint_interval.nanos == 0
+        assert builder.checkpoint_interval is None
 
     def test_set_ingestion_config(self):
         """Test setting ingestion config on builder."""
@@ -87,13 +87,20 @@ class TestSiftStreamBuilder:
 
     def test_set_run_form(self):
         """Test setting run form on builder."""
+        from sift_stream_bindings import MetadataPy, MetadataValuePy
+
         builder = SiftStreamBuilderPy("https://api.example.com", "test-api-key")
+
+        metadata = [
+            MetadataPy(key="test_key", value=MetadataValuePy("test_value")),
+        ]
 
         run_form = RunFormPy(
             name="Test Run",
-            description="Test run description",
             client_key="test-run-key",
+            description="Test run description",
             tags=[],
+            metadata=metadata,
         )
 
         builder.run = run_form
@@ -102,6 +109,8 @@ class TestSiftStreamBuilder:
         assert builder.run.description == "Test run description"
         assert builder.run.client_key == "test-run-key"
         assert builder.run.tags == []
+        assert builder.run.metadata is not None
+        assert len(builder.run.metadata) == 1
 
     @pytest.mark.asyncio
     async def test_build_stream_no_ingestion_config(self):

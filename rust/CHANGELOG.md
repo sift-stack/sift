@@ -3,6 +3,58 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.2] - November 3, 2025
+### What's New
+#### Improvements For Constrained Environments
+Compression support has been added for streaming data into Sift. This can be useful in low-bandwidth or network
+constrained environments. Since compression does add overhead to streaming, it is not recommended for high
+throughput streaming systems.
+
+Additionally, changes have been made to ensure data is streamed to Sift even when writing backup files lags
+behind ingestion.
+
+## [v0.7.0-rc.1] - October 24, 2025
+### What's New
+#### SiftStream Optimizations
+The algorithm used in `SiftStream::message_to_ingest_req` to convert a `Flow` into the necessary gRPC request format was substantially
+optimized, improving the performance of sending data to Sift.
+
+#### SiftStream Backup Directory Structure
+The directory structure used for backup files has been made more human-friendly, organizing backup files by asset name, and run when
+available. Additionally, the backup files now include the client-key as the prefix to help identify the associated ingestion config.
+
+#### Removal of Deprecated Recovery Strategies
+Previously deprecated recovery strategies `RecoveryStrategy::RetryWithInMemoryBackups` and `RecoveryStrategy::RetryWithDiskBackups`
+have been removed.
+
+#### SiftStream Metrics
+Metrics have been added throughout `SiftStream`, providing visibility into the performance of the client. These metrics are behind
+the feature `metrics-unstable`. These metrics are considered "unstable" and subject to be dramatically changed or refactored in
+future releases.
+
+#### Sift CLI
+A new command-line interface has been developed to streamline common Sift functions such as importing and exporting data. Additional
+capabilities will be added in upcoming releases.
+
+#### SiftStream Refactor for Improved Performance
+The internals of `SiftStream` have been refactored to improve the async `await` behavior of `SiftStream::send`. In previous versions
+this async call could end up awaiting for an extended period of time, thereby preventing the caller from streaming more data. This
+behavior has been corrected, and streaming should now be entirely non-blocking, even when encounting network slow-downs.
+
+Additionally, the refactor allowed simplifications to be made throughout `SiftStream` for improved reliability and performance.
+
+### Full Changelog
+- [Optimize flow conversion into gRPC request](https://github.com/sift-stack/sift/commit/bf1c2681392b40409bc9033faf0fd0ad37fdc60b)
+- [Improve backup directory names and structure](https://github.com/sift-stack/sift/commit/2c88ca78a090ef2dc4c5fc4bd0425ca0e9bcd559)
+- [Remove deprecated recovery strategies](https://github.com/sift-stack/sift/commit/39cfddbfc80c6e8ec7d0a8961d5b5dca83a663ba)
+- [SiftStream Metrics](https://github.com/sift-stack/sift/commit/e28c2fe8b2f480563ace745b5d0480bac72b457a)
+- [Update Protos](https://github.com/sift-stack/sift/commit/8e0a0e0e239fc4357d14f27816770be3f3fc631e)
+- [Correct rust CI and fixes for failing tests](https://github.com/sift-stack/sift/commit/ed9b20dca3f4b2184e90d389373dbaca86345bb5)
+- [Add missing build targets for sift-stream-bindings](https://github.com/sift-stack/sift/commit/6abe1d7dfb3d51f3ad787e930aaa5905b7a5e93b)
+- [Fix for aarch64 sift-stream build](https://github.com/sift-stack/sift/commit/aa256d39ae758babb8636e53e639b0f62f26d042)
+- [Sift CLI](https://github.com/sift-stack/sift/commit/7ac5aa1dd48e71803778c0d4c77a316b4f715788)
+- [Refactor SiftStream internals for better nonblocking behavior](https://github.com/sift-stack/sift/commit/3ca9852961fd7b6d142e9977e2f53f1c55cf0319)
+
 ## [v0.6.0] - September 19, 2025
 ### What's New
 #### SiftStream Async Backup Manager

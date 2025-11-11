@@ -1,5 +1,4 @@
-use super::{BackupsDecoder, chunk::PbfsChunk};
-use crate::TimeValue;
+use crate::{BackupsDecoder, chunk::PbfsChunk};
 use sift_error::prelude::*;
 use sift_rs::ingest::v1::{
     IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
@@ -74,7 +73,6 @@ fn test_writing_and_reading_from_disk_chunks() {
             messages.push(IngestWithConfigDataStreamRequest {
                 ingestion_config_id: "some-ingestion-config-id".into(),
                 run_id: "some-run-id".into(),
-                timestamp: Some(TimeValue::now().0),
                 channel_values: vec![IngestWithConfigDataChannelValue {
                     r#type: Some(Type::Int32(i.try_into().unwrap())),
                 }],
@@ -154,7 +152,6 @@ fn test_data_integrity() {
             messages.push(IngestWithConfigDataStreamRequest {
                 ingestion_config_id: "some-ingestion-config-id".into(),
                 run_id: "some-run-id".into(),
-                timestamp: Some(TimeValue::now().0),
                 channel_values: vec![IngestWithConfigDataChannelValue {
                     r#type: Some(Type::Int32(i.try_into().unwrap())),
                 }],

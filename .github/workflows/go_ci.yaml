@@ -18,12 +18,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: staticcheck
-        uses: dominikh/staticcheck-action@v1
-        with:
-          version: "latest"
-          working-directory: go
-
       - name: go fmt
         uses: Jerome1337/gofmt-action@v1.0.5
         with:

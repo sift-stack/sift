@@ -1,0 +1,23 @@
+[package]
+name = "sift_pbfs"
+version = { workspace = true }
+description = "PBFS (Protobuf File Stream) format for reading and writing protobuf messages to disk"
+edition = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+categories = { workspace = true }
+readme = "README.md"
+
+[dependencies]
+prost = "^0.13"
+sift_error = { workspace = true }
+crc32fast = "1.4.2"
+
+[dev-dependencies]
+tempdir = "0.3.7"
+uuid = { version = "1.16.0", features = ["v4"] }
+sift_rs = { workspace = true }
+

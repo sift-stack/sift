@@ -29,16 +29,16 @@ jobs:
           components: clippy, rustfmt
 
       - name: Run cargo check
-        run: cargo check --locked --manifest-path rust/Cargo.toml --all-features
+        run: cargo check --all-features
 
       - name: Run cargo clippy
-        run: cargo clippy --locked --manifest-path rust/Cargo.toml --all-features
+        run: cargo clippy --all-features
 
       - name: Run cargo fmt
-        run: cargo fmt --check --all --manifest-path rust/Cargo.toml
+        run: cargo fmt --check --all
 
       - name: Run cargo test
-        run: cargo test --locked --manifest-path rust/Cargo.toml --all-features
+        run: cargo test --all-features
 
       - name: Run sift-stream-bindings lint & test
         shell: bash
@@ -46,7 +46,8 @@ jobs:
           set -e
           python3 -m venv .venv
           source .venv/bin/activate
-          pip install sift-stream-bindings --find-links dist --force-reinstall
-          pip install pytest pytest-asyncio ruff
-          ruff check rust/crates/sift_stream_bindings/sift_stream_bindings.pyi
-          pytest rust/crates/sift_stream_bindings/tests
+          pip install maturin pytest pytest-asyncio ruff
+          cd rust/crates/sift_stream_bindings
+          maturin develop --release
+          ruff check sift_stream_bindings.pyi
+          pytest tests

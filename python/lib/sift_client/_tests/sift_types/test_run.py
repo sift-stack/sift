@@ -205,3 +205,16 @@ class TestRun:
             mock_update.assert_called_once_with(updated_run)
             # Verify it returns self
             assert result is mock_run
+
+    def test_run_stop(self, mock_run, mock_client):
+        """Test that stop() calls client.runs.stop and updates self."""
+        stopped_run = MagicMock()
+        mock_client.runs.get.return_value = stopped_run
+
+        # Mock the _update method to verify it's called
+        with MagicMock() as mock_update:
+            mock_run._update = mock_update
+            result = mock_run.stop()
+            mock_client.runs.stop.assert_called_once_with(run=mock_run)
+            mock_update.assert_called_once_with(stopped_run)
+            assert result is mock_run

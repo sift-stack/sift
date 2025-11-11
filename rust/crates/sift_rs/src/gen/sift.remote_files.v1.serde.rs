@@ -308,6 +308,9 @@ impl serde::Serialize for CreateRemoteFileRequest {
         if self.custom_uuid.is_some() {
             len += 1;
         }
+        if !self.metadata_values.is_empty() {
+            len += 1;
+        }
         if self.metadata.is_some() {
             len += 1;
         }
@@ -341,6 +344,9 @@ impl serde::Serialize for CreateRemoteFileRequest {
         }
         if let Some(v) = self.custom_uuid.as_ref() {
             struct_ser.serialize_field("customUuid", v)?;
+        }
+        if !self.metadata_values.is_empty() {
+            struct_ser.serialize_field("metadataValues", &self.metadata_values)?;
         }
         if let Some(v) = self.metadata.as_ref() {
             match v {
@@ -382,6 +388,8 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
             "organizationId",
             "custom_uuid",
             "customUuid",
+            "metadata_values",
+            "metadataValues",
             "video_metadata",
             "videoMetadata",
             "image_metadata",
@@ -401,6 +409,7 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
             Description,
             OrganizationId,
             CustomUuid,
+            MetadataValues,
             VideoMetadata,
             ImageMetadata,
             AudioMetadata,
@@ -434,6 +443,7 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
                             "description" => Ok(GeneratedField::Description),
                             "organizationId" | "organization_id" => Ok(GeneratedField::OrganizationId),
                             "customUuid" | "custom_uuid" => Ok(GeneratedField::CustomUuid),
+                            "metadataValues" | "metadata_values" => Ok(GeneratedField::MetadataValues),
                             "videoMetadata" | "video_metadata" => Ok(GeneratedField::VideoMetadata),
                             "imageMetadata" | "image_metadata" => Ok(GeneratedField::ImageMetadata),
                             "audioMetadata" | "audio_metadata" => Ok(GeneratedField::AudioMetadata),
@@ -465,6 +475,7 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
                 let mut description__ = None;
                 let mut organization_id__ = None;
                 let mut custom_uuid__ = None;
+                let mut metadata_values__ = None;
                 let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -524,6 +535,12 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
                             }
                             custom_uuid__ = map_.next_value()?;
                         }
+                        GeneratedField::MetadataValues => {
+                            if metadata_values__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadataValues"));
+                            }
+                            metadata_values__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::VideoMetadata => {
                             if metadata__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("videoMetadata"));
@@ -557,6 +574,7 @@ impl<'de> serde::Deserialize<'de> for CreateRemoteFileRequest {
                     description: description__,
                     organization_id: organization_id__.unwrap_or_default(),
                     custom_uuid: custom_uuid__,
+                    metadata_values: metadata_values__.unwrap_or_default(),
                     metadata: metadata__,
                 })
             }
@@ -1689,6 +1707,9 @@ impl serde::Serialize for RemoteFile {
         if self.modified_date.is_some() {
             len += 1;
         }
+        if !self.metadata_values.is_empty() {
+            len += 1;
+        }
         if self.metadata.is_some() {
             len += 1;
         }
@@ -1737,6 +1758,9 @@ impl serde::Serialize for RemoteFile {
         }
         if let Some(v) = self.modified_date.as_ref() {
             struct_ser.serialize_field("modifiedDate", v)?;
+        }
+        if !self.metadata_values.is_empty() {
+            struct_ser.serialize_field("metadataValues", &self.metadata_values)?;
         }
         if let Some(v) = self.metadata.as_ref() {
             match v {
@@ -1788,6 +1812,8 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
             "createdDate",
             "modified_date",
             "modifiedDate",
+            "metadata_values",
+            "metadataValues",
             "video_metadata",
             "videoMetadata",
             "image_metadata",
@@ -1812,6 +1838,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
             ModifiedByUserId,
             CreatedDate,
             ModifiedDate,
+            MetadataValues,
             VideoMetadata,
             ImageMetadata,
             AudioMetadata,
@@ -1850,6 +1877,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                             "modifiedByUserId" | "modified_by_user_id" => Ok(GeneratedField::ModifiedByUserId),
                             "createdDate" | "created_date" => Ok(GeneratedField::CreatedDate),
                             "modifiedDate" | "modified_date" => Ok(GeneratedField::ModifiedDate),
+                            "metadataValues" | "metadata_values" => Ok(GeneratedField::MetadataValues),
                             "videoMetadata" | "video_metadata" => Ok(GeneratedField::VideoMetadata),
                             "imageMetadata" | "image_metadata" => Ok(GeneratedField::ImageMetadata),
                             "audioMetadata" | "audio_metadata" => Ok(GeneratedField::AudioMetadata),
@@ -1886,6 +1914,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                 let mut modified_by_user_id__ = None;
                 let mut created_date__ = None;
                 let mut modified_date__ = None;
+                let mut metadata_values__ = None;
                 let mut metadata__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -1975,6 +2004,12 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                             }
                             modified_date__ = map_.next_value()?;
                         }
+                        GeneratedField::MetadataValues => {
+                            if metadata_values__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("metadataValues"));
+                            }
+                            metadata_values__ = Some(map_.next_value()?);
+                        }
                         GeneratedField::VideoMetadata => {
                             if metadata__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("videoMetadata"));
@@ -2013,6 +2048,7 @@ impl<'de> serde::Deserialize<'de> for RemoteFile {
                     modified_by_user_id: modified_by_user_id__.unwrap_or_default(),
                     created_date: created_date__,
                     modified_date: modified_date__,
+                    metadata_values: metadata_values__.unwrap_or_default(),
                     metadata: metadata__,
                 })
             }

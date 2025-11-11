@@ -1,17 +1,13 @@
-use super::Message;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
+use sift_pbfs::BackupsDecoder;
 use std::{fs::File, io::BufReader, path::Path};
 
 mod async_manager;
-pub(crate) use async_manager::AsyncBackupsManager;
+pub(crate) use async_manager::{AsyncBackupsManager, BackupIngestTask};
 
 mod policy;
 pub use policy::{DiskBackupPolicy, RollingFilePolicy};
-
-/// Concerned with writing/reading protobuf from disk.
-mod pbfs;
-use pbfs::BackupsDecoder;
 
 /// Takes in a path to a backup file and returns an instance of [BackupsDecoder] which is an
 /// iterator over the protobuf messages found in the backup file. The iterator will terminate when

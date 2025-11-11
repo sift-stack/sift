@@ -30,6 +30,9 @@ pub mod time;
 /// in a manner that isn't backwards compatible.
 pub(crate) mod flow;
 
+/// Task-based architecture for non-blocking SiftStream operations
+pub mod tasks;
+
 #[cfg(test)]
 mod test;
 

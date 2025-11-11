@@ -57,8 +57,8 @@ impl IngestionConfigService for MockIngestionConfigService {
     ) -> Result<Response<GetIngestionConfigResponse>, Status> {
         Ok(Response::new(GetIngestionConfigResponse {
             ingestion_config: Some(IngestionConfig {
-                ingestion_config_id: "123".to_string(),
-                asset_id: "123".to_string(),
+                ingestion_config_id: "ingestion-config-0".to_string(),
+                asset_id: "asset-0".to_string(),
                 client_key: "test_client_key".to_string(),
             }),
         }))
@@ -69,8 +69,8 @@ impl IngestionConfigService for MockIngestionConfigService {
     ) -> Result<Response<CreateIngestionConfigResponse>, Status> {
         Ok(Response::new(CreateIngestionConfigResponse {
             ingestion_config: Some(IngestionConfig {
-                ingestion_config_id: "123".to_string(),
-                asset_id: "123".to_string(),
+                ingestion_config_id: "ingestion-config-0".to_string(),
+                asset_id: "asset-0".to_string(),
                 client_key: "test_client_key".to_string(),
             }),
         }))
@@ -79,11 +79,10 @@ impl IngestionConfigService for MockIngestionConfigService {
         &self,
         _: Request<ListIngestionConfigsRequest>,
     ) -> Result<Response<ListIngestionConfigsResponse>, Status> {
-        println!("list_ingestion_configs");
         Ok(Response::new(ListIngestionConfigsResponse {
             ingestion_configs: vec![IngestionConfig {
-                ingestion_config_id: "123".to_string(),
-                asset_id: "123".to_string(),
+                ingestion_config_id: "ingestion-config-0".to_string(),
+                asset_id: "asset-0".to_string(),
                 client_key: "test_client_key".to_string(),
             }],
             next_page_token: "".to_string(),
@@ -101,7 +100,7 @@ impl IngestionConfigService for MockIngestionConfigService {
     ) -> Result<Response<ListIngestionConfigFlowsResponse>, Status> {
         Ok(Response::new(ListIngestionConfigFlowsResponse {
             flows: vec![FlowConfig {
-                name: "123".to_string(),
+                name: "flow-0".to_string(),
                 channels: vec![ChannelConfig {
                     name: "generator".to_string(),
                     data_type: ChannelDataType::Double.into(),
@@ -123,7 +122,7 @@ impl AssetService for MockAssetService {
     ) -> Result<Response<GetAssetResponse>, Status> {
         Ok(Response::new(GetAssetResponse {
             asset: Some(Asset {
-                asset_id: "123".to_string(),
+                asset_id: "asset-0".to_string(),
                 name: "test_asset".to_string(),
                 organization_id: "test".to_string(),
                 created_by_user_id: "test".to_string(),

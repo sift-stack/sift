@@ -11,6 +11,7 @@ import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
+import sift.metadata.v1.metadata_pb2
 import sys
 import typing
 
@@ -65,6 +66,7 @@ class RemoteFile(google.protobuf.message.Message):
     MODIFIED_BY_USER_ID_FIELD_NUMBER: builtins.int
     CREATED_DATE_FIELD_NUMBER: builtins.int
     MODIFIED_DATE_FIELD_NUMBER: builtins.int
+    METADATA_VALUES_FIELD_NUMBER: builtins.int
     remote_file_id: builtins.str
     organization_id: builtins.str
     entity_id: builtins.str
@@ -87,6 +89,8 @@ class RemoteFile(google.protobuf.message.Message):
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
     def modified_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
+    @property
+    def metadata_values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]: ...
     def __init__(
         self,
         *,
@@ -107,9 +111,10 @@ class RemoteFile(google.protobuf.message.Message):
         modified_by_user_id: builtins.str = ...,
         created_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         modified_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        metadata_values: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_description", b"_description", "audio_metadata", b"audio_metadata", "created_date", b"created_date", "description", b"description", "image_metadata", b"image_metadata", "metadata", b"metadata", "modified_date", b"modified_date", "video_metadata", b"video_metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_description", b"_description", "audio_metadata", b"audio_metadata", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "entity_id", b"entity_id", "entity_type", b"entity_type", "file_content_encoding", b"file_content_encoding", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "file_size", b"file_size", "image_metadata", b"image_metadata", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "organization_id", b"organization_id", "remote_file_id", b"remote_file_id", "storage_key", b"storage_key", "video_metadata", b"video_metadata"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_description", b"_description", "audio_metadata", b"audio_metadata", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "description", b"description", "entity_id", b"entity_id", "entity_type", b"entity_type", "file_content_encoding", b"file_content_encoding", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "file_size", b"file_size", "image_metadata", b"image_metadata", "metadata", b"metadata", "metadata_values", b"metadata_values", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "organization_id", b"organization_id", "remote_file_id", b"remote_file_id", "storage_key", b"storage_key", "video_metadata", b"video_metadata"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_description", b"_description"]) -> typing.Literal["description"] | None: ...
     @typing.overload
@@ -240,7 +245,7 @@ class ListRemoteFilesRequest(google.protobuf.message.Message):
     """
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-    Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, and `file_name`.
+    Available fields to filter by are `remote_file_id`, `entity_id`, `entity_type`, `metadata`, and `file_name`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     For more information about the fields used for filtering, please refer to [this definition](/docs/api/grpc/protocol-buffers/remote_files#remotefile). Optional.
     """
@@ -297,6 +302,7 @@ class CreateRemoteFileRequest(google.protobuf.message.Message):
     IMAGE_METADATA_FIELD_NUMBER: builtins.int
     AUDIO_METADATA_FIELD_NUMBER: builtins.int
     CUSTOM_UUID_FIELD_NUMBER: builtins.int
+    METADATA_VALUES_FIELD_NUMBER: builtins.int
     file_name: builtins.str
     entity_id: builtins.str
     entity_type: global___EntityType.ValueType
@@ -314,6 +320,10 @@ class CreateRemoteFileRequest(google.protobuf.message.Message):
     def image_metadata(self) -> global___ImageMetadata: ...
     @property
     def audio_metadata(self) -> global___AudioMetadata: ...
+    @property
+    def metadata_values(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[sift.metadata.v1.metadata_pb2.MetadataValue]:
+        """The metadata values associated with this remote file."""
+
     def __init__(
         self,
         *,
@@ -329,9 +339,10 @@ class CreateRemoteFileRequest(google.protobuf.message.Message):
         image_metadata: global___ImageMetadata | None = ...,
         audio_metadata: global___AudioMetadata | None = ...,
         custom_uuid: builtins.str | None = ...,
+        metadata_values: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_custom_uuid", b"_custom_uuid", "_description", b"_description", "audio_metadata", b"audio_metadata", "custom_uuid", b"custom_uuid", "description", b"description", "image_metadata", b"image_metadata", "metadata", b"metadata", "video_metadata", b"video_metadata"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_custom_uuid", b"_custom_uuid", "_description", b"_description", "audio_metadata", b"audio_metadata", "custom_uuid", b"custom_uuid", "description", b"description", "entity_id", b"entity_id", "entity_type", b"entity_type", "file_content_encoding", b"file_content_encoding", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "file_size", b"file_size", "image_metadata", b"image_metadata", "metadata", b"metadata", "organization_id", b"organization_id", "video_metadata", b"video_metadata"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_custom_uuid", b"_custom_uuid", "_description", b"_description", "audio_metadata", b"audio_metadata", "custom_uuid", b"custom_uuid", "description", b"description", "entity_id", b"entity_id", "entity_type", b"entity_type", "file_content_encoding", b"file_content_encoding", "file_mime_type", b"file_mime_type", "file_name", b"file_name", "file_size", b"file_size", "image_metadata", b"image_metadata", "metadata", b"metadata", "metadata_values", b"metadata_values", "organization_id", b"organization_id", "video_metadata", b"video_metadata"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_custom_uuid", b"_custom_uuid"]) -> typing.Literal["custom_uuid"] | None: ...
     @typing.overload
@@ -435,7 +446,7 @@ class UpdateRemoteFileRequest(google.protobuf.message.Message):
 
     @property
     def update_mask(self) -> google.protobuf.field_mask_pb2.FieldMask:
-        """The list of fields to be updated. The fields available to be updated are `description` and `metadata`."""
+        """The list of fields to be updated. The fields available to be updated are `description`, `metadata_values`, and `metadata`."""
 
     def __init__(
         self,

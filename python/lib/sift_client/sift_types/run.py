@@ -119,6 +119,13 @@ class Run(BaseType[RunProto, "Run"]):
         self._update(updated_run)
         return self
 
+    def stop(self) -> Run:
+        """Stop the run."""
+        self.client.runs.stop(run=self)
+        updated_run = self.client.runs.get(run_id=self.id_)
+        self._update(updated_run)
+        return self
+
 
 class RunBase(ModelCreateUpdateBase):
     """Base class for Run create and update models with shared fields and validation."""

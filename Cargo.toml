@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = [
+  "rust/crates/sift_error",
+  "rust/crates/sift_rs",
+  "rust/crates/sift_stream",
+  "rust/crates/sift_error",
+  "rust/crates/sift_connect",
+  "rust/crates/sift_stream_bindings",
+  "rust/crates/sift_cli",
+  "rust/crates/sift_pbfs",
+]
+
+[workspace.package]
+authors = ["Sift Software Engineers <engineering@siftstack.com>"]
+version = "0.7.0-rc.2"
+edition = "2024"
+categories = ["aerospace", "science::robotics"]
+homepage = "https://github.com/sift-stack/sift"
+repository = "https://github.com/sift-stack/sift"
+keywords = ["sift", "siftstack", "sift-stack", "sift_rs", "telemetry"]
+readme = "README.md"
+license = "MIT"
+
+[workspace.dependencies]
+chrono = { version = "0.4.39", default-features = false, features = ["clock"] }
+pbjson-types = "^0.7"
+tonic = { version = "^0.12", features = ["gzip"] }
+
+sift_connect = { version = "0.7.0-rc.2", path = "rust/crates/sift_connect" }
+sift_rs = { version = "0.7.0-rc.2", path = "rust/crates/sift_rs" }
+sift_error = { version = "0.7.0-rc.2", path = "rust/crates/sift_error" }
+sift_stream = { version = "0.7.0-rc.2", path = "rust/crates/sift_stream" }
+sift_pbfs = { version = "0.7.0-rc.2", path = "rust/crates/sift_pbfs" }
+
+sift_stream_bindings = { version = "0.1.0", path = "rust/crates/sift_stream_bindings" }
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

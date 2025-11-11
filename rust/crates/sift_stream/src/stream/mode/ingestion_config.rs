@@ -1,10 +1,10 @@
-use super::super::{
-    RetryPolicy, SiftStream, SiftStreamMode, channel::ChannelValue, time::TimeValue,
-};
+use super::super::{SiftStream, SiftStreamMode, channel::ChannelValue, time::TimeValue};
 use crate::{
-    backup::disk::AsyncBackupsManager,
     metrics::SiftStreamMetrics,
-    stream::run::{RunSelector, load_run_by_form, load_run_by_id},
+    stream::{
+        run::{RunSelector, load_run_by_form, load_run_by_id},
+        tasks::{ControlMessage, DataMessage, StreamSystem, TaskConfig, start_tasks},
+    },
 };
 
 #[cfg(feature = "metrics-unstable")]
@@ -12,48 +12,22 @@ use crate::metrics::register_metrics;
 
 use futures_core::Stream;
 use prost::Message;
-use sift_connect::SiftChannel;
 use sift_error::prelude::*;
 use sift_rs::{
-    ingest::v1::{
-        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
-        IngestWithConfigDataStreamResponse, ingest_service_client::IngestServiceClient,
-    },
+    ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest},
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     runs::v2::Run,
     wrappers::ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
 };
 use std::{
     collections::{HashMap, HashSet},
-    ops::Drop,
     pin::Pin,
-    sync::{
-        Arc,
-        mpsc::{Receiver as StdReceiver, Sender as StdSender},
-    },
+    sync::Arc,
     task::{Context, Poll},
-    time::{Duration, Instant},
 };
-use tokio::{
-    sync::{
-        Notify,
-        mpsc::{
-            Receiver as BoundedReceiver, Sender as BoundedSender, channel as bounded_channel,
-            error::SendError,
-        },
-        oneshot::{self, Receiver, Sender},
-    },
-    task::JoinHandle,
-};
+use tokio::sync::broadcast;
+use tokio_stream::wrappers::BroadcastStream;
 use uuid::Uuid;
-
-/// The size of the channel buffer that connects [SiftStream::send] with the task that actually
-/// streams data to Sift.
-const DATA_BUFFER_CAPACITY: usize = 10_000;
-
-/// If Sift doesn't send back a checkpoint acknowledgement after this amount of time we will
-/// forcefully end the current stream.
-const FORCE_CHECKPOINT_THRESHOLD_SEC: u64 = 10;
 
 /// Dependencies specifically for ingestion-config based streaming. Users shouldn't have to
 /// interact with this directly.
@@ -62,27 +36,10 @@ pub struct IngestionConfigMode {
     ingestion_config: IngestionConfig,
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
     flows_seen: HashSet<String>,
-    checkpoint_interval: Duration,
-    streaming_task: Option<DataStreamTask>,
-    retry_policy: Option<RetryPolicy>,
-    data_tx: Option<BoundedSender<StreamMessage>>,
-    shutdown_tx: Option<Sender<()>>,
-    backups_manager: Option<AsyncBackupsManager<IngestWithConfigDataStreamRequest>>,
     sift_stream_id: Uuid,
 
-    /// It's possible that [DataStream] may still have some data in its buffer by the time it gets
-    /// dropped due to checkpointing or errors while streaming. This is going to be the receiving
-    /// end of the drain that recovers that data and puts it into the new receiver associated with
-    /// the new `data_tx` when we reinitialize the gRPC stream. When [SiftStream::finish] is
-    /// called, any data still in the drain will be sent as a batch to Sift in a final stream.
-    drain_rx: Option<StdReceiver<IngestWithConfigDataStreamRequest>>,
-}
-
-/// Used for fine-grain control of [DataStream].
-enum StreamMessage {
-    Request(IngestWithConfigDataStreamRequest),
-    CheckpointSignal,
-    ErrorSignal,
+    // Task-based architecture components for non-blocking operation
+    stream_system: StreamSystem,
 }
 
 impl SiftStreamMode for IngestionConfigMode {}
@@ -98,45 +55,39 @@ pub struct Flow {
 }
 
 /// Dependencies used in the Tokio task that actually sends the data to Sift.
-struct DataStream {
-    data_rx: BoundedReceiver<StreamMessage>,
-    drain_tx: StdSender<IngestWithConfigDataStreamRequest>,
+pub(crate) struct DataStream {
+    data_rx: Pin<Box<async_channel::Receiver<DataMessage>>>,
+    control_rx: Pin<Box<BroadcastStream<ControlMessage>>>,
     sift_stream_id: Uuid,
-    heartbeat_task: JoinHandle<()>,
-    started_at: Instant,
     metrics: Arc<SiftStreamMetrics>,
 }
-
-type DataStreamTask = JoinHandle<Result<IngestWithConfigDataStreamResponse>>;
 
 impl Flow {
     /// Initializes a new flow that can be immediately sent to Sift by passing this to
     /// [SiftStream::send].
-    pub fn new<S: AsRef<str>>(flow_name: S, timestamp: TimeValue, values: &[ChannelValue]) -> Self {
+    pub fn new<S>(flow_name: S, timestamp: TimeValue, values: &[ChannelValue]) -> Self
+    where
+        S: ToString,
+    {
         Self {
             timestamp,
-            flow_name: flow_name.as_ref().to_string(),
+            flow_name: flow_name.to_string(),
             values: values.to_vec(),
         }
     }
 }
 
 impl SiftStream<IngestionConfigMode> {
-    /// Initializes a new [SiftStream]. Users should never have to call this method directly;
-    /// prefer to use [`SiftStreamBuilder`].
+    /// Initializes a new [SiftStream]. Users should instead use [`SiftStreamBuilder`].
     ///
     /// [`SiftStreamBuilder`]: crate::stream::builder::SiftStreamBuilder
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        grpc_channel: SiftChannel,
+    pub(crate) fn new(
         ingestion_config: IngestionConfig,
         flows: Vec<FlowConfig>,
         run: Option<Run>,
-        checkpoint_interval: Duration,
-        retry_policy: Option<RetryPolicy>,
-        backups_manager: Option<AsyncBackupsManager<IngestWithConfigDataStreamRequest>>,
+        task_config: TaskConfig,
         metrics: Arc<SiftStreamMetrics>,
-    ) -> Self {
+    ) -> Result<Self> {
         let mut flows_by_name = HashMap::<String, Vec<FlowConfig>>::new();
 
         for flow in flows {
@@ -146,16 +97,10 @@ impl SiftStream<IngestionConfigMode> {
                 .or_insert_with(|| vec![flow]);
         }
 
-        let (data_tx, data_rx) = bounded_channel::<StreamMessage>(DATA_BUFFER_CAPACITY);
-        let (drain_tx, drain_rx) = std::sync::mpsc::channel::<IngestWithConfigDataStreamRequest>();
-        let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
-        let begin_checkpoint_notifier = Arc::new(Notify::new());
-        let sift_stream_id = Uuid::new_v4();
-
         // Spawn a task to register metrics without blocking
         #[cfg(feature = "metrics-unstable")]
         {
-            let uuid = sift_stream_id.to_string();
+            let uuid = task_config.sift_stream_id.to_string();
             let metrics = metrics.clone();
             tokio::spawn(async move {
                 register_metrics(uuid, metrics).await;
@@ -163,30 +108,13 @@ impl SiftStream<IngestionConfigMode> {
         }
 
         metrics.loaded_flows.add(flows_by_name.len() as u64);
+        let sift_stream_id = task_config.sift_stream_id;
+        let grpc_channel = task_config.grpc_channel.clone();
 
-        let data_stream = DataStream::new(sift_stream_id, data_rx, drain_tx, metrics.clone());
+        let stream_system =
+            start_tasks(task_config).context("failed to start task-based architecture")?;
 
-        let streaming_task = Self::init_streaming_task(
-            grpc_channel.clone(),
-            sift_stream_id,
-            data_stream,
-            checkpoint_interval,
-            data_tx.clone(),
-            shutdown_rx,
-            begin_checkpoint_notifier.clone(),
-            metrics.clone(),
-        );
-
-        // Begin checkpoint immediately upon starting
-        begin_checkpoint_notifier.notify_one();
-
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = sift_stream_id.to_string(),
-            "Sift streaming successfully initialized"
-        );
-
-        Self {
+        Ok(Self {
             grpc_channel,
             mode: IngestionConfigMode {
                 ingestion_config,
@@ -194,16 +122,10 @@ impl SiftStream<IngestionConfigMode> {
                 flows_seen: HashSet::new(),
                 sift_stream_id,
                 run,
-                streaming_task: Some(streaming_task),
-                checkpoint_interval,
-                data_tx: Some(data_tx),
-                shutdown_tx: Some(shutdown_tx),
-                drain_rx: Some(drain_rx),
-                retry_policy,
-                backups_manager,
+                stream_system,
             },
             metrics,
-        }
+        })
     }
 
     /// The entry-point to send actual telemetry to Sift in the form of [Flow]s. If a `message` is
@@ -213,14 +135,15 @@ impl SiftStream<IngestionConfigMode> {
     /// to register the flow before calling [SiftStream::send]; otherwise users should monitor the
     /// Sift DLQ either in the Sift UI or Sift API to ensure successful transmission.
     ///
-    /// In the case where the underlying error was closed due to an error, this method will invoke
-    /// the configured [RetryPolicy] to attempt to reconnect and resend data to Sift. If the amount
-    /// of retry attempts exceeds the maximum configured, then an [ErrorKind::RetriesExhausted] is
-    /// returned. If backups are enabled, then all messages since the last successful checkpoint
-    /// will be reingested.
+    /// When "sending" messages, first the message will sent to the backup system. This system
+    /// is used to backup data to disk until the data is confirmed received by Sift. If streaming
+    /// encounters errors, the backed up data will be re-ingested ensuring all data is received
+    /// by Sift.
     ///
-    /// Lastly, if the underlying stream was gracefully closed due to a checkpoint, this method
-    /// will automatically establish a new connection.
+    /// If the backup system has fallen behind and the backup queue/channel is full, it will
+    /// proceed to sending the message to Sift.
+    ///
+    /// This ensures data is sent to Sift even if the backup system is lagging.
     pub async fn send(&mut self, message: Flow) -> Result<()> {
         self.metrics.messages_received.increment();
 
@@ -235,7 +158,7 @@ impl SiftStream<IngestionConfigMode> {
                 message.flow_name,
             );
             let req = Self::message_to_ingest_req_direct(&message, ingestion_config_id, run_id);
-            return self.send_impl(req).await;
+            return self.send_impl(req);
         };
         let Some(req) = Self::message_to_ingest_req(
             &message,
@@ -250,9 +173,9 @@ impl SiftStream<IngestionConfigMode> {
                 "encountered a message that doesn't match any cached flows - message will still be transmitted but will not show in Sift if the flow was not registered"
             );
             let req = Self::message_to_ingest_req_direct(&message, ingestion_config_id, run_id);
-            return self.send_impl(req).await;
+            return self.send_impl(req);
         };
-        self.send_impl(req).await
+        self.send_impl(req)
     }
 
     /// This method offers a way to send data in a manner that's identical to the raw
@@ -271,14 +194,14 @@ impl SiftStream<IngestionConfigMode> {
     {
         for req in requests {
             self.metrics.messages_received.increment();
-            self.send_impl(req).await?;
+            self.send_impl(req)?;
         }
         Ok(())
     }
 
     /// Concerned with sending the actual ingest request to [DataStream] which will then write it
     /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
-    async fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
+    fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
         #[cfg(feature = "tracing")]
         {
             if !self.mode.flows_seen.contains(&req.flow) {
@@ -292,112 +215,64 @@ impl SiftStream<IngestionConfigMode> {
             }
         }
 
-        if self
-            .backup_data(&req)
-            .await
-            .is_err_and(|e| e.kind() == ErrorKind::BackupLimitReached)
-        {
-            #[cfg(feature = "tracing")]
-            tracing::info!(
-                sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "backup size limit reached - forcing checkpoint"
-            );
-            if let Some(shutdown_tx) = self.mode.shutdown_tx.take() {
-                let _ = shutdown_tx.send(());
-            }
-            if let Some(data_tx) = self.mode.data_tx.take() {
-                drop(data_tx);
-            }
-            if let Some(streaming_task) = self.mode.streaming_task.take() {
-                let checkpoint_acknowledgement = streaming_task
-                    .await
-                    .map_err(|e| Error::new(ErrorKind::StreamError, e))
-                    .context("failed to force a checkpoint due to backup limit")
-                    .help("please contact Sift");
+        // Track the channel depths.
+        self.metrics
+            .ingestion_channel_depth
+            .set(self.mode.stream_system.ingestion_tx.len() as u64);
+        self.metrics
+            .backup_channel_depth
+            .set(self.mode.stream_system.backup_tx.len() as u64);
 
-                if let Err(err) = checkpoint_acknowledgement {
-                    return self.retry(req, err).await;
-                }
-            }
-            self.restart_stream_and_backups_manager(false).await?;
-            self.backup_data(&req).await?;
-        }
+        let data_msg = DataMessage {
+            request: req.clone(),
+            dropped_for_ingestion: false,
+        };
 
-        let Some(data_tx) = self.mode.data_tx.as_mut() else {
+        // Send the message for backup first. If this fails, log an error and continue.
+        //
+        // Failure to backup can lead to data loss though it is preferable to attempt
+        // to stream the message to Sift rather than return the error and prevent both.
+        if let Err(e) = self.mode.stream_system.backup_tx.try_send(data_msg.clone()) {
             #[cfg(feature = "tracing")]
             tracing::warn!(
                 sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "didn't expect data_tx to be missing - attempting retries but please notify Sift",
+                "failed to send data to backup system, data will still be streamed to Sift: {e}"
             );
-            return self
-                .retry(
-                    req,
-                    Error::new_msg(ErrorKind::StreamError, "unable to recover SiftStream"),
-                )
-                .await;
-        };
+        }
 
-        match data_tx.send(StreamMessage::Request(req.clone())).await {
-            Ok(_) => Ok(()),
+        self.metrics.messages_sent_to_backup.increment();
 
-            Err(SendError(_)) => {
+        // Send the message for ingestion.
+        //
+        // If the channel is full, the oldest message will be removed in order to create space for the newer message.
+        // For ingestion, newer data is preferred over older data.
+        match self.mode.stream_system.ingestion_tx.force_send(data_msg) {
+            Ok(None) => Ok(()),
+            Ok(Some(mut oldest_message)) => {
                 #[cfg(feature = "tracing")]
                 tracing::debug!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
-                    "returned Err(SendError) during data_tx.send()"
+                    "data channel full, dropping oldest message"
                 );
-                match self.mode.streaming_task.take() {
-                    None => {
-                        #[cfg(feature = "tracing")]
-                        tracing::debug!(
-                            sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            "No streaming task was taken. Awaiting restart_stream_and_backups_manager()"
-                        );
-                        self.restart_stream_and_backups_manager(false).await?;
-                        Box::pin(self.send_impl(req)).await
-                    }
 
-                    Some(streaming_task) => {
-                        #[cfg(feature = "tracing")]
-                        tracing::debug!(
-                            sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            "Awaiting streaming_task"
-                        );
-                        match streaming_task.await {
-                            Ok(Ok(_)) => {
-                                #[cfg(feature = "tracing")]
-                                tracing::debug!(
-                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
-                                    "Streaming_task returned Ok(). Awaiting restart_stream_and_backups_manager()"
-                                );
-                                self.restart_stream_and_backups_manager(false).await?;
-                                Box::pin(self.send_impl(req)).await
-                            }
-                            Ok(Err(err)) => {
-                                #[cfg(feature = "tracing")]
-                                tracing::warn!(
-                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
-                                    error = format!("{err:?}"),
-                                    "encountered an error while streaming to Sift"
-                                );
+                oldest_message.dropped_for_ingestion = true;
+                self.metrics.old_messages_dropped_for_ingestion.increment();
+                self.metrics.messages_sent_to_backup.increment();
+                self.metrics.checkpoint.failed_checkpoint_count.increment();
 
-                                self.retry(req, err).await
-                            }
-                            Err(err) => {
-                                #[cfg(feature = "tracing")]
-                                tracing::warn!(
-                                    sift_stream_id = self.mode.sift_stream_id.to_string(),
-                                    error = format!("{err:?}"),
-                                    "something went wrong while waiting for response from Sift"
-                                );
-
-                                self.retry(req, Error::new(ErrorKind::StreamError, err))
-                                    .await
-                            }
-                        }
-                    }
-                }
+                // Re-send the oldest message to the backup to ensure it is re-ingested later despite being
+                // dropped from the ingestion channel.
+                self.mode
+                    .stream_system
+                    .backup_tx
+                    .try_send(oldest_message)
+                    .map_err(|e| Error::new(ErrorKind::StreamError, e))
+                    .context("failed to send data to backup task system")
             }
+            Err(e) => Err(Error::new_msg(
+                ErrorKind::StreamError,
+                format!("queueing data for ingestion failed: {e}"),
+            )),
         }
     }
 
@@ -431,234 +306,6 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
-    /// Send a single data point to the backups manager to be backed up.
-    async fn backup_data(&mut self, req: &IngestWithConfigDataStreamRequest) -> Result<()> {
-        if let Some(backups_manager) = self.mode.backups_manager.as_mut() {
-            return backups_manager.send(req.clone()).await;
-        }
-        Ok(())
-    }
-
-    async fn shutdown_backups_manager(
-        mut backups_manager: AsyncBackupsManager<IngestWithConfigDataStreamRequest>,
-    ) -> Result<()> {
-        backups_manager.finish().await
-    }
-
-    async fn retry(
-        &mut self,
-        ingest_req: IngestWithConfigDataStreamRequest,
-        err: Error,
-    ) -> Result<()> {
-        let Some(retry_policy) = self.mode.retry_policy.as_ref() else {
-            return Err(Error::new(ErrorKind::StreamError, err))
-                .context("no retry policy detected");
-        };
-
-        let mut client = IngestServiceClient::new(self.grpc_channel.clone());
-
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = self.mode.sift_stream_id.to_string(),
-            "stream failed - attempting retry with retry policy: {:?}",
-            retry_policy
-        );
-
-        let mut current_wait = retry_policy.initial_backoff;
-
-        for i in 1..=retry_policy.max_attempts {
-            self.metrics.cur_retry_count.set(i as u64);
-            #[cfg(feature = "tracing")]
-            tracing::info!(
-                sift_stream_id = self.mode.sift_stream_id.to_string(),
-                retry_counter = i,
-                "attempting retry"
-            );
-
-            tokio::time::sleep(current_wait).await;
-            current_wait = (current_wait * u32::from(retry_policy.backoff_multiplier))
-                .min(retry_policy.max_backoff);
-
-            match client
-                .ingest_with_config_data_stream(tokio_stream::once(ingest_req.clone()))
-                .await
-            {
-                Ok(_) => {
-                    #[cfg(feature = "tracing")]
-                    tracing::info!(
-                        sift_stream_id = self.mode.sift_stream_id.to_string(),
-                        retry_counter = i,
-                        "successful retry - re-establishing connection to Sift"
-                    );
-
-                    self.restart_stream_and_backups_manager(true).await?;
-
-                    self.metrics.cur_retry_count.set(0);
-
-                    return Ok(());
-                }
-                Err(e) =>
-                {
-                    #[cfg(feature = "tracing")]
-                    if i < retry_policy.max_attempts {
-                        tracing::warn!(
-                            sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            retry_counter = i,
-                            error = format!("{e:?}"),
-                            "retry attempt failed - backing off for {}ms",
-                            current_wait.as_millis()
-                        );
-                    } else {
-                        tracing::warn!(
-                            sift_stream_id = self.mode.sift_stream_id.to_string(),
-                            retry_counter = i,
-                            original_error = format!("{e:?}"),
-                            recent_error = format!("{e:?}"),
-                            "all retry attempts exhausted"
-                        );
-                        break;
-                    }
-                }
-            }
-        }
-        Err(Error::new(ErrorKind::RetriesExhausted, err))
-    }
-
-    async fn restart_stream_and_backups_manager(
-        &mut self,
-        reingest_from_last_checkpoint: bool,
-    ) -> Result<()> {
-        let (data_tx, data_rx) = bounded_channel::<StreamMessage>(DATA_BUFFER_CAPACITY);
-        let (drain_tx, drain_rx) = std::sync::mpsc::channel::<IngestWithConfigDataStreamRequest>();
-        let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
-        let begin_checkpoint_notifier = Arc::new(Notify::new());
-        let data_stream = DataStream::new(
-            self.mode.sift_stream_id,
-            data_rx,
-            drain_tx,
-            self.metrics.clone(),
-        );
-
-        self.mode.data_tx = Some(data_tx.clone());
-        self.mode.shutdown_tx = Some(shutdown_tx);
-
-        let streaming_task = Self::init_streaming_task(
-            self.grpc_channel.clone(),
-            self.mode.sift_stream_id,
-            data_stream,
-            self.mode.checkpoint_interval,
-            data_tx.clone(),
-            shutdown_rx,
-            begin_checkpoint_notifier.clone(),
-            self.metrics.clone(),
-        );
-        self.mode.streaming_task = Some(streaming_task);
-
-        if let Some(drain) = self.mode.drain_rx.replace(drain_rx) {
-            while let Ok(req) = drain.try_recv() {
-                if data_tx.send(StreamMessage::Request(req)).await.is_err() {
-                    #[cfg(feature = "tracing")]
-                    tracing::warn!(
-                        sift_stream_id = self.mode.sift_stream_id.to_string(),
-                        "unexpected error while draining to new buffer which may result in dropped data - please notify Sift"
-                    );
-
-                    break;
-                }
-            }
-        }
-
-        if reingest_from_last_checkpoint {
-            // If we entered this branch this some really unexpected things happened. We're going to
-            // give up on trying to rescue the backups here and just resume streaming until the
-            // next checkpoint.
-            if let Err(err) = self.process_backups().await {
-                #[cfg(feature = "tracing")]
-                {
-                    tracing::debug!(
-                        sift_stream_id = self.mode.sift_stream_id.to_string(),
-                        error = format!("{err:?}"),
-                        "not all backups were successfully processed"
-                    );
-                    tracing::warn!(
-                        sift_stream_id = self.mode.sift_stream_id.to_string(),
-                        "not all backups were successfully processed due to unexpected stream termination - retrying"
-                    );
-                }
-
-                return Box::pin(self.restart_stream_and_backups_manager(false)).await;
-            }
-            begin_checkpoint_notifier.notify_one();
-        } else {
-            begin_checkpoint_notifier.notify_one();
-        }
-
-        self.restart_backup_manager().await?;
-
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = self.mode.sift_stream_id.to_string(),
-            "successfully initialized a new stream to Sift"
-        );
-
-        Ok(())
-    }
-
-    async fn restart_backup_manager(&mut self) -> Result<()> {
-        let Some(mut backups_manager) = self.mode.backups_manager.take() else {
-            return Ok(());
-        };
-
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = self.mode.sift_stream_id.to_string(),
-            "restarting backups manager"
-        );
-
-        // Restart backup manager. Don't replace, since we don't want to drop a running stream backups task
-        backups_manager.restart().await?;
-        self.mode.backups_manager = Some(backups_manager);
-
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = self.mode.sift_stream_id.to_string(),
-            "successfully restarted backups manager"
-        );
-
-        Ok(())
-    }
-
-    async fn process_backups(&mut self) -> Result<()> {
-        let Some(backup_manager) = self.mode.backups_manager.as_mut() else {
-            return Ok(());
-        };
-
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = self.mode.sift_stream_id.to_string(),
-            "processing backups"
-        );
-
-        let file_count = backup_manager.start_backup_ingestion().await;
-
-        if file_count == 0 {
-            #[cfg(feature = "tracing")]
-            tracing::info!(
-                sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "no backups to reingest"
-            );
-        } else {
-            #[cfg(feature = "tracing")]
-            tracing::info!(
-                sift_stream_id = self.mode.sift_stream_id.to_string(),
-                backup_files_to_ingest = file_count,
-                "queued backup files since last checkpoint for ingest"
-            );
-        }
-
-        Ok(())
-    }
-
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
     /// of this function will be associated with the run.
     pub async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()> {
@@ -683,56 +330,25 @@ impl SiftStream<IngestionConfigMode> {
     /// This will conclude the stream and return when Sift has sent its final response. It is
     /// important that this method be called in order to obtain the final checkpoint
     /// acknowledgement from Sift, otherwise some tail-end data may fail to send.
-    pub async fn finish(mut self) -> Result<()> {
-        if let Some(backup_manager) = self.mode.backups_manager {
-            #[cfg(feature = "tracing")]
-            tracing::info!(
-                sift_stream_id = self.mode.sift_stream_id.to_string(),
-                "shutting down backups manager"
-            );
+    pub async fn finish(self) -> Result<()> {
+        // Close the data channels.
+        drop(self.mode.stream_system.ingestion_tx);
+        drop(self.mode.stream_system.backup_tx);
 
-            let _ = Self::shutdown_backups_manager(backup_manager).await;
-        }
+        // Send the shutdown signal to the tasks.
+        self.mode
+            .stream_system
+            .control_tx
+            .send(ControlMessage::Shutdown)
+            .map_err(|e| Error::new(ErrorKind::StreamError, e))
+            .context("failed to send shutdown signal to task-based architecture")?;
 
-        if let Some(streaming_task) = self.mode.streaming_task.take() {
-            if let Some(shutdown_tx) = self.mode.shutdown_tx.take() {
-                let _ = shutdown_tx.send(());
-            }
-            drop(self.mode.data_tx);
-
-            streaming_task
-                .await
-                .map_err(|e| Error::new(ErrorKind::StreamError, e))
-                .context("something went wrong while waiting for the final checkpoint")
-                .help("please context Sift")?
-                .context("final checkpoint failure")
-                .help("the final checkpoint may or may not have succeeded. Please contact Sift")?;
-        }
-
-        if let Some(drain) = self.mode.drain_rx.take() {
-            let mut remaining_requests = vec![];
-
-            while let Ok(req) = drain.recv() {
-                remaining_requests.push(req);
-            }
-
-            if !remaining_requests.is_empty() {
-                let mut client = IngestServiceClient::new(self.grpc_channel);
-                let count = remaining_requests.len();
-                let request_stream = tokio_stream::iter(remaining_requests);
-
-                client
-                    .ingest_with_config_data_stream(request_stream)
-                    .await
-                    .map_err(|e| Error::new(ErrorKind::StreamError, e))
-                    .with_context(|| {
-                        format!(
-                            "something went wrong trying to ingest the remaining {count} messages"
-                        )
-                    })
-                    .help("please notify sift")?;
-            }
-        }
+        // Wait for the tasks to complete.
+        let _ = tokio::try_join!(
+            self.mode.stream_system.backup_manager,
+            self.mode.stream_system.ingestion,
+            self.mode.stream_system.reingestion,
+        );
 
         #[cfg(feature = "tracing")]
         tracing::info!(
@@ -740,109 +356,10 @@ impl SiftStream<IngestionConfigMode> {
             asset_id = self.mode.ingestion_config.asset_id,
             ingestion_config_id = self.mode.ingestion_config.ingestion_config_id,
             run = self.mode.run.map(|r| r.name).unwrap_or_default(),
-            "successfully received final checkpoint acknowledgement - concluding stream"
+            "successfully shutdown streaming system"
         );
 
         Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn init_streaming_task(
-        grpc_channel: SiftChannel,
-        sift_stream_id: Uuid,
-        mut data_stream: DataStream,
-        checkpoint_interval: Duration,
-        data_tx: BoundedSender<StreamMessage>,
-        shutdown_rx: Receiver<()>,
-        begin_checkpoint_notifier: Arc<Notify>,
-        metrics: Arc<SiftStreamMetrics>,
-    ) -> DataStreamTask {
-        tokio::spawn(async move {
-            metrics.checkpoint.next_checkpoint();
-
-            let mut client = IngestServiceClient::new(grpc_channel);
-            let force_checkpoint = Arc::new(Notify::new());
-            let force_checkpoint_c = force_checkpoint.clone();
-
-            let data_tx_c = data_tx.clone();
-            let metrics_c = metrics.clone();
-            let checkpoint_task = tokio::spawn(async move {
-                let mut checkpoint_timer = {
-                    let mut timer = tokio::time::interval(checkpoint_interval);
-                    timer.tick().await;
-                    timer
-                };
-                begin_checkpoint_notifier.notified().await;
-
-                #[cfg(feature = "tracing")]
-                tracing::debug!(
-                    sift_stream_id = sift_stream_id.to_string(),
-                    "received notification to start checkpoint timer"
-                );
-
-                tokio::select! {
-                    _ = checkpoint_timer.tick() => {
-                        metrics_c.checkpoint.checkpoint_timer_reached_cnt.increment();
-                        #[cfg(feature = "tracing")]
-                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "checkpoint timer elapsed - initiating checkpoint");
-                    }
-                    _ = shutdown_rx => {
-                        metrics_c.checkpoint.checkpoint_manually_reached_cnt.increment();
-                        #[cfg(feature = "tracing")]
-                        tracing::info!(sift_stream_id = sift_stream_id.to_string(), "manually initiating checkpoint");
-                    }
-                }
-                let _ = data_tx.send(StreamMessage::CheckpointSignal).await;
-
-                tokio::spawn(async move {
-                    let mut force_checkpoint_timer =
-                        tokio::time::interval(Duration::from_secs(FORCE_CHECKPOINT_THRESHOLD_SEC));
-                    force_checkpoint_timer.tick().await;
-                    force_checkpoint_timer.tick().await;
-                    force_checkpoint_c.notify_one();
-                });
-            });
-
-            data_stream.started_at = Instant::now();
-
-            tokio::select! {
-                raw_response = client.ingest_with_config_data_stream(data_stream) => {
-                    let response = raw_response
-                        .map(|res| res.into_inner())
-                        .map_err(|e| Error::new(ErrorKind::StreamError, e));
-
-                    checkpoint_task.abort_handle().abort();
-                    let _ = checkpoint_task.await;
-
-                    match response {
-                        Ok(res) => {
-                            #[cfg(feature = "tracing")]
-                            tracing::info!(
-                                sift_stream_id = sift_stream_id.to_string(),
-                                "checkpoint acknowledgement received from Sift"
-                            );
-                            Ok(res)
-                        }
-                        Err(err) => {
-                            metrics.checkpoint.failed_checkpoint_count.increment();
-                            #[cfg(feature = "tracing")]
-                            tracing::info!(
-                                sift_stream_id = sift_stream_id.to_string(),
-                                "received error from Sift: {:?}",
-                                err
-                            );
-                            let _ = data_tx_c.send(StreamMessage::ErrorSignal).await;
-                            Err(err)
-                        }
-                    }
-                }
-                _ = force_checkpoint.notified() => {
-                    Err(
-                        Error::new_msg(ErrorKind::StreamError, "Sift took too long to give a checkpoint acknowledgement"),
-                    )
-                }
-            }
-        })
     }
 
     /// Flows passed into this function should have names match `flow_name`. The only case
@@ -918,28 +435,17 @@ impl SiftStream<IngestionConfigMode> {
 }
 
 impl DataStream {
-    fn new(
+    pub(crate) fn new(
+        data_rx: async_channel::Receiver<DataMessage>,
+        control_tx: broadcast::Sender<ControlMessage>,
         sift_stream_id: Uuid,
-        data_rx: BoundedReceiver<StreamMessage>,
-        drain_tx: StdSender<IngestWithConfigDataStreamRequest>,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Self {
-        let heartbeat_task = tokio::spawn(async move {
-            loop {
-                tracing::debug!(
-                    sift_stream_id = sift_stream_id.to_string(),
-                    "SiftStream heartbeat - healthy"
-                );
-                tokio::time::sleep(Duration::from_secs(30)).await;
-            }
-        });
-
+        let control_rx = BroadcastStream::new(control_tx.subscribe());
         Self {
-            drain_tx,
-            data_rx,
+            data_rx: Box::pin(data_rx),
+            control_rx: Box::pin(control_rx),
             sift_stream_id,
-            heartbeat_task,
-            started_at: Instant::now(),
             metrics,
         }
     }
@@ -949,37 +455,24 @@ impl Stream for DataStream {
     type Item = IngestWithConfigDataStreamRequest;
 
     fn poll_next(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        match self.data_rx.poll_recv(ctx) {
-            Poll::Ready(Some(msg)) => match msg {
-                StreamMessage::Request(req) => {
-                    let message_size = req.encode_length_delimited_to_vec().len() as u64;
-                    self.metrics.messages_sent.increment();
-                    self.metrics.checkpoint.cur_messages_sent.increment();
-                    self.metrics.bytes_sent.add(message_size);
-                    self.metrics.checkpoint.cur_bytes_sent.add(message_size);
-                    Poll::Ready(Some(req))
-                }
-                StreamMessage::CheckpointSignal => {
-                    #[cfg(feature = "tracing")]
-                    tracing::debug!(
-                        sift_stream_id = self.sift_stream_id.to_string(),
-                        "stream checkpoint signal received"
-                    );
+        // Close the stream if a checkpoint complete signal is received.
+        if matches!(
+            self.control_rx.as_mut().poll_next(ctx),
+            Poll::Ready(Some(Ok(ControlMessage::SignalNextCheckpoint)))
+        ) {
+            return Poll::Ready(None);
+        }
 
-                    // Checkpoint was requested.. conclude stream
-                    Poll::Ready(None)
-                }
-                StreamMessage::ErrorSignal => {
-                    #[cfg(feature = "tracing")]
-                    tracing::debug!(
-                        sift_stream_id = self.sift_stream_id.to_string(),
-                        "error signal received",
-                    );
-
-                    // Had error response.. conclude stream
-                    Poll::Ready(None)
-                }
-            },
+        // Continue with data streaming.
+        match self.data_rx.as_mut().poll_next(ctx) {
+            Poll::Ready(Some(DataMessage { request, .. })) => {
+                let message_size = request.encoded_len() as u64;
+                self.metrics.messages_sent.increment();
+                self.metrics.checkpoint.cur_messages_sent.increment();
+                self.metrics.bytes_sent.add(message_size);
+                self.metrics.checkpoint.cur_bytes_sent.add(message_size);
+                Poll::Ready(Some(request))
+            }
             Poll::Ready(None) => {
                 // All senders dropped.. conclude stream
                 #[cfg(feature = "tracing")]
@@ -987,54 +480,9 @@ impl Stream for DataStream {
                     sift_stream_id = self.sift_stream_id.to_string(),
                     "received signal to conclude SiftStream"
                 );
-
                 Poll::Ready(None)
             }
             Poll::Pending => Poll::Pending,
         }
-    }
-}
-
-impl Drop for DataStream {
-    fn drop(&mut self) {
-        #[cfg(feature = "tracing")]
-        {
-            let checkpoint_stats = self.metrics.get_checkpoint_stats();
-            let bytes_processed_pretty = bytesize::ByteSize::b(checkpoint_stats.bytes_sent)
-                .display()
-                .iec();
-            let byte_rate_pretty = bytesize::ByteSize::b(checkpoint_stats.byte_rate.ceil() as u64)
-                .display()
-                .iec();
-
-            tracing::info!(
-                sift_stream_id = self.sift_stream_id.to_string(),
-                stream_duration = format!("{:.1}s", checkpoint_stats.elapsed_secs),
-                messages_processed = checkpoint_stats.messages_sent,
-                message_rate = format!("{} messages/s", checkpoint_stats.message_rate),
-                bytes_processed = format!("{bytes_processed_pretty}"),
-                byte_rate = format!("{byte_rate_pretty}/s"),
-            );
-        }
-
-        let mut remaining_data_in_buffer_count = 0;
-        while let Ok(req) = self.data_rx.try_recv() {
-            if let StreamMessage::Request(request) = req {
-                if self.drain_tx.send(request).is_err() {
-                    break;
-                }
-                remaining_data_in_buffer_count += 1;
-            };
-        }
-
-        #[cfg(feature = "tracing")]
-        if remaining_data_in_buffer_count > 0 {
-            tracing::debug!(
-                sift_stream_id = self.sift_stream_id.to_string(),
-                num_messages = remaining_data_in_buffer_count,
-                "current stream concluded - transferred remaining data to new buffer to use in next stream",
-            )
-        }
-        self.heartbeat_task.abort()
     }
 }
