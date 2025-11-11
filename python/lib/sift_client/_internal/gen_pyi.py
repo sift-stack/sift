@@ -102,7 +102,7 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
         rel = py_file.with_suffix("").relative_to(cwd)
         module_name = ".".join(rel.parts)
         module = importlib.import_module(module_name)
-        new_module_imports = []
+        new_module_imports: list[str] = []
 
         lines = []
 
