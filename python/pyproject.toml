@@ -76,7 +76,7 @@ hdf5 = ["h5py~=3.11", "polars~=1.8"]
 # Ensure any new user build extras are added to .github/workflows/python_build.yaml
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools==76.1.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.mypy]

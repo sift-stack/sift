@@ -139,7 +139,9 @@ class RulesAPIAsync(ResourceBase):
         if client_keys:
             filter_parts.append(cel.in_("client_key", client_keys))
         if is_live_evaluation_enabled:
-            filter_parts.append(cel.equals("is_live_evaluation_enabled", is_live_evaluation_enabled))
+            filter_parts.append(
+                cel.equals("is_live_evaluation_enabled", is_live_evaluation_enabled)
+            )
         if assets:
             ids = [a._id_or_error if isinstance(a, Asset) else a or "" for a in assets]
             filter_parts.append(cel.in_("asset_id", ids))
