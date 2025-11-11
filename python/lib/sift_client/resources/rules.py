@@ -104,7 +104,7 @@ class RulesAPIAsync(ResourceBase):
             asset_tags: Filter rules associated with any Assets that have these Tag IDs.
             description_contains: Partial description of the rule.
             include_archived: If True, include archived rules in results.
-            is_live_evaluation_enabled: If True, only include live rules. If False, only include rules that are nove live. None for both.
+            is_live_evaluation_enabled: If True, only include live rules. If False, only include rules that are not live. None for both.
             filter_query: Explicit CEL query to filter rules.
             order_by: Field and direction to order results by.
             limit: Maximum number of rules to return. If None, returns all matches.
