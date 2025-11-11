@@ -5,12 +5,7 @@ import math
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from google.protobuf.empty_pb2 import Empty
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
-from sift.ingest.v1.ingest_pb2 import (
-    IngestWithConfigDataStreamRequest as IngestWithConfigDataStreamRequestProto,
-)
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigProto,
 )
@@ -91,7 +86,7 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
         if self.client_key:
             client_key = self.client_key
         else:
-            client_key = _hash_flows(self.asset_name, self.flows)
+            client_key = _hash_flows(self.asset_name, self.flows or [])
 
         return IngestionConfigFormPy(
             asset_name=self.asset_name,
@@ -325,7 +320,7 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
         )
 
 
-class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
+class Flow(BaseModel):
     """Model representing a data flow for ingestion.
 
     A Flow represents a collection of channels that are ingested together.
@@ -341,21 +336,6 @@ class Flow(BaseType[IngestWithConfigDataStreamRequestProto, "Flow"]):
     run_id: str | None = None
     end_stream_on_validation_error: bool | None = None
     organization_id: str | None = None
-
-    @classmethod
-    def _from_proto(
-        cls, proto: IngestWithConfigDataStreamRequestProto, sift_client: SiftClient | None = None
-    ) -> Flow:
-        return cls(
-            proto=proto,
-            ingestion_config_id=proto.ingestion_config_id,
-            flow=proto.flow,
-            timestamp=proto.timestamp.ToDatetime(tzinfo=timezone.utc),
-            channel_values=proto.channel_values,
-            run_id=proto.run_id,
-            end_stream_on_validation_error=proto.end_stream_on_validation_error,
-            organization_id=proto.organization_id,
-        )
 
     def _to_rust_form(self) -> FlowPy:
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
@@ -550,10 +530,3 @@ def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
     elif data_type == ChannelDataType.UINT_64:
         return ChannelDataTypePy.Uint64
     raise ValueError(f"Unknown data type: {data_type}")
-
-
-def _to_ingestion_value(data_type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
-    if value is None:
-        return IngestWithConfigDataChannelValue(empty=Empty())
-    ingestion_type_string = data_type.name.lower().replace("int_", "int")
-    return IngestWithConfigDataChannelValue(**{ingestion_type_string: value})

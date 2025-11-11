@@ -145,13 +145,12 @@ class RecoveryStrategyConfig:
             instead of calling this constructor directly.
         """
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
-        from sift_stream_bindings import RecoveryStrategyPy
+        from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
 
         # Default to retry_with_backups()
         # This is intentionally different from SiftStream, which defaults to retry_only
         self._recovery_strategy_py = recovery_strategy_py or RecoveryStrategyPy.retry_with_backups(
-            retry_policy=RetryPolicyPy.default(),
-            disk_backup_policy=DiskBackupPolicyPy.default()
+            retry_policy=RetryPolicyPy.default(), disk_backup_policy=DiskBackupPolicyPy.default()
         )
 
     def _to_rust_config(self) -> RecoveryStrategyPy:
