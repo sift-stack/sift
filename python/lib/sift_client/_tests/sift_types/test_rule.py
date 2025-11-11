@@ -46,6 +46,7 @@ def mock_rule(mock_client):
         client_key=None,
         rule_version=None,
         archived_date=None,
+        is_live_evaluation_enabled=None,
     )
     rule._apply_client_to_instance(mock_client)
     return rule
