@@ -5,8 +5,10 @@ use std::{
     marker::PhantomData,
 };
 
-pub(crate) mod chunk;
-pub(crate) use chunk::{BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, PbfsChunk, PbfsMessageIter};
+pub mod chunk;
+pub use chunk::{
+    BATCH_SIZE_LEN, CHECKSUM_HEADER_LEN, MESSAGE_LENGTH_PREFIX_LEN, PbfsChunk, PbfsMessageIter,
+};
 
 #[cfg(test)]
 mod test;

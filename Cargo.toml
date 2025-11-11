@@ -8,6 +8,7 @@ members = [
   "rust/crates/sift_connect",
   "rust/crates/sift_stream_bindings",
   "rust/crates/sift_cli",
+  "rust/crates/sift_pbfs",
 ]
 
 [workspace.package]
@@ -30,6 +31,7 @@ sift_connect = { version = "0.7.0-rc.2", path = "rust/crates/sift_connect" }
 sift_rs = { version = "0.7.0-rc.2", path = "rust/crates/sift_rs" }
 sift_error = { version = "0.7.0-rc.2", path = "rust/crates/sift_error" }
 sift_stream = { version = "0.7.0-rc.2", path = "rust/crates/sift_stream" }
+sift_pbfs = { version = "0.7.0-rc.2", path = "rust/crates/sift_pbfs" }
 
 sift_stream_bindings = { version = "0.1.0", path = "rust/crates/sift_stream_bindings" }
 

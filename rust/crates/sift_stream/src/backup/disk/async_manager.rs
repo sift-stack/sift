@@ -1,13 +1,13 @@
 use crate::RetryPolicy;
 use crate::backup::DiskBackupPolicy;
 use crate::backup::disk::decode_backup;
-use crate::backup::disk::pbfs::{PbfsChunk, chunk::MESSAGE_LENGTH_PREFIX_LEN};
 use crate::metrics::SiftStreamMetrics;
 use crate::stream::tasks::{ControlMessage, DataMessage};
 use async_channel::{Receiver, Sender};
 use chrono::Utc;
 use prost::Message as PbMessage;
 use sift_error::prelude::*;
+use sift_pbfs::{MESSAGE_LENGTH_PREFIX_LEN, chunk::PbfsChunk};
 use sift_rs::CompressionEncoding;
 use sift_rs::{SiftChannel, ingest::v1::ingest_service_client::IngestServiceClient};
 use std::time::Duration;
