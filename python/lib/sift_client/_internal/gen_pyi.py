@@ -13,6 +13,8 @@ from typing import Callable
 from sift_client._internal.sync_wrapper import SyncAPIRegistration, _registered
 
 FUTURE_IMPORTS = "from __future__ import annotations"
+TYPE_CHECKING_IMPORT = "from typing import TYPE_CHECKING"
+TYPE_CHECK_BLOCK = "if TYPE_CHECKING:"
 HEADER = """\
 # Auto-generated stub
 """
@@ -100,9 +102,7 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
         rel = py_file.with_suffix("").relative_to(cwd)
         module_name = ".".join(rel.parts)
         module = importlib.import_module(module_name)
-        new_module_imports = [
-            FUTURE_IMPORTS
-        ]  # always use FUTURE_IMPORTS for backwards compatibility (in case it was omitted)
+        new_module_imports = []
 
         lines = []
 
@@ -182,7 +182,12 @@ def generate_stubs_for_module(path_arg: str | pathlib.Path) -> dict[pathlib.Path
             lines.append(stub)
 
         unique_imports = list(OrderedDict.fromkeys(new_module_imports))
-        lines = [HEADER, *unique_imports, *lines]
+        unique_imports.remove(FUTURE_IMPORTS)  # Future imports can't be in type checking block.
+        # Make import block such that all type hints are used in type checking and not actually required.
+        import_block = [FUTURE_IMPORTS, TYPE_CHECKING_IMPORT, TYPE_CHECK_BLOCK] + [
+            f"    {import_stmt}" for import_stmt in unique_imports
+        ]
+        lines = [HEADER, *import_block, *lines]
         pyi_file = py_file.with_suffix(".pyi")
 
         stub_files[pyi_file] = "\n".join(lines)

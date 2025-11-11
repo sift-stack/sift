@@ -2,40 +2,43 @@
 
 from __future__ import annotations
 
-import re
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
-import pandas as pd
-import pyarrow as pa
+if TYPE_CHECKING:
+    import re
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    from typing import TYPE_CHECKING, Any
 
-from sift_client.client import SiftClient
-from sift_client.sift_types.asset import Asset, AssetUpdate
-from sift_client.sift_types.calculated_channel import (
-    CalculatedChannel,
-    CalculatedChannelCreate,
-    CalculatedChannelUpdate,
-)
-from sift_client.sift_types.channel import Channel
-from sift_client.sift_types.report import Report, ReportUpdate
-from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
-from sift_client.sift_types.run import Run, RunCreate, RunUpdate
-from sift_client.sift_types.tag import Tag, TagUpdate
-from sift_client.sift_types.test_report import (
-    TestMeasurement,
-    TestMeasurementCreate,
-    TestMeasurementType,
-    TestMeasurementUpdate,
-    TestReport,
-    TestReportCreate,
-    TestReportUpdate,
-    TestStatus,
-    TestStep,
-    TestStepCreate,
-    TestStepType,
-    TestStepUpdate,
-)
+    import pandas as pd
+    import pyarrow as pa
+
+    from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset, AssetUpdate
+    from sift_client.sift_types.calculated_channel import (
+        CalculatedChannel,
+        CalculatedChannelCreate,
+        CalculatedChannelUpdate,
+    )
+    from sift_client.sift_types.channel import Channel
+    from sift_client.sift_types.report import Report, ReportUpdate
+    from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
+    from sift_client.sift_types.run import Run, RunCreate, RunUpdate
+    from sift_client.sift_types.tag import Tag, TagUpdate
+    from sift_client.sift_types.test_report import (
+        TestMeasurement,
+        TestMeasurementCreate,
+        TestMeasurementType,
+        TestMeasurementUpdate,
+        TestReport,
+        TestReportCreate,
+        TestReportUpdate,
+        TestStatus,
+        TestStep,
+        TestStepCreate,
+        TestStepType,
+        TestStepUpdate,
+    )
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
