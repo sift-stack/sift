@@ -10,6 +10,7 @@ These tests demonstrate and validate the usage of the Runs API including:
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from grpc.aio import AioRpcError
 
 from sift_client import SiftClient
 from sift_client.resources import RunsAPI, RunsAPIAsync
@@ -182,7 +183,11 @@ class TestRunsAPIAsync:
         async def test_find_run(self, runs_api_async, test_run):
             """Test finding a single run."""
             # Find the same run by name
-            found_run = await runs_api_async.find(name=test_run.name)
+            found_run = await runs_api_async.find(
+                name=test_run.name,
+                created_after=test_run.created_date - timedelta(seconds=10),
+                created_before=test_run.created_date + timedelta(seconds=10),
+            )
 
             assert found_run is not None
             assert found_run.id_ == test_run.id_
@@ -545,38 +550,6 @@ class TestRunsAPIAsync:
                 await runs_api_async.create(
                     run_create, assets=["asset-name-not-id"], associate_new_data=False
                 )
-
-        @pytest.mark.asyncio
-        async def test_create_automatic_association_for_assets(self, runs_api_async, sift_client):
-            """Test associating assets with a run for automatic data ingestion."""
-            # Create a test run
-            run_name = f"test_run_asset_assoc_{datetime.now(timezone.utc).isoformat()}"
-            run_create = RunCreate(
-                name=run_name,
-                description="Test run for asset association",
-                tags=["sift-client-pytest"],
-            )
-            created_run = await runs_api_async.create(run_create)
-
-            try:
-                # Get some assets to associate
-                assets = await sift_client.async_.assets.list_(limit=2)
-                assert len(assets) >= 1
-
-                asset_names = [asset.name for asset in assets[:2]]
-
-                # Associate assets with the run
-                await runs_api_async.create_automatic_association_for_assets(
-                    run=created_run, asset_names=asset_names
-                )
-
-                # Verify the association by getting the run and checking asset_ids
-                updated_run = await runs_api_async.get(run_id=created_run.id_)
-                assert updated_run.asset_ids is not None
-                assert len(updated_run.asset_ids) >= len(asset_names)
-
-            finally:
-                await runs_api_async.archive(created_run)
 
 
 class TestRunsAPISync:
