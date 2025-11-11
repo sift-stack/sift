@@ -488,6 +488,65 @@ class TestRunsAPIAsync:
         """Tests for the async asset association methods."""
 
         @pytest.mark.asyncio
+        async def test_create_adhoc_run_all(
+            self, runs_api_async, sift_client, test_tag, ci_pytest_tag
+        ):
+            """Test creating an adhoc run with associated assets."""
+            run_name = f"test_adhoc_run_assets_{datetime.now(timezone.utc).isoformat()}"
+
+            start_time = datetime.now(timezone.utc) - timedelta(hours=2)
+            stop_time = datetime.now(timezone.utc) - timedelta(hours=1)
+            # Get some assets to associate
+            assets = await sift_client.async_.assets.list_(limit=2)
+            assert len(assets) == 2
+            tags = [test_tag, ci_pytest_tag]
+
+            run_create = RunCreate(
+                name=run_name,
+                description="Test adhoc run",
+                start_time=start_time,
+                stop_time=stop_time,
+                tags=tags,
+                metadata={"test_key": "test_value", "number": 42.5, "flag": True},
+            )
+            created_run = await runs_api_async.create(
+                run_create, assets=assets, associate_new_data=False
+            )
+
+            try:
+                assert created_run.name == run_name
+                assert created_run.is_adhoc is True
+                assert created_run.asset_ids is not None
+                assert len(created_run.asset_ids) >= len(assets)
+                # Verify all requested assets are in the run's asset_ids
+                for asset in assets:
+                    assert asset.id_ in created_run.asset_ids
+                assert created_run.metadata is not None
+                assert created_run.metadata["test_key"] == "test_value"
+                assert created_run.metadata["number"] == 42.5
+                assert created_run.metadata["flag"] is True
+                assert set(created_run.tags) == {tag.name for tag in tags}
+            finally:
+                await runs_api_async.archive(created_run)
+
+        @pytest.mark.asyncio
+        async def test_create_adhoc_run_missing_assets(self, runs_api_async):
+            """Test creating an adhoc run with missing assets."""
+            run_name = f"test_adhoc_run_missing_assets_{datetime.now(timezone.utc).isoformat()}"
+            run_create = RunCreate(
+                name=run_name,
+                start_time=datetime.now(timezone.utc),
+                stop_time=datetime.now(timezone.utc) + timedelta(seconds=11),
+            )
+            with pytest.raises(
+                AioRpcError,
+                match='invalid argument: invalid input syntax for type uuid: "asset-name-not-id"',
+            ):
+                await runs_api_async.create(
+                    run_create, assets=["asset-name-not-id"], associate_new_data=False
+                )
+
+        @pytest.mark.asyncio
         async def test_create_automatic_association_for_assets(self, runs_api_async, sift_client):
             """Test associating assets with a run for automatic data ingestion."""
             # Create a test run

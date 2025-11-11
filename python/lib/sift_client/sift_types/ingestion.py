@@ -1,31 +1,39 @@
 from __future__ import annotations
 
+import logging
 import math
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from google.protobuf.empty_pb2 import Empty
-from pydantic import ConfigDict, model_validator
-from sift.ingest.v1.ingest_pb2 import IngestWithConfigDataChannelValue
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     ChannelConfig as ChannelConfigProto,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
-    FlowConfig,
+    CreateIngestionConfigRequest as CreateIngestionConfigRequestProto,
+)
+from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
+    FlowConfig as FlowConfigProto,
 )
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     IngestionConfig as IngestionConfigProto,
 )
 
-from sift_client.sift_types._base import BaseType
+from sift_client.sift_types._base import (
+    BaseType,
+    ModelCreate,
+)
 from sift_client.sift_types.channel import ChannelBitFieldElement, ChannelDataType
 
-if TYPE_CHECKING:
-    from datetime import datetime
+logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
     from sift_stream_bindings import (
         ChannelConfigPy,
         ChannelDataTypePy,
         FlowConfigPy,
+        FlowPy,
+        IngestionConfigFormPy,
         IngestWithConfigDataChannelValuePy,
     )
 
@@ -49,6 +57,43 @@ class IngestionConfig(BaseType[IngestionConfigProto, "IngestionConfig"]):
             asset_id=proto.asset_id,
             client_key=proto.client_key,
             _client=sift_client,
+        )
+
+
+class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
+    """Create model for IngestionConfig."""
+
+    asset_name: str
+    flows: list[FlowConfig] | None = None
+    organization_id: str | None = None
+    client_key: str | None = None
+
+    def _get_proto_class(self) -> type[CreateIngestionConfigRequestProto]:
+        return CreateIngestionConfigRequestProto
+
+    def _to_rust_form(self) -> IngestionConfigFormPy:
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
+        from sift_stream_bindings import IngestionConfigFormPy
+
+        # Imported here to avoid circular dependancy
+        from sift_client._internal.low_level_wrappers.ingestion import _hash_flows
+
+        if self.organization_id:
+            logger.warning(
+                "OrgId is ignored when passing an IngestionConfigCreate to the ingestion client"
+            )
+
+        if self.client_key:
+            client_key = self.client_key
+        else:
+            client_key = _hash_flows(self.asset_name, self.flows or [])
+
+        return IngestionConfigFormPy(
+            asset_name=self.asset_name,
+            flows=[flow_config._to_rust_config() for flow_config in self.flows]
+            if self.flows
+            else [],
+            client_key=client_key,
         )
 
 
@@ -121,6 +166,20 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             enum_types=channel.enum_types,
         )
 
+    @classmethod
+    def _from_rust_config(cls, channel_config_py: ChannelConfigPy) -> ChannelConfig:
+        return ChannelConfig(
+            name=channel_config_py.name,
+            description=channel_config_py.description or None,
+            unit=channel_config_py.unit or None,
+            data_type=ChannelDataType._from_rust_type(channel_config_py.data_type),
+            bit_field_elements=[
+                ChannelBitFieldElement._from_rust_type(bfe)
+                for bfe in channel_config_py.bit_field_elements
+            ],
+            enum_types={enum.name: enum.key for enum in channel_config_py.enum_types},
+        )
+
     def _to_config_proto(self) -> ChannelConfigProto:
         """Convert to ChannelConfigProto for ingestion."""
         from sift.common.type.v1.channel_bit_field_element_pb2 import (
@@ -149,11 +208,28 @@ class ChannelConfig(BaseType[ChannelConfigProto, "ChannelConfig"]):
             ],
         )
 
+    def as_channel_value(self, value: Any) -> ChannelValue:
+        """Create a ChannelValue from a value using this channel's configuration.
 
-class Flow(BaseType[FlowConfig, "Flow"]):
-    """Model representing a data flow for ingestion.
+        Args:
+            value: The value to wrap in a ChannelValue. The type should match
+                this channel's data_type.
 
-    A Flow represents a collection of channels that are ingested together.
+        Returns:
+            A ChannelValue instance with this channel's name and data type,
+            containing the provided value.
+        """
+        return ChannelValue(
+            name=self.name,
+            ty=self.data_type,
+            value=value,
+        )
+
+
+class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
+    """Model representing a data flow config for ingestion.
+
+    A FlowConfig represents the configuration of a collection of channels that are ingested together.
     """
 
     model_config = ConfigDict(frozen=False)
@@ -163,7 +239,9 @@ class Flow(BaseType[FlowConfig, "Flow"]):
     run_id: str | None = None
 
     @classmethod
-    def _from_proto(cls, proto: FlowConfig, sift_client: SiftClient | None = None) -> Flow:
+    def _from_proto(
+        cls, proto: FlowConfigProto, sift_client: SiftClient | None = None
+    ) -> FlowConfig:
         return cls(
             proto=proto,
             name=proto.name,
@@ -171,18 +249,28 @@ class Flow(BaseType[FlowConfig, "Flow"]):
             _client=sift_client,
         )
 
-    def _to_proto(self) -> FlowConfig:
+    @classmethod
+    def _from_rust_config(cls, flow_config_py: FlowConfigPy) -> FlowConfig:
         return FlowConfig(
+            name=flow_config_py.name,
+            channels=[
+                ChannelConfig._from_rust_config(channel) for channel in flow_config_py.channels
+            ],
+        )
+
+    def _to_proto(self) -> FlowConfigProto:
+        return FlowConfigProto(
             name=self.name,
             channels=[channel._to_config_proto() for channel in self.channels],
         )
 
     def _to_rust_config(self) -> FlowConfigPy:
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import FlowConfigPy
 
         return FlowConfigPy(
             name=self.name,
-            channels=[_channel_to_rust_config(channel) for channel in self.channels],
+            channels=[_channel_config_to_rust_config(channel) for channel in self.channels],
         )
 
     def add_channel(self, channel: ChannelConfig):
@@ -198,27 +286,118 @@ class Flow(BaseType[FlowConfig, "Flow"]):
             raise ValueError("Cannot add a channel to a flow after creation")
         self.channels.append(channel)
 
-    def ingest(self, *, timestamp: datetime, channel_values: dict[str, Any]):
-        """Ingest data for this Flow.
+    def as_flow(self, *, timestamp: datetime | None = None, values: dict[str, Any]) -> Flow:
+        """Create a Flow from this FlowConfig with the provided values.
 
         Args:
-            timestamp: The timestamp of the data.
-            channel_values: Dictionary mapping Channel names to their values.
+            timestamp: The timestamp for the flow. If None, uses the current UTC time.
+            values: A dictionary mapping channel names to their values. Only channels
+                present in this dictionary will be included in the resulting Flow.
 
-        Raises:
-            ValueError: If the ingestion config ID is not set.
+        Returns:
+            A Flow object with channel values created from the provided values dictionary.
         """
-        if self.ingestion_config_id is None:
-            raise ValueError("Ingestion config ID is not set.")
-        self.client.async_.ingestion.ingest(
-            flow=self,
+        # Get current timestamp ASAP if not provided
+        timestamp = timestamp or datetime.now(timezone.utc)
+
+        found_values: set[str] = set()
+        channel_values = []
+        for channel in self.channels:
+            if channel.name in values:
+                channel_values.append(channel.as_channel_value(values[channel.name]))
+                found_values.add(channel.name)
+
+        missing_values = values.keys() - found_values
+        if missing_values:
+            raise ValueError(
+                f"Provided channel values which do not exist in the flow config: {missing_values}"
+            )
+
+        return Flow(
+            flow=self.name,
             timestamp=timestamp,
             channel_values=channel_values,
         )
 
 
+class Flow(BaseModel):
+    """Model representing a data flow for ingestion.
+
+    A Flow represents a collection of channels that are ingested together.
+
+    A representation of the IngestWithConfigDataStreamRequest proto
+    """
+
+    model_config = ConfigDict(frozen=False)
+    ingestion_config_id: str | None = None
+    flow: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    channel_values: list[ChannelValue]
+    run_id: str | None = None
+    end_stream_on_validation_error: bool | None = None
+    organization_id: str | None = None
+
+    def _to_rust_form(self) -> FlowPy:
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
+        from sift_stream_bindings import FlowPy
+
+        from sift_client._internal.low_level_wrappers.ingestion import _to_rust_py_timestamp
+
+        return FlowPy(
+            flow_name=self.flow,
+            timestamp=_to_rust_py_timestamp(self.timestamp),
+            values=[channel_value._to_rust_form() for channel_value in self.channel_values],
+        )
+
+
+class ChannelValue(BaseModel):
+    """Model representing a channel value for ingestion.
+
+    A ChannelValue represents the data of a channel to be ingested.
+    """
+
+    model_config = ConfigDict(frozen=False)
+    name: str
+    ty: ChannelDataType
+    value: Any
+
+    def _to_rust_form(self):
+        """Convert this ChannelValue to its Rust form for ingestion."""
+        # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
+        from sift_stream_bindings import ChannelValuePy, ValuePy
+
+        if self.ty == ChannelDataType.BIT_FIELD:
+            value_py = ValuePy.BitField(self.value)
+        elif self.ty == ChannelDataType.ENUM:
+            value_py = ValuePy.Enum(self.value)
+        elif self.ty == ChannelDataType.BOOL:
+            value_py = ValuePy.Bool(self.value)
+        elif self.ty == ChannelDataType.FLOAT:
+            value_py = ValuePy.Float(self.value)
+        elif self.ty == ChannelDataType.DOUBLE:
+            value_py = ValuePy.Double(self.value)
+        elif self.ty == ChannelDataType.INT_32:
+            value_py = ValuePy.Int32(self.value)
+        elif self.ty == ChannelDataType.INT_64:
+            value_py = ValuePy.Int64(self.value)
+        elif self.ty == ChannelDataType.UINT_32:
+            value_py = ValuePy.Uint32(self.value)
+        elif self.ty == ChannelDataType.UINT_64:
+            value_py = ValuePy.Uint64(self.value)
+        elif self.ty == ChannelDataType.STRING:
+            value_py = ValuePy.String(self.value)
+        else:
+            raise ValueError(f"Invalid data type: {self.ty}")
+
+        return ChannelValuePy(
+            name=self.name,
+            value=value_py,
+        )
+
+
 # Converter functions.
-def _channel_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
+def _channel_config_to_rust_config(channel: ChannelConfig) -> ChannelConfigPy:
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import (
         ChannelBitFieldElementPy,
         ChannelConfigPy,
@@ -259,6 +438,7 @@ def _rust_channel_value_from_bitfield(
     Returns:
         A ChannelValuePy object.
     """
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import IngestWithConfigDataChannelValuePy
 
     assert channel.bit_field_elements is not None
@@ -285,6 +465,7 @@ def _rust_channel_value_from_bitfield(
 
 
 def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataChannelValuePy:
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import IngestWithConfigDataChannelValuePy
 
     if value is None:
@@ -325,6 +506,7 @@ def _to_rust_value(channel: ChannelConfig, value: Any) -> IngestWithConfigDataCh
 
 
 def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
+    # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
     from sift_stream_bindings import ChannelDataTypePy
 
     if data_type == ChannelDataType.DOUBLE:
@@ -348,10 +530,3 @@ def _to_rust_type(data_type: ChannelDataType) -> ChannelDataTypePy:
     elif data_type == ChannelDataType.UINT_64:
         return ChannelDataTypePy.Uint64
     raise ValueError(f"Unknown data type: {data_type}")
-
-
-def _to_ingestion_value(data_type: ChannelDataType, value: Any) -> IngestWithConfigDataChannelValue:
-    if value is None:
-        return IngestWithConfigDataChannelValue(empty=Empty())
-    ingestion_type_string = data_type.name.lower().replace("int_", "int")
-    return IngestWithConfigDataChannelValue(**{ingestion_type_string: value})

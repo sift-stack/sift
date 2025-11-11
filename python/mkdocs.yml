@@ -57,6 +57,7 @@ nav:
   - Sift Client API (New)
   - Examples:
       - examples/basic.ipynb
+      - examples/ingestion.ipynb
 #  - Guides:
 #      - Logging
 #      - Error Handling
