@@ -138,7 +138,7 @@ class RulesAPIAsync(ResourceBase):
             filter_parts.append(cel.in_("rule_id", rule_ids))
         if client_keys:
             filter_parts.append(cel.in_("client_key", client_keys))
-        if is_live_evaluation_enabled:
+        if is_live_evaluation_enabled is None:
             filter_parts.append(
                 cel.equals("is_live_evaluation_enabled", is_live_evaluation_enabled)
             )
