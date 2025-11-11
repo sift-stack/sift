@@ -138,7 +138,7 @@ class RecoveryStrategyConfig:
 
         Args:
             recovery_strategy_py: The underlying RecoveryStrategyPy instance.
-                If None, uses the default retry-only strategy.
+                If None, uses the default retry_with_backups strategy.
 
         Note:
             Most users should use the factory methods (`retry_only()` or `retry_with_backups()`)
@@ -147,7 +147,12 @@ class RecoveryStrategyConfig:
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import RecoveryStrategyPy
 
-        self._recovery_strategy_py = recovery_strategy_py or RecoveryStrategyPy.default()
+        # Default to retry_with_backups()
+        # This is intentionally different from SiftStream, which defaults to retry_only
+        self._recovery_strategy_py = recovery_strategy_py or RecoveryStrategyPy.retry_with_backups(
+            retry_policy=RetryPolicyPy.default(),
+            disk_backup_policy=DiskBackupPolicyPy.default()
+        )
 
     def _to_rust_config(self) -> RecoveryStrategyPy:
         """Convert to RecoveryStrategyPy for use with the ingestion client.
@@ -312,10 +317,10 @@ class _IngestionConfigStreamingClient(ResourceBase):
             recovery_strategy: The recovery strategy to use for ingestion.
             checkpoint_interval_seconds: The checkpoint interval in seconds.
             enable_tls: Whether to enable TLS for the connection.
-            tracing_config: Configuration for SiftStream tracing. Use TracingConfig.stdout_only()
-                to enable tracing to stdout only, or TracingConfig.stdout_with_file() to enable
+            tracing_config: Configuration for SiftStream tracing. Use TracingConfig.console_only()
+                to enable tracing to stdout only, or TracingConfig.with_file() to enable
                 tracing to both stdout and rolling log files. Defaults to None (tracing will be
-                initialized with default settings if not already initialized).
+                initialized with default settings for TracingConfig.with_file()).
 
         Returns:
             An initialized IngestionConfigStreamingClient.

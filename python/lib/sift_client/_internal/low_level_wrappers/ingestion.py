@@ -163,7 +163,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
 
         if not is_tracing_initialized():
             if tracing_config is None:
-                tracing_config = TracingConfig.console_only()
+                tracing_config = TracingConfig.with_file()
 
             if tracing_config.log_dir is not None:
                 # Use file logging
