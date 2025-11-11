@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client.resources._base import ResourceBase
 
 if TYPE_CHECKING:
@@ -24,7 +23,6 @@ class FileAttachmentsAPIAsync(ResourceBase):
             sift_client: The Sift client to use.
         """
         super().__init__(sift_client)
-        self._low_level_client = RemoteFilesLowLevelClient(grpc_client=self.client.grpc_client)
 
     async def get(self, *, file_attachment_id: str) -> FileAttachment:
         """Get a file attachment by ID.
@@ -35,10 +33,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The FileAttachment.
         """
-        file_attachment = await self._low_level_client.get_remote_file(
-            remote_file_id=file_attachment_id,
-            sift_client=self.client,
-        )
+        file_attachment = await self.client.file_attachments.get(file_attachment_id=file_attachment_id)
         return self._apply_client_to_instance(file_attachment)
 
     async def list_(
@@ -75,7 +70,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
 
         combined_filter = " && ".join(filters) if filters else None
 
-        file_attachments = await self._low_level_client.list_all_remote_files(
+        file_attachments = await self.client.file_attachments.list_(
             query_filter=combined_filter,
             order_by=order_by,
             max_results=limit,
@@ -108,23 +103,28 @@ class FileAttachmentsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(updated)
 
-    async def delete(self, *, file_attachment_id: str) -> None:
-        """Delete a file attachment.
-
-        Args:
-            file_attachment_id: The ID of the file attachment to delete.
-        """
-        await self._low_level_client.delete_remote_file(remote_file_id=file_attachment_id)
-
-    async def batch_delete(self, *, file_attachment_ids: list[str]) -> None:
+    async def delete(self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str) -> None:
         """Batch delete multiple file attachments.
 
         Args:
-            file_attachment_ids: List of file attachment IDs to delete (up to 1000).
+            file_attachments: List of FileAttachments or the IDs of the file attachments to delete (up to 1000).
         """
-        await self._low_level_client.batch_delete_remote_files(remote_file_ids=file_attachment_ids)
+        file_attachment_ids = []
+        if isinstance(file_attachments, FileAttachment):
+            file_attachment_ids.append(file_attachment.id_)
+        elif isinstance(file_attachments, str):
+            file_attachment_ids.append(file_attachment)
+        elif isinstance(file_attachments, list):
+            for file_attachment in file_attachments:
+                if isinstance(file_attachment, FileAttachment):
+                    file_attachment_ids.append(file_attachment.id_)
+                elif isinstance(file_attachment, str):
+                    file_attachment_ids.append(file_attachment)
+                else:
+                    raise ValueError("file_attachments must be a list of FileAttachment or list of str")
+        await self.low_level_client.batch_delete_remote_files(file_attachment_ids=file_attachment_ids)
 
-    async def get_download_url(self, *, file_attachment_id: str) -> str:
+    async def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
         """Get a download URL for a file attachment.
 
         Args:
@@ -133,6 +133,31 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The download URL for the file attachment.
         """
-        return await self._low_level_client.get_remote_file_download_url(
-            remote_file_id=file_attachment_id
+        if isinstance(file_attachment, FileAttachment):
+            file_attachment_id = file_attachment.id_
+        elif isinstance(file_attachment, str):
+            file_attachment_id = file_attachment
+        else:
+            raise ValueError("file_attachment must be a FileAttachment or a string")
+        return await self.low_level_client.get_remote_file_download_url(
+            file_attachment_id=file_attachment_id
         )
+
+    async def download(self, *, file_attachment: FileAttachment | str, output_path: str | Path) -> None:
+        """Download a file attachment to a local path.
+
+        Args:
+            file_attachment: The FileAttachment or the ID of the file attachment to download.
+            output_path: The path to download the file attachment to.
+        """
+        if isinstance(file_attachment, FileAttachment):
+            file_attachment_id = file_attachment.id_
+        elif isinstance(file_attachment, str):
+            file_attachment_id = file_attachment
+        else:
+            raise ValueError("file_attachment must be a FileAttachment or a string")
+        download_url = await self.get_download_url(file_attachment=file_attachment_id)
+        response = requests.get(download_url)
+        response.raise_for_status()
+        with open(output_path, "wb") as f:
+            f.write(response.content)

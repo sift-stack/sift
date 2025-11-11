@@ -57,7 +57,7 @@ class RemoteFileEntityType(Enum):
 
 
 class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
-    """Model of the Sift RemoteFile."""
+    """Model of the Sift FileAttachment."""
 
     organization_id: str
     entity_id: str
@@ -97,7 +97,7 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
 
     @property
     def entity(self) -> Run | Asset | TestReport:
-        """Get the entity that this remote file is attached to."""
+        """Get the entity that this file attachment is attached to."""
         if self.entity_type == RemoteFileEntityType.RUNS:
             return self.client.runs.get(run_id=self.entity_id)
         elif self.entity_type == RemoteFileEntityType.ASSETS:
@@ -115,70 +115,37 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
             raise Exception(f"Unknown remote file entity type: {self.entity_type}")
 
     def delete(self) -> None:
-        """Delete the remote file."""
+        """Delete the file attachment."""
         if self.id_ is None:
             raise ValueError("Remote file ID is not set")
-        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
-
-        remote_files_client = RemoteFilesLowLevelClient(self.client.grpc_client)
-        loop = self.client.get_asyncio_loop()
-        asyncio.run_coroutine_threadsafe(
-            remote_files_client.delete_remote_file(remote_file_id=self.id_), loop
-        ).result()
+        self.client.file_attachments.delete(file_attachment=self.id_)
 
     def update(self, update: RemoteFileUpdate | dict) -> FileAttachment:
-        """Update the remote file."""
-        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
-
+        """Update the file attachment."""
         if isinstance(update, dict):
             update = RemoteFileUpdate.model_validate(update)
         if self.id_ is None:
             raise ValueError("Remote file ID is not set")
         update.resource_id = self.id_
 
-        remote_file_client = RemoteFilesLowLevelClient(self.client.grpc_client)
-        loop = self.client.get_asyncio_loop()
-        updated_remote_file = cast(
-            "FileAttachment",
-            asyncio.run_coroutine_threadsafe(
-                remote_file_client.update_remote_file(update=update, sift_client=self.client), loop
-            ).result(),
-        )
-        return updated_remote_file
+        updated_file_attachment = self.client.file_attachments.update(file_attachment=update)
+        self._update(updated_file_attachment)
+        return self
 
     def download_url(self) -> str:
-        """Get the download URL for the remote file."""
+        """Get the download URL for the file attachment."""
         if self.id_ is None:
-            raise ValueError("Remote file ID is not set")
-        from sift_client._internal.low_level_wrappers import RemoteFilesLowLevelClient
-
-        remote_files_client = RemoteFilesLowLevelClient(self.client.grpc_client)
-        loop = self.client.get_asyncio_loop()
-        return asyncio.run_coroutine_threadsafe(
-            remote_files_client.get_remote_file_download_url(remote_file_id=self.id_), loop
-        ).result()
+            raise ValueError("file attachment ID is not set")
+        return self.client.file_attachments.get_download_url(file_attachment=self)
 
     def download(self, output_path: str | Path) -> None:
-        """Download the remote file to a local path."""
+        """Download the file attachment to a local path."""
         # Get the download URL
-        download_url = self.download_url()
-
-        # Convert output_path to Path object for easier handling
-        output_path = Path(output_path)
-
-        # Ensure the parent directory exists
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Download the file content
-        response = requests.get(download_url)
-        response.raise_for_status()
-
-        # Write the content to the output file
-        output_path.write_bytes(response.content)
+       self.client.file_attachments.download(file_attachment=self, output_path=output_path)
 
 
-class RemoteFileUpdate(ModelUpdate[RemoteFileProto]):
-    """Model of the RemoteFile fields that can be updated."""
+class FileAttachmentUpdate(ModelUpdate[RemoteFileProto]):
+    """Model of the FileAttachment fields that can be updated."""
 
     description: str | None = None
 
