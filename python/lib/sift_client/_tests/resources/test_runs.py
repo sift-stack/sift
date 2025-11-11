@@ -14,7 +14,7 @@ from grpc.aio import AioRpcError
 
 from sift_client import SiftClient
 from sift_client.resources import RunsAPI, RunsAPIAsync
-from sift_client.sift_types import ChannelConfig, ChannelDataType, Flow, Run
+from sift_client.sift_types import Run
 from sift_client.sift_types.run import RunCreate, RunUpdate
 
 pytestmark = pytest.mark.integration
