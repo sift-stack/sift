@@ -155,10 +155,10 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
         # TODO(nathan): Fix bindings to fix mypy issues with tracing functions
         from sift_stream_bindings import (
             SiftStreamBuilderPy,
-            init_tracing,  # type: ignore[attr-defined]
-            init_tracing_with_file,  # type: ignore[attr-defined]
-            is_tracing_initialized,  # type: ignore[attr-defined]
-        )
+            init_tracing,
+            init_tracing_with_file,
+            is_tracing_initialized,
+        )  # type: ignore[attr-defined]
 
         from sift_client.resources.ingestion import TracingConfig
 
