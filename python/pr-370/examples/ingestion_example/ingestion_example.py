@@ -30,7 +30,9 @@ async def main():
                 name="onboard_sensors",
                 channels=[
                     ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
-                    ChannelConfig(name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE),
+                    ChannelConfig(
+                        name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE
+                    ),
                 ],
             )
         ],
@@ -43,7 +45,6 @@ async def main():
         run=run,
     ) as ingest_client:
         while True:
-
             # Flows can be generated easily from the ingest client
             flow_config = ingest_client.get_flow_config(flow_name="onboard_sensors")
             flow = flow_config.as_flow(
