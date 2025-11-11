@@ -300,7 +300,7 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
         # Get current timestamp ASAP if not provided
         timestamp = timestamp or datetime.now(timezone.utc)
 
-        found_values = set[str]()
+        found_values: set[str] = set()
         channel_values = []
         for channel in self.channels:
             if channel.name in values:
