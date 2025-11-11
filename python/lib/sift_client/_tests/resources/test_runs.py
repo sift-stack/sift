@@ -491,6 +491,7 @@ class TestRunsAPIAsync:
 
     class TestAssetAssociation:
         """Tests for the async asset association methods."""
+
         @pytest.mark.asyncio
         async def test_create_adhoc_run_all(
             self, runs_api_async, sift_client, test_tag, ci_pytest_tag
