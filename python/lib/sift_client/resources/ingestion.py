@@ -346,7 +346,7 @@ class _IngestionConfigStreamingClient(ResourceBase):
         if isinstance(ingestion_config, IngestionConfig):
             # SiftStream will retrieve the existing config from the client_key
             asset = sift_client.assets.get(asset_id=ingestion_config.asset_id)
-            ingestion_config_form = IngestionConfigFormPy(
+            ingestion_config_form = IngestionConfigFormPy(  # type: ignore[call-arg]
                 asset_name=asset.name,
                 client_key=ingestion_config.client_key,
                 flows=[],
