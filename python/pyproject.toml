@@ -150,7 +150,7 @@ ignore_missing_imports = true
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "sift_stream_bindings"
+module = "sift-stream-bindings"
 ignore_missing_imports = true
 ignore_errors = true
 
