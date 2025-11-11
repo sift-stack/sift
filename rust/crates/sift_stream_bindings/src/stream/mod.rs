@@ -5,13 +5,17 @@ pub mod request;
 pub mod retry;
 pub mod time;
 
+use crate::error::SiftErrorWrapper;
+use crate::metrics::SiftStreamMetricsSnapshotPy;
 use crate::stream::channel::ChannelValuePy;
+use crate::stream::config::{FlowConfigPy, RunSelectorPy};
 use crate::stream::time::TimeValuePy;
 use pyo3::prelude::*;
+use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
-use sift_stream::{Flow, IngestionConfigMode, SiftStream};
+use sift_stream::{Flow, FlowConfig, IngestionConfigMode, SiftStream};
 use std::sync::Arc;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -36,18 +40,6 @@ impl From<SiftStream<IngestionConfigMode>> for SiftStreamPy {
     }
 }
 
-impl From<SiftStreamPy> for SiftStream<IngestionConfigMode> {
-    fn from(stream: SiftStreamPy) -> Self {
-        match stream.inner.lock() {
-            Ok(mut guard) => match guard.take() {
-                Some(stream) => stream,
-                None => panic!("SiftStreamPy inner was None"),
-            },
-            Err(_) => panic!("Failed to acquire lock on SiftStreamPy inner"),
-        }
-    }
-}
-
 impl From<FlowPy> for Flow {
     fn from(flow: FlowPy) -> Self {
         flow.inner
@@ -58,97 +50,149 @@ impl From<FlowPy> for Flow {
 #[gen_stub_pymethods]
 #[pymethods]
 impl SiftStreamPy {
-    pub fn send(&mut self, py: Python, flow: FlowPy) -> PyResult<Py<PyAny>> {
-        let mut inner_guard = match self.inner.lock() {
-            Ok(guard) => guard,
-            Err(_) => {
-                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Failed to acquire lock on stream",
-                ));
-            }
-        };
+    pub fn send(&self, py: Python, flow: FlowPy) -> PyResult<Py<PyAny>> {
+        let inner = self.inner.clone();
 
-        let mut inner = match inner_guard.take() {
-            Some(stream) => stream,
-            None => {
-                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream was already consumed",
-                ));
-            }
-        };
+        let awaitable = future_into_py(py, async move {
+            let mut guard = inner.lock().await;
+            let stream = guard.as_mut().ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream has been consumed by finish()",
+                )
+            })?;
 
-        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            match inner.send(flow.into()).await {
-                Ok(_) => Ok(SiftStreamPy {
-                    inner: Arc::new(Mutex::new(Some(inner))),
-                }),
-                Err(e) => Err(crate::error::SiftErrorWrapper(e).into()),
+            match stream.send(flow.into()).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(SiftErrorWrapper(e).into()),
             }
         })?;
+
         Ok(awaitable.into())
     }
 
     pub fn send_requests(
-        &mut self,
+        &self,
         py: Python,
         requests: Vec<request::IngestWithConfigDataStreamRequestPy>,
     ) -> PyResult<Py<PyAny>> {
-        let mut inner_guard = match self.inner.lock() {
-            Ok(guard) => guard,
-            Err(_) => {
-                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Failed to acquire lock on stream",
-                ));
-            }
-        };
+        let inner = self.inner.clone();
 
-        let mut inner = match inner_guard.take() {
-            Some(stream) => stream,
-            None => {
-                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream was already consumed",
-                ));
-            }
-        };
+        let requests = requests.into_iter().map(|req| req.into());
 
-        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let requests: Vec<sift_rs::ingest::v1::IngestWithConfigDataStreamRequest> =
-                requests.into_iter().map(|r| r.into()).collect();
-            match inner.send_requests(requests).await {
-                Ok(_) => Ok(SiftStreamPy {
-                    inner: Arc::new(Mutex::new(Some(inner))),
-                }),
-                Err(e) => Err(crate::error::SiftErrorWrapper(e).into()),
+        let awaitable = future_into_py(py, async move {
+            let mut guard = inner.lock().await;
+            let stream = guard.as_mut().ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream has been consumed by finish()",
+                )
+            })?;
+
+            match stream.send_requests(requests).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(SiftErrorWrapper(e).into()),
             }
         })?;
+
         Ok(awaitable.into())
     }
 
-    pub fn finish(&mut self, py: Python) -> PyResult<Py<PyAny>> {
-        let mut inner_guard = match self.inner.lock() {
-            Ok(guard) => guard,
-            Err(_) => {
-                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Failed to acquire lock on stream",
-                ));
-            }
-        };
+    pub fn get_metrics_snapshot(&self) -> PyResult<SiftStreamMetricsSnapshotPy> {
+        let inner_guard = self.inner.blocking_lock();
+        let stream = inner_guard.as_ref().ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream has been consumed by finish()",
+            )
+        })?;
+        Ok(stream.get_metrics_snapshot().into())
+    }
 
-        let inner = match inner_guard.take() {
-            Some(stream) => stream,
-            None => {
-                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
-                    "Stream was already consumed",
-                ));
-            }
-        };
+    pub fn add_new_flows(
+        &self,
+        py: Python,
+        flow_configs: Vec<FlowConfigPy>,
+    ) -> PyResult<Py<PyAny>> {
+        let inner = self.inner.clone();
 
-        let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            match inner.finish().await {
+        let flow_configs = flow_configs
+            .into_iter()
+            .map(|cfg| cfg.into())
+            .collect::<Vec<FlowConfig>>();
+
+        let awaitable = future_into_py(py, async move {
+            let mut guard = inner.lock().await;
+            let stream = guard.as_mut().ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream has been consumed by finish()",
+                )
+            })?;
+
+            match stream.add_new_flows(&flow_configs).await {
                 Ok(_) => Ok(()),
-                Err(e) => Err(crate::error::SiftErrorWrapper(e).into()),
+                Err(e) => Err(SiftErrorWrapper(e).into()),
             }
         })?;
+
+        Ok(awaitable.into())
+    }
+
+    pub fn attach_run(&self, py: Python, run_selector: RunSelectorPy) -> PyResult<Py<PyAny>> {
+        let inner = self.inner.clone();
+
+        let awaitable = future_into_py(py, async move {
+            let mut guard = inner.lock().await;
+            let stream = guard.as_mut().ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream has been consumed by finish()",
+                )
+            })?;
+
+            match stream.attach_run(run_selector.into()).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(SiftErrorWrapper(e).into()),
+            }
+        })?;
+
+        Ok(awaitable.into())
+    }
+
+    pub fn detach_run(&self) -> PyResult<()> {
+        let mut inner_guard = self.inner.blocking_lock();
+        let stream = inner_guard.as_mut().ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream has been consumed by finish()",
+            )
+        })?;
+        stream.detach_run();
+        Ok(())
+    }
+
+    pub fn run(&self) -> PyResult<Option<String>> {
+        let inner_guard = self.inner.blocking_lock();
+        let stream = inner_guard.as_ref().ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream has been consumed by finish()",
+            )
+        })?;
+        Ok(stream.run().map(|r| r.run_id.clone()))
+    }
+
+    pub fn finish(&self, py: Python) -> PyResult<Py<PyAny>> {
+        let inner = self.inner.clone();
+
+        let awaitable = future_into_py(py, async move {
+            let mut guard = inner.lock().await;
+            let stream = guard.take().ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Stream has already been finished",
+                )
+            })?;
+
+            match stream.finish().await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(SiftErrorWrapper(e).into()),
+            }
+        })?;
+
         Ok(awaitable.into())
     }
 }

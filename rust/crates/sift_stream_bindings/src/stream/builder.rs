@@ -1,3 +1,4 @@
+use crate::sift::metadata::MetadataPy;
 use crate::stream::SiftStreamPy;
 use crate::stream::config::{IngestionConfigFormPy, RunFormPy};
 use crate::stream::retry::{DurationPy, RecoveryStrategyPy};
@@ -5,7 +6,7 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{Credentials, SiftStreamBuilder};
 use std::sync::Arc;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 // Type Definitions
 #[gen_stub_pyclass]
@@ -22,11 +23,15 @@ pub struct SiftStreamBuilderPy {
     #[pyo3(get, set)]
     recovery_strategy: Option<RecoveryStrategyPy>,
     #[pyo3(get, set)]
-    checkpoint_interval: DurationPy,
+    checkpoint_interval: Option<DurationPy>,
     #[pyo3(get, set)]
     run: Option<RunFormPy>,
     #[pyo3(get, set)]
     run_id: Option<String>,
+    #[pyo3(get, set)]
+    asset_tags: Option<Vec<String>>,
+    #[pyo3(get, set)]
+    metadata: Option<Vec<MetadataPy>>,
 }
 
 // PyO3 Method Implementations
@@ -41,9 +46,11 @@ impl SiftStreamBuilderPy {
             enable_tls: true,
             ingestion_config: None,
             recovery_strategy: None,
-            checkpoint_interval: DurationPy::new(60, 0),
+            checkpoint_interval: None,
             run: None,
             run_id: None,
+            asset_tags: None,
+            metadata: None,
         }
     }
 
@@ -65,7 +72,9 @@ impl SiftStreamBuilderPy {
             inner = inner.recovery_strategy(strategy.clone().into());
         }
 
-        inner = inner.checkpoint_interval(self.checkpoint_interval.into());
+        if let Some(checkpoint_interval) = self.checkpoint_interval.as_ref() {
+            inner = inner.checkpoint_interval((*checkpoint_interval).into())
+        }
 
         if let Some(run) = self.run.as_ref() {
             inner = inner.attach_run(run.clone().into());
@@ -74,6 +83,15 @@ impl SiftStreamBuilderPy {
         if let Some(run_id) = self.run_id.as_ref() {
             inner = inner.attach_run_id(run_id);
         }
+
+        inner = inner.add_asset_tags(self.asset_tags.clone());
+
+        let metadata = self.metadata.clone().map(|v| {
+            v.into_iter()
+                .map(|m| m.into())
+                .collect::<Vec<sift_rs::metadata::v1::MetadataValue>>()
+        });
+        inner = inner.add_asset_metadata(metadata);
 
         let awaitable = pyo3_async_runtimes::tokio::future_into_py(py, async move {
             match inner.build().await {
