@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../../../stylesheets/sift-favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.22">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.23">
     
     
       
@@ -884,15 +884,6 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.sift_types.__all__" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;__all__
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#sift_client.sift_types.Asset" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Asset
@@ -1692,6 +1683,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.ChannelConfig.as_channel_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;as_channel_value
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.ChannelConfig.from_channel" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_channel
@@ -1908,9 +1908,27 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.Flow.channels" class="md-nav__link">
+  <a href="#sift_client.sift_types.Flow.channel_values" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channels
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_values
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Flow.end_stream_on_validation_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;end_stream_on_validation_error
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Flow.flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;flow
     </span>
   </a>
   
@@ -1935,9 +1953,9 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.Flow.name" class="md-nav__link">
+  <a href="#sift_client.sift_types.Flow.organization_id" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;organization_id
     </span>
   </a>
   
@@ -1953,7 +1971,76 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.Flow.add_channel" class="md-nav__link">
+  <a href="#sift_client.sift_types.Flow.timestamp" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;timestamp
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;FlowConfig
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" FlowConfig">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channels
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.ingestion_config_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;ingestion_config_id
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.model_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;model_config
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.name" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.run_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_id
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.add_channel" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;add_channel
     </span>
@@ -1962,9 +2049,9 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.Flow.ingest" class="md-nav__link">
+  <a href="#sift_client.sift_types.FlowConfig.as_flow" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;ingest
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;as_flow
     </span>
   </a>
   
@@ -1998,6 +2085,57 @@ You're not viewing the latest version.
   <a href="#sift_client.sift_types.IngestionConfig.client_key" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;client_key
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;IngestionConfigCreate
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" IngestionConfigCreate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate.asset_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;asset_name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate.client_key" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;client_key
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate.flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;flows
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate.organization_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;organization_id
     </span>
   </a>
   
@@ -3363,6 +3501,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Run.stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;stop
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.Run.unarchive" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unarchive
@@ -3672,15 +3819,6 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.TestMeasurementCreate.measurement_type" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;measurement_type
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.sift_types.TestMeasurementCreate.name" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
@@ -3711,6 +3849,15 @@ You're not viewing the latest version.
   <a href="#sift_client.sift_types.TestMeasurementCreate.timestamp" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;timestamp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.TestMeasurementCreate.unit" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;unit
     </span>
   </a>
   
@@ -3849,6 +3996,15 @@ You're not viewing the latest version.
   <a href="#sift_client.sift_types.TestReport.part_number" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;part_number
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.TestReport.run_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_id
     </span>
   </a>
   
@@ -4951,15 +5107,6 @@ You're not viewing the latest version.
 </li>
       
         <li class="md-nav__item">
-  <a href="#sift_client.sift_types.__all__" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;__all__
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#sift_client.sift_types.Asset" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Asset
@@ -5759,6 +5906,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.ChannelConfig.as_channel_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;as_channel_value
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.ChannelConfig.from_channel" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;from_channel
@@ -5975,9 +6131,27 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.Flow.channels" class="md-nav__link">
+  <a href="#sift_client.sift_types.Flow.channel_values" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channels
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_values
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Flow.end_stream_on_validation_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;end_stream_on_validation_error
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Flow.flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;flow
     </span>
   </a>
   
@@ -6002,9 +6176,9 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.Flow.name" class="md-nav__link">
+  <a href="#sift_client.sift_types.Flow.organization_id" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;organization_id
     </span>
   </a>
   
@@ -6020,7 +6194,76 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.Flow.add_channel" class="md-nav__link">
+  <a href="#sift_client.sift_types.Flow.timestamp" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;timestamp
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;FlowConfig
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" FlowConfig">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channels
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.ingestion_config_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;ingestion_config_id
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.model_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;model_config
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.name" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.run_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_id
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.FlowConfig.add_channel" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;add_channel
     </span>
@@ -6029,9 +6272,9 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.Flow.ingest" class="md-nav__link">
+  <a href="#sift_client.sift_types.FlowConfig.as_flow" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;ingest
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;as_flow
     </span>
   </a>
   
@@ -6065,6 +6308,57 @@ You're not viewing the latest version.
   <a href="#sift_client.sift_types.IngestionConfig.client_key" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;client_key
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;IngestionConfigCreate
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" IngestionConfigCreate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate.asset_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;asset_name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate.client_key" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;client_key
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate.flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;flows
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.IngestionConfigCreate.organization_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;organization_id
     </span>
   </a>
   
@@ -7430,6 +7724,15 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.sift_types.Run.stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;stop
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.sift_types.Run.unarchive" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unarchive
@@ -7739,15 +8042,6 @@ You're not viewing the latest version.
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sift_client.sift_types.TestMeasurementCreate.measurement_type" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;measurement_type
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#sift_client.sift_types.TestMeasurementCreate.name" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;name
@@ -7778,6 +8072,15 @@ You're not viewing the latest version.
   <a href="#sift_client.sift_types.TestMeasurementCreate.timestamp" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;timestamp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.TestMeasurementCreate.unit" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;unit
     </span>
   </a>
   
@@ -7916,6 +8219,15 @@ You're not viewing the latest version.
   <a href="#sift_client.sift_types.TestReport.part_number" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;part_number
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.sift_types.TestReport.run_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_id
     </span>
   </a>
   
@@ -8895,6 +9207,19 @@ internal state with the updated values from the API.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            FlowConfig
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.FlowConfig)" href="#sift_client.sift_types.FlowConfig">FlowConfig</a></code></td>
+            <td class="doc-class-details">
+              <div class="doc-md-description">
+                <p>Model representing a data flow config for ingestion.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            IngestionConfig
 
 
@@ -8904,6 +9229,19 @@ internal state with the updated values from the API.</p>
             <td class="doc-class-details">
               <div class="doc-md-description">
                 <p>Model of the Sift Ingestion Config.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            IngestionConfigCreate
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.IngestionConfigCreate)" href="#sift_client.sift_types.IngestionConfigCreate">IngestionConfigCreate</a></code></td>
+            <td class="doc-class-details">
+              <div class="doc-md-description">
+                <p>Create model for IngestionConfig.</p>
               </div>
             </td>
           </tr>
@@ -9244,68 +9582,6 @@ internal state with the updated values from the API.</p>
 
 
 
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h2 id="sift_client.sift_types.__all__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">__all__</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
-  </span>
-
-<a href="#sift_client.sift_types.__all__" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="s2">&quot;Asset&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s2">&quot;AssetUpdate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="s2">&quot;CalculatedChannel&quot;</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="s2">&quot;CalculatedChannelCreate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">&quot;CalculatedChannelUpdate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;Channel&quot;</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;ChannelBitFieldElement&quot;</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="s2">&quot;ChannelConfig&quot;</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="s2">&quot;ChannelDataType&quot;</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="s2">&quot;ChannelReference&quot;</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="s2">&quot;Flow&quot;</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="s2">&quot;IngestionConfig&quot;</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="s2">&quot;Report&quot;</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="s2">&quot;ReportRuleStatus&quot;</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="s2">&quot;ReportRuleSummary&quot;</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="s2">&quot;ReportUpdate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="s2">&quot;Rule&quot;</span><span class="p">,</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="s2">&quot;RuleAction&quot;</span><span class="p">,</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="s2">&quot;RuleActionType&quot;</span><span class="p">,</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="s2">&quot;RuleAnnotationType&quot;</span><span class="p">,</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="s2">&quot;RuleCreate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="s2">&quot;RuleUpdate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="s2">&quot;RuleVersion&quot;</span><span class="p">,</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="s2">&quot;Run&quot;</span><span class="p">,</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="s2">&quot;RunCreate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="s2">&quot;RunUpdate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="s2">&quot;Tag&quot;</span><span class="p">,</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="s2">&quot;TagCreate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    <span class="s2">&quot;TagUpdate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>    <span class="s2">&quot;TestMeasurement&quot;</span><span class="p">,</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    <span class="s2">&quot;TestMeasurementCreate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    <span class="s2">&quot;TestMeasurementType&quot;</span><span class="p">,</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    <span class="s2">&quot;TestReport&quot;</span><span class="p">,</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>    <span class="s2">&quot;TestReportCreate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>    <span class="s2">&quot;TestReportUpdate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>    <span class="s2">&quot;TestStatus&quot;</span><span class="p">,</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>    <span class="s2">&quot;TestStep&quot;</span><span class="p">,</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>    <span class="s2">&quot;TestStepCreate&quot;</span><span class="p">,</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>    <span class="s2">&quot;TestStepType&quot;</span><span class="p">,</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="p">]</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-    </div>
-
-</div>
 
 
 
@@ -12555,6 +12831,106 @@ without the full metadata from the Channels API.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="sift_client.sift_types.ChannelConfig.as_channel_value" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">as_channel_value</span>
+
+
+<a href="#sift_client.sift_types.ChannelConfig.as_channel_value" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">as_channel_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            ChannelValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.ChannelValue)" href="ingestion/#sift_client.sift_types.ingestion.ChannelValue">ChannelValue</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Create a ChannelValue from a value using this channel's configuration.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>value</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The value to wrap in a ChannelValue. The type should match
+this channel's data_type.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            ChannelValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.ChannelValue)" href="ingestion/#sift_client.sift_types.ingestion.ChannelValue">ChannelValue</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>A ChannelValue instance with this channel's name and data type,</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            ChannelValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.ChannelValue)" href="ingestion/#sift_client.sift_types.ingestion.ChannelValue">ChannelValue</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>containing the provided value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="sift_client.sift_types.ChannelConfig.from_channel" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_channel</span>
 
@@ -12670,6 +13046,7 @@ without the full metadata from the Channels API.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>Enum for channel data types (mimics protobuf values, but as int for now).</p>
@@ -13655,10 +14032,11 @@ without the full metadata from the Channels API.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="sift_client.sift_types._base.BaseType">BaseType</span>[<span title="sift.ingestion_configs.v2.ingestion_configs_pb2.FlowConfig">FlowConfig</span>, &#39;Flow&#39;]</code></p>
+              Bases: <code><a class="autorefs autorefs-external" title="pydantic.BaseModel" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel">BaseModel</a></code></p>
 
         <p>Model representing a data flow for ingestion.</p>
 <p>A Flow represents a collection of channels that are ingested together.</p>
+<p>A representation of the IngestWithConfigDataStreamRequest proto</p>
 
     
       <p>Config:</p>
@@ -13669,41 +14047,6 @@ without the full metadata from the Channels API.</p>
         <p>Fields:</p>
         <ul>
             <li>
-              <code><span title="sift_client.sift_types.ingestion.Flow.id_">id_</span></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
-            </li>
-            <li>
-              <code><span title="sift_client.sift_types.ingestion.Flow.proto">proto</span></code>
-                (<code><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a> | None</code>)
-            </li>
-            <li>
-              <code><span title="sift_client.sift_types.ingestion.Flow._client">_client</span></code>
-                (<code><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="../client/#sift_client.client.SiftClient">SiftClient</a> | None</code>)
-            </li>
-            <li>
-              <code><a class="autorefs autorefs-internal" title="            name
-
-
-  
-      pydantic-field
-   (sift_client.sift_types.ingestion.Flow.name)" href="ingestion/#sift_client.sift_types.ingestion.Flow.name">name</a></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
-            </li>
-            <li>
-              <code><a class="autorefs autorefs-internal" title="            channels
-
-
-  
-      pydantic-field
-   (sift_client.sift_types.ingestion.Flow.channels)" href="ingestion/#sift_client.sift_types.ingestion.Flow.channels">channels</a></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            ChannelConfig
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.ingestion.ChannelConfig)" href="ingestion/#sift_client.sift_types.ingestion.ChannelConfig">ChannelConfig</a>]</code>)
-            </li>
-            <li>
               <code><a class="autorefs autorefs-internal" title="            ingestion_config_id
 
 
@@ -13713,12 +14056,62 @@ without the full metadata from the Channels API.</p>
                 (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
             </li>
             <li>
+              <code><a class="autorefs autorefs-internal" title="            flow
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.Flow.flow)" href="ingestion/#sift_client.sift_types.ingestion.Flow.flow">flow</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            timestamp
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.Flow.timestamp)" href="ingestion/#sift_client.sift_types.ingestion.Flow.timestamp">timestamp</a></code>
+                (<code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            channel_values
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.Flow.channel_values)" href="ingestion/#sift_client.sift_types.ingestion.Flow.channel_values">channel_values</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            ChannelValue
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.ChannelValue)" href="ingestion/#sift_client.sift_types.ingestion.ChannelValue">ChannelValue</a>]</code>)
+            </li>
+            <li>
               <code><a class="autorefs autorefs-internal" title="            run_id
 
 
   
       pydantic-field
    (sift_client.sift_types.ingestion.Flow.run_id)" href="ingestion/#sift_client.sift_types.ingestion.Flow.run_id">run_id</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            end_stream_on_validation_error
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.Flow.end_stream_on_validation_error)" href="ingestion/#sift_client.sift_types.ingestion.Flow.end_stream_on_validation_error">end_stream_on_validation_error</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a> | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            organization_id
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.Flow.organization_id)" href="ingestion/#sift_client.sift_types.ingestion.Flow.organization_id">organization_id</a></code>
                 (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
             </li>
         </ul>
@@ -13738,21 +14131,65 @@ without the full metadata from the Channels API.</p>
 
 
 
-<h3 id="sift_client.sift_types.Flow.channels" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channels</span>
+<h3 id="sift_client.sift_types.Flow.channel_values" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channel_values</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
   </span>
 
-<a href="#sift_client.sift_types.Flow.channels" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channels</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ChannelConfig
+<a href="#sift_client.sift_types.Flow.channel_values" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channel_values</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ChannelValue
 
 
   
       pydantic-model
-   (sift_client.sift_types.ingestion.ChannelConfig)" href="ingestion/#sift_client.sift_types.ingestion.ChannelConfig">ChannelConfig</a></span><span class="p">]</span>
+   (sift_client.sift_types.ingestion.ChannelValue)" href="ingestion/#sift_client.sift_types.ingestion.ChannelValue">ChannelValue</a></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.Flow.end_stream_on_validation_error" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">end_stream_on_validation_error</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.Flow.end_stream_on_validation_error" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">end_stream_on_validation_error</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.Flow.flow" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">flow</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.Flow.flow" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">flow</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -13810,16 +14247,16 @@ without the full metadata from the Channels API.</p>
 
 
 
-<h3 id="sift_client.sift_types.Flow.name" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">name</span>
+<h3 id="sift_client.sift_types.Flow.organization_id" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">organization_id</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
   </span>
 
-<a href="#sift_client.sift_types.Flow.name" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+<a href="#sift_client.sift_types.Flow.organization_id" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">organization_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -13850,17 +14287,262 @@ without the full metadata from the Channels API.</p>
 
 </div>
 
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.Flow.timestamp" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">timestamp</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.Flow.timestamp" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">timestamp</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="sift_client.sift_types.FlowConfig" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">FlowConfig</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.FlowConfig" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="sift_client.sift_types._base.BaseType">BaseType</span>[<span title="sift.ingestion_configs.v2.ingestion_configs_pb2.FlowConfig">FlowConfig</span>, &#39;FlowConfig&#39;]</code></p>
+
+        <p>Model representing a data flow config for ingestion.</p>
+<p>A FlowConfig represents the configuration of a collection of channels that are ingested together.</p>
+
+    
+      <p>Config:</p>
+      <ul>
+          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">False</span></code></li>
+      </ul>
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><span title="sift_client.sift_types.ingestion.FlowConfig.id_">id_</span></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><span title="sift_client.sift_types.ingestion.FlowConfig.proto">proto</span></code>
+                (<code><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a> | None</code>)
+            </li>
+            <li>
+              <code><span title="sift_client.sift_types.ingestion.FlowConfig._client">_client</span></code>
+                (<code><a class="autorefs autorefs-internal" title="            SiftClient (sift_client.client.SiftClient)" href="../client/#sift_client.client.SiftClient">SiftClient</a> | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            name
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.FlowConfig.name)" href="ingestion/#sift_client.sift_types.ingestion.FlowConfig.name">name</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            channels
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.FlowConfig.channels)" href="ingestion/#sift_client.sift_types.ingestion.FlowConfig.channels">channels</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            ChannelConfig
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.ChannelConfig)" href="ingestion/#sift_client.sift_types.ingestion.ChannelConfig">ChannelConfig</a>]</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            ingestion_config_id
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.FlowConfig.ingestion_config_id)" href="ingestion/#sift_client.sift_types.ingestion.FlowConfig.ingestion_config_id">ingestion_config_id</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            run_id
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.FlowConfig.run_id)" href="ingestion/#sift_client.sift_types.ingestion.FlowConfig.run_id">run_id</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+        </ul>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.FlowConfig.channels" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">channels</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.FlowConfig.channels" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">channels</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            ChannelConfig
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.ChannelConfig)" href="ingestion/#sift_client.sift_types.ingestion.ChannelConfig">ChannelConfig</a></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.FlowConfig.ingestion_config_id" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">ingestion_config_id</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.FlowConfig.ingestion_config_id" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ingestion_config_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.FlowConfig.model_config" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">model_config</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.FlowConfig.model_config" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">model_config</span> <span class="o">=</span> <span class="n"><a class="autorefs autorefs-external" title="pydantic.ConfigDict" href="https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict">ConfigDict</a></span><span class="p">(</span><span class="n"><span title="pydantic.ConfigDict(frozen)">frozen</span></span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.FlowConfig.name" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">name</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.FlowConfig.name" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.FlowConfig.run_id" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">run_id</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.FlowConfig.run_id" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">run_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
 
 
 
 <div class="doc doc-object doc-function">
 
 
-<h3 id="sift_client.sift_types.Flow.add_channel" class="doc doc-heading">
+<h3 id="sift_client.sift_types.FlowConfig.add_channel" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">add_channel</span>
 
 
-<a href="#sift_client.sift_types.Flow.add_channel" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#sift_client.sift_types.FlowConfig.add_channel" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_channel</span><span class="p">(</span><span class="n">channel</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ChannelConfig
 
 
@@ -13938,19 +14620,26 @@ without the full metadata from the Channels API.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="sift_client.sift_types.Flow.ingest" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">ingest</span>
+<h3 id="sift_client.sift_types.FlowConfig.as_flow" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">as_flow</span>
 
 
-<a href="#sift_client.sift_types.Flow.ingest" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ingest</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span><span class="p">,</span> <span class="n">channel_values</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
+<a href="#sift_client.sift_types.FlowConfig.as_flow" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">as_flow</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">timestamp</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">values</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">],</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Flow
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.Flow)" href="ingestion/#sift_client.sift_types.ingestion.Flow">Flow</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Ingest data for this Flow.</p>
+        <p>Create a Flow from this FlowConfig with the provided values.</p>
 
 
 <table>
@@ -13967,23 +14656,28 @@ without the full metadata from the Channels API.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The timestamp of the data.</p>
+                <p>The timestamp for the flow. If None, uses the current UTC time.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></code>
+                      <code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
                   </span>
               </p>
             </td>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>channel_values</code>
+                <code>values</code>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>Dictionary mapping Channel names to their values.</p>
+                <p>A dictionary mapping channel names to their values. Only channels
+present in this dictionary will be included in the resulting Flow.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -14000,20 +14694,25 @@ without the full metadata from the Channels API.</p>
 <table>
       <thead>
         <tr>
-          <th><span class="doc-section-title">RAISES</span></th>
+          <th><span class="doc-section-title">RETURNS</span></th>
           <th><span>DESCRIPTION</span></th>
         </tr>
       </thead>
       <tbody>
           <tr class="doc-section-item">
             <td>
-              <span class="doc-raises-annotation">
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#ValueError">ValueError</a></code>
-              </span>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            Flow
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.Flow)" href="ingestion/#sift_client.sift_types.ingestion.Flow">Flow</a></code>
+                </span>
             </td>
-            <td class="doc-raises-details">
+            <td class="doc-returns-details">
               <div class="doc-md-description">
-                <p>If the ingestion config ID is not set.</p>
+                <p>A Flow object with channel values created from the provided values dictionary.</p>
               </div>
             </td>
           </tr>
@@ -14137,6 +14836,190 @@ without the full metadata from the Channels API.</p>
 
 <a href="#sift_client.sift_types.IngestionConfig.client_key" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">client_key</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="sift_client.sift_types.IngestionConfigCreate" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">IngestionConfigCreate</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-model"><code>pydantic-model</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.IngestionConfigCreate" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">IngestionConfigCreate</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="sift_client.sift_types._base.ModelCreate">ModelCreate</span>[<span title="sift.ingestion_configs.v2.ingestion_configs_pb2.CreateIngestionConfigRequest">CreateIngestionConfigRequest</span>]</code></p>
+
+        <p>Create model for IngestionConfig.</p>
+
+    
+
+        <p>Fields:</p>
+        <ul>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            asset_name
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.IngestionConfigCreate.asset_name)" href="ingestion/#sift_client.sift_types.ingestion.IngestionConfigCreate.asset_name">asset_name</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            flows
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.IngestionConfigCreate.flows)" href="ingestion/#sift_client.sift_types.ingestion.IngestionConfigCreate.flows">flows</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-internal" title="            FlowConfig
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.FlowConfig)" href="ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a>] | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            organization_id
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.IngestionConfigCreate.organization_id)" href="ingestion/#sift_client.sift_types.ingestion.IngestionConfigCreate.organization_id">organization_id</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            client_key
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.ingestion.IngestionConfigCreate.client_key)" href="ingestion/#sift_client.sift_types.ingestion.IngestionConfigCreate.client_key">client_key</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+        </ul>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.IngestionConfigCreate.asset_name" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">asset_name</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.IngestionConfigCreate.asset_name" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">asset_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.IngestionConfigCreate.client_key" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">client_key</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.IngestionConfigCreate.client_key" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">client_key</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.IngestionConfigCreate.flows" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">flows</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.IngestionConfigCreate.flows" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">flows</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            FlowConfig
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.FlowConfig)" href="ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.IngestionConfigCreate.organization_id" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">organization_id</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.IngestionConfigCreate.organization_id" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">organization_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -14836,6 +15719,7 @@ without the full metadata from the Channels API.</p>
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>Report rule status.</p>
 
 
@@ -15179,10 +16063,6 @@ without the full metadata from the Channels API.</p>
         <p>ReportRuleSummary model representing a rule summary within a report.</p>
 
     
-      <p>Config:</p>
-      <ul>
-          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
-      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -15668,10 +16548,6 @@ without the full metadata from the Channels API.</p>
         <p>Model of the Report fields that can be updated.</p>
 
     
-      <p>Config:</p>
-      <ul>
-          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">False</span></code></li>
-      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -15828,6 +16704,10 @@ without the full metadata from the Channels API.</p>
         <p>Model of the Sift Rule.</p>
 
     
+      <p>Config:</p>
+      <ul>
+          <li><code>frozen</code>: <code class="highlight language-python"><span class="kc">True</span></code></li>
+      </ul>
 
         <p>Fields:</p>
         <ul>
@@ -17275,6 +18155,7 @@ without the full metadata from the Channels API.</p>
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>Enum for rule action kinds.</p>
 
 
@@ -17555,6 +18436,7 @@ without the full metadata from the Channels API.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>Enum for rule annotation types.</p>
@@ -19446,6 +20328,31 @@ without the full metadata from the Channels API.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="sift_client.sift_types.Run.stop" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">stop</span>
+
+
+<a href="#sift_client.sift_types.Run.stop" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">stop</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            Run
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.run.Run)" href="run/#sift_client.sift_types.run.Run">Run</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Stop the run.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="sift_client.sift_types.Run.unarchive" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">unarchive</span>
 
@@ -20870,15 +21777,6 @@ without the full metadata from the Channels API.</p>
                 (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a> | None</code>)
             </li>
             <li>
-              <code><a class="autorefs autorefs-internal" title="            unit
-
-
-  
-      pydantic-field
-   (sift_client.sift_types.test_report.TestMeasurementCreate.unit)" href="test_report/#sift_client.sift_types.test_report.TestMeasurementBase.unit">unit</a></code>
-                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
-            </li>
-            <li>
               <code><a class="autorefs autorefs-internal" title="            numeric_bounds
 
 
@@ -20907,8 +21805,8 @@ without the full metadata from the Channels API.</p>
 
   
       pydantic-field
-   (sift_client.sift_types.test_report.TestMeasurementCreate.measurement_type)" href="test_report/#sift_client.sift_types.test_report.TestMeasurementCreate.measurement_type">measurement_type</a></code>
-                (<code><a class="autorefs autorefs-internal" title="            TestMeasurementType (sift_client.sift_types.test_report.TestMeasurementType)" href="test_report/#sift_client.sift_types.test_report.TestMeasurementType">TestMeasurementType</a></code>)
+   (sift_client.sift_types.test_report.TestMeasurementCreate.measurement_type)" href="test_report/#sift_client.sift_types.test_report.TestMeasurementBase.measurement_type">measurement_type</a></code>
+                (<code><a class="autorefs autorefs-internal" title="            TestMeasurementType (sift_client.sift_types.test_report.TestMeasurementType)" href="test_report/#sift_client.sift_types.test_report.TestMeasurementType">TestMeasurementType</a> | None</code>)
             </li>
             <li>
               <code><a class="autorefs autorefs-internal" title="            name
@@ -20946,6 +21844,15 @@ without the full metadata from the Channels API.</p>
    (sift_client.sift_types.test_report.TestMeasurementCreate.timestamp)" href="test_report/#sift_client.sift_types.test_report.TestMeasurementCreate.timestamp">timestamp</a></code>
                 (<code><a class="autorefs autorefs-external" title="datetime.datetime" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></code>)
             </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            unit
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.test_report.TestMeasurementCreate.unit)" href="test_report/#sift_client.sift_types.test_report.TestMeasurementCreate.unit">unit</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
         </ul>
 
 
@@ -20958,28 +21865,6 @@ without the full metadata from the Channels API.</p>
 
 
 
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sift_client.sift_types.TestMeasurementCreate.measurement_type" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">measurement_type</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
-  </span>
-
-<a href="#sift_client.sift_types.TestMeasurementCreate.measurement_type" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">measurement_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestMeasurementType (sift_client.sift_types.test_report.TestMeasurementType)" href="test_report/#sift_client.sift_types.test_report.TestMeasurementType">TestMeasurementType</a></span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-attribute">
 
@@ -21069,6 +21954,28 @@ without the full metadata from the Channels API.</p>
 
 </div>
 
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.TestMeasurementCreate.unit" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">unit</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.TestMeasurementCreate.unit" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">unit</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
 
 
 
@@ -21114,6 +22021,7 @@ without the full metadata from the Channels API.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>TestMeasurementType enum.</p>
@@ -21487,6 +22395,15 @@ without the full metadata from the Channels API.</p>
                 (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
             </li>
             <li>
+              <code><a class="autorefs autorefs-internal" title="            run_id
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.test_report.TestReport.run_id)" href="test_report/#sift_client.sift_types.test_report.TestReport.run_id">run_id</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
               <code><a class="autorefs autorefs-internal" title="            archived_date
 
 
@@ -21641,6 +22558,28 @@ without the full metadata from the Channels API.</p>
 
 <a href="#sift_client.sift_types.TestReport.part_number" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">part_number</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="sift_client.sift_types.TestReport.run_id" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">run_id</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-pydantic-field"><code>pydantic-field</code></small>
+  </span>
+
+<a href="#sift_client.sift_types.TestReport.run_id" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">run_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -21924,7 +22863,7 @@ without the full metadata from the Channels API.</p>
 
   
       pydantic-model
-   (sift_client.sift_types.test_report.TestReportBase)" href="test_report/#sift_client.sift_types.test_report.TestReportBase">TestReportBase</a></code>, <code><span title="sift_client.sift_types._base.ModelCreate">ModelCreate</span>[<span title="sift.test_reports.v1.test_reports_pb2.TestReport">TestReport</span>]</code></p>
+   (sift_client.sift_types.test_report.TestReportBase)" href="test_report/#sift_client.sift_types.test_report.TestReportBase">TestReportBase</a></code>, <code><span title="sift_client.sift_types._base.ModelCreate">ModelCreate</span>[<span title="sift.test_reports.v1.test_reports_pb2.CreateTestReportRequest">CreateTestReportRequest</span>]</code></p>
 
         <p>Create model for TestReport.</p>
 
@@ -21975,6 +22914,15 @@ without the full metadata from the Channels API.</p>
   
       pydantic-field
    (sift_client.sift_types.test_report.TestReportCreate.system_operator)" href="test_report/#sift_client.sift_types.test_report.TestReportBase.system_operator">system_operator</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            run_id
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.test_report.TestReportCreate.run_id)" href="test_report/#sift_client.sift_types.test_report.TestReportBase.run_id">run_id</a></code>
                 (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
             </li>
             <li>
@@ -22156,7 +23104,7 @@ without the full metadata from the Channels API.</p>
 
 
 <a href="#sift_client.sift_types.TestReportCreate.to_proto" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">to_proto</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="sift.test_reports.v1.test_reports_pb2.TestReport">TestReport</span></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">to_proto</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="sift.test_reports.v1.test_reports_pb2.CreateTestReportRequest">CreateTestReportRequest</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -22254,6 +23202,15 @@ without the full metadata from the Channels API.</p>
   
       pydantic-field
    (sift_client.sift_types.test_report.TestReportUpdate.system_operator)" href="test_report/#sift_client.sift_types.test_report.TestReportBase.system_operator">system_operator</a></code>
+                (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
+            </li>
+            <li>
+              <code><a class="autorefs autorefs-internal" title="            run_id
+
+
+  
+      pydantic-field
+   (sift_client.sift_types.test_report.TestReportUpdate.run_id)" href="test_report/#sift_client.sift_types.test_report.TestReportBase.run_id">run_id</a></code>
                 (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>)
             </li>
             <li>
@@ -22480,6 +23437,7 @@ without the full metadata from the Channels API.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>TestStatus enum.</p>
@@ -23620,6 +24578,7 @@ without the full metadata from the Channels API.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>TestStepType enum.</p>
