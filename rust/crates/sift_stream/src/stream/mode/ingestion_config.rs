@@ -65,10 +65,13 @@ pub(crate) struct DataStream {
 impl Flow {
     /// Initializes a new flow that can be immediately sent to Sift by passing this to
     /// [SiftStream::send].
-    pub fn new<S: AsRef<str>>(flow_name: S, timestamp: TimeValue, values: &[ChannelValue]) -> Self {
+    pub fn new<S>(flow_name: S, timestamp: TimeValue, values: &[ChannelValue]) -> Self
+    where
+        S: ToString,
+    {
         Self {
             timestamp,
-            flow_name: flow_name.as_ref().to_string(),
+            flow_name: flow_name.to_string(),
             values: values.to_vec(),
         }
     }
