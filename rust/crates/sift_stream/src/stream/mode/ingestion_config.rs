@@ -49,9 +49,9 @@ impl SiftStreamMode for IngestionConfigMode {}
 /// [top-level documentation](crate#ingestion-configs) for more details.
 #[derive(Debug, Clone)]
 pub struct Flow {
-    flow_name: String,
-    timestamp: TimeValue,
-    values: Vec<ChannelValue>,
+    pub flow_name: String,
+    pub timestamp: TimeValue,
+    pub values: Vec<ChannelValue>,
 }
 
 /// Dependencies used in the Tokio task that actually sends the data to Sift.
