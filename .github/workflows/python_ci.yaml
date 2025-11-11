@@ -30,7 +30,7 @@ jobs:
         id: install
         run: |
           python -m pip install --upgrade pip
-          pip install '.[development,openssl,tdms,rosbags,hdf5,sift-stream]'
+          pip install '.[development,data_review,openssl,tdms,rosbags,hdf5,sift-stream]'
 
       - name: Lint
         run: |
