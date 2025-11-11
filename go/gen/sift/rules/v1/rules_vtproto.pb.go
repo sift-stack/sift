@@ -54,6 +54,7 @@ func (m *Rule) CloneVT() *Rule {
 	r.IsExternal = m.IsExternal
 	r.ArchivedDate = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ArchivedDate).CloneVT())
 	r.IsArchived = m.IsArchived
+	r.IsLiveEvaluationEnabled = m.IsLiveEvaluationEnabled
 	if rhs := m.Conditions; rhs != nil {
 		tmpContainer := make([]*RuleCondition, len(rhs))
 		for k, v := range rhs {
@@ -443,6 +444,10 @@ func (m *UpdateRuleRequest) CloneVT() *UpdateRuleRequest {
 			}
 		}
 		r.Metadata = tmpContainer
+	}
+	if rhs := m.IsLiveEvaluationEnabled; rhs != nil {
+		tmpVal := *rhs
+		r.IsLiveEvaluationEnabled = &tmpVal
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -1840,6 +1845,9 @@ func (this *Rule) EqualVT(that *Rule) bool {
 	if this.IsArchived != that.IsArchived {
 		return false
 	}
+	if this.IsLiveEvaluationEnabled != that.IsLiveEvaluationEnabled {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2372,6 +2380,9 @@ func (this *UpdateRuleRequest) EqualVT(that *UpdateRuleRequest) bool {
 		}
 	}
 	if this.IsArchived != that.IsArchived {
+		return false
+	}
+	if p, q := this.IsLiveEvaluationEnabled, that.IsLiveEvaluationEnabled; (p == nil && q != nil) || (p != nil && (q == nil || *p != *q)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5186,6 +5197,18 @@ func (m *Rule) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsLiveEvaluationEnabled {
+		i--
+		if m.IsLiveEvaluationEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -6243,6 +6266,16 @@ func (m *UpdateRuleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsLiveEvaluationEnabled != nil {
+		i--
+		if *m.IsLiveEvaluationEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x78
 	}
 	if m.IsArchived {
 		i--
@@ -9459,6 +9492,18 @@ func (m *Rule) MarshalToSizedBufferVTStrict(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsLiveEvaluationEnabled {
+		i--
+		if m.IsLiveEvaluationEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
 	if m.IsArchived {
 		i--
 		if m.IsArchived {
@@ -10516,6 +10561,16 @@ func (m *UpdateRuleRequest) MarshalToSizedBufferVTStrict(dAtA []byte) (int, erro
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsLiveEvaluationEnabled != nil {
+		i--
+		if *m.IsLiveEvaluationEnabled {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x78
 	}
 	if m.IsArchived {
 		i--
@@ -13822,6 +13877,9 @@ func (m *Rule) SizeVT() (n int) {
 	if m.IsArchived {
 		n += 3
 	}
+	if m.IsLiveEvaluationEnabled {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -14225,6 +14283,9 @@ func (m *UpdateRuleRequest) SizeVT() (n int) {
 		}
 	}
 	if m.IsArchived {
+		n += 2
+	}
+	if m.IsLiveEvaluationEnabled != nil {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -16099,6 +16160,26 @@ func (m *Rule) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 22:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsLiveEvaluationEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsLiveEvaluationEnabled = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -18674,6 +18755,27 @@ func (m *UpdateRuleRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsLiveEvaluationEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsLiveEvaluationEnabled = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -26279,6 +26381,26 @@ func (m *Rule) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 22:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsLiveEvaluationEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsLiveEvaluationEnabled = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -28982,6 +29104,27 @@ func (m *UpdateRuleRequest) UnmarshalVTUnsafe(dAtA []byte) error {
 				}
 			}
 			m.IsArchived = bool(v != 0)
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsLiveEvaluationEnabled", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			b := bool(v != 0)
+			m.IsLiveEvaluationEnabled = &b
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
