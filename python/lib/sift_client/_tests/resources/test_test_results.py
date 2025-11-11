@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar
@@ -22,6 +23,7 @@ from sift_client.sift_types.test_report import (
     TestStepCreate,
     TestStepType,
 )
+from sift_client.util import cel_utils as cel
 
 pytestmark = pytest.mark.integration
 
@@ -47,6 +49,8 @@ class TestResultsTest:
                 "name": "Test Report with Steps and Measurements",
                 "test_system_name": "Test System",
                 "test_case": "Test Case",
+                "serial_number": str(uuid.uuid4()),
+                "part_number": "1234567890",
                 "start_time": simulated_time,
                 "end_time": simulated_time,
                 "run_id": nostromo_run.id_,
@@ -308,6 +312,53 @@ class TestResultsTest:
         assert updated_report.run_id is None
 
         self.test_reports["basic_test_report"] = updated_report
+
+    def test_list_test_reports(self, sift_client):
+        reports = sift_client.test_results.list_(
+            filter_query=cel.not_(cel.equals("serial_number", ""))
+            and cel.not_(cel.equals("part_number", "")),
+        )
+        existing_report = reports[0]
+        assert len(reports)
+        existing_report = reports[0]
+        reports = sift_client.test_results.list_(
+            status=existing_report.status,
+            test_system_name=existing_report.test_system_name,
+            test_case=existing_report.test_case,
+            serial_numbers=[existing_report.serial_number],
+            part_numbers=[existing_report.part_number],
+            system_operator=existing_report.system_operator,
+        )
+        assert existing_report in reports
+
+    def test_list_test_steps(self, sift_client):
+        steps = sift_client.test_results.list_steps()
+        existing_step = None
+        for step in steps:
+            if step.parent_step_id is not None:
+                existing_step = step
+                break
+        assert len(steps)
+        steps = sift_client.test_results.list_steps(
+            test_reports=[existing_step.test_report_id],
+            parent_steps=[existing_step.parent_step_id],
+            name=existing_step.name,
+            step_type=existing_step.step_type,
+            status=existing_step.status,
+        )
+        assert existing_step in steps
+
+    def test_list_test_measurements(self, sift_client):
+        measurements = sift_client.test_results.list_measurements()
+        assert len(measurements)
+        existing_measurement = measurements[0]
+        measurements = sift_client.test_results.list_measurements(
+            test_steps=[existing_measurement.test_step_id],
+            name=existing_measurement.name,
+            measurement_type=existing_measurement.measurement_type,
+            passed=existing_measurement.passed,
+        )
+        assert existing_measurement in measurements
 
     def test_archive_and_delete_test_report(self, sift_client):
         test_report = self.test_reports.get("basic_test_report")

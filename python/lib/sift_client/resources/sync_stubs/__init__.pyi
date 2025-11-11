@@ -1283,8 +1283,8 @@ class TestResultsAPI:
         status: TestStatus | None = None,
         test_system_name: str | None = None,
         test_case: str | None = None,
-        serial_number: str | None = None,
-        part_number: str | None = None,
+        serial_numbers: list[str] | None = None,
+        part_numbers: list[str] | None = None,
         system_operator: str | None = None,
         created_by: str | None = None,
         modified_by: str | None = None,
@@ -1309,8 +1309,8 @@ class TestResultsAPI:
             status: Status to filter by (TestStatus enum).
             test_system_name: Test system name to filter by.
             test_case: Test case to filter by.
-            serial_number: Serial number to filter by.
-            part_number: Part number to filter by.
+            serial_numbers: Serial numbers to filter by.
+            part_numbers: Part numbers to filter by.
             system_operator: System operator to filter by.
             created_by: User ID who created the test report.
             modified_by: User ID who last modified the test report.
