@@ -88,7 +88,7 @@ class IngestionConfigCreate(ModelCreate[CreateIngestionConfigRequestProto]):
         else:
             client_key = _hash_flows(self.asset_name, self.flows or [])
 
-        return IngestionConfigFormPy(
+        return IngestionConfigFormPy(  # type: ignore[call-arg]
             asset_name=self.asset_name,
             flows=[flow_config._to_rust_config() for flow_config in self.flows]
             if self.flows
@@ -268,7 +268,7 @@ class FlowConfig(BaseType[FlowConfigProto, "FlowConfig"]):
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
         from sift_stream_bindings import FlowConfigPy
 
-        return FlowConfigPy(
+        return FlowConfigPy(  # type: ignore[call-arg]
             name=self.name,
             channels=[_channel_config_to_rust_config(channel) for channel in self.channels],
         )
@@ -343,7 +343,7 @@ class Flow(BaseModel):
 
         from sift_client._internal.low_level_wrappers.ingestion import _to_rust_py_timestamp
 
-        return FlowPy(
+        return FlowPy(  # type: ignore[call-arg]
             flow_name=self.flow,
             timestamp=_to_rust_py_timestamp(self.timestamp),
             values=[channel_value._to_rust_form() for channel_value in self.channel_values],
