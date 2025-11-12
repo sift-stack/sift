@@ -48,6 +48,7 @@ Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
+# AUTO GENERATED EXTRAS — EDIT [tool.sift.extras] ONLY
 all = [
     'cffi~=1.14',
     'h5py~=3.11',
@@ -155,6 +156,8 @@ tdms = [
 ]
 
 [tool.sift.extras]
+# Extras configurations defined here will be available in [project.optional-dependencies]
+
 # development
 development = [
     "grpcio-testing~=1.13",
@@ -187,8 +190,9 @@ hdf5 = ["h5py~=3.11", "polars~=1.8"]
 data_review = ["pyarrow>=17.0.0"]
 # Ensure any new user build extras are added to .github/workflows/python_build.yaml
 
-# Combine and alias extras
 [tool.sift.extras.combine]
+# Combined extras configurations and aliases can be defined here
+
 # aliases
 dev = ["development"]
 sift-stream-bindings = ["sift-stream"]

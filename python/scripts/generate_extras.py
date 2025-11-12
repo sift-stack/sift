@@ -43,20 +43,27 @@ for name in list(atomic_extras) + list(combine_section):
 
 # Inject into [project.optional-dependencies]
 project = doc.setdefault("project", tomlkit.table())
-project["optional-dependencies"] = tomlkit.table()
 
+# Create the optional-dependencies table
+opt_table = tomlkit.table()
 
-# Write arrays in sorted order with clean formatting
+# Add a header comment BEFORE the section
+opt_table.trivia.indent = ""
+opt_table.trivia.comment = "\n# AUTO GENERATED EXTRAS — EDIT [tool.sift.extras] ONLY"
+
+# Write arrays in sorted order
 for name in sorted(final_extras):
     deps = final_extras[name]
     arr = tomlkit.array(deps)
-    arr.multiline(True)           # each dependency on its own line
-    # arr.indent(2)                 # 4-space indentation
+    arr.multiline(True)
     arr.as_string()
-    # arr.trailing_comma(True)      # trailing commas for cleaner diffs
-    project["optional-dependencies"][name] = arr
+    opt_table[name] = arr
+
+
+# Assign back to project
+project["optional-dependencies"] = opt_table
 
 # Dump back to file
 pyproject.write_text(tomlkit.dumps(doc))
 
-print("✅ Updated [project.optional-dependencies] with formatted, nested extras")
+print("✅ Updated [project.optional-dependencies]s")
