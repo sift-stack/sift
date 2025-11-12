@@ -118,16 +118,9 @@ development = [
     'tomlkit~=0.13.3',
 ]
 
-docs = [
-    'griffe-pydantic',
-    'mike',
-    'mkdocs',
-    'mkdocs-api-autonav',
-    'mkdocs-include-markdown-plugin',
-    'mkdocs-jupyter',
-    'mkdocs-material',
-    'mkdocstrings[python]',
-]
+
+
+
 file-imports = [
     'h5py~=3.11',
     'npTDMS~=1.9',
