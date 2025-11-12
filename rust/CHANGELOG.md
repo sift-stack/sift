@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.3] - November 12, 2025
+### What's New
+#### SiftStream Independent gRPC Connections for Streaming
+In order to prevent backup file re-ingestion from potentially starving out message ingestion through the main
+ingestion task, the re-ingestion task and primary ingestion task now have their own independent gRPC connections
+and underlying TCP connections. Previously, these streams were using multiplexing over the same connection.
+
+#### SiftStream Ergonomic Improvements
+Various minor changes have been made to improve the usability (and testability) of sift_stream and related types.
+
 ## [v0.7.0-rc.2] - November 3, 2025
 ### What's New
 #### Improvements For Constrained Environments
