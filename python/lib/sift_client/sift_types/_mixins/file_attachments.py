@@ -83,4 +83,4 @@ class FileAttachmentsMixin:
                 self.client.file_attachments.batch_delete(file_attachment_ids=file_ids)
         else:
             if file_attachment.id_:
-                self.client.file_attachments.delete(file_attachment_id=file_attachment.id_)
+                self.client.file_attachments.delete(file_attachment=file_attachment)

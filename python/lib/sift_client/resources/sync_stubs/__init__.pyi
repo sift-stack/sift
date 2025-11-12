@@ -21,7 +21,7 @@ from sift_client.sift_types.calculated_channel import (
     CalculatedChannelUpdate,
 )
 from sift_client.sift_types.channel import Channel
-from sift_client.sift_types.file_attachment import FileAttachment, RemoteFileUpdate
+from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
 from sift_client.sift_types.report import Report, ReportUpdate
 from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
 from sift_client.sift_types.run import Run, RunCreate, RunUpdate
@@ -564,7 +564,7 @@ class FileAttachmentsAPI:
     def update(
         self,
         *,
-        file_attachment: RemoteFileUpdate | dict,
+        file_attachment: FileAttachmentUpdate | dict,
     ) -> FileAttachment:
         """Update a file attachment.
 
