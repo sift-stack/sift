@@ -25,7 +25,7 @@ changed_files=$(git status --porcelain python/lib/sift_client/ | grep -E '\.py$'
 
 if [ -n "$changed_files" ]; then
     echo ""
-    echo "ERROR: Formatting/linting made changes to the following files:"
+    echo "❌ ERROR: Formatting/linting made changes to the following files:"
     echo "$changed_files"
     echo ""
     echo "Please commit these changes before pushing."

@@ -5,7 +5,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 GITHOOKS_DIR="$REPO_ROOT/.githooks"
 
 # Check for changes in Python files
-python_changed_files=($(git diff --name-only --diff-filter=ACM | grep '^python/lib/sift_client/' || true))
+python_changed_files=($(git diff --name-only --diff-filter=ACM | grep '^python/' || true))
 
 if [[ -n "$python_changed_files" ]]; then
     echo "Python files changed, running Python formatting and linting..."

@@ -11,7 +11,7 @@ check_extras_changes() {
     local changed_files=$(git status --porcelain "$target_path" || true)
 
     if [ -n "$changed_files" ]; then
-        echo "ERROR: Generated pyproject.toml extras are not up-to-date. Please commit the changed files:"
+        echo "❌ ERROR: Generated pyproject.toml extras are not up-to-date. Please commit the changed files:"
         echo "$changed_files"
         exit 1
     fi

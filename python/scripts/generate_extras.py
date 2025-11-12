@@ -68,4 +68,4 @@ project["optional-dependencies"] = opt_table
 # Dump back to file
 pyproject.write_text(tomlkit.dumps(doc))
 
-print("✅ Updated [project.optional-dependencies]s")
+print("Updated [project.optional-dependencies]")
