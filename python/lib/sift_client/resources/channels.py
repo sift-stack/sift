@@ -192,10 +192,9 @@ class ChannelsAPIAsync(ResourceBase):
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
         """
         self._ensure_data_low_level_client()
-        assert self._data_low_level_client is not None
 
         run_id = run._id_or_error if isinstance(run, Run) else run
-        return await self._data_low_level_client.get_channel_data(
+        return await self._data_low_level_client.get_channel_data( # type: ignore
             channels=channels,
             run_id=run_id,
             start_time=start_time,
