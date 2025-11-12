@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v1.0.0] - Nov 11, 2025 (**NOTE: WIP still in pre-release**)
+- Initial stable release of sift_client
+- Test results context managers
+
 ## [v0.9.1] - August 18, 2025
 - [Allow importing TDMS metadata to existing Runs](https://github.com/sift-stack/sift/pull/320)
 
