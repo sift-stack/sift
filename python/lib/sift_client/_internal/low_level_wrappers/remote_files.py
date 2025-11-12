@@ -18,11 +18,11 @@ from sift.remote_files.v1.remote_files_pb2_grpc import RemoteFileServiceStub
 from sift_client._internal.low_level_wrappers.base import (
     LowLevelClientBase,
 )
+from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
 from sift_client.transport import GrpcClient, WithGrpcClient
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
 
 
 class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
@@ -126,19 +126,17 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         ], response.next_page_token
 
     async def update_remote_file(
-        self, update: RemoteFileUpdate, sift_client: SiftClient | None = None
+        self, update: FileAttachmentUpdate, sift_client: SiftClient | None = None
     ) -> FileAttachment:
         """Update a remote file.
 
         Args:
-            update: The RemoteFileUpdate containing the fields to update.
+            update: The FileAttachmentUpdate containing the fields to update.
             sift_client: The SiftClient to attach to the returned RemoteFile.
 
         Returns:
             The updated RemoteFile.
         """
-        from sift_client.sift_types.file_attachment import FileAttachment
-
         grpc_remote_file, update_mask = update.to_proto_with_mask()
         request = UpdateRemoteFileRequest(remote_file=grpc_remote_file, update_mask=update_mask)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).UpdateRemoteFile(request)
