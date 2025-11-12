@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-import requests
 from sift.remote_files.v1.remote_files_pb2 import EntityType
 from sift.remote_files.v1.remote_files_pb2 import RemoteFile as RemoteFileProto
 
 from sift_client.sift_types._base import BaseType, ModelUpdate
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.run import Run
@@ -120,10 +119,10 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
             raise ValueError("Remote file ID is not set")
         self.client.file_attachments.delete(file_attachment=self.id_)
 
-    def update(self, update: RemoteFileUpdate | dict) -> FileAttachment:
+    def update(self, update: FileAttachmentUpdate | dict) -> FileAttachment:
         """Update the file attachment."""
         if isinstance(update, dict):
-            update = RemoteFileUpdate.model_validate(update)
+            update = FileAttachmentUpdate.model_validate(update)
         if self.id_ is None:
             raise ValueError("Remote file ID is not set")
         update.resource_id = self.id_
@@ -140,8 +139,7 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
 
     def download(self, output_path: str | Path) -> None:
         """Download the file attachment to a local path."""
-        # Get the download URL
-       self.client.file_attachments.download(file_attachment=self, output_path=output_path)
+        self.client.file_attachments.download(file_attachment=self, output_path=output_path)
 
 
 class FileAttachmentUpdate(ModelUpdate[RemoteFileProto]):

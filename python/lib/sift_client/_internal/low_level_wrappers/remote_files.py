@@ -22,7 +22,7 @@ from sift_client.transport import GrpcClient, WithGrpcClient
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types.file_attachment import FileAttachment, RemoteFileUpdate
+    from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
 
 
 class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
