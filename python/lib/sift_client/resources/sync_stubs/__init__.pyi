@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from datetime import datetime, timedelta
     from pathlib import Path
     from typing import TYPE_CHECKING, Any
+
     import pandas as pd
     import pyarrow as pa
 
