@@ -48,6 +48,16 @@ jobs:
         run: |
           pyright lib
 
+      - name: Check Stubs Generation
+        working-directory: .
+        run: |
+          bash .githooks/pre-push-python/stubs.sh
+
+      - name: Check Extras Generation
+        working-directory: .
+        run: |
+          bash .githooks/pre-push-python/extras.sh
+
       - name: Pytest Unit Tests
         run: |
           pytest -m "not integration"
