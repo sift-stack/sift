@@ -117,7 +117,7 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
         """Delete the file attachment."""
         if self.id_ is None:
             raise ValueError("Remote file ID is not set")
-        self.client.file_attachments.delete(file_attachment=self.id_)
+        self.client.file_attachments.delete(file_attachments=self)
 
     def update(self, update: FileAttachmentUpdate | dict) -> FileAttachment:
         """Update the file attachment."""

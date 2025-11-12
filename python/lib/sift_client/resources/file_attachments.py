@@ -115,15 +115,21 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Args:
             file_attachments: List of FileAttachments or the IDs of the file attachments to delete (up to 1000).
         """
-        file_attachment_ids = []
+        file_attachment_ids: list[str] = []
         if isinstance(file_attachments, FileAttachment):
-            file_attachment_ids.append(file_attachments.id_)
+            if file_attachments.id_ is not None:
+                file_attachment_ids.append(file_attachments.id_)
+            else:
+                raise ValueError("FileAttachment ID is not set")
         elif isinstance(file_attachments, str):
             file_attachment_ids.append(file_attachments)
         elif isinstance(file_attachments, list):
             for file_attachment in file_attachments:
                 if isinstance(file_attachment, FileAttachment):
-                    file_attachment_ids.append(file_attachment.id_)
+                    if file_attachment.id_ is not None:
+                        file_attachment_ids.append(file_attachment.id_)
+                    else:
+                        raise ValueError("FileAttachment ID is not set")
                 elif isinstance(file_attachment, str):
                     file_attachment_ids.append(file_attachment)
                 else:
@@ -141,14 +147,20 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The download URL for the file attachment.
         """
+        id_: str = ""
         if isinstance(file_attachment, FileAttachment):
-            file_attachment_id = file_attachment.id_
+            if file_attachment.id_ is not None:
+                id_ = file_attachment.id_
+            else:
+                raise ValueError("FileAttachment ID is not set")
         elif isinstance(file_attachment, str):
-            file_attachment_id = file_attachment
+            id_ = file_attachment
         else:
             raise ValueError("file_attachment must be a FileAttachment or a string")
+        if id_ == "":
+            raise ValueError("FileAttachment ID is not set")
         return await self._low_level_client.get_remote_file_download_url(
-            remote_file_id=file_attachment_id
+            remote_file_id=id_
         )
 
     async def download(
