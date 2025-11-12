@@ -576,11 +576,11 @@ class FileAttachmentsAPI:
         """
         ...
 
-    def delete(self, *, file_attachment_id: str) -> None:
+    def delete(self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str) -> None:
         """Delete a file attachment.
 
         Args:
-            file_attachment_id: The ID of the file attachment to delete.
+            file_attachments: List of FileAttachments or the IDs of the file attachments to delete (up to 1000).
         """
         ...
 
@@ -592,14 +592,23 @@ class FileAttachmentsAPI:
         """
         ...
 
-    def get_download_url(self, *, file_attachment_id: str) -> str:
+    def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
         """Get a download URL for a file attachment.
 
         Args:
-            file_attachment_id: The ID of the file attachment.
+            file_attachment: The FileAttachment or the ID of the file attachment.
 
         Returns:
             The download URL for the file attachment.
+        """
+        ...
+
+    def download(self, *, file_attachment: FileAttachment | str, output_path: str | Path) -> None:
+        """Download a file attachment to a local path.
+
+        Args:
+            file_attachment: The FileAttachment or the ID of the file attachment to download.
+            output_path: The path to download the file attachment to.
         """
         ...
 
