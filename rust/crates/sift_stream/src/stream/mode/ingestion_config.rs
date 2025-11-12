@@ -109,7 +109,10 @@ impl SiftStream<IngestionConfigMode> {
 
         metrics.loaded_flows.add(flows_by_name.len() as u64);
         let sift_stream_id = task_config.sift_stream_id;
-        let grpc_channel = task_config.grpc_channel.clone();
+
+        // Use the setup channel for API calls that are not related to ingestion to avoid multiplexing
+        // on the ingestion channel and potentially starving out ingestion.
+        let grpc_channel = task_config.setup_channel.clone();
 
         let stream_system =
             start_tasks(task_config).context("failed to start task-based architecture")?;

@@ -60,7 +60,9 @@ pub(crate) struct RecoveryConfig {
 #[derive(Clone)]
 pub(crate) struct TaskConfig {
     pub(crate) sift_stream_id: Uuid,
-    pub(crate) grpc_channel: SiftChannel,
+    pub(crate) setup_channel: SiftChannel,
+    pub(crate) ingestion_channel: SiftChannel,
+    pub(crate) reingestion_channel: SiftChannel,
     pub(crate) metrics: Arc<SiftStreamMetrics>,
     pub(crate) checkpoint_interval: Duration,
     pub(crate) enable_compression_for_ingestion: bool,
@@ -153,7 +155,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     };
     let reingestion_task = BackupIngestTask::new(
         reingestion_control_tx.subscribe(),
-        reingestion_config.grpc_channel,
+        reingestion_config.reingestion_channel,
         reingestion_config.enable_compression_for_ingestion,
         reingest_retry_policy,
         reingestion_config
@@ -237,7 +239,7 @@ impl IngestionTask {
                 // Create the structs needed for the stream outside of the async task to avoid
                 // any race conditions in that task being polled for the first time and other
                 // events occurring in the system.
-                let mut client = IngestServiceClient::new(self.config.grpc_channel.clone());
+                let mut client = IngestServiceClient::new(self.config.ingestion_channel.clone());
 
                 // If compression is enabled, add the compression codecs to the client.
                 if self.config.enable_compression_for_ingestion {
@@ -492,15 +494,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_ingestion_task_shutdown() {
-        let (grpc_channel, _mock_service) =
+        let (ingestion_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
+        let reingestion_channel = ingestion_channel.clone();
+        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
         let config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
-            grpc_channel,
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
             enable_compression_for_ingestion: false,
@@ -552,15 +558,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_ingestion_task_shutdown_ungracefully() {
-        let (grpc_channel, _mock_service) =
+        let (ingestion_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
+        let reingestion_channel = ingestion_channel.clone();
+        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
         let config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
-            grpc_channel,
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
             enable_compression_for_ingestion: false,
@@ -606,15 +616,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_ingestion_task_shutdown_errors() {
-        let (grpc_channel, mock_service) =
+        let (ingestion_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
+        let reingestion_channel = ingestion_channel.clone();
+        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
         let config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
-            grpc_channel,
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
             enable_compression_for_ingestion: false,
@@ -671,14 +685,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_ingestion_task_stream() {
-        let (grpc_channel, mock_service) =
+        let (ingestion_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
+        let reingestion_channel = ingestion_channel.clone();
+        let setup_channel = ingestion_channel.clone();
         let (control_tx, _control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
-            grpc_channel,
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
             metrics: metrics.clone(),
             checkpoint_interval: Duration::from_secs(60),
             enable_compression_for_ingestion: false,
@@ -748,15 +766,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_ingestion_task_stream_retries() {
-        let (grpc_channel, mock_service) =
+        let (ingestion_channel, mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
+        let reingestion_channel = ingestion_channel.clone();
+        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_millis(100);
         let config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
-            grpc_channel,
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
             enable_compression_for_ingestion: false,
@@ -833,15 +855,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_ingestion_task_checkpoints() {
-        let (grpc_channel, _mock_service) =
+        let (ingestion_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
+        let reingestion_channel = ingestion_channel.clone();
+        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_millis(100);
         let config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
-            grpc_channel,
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
             enable_compression_for_ingestion: false,
@@ -905,15 +931,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_ingestion_task_backup_full() {
-        let (grpc_channel, _mock_service) =
+        let (ingestion_channel, _mock_service) =
             crate::test::create_mock_grpc_channel_with_service().await;
+        let reingestion_channel = ingestion_channel.clone();
+        let setup_channel = ingestion_channel.clone();
         let (control_tx, mut control_rx) = broadcast::channel(1024);
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
         let config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
-            grpc_channel,
+            setup_channel,
+            ingestion_channel,
+            reingestion_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
             enable_compression_for_ingestion: false,
