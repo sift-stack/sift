@@ -13,6 +13,9 @@ if [[ -n "$python_changed_files" ]]; then
     
     echo "Running Python stub checks..."
     bash "$GITHOOKS_DIR/pre-push-python/stubs.sh"
+    
+    echo "Running Python extras checks..."
+    bash "$GITHOOKS_DIR/pre-push-python/extras.sh"
 fi
 
 # Check for changes in Rust bindings files

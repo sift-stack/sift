@@ -187,8 +187,7 @@ tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
 sift-stream = ["sift-stream-bindings>=0.2.0-rc"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]
-data_review = ["pyarrow>=17.0.0"]
-# Ensure any new user build extras are added to .github/workflows/python_build.yaml
+data-review = ["pyarrow>=17.0.0"]
 
 [tool.sift.extras.combine]
 # Combined extras configurations and aliases can be defined here
@@ -199,9 +198,10 @@ sift-stream-bindings = ["sift-stream"]
 
 # combinations
 file-imports = ["tdms", "rosbags", "hdf5"]
-all = ["openssl", "sift-stream", "file-imports"]
+all = ["openssl", "sift-stream", "file-imports", "data-review"]
 
-all-dev = ["development", "build", "docs", "all"]
+dev-all = ["development", "build", "docs", "all"]
+docs-build = ["development", "docs"]
 
 [tool.mypy]
 python_version = "3.10" # Use the Python 3.10 type checker since we are using eval-type-backport and `from __future__ import annotations`

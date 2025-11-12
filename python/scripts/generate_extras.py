@@ -19,6 +19,7 @@ except KeyError:
 combine_section = tool_sift.get("combine", {})
 atomic_extras = {k: v for k, v in tool_sift.items() if k != "combine"}
 
+
 # Recursive resolver for nested combines
 def resolve(name, stack=None):
     """Recursively resolve nested combine groups."""
@@ -34,6 +35,7 @@ def resolve(name, stack=None):
             deps.extend(resolve(sub, stack + [name]))
         return deps
     raise KeyError(f"Unknown group '{name}' referenced in combine")
+
 
 # Build final extras dictionary
 final_extras = {}
