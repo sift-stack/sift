@@ -105,8 +105,8 @@ class TestResultsAPIAsync(ResourceBase):
         status: TestStatus | None = None,
         test_system_name: str | None = None,
         test_case: str | None = None,
-        serial_number: str | None = None,
-        part_number: str | None = None,
+        serial_numbers: list[str] | None = None,
+        part_numbers: list[str] | None = None,
         system_operator: str | None = None,
         created_by: str | None = None,
         modified_by: str | None = None,
@@ -131,8 +131,8 @@ class TestResultsAPIAsync(ResourceBase):
             status: Status to filter by (TestStatus enum).
             test_system_name: Test system name to filter by.
             test_case: Test case to filter by.
-            serial_number: Serial number to filter by.
-            part_number: Part number to filter by.
+            serial_numbers: Serial numbers to filter by.
+            part_numbers: Part numbers to filter by.
             system_operator: System operator to filter by.
             created_by: User ID who created the test report.
             modified_by: User ID who last modified the test report.
@@ -173,6 +173,8 @@ class TestResultsAPIAsync(ResourceBase):
             filter_parts.append(in_("test_report_id", test_report_ids))
 
         if status is not None:
+            if isinstance(status, TestStatus):
+                status = status.name.lower()  # type: ignore
             filter_parts.append(equals("status", status))
 
         if test_system_name:
@@ -181,11 +183,11 @@ class TestResultsAPIAsync(ResourceBase):
         if test_case:
             filter_parts.append(equals("test_case", test_case))
 
-        if serial_number:
-            filter_parts.append(equals("serial_number", serial_number))
+        if serial_numbers:
+            filter_parts.append(in_("serial_number", serial_numbers))
 
-        if part_number:
-            filter_parts.append(equals("part_number", part_number))
+        if part_numbers:
+            filter_parts.append(in_("part_number", part_numbers))
 
         if system_operator:
             filter_parts.append(equals("system_operator", system_operator))
@@ -351,10 +353,10 @@ class TestResultsAPIAsync(ResourceBase):
             filter_parts.append(in_("parent_step_id", parent_step_ids))
 
         if status is not None:
-            filter_parts.append(equals("status", status))
+            filter_parts.append(equals("status", status.name.lower()))
 
         if step_type is not None:
-            filter_parts.append(equals("step_type", step_type))
+            filter_parts.append(equals("step_type", step_type.name.lower()))
 
         query_filter = and_(*filter_parts)
 
@@ -517,7 +519,7 @@ class TestResultsAPIAsync(ResourceBase):
             filter_parts.append(in_("test_report_id", test_report_ids))
 
         if measurement_type is not None:
-            filter_parts.append(equals("measurement_type", measurement_type))
+            filter_parts.append(equals("measurement_type", measurement_type.name.lower()))
 
         if passed is not None:
             filter_parts.append(equals("passed", passed))

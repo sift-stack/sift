@@ -32,21 +32,6 @@ def sift_client() -> SiftClient:
     return client
 
 
-@pytest.fixture(scope="session")
-def client_has_connection(sift_client):
-    """Check if the SiftClient has a connection to the Sift server.
-
-    Can be used to skip tests that require a connection to the Sift server.
-    """
-    has_connection = False
-    try:
-        sift_client.ping.ping()
-        has_connection = True
-    except Exception:
-        has_connection = False
-    return has_connection
-
-
 @pytest.fixture
 def mock_client():
     """Create a mock SiftClient for unit testing."""
@@ -90,4 +75,16 @@ def ci_pytest_tag(sift_client):
     return tag
 
 
-from sift_client.util.test_results import module_substep, report_context, step  # noqa: F401
+from sift_client.util.test_results import (
+    client_has_connection,  # noqa: F401
+    pytest_runtest_makereport,  # noqa: F401
+)
+from sift_client.util.test_results import (
+    module_substep_check_connection as module_substep,  # noqa: F401
+)
+from sift_client.util.test_results import (
+    report_context_check_connection as report_context,  # noqa: F401
+)
+from sift_client.util.test_results import (
+    step_check_connection as step,  # noqa: F401
+)

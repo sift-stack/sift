@@ -198,4 +198,5 @@ __all__ = [
     "TagsAPIAsync",
     "TestResultsAPI",
     "TestResultsAPIAsync",
+    "TracingConfig",
 ]

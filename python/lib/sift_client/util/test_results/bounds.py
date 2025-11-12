@@ -35,14 +35,14 @@ def assign_value_to_measurement(
 def evaluate_measurement_bounds(
     measurement: TestMeasurement | TestMeasurementCreate | TestMeasurementUpdate,
     value: float | str | bool,
-    bounds: dict[str, float] | NumericBounds | str | None,
+    bounds: dict[str, float] | NumericBounds | str | bool | None,
 ) -> bool:
     """Update a measurement with the resolved bounds type and result of evaluating the given value against those bounds.
 
     Args:
         measurement: The measurement to update.
         value: The value to evaluate the bounds of.
-        bounds: The bounds to evaluate the value against.
+        bounds: The bounds to evaluate the value against. Either a dictionary with "min" and "max" keys, a NumericBounds object, a string, a boolean, or None.
 
     Returns:
         True if the value is within the bounds, False otherwise.
@@ -53,7 +53,13 @@ def evaluate_measurement_bounds(
 
     if isinstance(bounds, dict):
         bounds = NumericBounds(min=bounds.get("min"), max=bounds.get("max"))
-    if isinstance(bounds, str):
+    if isinstance(bounds, bool):
+        if isinstance(value, str):
+            measurement.passed = str(value).lower() == str(bounds).lower()
+        else:
+            measurement.passed = bool(value) == bounds
+        return bool(measurement.passed)
+    elif isinstance(bounds, str):
         if not (isinstance(value, str) or isinstance(value, bool)):
             raise ValueError("Value must be a string if bounds provided is a string")
         measurement.string_expected_value = bounds
