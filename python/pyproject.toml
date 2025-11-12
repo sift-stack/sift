@@ -225,7 +225,7 @@ sift-stream-bindings = ["sift-stream"]
 file-imports = ["tdms", "rosbags", "hdf5"]
 all = ["openssl", "sift-stream", "file-imports", "data-review"]
 
-dev-all = ["development", "all"]
+dev-all = ["development", "all", "build"]
 docs-build = ["dev-all", "docs"] # Note python 3.9+
 
 [tool.mypy]
