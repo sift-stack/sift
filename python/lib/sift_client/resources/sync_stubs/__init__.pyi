@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-import re
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
-import pandas as pd
-import pyarrow as pa
+if TYPE_CHECKING:
+    import re
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    from typing import TYPE_CHECKING, Any
+    import pandas as pd
+    import pyarrow as pa
 
 from sift_client.client import SiftClient
 from sift_client.sift_types.asset import Asset, AssetUpdate
