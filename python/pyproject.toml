@@ -48,7 +48,111 @@ Repository = "https://github.com/sift-stack/sift/tree/main/python"
 Changelog = "https://github.com/sift-stack/sift/tree/main/python/CHANGELOG.md"
 
 [project.optional-dependencies]
-
+all = [
+    'cffi~=1.14',
+    'h5py~=3.11',
+    'npTDMS~=1.9',
+    'polars~=1.8',
+    'pyOpenSSL<24.0.0',
+    'rosbags~=0.0',
+    'sift-stream-bindings>=0.2.0-rc',
+    'types-pyOpenSSL<24.0.0',
+]
+all-dev = [
+    'build==1.2.1',
+    'cffi~=1.14',
+    'griffe-pydantic',
+    'grpcio-testing~=1.13',
+    'h5py~=3.11',
+    'mike',
+    'mkdocs',
+    'mkdocs-api-autonav',
+    'mkdocs-include-markdown-plugin',
+    'mkdocs-jupyter',
+    'mkdocs-material',
+    'mkdocstrings[python]',
+    'mypy==1.10.0',
+    'npTDMS~=1.9',
+    'pdoc==14.5.0',
+    'polars~=1.8',
+    'pyOpenSSL<24.0.0',
+    'pyright==1.1.386',
+    'pytest-asyncio==0.23.7',
+    'pytest-benchmark==4.0.0',
+    'pytest-dotenv==0.5.2',
+    'pytest-mock==3.14.0',
+    'pytest==8.2.2',
+    'rosbags~=0.0',
+    'ruff~=0.12.10',
+    'sift-stream-bindings>=0.2.0-rc',
+    'tomlkit~=0.13.3',
+    'types-pyOpenSSL<24.0.0',
+]
+build = [
+    'build==1.2.1',
+    'pdoc==14.5.0',
+]
+dev = [
+    'grpcio-testing~=1.13',
+    'mypy==1.10.0',
+    'pyright==1.1.386',
+    'pytest-asyncio==0.23.7',
+    'pytest-benchmark==4.0.0',
+    'pytest-dotenv==0.5.2',
+    'pytest-mock==3.14.0',
+    'pytest==8.2.2',
+    'ruff~=0.12.10',
+    'tomlkit~=0.13.3',
+]
+development = [
+    'grpcio-testing~=1.13',
+    'mypy==1.10.0',
+    'pyright==1.1.386',
+    'pytest-asyncio==0.23.7',
+    'pytest-benchmark==4.0.0',
+    'pytest-dotenv==0.5.2',
+    'pytest-mock==3.14.0',
+    'pytest==8.2.2',
+    'ruff~=0.12.10',
+    'tomlkit~=0.13.3',
+]
+docs = [
+    'griffe-pydantic',
+    'mike',
+    'mkdocs',
+    'mkdocs-api-autonav',
+    'mkdocs-include-markdown-plugin',
+    'mkdocs-jupyter',
+    'mkdocs-material',
+    'mkdocstrings[python]',
+]
+file-imports = [
+    'h5py~=3.11',
+    'npTDMS~=1.9',
+    'polars~=1.8',
+    'rosbags~=0.0',
+]
+hdf5 = [
+    'h5py~=3.11',
+    'polars~=1.8',
+]
+openssl = [
+    'cffi~=1.14',
+    'pyOpenSSL<24.0.0',
+    'types-pyOpenSSL<24.0.0',
+]
+rosbags = [
+    'rosbags~=0.0',
+]
+sift-stream = [
+    'sift-stream-bindings>=0.2.0-rc',
+]
+sift-stream-bindings = [
+    'sift-stream-bindings>=0.2.0-rc',
+]
+tdms = [
+    'npTDMS~=1.9',
+]
 
 [tool.sift.extras]
 # development
