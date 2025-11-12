@@ -70,7 +70,7 @@ class FileAttachmentsMixin:
         )
 
     def delete_attachment(
-        self: _SupportsFileAttachments, file_attachment: FileAttachment | list[FileAttachment]
+        self: _SupportsFileAttachments, file_attachment: list[FileAttachment] | FileAttachment | str
     ) -> None:
         """Delete one or more file attachments.
 
