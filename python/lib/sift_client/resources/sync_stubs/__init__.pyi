@@ -576,7 +576,9 @@ class FileAttachmentsAPI:
         """
         ...
 
-    def delete(self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str) -> None:
+    def delete(
+        self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str
+    ) -> None:
         """Delete a file attachment.
 
         Args:
