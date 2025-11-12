@@ -117,6 +117,9 @@ development = [
     'ruff~=0.12.10',
     'tomlkit~=0.13.3',
 ]
+
+
+
 docs = [
     'griffe-pydantic',
     'mike',

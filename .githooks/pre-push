@@ -7,6 +7,10 @@ GITHOOKS_DIR="$REPO_ROOT/.githooks"
 # Check for changes in Python files
 python_changed_files=($(git diff --name-only --diff-filter=ACM | grep '^python/' || true))
 
+echo "Changed Python files:"
+echo "  ${python_changed_files[*]}"
+echo
+
 if [[ -n "$python_changed_files" ]]; then
     echo "Python files changed, running Python formatting and linting..."
     bash "$GITHOOKS_DIR/pre-push-python/fmt-lint.sh"
@@ -20,6 +24,11 @@ fi
 
 # Check for changes in Rust bindings files
 bindings_changed_files=($(git diff --name-only --diff-filter=ACM | grep '^rust/crates/sift_stream_bindings/src/' || true))
+
+echo
+echo "Changed SiftStream Python bindings files:"
+echo "  ${bindings_changed_files[*]}"
+echo
 
 if [[ -n "$bindings_changed_files" ]]; then
     echo "Rust bindings files changed, running Rust stub checks..."
