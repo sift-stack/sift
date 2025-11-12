@@ -159,9 +159,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
             raise ValueError("file_attachment must be a FileAttachment or a string")
         if id_ == "":
             raise ValueError("FileAttachment ID is not set")
-        return await self._low_level_client.get_remote_file_download_url(
-            remote_file_id=id_
-        )
+        return await self._low_level_client.get_remote_file_download_url(remote_file_id=id_)
 
     async def download(
         self, *, file_attachment: FileAttachment | str, output_path: str | Path
