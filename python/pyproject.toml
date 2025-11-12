@@ -118,8 +118,6 @@ development = [
     'tomlkit~=0.13.3',
 ]
 
-
-
 docs = [
     'griffe-pydantic',
     'mike',

@@ -11,19 +11,20 @@ check_extras_changes() {
     local changed_files=$(git status --porcelain "$target_path" || true)
 
     if [ -n "$changed_files" ]; then
-        echo "❌ ERROR: Generated pyproject.toml extras are not up-to-date. Please commit the changed files:"
-        echo "$changed_files"
+        echo "     ✗ ERROR: Generated extras are not up-to-date:"
+        echo "$changed_files" | sed 's/^/       /'
+        echo "     Please commit these changes before pushing."
         exit 1
     fi
 }
 
 # Function to generate Python extras
 generate_python_extras() {
-    echo "Generating Python extras..."
+    echo "     → Generating extras..."
     cd "$PYTHON_DIR"
 
     if [[ ! -d "$PYTHON_DIR/venv" ]]; then
-        echo "Running bootstrap script..."
+        echo "     → Running bootstrap script..."
         bash ./scripts/dev bootstrap
     fi
 
@@ -33,4 +34,4 @@ generate_python_extras() {
 
 generate_python_extras
 
-echo "All extras are up-to-date."
+echo "     ✓ Extras are up-to-date"

@@ -4,36 +4,49 @@
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 GITHOOKS_DIR="$REPO_ROOT/.githooks"
 
-# Check for changes in Python files
-python_changed_files=($(git diff --name-only --diff-filter=ACM | grep '^python/' || true))
-
-echo "Changed Python files:"
-echo "  ${python_changed_files[*]}"
+echo "========================================"
+echo "  Pre-Push Checks"
+echo "========================================"
 echo
 
+# Check for changes in Python files
+# Compare against the remote branch being pushed to
+python_changed_files=($(git diff --name-only --diff-filter=ACM @{upstream}... | grep '^python/' || true))
+
+echo "→ Python files changed:"
 if [[ -n "$python_changed_files" ]]; then
-    echo "Python files changed, running Python formatting and linting..."
+    echo "  ${python_changed_files[*]}"
+    echo
+    echo "  [1/3] Formatting and linting..."
     bash "$GITHOOKS_DIR/pre-push-python/fmt-lint.sh"
     
-    echo "Running Python stub checks..."
+    echo "  [2/3] Stub generation..."
     bash "$GITHOOKS_DIR/pre-push-python/stubs.sh"
     
-    echo "Running Python extras checks..."
+    echo "  [3/3] Extras validation..."
     bash "$GITHOOKS_DIR/pre-push-python/extras.sh"
+    echo
+else
+    echo "  (none)"
+    echo
 fi
 
 # Check for changes in Rust bindings files
-bindings_changed_files=($(git diff --name-only --diff-filter=ACM | grep '^rust/crates/sift_stream_bindings/src/' || true))
+bindings_changed_files=($(git diff --name-only --diff-filter=ACM @{upstream}... | grep '^rust/crates/sift_stream_bindings/src/' || true))
 
-echo
-echo "Changed SiftStream Python bindings files:"
-echo "  ${bindings_changed_files[*]}"
-echo
-
+echo "→ Rust binding files changed:"
 if [[ -n "$bindings_changed_files" ]]; then
-    echo "Rust bindings files changed, running Rust stub checks..."
+    echo "  ${bindings_changed_files[*]}"
+    echo
+    echo "  [1/1] Stub generation..."
     bash "$GITHOOKS_DIR/pre-push-rust/stubs.sh"
+    echo
+else
+    echo "  (none)"
+    echo
 fi
 
-echo "Pre-push checks completed successfully."
+echo "========================================"
+echo "  ✓ All checks passed"
+echo "========================================"
 

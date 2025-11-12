@@ -10,15 +10,16 @@ check_stub_changes() {
     local changed_files=$(git status --porcelain "$target_path" | grep -E '\.pyi$' || true)
 
     if [ -n "$changed_files" ]; then
-        echo "ERROR: Generated python stubs are not up-to-date. Please commit the changed files:"
-        echo "$changed_files"
+        echo "     ✗ ERROR: Generated stubs are not up-to-date:"
+        echo "$changed_files" | sed 's/^/       /'
+        echo "     Please commit these changes before pushing."
         exit 1
     fi
 }
 
 # Function to generate bindings stubs
 generate_bindings_stubs() {
-    echo "Generating bindings stubs..."
+    echo "     → Generating stubs..."
     cd "$BINDINGS_DIR"
     cargo run --bin stub_gen
 
@@ -29,4 +30,4 @@ generate_bindings_stubs() {
 
 generate_bindings_stubs
 
-echo "All stubs are up-to-date."
+echo "     ✓ Stubs are up-to-date"
