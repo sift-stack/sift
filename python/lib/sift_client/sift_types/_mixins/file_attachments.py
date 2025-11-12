@@ -77,10 +77,4 @@ class FileAttachmentsMixin:
         Args:
             file_attachment: A single FileAttachment or list of FileAttachments to delete.
         """
-        if isinstance(file_attachment, list):
-            file_ids = [fa.id_ for fa in file_attachment if fa.id_]
-            if file_ids:
-                self.client.file_attachments.batch_delete(file_attachment_ids=file_ids)
-        else:
-            if file_attachment.id_:
-                self.client.file_attachments.delete(file_attachments=file_attachment)
+        self.client.file_attachments.delete(file_attachments=file_attachment)

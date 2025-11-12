@@ -586,14 +586,6 @@ class FileAttachmentsAPI:
         """
         ...
 
-    def batch_delete(self, *, file_attachment_ids: list[str]) -> None:
-        """Batch delete multiple file attachments.
-
-        Args:
-            file_attachment_ids: List of file attachment IDs to delete (up to 1000).
-        """
-        ...
-
     def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
         """Get a download URL for a file attachment.
 
