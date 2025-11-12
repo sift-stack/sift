@@ -239,10 +239,10 @@ impl SiftStreamBuilder<IngestionConfigMode> {
     ///
     /// IMPORTANT:
     ///
-    /// It is preferred that credentials are provided so that two independent gRPC
-    /// channels can be created and used. Cloning the channel results in multiplexing the
-    /// gRPC requests over a single connection, which is not desirable for backup re-ingestion
-    /// which may starve out primary ingestion.
+    /// It is preferred that credentials are provided so that independent gRPC channels can
+    /// be created and used. Cloning the channel results in multiplexing the gRPC requests
+    /// over a single connection, which is not desirable for backup re-ingestion which may
+    /// starve out primary ingestion.
     pub fn from_channel(channel: SiftChannel) -> SiftStreamBuilder<IngestionConfigMode> {
         SiftStreamBuilder {
             credentials: None,
@@ -298,12 +298,12 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             sift_channel_builder.build()
         };
 
-        // Create an ingestion channel and a reingestion channel if not provided.
+        // Create a setup channel, an ingestion channel, and a reingestion channel if not provided.
         //
-        // It is preferred that credentials are provided so that two independent gRPC
-        // channels can be created and used. Cloning the channel results in multiplexing the
-        // gRPC requests over a single connection, which is not desirable for backup re-ingestion
-        // which may starve out primary ingestion.
+        // It is preferred that credentials are provided so that independent gRPC channels can
+        // be created and used. Cloning the channel results in multiplexing the gRPC requests
+        // over a single connection, which is not desirable for backup re-ingestion which may
+        // starve out primary ingestion.
         let (setup_channel, ingestion_channel, reingestion_channel) = match grpc_channel {
             Some(ch) => (ch.clone(), ch.clone(), ch),
             None => {
