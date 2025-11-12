@@ -11,7 +11,7 @@ from sift_stream_bindings import (
     SiftStreamBuilderPy,
     TimeValuePy,
     ValuePy,
-    IngestWithConfigDataStreamRequestPy
+    IngestWithConfigDataStreamRequestPy,
 )
 
 
@@ -27,6 +27,7 @@ class TestFlow:
     def test_create_flow_with_multiple_values(self):
         """Test creating a flow with multiple channel values."""
         from sift_stream_bindings import ChannelValuePy
+
         timestamp = TimeValuePy.from_timestamp(int(time.time()), 0)
         values = [
             ChannelValuePy("temperature", ValuePy.Float(23.5)),

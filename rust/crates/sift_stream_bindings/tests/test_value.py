@@ -77,7 +77,7 @@ class TestValuePy:
         val = ValuePy.BitField([0x0A])
 
         assert val.is_bitfield()
-        assert val.as_bitfield() == b'\x0A'
+        assert val.as_bitfield() == b"\x0a"
 
     def test_type_error_on_wrong_accessor(self):
         """Test that accessing with wrong type raises error."""

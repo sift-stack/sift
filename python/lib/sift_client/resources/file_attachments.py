@@ -107,7 +107,9 @@ class FileAttachmentsAPIAsync(ResourceBase):
         )
         return self._apply_client_to_instance(updated)
 
-    async def delete(self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str) -> None:
+    async def delete(
+        self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str
+    ) -> None:
         """Batch delete multiple file attachments.
 
         Args:
@@ -125,7 +127,9 @@ class FileAttachmentsAPIAsync(ResourceBase):
                 elif isinstance(file_attachment, str):
                     file_attachment_ids.append(file_attachment)
                 else:
-                    raise ValueError("file_attachments must be a list of FileAttachment or list of str")
+                    raise ValueError(
+                        "file_attachments must be a list of FileAttachment or list of str"
+                    )
         await self._low_level_client.batch_delete_remote_files(remote_file_ids=file_attachment_ids)
 
     async def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
@@ -147,7 +151,9 @@ class FileAttachmentsAPIAsync(ResourceBase):
             remote_file_id=file_attachment_id
         )
 
-    async def download(self, *, file_attachment: FileAttachment | str, output_path: str | Path) -> None:
+    async def download(
+        self, *, file_attachment: FileAttachment | str, output_path: str | Path
+    ) -> None:
         """Download a file attachment to a local path.
 
         Args:
