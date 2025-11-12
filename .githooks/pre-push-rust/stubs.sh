@@ -10,7 +10,7 @@ check_stub_changes() {
     local changed_files=$(git status --porcelain "$target_path" | grep -E '\.pyi$' || true)
 
     if [ -n "$changed_files" ]; then
-        echo "     ✗ ERROR: Generated stubs are not up-to-date:"
+        echo "     ❌ ERROR: Generated stubs are not up-to-date:"
         echo "$changed_files" | sed 's/^/       /'
         echo "     Please commit these changes before pushing."
         exit 1
