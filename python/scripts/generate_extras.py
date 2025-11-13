@@ -1,3 +1,24 @@
+"""
+Generate [project.optional-dependencies] from [tool.sift.extras] configuration.
+
+This script reads the custom [tool.sift.extras] section in pyproject.toml and generates
+the standard [project.optional-dependencies] section automatically.
+
+Input sections:
+  - [tool.sift.extras]: Atomic extras with direct dependency lists
+  - [tool.sift.extras.combine]: Combined extras that reference other extras
+
+Output:
+  - [project.optional-dependencies]: Auto-generated, sorted extras with resolved dependencies
+
+The script:
+  1. Reads atomic extras (e.g., "dev", "openssl") from [tool.sift.extras]
+  2. Reads combined extras (e.g., "all" = ["openssl", "dev"]) from [tool.sift.extras.combine]
+  3. Recursively resolves all dependencies
+  4. Writes sorted, deduplicated lists to [project.optional-dependencies]
+  5. Preserves TOML formatting and comments using tomlkit
+"""
+
 import sys
 from pathlib import Path
 
@@ -20,9 +41,21 @@ combine_section = tool_sift.get("combine", {})
 atomic_extras = {k: v for k, v in tool_sift.items() if k != "combine"}
 
 
-# Recursive resolver for nested combines
 def resolve(name, stack=None):
-    """Recursively resolve nested combine groups."""
+    """
+    Recursively resolve an extra's dependencies.
+
+    Args:
+        name: The extra name to resolve (e.g., "dev-all")
+        stack: Internal tracking for cycle detection
+
+    Returns:
+        List of all dependency strings for this extra
+
+    Raises:
+        ValueError: If a cyclic dependency is detected
+        KeyError: If an unknown extra is referenced
+    """
     if stack is None:
         stack = []
     if name in stack:
