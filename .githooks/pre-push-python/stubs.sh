@@ -11,19 +11,20 @@ check_stub_changes() {
     local changed_files=$(git status --porcelain "$target_path" | grep -E '\.pyi$' || true)
 
     if [ -n "$changed_files" ]; then
-        echo "ERROR: Generated python stubs are not up-to-date. Please commit the changed files:"
-        echo "$changed_files"
+        echo "     ❌ ERROR: Generated stubs are not up-to-date:"
+        echo "$changed_files" | sed 's/^/       /'
+        echo "     Please commit these changes before pushing."
         exit 1
     fi
 }
 
 # Function to generate Python stubs
 generate_python_stubs() {
-    echo "Generating Python stubs..."
+    echo "     → Generating stubs..."
     cd "$PYTHON_DIR"
 
     if [[ ! -d "$PYTHON_DIR/venv" ]]; then
-        echo "Running bootstrap script..."
+        echo "     → Running bootstrap script..."
         bash ./scripts/dev bootstrap
     fi
 
@@ -33,4 +34,4 @@ generate_python_stubs() {
 
 generate_python_stubs
 
-echo "All stubs are up-to-date."
+echo "     ✓ Stubs are up-to-date"

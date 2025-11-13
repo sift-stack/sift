@@ -104,7 +104,9 @@ def main():
 
     # Get all extras from the wheel
     extras = get_extras_from_wheel(str(wheel_file))
-    combinations = get_extra_combinations(extras, exclude=["development", "docs"])
+    combinations = get_extra_combinations(
+        extras, exclude=["development", "docs", "dev", "dev-all", "docs-build"]
+    )
 
     # Test base installation first
     test_install(
