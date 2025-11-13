@@ -4,15 +4,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
+from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
-from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 
 if TYPE_CHECKING:
     from sift_py.file_attachment.entity import Entity
 
     from sift_client.client import SiftClient
-    from sift_py.file_attachment.metadata import Metadata
 
 
 class FileAttachmentsAPIAsync(ResourceBase):
@@ -195,6 +194,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Args:
             path: The path to the file to upload.
             entity: The entity to attach the file to.
+            entity_type: The type of entity (e.g., "runs", "annotations", "annotation_logs").
             metadata: Optional metadata for the file (e.g., video/image metadata).
             description: Optional description of the file.
             organization_id: Optional organization ID.

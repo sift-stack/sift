@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     import pandas as pd
     import pyarrow as pa
 
+from sift_py.file_attachment.entity import Entity
+
 from sift_client.client import SiftClient
 from sift_client.sift_types.asset import Asset, AssetUpdate
 from sift_client.sift_types.calculated_channel import (
@@ -40,8 +42,6 @@ from sift_client.sift_types.test_report import (
     TestStepType,
     TestStepUpdate,
 )
-from sift_py.file_attachment.entity import Entity
-from sift_py.file_attachment.metadata import Metadata
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.

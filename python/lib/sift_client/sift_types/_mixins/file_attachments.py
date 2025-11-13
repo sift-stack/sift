@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
+
 from sift_py.file_attachment.entity import Entity
 
 if TYPE_CHECKING:
