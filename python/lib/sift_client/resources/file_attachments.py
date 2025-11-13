@@ -177,7 +177,6 @@ class FileAttachmentsAPIAsync(ResourceBase):
         download_url = await self.get_download_url(file_attachment=file_attachment)
         download_remote_file(download_url, Path(output_path))
 
-
     async def upload(
         self,
         *,
