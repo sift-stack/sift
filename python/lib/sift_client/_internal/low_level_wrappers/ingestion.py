@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections import namedtuple
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Iterable, cast
 
 from sift.ingestion_configs.v2.ingestion_configs_pb2 import (
     GetIngestionConfigRequest,
@@ -202,6 +202,9 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
 
     async def send(self, flow: FlowPy):
         await self._sift_stream_instance.send(flow)
+
+    async def batch_send(self, flows: Iterable[FlowPy]):
+        await self._sift_stream_instance.batch_send(flows)
 
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         await self._sift_stream_instance.send_requests(requests)

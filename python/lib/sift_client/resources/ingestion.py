@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 
 from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionConfigStreamingLowLevelClient,
@@ -439,6 +440,17 @@ class IngestionConfigStreamingClient(ResourceBase):
         else:
             flow_py = flow
         await self._low_level_client.send(flow_py)
+
+    async def batch_send(self, flows: Iterable[Flow | FlowPy]):
+        def normalize_flows(flows: Iterable[Flow | FlowPy]) -> Iterator[FlowPy]:
+            for flow in flows:
+                if isinstance(flow, Flow):
+                    yield flow._to_rust_form()
+                else:
+                    yield flow
+
+        flows_py = normalize_flows(flows)
+        await self._low_level_client.batch_send(flows_py)
 
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.
