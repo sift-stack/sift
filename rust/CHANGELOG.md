@@ -3,6 +3,26 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.3] - November 12, 2025
+### What's New
+#### SiftStream Independent gRPC Connections for Streaming
+In order to prevent backup file re-ingestion from potentially starving out message ingestion through the main
+ingestion task, the re-ingestion task and primary ingestion task now have their own independent gRPC connections
+and underlying TCP connections. Previously, these streams were using multiplexing over the same connection.
+
+#### SiftStream Ergonomic Improvements
+Various minor changes have been made to improve the usability (and testability) of sift_stream and related types.
+
+#### SiftStream Dependency Migration
+Shared code used for sift_stream backup files has moved to its own crate to support a `sift_cli` subcommand to re-ingest
+those files via the command-line.
+
+### Full Changelog
+- [Independent sift connections for ingestion and re-ingestion](https://github.com/sift-stack/sift/commit/8fb3606c084172066a7a807dfb10f6778b7df254)
+- [Make Flow fields public to improve testability](https://github.com/sift-stack/sift/commit/b63f29e18fa73fae0e9708575903b1c1f5454603)
+- [Use ToString to create a new Flow instead of AsRef<str>](https://github.com/sift-stack/sift/commit/cce4f12be0b0609846a4d1d99d2ddb40d458d9ef)
+- [Add backup file ingestion to sift_cli, add sift_pbfs crate](https://github.com/sift-stack/sift/commit/2b60b906fce3cb602f555fb842cb076dac40ae1f)
+
 ## [v0.7.0-rc.2] - November 3, 2025
 ### What's New
 #### Improvements For Constrained Environments
@@ -12,6 +32,9 @@ throughput streaming systems.
 
 Additionally, changes have been made to ensure data is streamed to Sift even when writing backup files lags
 behind ingestion.
+
+### Full Changelog
+- [Add gzip compression support in sift-stream ingestion](https://github.com/sift-stack/sift/commit/68b08c86c506f1657fae5d7175c6a234f0e21983)
 
 ## [v0.7.0-rc.1] - October 24, 2025
 ### What's New
