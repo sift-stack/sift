@@ -7,9 +7,9 @@ from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLow
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate, Metadata
 
-from sift_py.file_attachment.entity import Entity
-
 if TYPE_CHECKING:
+    from sift_py.file_attachment.entity import Entity
+
     from sift_client.client import SiftClient
 
 
