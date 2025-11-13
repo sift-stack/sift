@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING
 
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
+from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate, Metadata
+
+from sift_py.file_attachment.entity import Entity
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -174,3 +176,33 @@ class FileAttachmentsAPIAsync(ResourceBase):
 
         download_url = await self.get_download_url(file_attachment=file_attachment)
         download_remote_file(download_url, Path(output_path))
+
+
+    async def upload(
+        self,
+        *,
+        path: str | Path,
+        entity: Entity,
+        metadata: Metadata | None = None,
+        description: str | None = None,
+        organization_id: str | None = None,
+    ) -> FileAttachment:
+        """Upload a file attachment to a remote file.
+
+        Args:
+            path: The path to the file to upload.
+            entity: The entity to attach the file to.
+            metadata: Optional metadata for the file (e.g., video/image metadata).
+            description: Optional description of the file.
+            organization_id: Optional organization ID.
+
+        Returns:
+            The uploaded FileAttachment.
+        """
+        return await self._low_level_client.upload_attachment(
+            path=path,
+            entity=entity,
+            metadata=metadata,
+            description=description,
+            organization_id=organization_id,
+        )

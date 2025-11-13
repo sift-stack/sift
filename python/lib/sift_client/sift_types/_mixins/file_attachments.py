@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar, Protocol
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from sift_client.client import SiftClient
-    from sift_client.sift_types.file_attachment import FileAttachment
+    from sift_client.sift_types.file_attachment import FileAttachment, Metadata
 
 
 class _SupportsFileAttachments(Protocol):
@@ -79,3 +81,29 @@ class FileAttachmentsMixin:
             file_attachment: A single FileAttachment or list of FileAttachments to delete.
         """
         self.client.file_attachments.delete(file_attachments=file_attachment)
+
+    def upload_attachment(
+        self: _SupportsFileAttachments,
+        path: str | Path,
+        metadata: Metadata | None = None,
+        description: str | None = None,
+        organization_id: str | None = None,
+    ) -> FileAttachment:
+        """Upload a file attachment to a remote file.
+
+        Args:
+            path: The path to the file to upload.
+            metadata: Optional metadata for the file (e.g., video/image metadata).
+            description: Optional description of the file.
+            organization_id: Optional organization ID.
+
+        Returns:
+            The uploaded FileAttachment.
+        """
+        return self.client.file_attachments.upload(
+            path=path,
+            entity=self,
+            metadata=metadata,
+            description=description,
+            organization_id=organization_id,
+        )
