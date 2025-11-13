@@ -309,6 +309,24 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
+    /// Get a copy of the current flow configs known to SiftStream as a HashMap keyed to the flow name.
+    /// This includes flows provided at initialization, and any existing configs
+    /// previously registered in Sift
+    pub fn get_flows(&self) -> HashMap<String, FlowConfig> {
+        // Currently we get the first FlowConfig provided in the Vec to match how send() validates flows
+        self.mode
+            .flows_by_name
+            .iter()
+            .filter_map(|(k, v)| {
+                if v.is_empty() {
+                    None
+                } else {
+                    Some((k.clone(), v[0].clone()))
+                }
+            })
+            .collect()
+    }
+
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
     /// of this function will be associated with the run.
     pub async fn attach_run(&mut self, run_selector: RunSelector) -> Result<()> {
