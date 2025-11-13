@@ -193,7 +193,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
 
         Args:
             path: The path to the file to upload.
-            entity: The entity to attach the file to.
+            entity: The entity that the file is attached to.
             entity_type: The type of entity (e.g., "runs", "annotations", "annotation_logs").
             metadata: Optional metadata for the file (e.g., video/image metadata).
             description: Optional description of the file.
