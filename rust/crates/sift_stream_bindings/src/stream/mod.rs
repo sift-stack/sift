@@ -143,12 +143,11 @@ impl SiftStreamPy {
                 "Stream has been consumed by finish()",
             )
         })?;
-        Ok(
-            sift_stream.get_flows()
-                .into_iter()
-                .map(|(k, v)| (k, v.into()))
-                .collect()
-        )
+        Ok(sift_stream
+            .get_flows()
+            .into_iter()
+            .map(|(k, v)| (k, v.into()))
+            .collect())
     }
 
     pub fn attach_run(&self, py: Python, run_selector: RunSelectorPy) -> PyResult<Py<PyAny>> {

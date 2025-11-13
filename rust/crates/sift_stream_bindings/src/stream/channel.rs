@@ -89,7 +89,7 @@ impl From<ChannelBitFieldElement> for ChannelBitFieldElementPy {
             inner: value.clone(),
             name: value.name,
             index: value.index,
-            bit_count: value.bit_count
+            bit_count: value.bit_count,
         }
     }
 }
@@ -105,7 +105,7 @@ impl From<ChannelEnumType> for ChannelEnumTypePy {
         ChannelEnumTypePy {
             inner: value.clone(),
             name: value.name,
-            key: value.key
+            key: value.key,
         }
     }
 }

@@ -314,7 +314,9 @@ impl SiftStream<IngestionConfigMode> {
     /// previously registered in Sift
     pub fn get_flows(&self) -> HashMap<String, FlowConfig> {
         // Currently we get the first FlowConfig provided in the Vec to match how send() validates flows
-        self.mode.flows_by_name.iter()
+        self.mode
+            .flows_by_name
+            .iter()
             .filter_map(|(k, v)| {
                 if v.is_empty() {
                     None

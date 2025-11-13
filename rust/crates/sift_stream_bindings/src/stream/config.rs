@@ -132,7 +132,7 @@ impl From<sift_rs::ingestion_configs::v2::FlowConfig> for FlowConfigPy {
         FlowConfigPy {
             inner: config.clone(),
             name: config.name,
-            channels: config.channels.into_iter().map(|c| c.into()).collect()
+            channels: config.channels.into_iter().map(|c| c.into()).collect(),
         }
     }
 }
@@ -147,7 +147,11 @@ impl From<ChannelConfig> for ChannelConfigPy {
             description: config.description,
             data_type: data_type_py,
             enum_types: config.enum_types.into_iter().map(|ce| ce.into()).collect(),
-            bit_field_elements: config.bit_field_elements.into_iter().map(|bfe| bfe.into()).collect(),
+            bit_field_elements: config
+                .bit_field_elements
+                .into_iter()
+                .map(|bfe| bfe.into())
+                .collect(),
         }
     }
 }
