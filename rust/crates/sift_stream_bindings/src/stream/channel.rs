@@ -83,9 +83,30 @@ impl From<ChannelBitFieldElementPy> for ChannelBitFieldElement {
     }
 }
 
+impl From<ChannelBitFieldElement> for ChannelBitFieldElementPy {
+    fn from(value: ChannelBitFieldElement) -> Self {
+        ChannelBitFieldElementPy {
+            inner: value.clone(),
+            name: value.name,
+            index: value.index,
+            bit_count: value.bit_count
+        }
+    }
+}
+
 impl From<ChannelEnumTypePy> for ChannelEnumType {
     fn from(value: ChannelEnumTypePy) -> Self {
         value.inner
+    }
+}
+
+impl From<ChannelEnumType> for ChannelEnumTypePy {
+    fn from(value: ChannelEnumType) -> Self {
+        ChannelEnumTypePy {
+            inner: value.clone(),
+            name: value.name,
+            key: value.key
+        }
     }
 }
 

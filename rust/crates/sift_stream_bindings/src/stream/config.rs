@@ -127,6 +127,31 @@ impl From<FlowConfigPy> for sift_rs::ingestion_configs::v2::FlowConfig {
     }
 }
 
+impl From<sift_rs::ingestion_configs::v2::FlowConfig> for FlowConfigPy {
+    fn from(config: sift_rs::ingestion_configs::v2::FlowConfig) -> Self {
+        FlowConfigPy {
+            inner: config.clone(),
+            name: config.name,
+            channels: config.channels.into_iter().map(|c| c.into()).collect()
+        }
+    }
+}
+
+impl From<ChannelConfig> for ChannelConfigPy {
+    fn from(config: ChannelConfig) -> Self {
+        let data_type_py = config.data_type().into();
+        ChannelConfigPy {
+            inner: config.clone(),
+            name: config.name,
+            unit: config.unit,
+            description: config.description,
+            data_type: data_type_py,
+            enum_types: config.enum_types.into_iter().map(|ce| ce.into()).collect(),
+            bit_field_elements: config.bit_field_elements.into_iter().map(|bfe| bfe.into()).collect(),
+        }
+    }
+}
+
 // PyO3 Method Implementations
 #[gen_stub_pymethods]
 #[pymethods]

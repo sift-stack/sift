@@ -14,6 +14,7 @@ use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{Flow, FlowConfig, IngestionConfigMode, SiftStream};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -133,6 +134,21 @@ impl SiftStreamPy {
         })?;
 
         Ok(awaitable.into())
+    }
+
+    pub fn get_flows(&self) -> PyResult<HashMap<String, FlowConfigPy>> {
+        let inner_guard = self.inner.blocking_lock();
+        let sift_stream = inner_guard.as_ref().ok_or_else(|| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Stream has been consumed by finish()",
+            )
+        })?;
+        Ok(
+            sift_stream.get_flows()
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect()
+        )
     }
 
     pub fn attach_run(&self, py: Python, run_selector: RunSelectorPy) -> PyResult<Py<PyAny>> {
