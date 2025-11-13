@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate, Metadata
+from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
+from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 
 if TYPE_CHECKING:
     from sift_py.file_attachment.entity import Entity
 
     from sift_client.client import SiftClient
+    from sift_py.file_attachment.metadata import Metadata
 
 
 class FileAttachmentsAPIAsync(ResourceBase):
@@ -28,6 +30,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         """
         super().__init__(sift_client)
         self._low_level_client = RemoteFilesLowLevelClient(grpc_client=self.client.grpc_client)
+        self._upload_client = UploadLowLevelClient(rest_client=self.client.rest_client)
 
     async def get(self, *, file_attachment_id: str) -> FileAttachment:
         """Get a file attachment by ID.
@@ -182,7 +185,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
         *,
         path: str | Path,
         entity: Entity,
-        metadata: Metadata | None = None,
+        entity_type: str,
+        metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,
     ) -> FileAttachment:
@@ -198,10 +202,13 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The uploaded FileAttachment.
         """
-        return await self._low_level_client.upload_attachment(
+        remote_file_id = await self._upload_client.upload_attachment(
             path=path,
-            entity=entity,
+            entity_id=entity.entity_id,
+            entity_type=entity_type,
             metadata=metadata,
             description=description,
             organization_id=organization_id,
         )
+        # Should be able to remove await
+        return await self.get(file_attachment_id=remote_file_id)

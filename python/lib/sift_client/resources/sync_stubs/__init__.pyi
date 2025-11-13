@@ -40,6 +40,8 @@ from sift_client.sift_types.test_report import (
     TestStepType,
     TestStepUpdate,
 )
+from sift_py.file_attachment.entity import Entity
+from sift_py.file_attachment.metadata import Metadata
 
 class AssetsAPI:
     """Sync counterpart to `AssetsAPIAsync`.
@@ -603,6 +605,29 @@ class FileAttachmentsAPI:
         Args:
             file_attachment: The FileAttachment or the ID of the file attachment to download.
             output_path: The path to download the file attachment to.
+        """
+        ...
+
+    def upload(
+        self,
+        *,
+        path: str | Path,
+        entity: Entity,
+        metadata: dict[str, Any] | None = None,
+        description: str | None = None,
+        organization_id: str | None = None,
+    ) -> FileAttachment:
+        """Upload a file attachment to a remote file.
+
+        Args:
+            path: The path to the file to upload.
+            entity: The entity to attach the file to.
+            metadata: Optional metadata for the file (e.g., video/image metadata).
+            description: Optional description of the file.
+            organization_id: Optional organization ID.
+
+        Returns:
+            The uploaded FileAttachment.
         """
         ...
 

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol
+from sift_py.file_attachment.entity import Entity
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.file_attachment import FileAttachment, Metadata
+    from sift_client.sift_types.file_attachment import FileAttachment
 
 
 class _SupportsFileAttachments(Protocol):
@@ -85,7 +86,7 @@ class FileAttachmentsMixin:
     def upload_attachment(
         self: _SupportsFileAttachments,
         path: str | Path,
-        metadata: Metadata | None = None,
+        metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,
     ) -> FileAttachment:
@@ -100,9 +101,15 @@ class FileAttachmentsMixin:
         Returns:
             The uploaded FileAttachment.
         """
+        if not self.id_:
+            raise ValueError("Entity ID is not set")
+        entity = Entity(
+            entity_id=self.id_,
+            entity_type=self._get_entity_type_name(),  # type: ignore[attr-defined]
+        )
         return self.client.file_attachments.upload(
             path=path,
-            entity=self,
+            entity=entity,
             metadata=metadata,
             description=description,
             organization_id=organization_id,
