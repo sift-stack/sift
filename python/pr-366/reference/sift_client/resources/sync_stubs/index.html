@@ -1423,6 +1423,17 @@ You're not viewing the latest version.
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.sync_stubs.FileAttachmentsAPI.upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;upload
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2754,6 +2765,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.sync_stubs.FileAttachmentsAPI.upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;upload
       
     </span>
   </a>
@@ -7644,6 +7666,14 @@ on Sift entities like runs, assets, and test reports.</p>
                 </div>
               </td>
             </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            upload (sift_client.resources.sync_stubs.FileAttachmentsAPI.upload)" href="#sift_client.resources.sync_stubs.FileAttachmentsAPI.upload">upload</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Upload a file attachment to a remote file.</p>
+                </div>
+              </td>
+            </tr>
       </tbody>
     </table>
 
@@ -8257,6 +8287,171 @@ on Sift entities like runs, assets, and test reports.</p>
             <td class="doc-returns-details">
               <div class="doc-md-description">
                 <p>The updated FileAttachment.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.sync_stubs.FileAttachmentsAPI.upload" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">upload</span>
+
+
+<a href="#sift_client.resources.sync_stubs.FileAttachmentsAPI.upload" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">upload</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">path</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">entity</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            Entity (sift_py.file_attachment.entity.Entity)" href="../../../sift_py/file_attachment/entity/#sift_py.file_attachment.entity.Entity">Entity</a></span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">description</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">organization_id</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            FileAttachment
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.file_attachment.FileAttachment)" href="../../sift_types/file_attachment/#sift_client.sift_types.file_attachment.FileAttachment">FileAttachment</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Upload a file attachment to a remote file.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The path to the file to upload.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <a class="autorefs autorefs-external" title="pathlib.Path" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>entity</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>The entity to attach the file to.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-internal" title="            Entity (sift_py.file_attachment.entity.Entity)" href="../../../sift_py/file_attachment/entity/#sift_py.file_attachment.entity.Entity">Entity</a></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>metadata</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Optional metadata for the file (e.g., video/image metadata).</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" title="typing.Any" href="https://docs.python.org/3/library/typing.html#typing.Any">Any</a>] | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>description</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Optional description of the file.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>organization_id</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>Optional organization ID.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
+                  </span>
+                  <span class="doc-param-default">
+                    <b>DEFAULT:</b>
+                      <code>None</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">RETURNS</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <span class="doc-returns-annotation">
+                    <code><a class="autorefs autorefs-internal" title="            FileAttachment
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.file_attachment.FileAttachment)" href="../../sift_types/file_attachment/#sift_client.sift_types.file_attachment.FileAttachment">FileAttachment</a></code>
+                </span>
+            </td>
+            <td class="doc-returns-details">
+              <div class="doc-md-description">
+                <p>The uploaded FileAttachment.</p>
               </div>
             </td>
           </tr>
