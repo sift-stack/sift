@@ -1469,15 +1469,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
             <span class="n">FlowConfig</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">,</span>
                 <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
                     <span class="n">ChannelConfig</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span>
-                        <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span>
-                        <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
-                    <span class="p">),</span>
-                    <span class="n">ChannelConfig</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span>
-                        <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span>
-                        <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
                     <span class="p">),</span>
                 <span class="p">],</span>
             <span class="p">)</span>
@@ -1548,15 +1542,9 @@ async def basic_example():
             FlowConfig(
                 name="onboard_sensors",
                 channels=[
+                    ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
                     ChannelConfig(
-                        name="motor_temp",
-                        unit="C",
-                        data_type=ChannelDataType.DOUBLE
-                    ),
-                    ChannelConfig(
-                        name="tank_pressure",
-                        unit="kPa",
-                        data_type=ChannelDataType.DOUBLE
+                        name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE
                     ),
                 ],
             )
@@ -1593,8 +1581,7 @@ async def basic_example():
 
 
 # Uncomment to run:
-# asyncio.run(basic_example())
-</div>
+# asyncio.run(basic_example())</div>
 </div>
 </div>
 </div>
@@ -1646,15 +1633,9 @@ async def basic_example():
             <span class="n">FlowConfig</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">,</span>
                 <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
                     <span class="n">ChannelConfig</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span>
-                        <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span>
-                        <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
-                    <span class="p">),</span>
-                    <span class="n">ChannelConfig</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span>
-                        <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span>
-                        <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
                     <span class="p">),</span>
                 <span class="p">],</span>
             <span class="p">)</span>
@@ -1713,15 +1694,9 @@ async def basic_example():
             FlowConfig(
                 name="onboard_sensors",
                 channels=[
+                    ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
                     ChannelConfig(
-                        name="motor_temp",
-                        unit="C",
-                        data_type=ChannelDataType.DOUBLE
-                    ),
-                    ChannelConfig(
-                        name="tank_pressure",
-                        unit="kPa",
-                        data_type=ChannelDataType.DOUBLE
+                        name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE
                     ),
                 ],
             )
@@ -1762,8 +1737,7 @@ async def basic_example():
 
 
 # Uncomment to run:
-# asyncio.run(batch_send_example())
-</div>
+# asyncio.run(batch_send_example())</div>
 </div>
 </div>
 </div>
@@ -1839,15 +1813,9 @@ async def basic_example():
             <span class="n">FlowConfig</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="s2">"onboard_sensors"</span><span class="p">,</span>
                 <span class="n">channels</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">ChannelConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">),</span>
                     <span class="n">ChannelConfig</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="s2">"motor_temp"</span><span class="p">,</span>
-                        <span class="n">unit</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span>
-                        <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
-                    <span class="p">),</span>
-                    <span class="n">ChannelConfig</span><span class="p">(</span>
-                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span>
-                        <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span>
-                        <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s2">"tank_pressure"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"kPa"</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">ChannelDataType</span><span class="o">.</span><span class="n">DOUBLE</span>
                     <span class="p">),</span>
                 <span class="p">],</span>
             <span class="p">)</span>
@@ -1916,15 +1884,9 @@ async def advanced_example():
             FlowConfig(
                 name="onboard_sensors",
                 channels=[
+                    ChannelConfig(name="motor_temp", unit="C", data_type=ChannelDataType.DOUBLE),
                     ChannelConfig(
-                        name="motor_temp",
-                        unit="C",
-                        data_type=ChannelDataType.DOUBLE
-                    ),
-                    ChannelConfig(
-                        name="tank_pressure",
-                        unit="kPa",
-                        data_type=ChannelDataType.DOUBLE
+                        name="tank_pressure", unit="kPa", data_type=ChannelDataType.DOUBLE
                     ),
                 ],
             )
@@ -1972,8 +1934,7 @@ async def advanced_example():
 
 
 # Uncomment to run:
-# asyncio.run(advanced_example())
-</div>
+# asyncio.run(advanced_example())</div>
 </div>
 </div>
 </div>
