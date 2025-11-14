@@ -184,7 +184,6 @@ class FileAttachmentsAPIAsync(ResourceBase):
         *,
         path: str | Path,
         entity: Entity,
-        entity_type: str,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,
@@ -205,7 +204,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         remote_file_id = await self._upload_client.upload_attachment(
             path=path,
             entity_id=entity.entity_id,
-            entity_type=entity_type,
+            entity_type=entity.entity_type.value,
             metadata=metadata,
             description=description,
             organization_id=organization_id,

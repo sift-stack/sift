@@ -607,7 +607,6 @@ class FileAttachmentsAPI:
         *,
         path: str | Path,
         entity: Entity,
-        entity_type: str,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,
