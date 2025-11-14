@@ -569,7 +569,7 @@ class FileAttachmentsAPI:
     def list_(
         self,
         *,
-        entity: Run | Asset | TestReport | None = None,
+        entity: _SupportsAttachments | Run | Asset | TestReport | None = None,
         remote_file_id: str | None = None,
         file_name: str | None = None,
         entity_type: str | None = None,
@@ -610,7 +610,7 @@ class FileAttachmentsAPI:
         self,
         *,
         path: str | Path,
-        entity: Asset | Run | TestReport,
+        entity: _SupportsAttachments | Asset | Run | TestReport,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,

@@ -8,7 +8,10 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.file_attachment import FileAttachment
+    from sift_client.sift_types.run import Run
+    from sift_client.sift_types.test_report import TestReport
 
 
 class _SupportsFileAttachments(Protocol):
@@ -104,13 +107,11 @@ class FileAttachmentsMixin:
         """
         if not self.id_:
             raise ValueError("Entity ID is not set")
-        entity = Entity(
-            entity_id=self.id_,
-            entity_type=self._get_entity_type_name(),  # type: ignore[attr-defined]
-        )
+        if not isinstance(self, (Asset, Run, TestReport)):
+            raise ValueError("Entity is not a valid entity type")
         return self.client.file_attachments.upload(
             path=path,
-            entity=entity,
+            entity=self,
             metadata=metadata,
             description=description,
             organization_id=organization_id,
