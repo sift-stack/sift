@@ -49,6 +49,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
     async def list_(
         self,
         *,
+        entity: Run | Asset | TestReport | None = None,
         remote_file_id: str | None = None,
         file_name: str | None = None,
         entity_type: str | None = None,
@@ -71,6 +72,9 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             A list of FileAttachments.
         """
+        if entity is not None:
+            entity_id = entity.id_
+            entity_type = entity._get_entity_type_name()
         kwargs = {}
         if remote_file_id:
             kwargs["remote_file_id"] = remote_file_id
