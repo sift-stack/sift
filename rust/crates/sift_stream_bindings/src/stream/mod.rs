@@ -10,10 +10,7 @@ use crate::metrics::SiftStreamMetricsSnapshotPy;
 use crate::stream::channel::ChannelValuePy;
 use crate::stream::config::{FlowConfigPy, RunSelectorPy};
 use crate::stream::time::TimeValuePy;
-use pyo3::{
-    prelude::*,
-    types::PyIterator
-};
+use pyo3::{prelude::*, types::PyIterator};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use sift_stream::{Flow, FlowConfig, IngestionConfigMode, SiftStream};
@@ -76,7 +73,11 @@ impl SiftStreamPy {
 
     // Function to take in a python iterable of PyFlow and call send on each item
     // Can allow more performant sending of data from python to SiftStream
-    pub fn batch_send<'py>(&self, py: Python<'py>, flows: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+    pub fn batch_send<'py>(
+        &self,
+        py: Python<'py>,
+        flows: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
         let flow_iter = PyIterator::from_object(flows)?;
         let mut flows_vec = Vec::new();
         for item in flow_iter {
