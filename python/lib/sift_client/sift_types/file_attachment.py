@@ -113,12 +113,6 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
         else:
             raise Exception(f"Unknown remote file entity type: {self.entity_type}")
 
-    def delete(self) -> None:
-        """Delete the file attachment."""
-        if self.id_ is None:
-            raise ValueError("Remote file ID is not set")
-        self.client.file_attachments.delete(file_attachments=self)
-
     def update(self, update: FileAttachmentUpdate | dict) -> FileAttachment:
         """Update the file attachment."""
         if isinstance(update, dict):

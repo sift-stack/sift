@@ -49,9 +49,10 @@ class FileAttachmentsAPIAsync(ResourceBase):
     async def list_(
         self,
         *,
+        remote_file_id: str | None = None,
+        file_name: str | None = None,
         entity_type: str | None = None,
         entity_id: str | None = None,
-        query_filter: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
@@ -59,9 +60,10 @@ class FileAttachmentsAPIAsync(ResourceBase):
         """List file attachments with optional filtering.
 
         Args:
+            remote_file_id: Filter by remote file ID.
+            file_name: Filter by file name.
             entity_type: Filter by entity type (e.g., 'ENTITY_TYPE_ASSET', 'ENTITY_TYPE_RUN').
             entity_id: Filter by entity ID.
-            query_filter: Optional CEL query filter.
             order_by: The field to order by.
             limit: Maximum number of results to return.
             page_size: Number of results per page.
@@ -69,19 +71,18 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             A list of FileAttachments.
         """
-        # Build the filter
-        filters = []
-        if entity_type:
-            filters.append(f'entity_type=="{entity_type}"')
+        kwargs = {}
+        if remote_file_id:
+            kwargs["remote_file_id"] = remote_file_id
+        if file_name:
+            kwargs["file_name"] = file_name
         if entity_id:
-            filters.append(f'entity_id=="{entity_id}"')
-        if query_filter:
-            filters.append(query_filter)
-
-        combined_filter = " && ".join(filters) if filters else None
+            kwargs["entity_id"] = entity_id
+        if entity_type:
+            kwargs["entity_type"] = entity_type
 
         file_attachments = await self._low_level_client.list_all_remote_files(
-            query_filter=combined_filter,
+            kwargs=kwargs,
             order_by=order_by,
             max_results=limit,
             page_size=page_size,
@@ -121,25 +122,21 @@ class FileAttachmentsAPIAsync(ResourceBase):
         """
         file_attachment_ids: list[str] = []
         if isinstance(file_attachments, FileAttachment):
-            if file_attachments.id_ is not None:
-                file_attachment_ids.append(file_attachments.id_)
-            else:
-                raise ValueError("FileAttachment ID is not set")
+            file_attachment_ids.append(file_attachments._id_or_error)
         elif isinstance(file_attachments, str):
             file_attachment_ids.append(file_attachments)
         elif isinstance(file_attachments, list):
             for file_attachment in file_attachments:
                 if isinstance(file_attachment, FileAttachment):
-                    if file_attachment.id_ is not None:
-                        file_attachment_ids.append(file_attachment.id_)
-                    else:
-                        raise ValueError("FileAttachment ID is not set")
+                    file_attachment_ids.append(file_attachments._id_or_error)
                 elif isinstance(file_attachment, str):
                     file_attachment_ids.append(file_attachment)
                 else:
                     raise ValueError(
                         "file_attachments must be a list of FileAttachment or list of str"
                     )
+        else:
+            raise ValueError("file_attachments must be a FileAttachment, a string, or a list of FileAttachment or strings")
         await self._low_level_client.batch_delete_remote_files(remote_file_ids=file_attachment_ids)
 
     async def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
@@ -151,19 +148,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The download URL for the file attachment.
         """
-        id_: str = ""
-        if isinstance(file_attachment, FileAttachment):
-            if file_attachment.id_ is not None:
-                id_ = file_attachment.id_
-            else:
-                raise ValueError("FileAttachment ID is not set")
-        elif isinstance(file_attachment, str):
-            id_ = file_attachment
-        else:
-            raise ValueError("file_attachment must be a FileAttachment or a string")
-        if id_ == "":
-            raise ValueError("FileAttachment ID is not set")
-        return await self._low_level_client.get_remote_file_download_url(remote_file_id=id_)
+        attachment_id = file_attachment._id_or_error if isinstance(file_attachment, FileAttachment) else file_attachment
+        return await self._low_level_client.get_remote_file_download_url(remote_file_id=attachment_id)
 
     async def download(
         self, *, file_attachment: FileAttachment | str, output_path: str | Path
