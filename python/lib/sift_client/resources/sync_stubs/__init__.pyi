@@ -570,9 +570,10 @@ class FileAttachmentsAPI:
     def list_(
         self,
         *,
+        remote_file_id: str | None = None,
+        file_name: str | None = None,
         entity_type: str | None = None,
         entity_id: str | None = None,
-        query_filter: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
         page_size: int | None = None,
@@ -580,9 +581,10 @@ class FileAttachmentsAPI:
         """List file attachments with optional filtering.
 
         Args:
+            remote_file_id: Filter by remote file ID.
+            file_name: Filter by file name.
             entity_type: Filter by entity type (e.g., 'ENTITY_TYPE_ASSET', 'ENTITY_TYPE_RUN').
             entity_id: Filter by entity ID.
-            query_filter: Optional CEL query filter.
             order_by: The field to order by.
             limit: Maximum number of results to return.
             page_size: Number of results per page.
