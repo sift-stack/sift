@@ -136,7 +136,9 @@ class FileAttachmentsAPIAsync(ResourceBase):
                         "file_attachments must be a list of FileAttachment or list of str"
                     )
         else:
-            raise ValueError("file_attachments must be a FileAttachment, a string, or a list of FileAttachment or strings")
+            raise ValueError(
+                "file_attachments must be a FileAttachment, a string, or a list of FileAttachment or strings"
+            )
         await self._low_level_client.batch_delete_remote_files(remote_file_ids=file_attachment_ids)
 
     async def get_download_url(self, *, file_attachment: FileAttachment | str) -> str:
@@ -148,8 +150,14 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The download URL for the file attachment.
         """
-        attachment_id = file_attachment._id_or_error if isinstance(file_attachment, FileAttachment) else file_attachment
-        return await self._low_level_client.get_remote_file_download_url(remote_file_id=attachment_id)
+        attachment_id = (
+            file_attachment._id_or_error
+            if isinstance(file_attachment, FileAttachment)
+            else file_attachment
+        )
+        return await self._low_level_client.get_remote_file_download_url(
+            remote_file_id=attachment_id
+        )
 
     async def download(
         self, *, file_attachment: FileAttachment | str, output_path: str | Path
