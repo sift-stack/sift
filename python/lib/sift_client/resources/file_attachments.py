@@ -128,7 +128,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         elif isinstance(file_attachments, list):
             for file_attachment in file_attachments:
                 if isinstance(file_attachment, FileAttachment):
-                    file_attachment_ids.append(file_attachments._id_or_error)
+                    file_attachment_ids.append(file_attachment._id_or_error)
                 elif isinstance(file_attachment, str):
                     file_attachment_ids.append(file_attachment)
                 else:
