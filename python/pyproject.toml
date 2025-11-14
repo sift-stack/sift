@@ -213,7 +213,7 @@ docs = ["mkdocs",
 openssl = ["pyOpenSSL<24.0.0", "types-pyOpenSSL<24.0.0", "cffi~=1.14"]
 tdms = ["npTDMS~=1.9"]
 rosbags = ["rosbags~=0.0"]
-sift-stream = ["sift-stream-bindings>=0.2.0-rc"]
+sift-stream = ["sift-stream-bindings>=0.2.0-rc2"]
 hdf5 = ["h5py~=3.11", "polars~=1.8"]
 data-review = ["pyarrow>=17.0.0"]
 
