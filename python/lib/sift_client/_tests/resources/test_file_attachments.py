@@ -197,9 +197,7 @@ class TestFileAttachmentsAPIAsync:
             """Test that getting a non-existent file attachment raises an error."""
             # Should raise an error for non-existent file attachment
             try:
-                await file_attachments_api_async.get(
-                    file_attachment_id="nonexistent-file-id-12345"
-                )
+                await file_attachments_api_async.get(file_attachment_id="nonexistent-file-id-12345")
                 pytest.fail("Expected an exception for non-existent file attachment")
             except Exception:
                 pass  # Expected - any exception is acceptable
@@ -310,9 +308,7 @@ class TestFileAttachmentsAPIAsync:
             assert updated.description == new_description
 
         @pytest.mark.asyncio
-        async def test_update_with_dict(
-            self, file_attachments_api_async, uploaded_file_attachment
-        ):
+        async def test_update_with_dict(self, file_attachments_api_async, uploaded_file_attachment):
             """Test updating a file attachment using a dict."""
             new_description = "Updated via dict"
 
@@ -394,9 +390,7 @@ class TestFileAttachmentsAPIAsync:
 
             try:
                 for i in range(3):
-                    with tempfile.NamedTemporaryFile(
-                        mode="w", suffix=".txt", delete=False
-                    ) as tmp:
+                    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
                         tmp.write(f"File {i} to delete\n")
                         tmp_paths.append(tmp.name)
 
@@ -431,9 +425,7 @@ class TestFileAttachmentsAPIAsync:
 
             try:
                 for i in range(2):
-                    with tempfile.NamedTemporaryFile(
-                        mode="w", suffix=".txt", delete=False
-                    ) as tmp:
+                    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
                         tmp.write(f"File {i} to delete\n")
                         tmp_paths.append(tmp.name)
 
@@ -464,9 +456,7 @@ class TestFileAttachmentsAPIAsync:
         """Tests for the async download methods."""
 
         @pytest.mark.asyncio
-        async def test_get_download_url(
-            self, file_attachments_api_async, uploaded_file_attachment
-        ):
+        async def test_get_download_url(self, file_attachments_api_async, uploaded_file_attachment):
             """Test getting a download URL for a file attachment."""
             url = await file_attachments_api_async.get_download_url(
                 file_attachment=uploaded_file_attachment
@@ -574,4 +564,3 @@ class TestFileAttachmentsAPISync:
             finally:
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
-
