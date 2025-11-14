@@ -465,6 +465,7 @@ class IngestionConfigStreamingClient(ResourceBase):
         Args:
             flows: An iterable of flows to send. Each flow can be either a `Flow` or `FlowPy` instance.
         """
+
         def normalize_flows(flows: Iterable[Flow | FlowPy]) -> Iterator[FlowPy]:
             for flow in flows:
                 if isinstance(flow, Flow):
