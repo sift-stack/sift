@@ -8,6 +8,7 @@ from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionConfigStreamingLowLevelClient,
     IngestionLowLevelClient,
 )
+from sift_client.errors import _sift_stream_bindings_import_error
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.ingestion import Flow, IngestionConfig, IngestionConfigCreate
 from sift_client.sift_types.run import Run, RunCreate, Tag
@@ -149,10 +150,7 @@ class RecoveryStrategyConfig:
         try:
             from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
         except ImportError as e:
-            raise ImportError(
-                "sift_stream_bindings is required for ingestion streaming functionality. "
-                "Install it with: pip install sift-stack-py[sift-stream]"
-            ) from e
+            _sift_stream_bindings_import_error(e)
 
         # Default to retry_with_backups()
         # This is intentionally different from SiftStream, which defaults to retry_only
@@ -184,10 +182,7 @@ class RecoveryStrategyConfig:
         try:
             from sift_stream_bindings import RecoveryStrategyPy, RetryPolicyPy
         except ImportError as e:
-            raise ImportError(
-                "sift_stream_bindings is required for ingestion streaming functionality. "
-                "Install it with: pip install sift-stack-py[sift-stream]"
-            ) from e
+            _sift_stream_bindings_import_error(e)
 
         retry_policy_py = retry_policy or RetryPolicyPy.default()
 
@@ -216,10 +211,7 @@ class RecoveryStrategyConfig:
         try:
             from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
         except ImportError as e:
-            raise ImportError(
-                "sift_stream_bindings is required for ingestion streaming functionality. "
-                "Install it with: pip install sift-stack-py[sift-stream]"
-            ) from e
+            _sift_stream_bindings_import_error(e)
 
         retry_policy_py = retry_policy or RetryPolicyPy.default()
         disk_backup_policy_py = disk_backup_policy or DiskBackupPolicyPy.default()
@@ -354,10 +346,7 @@ class IngestionConfigStreamingClient(ResourceBase):
                 RunFormPy,
             )
         except ImportError as e:
-            raise ImportError(
-                "sift_stream_bindings is required for ingestion streaming functionality. "
-                "Install it with: pip install sift-stack-py[sift-stream]"
-            ) from e
+            _sift_stream_bindings_import_error(e)
 
         instance = cls.__new__(cls)
         instance._sift_client = sift_client
