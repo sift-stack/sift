@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 import logging
 from typing import TYPE_CHECKING, Iterator
 
@@ -14,6 +13,8 @@ from sift_client.sift_types.ingestion import Flow, IngestionConfig, IngestionCon
 from sift_client.sift_types.run import Run, RunCreate, Tag
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from sift_stream_bindings import (
         DiskBackupPolicyPy,
         DurationPy,
@@ -455,6 +456,15 @@ class IngestionConfigStreamingClient(ResourceBase):
         await self._low_level_client.send(flow_py)
 
     async def batch_send(self, flows: Iterable[Flow | FlowPy]):
+        """Send multiple flows to Sift in a single batch operation.
+
+        This method allows you to send multiple flows efficiently in a single batch,
+        which can improve performance by reducing overhead compared to calling `send`
+        multiple times.
+
+        Args:
+            flows: An iterable of flows to send. Each flow can be either a `Flow` or `FlowPy` instance.
+        """
         def normalize_flows(flows: Iterable[Flow | FlowPy]) -> Iterator[FlowPy]:
             for flow in flows:
                 if isinstance(flow, Flow):
