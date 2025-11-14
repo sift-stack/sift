@@ -9,8 +9,6 @@ from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
 
 if TYPE_CHECKING:
-    from sift_py.file_attachment.entity import Entity
-
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.run import Run
@@ -185,7 +183,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         self,
         *,
         path: str | Path,
-        entity: Entity,
+        entity: Asset | Run | TestReport,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,
@@ -205,8 +203,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
         """
         remote_file_id = await self._upload_client.upload_attachment(
             path=path,
-            entity_id=entity.entity_id,
-            entity_type=entity.entity_type.value,
+            entity_id=entity._id_or_error,
+            entity_type=entity._get_entity_type_name(),
             metadata=metadata,
             description=description,
             organization_id=organization_id,
