@@ -7,6 +7,7 @@ from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLow
 from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
+from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
@@ -74,27 +75,35 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             A list of FileAttachments.
         """
+        # Build filter parts
+        filter_parts = []
+        
         if entity is not None:
-            entity_id = entity.id_
-            entity_type = entity._get_entity_type_name()
-        kwargs = {}
+            filter_parts.append(cel.equals("entity_id", entity._id_or_error))
+            filter_parts.append(cel.equals("entity_type", entity._get_entity_type_name()))
+        
         if remote_file_id:
-            kwargs["remote_file_id"] = remote_file_id
+            filter_parts.append(cel.equals("remote_file_id", remote_file_id))
+        
         if file_name:
-            kwargs["file_name"] = file_name
+            filter_parts.append(cel.equals("file_name", file_name))
+        
         if entity_id:
-            kwargs["entity_id"] = entity_id
+            filter_parts.append(cel.equals("entity_id", entity_id))
+        
         if entity_type:
-            kwargs["entity_type"] = entity_type
+            filter_parts.append(cel.equals("entity_type", entity_type))
+        
+        query_filter = cel.and_(*filter_parts)
 
         file_attachments = await self._low_level_client.list_all_remote_files(
-            kwargs=kwargs,
+            query_filter=query_filter or None,
             order_by=order_by,
             max_results=limit,
             page_size=page_size,
             sift_client=self.client,
         )
-        return [self._apply_client_to_instance(fa) for fa in file_attachments]
+        return self._apply_client_to_instances(file_attachments)
 
     async def update(
         self,

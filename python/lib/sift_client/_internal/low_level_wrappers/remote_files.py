@@ -60,7 +60,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
     async def list_all_remote_files(
         self,
-        kwargs: dict[str, Any] | None = None,
+        query_filter: str | None = None,
         order_by: str | None = None,
         max_results: int | None = None,
         page_size: int | None = None,
@@ -80,7 +80,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         """
         return await self._handle_pagination(
             self.list_remote_files,
-            kwargs=kwargs,
+            kwargs={"query_filter": query_filter, "sift_client": sift_client},
             page_size=page_size,
             order_by=order_by,
             max_results=max_results,

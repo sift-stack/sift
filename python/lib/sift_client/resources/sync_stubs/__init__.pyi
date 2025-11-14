@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 
     import pandas as pd
     import pyarrow as pa
-    from sift_py.file_attachment.entity import Entity
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset, AssetUpdate
@@ -611,7 +610,7 @@ class FileAttachmentsAPI:
         self,
         *,
         path: str | Path,
-        entity: Entity,
+        entity: Asset | Run | TestReport,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,
