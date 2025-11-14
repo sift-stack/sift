@@ -20,6 +20,7 @@ Subcommands:
   pyright        Runs 'pyright lib' for type checking
   check          Runs all python linting checks
   gen-stubs      Generates pyi stubs for sift_client synchronous wrappers
+  gen-extras     Generates optional-dependencies in pyproject.toml
   mypy-stubs     Runs stubtest (mypy) on the generated pyi stubs
   pip-install    Install project dependencies
   test           Execute tests
@@ -34,7 +35,7 @@ EOT
 
 pip_install() {
   source venv/bin/activate
-  pip install '.[development,build,docs,openssl,tdms,rosbags,sift-stream,hdf5]'
+  pip install '.[all-dev]'
   pip install -e .
 }
 
@@ -119,6 +120,13 @@ mypy_stubs() {
   stubtest sift_client.resources.sync_stubs
 }
 
+gen_extras() {
+  source venv/bin/activate
+  cd scripts
+  python3 generate_extras.py
+  cd ..
+}
+
 shift "$((OPTIND - 1))"
 
 case "$1" in
@@ -167,6 +175,9 @@ case "$1" in
         ;;
     gen-stubs)
         gen_stubs
+        ;;
+    gen-extras)
+        gen_extras
         ;;
     mypy-stubs)
         mypy_stubs

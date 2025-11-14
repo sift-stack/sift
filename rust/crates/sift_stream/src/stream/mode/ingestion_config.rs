@@ -109,7 +109,10 @@ impl SiftStream<IngestionConfigMode> {
 
         metrics.loaded_flows.add(flows_by_name.len() as u64);
         let sift_stream_id = task_config.sift_stream_id;
-        let grpc_channel = task_config.grpc_channel.clone();
+
+        // Use the setup channel for API calls that are not related to ingestion to avoid multiplexing
+        // on the ingestion channel and potentially starving out ingestion.
+        let grpc_channel = task_config.setup_channel.clone();
 
         let stream_system =
             start_tasks(task_config).context("failed to start task-based architecture")?;
@@ -304,6 +307,24 @@ impl SiftStream<IngestionConfigMode> {
             );
         }
         Ok(())
+    }
+
+    /// Get a copy of the current flow configs known to SiftStream as a HashMap keyed to the flow name.
+    /// This includes flows provided at initialization, and any existing configs
+    /// previously registered in Sift
+    pub fn get_flows(&self) -> HashMap<String, FlowConfig> {
+        // Currently we get the first FlowConfig provided in the Vec to match how send() validates flows
+        self.mode
+            .flows_by_name
+            .iter()
+            .filter_map(|(k, v)| {
+                if v.is_empty() {
+                    None
+                } else {
+                    Some((k.clone(), v[0].clone()))
+                }
+            })
+            .collect()
     }
 
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
