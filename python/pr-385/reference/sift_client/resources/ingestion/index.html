@@ -2707,7 +2707,7 @@ a high-performance, low-latency, and reliable streaming interface to Sift.</p>
    (sift_client.resources.ingestion.IngestionConfigStreamingClient.batch_send)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.batch_send">batch_send</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  
+                  <p>Send multiple flows to Sift in a single batch operation.</p>
                 </div>
               </td>
             </tr>
@@ -3006,6 +3006,44 @@ or RunFormPy object.</p>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
+
+        <p>Send multiple flows to Sift in a single batch operation.</p>
+<p>This method allows you to send multiple flows efficiently in a single batch,
+which can improve performance by reducing overhead compared to calling <code>send</code>
+multiple times.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>flows</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>An iterable of flows to send. Each flow can be either a <code>Flow</code> or <code>FlowPy</code> instance.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a>[<a class="autorefs autorefs-internal" title="            Flow
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.Flow)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.Flow">Flow</a> | <span title="sift_stream_bindings.FlowPy">FlowPy</span>]</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
