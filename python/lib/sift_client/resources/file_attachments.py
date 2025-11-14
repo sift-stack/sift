@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from sift_py.file_attachment.entity import Entity
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.run import Run
+    from sift_client.sift_types.test_report import TestReport
 
 
 class FileAttachmentsAPIAsync(ResourceBase):
