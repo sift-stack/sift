@@ -570,6 +570,7 @@ class FileAttachmentsAPI:
     def list_(
         self,
         *,
+        entity: Run | Asset | TestReport | None = None,
         remote_file_id: str | None = None,
         file_name: str | None = None,
         entity_type: str | None = None,
@@ -581,6 +582,7 @@ class FileAttachmentsAPI:
         """List file attachments with optional filtering.
 
         Args:
+            entity: Filter by entity (Run, Asset, or TestReport).
             remote_file_id: Filter by remote file ID.
             file_name: Filter by file name.
             entity_type: Filter by entity type (e.g., 'ENTITY_TYPE_ASSET', 'ENTITY_TYPE_RUN').
