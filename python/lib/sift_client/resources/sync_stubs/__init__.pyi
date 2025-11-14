@@ -525,6 +525,7 @@ class FileAttachmentsAPI:
         """
         ...
 
+    def _run(self, coro): ...
     def delete(
         self, *, file_attachments: list[FileAttachment | str] | FileAttachment | str
     ) -> None:
