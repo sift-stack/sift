@@ -15,7 +15,7 @@ import pytest
 
 from sift_client import SiftClient
 from sift_client.resources import FileAttachmentsAPI, FileAttachmentsAPIAsync
-from sift_client.sift_types import FileAttachment, FileAttachmentUpdate
+from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
 
 pytestmark = pytest.mark.integration
 
