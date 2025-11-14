@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     import pyarrow as pa
 
     from sift_client.client import SiftClient
+    from sift_client.sift_types._mixins.file_attachments import _SupportsFileAttachments
     from sift_client.sift_types.asset import Asset, AssetUpdate
     from sift_client.sift_types.calculated_channel import (
         CalculatedChannel,
@@ -569,7 +570,7 @@ class FileAttachmentsAPI:
     def list_(
         self,
         *,
-        entity: _SupportsAttachments | Run | Asset | TestReport | None = None,
+        entity: _SupportsFileAttachments,
         remote_file_id: str | None = None,
         file_name: str | None = None,
         entity_type: str | None = None,
@@ -610,7 +611,7 @@ class FileAttachmentsAPI:
         self,
         *,
         path: str | Path,
-        entity: _SupportsAttachments | Asset | Run | TestReport,
+        entity: _SupportsFileAttachments,
         metadata: dict[str, Any] | None = None,
         description: str | None = None,
         organization_id: str | None = None,

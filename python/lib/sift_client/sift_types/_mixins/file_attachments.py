@@ -2,16 +2,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
-from sift_py.file_attachment.entity import Entity
+from sift_client.sift_types.asset import Asset
+from sift_client.sift_types.run import Run
+from sift_client.sift_types.test_report import TestReport
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.file_attachment import FileAttachment
-    from sift_client.sift_types.run import Run
-    from sift_client.sift_types.test_report import TestReport
 
 
 class _SupportsFileAttachments(Protocol):
@@ -72,8 +71,7 @@ class FileAttachmentsMixin:
             A list of FileAttachments associated with this entity.
         """
         return self.client.file_attachments.list_(
-            entity_type=self._get_entity_type_name(),  # type: ignore[attr-defined]
-            entity_id=self.id_,
+            entity=self,
         )
 
     def delete_attachment(
