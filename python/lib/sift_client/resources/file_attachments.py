@@ -77,23 +77,20 @@ class FileAttachmentsAPIAsync(ResourceBase):
         """
         # Build filter parts
         filter_parts = []
-        
+
         if entity is not None:
             filter_parts.append(cel.equals("entity_id", entity._id_or_error))
             filter_parts.append(cel.equals("entity_type", entity._get_entity_type_name()))
-        
+        else:
+            if entity_id:
+                filter_parts.append(cel.equals("entity_id", entity_id))
+            if entity_type:
+                filter_parts.append(cel.equals("entity_type", entity_type))
         if remote_file_id:
             filter_parts.append(cel.equals("remote_file_id", remote_file_id))
-        
         if file_name:
             filter_parts.append(cel.equals("file_name", file_name))
-        
-        if entity_id:
-            filter_parts.append(cel.equals("entity_id", entity_id))
-        
-        if entity_type:
-            filter_parts.append(cel.equals("entity_type", entity_type))
-        
+
         query_filter = cel.and_(*filter_parts)
 
         file_attachments = await self._low_level_client.list_all_remote_files(
