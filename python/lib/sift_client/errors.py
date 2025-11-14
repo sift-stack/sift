@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from typing import NoReturn
 
 
 class SiftWarning(UserWarning):
@@ -26,7 +27,8 @@ def _sift_client_experimental_warning():
         _sift_client_experimental_warned = True
 
 
-def _sift_stream_bindings_import_error(original_error: ImportError) -> ImportError:
+def _sift_stream_bindings_import_error(original_error: ImportError) -> NoReturn:
+    # Returns NoReturn to satisfy pyright
     raise ImportError(
         "sift_stream_bindings is required for ingestion streaming functionality. "
         "Install it with: pip install sift-stack-py[sift-stream]"
