@@ -268,17 +268,27 @@ class NewStep(AbstractContextManager):
         name: str,
         value: float | str | bool,
         bounds: dict[str, float] | NumericBounds | str | None = None,
+        timestamp: datetime | None = None,
+        unit: str | None = None,
     ) -> bool:
         """Measure a value and return the result.
 
-        returns: The measurement object.
+        Args:
+            name: The name of the measurement.
+            value: The value of the measurement.
+            bounds: [Optional] The bounds to compare the value to.
+            timestamp: [Optional] The timestamp of the measurement. Defaults to the current time.
+            unit: [Optional] The unit of the measurement.
+
+        returns: The result of the measurement.
         """
         assert self.current_step is not None
         create = TestMeasurementCreate(
             test_step_id=str(self.current_step.id_),
             name=name,
             passed=True,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=timestamp if timestamp else datetime.now(timezone.utc),
+            unit=unit,
         )
         evaluate_measurement_bounds(create, value, bounds)
         measurement = self.client.test_results.create_measurement(create)
