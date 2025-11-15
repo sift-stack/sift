@@ -6,10 +6,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from sift_client.client import SiftClient
-    from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.file_attachment import FileAttachment
-    from sift_client.sift_types.run import Run
-    from sift_client.sift_types.test_report import TestReport
 
 
 class _SupportsFileAttachments(Protocol):
