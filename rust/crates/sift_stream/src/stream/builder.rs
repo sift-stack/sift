@@ -236,6 +236,13 @@ impl SiftStreamBuilder<IngestionConfigMode> {
     }
 
     /// Initializes a new builder for ingestion-config-based streaming from a [SiftChannel].
+    ///
+    /// IMPORTANT:
+    ///
+    /// It is preferred that credentials are provided so that independent gRPC channels can
+    /// be created and used. Cloning the channel results in multiplexing the gRPC requests
+    /// over a single connection, which is not desirable for backup re-ingestion which may
+    /// starve out primary ingestion.
     pub fn from_channel(channel: SiftChannel) -> SiftStreamBuilder<IngestionConfigMode> {
         SiftStreamBuilder {
             credentials: None,
@@ -276,40 +283,62 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             return Err(Error::new_arg_error("ingestion_config is required"));
         };
 
-        let channel = match grpc_channel {
-            Some(ch) => ch,
-            None if credentials.is_some() => {
-                let mut sift_channel_builder = SiftChannelBuilder::new(credentials.unwrap());
+        // Need a channel or credentials to build the channels.
+        if grpc_channel.is_none() && credentials.is_none() {
+            return Err(Error::new_arg_error(
+                "either credentials or a gRPC channel must be provided",
+            ));
+        }
 
-                if enable_tls {
-                    sift_channel_builder = sift_channel_builder.use_tls(true);
-                }
-
-                sift_channel_builder.build()?
+        let build_channel = |credentials: Credentials| -> Result<SiftChannel> {
+            let mut sift_channel_builder = SiftChannelBuilder::new(credentials);
+            if enable_tls {
+                sift_channel_builder = sift_channel_builder.use_tls(true);
             }
+            sift_channel_builder.build()
+        };
+
+        // Create a setup channel, an ingestion channel, and a reingestion channel if not provided.
+        //
+        // It is preferred that credentials are provided so that independent gRPC channels can
+        // be created and used. Cloning the channel results in multiplexing the gRPC requests
+        // over a single connection, which is not desirable for backup re-ingestion which may
+        // starve out primary ingestion.
+        let (setup_channel, ingestion_channel, reingestion_channel) = match grpc_channel {
+            Some(ch) => (ch.clone(), ch.clone(), ch),
             None => {
-                return Err(Error::new_arg_error(
-                    "either credentials or a gRPC channel must be provided",
-                ));
+                let creds = credentials.unwrap();
+
+                let setup_channel = build_channel(creds.clone())?;
+                let ingestion_channel = setup_channel.clone();
+                let reingestion_channel = build_channel(creds)?;
+
+                (setup_channel, ingestion_channel, reingestion_channel)
             }
         };
 
         // Since the gRPC connection is lazy, we'll connect right away and ensure the connection is
         // valid.
-        PingServiceClient::new(channel.clone()).ping(PingRequest::default())
-            .await
-            .map_err(|e| Error::new(ErrorKind::GrpcConnectError, e))
-            .context("failed to connect to Sift")
-            .help("ensure that your API key and Sift gRPC API URL is correct and TLS is configured properly")?;
+        for channel in [
+            setup_channel.clone(),
+            ingestion_channel.clone(),
+            reingestion_channel.clone(),
+        ] {
+            PingServiceClient::new(channel).ping(PingRequest::default())
+                .await
+                .map_err(|e| Error::new(ErrorKind::GrpcConnectError, e))
+                .context("failed to connect to Sift")
+                .help("ensure that your API key and Sift gRPC API URL is correct and TLS is configured properly")?;
+        }
 
         let (ingestion_config, flows, asset) =
-            Self::load_ingestion_config(channel.clone(), ingestion_config).await?;
+            Self::load_ingestion_config(setup_channel.clone(), ingestion_config).await?;
 
         let run = {
             if let Some(run_id) = run_id.as_ref() {
-                Some(load_run_by_id(channel.clone(), run_id).await?)
+                Some(load_run_by_id(setup_channel.clone(), run_id).await?)
             } else if let Some(selector) = run {
-                Some(load_run_by_form(channel.clone(), selector).await?)
+                Some(load_run_by_form(setup_channel.clone(), selector).await?)
             } else {
                 None
             }
@@ -322,7 +351,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             asset,
             self.asset_tags,
             self.asset_metadata,
-            channel.clone(),
+            setup_channel.clone(),
         )
         .await?;
 
@@ -364,7 +393,9 @@ impl SiftStreamBuilder<IngestionConfigMode> {
 
         let task_config = TaskConfig {
             sift_stream_id: Uuid::new_v4(),
-            grpc_channel: channel,
+            ingestion_channel,
+            reingestion_channel,
+            setup_channel,
             metrics: metrics.clone(),
             checkpoint_interval,
             enable_compression_for_ingestion,

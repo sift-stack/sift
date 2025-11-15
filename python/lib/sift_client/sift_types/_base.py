@@ -94,6 +94,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
 
     model_config = ConfigDict(frozen=False)
     _to_proto_helpers: ClassVar[dict[str, MappingHelper]] = {}
+    _field_helpers_called: set[str] = set()
 
     def __init__(self, **data: Any):
         super().__init__(**data)
@@ -146,13 +147,19 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                 if mapping_helper.update_field:
                     paths.append(mapping_helper.update_field)
             elif isinstance(value, dict):
-                if field_name in self.__class__._to_proto_helpers:
-                    assert self.__class__._to_proto_helpers[field_name].converter, (
-                        f"Expecting to run a coverter given a helper was defined for: {field_name}"
-                    )
+                if (
+                    field_name in self.__class__._to_proto_helpers
+                    and not field_name in self._field_helpers_called
+                ):
+                    self._field_helpers_called.add(field_name)
+                    if (
+                        self.__class__._to_proto_helpers.get(field_name)
+                        and self.__class__._to_proto_helpers[field_name].converter
+                    ):
+                        value = self.__class__._to_proto_helpers[field_name].converter(value)  # type: ignore[misc]
                     sub_paths = self._build_proto_and_paths(
                         proto_msg,
-                        {field_name: self.__class__._to_proto_helpers[field_name].converter(value)},  # type: ignore[misc]
+                        {field_name: value},
                         "",
                         already_setting_path_override=True,
                     )
@@ -178,6 +185,7 @@ class ModelCreateUpdateBase(BaseModel, ABC):
                         assert self.__class__._to_proto_helpers[field_name].converter, (
                             f"Expecting to run a coverter given a helper was defined for: {field_name}"
                         )
+                        self._field_helpers_called.add(field_name)
                         for item in value:
                             repeated_field.append(
                                 self.__class__._to_proto_helpers[field_name].converter(**item)  # type: ignore
