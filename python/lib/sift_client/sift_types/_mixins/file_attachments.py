@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
-from sift_client.sift_types.asset import Asset
-from sift_client.sift_types.run import Run
-from sift_client.sift_types.test_report import TestReport
-
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -70,6 +66,10 @@ class FileAttachmentsMixin:
         Returns:
             A list of FileAttachments associated with this entity.
         """
+        from sift_client.sift_types.asset import Asset
+        from sift_client.sift_types.run import Run
+        from sift_client.sift_types.test_report import TestReport
+
         if not isinstance(self, (Asset, Run, TestReport)):
             raise ValueError("Entity is not a valid entity type")
         return self.client.file_attachments.list_(
@@ -105,6 +105,10 @@ class FileAttachmentsMixin:
         Returns:
             The uploaded FileAttachment.
         """
+        from sift_client.sift_types.asset import Asset
+        from sift_client.sift_types.run import Run
+        from sift_client.sift_types.test_report import TestReport
+
         if not isinstance(self, (Asset, Run, TestReport)):
             raise ValueError("Entity is not a valid entity type")
         return self.client.file_attachments.upload(
