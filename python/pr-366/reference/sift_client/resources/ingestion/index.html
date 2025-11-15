@@ -1041,6 +1041,17 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
+  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.batch_send" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;batch_send
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.detach_run" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1826,6 +1837,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;attach_run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.batch_send" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;batch_send
       
     </span>
   </a>
@@ -2705,6 +2727,19 @@ a high-performance, low-latency, and reliable streaming interface to Sift.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            batch_send
+
+
+  
+      async
+   (sift_client.resources.ingestion.IngestionConfigStreamingClient.batch_send)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.batch_send">batch_send</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Send multiple flows to Sift in a single batch operation.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
               <td><code><a class="autorefs autorefs-internal" title="            detach_run (sift_client.resources.ingestion.IngestionConfigStreamingClient.detach_run)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.detach_run">detach_run</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
@@ -2966,6 +3001,71 @@ or RunFormPy object.</p>
   
       pydantic-model
    (sift_client.sift_types.run.Run)" href="../../sift_types/run/#sift_client.sift_types.run.Run">Run</a> | <span title="sift_stream_bindings.RunFormPy">RunFormPy</span></code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.ingestion.IngestionConfigStreamingClient.batch_send" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">batch_send</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.batch_send" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">batch_send</span><span class="p">(</span><span class="n">flows</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="            Flow
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.Flow)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.Flow">Flow</a></span> <span class="o">|</span> <span class="n"><span title="sift_stream_bindings.FlowPy">FlowPy</span></span><span class="p">])</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Send multiple flows to Sift in a single batch operation.</p>
+<p>This method allows you to send multiple flows efficiently in a single batch,
+which can improve performance by reducing overhead compared to calling <code>send</code>
+multiple times.</p>
+
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>flows</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>An iterable of flows to send. Each flow can be either a <code>Flow</code> or <code>FlowPy</code> instance.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a>[<a class="autorefs autorefs-internal" title="            Flow
+
+
+  
+      pydantic-model
+   (sift_client.sift_types.ingestion.Flow)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.Flow">Flow</a> | <span title="sift_stream_bindings.FlowPy">FlowPy</span>]</code>
                   </span>
               </p>
             </td>
