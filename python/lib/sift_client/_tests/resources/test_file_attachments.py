@@ -314,7 +314,7 @@ class TestFileAttachmentsAPIAsync:
             update_dict = {"description": new_description}
             update = FileAttachmentUpdate.model_validate(update_dict)
             update.resource_id = uploaded_file_attachment.id_
-            
+
             updated = await file_attachments_api_async.update(file_attachment=update)
 
             assert updated.id_ == uploaded_file_attachment.id_
