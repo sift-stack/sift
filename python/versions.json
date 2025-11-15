@@ -40,6 +40,14 @@
     }
   },
   {
+    "version": "v1.0.0a4",
+    "title": "v1.0.0a4",
+    "aliases": [],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "v1.0.0a3",
     "title": "v1.0.0a3",
     "aliases": [],
