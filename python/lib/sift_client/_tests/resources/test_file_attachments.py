@@ -297,10 +297,8 @@ class TestFileAttachmentsAPIAsync:
             """Test updating a file attachment's description."""
             new_description = "Updated description for integration test"
 
-            update = FileAttachmentUpdate(
-                id_=uploaded_file_attachment.id_,
-                description=new_description,
-            )
+            update = FileAttachmentUpdate(description=new_description)
+            update.resource_id = uploaded_file_attachment.id_
 
             updated = await file_attachments_api_async.update(file_attachment=update)
 
@@ -312,12 +310,12 @@ class TestFileAttachmentsAPIAsync:
             """Test updating a file attachment using a dict."""
             new_description = "Updated via dict"
 
-            updated = await file_attachments_api_async.update(
-                file_attachment={
-                    "id_": uploaded_file_attachment.id_,
-                    "description": new_description,
-                }
-            )
+            # When using dict, the ID must be set via resource_id after creating the update object
+            update_dict = {"description": new_description}
+            update = FileAttachmentUpdate.model_validate(update_dict)
+            update.resource_id = uploaded_file_attachment.id_
+            
+            updated = await file_attachments_api_async.update(file_attachment=update)
 
             assert updated.id_ == uploaded_file_attachment.id_
             assert updated.description == new_description
