@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, Any
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
 from sift_client._internal.low_level_wrappers.upload import UploadLowLevelClient
 from sift_client.resources._base import ResourceBase
-from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
+    from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
     from sift_client.sift_types.run import Run
     from sift_client.sift_types.test_report import TestReport
 
@@ -42,6 +42,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The FileAttachment.
         """
+        from sift_client.sift_types.file_attachment import FileAttachment
+        
         file_attachment = await self._low_level_client.get_remote_file(
             remote_file_id=file_attachment_id,
             sift_client=self.client,
@@ -115,6 +117,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The updated FileAttachment.
         """
+        from sift_client.sift_types.file_attachment import FileAttachmentUpdate
+        
         if isinstance(file_attachment, dict):
             file_attachment = FileAttachmentUpdate.model_validate(file_attachment)
 
@@ -132,6 +136,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Args:
             file_attachments: List of FileAttachments or the IDs of the file attachments to delete (up to 1000).
         """
+        from sift_client.sift_types.file_attachment import FileAttachment
+        
         file_attachment_ids: list[str] = []
         if isinstance(file_attachments, FileAttachment):
             file_attachment_ids.append(file_attachments._id_or_error)
@@ -162,6 +168,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Returns:
             The download URL for the file attachment.
         """
+        from sift_client.sift_types.file_attachment import FileAttachment
+        
         attachment_id = (
             file_attachment._id_or_error
             if isinstance(file_attachment, FileAttachment)
