@@ -10,7 +10,6 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
-    from sift_client.sift_types._mixins.file_attachments import _SupportsFileAttachments
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
     from sift_client.sift_types.run import Run
