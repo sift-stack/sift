@@ -271,6 +271,7 @@ class TestMeasurementUpdate(TestMeasurementBase, ModelUpdate[TestMeasurementProt
         "string_expected_value": MappingHelper(
             proto_attr_path="string_bounds.expected_value", update_field="string_bounds"
         ),
+        "unit": MappingHelper(proto_attr_path="unit.abbreviated_name", update_field="unit"),
     }
 
     def _add_resource_id_to_proto(self, proto_msg: TestMeasurementProto):
@@ -286,7 +287,6 @@ class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProt
     test_step_id: str
     passed: bool
     timestamp: datetime
-    unit: str | None = None
 
     def to_proto(self) -> TestMeasurementProto:
         """Convert to protobuf message with custom logic."""
@@ -301,6 +301,8 @@ class TestMeasurementCreate(TestMeasurementBase, ModelCreate[TestMeasurementProt
 
         proto.timestamp.FromDatetime(self.timestamp)
 
+        if self.unit:
+            proto.unit.abbreviated_name = self.unit
         if self.numeric_value is not None:
             proto.numeric_value = self.numeric_value
         elif self.string_value is not None:

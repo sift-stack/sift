@@ -201,6 +201,7 @@ class TestResultsTest:
                 "string_value": "1.10.3",
                 "passed": True,
                 "timestamp": step2.start_time,
+                "unit": "K",
             },
             update_step=True,
         )
@@ -232,6 +233,7 @@ class TestResultsTest:
         assert measurement2.id_ is not None
         assert measurement3.id_ is not None
         assert measurement4.id_ is not None
+        assert measurement2.unit == "K"
         self.test_measurements["measurement1"] = measurement1
         self.test_measurements["measurement2"] = measurement2
         self.test_measurements["measurement3"] = measurement3
@@ -248,12 +250,13 @@ class TestResultsTest:
             update={
                 "passed": False,
                 "string_expected_value": "1.10.4",
+                "unit": "C",
             },
             update_step=True,
         )
         assert measurement2.passed == False
         assert measurement2.string_expected_value == "1.10.4"
-
+        assert measurement2.unit == "C"
         # Update the measurement using class function.
         measurement4 = measurement4.update(
             {
