@@ -103,7 +103,9 @@ class FileAttachmentsMixin:
             raise ValueError("Entity ID is not set")
         # Check if the entity type is supported by checking the class name
         if self.__class__.__name__ not in ("Asset", "Run", "TestReport"):
-            raise ValueError(f"Entity type {self.__class__.__name__} is not supported for file attachments")
+            raise ValueError(
+                f"Entity type {self.__class__.__name__} is not supported for file attachments"
+            )
         return self.client.file_attachments.upload(
             path=path,
             entity=self,
