@@ -57,7 +57,7 @@ all = [
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
     'rosbags~=0.0',
-    'sift-stream-bindings>=0.2.0-rc',
+    'sift-stream-bindings>=0.2.0-rc.2',
     'types-pyOpenSSL<24.0.0',
 ]
 build = [
