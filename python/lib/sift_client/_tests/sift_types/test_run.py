@@ -221,8 +221,7 @@ class TestRun:
 
         # Verify file_attachments.list_ was called with correct parameters
         mock_client.file_attachments.list_.assert_called_once_with(
-            entity_type="ENTITY_TYPE_RUN",
-            entity_id=mock_run.id_,
+            entity=mock_run,
         )
 
         # Verify result
@@ -243,8 +242,7 @@ class TestRun:
 
         # Verify file_attachments.list_ was called with correct parameters
         mock_client.file_attachments.list_.assert_called_once_with(
-            entity_type="ENTITY_TYPE_RUN",
-            entity_id=mock_run.id_,
+            entity=mock_run,
         )
 
         # Verify result

@@ -225,8 +225,7 @@ class TestResultsTest:
 
         # Verify file_attachments.list_ was called with correct parameters
         mock_client.file_attachments.list_.assert_called_once_with(
-            entity_type="ENTITY_TYPE_TEST_REPORT",
-            entity_id=mock_test_report.id_,
+            entity=mock_test_report,
         )
 
         # Verify result

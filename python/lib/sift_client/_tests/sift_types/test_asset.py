@@ -179,8 +179,7 @@ class TestAsset:
 
         # Verify file_attachments.list_ was called with correct parameters
         mock_client.file_attachments.list_.assert_called_once_with(
-            entity_type="ENTITY_TYPE_ASSET",
-            entity_id=mock_asset.id_,
+            entity=mock_asset,
         )
 
         # Verify result
