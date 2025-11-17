@@ -584,7 +584,7 @@ class FileAttachmentsAPI:
             entity: Filter by entity (Run, Asset, or TestReport).
             remote_file_id: Filter by remote file ID.
             file_name: Filter by file name.
-            entity_type: Filter by entity type (e.g., 'ENTITY_TYPE_ASSET', 'ENTITY_TYPE_RUN').
+            entity_type: Filter by entity type enum value (e.g., 1 for Run, 3 for Asset, 5 for TestReport).
             entity_id: Filter by entity ID.
             order_by: The field to order by.
             limit: Maximum number of results to return.

@@ -27,23 +27,22 @@ class FileAttachmentsMixin:
     - client: SiftClient property
 
     The entity type is automatically determined from the class name:
-    - Asset -> ENTITY_TYPE_ASSET
-    - Run -> ENTITY_TYPE_RUN
-    - TestReport -> ENTITY_TYPE_TEST_REPORT
+    - Asset -> assets
+    - Run -> runs
+    - TestReport -> test_reports
     """
 
-    # Mapping of class names to entity types
+    # Mapping of class names to entity types (REST API format)
     _ENTITY_TYPE_MAP: ClassVar[dict[str, str]] = {
-        "Asset": "ENTITY_TYPE_ASSET",
-        "Run": "ENTITY_TYPE_RUN",
-        "TestReport": "ENTITY_TYPE_TEST_REPORT",
+        "Asset": "assets",
+        "Run": "runs",
+        "TestReport": "test_reports",
     }
-
     def _get_entity_type_name(self) -> str:
-        """Get the entity type for filtering based on the class name.
+        """Get the entity type string.
 
         Returns:
-            The entity type string (e.g., 'ENTITY_TYPE_ASSET', 'ENTITY_TYPE_RUN')
+            The entity type string (e.g., 'assets', 'runs', 'test_reports')
 
         Raises:
             ValueError: If the class name is not in the entity type mapping.

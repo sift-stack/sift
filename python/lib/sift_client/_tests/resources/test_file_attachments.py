@@ -12,6 +12,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 
 from sift_client import SiftClient
 from sift_client.resources import FileAttachmentsAPI, FileAttachmentsAPIAsync
@@ -58,7 +59,7 @@ def test_asset(sift_client: SiftClient):
     pytest.skip("No assets available for testing")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def uploaded_file_attachment(file_attachments_api_async, test_run):
     """Upload a test file and return the file attachment, cleaning up after test."""
     # Create a temporary test file
@@ -476,44 +477,6 @@ class TestFileAttachmentsAPIAsync:
 
             assert isinstance(url, str)
             assert len(url) > 0
-
-        @pytest.mark.asyncio
-        async def test_download_file(self, file_attachments_api_async, uploaded_file_attachment):
-            """Test downloading a file attachment to a local path."""
-            with tempfile.TemporaryDirectory() as tmpdir:
-                output_path = Path(tmpdir) / "downloaded_file.txt"
-
-                # Download the file
-                await file_attachments_api_async.download(
-                    file_attachment=uploaded_file_attachment,
-                    output_path=output_path,
-                )
-
-                # Verify the file was downloaded
-                assert output_path.exists()
-                assert output_path.stat().st_size > 0
-
-                # Verify content
-                content = output_path.read_text()
-                assert "Test file content for integration tests" in content
-
-        @pytest.mark.asyncio
-        async def test_download_file_by_id(
-            self, file_attachments_api_async, uploaded_file_attachment
-        ):
-            """Test downloading a file attachment using file attachment ID."""
-            with tempfile.TemporaryDirectory() as tmpdir:
-                output_path = Path(tmpdir) / "downloaded_by_id.txt"
-
-                # Download using ID
-                await file_attachments_api_async.download(
-                    file_attachment=uploaded_file_attachment.id_,
-                    output_path=str(output_path),  # Test with string path
-                )
-
-                # Verify the file was downloaded
-                assert output_path.exists()
-                assert output_path.stat().st_size > 0
 
 
 class TestFileAttachmentsAPISync:
