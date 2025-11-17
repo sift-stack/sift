@@ -38,6 +38,7 @@ class FileAttachmentsMixin:
         "Run": "runs",
         "TestReport": "test_reports",
     }
+
     def _get_entity_type_name(self) -> str:
         """Get the entity type string.
 
