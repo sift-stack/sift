@@ -407,7 +407,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         };
 
         let task_config = TaskConfig {
-            session_name: format!("{}.{}", asset_name, ingestion_config.client_key),
+            session_name: format!("stream.{}.{}", asset_name, ingestion_config.client_key),
             sift_stream_id: Uuid::new_v4(),
             ingestion_channel,
             reingestion_channel,

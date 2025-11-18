@@ -424,193 +424,193 @@ impl SiftStreamMetricsSnapshot {
     pub(crate) fn channel_configs(channel_prefix: &str) -> Vec<ChannelConfig> {
         vec![
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.elapsed_secs"),
+                name: format!("{channel_prefix}.elapsed_secs"),
                 description: "Elapsed seconds since stream creation".into(),
                 data_type: ChannelDataType::Double.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.loaded_flows"),
+                name: format!("{channel_prefix}.loaded_flows"),
                 description: "Number of loaded flows".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.unique_flows_received"),
+                name: format!("{channel_prefix}.unique_flows_received"),
                 description: "Number of unique flows received".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.messages_received"),
+                name: format!("{channel_prefix}.messages_received"),
                 description: "Total messages received".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.messages_sent"),
+                name: format!("{channel_prefix}.messages_sent"),
                 description: "Total messages sent".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.message_rate"),
+                name: format!("{channel_prefix}.message_rate"),
                 description: "Message rate (messages/sec)".into(),
                 data_type: ChannelDataType::Double.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.bytes_sent"),
+                name: format!("{channel_prefix}.bytes_sent"),
                 description: "Total bytes sent".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.byte_rate"),
+                name: format!("{channel_prefix}.byte_rate"),
                 description: "Byte rate (bytes/sec)".into(),
                 data_type: ChannelDataType::Double.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.messages_sent_to_backup"),
+                name: format!("{channel_prefix}.messages_sent_to_backup"),
                 description: "Messages sent to backup".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.old_messages_dropped_for_ingestion"),
+                name: format!("{channel_prefix}.old_messages_dropped_for_ingestion"),
                 description: "Old messages dropped for ingestion".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.cur_retry_count"),
+                name: format!("{channel_prefix}.cur_retry_count"),
                 description: "Current retry count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.ingestion_channel_depth"),
+                name: format!("{channel_prefix}.ingestion_channel_depth"),
                 description: "Ingestion channel depth".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backup_channel_depth"),
+                name: format!("{channel_prefix}.backup_channel_depth"),
                 description: "Backup channel depth".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.count"),
+                name: format!("{channel_prefix}.checkpoint.count"),
                 description: "Total checkpoint count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.failed_count"),
+                name: format!("{channel_prefix}.checkpoint.failed_count"),
                 description: "Failed checkpoint count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.timer_reached_count"),
+                name: format!("{channel_prefix}.checkpoint.timer_reached_count"),
                 description: "Checkpoint timer reached count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.manually_reached_count"),
+                name: format!("{channel_prefix}.checkpoint.manually_reached_count"),
                 description: "Checkpoint manually reached count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.cur_elapsed_secs"),
+                name: format!("{channel_prefix}.checkpoint.cur_elapsed_secs"),
                 description: "Current checkpoint elapsed seconds".into(),
                 data_type: ChannelDataType::Double.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.cur_messages_sent"),
+                name: format!("{channel_prefix}.checkpoint.cur_messages_sent"),
                 description: "Current checkpoint messages sent".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.cur_message_rate"),
+                name: format!("{channel_prefix}.checkpoint.cur_message_rate"),
                 description: "Current checkpoint message rate".into(),
                 data_type: ChannelDataType::Double.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.cur_bytes_sent"),
+                name: format!("{channel_prefix}.checkpoint.cur_bytes_sent"),
                 description: "Current checkpoint bytes sent".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.checkpoint.cur_byte_rate"),
+                name: format!("{channel_prefix}.checkpoint.cur_byte_rate"),
                 description: "Current checkpoint byte rate".into(),
                 data_type: ChannelDataType::Double.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.cur_checkpoint_file_count"),
+                name: format!("{channel_prefix}.backups.cur_checkpoint_file_count"),
                 description: "Current checkpoint file count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.cur_checkpoint_cur_file_size"),
+                name: format!("{channel_prefix}.backups.cur_checkpoint_cur_file_size"),
                 description: "Current checkpoint current file size".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.cur_checkpoint_bytes"),
+                name: format!("{channel_prefix}.backups.cur_checkpoint_bytes"),
                 description: "Current checkpoint bytes".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.cur_checkpoint_messages"),
+                name: format!("{channel_prefix}.backups.cur_checkpoint_messages"),
                 description: "Current checkpoint messages".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.total_file_count"),
+                name: format!("{channel_prefix}.backups.total_file_count"),
                 description: "Total file count".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.total_bytes"),
+                name: format!("{channel_prefix}.backups.total_bytes"),
                 description: "Total bytes".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.total_messages"),
+                name: format!("{channel_prefix}.backups.total_messages"),
                 description: "Total messages".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.files_pending_ingestion"),
+                name: format!("{channel_prefix}.backups.files_pending_ingestion"),
                 description: "Files pending ingestion".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.files_ingested"),
+                name: format!("{channel_prefix}.backups.files_ingested"),
                 description: "Files ingested".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
             ChannelConfig {
-                name: format!("{channel_prefix}.stream.backups.cur_ingest_retries"),
+                name: format!("{channel_prefix}.backups.cur_ingest_retries"),
                 description: "Current ingest retries".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
@@ -620,132 +620,117 @@ impl SiftStreamMetricsSnapshot {
 
     pub(crate) fn channel_values(&self, channel_prefix: &str) -> Vec<ChannelValue> {
         vec![
+            ChannelValue::new(&format!("{channel_prefix}.elapsed_secs"), self.elapsed_secs),
+            ChannelValue::new(&format!("{channel_prefix}.loaded_flows"), self.loaded_flows),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.elapsed_secs"),
-                self.elapsed_secs,
-            ),
-            ChannelValue::new(
-                &format!("{channel_prefix}.stream.loaded_flows"),
-                self.loaded_flows,
-            ),
-            ChannelValue::new(
-                &format!("{channel_prefix}.stream.unique_flows_received"),
+                &format!("{channel_prefix}.unique_flows_received"),
                 self.unique_flows_received,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.messages_received"),
+                &format!("{channel_prefix}.messages_received"),
                 self.messages_received,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.messages_sent"),
+                &format!("{channel_prefix}.messages_sent"),
                 self.messages_sent,
             ),
+            ChannelValue::new(&format!("{channel_prefix}.message_rate"), self.message_rate),
+            ChannelValue::new(&format!("{channel_prefix}.bytes_sent"), self.bytes_sent),
+            ChannelValue::new(&format!("{channel_prefix}.byte_rate"), self.byte_rate),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.message_rate"),
-                self.message_rate,
-            ),
-            ChannelValue::new(
-                &format!("{channel_prefix}.stream.bytes_sent"),
-                self.bytes_sent,
-            ),
-            ChannelValue::new(
-                &format!("{channel_prefix}.stream.byte_rate"),
-                self.byte_rate,
-            ),
-            ChannelValue::new(
-                &format!("{channel_prefix}.stream.messages_sent_to_backup"),
+                &format!("{channel_prefix}.messages_sent_to_backup"),
                 self.messages_sent_to_backup,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.old_messages_dropped_for_ingestion"),
+                &format!("{channel_prefix}.old_messages_dropped_for_ingestion"),
                 self.old_messages_dropped_for_ingestion,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.cur_retry_count"),
+                &format!("{channel_prefix}.cur_retry_count"),
                 self.cur_retry_count,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.streamingestion_channel_depth"),
+                &format!("{channel_prefix}ingestion_channel_depth"),
                 self.ingestion_channel_depth,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backup_channel_depth"),
+                &format!("{channel_prefix}.backup_channel_depth"),
                 self.backup_channel_depth,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.count"),
+                &format!("{channel_prefix}.checkpoint.count"),
                 self.checkpoint.checkpoint_count,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.failed_count"),
+                &format!("{channel_prefix}.checkpoint.failed_count"),
                 self.checkpoint.failed_checkpoint_count,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.timer_reached_count"),
+                &format!("{channel_prefix}.checkpoint.timer_reached_count"),
                 self.checkpoint.checkpoint_timer_reached_cnt,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.manually_reached_count"),
+                &format!("{channel_prefix}.checkpoint.manually_reached_count"),
                 self.checkpoint.checkpoint_manually_reached_cnt,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.cur_elapsed_secs"),
+                &format!("{channel_prefix}.checkpoint.cur_elapsed_secs"),
                 self.checkpoint.cur_elapsed_secs,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.cur_messages_sent"),
+                &format!("{channel_prefix}.checkpoint.cur_messages_sent"),
                 self.checkpoint.cur_messages_sent,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.cur_message_rate"),
+                &format!("{channel_prefix}.checkpoint.cur_message_rate"),
                 self.checkpoint.cur_message_rate,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.cur_bytes_sent"),
+                &format!("{channel_prefix}.checkpoint.cur_bytes_sent"),
                 self.checkpoint.cur_bytes_sent,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.checkpoint.cur_byte_rate"),
+                &format!("{channel_prefix}.checkpoint.cur_byte_rate"),
                 self.checkpoint.cur_byte_rate,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.cur_checkpoint_file_count"),
+                &format!("{channel_prefix}.backups.cur_checkpoint_file_count"),
                 self.backups.cur_checkpoint_file_count,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.cur_checkpoint_cur_file_size"),
+                &format!("{channel_prefix}.backups.cur_checkpoint_cur_file_size"),
                 self.backups.cur_checkpoint_cur_file_size,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.cur_checkpoint_bytes"),
+                &format!("{channel_prefix}.backups.cur_checkpoint_bytes"),
                 self.backups.cur_checkpoint_bytes,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.cur_checkpoint_messages"),
+                &format!("{channel_prefix}.backups.cur_checkpoint_messages"),
                 self.backups.cur_checkpoint_messages,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.total_file_count"),
+                &format!("{channel_prefix}.backups.total_file_count"),
                 self.backups.total_file_count,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.total_bytes"),
+                &format!("{channel_prefix}.backups.total_bytes"),
                 self.backups.total_bytes,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.total_messages"),
+                &format!("{channel_prefix}.backups.total_messages"),
                 self.backups.total_messages,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.files_pending_ingestion"),
+                &format!("{channel_prefix}.backups.files_pending_ingestion"),
                 self.backups.files_pending_ingestion,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.files_ingested"),
+                &format!("{channel_prefix}.backups.files_ingested"),
                 self.backups.files_ingested,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}.stream.backups.cur_ingest_retries"),
+                &format!("{channel_prefix}.backups.cur_ingest_retries"),
                 self.backups.cur_ingest_retries,
             ),
         ]
