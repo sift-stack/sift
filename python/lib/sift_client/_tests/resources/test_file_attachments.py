@@ -47,7 +47,7 @@ def test_run(sift_client: SiftClient):
     runs = sift_client.runs.list_(limit=1)
     if runs:
         return runs[0]
-    pytest.skip("No runs available for testing")
+    pytest.fail("No runs available for testing, please add test test runs")
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def test_asset(sift_client: SiftClient):
     assets = sift_client.assets.list_(limit=1)
     if assets:
         return assets[0]
-    pytest.skip("No assets available for testing")
+    pytest.fail("No assets available for testing, please add test test assets")
 
 
 @pytest_asyncio.fixture
@@ -197,11 +197,8 @@ class TestFileAttachmentsAPIAsync:
         async def test_get_nonexistent_raises_error(self, file_attachments_api_async):
             """Test that getting a non-existent file attachment raises an error."""
             # Should raise an error for non-existent file attachment
-            try:
+            with pytest.raises(Exception):
                 await file_attachments_api_async.get(file_attachment_id="nonexistent-file-id-12345")
-                pytest.fail("Expected an exception for non-existent file attachment")
-            except Exception:
-                pass  # Expected - any exception is acceptable
 
     class TestList:
         """Tests for the async list_ method."""
@@ -343,11 +340,8 @@ class TestFileAttachmentsAPIAsync:
                 await file_attachments_api_async.delete(file_attachments=file_attachment.id_)
 
                 # Verify it's deleted by attempting to get it (should raise error)
-                try:
+                with pytest.raises(Exception):
                     await file_attachments_api_async.get(file_attachment_id=file_attachment.id_)
-                    pytest.fail("Expected file attachment to be deleted")
-                except Exception:
-                    pass  # Expected - file was deleted
             finally:
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
@@ -371,11 +365,8 @@ class TestFileAttachmentsAPIAsync:
                 await file_attachments_api_async.delete(file_attachments=file_attachment)
 
                 # Verify it's deleted by attempting to get it (should raise error)
-                try:
+                with pytest.raises(Exception):
                     await file_attachments_api_async.get(file_attachment_id=file_attachment.id_)
-                    pytest.fail("Expected file attachment to be deleted")
-                except Exception:
-                    pass  # Expected - file was deleted
             finally:
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
@@ -405,11 +396,8 @@ class TestFileAttachmentsAPIAsync:
 
                 # Verify they're all deleted
                 for fa in file_attachments:
-                    try:
+                    with pytest.raises(Exception):
                         await file_attachments_api_async.get(file_attachment_id=fa.id_)
-                        pytest.fail(f"Expected file attachment {fa.id_} to be deleted")
-                    except Exception:  # noqa: PERF203
-                        pass  # Expected - file was deleted
             finally:
                 for tmp_path in tmp_paths:
                     if os.path.exists(tmp_path):
@@ -441,11 +429,8 @@ class TestFileAttachmentsAPIAsync:
 
                 # Verify they're all deleted
                 for fa_id in ids:
-                    try:
+                    with pytest.raises(Exception):
                         await file_attachments_api_async.get(file_attachment_id=fa_id)
-                        pytest.fail(f"Expected file attachment {fa_id} to be deleted")
-                    except Exception:  # noqa: PERF203
-                        pass  # Expected - file was deleted
             finally:
                 for tmp_path in tmp_paths:
                     if os.path.exists(tmp_path):
@@ -477,6 +462,19 @@ class TestFileAttachmentsAPIAsync:
 
             assert isinstance(url, str)
             assert len(url) > 0
+
+        # @pytest.mark.asyncio
+        # async def test_download_file(self, file_attachments_api_async, uploaded_file_attachment):
+        #     """Test downloading a file attachment."""
+        #     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
+        #         tmp.write("Test file content\n")
+        #         tmp_path = tmp.name
+
+        #     await file_attachments_api_async.download(file_attachment=uploaded_file_attachment, output_path=tmp_path)
+        #     assert os.path.exists(tmp_path)
+        #     with open(tmp_path, "r") as f:
+        #         assert f.read() == "Test file content\n"
+        #     os.unlink(tmp_path)
 
 
 class TestFileAttachmentsAPISync:

@@ -65,7 +65,7 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
     file_mime_type: str
     file_content_encoding: str
     storage_key: str
-    file_size: int
+    file_size: int # Bytes
     description: str
     created_by_user_id: str
     modified_by_user_id: str
@@ -91,6 +91,7 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
             modified_by_user_id=proto.modified_by_user_id,
             created_date=proto.created_date.ToDatetime(tzinfo=timezone.utc),
             modified_date=proto.modified_date.ToDatetime(tzinfo=timezone.utc),
+            proto=proto,
             _client=sift_client,
         )
 

@@ -11,7 +11,7 @@ from sift_client.util import cel_utils as cel
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
-    from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
+    from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate, RemoteFileEntityType
     from sift_client.sift_types.run import Run
     from sift_client.sift_types.test_report import TestReport
 
@@ -32,6 +32,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = RemoteFilesLowLevelClient(grpc_client=self.client.grpc_client)
         self._upload_client = UploadLowLevelClient(rest_client=self.client.rest_client)
+        self.greeting = "Hello, World!"
 
     async def get(self, *, file_attachment_id: str) -> FileAttachment:
         """Get a file attachment by ID.
@@ -54,7 +55,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         entity: Run | Asset | TestReport | None = None,
         remote_file_id: str | None = None,
         file_name: str | None = None,
-        entity_type: str | None = None,
+        entity_type: RemoteFileEntityType | None = None,
         entity_id: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
@@ -205,7 +206,6 @@ class FileAttachmentsAPIAsync(ResourceBase):
         Args:
             path: The path to the file to upload.
             entity: The entity that the file is attached to.
-            entity_type: The type of entity (e.g., "runs", "annotations", "annotation_logs").
             metadata: Optional metadata for the file (e.g., video/image metadata).
             description: Optional description of the file.
             organization_id: Optional organization ID.
