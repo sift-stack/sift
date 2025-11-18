@@ -11,7 +11,11 @@ from sift_client.util import cel_utils as cel
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
-    from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate, RemoteFileEntityType
+    from sift_client.sift_types.file_attachment import (
+        FileAttachment,
+        FileAttachmentUpdate,
+        RemoteFileEntityType,
+    )
     from sift_client.sift_types.run import Run
     from sift_client.sift_types.test_report import TestReport
 

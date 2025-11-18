@@ -197,7 +197,7 @@ class TestFileAttachmentsAPIAsync:
         async def test_get_nonexistent_raises_error(self, file_attachments_api_async):
             """Test that getting a non-existent file attachment raises an error."""
             # Should raise an error for non-existent file attachment
-            with pytest.raises(Exception):
+            with pytest.raises(Exception, match="invalid input syntax for type uuid"):
                 await file_attachments_api_async.get(file_attachment_id="nonexistent-file-id-12345")
 
     class TestList:
@@ -340,7 +340,7 @@ class TestFileAttachmentsAPIAsync:
                 await file_attachments_api_async.delete(file_attachments=file_attachment.id_)
 
                 # Verify it's deleted by attempting to get it (should raise error)
-                with pytest.raises(Exception):
+                with pytest.raises(Exception, match="An error occurred"):
                     await file_attachments_api_async.get(file_attachment_id=file_attachment.id_)
             finally:
                 if os.path.exists(tmp_path):
@@ -365,7 +365,7 @@ class TestFileAttachmentsAPIAsync:
                 await file_attachments_api_async.delete(file_attachments=file_attachment)
 
                 # Verify it's deleted by attempting to get it (should raise error)
-                with pytest.raises(Exception):
+                with pytest.raises(Exception, match="An error occurred"):
                     await file_attachments_api_async.get(file_attachment_id=file_attachment.id_)
             finally:
                 if os.path.exists(tmp_path):
@@ -396,7 +396,7 @@ class TestFileAttachmentsAPIAsync:
 
                 # Verify they're all deleted
                 for fa in file_attachments:
-                    with pytest.raises(Exception):
+                    with pytest.raises(Exception, match="An error occurred"):
                         await file_attachments_api_async.get(file_attachment_id=fa.id_)
             finally:
                 for tmp_path in tmp_paths:
@@ -429,7 +429,7 @@ class TestFileAttachmentsAPIAsync:
 
                 # Verify they're all deleted
                 for fa_id in ids:
-                    with pytest.raises(Exception):
+                    with pytest.raises(Exception, match="An error occurred"):
                         await file_attachments_api_async.get(file_attachment_id=fa_id)
             finally:
                 for tmp_path in tmp_paths:
