@@ -65,7 +65,7 @@ class FileAttachment(BaseType[RemoteFileProto, "FileAttachment"]):
     file_mime_type: str
     file_content_encoding: str
     storage_key: str
-    file_size: int # Bytes
+    file_size: int  # Bytes
     description: str
     created_by_user_id: str
     modified_by_user_id: str
