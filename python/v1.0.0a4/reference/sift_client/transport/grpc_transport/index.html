@@ -17,22 +17,19 @@
         <link rel="next" href="../rest_transport/">
       
       
-        
-      
-      
       <link rel="icon" href="../../../../stylesheets/sift-favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
     
     
       
-        <title>grpc_transport - Sift | Python Client Library</title>
+        <title>sift_client.transport.grpc_transport - Sift | Python Client Library</title>
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -59,6 +56,7 @@
     
       
 
+    
     
     
   </head>
@@ -130,7 +128,7 @@ You're not viewing the latest version.
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              grpc_transport
+              sift_client.transport.grpc_transport
             
           </span>
         </div>
@@ -225,7 +223,7 @@ You're not viewing the latest version.
         <a href="https://github.com/sift-stack/sift/tree/main/python" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -383,7 +381,7 @@ You're not viewing the latest version.
       <a href="https://github.com/sift-stack/sift/tree/main/python" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -405,14 +403,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     Home
-  
-
     
   </span>
-  
   
 
       </a>
@@ -456,14 +449,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     Sift Py API
-  
-
     
   </span>
-  
   
 
       
@@ -514,14 +502,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     Sift Client API (New)
-  
-
     
   </span>
-  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -530,11 +513,7 @@ You're not viewing the latest version.
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
-            
-  
-    Sift Client API (New)
-  
-
+            Sift Client API (New)
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -573,14 +552,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     sift_client
-  
-
     
   </span>
-  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -589,11 +563,7 @@ You're not viewing the latest version.
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_1">
             <span class="md-nav__icon md-icon"></span>
-            
-  
-    sift_client
-  
-
+            sift_client
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -609,14 +579,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     sift_client
-  
-
     
   </span>
-  
   
 
       </a>
@@ -637,14 +602,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     client
-  
-
     
   </span>
-  
   
 
       </a>
@@ -665,14 +625,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     errors
-  
-
     
   </span>
-  
   
 
       </a>
@@ -713,14 +668,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     resources
-  
-
     
   </span>
-  
   
 
       
@@ -767,14 +717,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     sift_types
-  
-
     
   </span>
-  
   
 
       
@@ -821,14 +766,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     transport
-  
-
     
   </span>
-  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -837,11 +777,7 @@ You're not viewing the latest version.
         <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_1_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_1_6">
             <span class="md-nav__icon md-icon"></span>
-            
-  
-    transport
-  
-
+            transport
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -857,14 +793,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
-    transport
-  
-
+    sift_client.transport
     
   </span>
-  
   
 
       </a>
@@ -885,14 +816,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     base_connection
-  
-
     
   </span>
-  
   
 
       </a>
@@ -922,14 +848,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     grpc_transport
-  
-
     
   </span>
-  
   
 
           <span class="md-nav__icon md-icon"></span>
@@ -940,14 +861,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     grpc_transport
-  
-
     
   </span>
-  
   
 
       </a>
@@ -972,9 +888,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.logger" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;logger
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;logger
     </span>
   </a>
   
@@ -983,9 +897,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GrpcClient
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GrpcClient
     </span>
   </a>
   
@@ -995,9 +907,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.default_loop" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;default_loop
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;default_loop
     </span>
   </a>
   
@@ -1006,9 +916,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.__aenter__" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__aenter__
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__aenter__
     </span>
   </a>
   
@@ -1017,9 +925,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.__aexit__" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__aexit__
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__aexit__
     </span>
   </a>
   
@@ -1028,9 +934,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.__enter__" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__enter__
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__enter__
     </span>
   </a>
   
@@ -1039,9 +943,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.__exit__" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__exit__
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__exit__
     </span>
   </a>
   
@@ -1050,9 +952,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.close" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close
     </span>
   </a>
   
@@ -1061,9 +961,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.close_sync" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close_sync
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close_sync
     </span>
   </a>
   
@@ -1072,9 +970,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.get_stub" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_stub
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_stub
     </span>
   </a>
   
@@ -1088,9 +984,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GrpcConfig
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GrpcConfig
     </span>
   </a>
   
@@ -1100,9 +994,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.api_key" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;api_key
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;api_key
     </span>
   </a>
   
@@ -1111,9 +1003,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.cert_via_openssl" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;cert_via_openssl
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;cert_via_openssl
     </span>
   </a>
   
@@ -1122,9 +1012,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.metadata" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;metadata
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;metadata
     </span>
   </a>
   
@@ -1133,9 +1021,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.uri" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;uri
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;uri
     </span>
   </a>
   
@@ -1144,9 +1030,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.use_ssl" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;use_ssl
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;use_ssl
     </span>
   </a>
   
@@ -1178,14 +1062,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     rest_transport
-  
-
     
   </span>
-  
   
 
       </a>
@@ -1234,14 +1113,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     util
-  
-
     
   </span>
-  
   
 
       
@@ -1303,14 +1177,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     Examples
-  
-
     
   </span>
-  
   
 
       
@@ -1355,9 +1224,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.logger" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;logger
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;logger
     </span>
   </a>
   
@@ -1366,9 +1233,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GrpcClient
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GrpcClient
     </span>
   </a>
   
@@ -1378,9 +1243,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.default_loop" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;default_loop
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;default_loop
     </span>
   </a>
   
@@ -1389,9 +1252,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.__aenter__" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__aenter__
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__aenter__
     </span>
   </a>
   
@@ -1400,9 +1261,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.__aexit__" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__aexit__
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__aexit__
     </span>
   </a>
   
@@ -1411,9 +1270,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.__enter__" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__enter__
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__enter__
     </span>
   </a>
   
@@ -1422,9 +1279,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.__exit__" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__exit__
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__exit__
     </span>
   </a>
   
@@ -1433,9 +1288,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.close" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close
     </span>
   </a>
   
@@ -1444,9 +1297,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.close_sync" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close_sync
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close_sync
     </span>
   </a>
   
@@ -1455,9 +1306,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcClient.get_stub" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_stub
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_stub
     </span>
   </a>
   
@@ -1471,9 +1320,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GrpcConfig
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GrpcConfig
     </span>
   </a>
   
@@ -1483,9 +1330,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.api_key" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;api_key
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;api_key
     </span>
   </a>
   
@@ -1494,9 +1339,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.cert_via_openssl" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;cert_via_openssl
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;cert_via_openssl
     </span>
   </a>
   
@@ -1505,9 +1348,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.metadata" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;metadata
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;metadata
     </span>
   </a>
   
@@ -1516,9 +1357,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.uri" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;uri
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;uri
     </span>
   </a>
   
@@ -1527,9 +1366,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_client.transport.grpc_transport.GrpcConfig.use_ssl" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;use_ssl
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;use_ssl
     </span>
   </a>
   
@@ -1550,7 +1387,6 @@ You're not viewing the latest version.
           
           
             <div class="md-content" data-md-component="content">
-              
               <article class="md-content__inner md-typeset">
                 
 
@@ -1575,8 +1411,6 @@ You're not viewing the latest version.
         <p>Transport layer for gRPC communication.</p>
 <p>This module provides a simple wrapper around sift_py/grpc/transport.py for making gRPC API calls.
 It just stores the channel and the stubs, without any additional functionality.</p>
-
-
 
 
 
@@ -1676,7 +1510,6 @@ It just stores the channel and the stubs, without any additional functionality.<
 </div>
 
 
-
 <div class="doc doc-object doc-class">
 
 
@@ -1690,7 +1523,6 @@ It just stores the channel and the stubs, without any additional functionality.<
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
-
 
 
         <p>A simple wrapper around sift_py/grpc/transport.py for making gRPC API calls.</p>
@@ -1725,8 +1557,6 @@ It just stores the channel and the stubs, without any additional functionality.<
           </tr>
       </tbody>
     </table>
-
-
 
 
 
@@ -1913,7 +1743,6 @@ It just stores the channel and the stubs, without any additional functionality.<
 
 
 
-
 <div class="doc doc-object doc-function">
 
 
@@ -2088,7 +1917,6 @@ Creates a channel and stub for this loop if needed.</p>
     <div class="doc doc-contents ">
 
 
-
         <p>Configuration for gRPC API clients.</p>
 
         <p>Initialize the gRPC configuration.</p>
@@ -2208,8 +2036,6 @@ Creates a channel and stub for this loop if needed.</p>
           </tr>
       </tbody>
     </table>
-
-
 
 
 
@@ -2433,7 +2259,6 @@ Creates a channel and stub for this loop if needed.</p>
 
 
 
-
   </div>
 
     </div>
@@ -2512,11 +2337,10 @@ Creates a channel and stub for this loop if needed.</p>
     
     
       
-      
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.sections", "navigation.tracking", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.sections", "navigation.tracking", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
       
     
   </body>

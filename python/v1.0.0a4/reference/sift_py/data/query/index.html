@@ -17,22 +17,19 @@
         <link rel="next" href="../service/">
       
       
-        
-      
-      
       <link rel="icon" href="../../../../stylesheets/sift-favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
     
     
       
-        <title>query - Sift | Python Client Library</title>
+        <title>sift_py.data.query - Sift | Python Client Library</title>
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.342714a4.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -59,6 +56,7 @@
     
       
 
+    
     
     
   </head>
@@ -130,7 +128,7 @@ You're not viewing the latest version.
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              query
+              sift_py.data.query
             
           </span>
         </div>
@@ -225,7 +223,7 @@ You're not viewing the latest version.
         <a href="https://github.com/sift-stack/sift/tree/main/python" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -383,7 +381,7 @@ You're not viewing the latest version.
       <a href="https://github.com/sift-stack/sift/tree/main/python" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -405,14 +403,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     Home
-  
-
     
   </span>
-  
   
 
       </a>
@@ -455,14 +448,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     Sift Py API
-  
-
     
   </span>
-  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -471,11 +459,7 @@ You're not viewing the latest version.
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
-            
-  
-    Sift Py API
-  
-
+            Sift Py API
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -514,14 +498,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     sift_py
-  
-
     
   </span>
-  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -530,11 +509,7 @@ You're not viewing the latest version.
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_1">
             <span class="md-nav__icon md-icon"></span>
-            
-  
-    sift_py
-  
-
+            sift_py
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -550,14 +525,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     sift_py
-  
-
     
   </span>
-  
   
 
       </a>
@@ -598,14 +568,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     asset
-  
-
     
   </span>
-  
   
 
       
@@ -652,14 +617,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     calculated_channels
-  
-
     
   </span>
-  
   
 
       
@@ -706,14 +666,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     data
-  
-
     
   </span>
-  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -722,11 +677,7 @@ You're not viewing the latest version.
         <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_1_4">
             <span class="md-nav__icon md-icon"></span>
-            
-  
-    data
-  
-
+            data
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -742,14 +693,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
-    data
-  
-
+    sift_py.data
     
   </span>
-  
   
 
       </a>
@@ -770,14 +716,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     error
-  
-
     
   </span>
-  
   
 
       </a>
@@ -807,14 +748,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     query
-  
-
     
   </span>
-  
   
 
           <span class="md-nav__icon md-icon"></span>
@@ -825,14 +761,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     query
-  
-
     
   </span>
-  
   
 
       </a>
@@ -857,9 +788,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelLookupInfo" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;ChannelLookupInfo
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;ChannelLookupInfo
     </span>
   </a>
   
@@ -868,9 +797,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CalculatedChannelQuery
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CalculatedChannelQuery
     </span>
   </a>
   
@@ -880,9 +807,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery.channel_key" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_key
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_key
     </span>
   </a>
   
@@ -891,9 +816,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery.expression" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression
     </span>
   </a>
   
@@ -902,9 +825,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery.expression_channel_references" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression_channel_references
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression_channel_references
     </span>
   </a>
   
@@ -913,9 +834,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery.run_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_name
     </span>
   </a>
   
@@ -929,9 +848,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ChannelQuery
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ChannelQuery
     </span>
   </a>
   
@@ -941,9 +858,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery.channel_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_name
     </span>
   </a>
   
@@ -952,9 +867,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery.component" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;component
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;component
     </span>
   </a>
   
@@ -963,9 +876,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery.run_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_name
     </span>
   </a>
   
@@ -974,9 +885,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery.fqn" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;fqn
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;fqn
     </span>
   </a>
   
@@ -990,9 +899,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQuery
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQuery
     </span>
   </a>
   
@@ -1002,9 +909,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.DEFAULT_PAGE_SIZE" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;DEFAULT_PAGE_SIZE
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;DEFAULT_PAGE_SIZE
     </span>
   </a>
   
@@ -1013,9 +918,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.asset_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;asset_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;asset_name
     </span>
   </a>
   
@@ -1024,9 +927,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.channels" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channels
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channels
     </span>
   </a>
   
@@ -1035,9 +936,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.end_time" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;end_time
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;end_time
     </span>
   </a>
   
@@ -1046,9 +945,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.page_size" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;page_size
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;page_size
     </span>
   </a>
   
@@ -1057,9 +954,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.sample_ms" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;sample_ms
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;sample_ms
     </span>
   </a>
   
@@ -1068,9 +963,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.start_time" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;start_time
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;start_time
     </span>
   </a>
   
@@ -1084,9 +977,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResult" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQueryResult
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQueryResult
     </span>
   </a>
   
@@ -1096,9 +987,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResult.all_channels" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;all_channels
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;all_channels
     </span>
   </a>
   
@@ -1107,9 +996,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResult.channel" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;channel
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;channel
     </span>
   </a>
   
@@ -1118,9 +1005,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResult.channels" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;channels
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;channels
     </span>
   </a>
   
@@ -1134,9 +1019,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQueryResultSet
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQueryResultSet
     </span>
   </a>
   
@@ -1146,9 +1029,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.identifier" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;identifier
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;identifier
     </span>
   </a>
   
@@ -1157,9 +1038,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.timestamps" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;timestamps
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;timestamps
     </span>
   </a>
   
@@ -1168,9 +1047,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.values" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;values
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;values
     </span>
   </a>
   
@@ -1179,9 +1056,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.columns" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;columns
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;columns
     </span>
   </a>
   
@@ -1190,9 +1065,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.time_column" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;time_column
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;time_column
     </span>
   </a>
   
@@ -1201,9 +1074,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.value_column" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;value_column
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;value_column
     </span>
   </a>
   
@@ -1217,9 +1088,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ExpressionChannelReference
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ExpressionChannelReference
     </span>
   </a>
   
@@ -1229,9 +1098,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference.channel_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_name
     </span>
   </a>
   
@@ -1240,9 +1107,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference.component" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;component
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;component
     </span>
   </a>
   
@@ -1251,9 +1116,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference.data_type" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;data_type
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;data_type
     </span>
   </a>
   
@@ -1262,9 +1125,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference.reference" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;reference
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;reference
     </span>
   </a>
   
@@ -1296,14 +1157,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     service
-  
-
     
   </span>
-  
   
 
       </a>
@@ -1352,14 +1208,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     data_import
-  
-
     
   </span>
-  
   
 
       
@@ -1386,14 +1237,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     error
-  
-
     
   </span>
-  
   
 
       </a>
@@ -1434,14 +1280,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     file_attachment
-  
-
     
   </span>
-  
   
 
       
@@ -1488,14 +1329,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     grpc
-  
-
     
   </span>
-  
   
 
       
@@ -1542,14 +1378,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     ingestion
-  
-
     
   </span>
-  
   
 
       
@@ -1596,14 +1427,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     report_templates
-  
-
     
   </span>
-  
   
 
       
@@ -1630,14 +1456,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     rest
-  
-
     
   </span>
-  
   
 
       </a>
@@ -1678,14 +1499,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     rule
-  
-
     
   </span>
-  
   
 
       
@@ -1732,14 +1548,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     yaml
-  
-
     
   </span>
-  
   
 
       
@@ -1805,14 +1616,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     Sift Client API (New)
-  
-
     
   </span>
-  
   
 
       
@@ -1860,14 +1666,9 @@ You're not viewing the latest version.
   
   
   <span class="md-ellipsis">
-    
-  
     Examples
-  
-
     
   </span>
-  
   
 
       
@@ -1912,9 +1713,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelLookupInfo" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;ChannelLookupInfo
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;ChannelLookupInfo
     </span>
   </a>
   
@@ -1923,9 +1722,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CalculatedChannelQuery
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CalculatedChannelQuery
     </span>
   </a>
   
@@ -1935,9 +1732,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery.channel_key" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_key
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_key
     </span>
   </a>
   
@@ -1946,9 +1741,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery.expression" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression
     </span>
   </a>
   
@@ -1957,9 +1750,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery.expression_channel_references" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression_channel_references
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;expression_channel_references
     </span>
   </a>
   
@@ -1968,9 +1759,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.CalculatedChannelQuery.run_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_name
     </span>
   </a>
   
@@ -1984,9 +1773,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ChannelQuery
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ChannelQuery
     </span>
   </a>
   
@@ -1996,9 +1783,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery.channel_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_name
     </span>
   </a>
   
@@ -2007,9 +1792,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery.component" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;component
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;component
     </span>
   </a>
   
@@ -2018,9 +1801,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery.run_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;run_name
     </span>
   </a>
   
@@ -2029,9 +1810,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ChannelQuery.fqn" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;fqn
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;fqn
     </span>
   </a>
   
@@ -2045,9 +1824,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQuery
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQuery
     </span>
   </a>
   
@@ -2057,9 +1834,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.DEFAULT_PAGE_SIZE" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;DEFAULT_PAGE_SIZE
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;DEFAULT_PAGE_SIZE
     </span>
   </a>
   
@@ -2068,9 +1843,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.asset_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;asset_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;asset_name
     </span>
   </a>
   
@@ -2079,9 +1852,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.channels" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channels
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channels
     </span>
   </a>
   
@@ -2090,9 +1861,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.end_time" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;end_time
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;end_time
     </span>
   </a>
   
@@ -2101,9 +1870,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.page_size" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;page_size
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;page_size
     </span>
   </a>
   
@@ -2112,9 +1879,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.sample_ms" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;sample_ms
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;sample_ms
     </span>
   </a>
   
@@ -2123,9 +1888,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQuery.start_time" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;start_time
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;start_time
     </span>
   </a>
   
@@ -2139,9 +1902,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResult" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQueryResult
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQueryResult
     </span>
   </a>
   
@@ -2151,9 +1912,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResult.all_channels" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;all_channels
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;all_channels
     </span>
   </a>
   
@@ -2162,9 +1921,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResult.channel" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;channel
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;channel
     </span>
   </a>
   
@@ -2173,9 +1930,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResult.channels" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;channels
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;channels
     </span>
   </a>
   
@@ -2189,9 +1944,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQueryResultSet
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DataQueryResultSet
     </span>
   </a>
   
@@ -2201,9 +1954,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.identifier" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;identifier
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;identifier
     </span>
   </a>
   
@@ -2212,9 +1963,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.timestamps" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;timestamps
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;timestamps
     </span>
   </a>
   
@@ -2223,9 +1972,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.values" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;values
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;values
     </span>
   </a>
   
@@ -2234,9 +1981,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.columns" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;columns
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;columns
     </span>
   </a>
   
@@ -2245,9 +1990,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.time_column" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;time_column
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;time_column
     </span>
   </a>
   
@@ -2256,9 +1999,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.DataQueryResultSet.value_column" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;value_column
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;value_column
     </span>
   </a>
   
@@ -2272,9 +2013,7 @@ You're not viewing the latest version.
         <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ExpressionChannelReference
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ExpressionChannelReference
     </span>
   </a>
   
@@ -2284,9 +2023,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference.channel_name" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_name
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;channel_name
     </span>
   </a>
   
@@ -2295,9 +2032,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference.component" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;component
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;component
     </span>
   </a>
   
@@ -2306,9 +2041,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference.data_type" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;data_type
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;data_type
     </span>
   </a>
   
@@ -2317,9 +2050,7 @@ You're not viewing the latest version.
           <li class="md-nav__item">
   <a href="#sift_py.data.query.ExpressionChannelReference.reference" class="md-nav__link">
     <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;reference
-      
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;reference
     </span>
   </a>
   
@@ -2340,7 +2071,6 @@ You're not viewing the latest version.
           
           
             <div class="md-content" data-md-component="content">
-              
               <article class="md-content__inner md-typeset">
                 
 
@@ -2366,8 +2096,6 @@ You're not viewing the latest version.
 passed to <code>sift_py.data.service.DataService.execute</code> to download telemetry.</p>
 <p>This module also contains types that represent the result of a data query
 which can be easily converted into a <code>pandas</code> data frame or series.</p>
-
-
 
 
 
@@ -2505,7 +2233,6 @@ which can be easily converted into a <code>pandas</code> data frame or series.</
 </div>
 
 
-
 <div class="doc doc-object doc-class">
 
 
@@ -2528,10 +2255,7 @@ which can be easily converted into a <code>pandas</code> data frame or series.</
     <div class="doc doc-contents ">
 
 
-
         <p>Represents a single calculated channel to include in the <code>sift_py.data.query.DataQuery</code>.</p>
-
-
 
 
 
@@ -2736,7 +2460,6 @@ which can be easily converted into a <code>pandas</code> data frame or series.</
 
 
 
-
   </div>
 
     </div>
@@ -2762,10 +2485,7 @@ which can be easily converted into a <code>pandas</code> data frame or series.</
     <div class="doc doc-contents ">
 
 
-
         <p>Represents a single channel to include in the <code>sift_py.data.query.DataQuery</code>.</p>
-
-
 
 
 
@@ -2945,7 +2665,6 @@ which can be easily converted into a <code>pandas</code> data frame or series.</
 
 
 
-
 <div class="doc doc-object doc-function">
 
 
@@ -3006,7 +2725,6 @@ which can be easily converted into a <code>pandas</code> data frame or series.</
     <div class="doc doc-contents ">
 
 
-
         <p>A query that is meant to be passed to <code>sift_py.data.service.DataService.execute</code> to
 retrieve telemetry.</p>
 <ul>
@@ -3020,8 +2738,6 @@ retrieve telemetry.</p>
     List of either <code>ChannelQuery</code> or <code>CalculatedChannelQuery</code>, but not both. Represents the
     channels to retrieve data from.</li>
 </ul>
-
-
 
 
 
@@ -3347,7 +3063,6 @@ retrieve telemetry.</p>
 
 
 
-
   </div>
 
     </div>
@@ -3371,10 +3086,7 @@ retrieve telemetry.</p>
     <div class="doc doc-contents ">
 
 
-
         <p>The result of a data query which can contain multiple channels.</p>
-
-
 
 
 
@@ -3426,7 +3138,6 @@ retrieve telemetry.</p>
 
 
   <div class="doc doc-children">
-
 
 
 
@@ -3543,12 +3254,9 @@ the <code>sift_py.data.channel.ChannelTimeSeries</code>.</p>
     <div class="doc doc-contents ">
 
 
-
         <p>Represents time series data for a single channel. Can easily be converted into a <code>pandas</code> data frame like so:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data_query_result_set</span><span class="o">.</span><span class="n">all_columns</span><span class="p">())</span>
 </span></code></pre></div>
-
-
 
 
 
@@ -3744,7 +3452,6 @@ the <code>sift_py.data.channel.ChannelTimeSeries</code>.</p>
 
 
 
-
 <div class="doc doc-object doc-function">
 
 
@@ -3836,9 +3543,6 @@ the <code>sift_py.data.channel.ChannelTimeSeries</code>.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="typing.TypedDict" href="https://docs.python.org/3/library/typing.html#typing.TypedDict">TypedDict</a></code></p>
-
-
-
 
 
 
@@ -4042,7 +3746,6 @@ the <code>sift_py.data.channel.ChannelTimeSeries</code>.</p>
 
 
 
-
   </div>
 
     </div>
@@ -4121,11 +3824,10 @@ the <code>sift_py.data.channel.ChannelTimeSeries</code>.</p>
     
     
       
-      
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.sections", "navigation.tracking", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.sections", "navigation.tracking", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
       
     
   </body>

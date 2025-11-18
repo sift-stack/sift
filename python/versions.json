@@ -50,7 +50,9 @@
   {
     "version": "v1.0.0a4",
     "title": "v1.0.0a4",
-    "aliases": [],
+    "aliases": [
+      "pre-release"
+    ],
     "properties": {
       "hidden": true
     }
