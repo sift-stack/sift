@@ -369,6 +369,7 @@ impl SiftStream<IngestionConfigMode> {
             self.mode.stream_system.backup_manager,
             self.mode.stream_system.ingestion,
             self.mode.stream_system.reingestion,
+            self.mode.stream_system.metrics_streaming,
         );
 
         #[cfg(feature = "tracing")]

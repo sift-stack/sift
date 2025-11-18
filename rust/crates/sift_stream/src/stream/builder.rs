@@ -27,6 +27,9 @@ use uuid::Uuid;
 /// The default checkpoint interval (1 minute) to use if left unspecified.
 pub const DEFAULT_CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
 
+/// The default metrics streaming interval (500 milliseconds) to use if left unspecified.
+pub const DEFAULT_METRICS_STREAMING_INTERVAL: Duration = Duration::from_millis(500);
+
 /// Configures and builds an instance of [SiftStream]. The quickest way to get started is to simply
 /// pass your [Credentials] to [SiftStreamBuilder::new] as well as your [IngestionConfigForm] and
 /// call [SiftStreamBuilder::build] like so:
@@ -59,6 +62,7 @@ pub struct SiftStreamBuilder<C> {
     ingestion_data_channel_capacity: usize,
     backup_data_channel_capacity: usize,
     enable_compression_for_ingestion: bool,
+    metrics_streaming_interval: Option<Duration>,
 
     // Either `run` or `run_id`. If both are provided then the `run_id` will be prioritized.
     run: Option<RunForm>,
@@ -130,6 +134,15 @@ impl<C> SiftStreamBuilder<C>
 where
     C: SiftStreamMode,
 {
+    /// Sets the interval to stream [`SiftStreamMetrics`] to Sift. If `None`, metrics streaming will be disabled.
+    pub fn metrics_streaming_interval(
+        mut self,
+        interval: Option<Duration>,
+    ) -> SiftStreamBuilder<C> {
+        self.metrics_streaming_interval = interval;
+        self
+    }
+
     /// Sets the control channel capacity. See the [top-level documentation](crate#checkpoints)
     /// for further details.
     pub fn control_channel_capacity(mut self, capacity: usize) -> SiftStreamBuilder<C> {
@@ -232,6 +245,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
             ingestion_data_channel_capacity: DATA_CHANNEL_CAPACITY,
             backup_data_channel_capacity: DATA_CHANNEL_CAPACITY,
+            metrics_streaming_interval: Some(DEFAULT_METRICS_STREAMING_INTERVAL),
         }
     }
 
@@ -260,6 +274,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             control_channel_capacity: CONTROL_CHANNEL_CAPACITY,
             ingestion_data_channel_capacity: DATA_CHANNEL_CAPACITY,
             backup_data_channel_capacity: DATA_CHANNEL_CAPACITY,
+            metrics_streaming_interval: Some(DEFAULT_METRICS_STREAMING_INTERVAL),
         }
     }
 
@@ -392,6 +407,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
         };
 
         let task_config = TaskConfig {
+            session_name: format!("{}.{}", asset_name, ingestion_config.client_key),
             sift_stream_id: Uuid::new_v4(),
             ingestion_channel,
             reingestion_channel,
@@ -403,6 +419,7 @@ impl SiftStreamBuilder<IngestionConfigMode> {
             control_channel_capacity: self.control_channel_capacity,
             ingestion_data_channel_capacity: self.ingestion_data_channel_capacity,
             backup_data_channel_capacity: self.backup_data_channel_capacity,
+            metrics_streaming_interval: self.metrics_streaming_interval,
         };
 
         SiftStream::<IngestionConfigMode>::new(ingestion_config, flows, run, task_config, metrics)
