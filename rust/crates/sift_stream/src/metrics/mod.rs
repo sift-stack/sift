@@ -650,7 +650,7 @@ impl SiftStreamMetricsSnapshot {
                 self.cur_retry_count,
             ),
             ChannelValue::new(
-                &format!("{channel_prefix}ingestion_channel_depth"),
+                &format!("{channel_prefix}.ingestion_channel_depth"),
                 self.ingestion_channel_depth,
             ),
             ChannelValue::new(
