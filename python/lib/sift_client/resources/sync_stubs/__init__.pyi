@@ -21,7 +21,11 @@ if TYPE_CHECKING:
         CalculatedChannelUpdate,
     )
     from sift_client.sift_types.channel import Channel
-    from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
+    from sift_client.sift_types.file_attachment import (
+        FileAttachment,
+        FileAttachmentUpdate,
+        RemoteFileEntityType,
+    )
     from sift_client.sift_types.report import Report, ReportUpdate
     from sift_client.sift_types.rule import Rule, RuleCreate, RuleUpdate
     from sift_client.sift_types.run import Run, RunCreate, RunUpdate
@@ -572,7 +576,7 @@ class FileAttachmentsAPI:
         entity: Run | Asset | TestReport | None = None,
         remote_file_id: str | None = None,
         file_name: str | None = None,
-        entity_type: str | None = None,
+        entity_type: RemoteFileEntityType | None = None,
         entity_id: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
@@ -620,7 +624,6 @@ class FileAttachmentsAPI:
         Args:
             path: The path to the file to upload.
             entity: The entity that the file is attached to.
-            entity_type: The type of entity (e.g., "runs", "annotations", "annotation_logs").
             metadata: Optional metadata for the file (e.g., video/image metadata).
             description: Optional description of the file.
             organization_id: Optional organization ID.
