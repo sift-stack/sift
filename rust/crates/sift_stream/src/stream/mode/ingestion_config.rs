@@ -369,8 +369,12 @@ impl SiftStream<IngestionConfigMode> {
             self.mode.stream_system.backup_manager,
             self.mode.stream_system.ingestion,
             self.mode.stream_system.reingestion,
-            self.mode.stream_system.metrics_streaming,
         );
+
+        // Finally, wait for the metrics streaming task to complete.
+        if let Some(metrics_streaming) = self.mode.stream_system.metrics_streaming {
+            let _ = metrics_streaming.await;
+        }
 
         #[cfg(feature = "tracing")]
         tracing::info!(

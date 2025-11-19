@@ -87,7 +87,7 @@ pub(crate) struct StreamSystem {
     pub(crate) backup_manager: JoinHandle<Result<()>>,
     pub(crate) ingestion: JoinHandle<Result<()>>,
     pub(crate) reingestion: JoinHandle<Result<()>>,
-    pub(crate) metrics_streaming: JoinHandle<Result<()>>,
+    pub(crate) metrics_streaming: Option<JoinHandle<Result<()>>>,
     pub(crate) control_tx: broadcast::Sender<ControlMessage>,
     pub(crate) ingestion_tx: async_channel::Sender<DataMessage>,
     pub(crate) backup_tx: async_channel::Sender<DataMessage>,
@@ -177,20 +177,24 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
         reingestion_task.run().await
     });
 
-    // Start metrics streaming task
+    // Start metrics streaming task if an interval is configured.
     let metrics_config = config.clone();
     let metrics_control_rx = control_tx.subscribe();
-    let metrics_streaming = tokio::spawn(async move {
-        let metrics_task = MetricsStreamingTask::new(metrics_control_rx, metrics_config).await?;
+    let metrics_streaming = if let Some(interval) = config.metrics_streaming_interval {
+        Some(tokio::spawn(async move {
+            let metrics_task = MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
 
-        #[cfg(feature = "tracing")]
-        tracing::info!(
-            sift_stream_id = config.sift_stream_id.to_string(),
-            "metrics streaming task started"
-        );
+            #[cfg(feature = "tracing")]
+            tracing::info!(
+                sift_stream_id = config.sift_stream_id.to_string(),
+                "metrics streaming task started"
+            );
 
-        metrics_task.run().await
-    });
+            metrics_task.run().await
+        }))
+    } else {
+        None
+    };
 
     #[cfg(feature = "tracing")]
     tracing::info!(
@@ -469,7 +473,7 @@ impl IngestionTask {
 const METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME: &str = "sift_app";
 
 /// The client key used for sift_stream metrics ingestion config.
-const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics";
+const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics-v1";
 
 /// The flow name used for sift_stream metrics flow config.
 const METRICS_STREAMING_FLOW_NAME: &str = "sift-stream-metrics-flow";
@@ -478,19 +482,22 @@ pub(crate) struct MetricsStreamingTask {
     stream: SiftStream<IngestionConfigMode>,
     control_rx: broadcast::Receiver<ControlMessage>,
     session_name: String,
-    interval: Option<Duration>,
+    interval: Duration,
     metrics: Arc<SiftStreamMetrics>,
 }
 
 impl MetricsStreamingTask {
     pub(crate) async fn new(
         control_rx: broadcast::Receiver<ControlMessage>,
+        interval: Duration,
         config: TaskConfig,
     ) -> Result<Self> {
+
         let session_name = config.session_name;
+        let client_key = format!("{}-{}", METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY, session_name.replace(".", "-"));
         let ingestion_config = IngestionConfigForm {
             asset_name: METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME.to_string(),
-            client_key: METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY.to_string(),
+            client_key,
             flows: vec![FlowConfig {
                 name: METRICS_STREAMING_FLOW_NAME.to_string(),
                 channels: SiftStreamMetricsSnapshot::channel_configs(&session_name),
@@ -518,22 +525,18 @@ impl MetricsStreamingTask {
             })
             .build()
             .await?;
+
         Ok(Self {
             stream,
             control_rx,
             session_name,
-            interval: config.metrics_streaming_interval,
+            interval,
             metrics: config.metrics.clone(),
         })
     }
 
     pub(crate) async fn run(mut self) -> Result<()> {
-        let Some(interval) = self.interval else {
-            #[cfg(feature = "tracing")]
-            tracing::info!("metrics streaming disabled");
-            return Ok(());
-        };
-        let mut interval = tokio::time::interval(interval);
+        let mut interval = tokio::time::interval(self.interval);
 
         loop {
             select! {
