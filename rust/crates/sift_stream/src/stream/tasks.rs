@@ -1,8 +1,8 @@
 use crate::{
     DiskBackupPolicy, Flow, FlowConfig, IngestionConfigForm, IngestionConfigMode, RecoveryStrategy,
-    RetryPolicy, SiftStream, SiftStreamBuilder, SiftStreamMetricsSnapshot, TimeValue,
+    RetryPolicy, SiftStream, SiftStreamBuilder, TimeValue,
     backup::disk::{AsyncBackupsManager, BackupIngestTask},
-    metrics::SiftStreamMetrics,
+    metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
     stream::mode::ingestion_config::DataStream,
 };
 use async_channel;
@@ -180,21 +180,19 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
     // Start metrics streaming task if an interval is configured.
     let metrics_config = config.clone();
     let metrics_control_rx = control_tx.subscribe();
-    let metrics_streaming = if let Some(interval) = config.metrics_streaming_interval {
-        Some(tokio::spawn(async move {
-            let metrics_task = MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
+    let metrics_streaming = config.metrics_streaming_interval.map(|interval| {
+        tokio::spawn(async move {
+            let metrics_task =
+                MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
 
             #[cfg(feature = "tracing")]
             tracing::info!(
                 sift_stream_id = config.sift_stream_id.to_string(),
                 "metrics streaming task started"
             );
-
             metrics_task.run().await
-        }))
-    } else {
-        None
-    };
+        })
+    });
 
     #[cfg(feature = "tracing")]
     tracing::info!(
@@ -473,7 +471,7 @@ impl IngestionTask {
 const METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME: &str = "sift_app";
 
 /// The client key used for sift_stream metrics ingestion config.
-const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics-v1";
+const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics";
 
 /// The flow name used for sift_stream metrics flow config.
 const METRICS_STREAMING_FLOW_NAME: &str = "sift-stream-metrics-flow";
@@ -492,9 +490,26 @@ impl MetricsStreamingTask {
         interval: Duration,
         config: TaskConfig,
     ) -> Result<Self> {
-
+        use std::hash::{Hash, Hasher};
         let session_name = config.session_name;
-        let client_key = format!("{}-{}", METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY, session_name.replace(".", "-"));
+
+        let channels = SiftStreamMetricsSnapshot::channel_configs(&session_name);
+
+        // Hash the channel names to create a unique client key for the ingestion config.
+        //
+        // Given the same "session_name", which influences the channel names, and the same metrics configuration,
+        // the ingestion config client key should be the same and re-used.
+        let mut hasher = std::hash::DefaultHasher::new();
+        channels.iter().for_each(|channel| {
+            channel.name.hash(&mut hasher);
+        });
+        let hash_key = hasher.finish();
+
+        let client_key = format!(
+            "{}-{}",
+            METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY, hash_key
+        );
+
         let ingestion_config = IngestionConfigForm {
             asset_name: METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME.to_string(),
             client_key,

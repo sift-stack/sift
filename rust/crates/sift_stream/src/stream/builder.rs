@@ -134,7 +134,10 @@ impl<C> SiftStreamBuilder<C>
 where
     C: SiftStreamMode,
 {
-    /// Sets the interval to stream [`SiftStreamMetrics`] to Sift. If `None`, metrics streaming will be disabled.
+    /// Sets the interval to stream [`SiftStreamMetrics`] to Sift.
+    ///
+    /// The default interval is [DEFAULT_METRICS_STREAMING_INTERVAL].
+    /// If `None`, metrics streaming will be disabled.
     pub fn metrics_streaming_interval(
         mut self,
         interval: Option<Duration>,
