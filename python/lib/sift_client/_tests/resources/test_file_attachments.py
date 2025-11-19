@@ -513,8 +513,7 @@ class TestFileAttachmentsAPISync:
 
                 # Download the file
                 file_attachments_api_sync.download(
-                    file_attachment=file_attachment,
-                    output_path=download_path
+                    file_attachment=file_attachment, output_path=download_path
                 )
 
                 # Verify the downloaded content matches the original
