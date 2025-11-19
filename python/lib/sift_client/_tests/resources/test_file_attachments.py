@@ -518,7 +518,7 @@ class TestFileAttachmentsAPISync:
                 )
 
                 # Verify the downloaded content matches the original
-                with open(download_path, "r") as f:
+                with open(download_path) as f:
                     downloaded_content = f.read()
 
                 assert downloaded_content == "Sync test file\n"
