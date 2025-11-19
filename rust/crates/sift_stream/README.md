@@ -52,14 +52,16 @@ error handling, and shutdown processes.
 - Writes messages to backup files in PBFS format
 - Manages backup file rotation based on size/count limits
 - Handles checkpoint completion and cleanup
+- Tracks message IDs to determine which messages have been successfully committed to Sift
+- Skips backing up messages that have already been confirmed as successfully streamed (when backups are behind ingestion)
 
 **Control Messages Sent:**
 - `BackupFull` - When backup files reach maximum count limit
 - `ReingestBackups` - When checkpoint fails and backup files need re-ingestion
 
 **Control Messages Received:**
-- `CheckpointComplete` - Signals checkpoint completion
-- `CheckpointNeedsReingestion` - Signals the current checkpoint will need re-ingestion
+- `CheckpointComplete { first_message_id, last_message_id }` - Signals checkpoint completion with the range of message IDs in the checkpoint
+- `CheckpointNeedsReingestion { first_message_id, last_message_id }` - Signals the current checkpoint will need re-ingestion with the range of message IDs
 - `Shutdown` - Initiates graceful shutdown
 
 **Conditions for Sending Messages:**
@@ -76,8 +78,8 @@ error handling, and shutdown processes.
 
 **Control Messages Sent:**
 - `SignalNextCheckpoint` - When a new stream is desired to verify messages sent have been successfully received
-- `CheckpointComplete` - When the current stream has concluded at the end of a checkpoint
-- `CheckpointNeedsReingestion` - When gRPC stream fails
+- `CheckpointComplete { first_message_id, last_message_id }` - When the current stream has concluded at the end of a checkpoint, includes the range of message IDs in the checkpoint
+- `CheckpointNeedsReingestion { first_message_id, last_message_id }` - When gRPC stream fails, includes the range of message IDs that need re-ingestion
 
 **Control Messages Received:**
 - `BackupFull` - Triggers immediate checkpoint completion, reseting the normal checkpoint interval
@@ -87,10 +89,11 @@ error handling, and shutdown processes.
 - `SignalNextCheckpoint`: 
   - Timer expires (checkpoint_interval reached)
   - Backup full signal received
-- `CheckpointComplete`:
+- `CheckpointComplete { first_message_id, last_message_id }`:
   - When the existing stream has completed at the end of a checkpoint
   - During shutdown process
-- `CheckpointNeedsReingestion`: When gRPC stream fails with error
+  - Includes the range of message IDs that were successfully streamed in this checkpoint
+- `CheckpointNeedsReingestion { first_message_id, last_message_id }`: When gRPC stream fails with error, includes the range of message IDs that need to be re-ingested
 
 ### 3. Re-ingestion Task
 
@@ -117,6 +120,10 @@ Streaming data in this situation is preferred over preventing it entirely. It is
 however that write speeds be sufficiently high for the given data stream being backed up to ensure data
 is reliably backed up.
 
+The message ID-based checkpoint system helps mitigate the impact of backups falling behind: messages that
+have already been confirmed as successfully streamed (via successful checkpoints) are automatically skipped
+during backup, allowing the backup system to catch up more efficiently.
+
 In contrast, if the primary ingestion channel becomes full, the oldest data will be removed in favor of
 streaming newer data. The data removed during this process will be forwarded to the backup system and
 will be re-ingested at the next checkpoint.
@@ -134,7 +141,16 @@ These can be configured however, based on individual streaming needs.
 
 ## Checkpoint System
 
-The checkpoint system ensures data reliability by periodically creating checkpoints that can be used for recovery.
+The checkpoint system ensures data reliability by periodically creating checkpoints that can be used for recovery. The system uses message IDs to precisely track which messages have been successfully streamed to Sift, enabling efficient backup management even when ingestion and backup processes are out of sync.
+
+### Message ID-Based Tracking
+
+Each message in the stream is assigned a unique, monotonically increasing message ID. Checkpoints track the range of message IDs (`first_message_id` to `last_message_id`) that were included in the checkpoint, allowing the backup manager to:
+
+- **Quickly drain committed messages**: Messages that have already been confirmed as successfully streamed (message ID ≤ committed message ID) are skipped during backup, improving efficiency when backups are behind ingestion
+- **Precisely match files to checkpoints**: Backup files track the range of message IDs they contain, enabling exact matching with checkpoint ranges
+- **Handle out-of-order scenarios**: The system correctly handles cases where ingestion completes before backups catch up, or where backups are ahead of ingestion
+
 
 ### Checkpoint Triggers
 
@@ -146,10 +162,10 @@ The checkpoint system ensures data reliability by periodically creating checkpoi
 
 1. **Checkpoint Signal**: Timer expires or backup full signal received
 2. **Stream Completion**: Current gRPC stream completes sending all buffered data
-3. **Checkpoint Complete**: `CheckpointComplete` control message sent
-4. **Backup Cleanup**: Backup files either deleted (success) or queued for re-ingestion (failure)
+3. **Checkpoint Complete**: `CheckpointComplete { first_message_id, last_message_id }` control message sent with the range of message IDs in the checkpoint
+4. **Backup Cleanup**: Backup files either deleted (success) or queued for re-ingestion (failure) based on matching message ID ranges
 
-When a stream completes, an "ok" gRPC status from Sift indicates all messages for that stream have been received.
+When a stream completes, an "ok" gRPC status from Sift indicates all messages for that stream have been received. The checkpoint includes the range of message IDs that were successfully streamed.
 
 Backup files can also be retained regardless of successful checkpoints and re-ingestion processes.
 
@@ -161,11 +177,20 @@ re-ingestion.
 
 #### Backup File Lifecycle
 
-1. **File Creation**: New backup files are created at the start of each checkpoint
-2. **Data Writing**: Messages are written to the current backup file during the checkpoint
+1. **File Creation**: New backup files are created when the first message arrives that needs backing up
+2. **Data Writing**: Messages are written to the current backup file, with each file tracking the range of message IDs it contains (`first_message_id` to `last_message_id`)
 3. **File Rotation**: Files are rotated when they exceed size limits
-4. **Checkpoint Completion**: Files are either deleted (success) or queued for re-ingestion (failure)
-5. **Re-ingestion**: Failed checkpoints trigger re-ingestion of all files from that checkpoint
+4. **Checkpoint Completion**: Files are processed based on checkpoint message ID ranges - files containing only committed messages are deleted (success) or queued for re-ingestion (failure)
+5. **Re-ingestion**: Failed checkpoints trigger re-ingestion of all files whose message ID ranges overlap with the failed checkpoint range
+
+#### Message ID-Based File Processing
+
+The backup manager processes checkpoints in order as backup files catch up to them. When a checkpoint completes:
+
+- Files containing message IDs that are fully within a successful checkpoint range are deleted
+- Files containing message IDs that overlap with a failed checkpoint range are marked for re-ingestion
+- Files containing message IDs beyond the current checkpoint are retained until their checkpoints complete
+
 
 #### Backup File Configuration
 
@@ -231,16 +256,17 @@ otherwise data loss may occur.
 
 1. **User sends data** → `SiftStream::send()`
 2. **Data validation** → Flow cache lookup
-3. **Dual routing** → Both `ingestion_tx` and `backup_tx` channels
-4. **Parallel processing**:
+3. **Message ID assignment** → Each message receives a unique, monotonically increasing ID
+4. **Dual routing** → Both `ingestion_tx` and `backup_tx` channels
+5. **Parallel processing**:
    - Ingestion task → gRPC stream → Sift
    - Backup task → Backup files
-5. **Checkpoint completion** → Cleanup or re-ingestion
+6. **Checkpoint completion** → Cleanup or re-ingestion
 
 ### Failure Recovery Flow
 
-1. **gRPC failure** → `CheckpointNeedsReingestion` signal
-2. **Backup manager** → Queues backup files for re-ingestion
+1. **gRPC failure** → `CheckpointNeedsReingestion { first_message_id, last_message_id }` signal with message ID range
+2. **Backup manager** → Matches backup files to the failed checkpoint range based on message IDs and queues them for re-ingestion
 3. **Re-ingestion task** → Reads backup files and re-streams to Sift
 4. **Success** → Backup files deleted
 5. **Failure** → Retry with exponential backoff
@@ -253,7 +279,7 @@ The system provides comprehensive metrics for monitoring:
 - **Byte counts**: Bytes sent, received
 - **Checkpoint metrics**: Checkpoint success/failure counts, timing
 - **Retry metrics**: Retry counts, backoff timing
-- **Backup metrics**: Backup file counts, sizes, rotation events
+- **Backup metrics**: Backup file counts, sizes, rotation events, committed message ID, queued checkpoints, queued file contexts
 
 ## Key Design Principles
 

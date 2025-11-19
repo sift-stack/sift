@@ -74,6 +74,13 @@ pub struct BackupMetricsSnapshot {
     /// Total messages written to backup files
     pub total_messages: u64,
 
+    /// Message ID of the last committed message
+    pub committed_message_id: u64,
+    /// Number of checkpoints queued for processing
+    pub queued_checkpoints: u64,
+    /// Number of file contexts queued for processing
+    pub queued_file_ctxs: u64,
+
     /// Number of files waiting to be ingested
     pub files_pending_ingestion: u64,
     /// Number of files successfully ingested
@@ -224,6 +231,10 @@ pub(crate) struct BackupMetrics {
     pub total_bytes: U64Counter,
     pub total_messages: U64Counter,
 
+    pub committed_message_id: U64Signal,
+    pub queued_checkpoints: U64Signal,
+    pub queued_file_ctxs: U64Signal,
+
     pub files_pending_ingestion: U64Signal,
     pub files_ingested: U64Counter,
     pub cur_ingest_retries: U64Signal,
@@ -240,6 +251,9 @@ impl BackupMetrics {
             total_bytes: self.total_bytes.get(),
             total_messages: self.total_messages.get(),
             files_pending_ingestion: self.files_pending_ingestion.get(),
+            committed_message_id: self.committed_message_id.get(),
+            queued_checkpoints: self.queued_checkpoints.get(),
+            queued_file_ctxs: self.queued_file_ctxs.get(),
             files_ingested: self.files_ingested.get(),
             cur_ingest_retries: self.cur_ingest_retries.get(),
         }

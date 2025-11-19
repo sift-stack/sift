@@ -12,7 +12,15 @@ use sift_rs::{
     CompressionEncoding,
     ingest::v1::{IngestWithConfigDataStreamRequest, ingest_service_client::IngestServiceClient},
 };
-use std::{path::PathBuf, pin::Pin, sync::Arc, time::Duration};
+use std::{
+    path::PathBuf,
+    pin::Pin,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
+    time::Duration,
+};
 use tokio::{select, sync::broadcast, task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
@@ -39,10 +47,16 @@ pub(crate) enum ControlMessage {
     SignalNextCheckpoint,
 
     /// Signal to complete the checkpoint.
-    CheckpointComplete,
+    CheckpointComplete {
+        first_message_id: u64,
+        last_message_id: u64,
+    },
 
     /// Signal the checkpoint needs re-ingestion.
-    CheckpointNeedsReingestion,
+    CheckpointNeedsReingestion {
+        first_message_id: u64,
+        last_message_id: u64,
+    },
 
     /// Shutdown signal for all tasks
     Shutdown,
@@ -78,6 +92,7 @@ pub(crate) struct TaskConfig {
 /// Data message with stream ID for routing
 #[derive(Debug, Clone)]
 pub(crate) struct DataMessage {
+    pub(crate) message_id: u64,
     pub(crate) request: IngestWithConfigDataStreamRequest,
     pub(crate) dropped_for_ingestion: bool,
 }
@@ -246,6 +261,8 @@ impl IngestionTask {
         // The stream needs to be kept alive independently from receiving control messages in the
         // loop below, so an [`Option`] is used to store the stream future and updated as needed.
         let mut stream = None;
+        let first_message_id = Arc::new(AtomicU64::new(0));
+        let last_message_id = Arc::new(AtomicU64::new(0));
 
         loop {
             // Create a new stream if one doesn't exist yet.
@@ -274,6 +291,8 @@ impl IngestionTask {
                     self.data_rx.clone(),
                     self.control_tx.clone(),
                     self.config.sift_stream_id,
+                    first_message_id.clone(),
+                    last_message_id.clone(),
                     self.config.metrics.clone(),
                 );
 
@@ -305,7 +324,7 @@ impl IngestionTask {
                             current_wait = Duration::ZERO;
                         }
                         Err(e) => {
-                            current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait)?;
+                            current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
                         }
                     }
 
@@ -337,7 +356,7 @@ impl IngestionTask {
                             self.config.metrics.cur_retry_count.set(0);
                         }
                         Ok(Err(e)) => {
-                            current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait)?;
+                            current_wait = self.handle_failed_stream(&e, stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
                         }
                         Err(elapsed) => {
                             #[cfg(feature = "tracing")]
@@ -346,12 +365,12 @@ impl IngestionTask {
                                 error = %elapsed,
                                 "timed out waiting for checkpoint completion from Sift"
                             );
-                            current_wait = self.handle_failed_stream(&Error::new(ErrorKind::StreamError, elapsed), stream_created_at, current_wait)?;
+                            current_wait = self.handle_failed_stream(&Error::new(ErrorKind::StreamError, elapsed), stream_created_at, current_wait, first_message_id.load(Ordering::Relaxed), last_message_id.load(Ordering::Relaxed))?;
                         }
                     }
 
                     self.config.metrics.checkpoint.next_checkpoint();
-                    self.control_tx.send(ControlMessage::CheckpointComplete).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
+                    self.control_tx.send(ControlMessage::CheckpointComplete { first_message_id: first_message_id.load(Ordering::Relaxed), last_message_id: last_message_id.load(Ordering::Relaxed) }).map_err(|e| Error::new(ErrorKind::StreamError, e))?;
                     stream = None;
                 }
                 ctrl_msg = self.control_rx.recv() => {
@@ -376,7 +395,8 @@ impl IngestionTask {
             }
         }
 
-        self.shutdown(stream).await?;
+        self.shutdown(stream, first_message_id, last_message_id)
+            .await?;
 
         Ok(())
     }
@@ -387,6 +407,8 @@ impl IngestionTask {
         e: &Error,
         stream_created_at: Instant,
         current_wait: Duration,
+        first_message_id: u64,
+        last_message_id: u64,
     ) -> Result<Duration> {
         #[cfg(feature = "tracing")]
         tracing::error!(
@@ -402,7 +424,10 @@ impl IngestionTask {
             .failed_checkpoint_count
             .increment();
         self.control_tx
-            .send(ControlMessage::CheckpointNeedsReingestion)
+            .send(ControlMessage::CheckpointNeedsReingestion {
+                first_message_id,
+                last_message_id,
+            })
             .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
 
         // If the stream was healthy for sufficiently long, reset the wait time used for exponential backoff.
@@ -426,6 +451,8 @@ impl IngestionTask {
     async fn shutdown<T: Future<Output = Result<()>> + Send + 'static>(
         &mut self,
         mut stream: Option<Pin<Box<T>>>,
+        first_message_id: Arc<AtomicU64>,
+        last_message_id: Arc<AtomicU64>,
     ) -> Result<()> {
         #[cfg(feature = "tracing")]
         tracing::info!(
@@ -452,7 +479,10 @@ impl IngestionTask {
                         "final stream failed"
                     );
                     self.control_tx
-                        .send(ControlMessage::CheckpointNeedsReingestion)
+                        .send(ControlMessage::CheckpointNeedsReingestion {
+                            first_message_id: first_message_id.load(Ordering::Relaxed),
+                            last_message_id: last_message_id.load(Ordering::Relaxed),
+                        })
                         .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
                 }
             }
@@ -460,7 +490,10 @@ impl IngestionTask {
 
         // Send the final checkpoint complete signal to the backup manager.
         self.control_tx
-            .send(ControlMessage::CheckpointComplete)
+            .send(ControlMessage::CheckpointComplete {
+                first_message_id: first_message_id.load(Ordering::Relaxed),
+                last_message_id: last_message_id.load(Ordering::Relaxed),
+            })
             .map_err(|e| Error::new(ErrorKind::StreamError, e))?;
 
         Ok(())
@@ -611,6 +644,7 @@ mod tests {
             assert!(
                 data_tx
                     .try_send(DataMessage {
+                        message_id: i as u64,
                         request,
                         dropped_for_ingestion: false
                     })
@@ -688,7 +722,13 @@ mod tests {
         // Each checkpoint expiration should generate a checkpoint complete control message.
         let mut complete_count = 0;
         while let Ok(msg) = control_rx.try_recv() {
-            if msg == ControlMessage::CheckpointComplete {
+            if matches!(
+                msg,
+                ControlMessage::CheckpointComplete {
+                    first_message_id: _,
+                    last_message_id: _
+                }
+            ) {
                 complete_count += 1;
             }
         }
@@ -748,7 +788,13 @@ mod tests {
         // Each checkpoint expiration should generate a checkpoint complete control message.
         let mut complete_count = 0;
         while let Ok(msg) = control_rx.try_recv() {
-            if msg == ControlMessage::CheckpointComplete {
+            if matches!(
+                msg,
+                ControlMessage::CheckpointComplete {
+                    first_message_id: _,
+                    last_message_id: _
+                }
+            ) {
                 complete_count += 1;
             }
         }
@@ -819,7 +865,13 @@ mod tests {
         // Each checkpoint expiration should generate a checkpoint complete control message.
         let mut complete_count = 0;
         while let Ok(msg) = control_rx.try_recv() {
-            if msg == ControlMessage::CheckpointComplete {
+            if matches!(
+                msg,
+                ControlMessage::CheckpointComplete {
+                    first_message_id: _,
+                    last_message_id: _
+                }
+            ) {
                 complete_count += 1;
             }
         }
@@ -990,7 +1042,13 @@ mod tests {
         // Each gRPC call failure should trigger a checkpoint reingestion control message.
         let mut needs_reingestion_count = 0;
         while let Ok(msg) = control_rx.try_recv() {
-            if msg == ControlMessage::CheckpointNeedsReingestion {
+            if matches!(
+                msg,
+                ControlMessage::CheckpointNeedsReingestion {
+                    first_message_id: _,
+                    last_message_id: _
+                }
+            ) {
                 needs_reingestion_count += 1;
             }
         }
@@ -1068,7 +1126,13 @@ mod tests {
         // Each checkpoint expiration should generate a checkpoint complete control message.
         let mut complete_count = 0;
         while let Ok(msg) = control_rx.try_recv() {
-            if msg == ControlMessage::CheckpointComplete {
+            if matches!(
+                msg,
+                ControlMessage::CheckpointComplete {
+                    first_message_id: _,
+                    last_message_id: _
+                }
+            ) {
                 complete_count += 1;
             }
         }
@@ -1153,7 +1217,13 @@ mod tests {
         // Each checkpoint expiration should generate a checkpoint complete control message.
         let mut complete_count = 0;
         while let Ok(msg) = control_rx.try_recv() {
-            if msg == ControlMessage::CheckpointComplete {
+            if matches!(
+                msg,
+                ControlMessage::CheckpointComplete {
+                    first_message_id: _,
+                    last_message_id: _
+                }
+            ) {
                 complete_count += 1;
             }
         }
