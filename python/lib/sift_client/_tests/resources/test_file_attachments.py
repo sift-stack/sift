@@ -463,19 +463,6 @@ class TestFileAttachmentsAPIAsync:
             assert isinstance(url, str)
             assert len(url) > 0
 
-        # @pytest.mark.asyncio
-        # async def test_download_file(self, file_attachments_api_async, uploaded_file_attachment):
-        #     """Test downloading a file attachment."""
-        #     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
-        #         tmp.write("Test file content\n")
-        #         tmp_path = tmp.name
-
-        #     await file_attachments_api_async.download(file_attachment=uploaded_file_attachment, output_path=tmp_path)
-        #     assert os.path.exists(tmp_path)
-        #     with open(tmp_path, "r") as f:
-        #         assert f.read() == "Test file content\n"
-        #     os.unlink(tmp_path)
-
 
 class TestFileAttachmentsAPISync:
     """Test suite for the synchronous File Attachments API functionality.
@@ -500,12 +487,17 @@ class TestFileAttachmentsAPISync:
     class TestUpload:
         """Tests for the sync upload method."""
 
-        def test_upload_and_delete(self, file_attachments_api_sync, test_run):
-            """Test synchronous upload and cleanup."""
+        def test_upload_download_and_delete(self, file_attachments_api_sync, test_run):
+            """Test synchronous upload, download, and cleanup."""
             # Create a temporary test file
+            completed = False
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
                 tmp.write("Sync test file\n")
                 tmp_path = tmp.name
+
+            # Create a temporary download path
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
+                download_path = tmp.name
 
             try:
                 # Upload using sync API
@@ -515,11 +507,28 @@ class TestFileAttachmentsAPISync:
                     description="Sync upload test",
                 )
 
+                # Verify the upload
                 assert isinstance(file_attachment, FileAttachment)
                 assert file_attachment.id_ is not None
 
+                # Download the file
+                file_attachments_api_sync.download(
+                    file_attachment=file_attachment,
+                    output_path=download_path
+                )
+
+                # Verify the downloaded content matches the original
+                with open(download_path, "r") as f:
+                    downloaded_content = f.read()
+
+                assert downloaded_content == "Sync test file\n"
+
                 # Cleanup
                 file_attachments_api_sync.delete(file_attachments=file_attachment)
+                completed = True
             finally:
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
+                if os.path.exists(download_path):
+                    os.unlink(download_path)
+                assert completed
