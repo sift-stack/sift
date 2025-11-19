@@ -212,16 +212,16 @@ impl SiftStream<IngestionConfigMode> {
 
     /// Concerned with sending the actual ingest request to [DataStream] which will then write it
     /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
-    fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
+    fn send_impl(&mut self, request: IngestWithConfigDataStreamRequest) -> Result<()> {
         #[cfg(feature = "tracing")]
         {
-            if !self.mode.flows_seen.contains(&req.flow) {
+            if !self.mode.flows_seen.contains(&request.flow) {
                 self.metrics.unique_flows_received.increment();
-                self.mode.flows_seen.insert(req.flow.clone());
+                self.mode.flows_seen.insert(request.flow.clone());
                 tracing::info!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
                     "flow '{}' being ingested for the first time",
-                    &req.flow,
+                    &request.flow,
                 );
             }
         }
@@ -236,7 +236,7 @@ impl SiftStream<IngestionConfigMode> {
 
         let data_msg = DataMessage {
             message_id: self.mode.message_id_counter,
-            request: req.clone(),
+            request: Arc::new(request),
             dropped_for_ingestion: false,
         };
 
@@ -525,7 +525,9 @@ impl Stream for DataStream {
                 self.metrics.checkpoint.cur_messages_sent.increment();
                 self.metrics.bytes_sent.add(message_size);
                 self.metrics.checkpoint.cur_bytes_sent.add(message_size);
-                Poll::Ready(Some(request))
+
+                // NOTE: This will copy the request which can be expensive.
+                Poll::Ready(Some((*request).clone()))
             }
             Poll::Ready(None) => {
                 // All senders dropped.. conclude stream

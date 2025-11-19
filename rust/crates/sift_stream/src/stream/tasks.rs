@@ -93,7 +93,7 @@ pub(crate) struct TaskConfig {
 #[derive(Debug, Clone)]
 pub(crate) struct DataMessage {
     pub(crate) message_id: u64,
-    pub(crate) request: IngestWithConfigDataStreamRequest,
+    pub(crate) request: Arc<IngestWithConfigDataStreamRequest>,
     pub(crate) dropped_for_ingestion: bool,
 }
 
@@ -645,7 +645,7 @@ mod tests {
                 data_tx
                     .try_send(DataMessage {
                         message_id: i as u64,
-                        request,
+                        request: Arc::new(request),
                         dropped_for_ingestion: false
                     })
                     .is_ok(),
