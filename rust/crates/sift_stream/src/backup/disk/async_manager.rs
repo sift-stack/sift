@@ -19,10 +19,12 @@ use std::{
     sync::Arc,
 };
 use tokio::fs::{self, File};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::error::RecvError;
 use tokio_stream::StreamExt;
+
+const BACKUP_FILE_BUFFER_WRITE_SIZE: usize = 128 * 1024;
 
 /// Check if two ranges overlap.
 fn ranges_overlap<T: PartialOrd>(rh: &RangeInclusive<T>, lh: &RangeInclusive<T>) -> bool {
@@ -124,7 +126,7 @@ pub struct AsyncBackupsManager {
     current_file_ctx: FileContext,
 
     /// The current file being written to.
-    current_file: Option<File>,
+    current_file: Option<BufWriter<File>>,
 
     /// The buffer of file contexts that have been written to but not yet processed.
     ///
@@ -134,6 +136,9 @@ pub struct AsyncBackupsManager {
     /// those messages is complete (and indicates if the messages were received by
     /// Sift).
     file_ctx_buffer: VecDeque<FileContext>,
+
+    /// Reusable buffer for encoding PbfsChunk data to avoid per-message allocations.
+    chunk_encode_buffer: Vec<u8>,
 
     /// Metrics for the backup manager.
     metrics: Arc<SiftStreamMetrics>,
@@ -201,6 +206,7 @@ impl AsyncBackupsManager {
             current_file_ctx: FileContext::default(),
             current_file: None,
             file_ctx_buffer: VecDeque::new(),
+            chunk_encode_buffer: Vec::with_capacity(4096), // 4KB initial capacity
             committed_message_id: None,
             checkpoint_queue: VecDeque::new(),
             signaled_full: false,
@@ -218,7 +224,7 @@ impl AsyncBackupsManager {
             tokio::select! {
                 backup_msg = self.data_rx.recv() => {
                     match backup_msg {
-                        Ok(backup_msg) => self.handle_data_message(backup_msg).await?,
+                        Ok(backup_msg) => self.handle_data_message(&backup_msg).await?,
                         Err(async_channel::RecvError) => break,
                     }
                 }
@@ -267,7 +273,7 @@ impl AsyncBackupsManager {
 
         // Drain the data channel of any remaining messages.
         while let Ok(data_message) = self.data_rx.recv().await {
-            self.handle_data_message(data_message).await?;
+            self.handle_data_message(&data_message).await?;
         }
 
         // Trigger the final checkpoint.
@@ -444,7 +450,7 @@ impl AsyncBackupsManager {
     }
 
     /// Process a data message for backup.
-    async fn handle_data_message(&mut self, msg: DataMessage) -> Result<()> {
+    async fn handle_data_message(&mut self, msg: &DataMessage) -> Result<()> {
         if !self.backup_config.enabled {
             return Ok(());
         }
@@ -514,7 +520,7 @@ impl AsyncBackupsManager {
     }
 
     /// Writes a message to the provided file.
-    async fn write_to_file(&mut self, msg: DataMessage) -> Result<()> {
+    async fn write_to_file(&mut self, msg: &DataMessage) -> Result<()> {
         // Create a new file if one doesn't exist.
         if self.current_file.is_none() {
             let (path, file) = Self::create_backup_file(&self.backup_config).await?;
@@ -526,7 +532,10 @@ impl AsyncBackupsManager {
                 message_count: 0,
                 file_size: 0,
             };
-            self.current_file = Some(file);
+            self.current_file = Some(BufWriter::with_capacity(
+                BACKUP_FILE_BUFFER_WRITE_SIZE,
+                file,
+            ));
             self.metrics.backups.log_new_file();
         }
 
@@ -540,14 +549,17 @@ impl AsyncBackupsManager {
         let message_bytes = msg.request.encoded_len() + MESSAGE_LENGTH_PREFIX_LEN;
         self.metrics.backups.log_message(message_bytes as u64);
 
-        // Create a single-message chunk for immediate write
-        let chunk = PbfsChunk::new(&[msg.request])?;
+        // Encode message into reusable buffer to avoid per-message allocations
+        let encoded_chunk = PbfsChunk::encode_into(
+            core::slice::from_ref(msg.request.as_ref()),
+            &mut self.chunk_encode_buffer,
+        )?;
 
         // Write immediately and sync
-        file.write_all(&chunk).await?;
+        file.write_all(encoded_chunk).await?;
 
         self.current_file_ctx.message_count += 1;
-        self.current_file_ctx.file_size += chunk.len();
+        self.current_file_ctx.file_size += encoded_chunk.len();
         self.current_file_ctx.needs_reingest |= msg.dropped_for_ingestion;
 
         if msg.message_id > self.current_file_ctx.last_message_id {
@@ -566,8 +578,15 @@ impl AsyncBackupsManager {
     async fn rotate_file(&mut self) -> Result<()> {
         // Close out the current file by dropping it, if there is no file, there is nothing to do.
         match self.current_file.take() {
-            Some(file) => {
-                // Ensure data is persisted to disk and not simply buffered.
+            Some(mut writer) => {
+                // Flush the buffer to the file.
+                writer
+                    .flush()
+                    .await
+                    .map_err(|e| Error::new(ErrorKind::BackupsError, e))?;
+                let file = writer.into_inner();
+
+                // Ensure data is persisted to disk and not simply buffered in the kernel.
                 if let Err(e) = file.sync_all().await {
                     #[cfg(feature = "tracing")]
                     tracing::warn!("unable to sync backup file, data may be lost: {e:?}");
@@ -609,11 +628,13 @@ impl AsyncBackupsManager {
 
 impl Drop for AsyncBackupsManager {
     fn drop(&mut self) {
-        if let Some(file) = self.current_file.take() {
+        if let Some(writer) = self.current_file.take() {
             #[cfg(feature = "tracing")]
             tracing::warn!(
                 "graceful shutdown was not used -- attempting to sync backup file during drop to prevent data loss"
             );
+
+            let file = writer.into_inner();
 
             // Conver to standard file for blocking sync_all.
             let std_file = match file.try_into_std() {
@@ -764,7 +785,17 @@ impl BackupIngestTask {
                 let backups_decoder = decode_backup(&backup_file_path)?;
 
                 let iter_stream =
-                    tokio_stream::iter(backups_decoder.into_iter()).filter_map(|res| res.ok());
+                    tokio_stream::iter(backups_decoder.into_iter()).filter_map(|res| {
+                        if let Err(e) = &res {
+                            tracing::warn!(
+                                "encountered error from sift ingesting backup file: {:?}",
+                                e
+                            );
+                        } else {
+                            tracing::info!("ingested message from backup file",);
+                        }
+                        res.ok()
+                    });
 
                 let raw_response = client.ingest_with_config_data_stream(iter_stream).await;
                 let response = raw_response
@@ -825,7 +856,7 @@ mod test {
     /// Helper function to create a test data message with a specific message_id.
     fn create_test_data_message(message_id: u64, dropped_for_ingestion: bool) -> DataMessage {
         DataMessage {
-            request: IngestWithConfigDataStreamRequest {
+            request: Arc::new(IngestWithConfigDataStreamRequest {
                 ingestion_config_id: "test-0".to_string(),
                 flow: "some_flow".to_string(),
                 timestamp: Some(*TimeValue::now()),
@@ -833,7 +864,7 @@ mod test {
                     r#type: Some(Type::Int32(message_id as i32)),
                 }],
                 ..Default::default()
-            },
+            }),
             dropped_for_ingestion,
             message_id,
         }
@@ -944,7 +975,7 @@ mod test {
         for i in 0..10 {
             let data_msg = create_test_data_message(i as u64, false);
             assert!(
-                backup_manager.handle_data_message(data_msg).await.is_ok(),
+                backup_manager.handle_data_message(&data_msg).await.is_ok(),
                 "data message should be handled"
             );
             assert!(
@@ -994,7 +1025,7 @@ mod test {
         let data_msg = create_test_data_message(0, false);
 
         assert!(
-            backup_manager.handle_data_message(data_msg).await.is_ok(),
+            backup_manager.handle_data_message(&data_msg).await.is_ok(),
             "data message should be handled"
         );
 
@@ -1052,7 +1083,7 @@ mod test {
             let data_msg = create_test_data_message(i as u64, false);
 
             assert!(
-                backup_manager.handle_data_message(data_msg).await.is_ok(),
+                backup_manager.handle_data_message(&data_msg).await.is_ok(),
                 "data message should be handled"
             );
         }
@@ -1131,7 +1162,7 @@ mod test {
             let data_msg = create_test_data_message(i as u64, false);
 
             assert!(
-                backup_manager.handle_data_message(data_msg).await.is_ok(),
+                backup_manager.handle_data_message(&data_msg).await.is_ok(),
                 "data message should be handled"
             );
         }
@@ -1154,7 +1185,7 @@ mod test {
         let final_data_msg = create_test_data_message(10, false);
         assert!(
             backup_manager
-                .handle_data_message(final_data_msg)
+                .handle_data_message(&final_data_msg)
                 .await
                 .is_ok(),
             "data message should be handled"
@@ -1198,7 +1229,7 @@ mod test {
             let data_msg = create_test_data_message(i as u64, false);
 
             assert!(
-                backup_manager.handle_data_message(data_msg).await.is_ok(),
+                backup_manager.handle_data_message(&data_msg).await.is_ok(),
                 "data message should be handled"
             );
         }
@@ -1272,7 +1303,7 @@ mod test {
         for i in 0..10 {
             let data_msg = create_test_data_message(i as u64, false);
             assert!(
-                backup_manager.handle_data_message(data_msg).await.is_ok(),
+                backup_manager.handle_data_message(&data_msg).await.is_ok(),
                 "data message should be handled"
             );
         }
@@ -1450,7 +1481,7 @@ mod test {
         for i in 0..9 {
             let data_msg = create_test_data_message(i as u64, false);
             assert!(
-                backup_manager.handle_data_message(data_msg).await.is_ok(),
+                backup_manager.handle_data_message(&data_msg).await.is_ok(),
                 "data message should be handled"
             );
         }
@@ -1533,7 +1564,7 @@ mod test {
         let data_msg = create_test_data_message(0, true);
 
         assert!(
-            backup_manager.handle_data_message(data_msg).await.is_ok(),
+            backup_manager.handle_data_message(&data_msg).await.is_ok(),
             "data message should be handled"
         );
 
@@ -1775,7 +1806,7 @@ mod test {
         for i in 0..10 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -1813,7 +1844,7 @@ mod test {
         for i in 10..15 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -1899,7 +1930,7 @@ mod test {
         for i in 0..=14 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -1966,7 +1997,7 @@ mod test {
         for i in 0..20 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2037,7 +2068,7 @@ mod test {
         loop {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2115,7 +2146,7 @@ mod test {
         loop {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2227,7 +2258,7 @@ mod test {
         for i in 0..=20 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2294,7 +2325,7 @@ mod test {
         for i in 0..=10 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2310,7 +2341,7 @@ mod test {
         for i in 11..15 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2324,7 +2355,7 @@ mod test {
 
         // The last message for the second checkpoint should trigger the re-ingestion control message.
         let msg = create_test_data_message(15, false);
-        assert!(backup_manager.handle_data_message(msg).await.is_ok());
+        assert!(backup_manager.handle_data_message(&msg).await.is_ok());
         let mut reingested_backup_files = Vec::new();
         while let Ok(control_message) = control_rx.try_recv() {
             match control_message {
@@ -2345,7 +2376,7 @@ mod test {
         for i in 16..=20 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2390,7 +2421,7 @@ mod test {
         for i in 0..10 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2415,7 +2446,7 @@ mod test {
         let dropped_msg = create_test_data_message(5, true);
         assert!(
             backup_manager
-                .handle_data_message(dropped_msg)
+                .handle_data_message(&dropped_msg)
                 .await
                 .is_ok(),
             "dropped message should be handled"
@@ -2484,7 +2515,7 @@ mod test {
         for i in 0..10 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2549,7 +2580,7 @@ mod test {
         for i in 0..10 {
             let msg = create_test_data_message(i, false);
             assert!(
-                backup_manager.handle_data_message(msg).await.is_ok(),
+                backup_manager.handle_data_message(&msg).await.is_ok(),
                 "message {} should be handled",
                 i
             );
@@ -2671,6 +2702,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[traced_test]
     async fn test_backup_ingest_reingest_files_retain_backups() {
         let tmp_dir = TempDir::new("testbackup_ingest_reingest_files_retain_backups").unwrap();
         let tmp_file_path = create_test_backup_file(&tmp_dir, "backup_file", 100).await;
