@@ -1,7 +1,8 @@
 use crate::{
-    DiskBackupPolicy, RetryPolicy,
+    DiskBackupPolicy, Flow, FlowConfig, IngestionConfigForm, IngestionConfigMode, RecoveryStrategy,
+    RetryPolicy, SiftStream, SiftStreamBuilder, TimeValue,
     backup::disk::{AsyncBackupsManager, BackupIngestTask},
-    metrics::SiftStreamMetrics,
+    metrics::{SiftStreamMetrics, SiftStreamMetricsSnapshot},
     stream::mode::ingestion_config::DataStream,
 };
 use async_channel;
@@ -20,7 +21,7 @@ use std::{
     },
     time::Duration,
 };
-use tokio::{sync::broadcast, task::JoinHandle, time::Instant};
+use tokio::{select, sync::broadcast, task::JoinHandle, time::Instant};
 use uuid::Uuid;
 
 /// Capacity for the data channel.
@@ -73,6 +74,7 @@ pub(crate) struct RecoveryConfig {
 /// Configuration for the task-based SiftStream
 #[derive(Clone)]
 pub(crate) struct TaskConfig {
+    pub(crate) session_name: String,
     pub(crate) sift_stream_id: Uuid,
     pub(crate) setup_channel: SiftChannel,
     pub(crate) ingestion_channel: SiftChannel,
@@ -84,6 +86,7 @@ pub(crate) struct TaskConfig {
     pub(crate) control_channel_capacity: usize,
     pub(crate) ingestion_data_channel_capacity: usize,
     pub(crate) backup_data_channel_capacity: usize,
+    pub(crate) metrics_streaming_interval: Option<Duration>,
 }
 
 /// Data message with stream ID for routing
@@ -99,6 +102,7 @@ pub(crate) struct StreamSystem {
     pub(crate) backup_manager: JoinHandle<Result<()>>,
     pub(crate) ingestion: JoinHandle<Result<()>>,
     pub(crate) reingestion: JoinHandle<Result<()>>,
+    pub(crate) metrics_streaming: Option<JoinHandle<Result<()>>>,
     pub(crate) control_tx: broadcast::Sender<ControlMessage>,
     pub(crate) ingestion_tx: async_channel::Sender<DataMessage>,
     pub(crate) backup_tx: async_channel::Sender<DataMessage>,
@@ -188,6 +192,23 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
         reingestion_task.run().await
     });
 
+    // Start metrics streaming task if an interval is configured.
+    let metrics_config = config.clone();
+    let metrics_control_rx = control_tx.subscribe();
+    let metrics_streaming = config.metrics_streaming_interval.map(|interval| {
+        tokio::spawn(async move {
+            let metrics_task =
+                MetricsStreamingTask::new(metrics_control_rx, interval, metrics_config).await?;
+
+            #[cfg(feature = "tracing")]
+            tracing::info!(
+                sift_stream_id = config.sift_stream_id.to_string(),
+                "metrics streaming task started"
+            );
+            metrics_task.run().await
+        })
+    });
+
     #[cfg(feature = "tracing")]
     tracing::info!(
         sift_stream_id = config.sift_stream_id.to_string(),
@@ -198,6 +219,7 @@ pub(crate) fn start_tasks(config: TaskConfig) -> Result<StreamSystem> {
         backup_manager,
         ingestion,
         reingestion,
+        metrics_streaming,
         control_tx,
         ingestion_tx,
         backup_tx,
@@ -478,6 +500,121 @@ impl IngestionTask {
     }
 }
 
+/// The asset to stream metrics for.
+const METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME: &str = "sift_app";
+
+/// The client key used for sift_stream metrics ingestion config.
+const METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY: &str = "sift-stream-metrics";
+
+/// The flow name used for sift_stream metrics flow config.
+const METRICS_STREAMING_FLOW_NAME: &str = "sift-stream-metrics-flow";
+
+pub(crate) struct MetricsStreamingTask {
+    stream: SiftStream<IngestionConfigMode>,
+    control_rx: broadcast::Receiver<ControlMessage>,
+    session_name: String,
+    interval: Duration,
+    metrics: Arc<SiftStreamMetrics>,
+}
+
+impl MetricsStreamingTask {
+    pub(crate) async fn new(
+        control_rx: broadcast::Receiver<ControlMessage>,
+        interval: Duration,
+        config: TaskConfig,
+    ) -> Result<Self> {
+        use std::hash::{Hash, Hasher};
+        let session_name = config.session_name;
+
+        let channels = SiftStreamMetricsSnapshot::channel_configs(&session_name);
+
+        // Hash the channel names to create a unique client key for the ingestion config.
+        //
+        // Given the same "session_name", which influences the channel names, and the same metrics configuration,
+        // the ingestion config client key should be the same and re-used.
+        let mut hasher = std::hash::DefaultHasher::new();
+        channels.iter().for_each(|channel| {
+            channel.name.hash(&mut hasher);
+        });
+        let hash_key = hasher.finish();
+
+        let client_key = format!(
+            "{}-{}",
+            METRICS_STREAMING_INGESTION_CONFIG_CLIENT_KEY, hash_key
+        );
+
+        let ingestion_config = IngestionConfigForm {
+            asset_name: METRICS_STREAMING_INGESTION_CONFIG_ASSET_NAME.to_string(),
+            client_key,
+            flows: vec![FlowConfig {
+                name: METRICS_STREAMING_FLOW_NAME.to_string(),
+                channels: SiftStreamMetricsSnapshot::channel_configs(&session_name),
+            }],
+        };
+
+        // Build a new [`SiftStream`] that is responsible for streaming metrics to Sift.
+        //
+        // Most builder parameters are carried over from the main stream being monitored, however,
+        // the differences are noted below:
+        //
+        // - Channel capacities are substantially lower since this stream deals with less throughput.
+        // - Metrics streaming interval is set to `None` to disable streaming.
+        // - The `setup-channel` is used for all gRPC channels in this stream since they are less
+        //   critical and thus can be multiplexed over a single connection.
+        let stream = SiftStreamBuilder::from_channel(config.setup_channel.clone())
+            .metrics_streaming_interval(None)
+            .ingestion_config(ingestion_config)
+            .control_channel_capacity(100)
+            .ingestion_data_channel_capacity(1000)
+            .backup_data_channel_capacity(1000)
+            .recovery_strategy(RecoveryStrategy::RetryWithBackups {
+                retry_policy: config.recovery_config.retry_policy,
+                disk_backup_policy: config.recovery_config.backup_policy,
+            })
+            .build()
+            .await?;
+
+        Ok(Self {
+            stream,
+            control_rx,
+            session_name,
+            interval,
+            metrics: config.metrics.clone(),
+        })
+    }
+
+    pub(crate) async fn run(mut self) -> Result<()> {
+        let mut interval = tokio::time::interval(self.interval);
+
+        loop {
+            select! {
+                _ = interval.tick() => {
+                    let metrics = self.metrics.snapshot();
+                    let values = metrics.channel_values(&self.session_name);
+                    let flow = Flow::new(METRICS_STREAMING_FLOW_NAME, TimeValue::now(), &values);
+                    self.stream.send(flow).await?;
+                }
+                ctrl_msg = self.control_rx.recv() => {
+                    match ctrl_msg {
+                        Ok(ControlMessage::Shutdown) => {
+                            break;
+                        }
+                        _ => continue,
+                    }
+                }
+            }
+        }
+
+        #[cfg(feature = "tracing")]
+        tracing::info!("metrics streaming task shutting down");
+
+        self.stream
+            .finish()
+            .await
+            .map_err(|e| Error::new(ErrorKind::StreamError, e))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use sift_rs::ingest::v1::{
@@ -537,6 +674,7 @@ mod tests {
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
         let config = TaskConfig {
+            session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
             setup_channel,
             ingestion_channel,
@@ -547,6 +685,7 @@ mod tests {
             control_channel_capacity: 128,
             ingestion_data_channel_capacity: 128,
             backup_data_channel_capacity: 128,
+            metrics_streaming_interval: None,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -607,6 +746,7 @@ mod tests {
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
         let config = TaskConfig {
+            session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
             setup_channel,
             ingestion_channel,
@@ -617,6 +757,7 @@ mod tests {
             control_channel_capacity: 128,
             ingestion_data_channel_capacity: 128,
             backup_data_channel_capacity: 128,
+            metrics_streaming_interval: None,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -671,6 +812,7 @@ mod tests {
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
         let config = TaskConfig {
+            session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
             setup_channel,
             ingestion_channel,
@@ -681,6 +823,7 @@ mod tests {
             control_channel_capacity: 128,
             ingestion_data_channel_capacity: 128,
             backup_data_channel_capacity: 128,
+            metrics_streaming_interval: None,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -745,6 +888,7 @@ mod tests {
         let (data_tx, data_rx) = async_channel::bounded(1024);
         let metrics = Arc::new(SiftStreamMetrics::default());
         let config = TaskConfig {
+            session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
             setup_channel,
             ingestion_channel,
@@ -755,6 +899,7 @@ mod tests {
             control_channel_capacity: 128,
             ingestion_data_channel_capacity: 128,
             backup_data_channel_capacity: 128,
+            metrics_streaming_interval: None,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -827,6 +972,7 @@ mod tests {
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_millis(100);
         let config = TaskConfig {
+            session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
             setup_channel,
             ingestion_channel,
@@ -837,6 +983,7 @@ mod tests {
             control_channel_capacity: 128,
             ingestion_data_channel_capacity: 128,
             backup_data_channel_capacity: 128,
+            metrics_streaming_interval: None,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy {
                     max_attempts: 3,
@@ -922,6 +1069,7 @@ mod tests {
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_millis(100);
         let config = TaskConfig {
+            session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
             setup_channel,
             ingestion_channel,
@@ -932,6 +1080,7 @@ mod tests {
             control_channel_capacity: 128,
             ingestion_data_channel_capacity: 128,
             backup_data_channel_capacity: 128,
+            metrics_streaming_interval: None,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
@@ -1004,6 +1153,7 @@ mod tests {
         let metrics = Arc::new(SiftStreamMetrics::default());
         let checkpoint_interval = Duration::from_secs(60);
         let config = TaskConfig {
+            session_name: "test-session".to_string(),
             sift_stream_id: Uuid::new_v4(),
             setup_channel,
             ingestion_channel,
@@ -1014,6 +1164,7 @@ mod tests {
             control_channel_capacity: 128,
             ingestion_data_channel_capacity: 128,
             backup_data_channel_capacity: 128,
+            metrics_streaming_interval: None,
             recovery_config: RecoveryConfig {
                 retry_policy: RetryPolicy::default(),
                 backups_enabled: true,
