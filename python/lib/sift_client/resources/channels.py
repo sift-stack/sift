@@ -177,7 +177,8 @@ class ChannelsAPIAsync(ResourceBase):
         run: Run | str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-        limit: int | None = None,
+        max_results: int | None = None,
+        page_size: int | None = None,
     ) -> dict[str, pd.DataFrame]:
         """Get data for one or more channels.
 
@@ -186,7 +187,8 @@ class ChannelsAPIAsync(ResourceBase):
             run: The Run or run_id to get data for.
             start_time: The start time to get data for.
             end_time: The end time to get data for.
-            limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+            max_results: The maximum number of data points to return.
+            page_size: The number of data points to return per page.
 
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
@@ -199,7 +201,8 @@ class ChannelsAPIAsync(ResourceBase):
             run_id=run_id,
             start_time=start_time,
             end_time=end_time,
-            limit=limit,
+            max_results=max_results,
+            page_size=page_size,
         )
 
     async def get_data_as_arrow(
