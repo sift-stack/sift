@@ -112,6 +112,18 @@ def equals_null(key: str) -> str:
     return f"{key} == null"
 
 
+def not_null(key: str) -> str:
+    """Generates a CEL expression that checks for not null.
+
+    Args:
+        key: The field name
+
+    Returns:
+        A CEL expression string
+    """
+    return f"{key} != null"
+
+
 def and_(*clauses: str) -> str:
     """Generates a CEL expression that joins all clauses with an AND operator.
 

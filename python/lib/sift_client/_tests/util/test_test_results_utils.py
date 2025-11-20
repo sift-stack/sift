@@ -19,6 +19,10 @@ pytestmark = pytest.mark.integration
 
 
 class TestContextManager:
+    def test_link_run_to_report(self, report_context, nostromo_run):
+        report_context.report.update({"run_id": nostromo_run.id_})
+        assert report_context.report.run_id == nostromo_run.id_
+
     def test_new_step(self, report_context):
         initial_end_time = report_context.report.end_time
         first_step_path = report_context.get_next_step_path()
@@ -124,41 +128,62 @@ class TestContextManager:
         assert test_step.measurements[2].measurement_type == TestMeasurementType.BOOLEAN
 
     def test_bad_assert(self, report_context, step):
-        test_step = None
-        parent_step_path = step.current_step.step_path
-        initial_open_step_result = report_context.open_step_results.get(parent_step_path, True)
+        # Capture current state of report context's failures so we can keep things passed at a high level if the test's induced failures happen as expected.
+        current_step_path = step.current_step.step_path
+        initial_open_step_result = report_context.open_step_results.get(current_step_path, True)
         initial_any_failures = report_context.any_failures
 
-        with step.substep("Test Bad Assert", "Test Bad Assert Description") as new_step:
-            test_step = new_step.current_step
-            assert False == True
+        parent_step = None
+        substep = None
+        nested_substep = None
+        sibling_substep = None
+        with step.substep("Top Level Step", "Should fail") as parent_step_context:
+            parent_step = parent_step_context.current_step
+            with parent_step_context.substep("Parent Step", "Should fail") as substep_context:
+                substep = substep_context.current_step
+                with substep_context.substep(
+                    "Nested Substep", "Has a bad assert"
+                ) as nested_substep_context:
+                    nested_substep = nested_substep_context.current_step
+                    assert False == True
+                with substep_context.substep(
+                    "Sibling Substep", "Should pass"
+                ) as sibling_substep_context:
+                    sibling_substep = sibling_substep_context.current_step
 
-        assert test_step.status == TestStatus.ERROR
-        assert test_step.error_info is not None
-        assert "AssertionError" in test_step.error_info.error_message
+        assert parent_step.status == TestStatus.FAILED
+        assert substep.status == TestStatus.FAILED
+        assert nested_substep.status == TestStatus.ERROR
+        assert "AssertionError" in nested_substep.error_info.error_message
+        assert sibling_substep.status == TestStatus.PASSED
+
+        # If this test was successful, mark that at a high level.
         if initial_open_step_result:
-            report_context.open_step_results[parent_step_path] = True
+            report_context.open_step_results[current_step_path] = True
         if not initial_any_failures:
             report_context.any_failures = False
 
-    def test_error_info(self, report_context, step):
+    def test_manually_skip_step(self, step):
         test_step = None
-        parent_step_path = step.current_step.step_path
-        initial_open_step_result = report_context.open_step_results.get(parent_step_path, True)
-        initial_any_failures = report_context.any_failures
+        substep = None
+        sibling_substep = None
+        with step.substep("Parent Step", "Should pass") as parent_step_context:
+            test_step = parent_step_context.current_step
+            with parent_step_context.substep("Substep", "Should skip") as substep_context:
+                substep = substep_context.current_step
+                substep.update({"status": TestStatus.SKIPPED})
+            with substep_context.substep(
+                "Sibling Substep", "Should pass"
+            ) as sibling_substep_context:
+                sibling_substep = sibling_substep_context.current_step
 
-        with report_context.new_step("Test Error", "Test Error Description") as new_step:
-            test_step = new_step.current_step
-            raise Exception("Test Error")
-        assert test_step.error_info is not None
-        assert test_step.error_info.error_code == 1
-        assert "Test Error" in test_step.error_info.error_message
-        assert test_step.status == TestStatus.ERROR
-        # If the parent step is not marked as failed already, make sure it remains passed at this point.
-        if initial_open_step_result:
-            report_context.open_step_results[parent_step_path] = True
-        if not initial_any_failures:
-            report_context.any_failures = False
+        assert test_step.status == TestStatus.PASSED
+        assert substep.status == TestStatus.SKIPPED
+        assert sibling_substep.status == TestStatus.PASSED
+
+    @pytest.mark.skip(reason="Test Skip Step")
+    def test_pytest_skip(self):
+        pass
 
 
 class TestBounds:
