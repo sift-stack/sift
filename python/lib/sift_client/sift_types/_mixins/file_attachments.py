@@ -73,7 +73,7 @@ class FileAttachmentsMixin:
         if not isinstance(self, (Asset, Run, TestReport)):
             raise ValueError("Entity is not a valid entity type")
         return self.client.file_attachments.list_(
-            entity=self,
+            entities=[self],
         )
 
     def delete_attachment(
