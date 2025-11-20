@@ -189,7 +189,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         Returns:
             The downloaded file.
         """
-        url = await self.get_remote_file_download_url(file_attachment.id_)
+        url = await self.get_remote_file_download_url(file_attachment._id_or_error)
 
         # Run the synchronous requests.get in a thread pool to avoid blocking
         def _download():

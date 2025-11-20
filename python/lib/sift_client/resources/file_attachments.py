@@ -230,6 +230,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
             file_attachment: The FileAttachment or the ID of the file attachment to download.
             output_path: The path to download the file attachment to.
         """
+        if isinstance(file_attachment, str):
+            file_attachment = await self.get(file_attachment_id=file_attachment)
         content = await self._low_level_client.download_remote_file(file_attachment=file_attachment)
         with open(output_path, "wb") as f:
             f.write(content)
