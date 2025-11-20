@@ -22,7 +22,10 @@ use sift_rs::{
 use std::{
     collections::{HashMap, HashSet},
     pin::Pin,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
     task::{Context, Poll},
 };
 use tokio::sync::broadcast;
@@ -37,6 +40,7 @@ pub struct IngestionConfigMode {
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
     flows_seen: HashSet<String>,
     sift_stream_id: Uuid,
+    message_id_counter: u64,
 
     // Task-based architecture components for non-blocking operation
     stream_system: StreamSystem,
@@ -59,6 +63,9 @@ pub(crate) struct DataStream {
     data_rx: Pin<Box<async_channel::Receiver<DataMessage>>>,
     control_rx: Pin<Box<BroadcastStream<ControlMessage>>>,
     sift_stream_id: Uuid,
+    saw_first_message: bool,
+    first_message_id: Arc<AtomicU64>,
+    last_message_id: Arc<AtomicU64>,
     metrics: Arc<SiftStreamMetrics>,
 }
 
@@ -126,6 +133,7 @@ impl SiftStream<IngestionConfigMode> {
                 sift_stream_id,
                 run,
                 stream_system,
+                message_id_counter: 0,
             },
             metrics,
         })
@@ -204,16 +212,16 @@ impl SiftStream<IngestionConfigMode> {
 
     /// Concerned with sending the actual ingest request to [DataStream] which will then write it
     /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
-    fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
+    fn send_impl(&mut self, request: IngestWithConfigDataStreamRequest) -> Result<()> {
         #[cfg(feature = "tracing")]
         {
-            if !self.mode.flows_seen.contains(&req.flow) {
+            if !self.mode.flows_seen.contains(&request.flow) {
                 self.metrics.unique_flows_received.increment();
-                self.mode.flows_seen.insert(req.flow.clone());
+                self.mode.flows_seen.insert(request.flow.clone());
                 tracing::info!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
                     "flow '{}' being ingested for the first time",
-                    &req.flow,
+                    &request.flow,
                 );
             }
         }
@@ -227,14 +235,19 @@ impl SiftStream<IngestionConfigMode> {
             .set(self.mode.stream_system.backup_tx.len() as u64);
 
         let data_msg = DataMessage {
-            request: req.clone(),
+            message_id: self.mode.message_id_counter,
+            request: Arc::new(request),
             dropped_for_ingestion: false,
         };
+
+        self.mode.message_id_counter += 1;
 
         // Send the message for backup first. If this fails, log an error and continue.
         //
         // Failure to backup can lead to data loss though it is preferable to attempt
         // to stream the message to Sift rather than return the error and prevent both.
+        //
+        // TODO(tsift): Make this behavior optional via a builder arg.
         if let Err(e) = self.mode.stream_system.backup_tx.try_send(data_msg.clone()) {
             #[cfg(feature = "tracing")]
             tracing::warn!(
@@ -371,6 +384,11 @@ impl SiftStream<IngestionConfigMode> {
             self.mode.stream_system.reingestion,
         );
 
+        // Finally, wait for the metrics streaming task to complete.
+        if let Some(metrics_streaming) = self.mode.stream_system.metrics_streaming {
+            let _ = metrics_streaming.await;
+        }
+
         #[cfg(feature = "tracing")]
         tracing::info!(
             sift_stream_id = self.mode.sift_stream_id.to_string(),
@@ -460,6 +478,8 @@ impl DataStream {
         data_rx: async_channel::Receiver<DataMessage>,
         control_tx: broadcast::Sender<ControlMessage>,
         sift_stream_id: Uuid,
+        first_message_id: Arc<AtomicU64>,
+        last_message_id: Arc<AtomicU64>,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Self {
         let control_rx = BroadcastStream::new(control_tx.subscribe());
@@ -467,6 +487,9 @@ impl DataStream {
             data_rx: Box::pin(data_rx),
             control_rx: Box::pin(control_rx),
             sift_stream_id,
+            saw_first_message: false,
+            first_message_id,
+            last_message_id,
             metrics,
         }
     }
@@ -486,13 +509,25 @@ impl Stream for DataStream {
 
         // Continue with data streaming.
         match self.data_rx.as_mut().poll_next(ctx) {
-            Poll::Ready(Some(DataMessage { request, .. })) => {
+            Poll::Ready(Some(DataMessage {
+                message_id,
+                request,
+                ..
+            })) => {
+                if !self.saw_first_message {
+                    self.saw_first_message = true;
+                    self.first_message_id.store(message_id, Ordering::Relaxed);
+                }
+                self.last_message_id.store(message_id, Ordering::Relaxed);
+
                 let message_size = request.encoded_len() as u64;
                 self.metrics.messages_sent.increment();
                 self.metrics.checkpoint.cur_messages_sent.increment();
                 self.metrics.bytes_sent.add(message_size);
                 self.metrics.checkpoint.cur_bytes_sent.add(message_size);
-                Poll::Ready(Some(request))
+
+                // NOTE: This will copy the request which can be expensive.
+                Poll::Ready(Some((*request).clone()))
             }
             Poll::Ready(None) => {
                 // All senders dropped.. conclude stream
