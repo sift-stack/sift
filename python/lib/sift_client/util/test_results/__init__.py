@@ -25,6 +25,18 @@ with ReportContext(client, name="Example Report") as rc:
             return result # This is optional for other uses, but the step and its parents will be updated correctly i.e. failed if the measurement fails.
 ```
 
+#### Manually Updating Underlyling Report
+You can also manually update the underlying report or steps by accessing the context manager's attributes.
+```python
+with ReportContext(client, name="Example Report") as rc:
+    with rc.new_step(name="Example Step") as step:
+        if !conditions:
+            step.update({"status": TestStatus.SKIPPED})
+        else:
+            step.measure(name="Example Measurement", value=test_value, bounds={"min": -1, "max": 10})
+    rc.report.update({"run_id": run_id})
+```
+
 For a larger class or script, consider creating the context in a setup method and passing it to the test functions.
 ```python
 def main(self):
