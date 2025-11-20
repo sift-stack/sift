@@ -9,6 +9,8 @@ from sift_client.resources._base import ResourceBase
 from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
+    import re
+
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
     from sift_client.sift_types.file_attachment import (
@@ -56,45 +58,62 @@ class FileAttachmentsAPIAsync(ResourceBase):
     async def list_(
         self,
         *,
-        entity: Run | Asset | TestReport | None = None,
-        remote_file_id: str | None = None,
-        file_name: str | None = None,
-        entity_type: RemoteFileEntityType | None = None,
-        entity_id: str | None = None,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        # self ids
+        remote_file_ids: list[str] | None = None,
+        # created/modified ranges TODO: please make a ticket since the backend needs to add
+        # created_after: datetime | None = None,
+        # created_before: datetime | None = None,
+        # modified_after: datetime | None = None,
+        # modified_before: datetime | None = None,
+        # created/modified users TODO: please make a ticket since the backend needs to add
+        # created_by: Any | str | None = None,
+        # modified_by: Any | str | None = None,
+        # metadata TODO: please make a ticket
+        # metadata: list[Any] | None = None,
+        # file specific
+        entities: list[Run | Asset | TestReport] | None = None,
+        entity_types: list[RemoteFileEntityType] | None = None,
+        entity_ids: list[str] | None = None,
+        # common filters
+        description_contains: str | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
-        page_size: int | None = None,
     ) -> list[FileAttachment]:
         """List file attachments with optional filtering.
-
-        Args:
-            entity: Filter by entity (Run, Asset, or TestReport).
-            remote_file_id: Filter by remote file ID.
-            file_name: Filter by file name.
-            entity_type: Filter by entity type enum value (e.g., 1 for Run, 3 for Asset, 5 for TestReport).
-            entity_id: Filter by entity ID.
-            order_by: The field to order by.
-            limit: Maximum number of results to return.
-            page_size: Number of results per page.
-
-        Returns:
-            A list of FileAttachments.
+        ...
         """
-        # Build filter parts
-        filter_parts = []
+        filter_parts = [
+            *self._build_name_cel_filters(
+                name=name, names=names, name_contains=name_contains, name_regex=name_regex
+            ),
+            # *self._build_time_cel_filters(
+            #     created_after=created_after,
+            #     created_before=created_before,
+            #     modified_after=modified_after,
+            #     modified_before=modified_before,
+            #     created_by=created_by,
+            #     modified_by=modified_by,
+            # ),
+            # *self._build_tags_metadata_cel_filters(metadata=metadata),
+            *self._build_common_cel_filters(
+                description_contains=description_contains,
+                filter_query=filter_query,
+            ),
+        ]
 
-        if entity is not None:
-            filter_parts.append(cel.equals("entity_id", entity._id_or_error))
-            filter_parts.append(cel.equals("entity_type", entity._get_entity_type_name()))
-        else:
-            if entity_id:
-                filter_parts.append(cel.equals("entity_id", entity_id))
-            if entity_type:
-                filter_parts.append(cel.equals("entity_type", entity_type))
-        if remote_file_id:
-            filter_parts.append(cel.equals("remote_file_id", remote_file_id))
-        if file_name:
-            filter_parts.append(cel.equals("file_name", file_name))
+        entity_ids += [entity._id_or_error for entity in entities]
+
+        if entity_ids:
+            filter_parts.append(cel.in_("entity_id", entity_ids))
+        if entity_types:
+            filter_parts.append(cel.in_("entity_type", [str(et) for et in entity_types]))
+        if remote_file_ids:
+            filter_parts.append(cel.in_("remote_file_id", remote_file_ids))
 
         query_filter = cel.and_(*filter_parts)
 
@@ -102,8 +121,6 @@ class FileAttachmentsAPIAsync(ResourceBase):
             query_filter=query_filter or None,
             order_by=order_by,
             max_results=limit,
-            page_size=page_size,
-            sift_client=self.client,
         )
         return self._apply_client_to_instances(file_attachments)
 
