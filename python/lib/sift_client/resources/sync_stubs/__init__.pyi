@@ -579,7 +579,7 @@ class FileAttachmentsAPI:
         name_regex: str | re.Pattern | None = None,
         remote_file_ids: list[str] | None = None,
         entities: list[Run | Asset | TestReport] | None = None,
-        entity_types: list[RemoteFileEntityType] | None = None,
+        entity_type: RemoteFileEntityType | None = None,
         entity_ids: list[str] | None = None,
         description_contains: str | None = None,
         filter_query: str | None = None,
