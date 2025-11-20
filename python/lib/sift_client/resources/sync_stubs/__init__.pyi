@@ -573,29 +573,24 @@ class FileAttachmentsAPI:
     def list_(
         self,
         *,
-        entity: Run | Asset | TestReport | None = None,
-        remote_file_id: str | None = None,
-        file_name: str | None = None,
-        entity_type: RemoteFileEntityType | None = None,
-        entity_id: str | None = None,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+        remote_file_ids: list[str] | None = None,
+        entities: list[Run | Asset | TestReport] | None = None,
+        entity_types: list[RemoteFileEntityType] | None = None,
+        entity_ids: list[str] | None = None,
+        description_contains: str | None = None,
+        filter_query: str | None = None,
         order_by: str | None = None,
         limit: int | None = None,
-        page_size: int | None = None,
     ) -> list[FileAttachment]:
         """List file attachments with optional filtering.
 
-        Args:
-            entity: Filter by entity (Run, Asset, or TestReport).
-            remote_file_id: Filter by remote file ID.
-            file_name: Filter by file name.
-            entity_type: Filter by entity type enum value (e.g., 1 for Run, 3 for Asset, 5 for TestReport).
-            entity_id: Filter by entity ID.
-            order_by: The field to order by.
-            limit: Maximum number of results to return.
-            page_size: Number of results per page.
-
-        Returns:
-            A list of FileAttachments.
+        Note:
+            order_by is accepted for API consistency but not currently supported by the backend.
+        ...
         """
         ...
 

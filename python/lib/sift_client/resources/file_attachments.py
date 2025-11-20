@@ -104,6 +104,9 @@ class FileAttachmentsAPIAsync(ResourceBase):
         limit: int | None = None,
     ) -> list[FileAttachment]:
         """List file attachments with optional filtering.
+
+        Note:
+            order_by is accepted for API consistency but not currently supported by the backend.
         ...
         """
         filter_parts = [
@@ -141,7 +144,6 @@ class FileAttachmentsAPIAsync(ResourceBase):
 
         file_attachments = await self._low_level_client.list_all_remote_files(
             query_filter=query_filter or None,
-            order_by=order_by,
             max_results=limit,
         )
         return self._apply_client_to_instances(file_attachments)

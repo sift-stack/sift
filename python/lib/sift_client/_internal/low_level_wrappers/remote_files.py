@@ -63,7 +63,6 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
     async def list_all_remote_files(
         self,
         query_filter: str | None = None,
-        order_by: str | None = None,
         max_results: int | None = None,
         page_size: int | None = None,
         sift_client: SiftClient | None = None,
@@ -72,7 +71,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
         Args:
             query_filter: The CEL query filter.
-            order_by: The field to order by.
+
             max_results: The maximum number of results to return.
             page_size: The number of results to return per page.
             sift_client: The SiftClient to attach to the returned RemoteFiles.
@@ -84,7 +83,6 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             self.list_remote_files,
             kwargs={"query_filter": query_filter, "sift_client": sift_client},
             page_size=page_size,
-            order_by=order_by,
             max_results=max_results,
         )
 
@@ -93,7 +91,6 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = None,
         page_token: str | None = None,
         query_filter: str | None = None,
-        order_by: str | None = None,
         sift_client: SiftClient | None = None,
     ) -> tuple[list[FileAttachment], str]:
         """List remote files with pagination support.
@@ -102,7 +99,6 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size: The number of results to return per page.
             page_token: The page token for pagination.
             query_filter: The CEL query filter.
-            order_by: The field to order by.
             sift_client: The SiftClient to attach to the returned RemoteFiles.
 
         Returns:
@@ -117,8 +113,6 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             request_kwargs["page_token"] = page_token
         if query_filter is not None:
             request_kwargs["filter"] = query_filter
-        if order_by is not None:
-            request_kwargs["order_by"] = order_by
 
         request = ListRemoteFilesRequest(**request_kwargs)
         response = await self._grpc_client.get_stub(RemoteFileServiceStub).ListRemoteFiles(request)
