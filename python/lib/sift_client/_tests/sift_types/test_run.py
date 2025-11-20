@@ -206,27 +206,6 @@ class TestRun:
             # Verify it returns self
             assert result is mock_run
 
-    def test_remote_files_property_fetches_files(self, mock_run, mock_client):
-        """Test that attachments property fetches files from client.file_attachments API."""
-        # Create mock remote files
-        mock_remote_file = MagicMock()
-        mock_remote_file.entity_id = mock_run.id_
-        mock_remote_files = [mock_remote_file]
-
-        # Mock the file_attachments API
-        mock_client.file_attachments.list_.return_value = mock_remote_files
-
-        # Access the attachments property (it's a property, not a method)
-        result = mock_run.attachments
-
-        # Verify file_attachments.list_ was called with correct parameters
-        mock_client.file_attachments.list_.assert_called_once_with(
-            entity=mock_run,
-        )
-
-        # Verify result
-        assert result == mock_remote_files
-
     def test_attachments_property_fetches_files(self, mock_run, mock_client):
         """Test that attachments property fetches files from client.file_attachments API."""
         # Create mock remote files
@@ -242,7 +221,7 @@ class TestRun:
 
         # Verify file_attachments.list_ was called with correct parameters
         mock_client.file_attachments.list_.assert_called_once_with(
-            entity=mock_run,
+            entities=[mock_run],
         )
 
         # Verify result
