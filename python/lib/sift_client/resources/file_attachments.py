@@ -95,7 +95,7 @@ class FileAttachmentsAPIAsync(ResourceBase):
         # metadata: list[Any] | None = None,
         # file specific
         entities: list[Run | Asset | TestReport] | None = None,
-        entity_types: list[RemoteFileEntityType] | None = None,
+        entity_type: RemoteFileEntityType | None = None,
         entity_ids: list[str] | None = None,
         # common filters
         description_contains: str | None = None,
@@ -135,8 +135,8 @@ class FileAttachmentsAPIAsync(ResourceBase):
 
         if entity_ids:
             filter_parts.append(cel.in_("entity_id", entity_ids))
-        if entity_types:
-            filter_parts.append(cel.in_("entity_type", [str(et) for et in entity_types]))
+        if entity_type:
+            filter_parts.append(cel.equals("entity_type", entity_type.name.lower()))
         if remote_file_ids:
             filter_parts.append(cel.in_("remote_file_id", remote_file_ids))
 

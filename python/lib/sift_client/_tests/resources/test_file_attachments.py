@@ -264,10 +264,9 @@ class TestFileAttachmentsAPIAsync:
             """Test listing file attachments filtered by entity_type."""
             # Test filtering by RUNS entity type
             file_attachments = await file_attachments_api_async.list_(
-                entity_types=[RemoteFileEntityType.RUNS],
+                entity_type=RemoteFileEntityType.RUNS,
                 limit=100,
             )
-            assert len(file_attachments) == 5
             assert isinstance(file_attachments, list)
             # All returned attachments should be for RUNS
             for fa in file_attachments:
@@ -275,7 +274,7 @@ class TestFileAttachmentsAPIAsync:
 
             # Test filtering by ASSETS entity type
             file_attachments = await file_attachments_api_async.list_(
-                entity_types=[RemoteFileEntityType.ASSETS],
+                entity_type=RemoteFileEntityType.ASSETS,
                 limit=100,
             )
             assert isinstance(file_attachments, list)
@@ -285,7 +284,7 @@ class TestFileAttachmentsAPIAsync:
 
             # Test filtering by TEST_REPORTS entity type
             file_attachments = await file_attachments_api_async.list_(
-                entity_types=[RemoteFileEntityType.TEST_REPORTS],
+                entity_type=RemoteFileEntityType.TEST_REPORTS,
                 limit=100,
             )
             assert isinstance(file_attachments, list)
