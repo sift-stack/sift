@@ -106,7 +106,10 @@ class FileAttachmentsAPIAsync(ResourceBase):
             ),
         ]
 
-        entity_ids += [entity._id_or_error for entity in entities]
+        if not entity_ids:
+            entity_ids = []
+        if entities:
+            entity_ids += [entity._id_or_error for entity in entities]
 
         if entity_ids:
             filter_parts.append(cel.in_("entity_id", entity_ids))
