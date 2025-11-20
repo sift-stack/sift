@@ -39,7 +39,7 @@ class RemoteFileEntityType(Enum):
         return cls(int(val))
 
     def __str__(self) -> str:
-        return self.name.lower()
+        return "ENTITY_TYPE_" + self.name
 
     @staticmethod
     def from_api_format(val: str) -> RemoteFileEntityType | None:
