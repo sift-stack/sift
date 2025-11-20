@@ -65,6 +65,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         query_filter: str | None = None,
         max_results: int | None = None,
         page_size: int | None = None,
+        order_by: str | None = None,
         sift_client: SiftClient | None = None,
     ) -> list[FileAttachment]:
         """List all remote files matching the given query.
@@ -74,6 +75,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
             max_results: The maximum number of results to return.
             page_size: The number of results to return per page.
+            order_by: The field to order by. Not supported by the backend so it is ignored.
             sift_client: The SiftClient to attach to the returned RemoteFiles.
 
         Returns:
@@ -84,6 +86,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             kwargs={"query_filter": query_filter, "sift_client": sift_client},
             page_size=page_size,
             max_results=max_results,
+            order_by=order_by,
         )
 
     async def list_remote_files(
@@ -91,6 +94,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         page_size: int | None = None,
         page_token: str | None = None,
         query_filter: str | None = None,
+        order_by: str | None = None,
         sift_client: SiftClient | None = None,
     ) -> tuple[list[FileAttachment], str]:
         """List remote files with pagination support.
@@ -99,6 +103,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size: The number of results to return per page.
             page_token: The page token for pagination.
             query_filter: The CEL query filter.
+            order_by: The field to order by. Not supported by the backend so it is ignored.
             sift_client: The SiftClient to attach to the returned RemoteFiles.
 
         Returns:
