@@ -38,7 +38,26 @@ class FileAttachmentsAPIAsync(ResourceBase):
         super().__init__(sift_client)
         self._low_level_client = RemoteFilesLowLevelClient(grpc_client=self.client.grpc_client)
         self._upload_client = UploadLowLevelClient(rest_client=self.client.rest_client)
-        self.greeting = "Hello, World!"
+
+    def _build_name_cel_filters(
+        self,
+        *,
+        name: str | None = None,
+        names: list[str] | None = None,
+        name_contains: str | None = None,
+        name_regex: str | re.Pattern | None = None,
+    ) -> list[str]:
+        """Override base implementation to use 'file_name' field instead of 'name'."""
+        filter_parts = []
+        if name:
+            filter_parts.append(cel.equals("file_name", name))
+        if names:
+            filter_parts.append(cel.in_("file_name", names))
+        if name_contains:
+            filter_parts.append(cel.contains("file_name", name_contains))
+        if name_regex:
+            filter_parts.append(cel.match("file_name", name_regex))
+        return filter_parts
 
     async def get(self, *, file_attachment_id: str) -> FileAttachment:
         """Get a file attachment by ID.
@@ -211,10 +230,10 @@ class FileAttachmentsAPIAsync(ResourceBase):
             file_attachment: The FileAttachment or the ID of the file attachment to download.
             output_path: The path to download the file attachment to.
         """
-        from sift_py.file_attachment._internal.download import download_remote_file
 
-        download_url = await self.get_download_url(file_attachment=file_attachment)
-        download_remote_file(download_url, Path(output_path))
+        content = await self._low_level_client.download_remote_file(file_attachment=file_attachment)
+        with open(output_path, "wb") as f:
+            f.write(content)
 
     async def upload(
         self,

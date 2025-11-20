@@ -16,7 +16,11 @@ import pytest_asyncio
 
 from sift_client import SiftClient
 from sift_client.resources import FileAttachmentsAPI, FileAttachmentsAPIAsync
-from sift_client.sift_types.file_attachment import FileAttachment, FileAttachmentUpdate
+from sift_client.sift_types.file_attachment import (
+    FileAttachment,
+    FileAttachmentUpdate,
+    RemoteFileEntityType,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -223,8 +227,8 @@ class TestFileAttachmentsAPIAsync:
         ):
             """Test listing file attachments filtered by entity."""
             file_attachments = await file_attachments_api_async.list_(
-                entity=test_run,
-                limit=10,
+                entities=[test_run],
+                limit=100,
             )
 
             assert isinstance(file_attachments, list)
@@ -243,15 +247,51 @@ class TestFileAttachmentsAPIAsync:
         ):
             """Test listing file attachments filtered by entity_id."""
             file_attachments = await file_attachments_api_async.list_(
-                entity_id=test_run.id_,
-                limit=10,
+                entity_ids=[test_run.id_],
+                limit=100,
             )
 
             assert isinstance(file_attachments, list)
 
             # Should find our uploaded file
             found = any(fa.id_ == uploaded_file_attachment.id_ for fa in file_attachments)
-            assert found
+            assert found, "Uploaded file attachment not found in entity list"
+
+        @pytest.mark.asyncio
+        async def test_list_by_entity_type(
+            self, file_attachments_api_async, uploaded_file_attachment, test_run
+        ):
+            """Test listing file attachments filtered by entity_type."""
+            # Test filtering by RUNS entity type
+            file_attachments = await file_attachments_api_async.list_(
+                entity_types=[RemoteFileEntityType.RUNS],
+                limit=100,
+            )
+            assert len(file_attachments) == 5
+            assert isinstance(file_attachments, list)
+            # All returned attachments should be for RUNS
+            for fa in file_attachments:
+                assert fa.entity_type == RemoteFileEntityType.RUNS
+
+            # Test filtering by ASSETS entity type
+            file_attachments = await file_attachments_api_async.list_(
+                entity_types=[RemoteFileEntityType.ASSETS],
+                limit=100,
+            )
+            assert isinstance(file_attachments, list)
+            # All returned attachments should be for ASSETS
+            for fa in file_attachments:
+                assert fa.entity_type == RemoteFileEntityType.ASSETS
+
+            # Test filtering by TEST_REPORTS entity type
+            file_attachments = await file_attachments_api_async.list_(
+                entity_types=[RemoteFileEntityType.TEST_REPORTS],
+                limit=100,
+            )
+            assert isinstance(file_attachments, list)
+            # All returned attachments should be for TEST_REPORTS
+            for fa in file_attachments:
+                assert fa.entity_type == RemoteFileEntityType.TEST_REPORTS
 
         @pytest.mark.asyncio
         async def test_list_by_file_name(
@@ -259,7 +299,7 @@ class TestFileAttachmentsAPIAsync:
         ):
             """Test listing file attachments filtered by file name."""
             file_attachments = await file_attachments_api_async.list_(
-                file_name=uploaded_file_attachment.file_name,
+                names=[uploaded_file_attachment.file_name],
             )
 
             assert isinstance(file_attachments, list)
