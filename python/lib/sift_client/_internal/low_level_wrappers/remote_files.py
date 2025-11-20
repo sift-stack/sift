@@ -4,7 +4,6 @@ import asyncio
 from typing import TYPE_CHECKING, Any, cast
 
 import requests
-
 from sift.remote_files.v1.remote_files_pb2 import (
     BatchDeleteRemoteFilesRequest,
     DeleteRemoteFileRequest,

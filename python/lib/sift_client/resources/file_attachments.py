@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sift_client._internal.low_level_wrappers.remote_files import RemoteFilesLowLevelClient
@@ -10,6 +9,7 @@ from sift_client.util import cel_utils as cel
 
 if TYPE_CHECKING:
     import re
+    from pathlib import Path
 
     from sift_client.client import SiftClient
     from sift_client.sift_types.asset import Asset
@@ -230,7 +230,6 @@ class FileAttachmentsAPIAsync(ResourceBase):
             file_attachment: The FileAttachment or the ID of the file attachment to download.
             output_path: The path to download the file attachment to.
         """
-
         content = await self._low_level_client.download_remote_file(file_attachment=file_attachment)
         with open(output_path, "wb") as f:
             f.write(content)
