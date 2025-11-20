@@ -30,3 +30,7 @@ pbjson-types = { workspace = true }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter"] }
 tracing-appender = "0.2.3"
+
+[profile.release]
+debug = true
+
