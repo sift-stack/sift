@@ -199,7 +199,7 @@ class ChannelsAPIAsync(ResourceBase):
             run_id=run_id,
             start_time=start_time,
             end_time=end_time,
-            limit=limit,
+            max_results=limit,
         )
 
     async def get_data_as_arrow(

@@ -231,7 +231,8 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-        limit: int | None = None,
+        max_results: int | None = None,
+        page_size: int | None = None,
         ignore_cache: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get the data for a channel during a run."""
@@ -247,10 +248,11 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
         )
 
         tasks = []
-        page_size = limit if limit and limit < 1000 else 1000
-        limit = ceil(limit / page_size) if limit else 10
         # Queue up calls for non-cached channels in batches.
         batch_size = REQUEST_BATCH_SIZE
+        page_size = None
+        if max_results is not None and max_results <= CHANNELS_DEFAULT_PAGE_SIZE:
+            page_size = max_results
         for i in range(0, len(not_cached_channels), batch_size):  # type: ignore
             batch = not_cached_channels[i : i + batch_size]  # type: ignore
 
@@ -264,7 +266,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                         "end_time": end_time,
                     },
                     page_size=page_size,
-                    max_results=limit,
+                    max_results=max_results,
                 )
             )
             tasks.append(task)
@@ -294,7 +296,7 @@ class DataLowLevelClient(LowLevelClientBase, WithGrpcClient):
                         "end_time": new_end_time or end_time,
                     },
                     page_size=page_size,
-                    max_results=limit,
+                    max_results=max_results,
                 )
             )
             tasks.append(task)
