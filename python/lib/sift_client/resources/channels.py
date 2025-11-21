@@ -212,9 +212,10 @@ class ChannelsAPIAsync(ResourceBase):
         run: Run | str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-        limit: int | None = None,
+        max_results: int | None = None,
+        page_size: int | None = None,
     ) -> dict[str, pa.Table]:
-        """Get data for one or more channels as pyarrow tables."""
+        """Same as get_data but returns data as pyarrow tables."""
         from pyarrow import Table as ArrowTable
 
         run_id = run.id_ if isinstance(run, Run) else run
@@ -223,6 +224,7 @@ class ChannelsAPIAsync(ResourceBase):
             run=run_id,
             start_time=start_time,
             end_time=end_time,
-            limit=limit,
+            max_results=max_results,
+            page_size=page_size,
         )
         return {k: ArrowTable.from_pandas(v) for k, v in data.items()}
