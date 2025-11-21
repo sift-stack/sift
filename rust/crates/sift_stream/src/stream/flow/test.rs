@@ -206,7 +206,7 @@ fn test_flow_descriptor_builder_new() {
 
     // Verify the descriptor was created correctly by using public methods
     // We can't access private fields, so we verify by checking that get returns None for non-existent keys
-    assert_eq!(descriptor.get("nonexistent".to_string()), None);
+    assert_eq!(descriptor.get("nonexistent"), None);
     assert_eq!(descriptor.mapping().len(), 0);
 }
 
@@ -534,15 +534,15 @@ fn test_flow_config_to_flow_descriptor_owned() {
     // Note: When FlowDescriptor<String> is created from FlowConfig, get() expects String
     assert_eq!(descriptor.mapping().len(), 3);
     assert_eq!(
-        descriptor.get("temperature".to_string()),
+        descriptor.get("temperature"),
         Some(ChannelDataType::Double)
     );
     assert_eq!(
-        descriptor.get("pressure".to_string()),
+        descriptor.get("pressure"),
         Some(ChannelDataType::Float)
     );
     assert_eq!(
-        descriptor.get("humidity".to_string()),
+        descriptor.get("humidity"),
         Some(ChannelDataType::Double)
     );
 }
@@ -639,43 +639,43 @@ fn test_flow_config_to_flow_descriptor_all_types() {
     // Verify all 10 channels were added
     assert_eq!(descriptor.mapping().len(), 10);
     assert_eq!(
-        descriptor.get("bool_field".to_string()),
+        descriptor.get("bool_field"),
         Some(ChannelDataType::Bool)
     );
     assert_eq!(
-        descriptor.get("string_field".to_string()),
+        descriptor.get("string_field"),
         Some(ChannelDataType::String)
     );
     assert_eq!(
-        descriptor.get("float_field".to_string()),
+        descriptor.get("float_field"),
         Some(ChannelDataType::Float)
     );
     assert_eq!(
-        descriptor.get("double_field".to_string()),
+        descriptor.get("double_field"),
         Some(ChannelDataType::Double)
     );
     assert_eq!(
-        descriptor.get("int32_field".to_string()),
+        descriptor.get("int32_field"),
         Some(ChannelDataType::Int32)
     );
     assert_eq!(
-        descriptor.get("int64_field".to_string()),
+        descriptor.get("int64_field"),
         Some(ChannelDataType::Int64)
     );
     assert_eq!(
-        descriptor.get("uint32_field".to_string()),
+        descriptor.get("uint32_field"),
         Some(ChannelDataType::Uint32)
     );
     assert_eq!(
-        descriptor.get("uint64_field".to_string()),
+        descriptor.get("uint64_field"),
         Some(ChannelDataType::Uint64)
     );
     assert_eq!(
-        descriptor.get("enum_field".to_string()),
+        descriptor.get("enum_field"),
         Some(ChannelDataType::Enum)
     );
     assert_eq!(
-        descriptor.get("bitfield_field".to_string()),
+        descriptor.get("bitfield_field"),
         Some(ChannelDataType::BitField)
     );
 }
@@ -692,7 +692,7 @@ fn test_flow_config_to_flow_descriptor_empty_channels() {
 
     // Verify empty descriptor
     assert_eq!(descriptor.mapping().len(), 0);
-    assert_eq!(descriptor.get("nonexistent".to_string()), None);
+    assert_eq!(descriptor.get("nonexistent"), None);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -725,23 +725,23 @@ fn test_flow_descriptor_with_enum_keys() {
 
     // Verify field types
     assert_eq!(
-        descriptor.get(SensorField::Temperature),
+        descriptor.get(&SensorField::Temperature),
         Some(ChannelDataType::Double)
     );
     assert_eq!(
-        descriptor.get(SensorField::Pressure),
+        descriptor.get(&SensorField::Pressure),
         Some(ChannelDataType::Float)
     );
     assert_eq!(
-        descriptor.get(SensorField::Humidity),
+        descriptor.get(&SensorField::Humidity),
         Some(ChannelDataType::Double)
     );
     assert_eq!(
-        descriptor.get(SensorField::Time),
+        descriptor.get(&SensorField::Time),
         Some(ChannelDataType::Int64)
     );
     assert_eq!(
-        descriptor.get(SensorField::State),
+        descriptor.get(&SensorField::State),
         Some(ChannelDataType::Enum)
     );
 

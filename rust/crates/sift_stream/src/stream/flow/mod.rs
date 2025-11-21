@@ -80,8 +80,12 @@ where
     }
 
     /// Gets the type of the channel with the given key.
-    pub fn get(&self, key: K) -> Option<ChannelDataType> {
-        let index = self.index_map.get(&key)?.0;
+    pub fn get<Q>(&self, key: &Q) -> Option<ChannelDataType>
+    where
+        K: core::borrow::Borrow<Q>,
+        Q: Eq + Hash + ?Sized,
+    {
+        let index = self.index_map.get(key)?.0;
         Some(self.field_types[index])
     }
 
