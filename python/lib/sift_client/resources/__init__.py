@@ -153,7 +153,8 @@ result = asyncio.run(main())
 from sift_client.resources.assets import AssetsAPIAsync
 from sift_client.resources.calculated_channels import CalculatedChannelsAPIAsync
 from sift_client.resources.channels import ChannelsAPIAsync
-from sift_client.resources.ingestion import IngestionAPIAsync, TracingConfig
+from sift_client.resources.file_attachments import FileAttachmentsAPIAsync
+from sift_client.resources.ingestion import IngestionAPIAsync
 from sift_client.resources.ping import PingAPIAsync
 from sift_client.resources.reports import ReportsAPIAsync
 from sift_client.resources.rules import RulesAPIAsync
@@ -172,6 +173,7 @@ from sift_client.resources.sync_stubs import (
     RunsAPI,
     TagsAPI,
     TestResultsAPI,
+    FileAttachmentsAPI,
 )
 
 __all__ = [
@@ -181,6 +183,8 @@ __all__ = [
     "CalculatedChannelsAPIAsync",
     "ChannelsAPI",
     "ChannelsAPIAsync",
+    "FileAttachmentsAPI",
+    "FileAttachmentsAPIAsync",
     "IngestionAPIAsync",
     "PingAPI",
     "PingAPIAsync",

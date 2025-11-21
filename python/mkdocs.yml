@@ -98,6 +98,7 @@ plugins:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             summary: true
+            inherited_members: true
             # Custom Griffe extension to inspect the sync stubs and generate their signatures
             extensions:
               - griffe_extensions/sync_stubs_inspector.py:InspectSpecificObjects:

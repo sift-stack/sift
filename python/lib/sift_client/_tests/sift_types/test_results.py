@@ -209,3 +209,24 @@ class TestResultsTest:
         measurements = mock_test_step.measurements
         assert len(measurements) == 1
         assert measurements[0] == mock_test_measurement
+
+    def test_attachments_property_fetches_files(self, mock_test_report, mock_client):
+        """Test that attachments property fetches files from client.file_attachments API."""
+        # Create mock remote files
+        mock_remote_file = MagicMock()
+        mock_remote_file.entity_id = mock_test_report.id_
+        mock_remote_files = [mock_remote_file]
+
+        # Mock the file_attachments API
+        mock_client.file_attachments.list_.return_value = mock_remote_files
+
+        # Access the attachments property (it's a property, not a method)
+        result = mock_test_report.attachments
+
+        # Verify file_attachments.list_ was called with correct parameters
+        mock_client.file_attachments.list_.assert_called_once_with(
+            entities=[mock_test_report],
+        )
+
+        # Verify result
+        assert result == mock_remote_files
