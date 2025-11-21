@@ -27,7 +27,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter '3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.14t'
+          args: --release --out dist --interpreter '3.8 3.9 3.10 3.11 3.12 3.13 3.14'
           sccache: ${{ !startsWith(github.ref, 'refs/tags/sift-stream-bindings/') }}
           manylinux: auto
           working-directory: rust/crates/sift_stream_bindings
@@ -59,7 +59,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter '3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.14t'
+          args: --release --out dist --interpreter '3.8 3.9 3.10 3.11 3.12 3.13 3.14'
           sccache: ${{ !startsWith(github.ref, 'refs/tags/sift-stream-bindings/') }}
           working-directory: rust/crates/sift_stream_bindings
       - name: Upload wheels
@@ -86,7 +86,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter '3.8 3.9 3.10 3.11 3.12 3.13 3.14 3.14t'
+          args: --release --out dist --interpreter '3.8 3.9 3.10 3.11 3.12 3.13 3.14'
           sccache: ${{ !startsWith(github.ref, 'refs/tags/sift-stream-bindings/') }}
           working-directory: rust/crates/sift_stream_bindings
       - name: Upload wheels
