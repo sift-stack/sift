@@ -9,7 +9,7 @@ use sift_rs::ingest::v1::{
 };
 use sift_rs::ingestion_configs::v2::FlowConfig;
 
-use crate::{IngestionConfigMode, SiftStream, TimeValue, Value};
+use crate::{TimeValue, Value};
 
 /// Represents the index of a channel in a flow.
 ///
@@ -22,7 +22,10 @@ use crate::{IngestionConfigMode, SiftStream, TimeValue, Value};
 pub struct ChannelIndex(usize);
 
 /// Describes the schema of a flow, providing a convenient, performant, and correct way to
-/// build the flow.
+/// build the flow being described.
+///
+/// The descriptor itself is immutable, to ensure that the flow is constructed correctly
+/// since successful ingestion requires Sift and the client to agree on the schema of the flow.
 ///
 /// While the key `K` can be arbitrary, it is recommended to use a trivial key that avoids
 /// allocations, such as a `usize` or `u32`, though for convenience, a string (the channel
@@ -31,13 +34,15 @@ pub struct ChannelIndex(usize);
 /// # Example
 ///
 /// ```rust
-/// use sift_stream::{FlowDescriptor, FlowBuilder, ChannelDataType};
+/// use sift_stream::{FlowDescriptor, FlowDescriptorBuilder, FlowBuilder, ChannelDataType};
 ///
-/// let mut flow_descriptor = FlowDescriptor::new("ingestion_config_id", "my_flow_name");
-/// let my_channel_idx = flow_descriptor.add("my_channel_key", ChannelDataType::String);
-/// let my_other_channel_idx = flow_descriptor.add("my_other_channel_key", ChannelDataType::Uint64);
+/// let mut flow_descriptor_builder = FlowDescriptorBuilder::new("ingestion_config_id", "my_flow_name");
+/// let my_channel_idx = flow_descriptor_builder.add("my_channel_key", ChannelDataType::String);
+/// let my_other_channel_idx = flow_descriptor_builder.add("my_other_channel_key", ChannelDataType::Uint64);
 ///
-/// let mut flow_builder = FlowBuilder::new(&mut flow_descriptor);
+/// let flow_descriptor = flow_descriptor_builder.build();
+///
+/// let mut flow_builder = FlowBuilder::new(&flow_descriptor);
 /// flow_builder.set(my_channel_idx, "my_value".to_string());
 /// flow_builder.set_with_key("my_other_channel_key", 123_u64);
 /// ```
@@ -65,26 +70,13 @@ where
     K: Eq + Hash,
 {
     /// Initializes a new flow descriptor with the provided ingestion config ID and flow name.
-    pub fn new(ingestion_config_id: impl Into<String>, name: impl Into<String>) -> Self {
+    fn new(ingestion_config_id: impl Into<String>, name: impl Into<String>) -> Self {
         Self {
             ingestion_config_id: ingestion_config_id.into(),
             name: name.into(),
             field_types: Vec::new(),
             index_map: HashMap::new(),
         }
-    }
-
-    /// Adds a new channel to the flow.
-    ///
-    /// This returns the index of the channel in the flow. This index can then be used to
-    /// access the value at the given channel index when building a new flow.
-    pub fn add(&mut self, key: K, field_type: ChannelDataType) -> ChannelIndex {
-        let index = self.field_types.len();
-        self.field_types.push(field_type);
-
-        self.index_map.insert(key, ChannelIndex(index));
-
-        ChannelIndex(index)
     }
 
     /// Gets the type of the channel with the given key.
@@ -99,6 +91,47 @@ where
     }
 }
 
+/// Builds a [`FlowDescriptor`], which defines the schema of a flow.
+///
+/// The builder is mutable, to allow for the addition of channels to the flow descriptor
+/// while the descriptor itself is immuatble, ensuring that the described flow will be
+/// constructed correctly.
+pub struct FlowDescriptorBuilder<K> {
+    flow_descriptor: FlowDescriptor<K>,
+}
+
+impl<K> FlowDescriptorBuilder<K>
+where
+    K: Eq + Hash,
+{
+    /// Initializes a new [`FlowDescriptorBuilder`] with the provided ingestion config ID and flow name.
+    pub fn new(ingestion_config_id: impl Into<String>, name: impl Into<String>) -> Self {
+        Self {
+            flow_descriptor: FlowDescriptor::new(ingestion_config_id, name),
+        }
+    }
+
+    /// Adds a new channel to the flow.
+    ///
+    /// This returns the index of the channel in the flow. This index can then be used to
+    /// access the value at the given channel index when building a new flow.
+    pub fn add(&mut self, key: K, field_type: ChannelDataType) -> ChannelIndex {
+        let index = self.flow_descriptor.field_types.len();
+        self.flow_descriptor.field_types.push(field_type);
+
+        self.flow_descriptor
+            .index_map
+            .insert(key, ChannelIndex(index));
+
+        ChannelIndex(index)
+    }
+
+    /// Builds the [`FlowDescriptor`] from the builder.
+    pub fn build(self) -> FlowDescriptor<K> {
+        self.flow_descriptor
+    }
+}
+
 impl<S> TryFrom<(S, &'_ FlowConfig)> for FlowDescriptor<String>
 where
     S: ToString,
@@ -106,8 +139,8 @@ where
     type Error = Error;
 
     fn try_from((ingestion_config_id, flow_config): (S, &'_ FlowConfig)) -> Result<Self> {
-        let mut flow_descriptor =
-            FlowDescriptor::new(ingestion_config_id.to_string(), flow_config.name.clone());
+        let mut builder =
+            FlowDescriptorBuilder::new(ingestion_config_id.to_string(), flow_config.name.clone());
         for channel in flow_config.channels.iter() {
             let data_type = ChannelDataType::try_from(channel.data_type).map_err(|_| {
                 Error::new_msg(
@@ -119,9 +152,9 @@ where
                 )
             })?;
 
-            flow_descriptor.add(channel.name.clone(), data_type);
+            builder.add(channel.name.clone(), data_type);
         }
-        Ok(flow_descriptor)
+        Ok(builder.build())
     }
 }
 
@@ -132,8 +165,8 @@ where
     type Error = Error;
 
     fn try_from((ingestion_config_id, flow_config): (S, FlowConfig)) -> Result<Self> {
-        let mut flow_descriptor =
-            FlowDescriptor::new(ingestion_config_id.to_string(), flow_config.name);
+        let mut builder =
+            FlowDescriptorBuilder::new(ingestion_config_id.to_string(), flow_config.name);
         for channel in flow_config.channels {
             let data_type = ChannelDataType::try_from(channel.data_type).map_err(|_| {
                 Error::new_msg(
@@ -145,9 +178,9 @@ where
                 )
             })?;
 
-            flow_descriptor.add(channel.name, data_type);
+            builder.add(channel.name, data_type);
         }
-        Ok(flow_descriptor)
+        Ok(builder.build())
     }
 }
 
@@ -164,6 +197,23 @@ pub struct FlowBuilder<'a, K> {
     /// The values of the flow, where the index of the value corresponds to
     /// the index of the channel in the [`FlowDescriptor`].
     values: Vec<IngestWithConfigDataChannelValue>,
+
+    /// The optional run ID of the flow.
+    run_id: String,
+}
+
+impl<K> FlowBuilder<'_, K> {
+    /// Builds an [IngestWithConfigDataStreamRequest], consuming the builder.
+    pub fn request(self, now: TimeValue) -> IngestWithConfigDataStreamRequest {
+        IngestWithConfigDataStreamRequest {
+            ingestion_config_id: self.flow_descriptor.ingestion_config_id.clone(),
+            flow: self.flow_descriptor.name.clone(),
+            timestamp: Some(now.0),
+            channel_values: self.values,
+            run_id: self.run_id,
+            ..Default::default()
+        }
+    }
 }
 
 impl<'a, K> FlowBuilder<'a, K>
@@ -181,7 +231,13 @@ where
         Self {
             flow_descriptor,
             values,
+            run_id: String::new(),
         }
+    }
+
+    /// Attaches a run ID to the flow.
+    pub fn attach_run_id(&mut self, run_id: impl Into<String>) {
+        self.run_id = run_id.into();
     }
 
     /// Sets the value of the channel with the given key.
@@ -229,37 +285,6 @@ where
         };
 
         self.set(*index, value)
-    }
-
-    /// Builds an [IngestWithConfigDataStreamRequest], consuming the builder.
-    pub fn request(self, now: TimeValue, run_id: String) -> IngestWithConfigDataStreamRequest {
-        IngestWithConfigDataStreamRequest {
-            ingestion_config_id: self.flow_descriptor.ingestion_config_id.clone(),
-            flow: self.flow_descriptor.name.clone(),
-            timestamp: Some(now.0),
-            channel_values: self.values,
-            run_id,
-            ..Default::default()
-        }
-    }
-
-    /// Sends the flow with the provided stream, consuming the builder
-    /// in the process.
-    pub fn send(self, now: TimeValue, stream: &mut SiftStream<IngestionConfigMode>) -> Result<()> {
-        let run_id = stream
-            .mode
-            .run
-            .as_ref()
-            .map(|r| r.run_id.to_string())
-            .unwrap_or_default();
-
-        let request = self.request(now, run_id);
-
-        stream
-            .send_requests_nonblocking(core::iter::once(request))
-            .context("error while sending request")?;
-
-        Ok(())
     }
 }
 

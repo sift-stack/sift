@@ -445,7 +445,12 @@ impl SiftStream<IngestionConfigMode> {
                 .ok()?;
         }
 
-        Some(builder.request(message.timestamp.clone(), run_id.unwrap_or_default()))
+        // Attach the run ID to the flow if it is provided.
+        if let Some(run_id) = run_id.as_ref() {
+            builder.attach_run_id(run_id);
+        }
+
+        Some(builder.request(message.timestamp.clone()))
     }
 
     /// Creates an [IngestWithConfigDataStreamRequest] directly without consulting the flow cache.

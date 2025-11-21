@@ -409,7 +409,7 @@ pub use stream::{
     RetryPolicy, SiftStream,
     builder::{IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder},
     channel::{ChannelValue, Value},
-    flow::{ChannelIndex, FlowBuilder, FlowDescriptor},
+    flow::{ChannelIndex, FlowBuilder, FlowDescriptor, FlowDescriptorBuilder},
     mode::ingestion_config::{Flow, IngestionConfigMode},
     time::TimeValue,
 };
