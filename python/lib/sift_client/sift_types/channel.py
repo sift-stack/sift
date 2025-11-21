@@ -298,7 +298,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
         run_id: str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-        limit: int | None = None,
+        page_size: int | None = None,
+        max_results: int | None = None,
         as_arrow: bool = False,
     ):
         """Retrieve channel data for this channel during the specified run.
@@ -319,7 +320,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 run=run_id,
                 start_time=start_time,
                 end_time=end_time,
-                limit=limit,  # type: ignore
+                max_results=max_results,
+                page_size=page_size,
             )
         else:
             data = self.client.channels.get_data(
@@ -327,7 +329,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
                 run=run_id,
                 start_time=start_time,
                 end_time=end_time,
-                limit=limit,  # type: ignore
+                max_results=max_results,
+                page_size=page_size,
             )
         return data
 
