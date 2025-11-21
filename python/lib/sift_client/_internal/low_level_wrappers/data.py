@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from math import ceil
 from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
