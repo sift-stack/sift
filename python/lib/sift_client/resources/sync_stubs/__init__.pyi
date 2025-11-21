@@ -431,7 +431,8 @@ class ChannelsAPI:
         run: Run | str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-        limit: int | None = None,
+        max_results: int | None = None,
+        page_size: int | None = None,
     ) -> dict[str, pd.DataFrame]:
         """Get data for one or more channels.
 
@@ -440,7 +441,8 @@ class ChannelsAPI:
             run: The Run or run_id to get data for.
             start_time: The start time to get data for.
             end_time: The end time to get data for.
-            limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+            max_results: The maximum number of data points to return.
+            page_size: The number of data points to return per page.
 
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
@@ -454,9 +456,10 @@ class ChannelsAPI:
         run: Run | str | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-        limit: int | None = None,
+        max_results: int | None = None,
+        page_size: int | None = None,
     ) -> dict[str, pa.Table]:
-        """Get data for one or more channels as pyarrow tables."""
+        """Same as get_data but returns data as pyarrow tables."""
         ...
 
     def list_(

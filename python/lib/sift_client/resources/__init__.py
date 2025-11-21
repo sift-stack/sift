@@ -114,7 +114,7 @@ data = client.channels.get_data(
     run="run123",
     start_time=datetime.now() - timedelta(hours=1),
     end_time=datetime.now(),
-    limit=10000
+    max_results=10000
 )
 
 # data is a dict mapping channel names to DataFrames
