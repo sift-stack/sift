@@ -308,7 +308,8 @@ class Channel(BaseType[ChannelProto, "Channel"]):
             run_id: The run ID to get data for.
             start_time: The start time to get data for.
             end_time: The end time to get data for.
-            limit: The maximum number of data points to return.
+            page_size: The number of data points to return per page.
+            max_results: The maximum number of data points to return.
             as_arrow: Whether to return the data as an Arrow table.
 
         Returns:
