@@ -116,6 +116,7 @@ class Rule(google.protobuf.message.Message):
     METADATA_FIELD_NUMBER: builtins.int
     ARCHIVED_DATE_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    IS_LIVE_EVALUATION_ENABLED_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     asset_id: builtins.str
     name: builtins.str
@@ -129,6 +130,10 @@ class Rule(google.protobuf.message.Message):
     is_external: builtins.bool
     is_archived: builtins.bool
     """is_archived is inferred from when archived_date is not null"""
+    is_live_evaluation_enabled: builtins.bool
+    """If set to `true` then this rule will be evaluated on live data, otherwise live rule evaluation
+    will be disabled. This rule can still be used, however, in report generation.
+    """
     @property
     def created_date(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     @property
@@ -172,9 +177,10 @@ class Rule(google.protobuf.message.Message):
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         archived_date: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         is_archived: builtins.bool = ...,
+        is_live_evaluation_enabled: builtins.bool = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_configuration", b"asset_configuration", "contextual_channels", b"contextual_channels", "created_date", b"created_date", "deleted_date", b"deleted_date", "modified_date", b"modified_date", "rule_version", b"rule_version"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["archived_date", b"archived_date", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "created_by_user_id", b"created_by_user_id", "created_date", b"created_date", "deleted_date", b"deleted_date", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "metadata", b"metadata", "modified_by_user_id", b"modified_by_user_id", "modified_date", b"modified_date", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "rule_version", b"rule_version"]) -> None: ...
 
 global___Rule = Rule
 
@@ -540,6 +546,7 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     IS_EXTERNAL_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
     IS_ARCHIVED_FIELD_NUMBER: builtins.int
+    IS_LIVE_EVALUATION_ENABLED_FIELD_NUMBER: builtins.int
     rule_id: builtins.str
     name: builtins.str
     description: builtins.str
@@ -553,6 +560,11 @@ class UpdateRuleRequest(google.protobuf.message.Message):
     """client_key is a client provided identifier for the rule. It is immutable after being set"""
     is_external: builtins.bool
     is_archived: builtins.bool
+    is_live_evaluation_enabled: builtins.bool
+    """If set to `true` then this rule will be evaluated on live data, otherwise live rule evaluation
+    will be disabled. This rule can still be used, however, in report generation. If this value
+    is null then the original value is preserved
+    """
     @property
     def conditions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___UpdateConditionRequest]: ...
     @property
@@ -578,11 +590,14 @@ class UpdateRuleRequest(google.protobuf.message.Message):
         is_external: builtins.bool = ...,
         metadata: collections.abc.Iterable[sift.metadata.v1.metadata_pb2.MetadataValue] | None = ...,
         is_archived: builtins.bool = ...,
+        is_live_evaluation_enabled: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "contextual_channels", b"contextual_channels", "rule_id", b"rule_id"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_client_key", b"_client_key", "_is_live_evaluation_enabled", b"_is_live_evaluation_enabled", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "client_key", b"client_key", "contextual_channels", b"contextual_channels", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "rule_id", b"rule_id"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_client_key", b"_client_key", "_is_live_evaluation_enabled", b"_is_live_evaluation_enabled", "_rule_id", b"_rule_id", "asset_configuration", b"asset_configuration", "asset_id", b"asset_id", "client_key", b"client_key", "conditions", b"conditions", "contextual_channels", b"contextual_channels", "description", b"description", "is_archived", b"is_archived", "is_enabled", b"is_enabled", "is_external", b"is_external", "is_live_evaluation_enabled", b"is_live_evaluation_enabled", "metadata", b"metadata", "name", b"name", "organization_id", b"organization_id", "rule_id", b"rule_id", "version_notes", b"version_notes"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_client_key", b"_client_key"]) -> typing.Literal["client_key"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_is_live_evaluation_enabled", b"_is_live_evaluation_enabled"]) -> typing.Literal["is_live_evaluation_enabled"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_rule_id", b"_rule_id"]) -> typing.Literal["rule_id"] | None: ...
 
@@ -1276,7 +1291,7 @@ class ListRulesRequest(google.protobuf.message.Message):
     filter: builtins.str
     """A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
     Available fields to filter by are `rule_id`, `client_key`, `name`, `description`, `is_external`, `asset_id`, `tag_id`,
-    `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, and `archived_date`.
+    `created_date`, `created_by_user_id`, `metadata`, `modified_date`, `modified_by_user_id`, `deleted_date`, `is_archived`, `archived_date`, and `is_live_evaluation_enabled`.
     For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
     Optional.
     """

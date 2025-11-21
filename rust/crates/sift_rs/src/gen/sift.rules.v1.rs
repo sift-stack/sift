@@ -45,6 +45,8 @@ pub struct Rule {
     pub archived_date: ::core::option::Option<::pbjson_types::Timestamp>,
     #[prost(bool, tag="21")]
     pub is_archived: bool,
+    #[prost(bool, tag="22")]
+    pub is_live_evaluation_enabled: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -223,6 +225,8 @@ pub struct UpdateRuleRequest {
     pub metadata: ::prost::alloc::vec::Vec<super::super::metadata::v1::MetadataValue>,
     #[prost(bool, tag="14")]
     pub is_archived: bool,
+    #[prost(bool, optional, tag="15")]
+    pub is_live_evaluation_enabled: ::core::option::Option<bool>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
