@@ -69,7 +69,8 @@ class TestChannel:
             run_id="run123",
             start_time=datetime(2024, 1, 1, tzinfo=timezone.utc),
             end_time=datetime(2024, 1, 2, tzinfo=timezone.utc),
-            limit=100,
+            max_results=100,
+            page_size=None,
         )
 
         # Verify client method was called with correct parameters
@@ -78,7 +79,8 @@ class TestChannel:
             run="run123",
             start_time=datetime(2024, 1, 1, tzinfo=timezone.utc),
             end_time=datetime(2024, 1, 2, tzinfo=timezone.utc),
-            limit=100,
+            max_results=100,
+            page_size=None,
         )
         assert result == mock_data
 
@@ -99,7 +101,8 @@ class TestChannel:
             run="run123",
             start_time=None,
             end_time=None,
-            limit=None,
+            max_results=None,
+            page_size=None,
         )
         mock_client.channels.get_data.assert_not_called()
         assert result == mock_data
@@ -118,6 +121,7 @@ class TestChannel:
             run=None,
             start_time=None,
             end_time=None,
-            limit=None,
+            max_results=None,
+            page_size=None,
         )
         assert result == mock_data
