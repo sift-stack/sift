@@ -533,18 +533,9 @@ fn test_flow_config_to_flow_descriptor_owned() {
     // Verify descriptor by using public methods
     // Note: When FlowDescriptor<String> is created from FlowConfig, get() expects String
     assert_eq!(descriptor.mapping().len(), 3);
-    assert_eq!(
-        descriptor.get("temperature"),
-        Some(ChannelDataType::Double)
-    );
-    assert_eq!(
-        descriptor.get("pressure"),
-        Some(ChannelDataType::Float)
-    );
-    assert_eq!(
-        descriptor.get("humidity"),
-        Some(ChannelDataType::Double)
-    );
+    assert_eq!(descriptor.get("temperature"), Some(ChannelDataType::Double));
+    assert_eq!(descriptor.get("pressure"), Some(ChannelDataType::Float));
+    assert_eq!(descriptor.get("humidity"), Some(ChannelDataType::Double));
 }
 
 #[test]
@@ -638,30 +629,18 @@ fn test_flow_config_to_flow_descriptor_all_types() {
 
     // Verify all 10 channels were added
     assert_eq!(descriptor.mapping().len(), 10);
-    assert_eq!(
-        descriptor.get("bool_field"),
-        Some(ChannelDataType::Bool)
-    );
+    assert_eq!(descriptor.get("bool_field"), Some(ChannelDataType::Bool));
     assert_eq!(
         descriptor.get("string_field"),
         Some(ChannelDataType::String)
     );
-    assert_eq!(
-        descriptor.get("float_field"),
-        Some(ChannelDataType::Float)
-    );
+    assert_eq!(descriptor.get("float_field"), Some(ChannelDataType::Float));
     assert_eq!(
         descriptor.get("double_field"),
         Some(ChannelDataType::Double)
     );
-    assert_eq!(
-        descriptor.get("int32_field"),
-        Some(ChannelDataType::Int32)
-    );
-    assert_eq!(
-        descriptor.get("int64_field"),
-        Some(ChannelDataType::Int64)
-    );
+    assert_eq!(descriptor.get("int32_field"), Some(ChannelDataType::Int32));
+    assert_eq!(descriptor.get("int64_field"), Some(ChannelDataType::Int64));
     assert_eq!(
         descriptor.get("uint32_field"),
         Some(ChannelDataType::Uint32)
@@ -670,10 +649,7 @@ fn test_flow_config_to_flow_descriptor_all_types() {
         descriptor.get("uint64_field"),
         Some(ChannelDataType::Uint64)
     );
-    assert_eq!(
-        descriptor.get("enum_field"),
-        Some(ChannelDataType::Enum)
-    );
+    assert_eq!(descriptor.get("enum_field"), Some(ChannelDataType::Enum));
     assert_eq!(
         descriptor.get("bitfield_field"),
         Some(ChannelDataType::BitField)
