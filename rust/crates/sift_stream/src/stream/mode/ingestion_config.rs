@@ -14,7 +14,10 @@ use futures_core::Stream;
 use prost::Message;
 use sift_error::prelude::*;
 use sift_rs::{
-    ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest},
+    ingest::v1::{
+        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
+        ingest_with_config_data_channel_value::Type,
+    },
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     runs::v2::Run,
     wrappers::ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
@@ -418,7 +421,7 @@ impl SiftStream<IngestionConfigMode> {
             .channels
             .iter()
             .map(|_| IngestWithConfigDataChannelValue {
-                r#type: Some(ChannelValue::empty_pb()),
+                r#type: Some(Type::Empty(pbjson_types::Empty {})),
             })
             .collect::<Vec<IngestWithConfigDataChannelValue>>();
 
@@ -432,7 +435,7 @@ impl SiftStream<IngestionConfigMode> {
             .collect();
 
         for v in &message.values {
-            let i = channel_map.get(&(v.name.as_str(), v.pb_data_type()))?;
+            let i = channel_map.get(&(v.name.as_str(), i32::from(v.value.pb_data_type())))?;
             channel_values[*i].r#type = Some(v.pb_value());
         }
 

@@ -60,12 +60,12 @@ fn validate_handling_empty_values() {
 
     let mut channel_values = req.channel_values.into_iter();
     assert_eq!(
-        Some(ChannelValue::empty_pb()),
+        Some(Type::Empty(pbjson_types::Empty {})),
         channel_values.next().unwrap().r#type
     );
     assert_eq!(Some(Type::Int32(10)), channel_values.next().unwrap().r#type);
     assert_eq!(
-        Some(ChannelValue::empty_pb()),
+        Some(Type::Empty(pbjson_types::Empty {})),
         channel_values.next().unwrap().r#type
     );
     assert_eq!(
@@ -248,7 +248,7 @@ fn validate_handling_message_against_multiple_flows_with_same_name_with_atleast_
 
     let mut channel_values = req.channel_values.into_iter();
     assert_eq!(
-        Some(ChannelValue::empty_pb()),
+        Some(Type::Empty(pbjson_types::Empty {})),
         channel_values.next().unwrap().r#type,
         "bar should be empty"
     );
