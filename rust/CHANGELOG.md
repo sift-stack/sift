@@ -3,6 +3,27 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.4] - November 19, 2025
+### What's New
+#### SiftStream Improved Checkpoint Message Tracking
+The checkpoint system with `SiftStream` has been updated and improved to remove edge cases resulting from
+slow backup file writing. Overall, the implementation is now more explicit in identifying which messages
+are contained in which checkpoints.
+
+#### SiftStream Metrics Streaming
+The metrics within `SiftStream` will now be streamed to Sift to aid in visibility into `SiftStream` itself as
+well as improve debuggability. This functionality can be adjusted, as well as disabled, through the
+`SiftStreamBuilder`.
+
+#### SiftStream Performance Improvements
+Multiple performance improvements have been made that should reduce both CPU and memory usage of `SiftStream`.
+
+### Full Changelog
+- [Add get_flows to SiftStream](https://github.com/sift-stack/sift/commit/efb5db261c4c5a19e863fbef814ddc2573706048)
+- [Improve checkpoint message tracking](https://github.com/sift-stack/sift/commit/24c4a8a99bbd6138adce11fd25633a86d52716a1)
+- [Add streaming metrics to Sift](https://github.com/sift-stack/sift/commit/704a6f676caff3c291f7257cc51cdf94b990af91)
+- [SiftStream related performance improvements](https://github.com/sift-stack/sift/commit/359012d2956bf938539761a5c3d070c5b45f9384)
+
 ## [v0.7.0-rc.3] - November 12, 2025
 ### What's New
 #### SiftStream Independent gRPC Connections for Streaming

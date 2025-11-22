@@ -148,7 +148,6 @@ class ReportContext(AbstractContextManager):
     def resolve_and_propagate_step_result(
         self,
         step: TestStep,
-        parent_step: TestStep | None = None,
         error_info: ErrorInfo | None = None,
     ) -> bool:
         """Resolve the result of a step and propagate the result to the parent step if it failed."""
@@ -157,13 +156,16 @@ class ReportContext(AbstractContextManager):
             result = False
         if step.status != TestStatus.IN_PROGRESS:
             # The step was manually completed so use that result.
-            result = step.status == TestStatus.PASSED
+            # Skipped steps are considered passed.
+            result = step.status in (TestStatus.PASSED, TestStatus.SKIPPED)
 
         # Update the parent step results if this step failed (true by default so no need to do anything if we didn't fail).
         if not result:
             self.any_failures = True
-            if parent_step:
-                self.open_step_results[parent_step.step_path] = False
+            path_parts = step.step_path.split(".")
+            if len(path_parts) > 1:
+                parent_step_path = ".".join(path_parts[:-1])
+                self.open_step_results[parent_step_path] = False
 
         return result
 
@@ -185,7 +187,6 @@ class NewStep(AbstractContextManager):
     report_context: ReportContext
     client: SiftClient
     current_step: TestStep | None = None
-    parent_step: TestStep | None = None
 
     def __init__(
         self,
@@ -237,12 +238,13 @@ class NewStep(AbstractContextManager):
 
         # Resolve the status of this step (i.e. fail if children failed) and propagate the result to the parent step.
         result = self.report_context.resolve_and_propagate_step_result(
-            self.current_step, self.parent_step, error_info
+            self.current_step, error_info
         )
 
         # Mark the step as completed
         status = self.current_step.status
         if status == TestStatus.IN_PROGRESS:
+            # Update the status only if the step was in progress i.e. not updated elsewhere.
             status = TestStatus.PASSED if result else TestStatus.FAILED
         if error_info:
             status = TestStatus.ERROR
