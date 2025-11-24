@@ -196,4 +196,6 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             response.raise_for_status()
             return response.content
 
-        return await asyncio.to_thread(_download)
+        # Use run_in_executor for Python 3.8 compatibility (asyncio.to_thread was added in 3.9)
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _download)
