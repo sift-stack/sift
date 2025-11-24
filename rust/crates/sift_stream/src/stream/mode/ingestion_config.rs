@@ -297,18 +297,43 @@ impl SiftStream<IngestionConfigMode> {
 
     /// Modify the existing ingestion config by adding new flows that weren't accounted for during
     /// initialization.
-    pub async fn add_new_flows(&mut self, flow_configs: &[FlowConfig]) -> Result<()> {
+    pub async fn add_new_flows<I>(&mut self, flow_configs: I) -> Result<()>
+    where
+        I: IntoIterator<Item = FlowConfig>,
+    {
+        // Filter out flows that already exist.
+        let filtered = flow_configs
+            .into_iter()
+            .filter(|f| !self.mode.flows_by_name.contains_key(&f.name))
+            .collect::<Vec<_>>();
+
+        // If no new flows are provided, return early.
+        if filtered.is_empty() {
+            return Ok(());
+        }
+
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            ingestion_config_id = self.mode.ingestion_config.ingestion_config_id,
+            new_flows = filtered
+                .iter()
+                .map(|f| f.name.as_str())
+                .collect::<Vec<&str>>()
+                .join(","),
+            "adding new flows to ingestion config"
+        );
+
         new_ingestion_config_service(self.grpc_channel.clone())
             .try_create_flows(
                 &self.mode.ingestion_config.ingestion_config_id,
-                flow_configs,
+                filtered.as_slice(),
             )
             .await
             .context("SiftStream::add_new_flows")?;
 
-        self.metrics.loaded_flows.add(flow_configs.len() as u64);
+        self.metrics.loaded_flows.add(filtered.len() as u64);
 
-        for flow_config in flow_configs {
+        for flow_config in filtered {
             self.mode
                 .flows_by_name
                 .entry(flow_config.name.clone())

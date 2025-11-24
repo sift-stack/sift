@@ -541,6 +541,16 @@ impl SiftStreamBuilder<IngestionConfigMode> {
                     .try_filter_flows(&ingestion_config.ingestion_config_id, &filter)
                     .await?;
 
+                // If no flows are provided, use the existing flows in Sift to populate the local flow cache.
+                if flows.is_empty() {
+                    #[cfg(feature = "tracing")]
+                    tracing::info!(
+                        ingestion_config_id = ingestion_config.ingestion_config_id,
+                        "no flows provided, using existing flows in Sift to populate the local flow cache"
+                    );
+                    return Ok((ingestion_config, existing_flows, asset));
+                }
+
                 let mut flows_to_create: Vec<FlowConfig> = Vec::new();
 
                 for flow in &flows {
