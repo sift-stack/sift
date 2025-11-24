@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.5] - November 24, 2025
+### What's New
+#### SiftStream FlowDescriptors and FlowBuilders
+The `FlowDescriptor` and `FlowBuilder` structs have been added as a new way to send data with `SiftStream`.
+The `FlowDescriptor` while similar to the `FlowConfig`, represents the minimum required information to
+create the protobuf object required by the ingestion APIs in Sift. It allows flexibility in how "channels"
+can be uniquely identified within that flow, with the most performant option to utilize the channel's index
+to directly set the value, bypassing potential bottlenecks such as string allocations or hash operations.
+
+#### SiftStream Flow-Config Cache Updates
+When initializing `SiftStream`, if no initial flow configs are provided, `SiftStream` will populate it's cache
+with all known flows configs from Sift. This can help improve workflows that require restarting `SiftStream`, such
+as when deploying new containers or processes.
+
+### Full Changelog
+- [Add FlowDescriptor and FlowBuilder to improve performance](https://github.com/sift-stack/sift/commit/833f0927d15a1fc0c6aef50e521f0a84c621b3e9)
+- [Improve how sift-stream handles the flow config cache](https://github.com/sift-stack/sift/commit/79ed6f9dd6a65ffabd66bf0d9e17d2c957719eb0)
+
+
 ## [v0.7.0-rc.4] - November 19, 2025
 ### What's New
 #### SiftStream Improved Checkpoint Message Tracking
