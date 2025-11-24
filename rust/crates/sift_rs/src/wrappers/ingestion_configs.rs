@@ -42,11 +42,7 @@ pub trait IngestionConfigServiceWrapper:
 
     /// Create [FlowConfig]s for a given ingestion config. If this function does not return an
     /// error, then it is safe to assume that all [FlowConfig]s in `configs` was created.
-    async fn try_create_flows<I>(
-        &mut self,
-        ingestion_config_id: &str,
-        configs: I,
-    ) -> Result<()> 
+    async fn try_create_flows<I>(&mut self, ingestion_config_id: &str, configs: I) -> Result<()>
     where
         I: Into<Vec<FlowConfig>> + Send;
 
@@ -123,11 +119,7 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
 
     /// Create [FlowConfig]s for a given ingestion config. If this function does not return an
     /// error, then it is safe to assume that all [FlowConfig]s in `configs` was created.
-    async fn try_create_flows<I>(
-        &mut self,
-        ingestion_config_id: &str,
-        configs: I,
-    ) -> Result<()>
+    async fn try_create_flows<I>(&mut self, ingestion_config_id: &str, configs: I) -> Result<()>
     where
         I: Into<Vec<FlowConfig>> + Send,
     {
