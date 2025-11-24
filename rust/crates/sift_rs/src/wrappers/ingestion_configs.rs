@@ -42,11 +42,13 @@ pub trait IngestionConfigServiceWrapper:
 
     /// Create [FlowConfig]s for a given ingestion config. If this function does not return an
     /// error, then it is safe to assume that all [FlowConfig]s in `configs` was created.
-    async fn try_create_flows(
+    async fn try_create_flows<I>(
         &mut self,
         ingestion_config_id: &str,
-        configs: &[FlowConfig],
-    ) -> Result<()>;
+        configs: I,
+    ) -> Result<()> 
+    where
+        I: Into<Vec<FlowConfig>> + Send;
 
     /// Retrieve all flows that satisfy the provided filter.
     async fn try_filter_flows(
@@ -121,15 +123,18 @@ impl IngestionConfigServiceWrapper for IngestionConfigServiceImpl {
 
     /// Create [FlowConfig]s for a given ingestion config. If this function does not return an
     /// error, then it is safe to assume that all [FlowConfig]s in `configs` was created.
-    async fn try_create_flows(
+    async fn try_create_flows<I>(
         &mut self,
         ingestion_config_id: &str,
-        configs: &[FlowConfig],
-    ) -> Result<()> {
+        configs: I,
+    ) -> Result<()>
+    where
+        I: Into<Vec<FlowConfig>> + Send,
+    {
         let _ = self
             .create_ingestion_config_flows(CreateIngestionConfigFlowsRequest {
                 ingestion_config_id: ingestion_config_id.to_string(),
-                flows: configs.to_vec(),
+                flows: configs.into(),
             })
             .await
             .map_err(|e| Error::new(ErrorKind::CreateFlowError, e))?;

@@ -575,7 +575,10 @@ impl SiftStreamBuilder<IngestionConfigMode> {
 
                 if !flows_to_create.is_empty() {
                     let _ = ingestion_config_service
-                        .try_create_flows(&ingestion_config.ingestion_config_id, &flows_to_create)
+                        .try_create_flows(
+                            &ingestion_config.ingestion_config_id,
+                            flows_to_create.as_slice(),
+                        )
                         .await;
 
                     #[cfg(feature = "tracing")]

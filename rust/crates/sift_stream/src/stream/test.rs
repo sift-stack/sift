@@ -279,7 +279,7 @@ async fn test_sift_stream_builder_load_ingestion_config_with_no_flows() {
     };
 
     // Add the existing flow again to ensure it is not added again.
-    assert!(sift_stream.add_new_flows(vec![existing_flow]).await.is_ok());
+    assert!(sift_stream.add_new_flows(&[existing_flow]).await.is_ok());
     let flows = sift_stream.get_flows();
     assert_eq!(flows.len(), 1);
 
@@ -333,7 +333,7 @@ async fn test_sift_stream_builder_load_ingestion_config_with_flows() {
     assert_eq!(flows.len(), 1);
 
     // Add the existing flow again to ensure it is not added again.
-    assert!(sift_stream.add_new_flows(vec![existing_flow]).await.is_ok());
+    assert!(sift_stream.add_new_flows(&[existing_flow]).await.is_ok());
     let flows = sift_stream.get_flows();
     assert_eq!(flows.len(), 1);
 }
@@ -382,7 +382,7 @@ async fn test_sift_stream_builder_load_ingestion_config_with_new_flows() {
     assert_eq!(flows.len(), 1);
 
     // Add the existing flow again to ensure it is not added again.
-    assert!(sift_stream.add_new_flows(vec![new_flow]).await.is_ok());
+    assert!(sift_stream.add_new_flows(&[new_flow]).await.is_ok());
     let flows = sift_stream.get_flows();
     assert_eq!(flows.len(), 1);
 
@@ -395,7 +395,7 @@ async fn test_sift_stream_builder_load_ingestion_config_with_new_flows() {
             ..Default::default()
         }],
     };
-    assert!(sift_stream.add_new_flows(vec![new_flow2]).await.is_ok());
+    assert!(sift_stream.add_new_flows(&[new_flow2]).await.is_ok());
     let flows = sift_stream.get_flows();
     assert_eq!(flows.len(), 2);
 }

@@ -297,13 +297,10 @@ impl SiftStream<IngestionConfigMode> {
 
     /// Modify the existing ingestion config by adding new flows that weren't accounted for during
     /// initialization.
-    pub async fn add_new_flows<I>(&mut self, flow_configs: I) -> Result<()>
-    where
-        I: IntoIterator<Item = FlowConfig>,
-    {
+    pub async fn add_new_flows(&mut self, flow_configs: &[FlowConfig]) -> Result<()> {
         // Filter out flows that already exist.
         let filtered = flow_configs
-            .into_iter()
+            .iter()
             .filter(|f| !self.mode.flows_by_name.contains_key(&f.name))
             .collect::<Vec<_>>();
 
@@ -326,7 +323,10 @@ impl SiftStream<IngestionConfigMode> {
         new_ingestion_config_service(self.grpc_channel.clone())
             .try_create_flows(
                 &self.mode.ingestion_config.ingestion_config_id,
-                filtered.as_slice(),
+                filtered
+                    .iter()
+                    .map(|f| (*f).clone())
+                    .collect::<Vec<FlowConfig>>(),
             )
             .await
             .context("SiftStream::add_new_flows")?;
