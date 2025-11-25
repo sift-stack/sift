@@ -1128,6 +1128,23 @@ You're not viewing the latest version.
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results--manually-updating-underlyling-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manually Updating Underlyling Report
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1219,17 +1236,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;current_step
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.NewStep.parent_step" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;parent_step
       
     </span>
   </a>
@@ -1820,6 +1826,23 @@ You're not viewing the latest version.
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.util.test_results--manually-updating-underlyling-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manually Updating Underlyling Report
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1911,17 +1934,6 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;current_step
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sift_client.util.test_results.NewStep.parent_step" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;parent_step
       
     </span>
   </a>
@@ -2313,15 +2325,25 @@ You're not viewing the latest version.
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">substep</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ec</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">pos_channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">74.9</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mf">75.1</span><span class="p">))</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>            <span class="k">return</span> <span class="n">result</span> <span class="c1"># This is optional for other uses, but the step and its parents will be updated correctly i.e. failed if the measurement fails.</span>
 </span></code></pre></div>
+<h5 id="sift_client.util.test_results--manually-updating-underlyling-report">Manually Updating Underlyling Report<a class="headerlink" href="#sift_client.util.test_results--manually-updating-underlyling-report" title="Permanent link">&para;</a></h5>
+<p>You can also manually update the underlying report or steps by accessing the context manager's attributes.
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">with</span> <span class="n">ReportContext</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Report&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rc</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">with</span> <span class="n">rc</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Step&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">step</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="k">if</span> <span class="err">!</span><span class="n">conditions</span><span class="p">:</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>            <span class="n">step</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">TestStatus</span><span class="o">.</span><span class="n">SKIPPED</span><span class="p">})</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>            <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Measurement&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">test_value</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">})</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">rc</span><span class="o">.</span><span class="n">report</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;run_id&quot;</span><span class="p">:</span> <span class="n">run_id</span><span class="p">})</span>
+</span></code></pre></div></p>
 <p>For a larger class or script, consider creating the context in a setup method and passing it to the test functions.
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">sift_client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">grpc_url</span><span class="o">=</span><span class="n">grpc_url</span><span class="p">,</span> <span class="n">rest_url</span><span class="o">=</span><span class="n">rest_url</span><span class="p">)</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">with</span> <span class="n">ReportContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sift_client</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Test Class&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Test Class&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rc</span><span class="p">:</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="n">setup</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="n">test_one</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">test_two</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">teardown</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">cleanup</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">sift_client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">grpc_url</span><span class="o">=</span><span class="n">grpc_url</span><span class="p">,</span> <span class="n">rest_url</span><span class="o">=</span><span class="n">rest_url</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">with</span> <span class="n">ReportContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sift_client</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Test Class&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Test Class&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rc</span><span class="p">:</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="n">setup</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="n">test_one</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">test_two</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">teardown</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">cleanup</span><span class="p">()</span>
 </span></code></pre></div></p>
 <h3 id="sift_client.util.test_results--pytest-fixtures">Pytest Fixtures<a class="headerlink" href="#sift_client.util.test_results--pytest-fixtures" title="Permanent link">&para;</a></h3>
 <p>The report context and steps can also be accessed in pytest by importing the <code>report_context</code> and <code>step</code> fixtures.</p>
@@ -2332,33 +2354,33 @@ You're not viewing the latest version.
 <li>The <code>report_context</code> fixture requires a fixture <code>sift_client</code> returning an <code>SiftClient</code> instance to be passed in.</li>
 </ul>
 <h6 id="sift_client.util.test_results--example-at-top-of-your-test-file-or-in-your-conftestpy-file">Example at top of your test file or in your conftest.py file:<a class="headerlink" href="#sift_client.util.test_results--example-at-top-of-your-test-file-or-in-your-conftestpy-file" title="Permanent link">&para;</a></h6>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">sift_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SiftClient</span><span class="p">:</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">grpc_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_GRPC_URI&quot;</span><span class="p">,</span> <span class="s2">&quot;localhost:50051&quot;</span><span class="p">)</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">rest_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_REST_URI&quot;</span><span class="p">,</span> <span class="s2">&quot;localhost:8080&quot;</span><span class="p">)</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_API_KEY&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">grpc_url</span><span class="o">=</span><span class="n">grpc_url</span><span class="p">,</span> <span class="n">rest_url</span><span class="o">=</span><span class="n">rest_url</span><span class="p">)</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="k">return</span> <span class="n">client</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.util.test_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">pytest_runtest_makereport</span><span class="p">,</span> <span class="n">report_context</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">module_substep</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">sift_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SiftClient</span><span class="p">:</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">grpc_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_GRPC_URI&quot;</span><span class="p">,</span> <span class="s2">&quot;localhost:50051&quot;</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">rest_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_REST_URI&quot;</span><span class="p">,</span> <span class="s2">&quot;localhost:8080&quot;</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SIFT_API_KEY&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">client</span> <span class="o">=</span> <span class="n">SiftClient</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">grpc_url</span><span class="o">=</span><span class="n">grpc_url</span><span class="p">,</span> <span class="n">rest_url</span><span class="o">=</span><span class="n">rest_url</span><span class="p">)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">return</span> <span class="n">client</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sift_client.util.test_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">pytest_runtest_makereport</span><span class="p">,</span> <span class="n">report_context</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">module_substep</span>
 </span></code></pre></div>
 <h6 id="sift_client.util.test_results--then-in-your-test-file">Then in your test file:<a class="headerlink" href="#sift_client.util.test_results--then-in-your-test-file" title="Permanent link">&para;</a></h6>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Because step was already imported and set autouse=True, this test will automatically get a step created for it.</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_no_includes</span><span class="p">():</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">assert</span> <span class="n">condition</span><span class="p">,</span> <span class="s2">&quot;Example failure&quot;</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Passing the fixtures to the test function allows you to take measurements or create substeps.</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_example</span><span class="p">(</span><span class="n">report_context</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="c1"># This will add a measurement to the current step for this function</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Measurement&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">test_string_value</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="s2">&quot;expected_string_value&quot;</span><span class="p">)</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="k">with</span> <span class="n">report_context</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Step&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">substep</span><span class="p">:</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="n">example_measurement</span> <span class="o">=</span> <span class="n">tlm</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">channel_name</span><span class="p">)</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">substep</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Substep Measurement&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">example_measurement</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">74.9</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mf">75.1</span><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Because step was already imported and set autouse=True, this test will automatically get a step created for it.</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_no_includes</span><span class="p">():</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="k">assert</span> <span class="n">condition</span><span class="p">,</span> <span class="s2">&quot;Example failure&quot;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># Passing the fixtures to the test function allows you to take measurements or create substeps.</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_example</span><span class="p">(</span><span class="n">report_context</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="c1"># This will add a measurement to the current step for this function</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">step</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Measurement&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">test_string_value</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="s2">&quot;expected_string_value&quot;</span><span class="p">)</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="k">with</span> <span class="n">report_context</span><span class="o">.</span><span class="n">new_step</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Example Step&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">substep</span><span class="p">:</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="n">example_measurement</span> <span class="o">=</span> <span class="n">tlm</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">channel_name</span><span class="p">)</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="n">substep</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Substep Measurement&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">example_measurement</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">74.9</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mf">75.1</span><span class="p">))</span>
 </span></code></pre></div>
 
 
@@ -2733,31 +2755,6 @@ You're not viewing the latest version.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="            parent_step
-
-
-  
-      class-attribute
-      instance-attribute
-   (sift_client.util.test_results.NewStep.parent_step)" href="#sift_client.util.test_results.NewStep.parent_step">parent_step</a></code></td>
-            <td class="doc-attribute-details">
-              <div class="doc-md-description">
-                
-              </div>
-              <p>
-                  <span class="doc-attribute-annotation">
-                    <b>TYPE:</b>
-                      <code><a class="autorefs autorefs-internal" title="            TestStep
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a> | None</code>
-                  </span>
-              </p>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
             <td><code><a class="autorefs autorefs-internal" title="            report_context
 
 
@@ -2834,34 +2831,6 @@ You're not viewing the latest version.
    (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="sift_client.util.test_results.context_manager.NewStep(self).report_context.create_step">create_step</span></span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="sift_client.util.test_results.context_manager.NewStep(name)">name</span></span><span class="p">,</span> <span class="n"><span title="sift_client.util.test_results.context_manager.NewStep(description)">description</span></span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sift_client.util.test_results.NewStep.parent_step" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">parent_step</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
-      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
-  </span>
-
-<a href="#sift_client.util.test_results.NewStep.parent_step" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">parent_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3958,20 +3927,13 @@ You're not viewing the latest version.
 
   
       pydantic-model
-   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">parent_step</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            TestStep
+   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span><span class="p">,</span> <span class="n">error_info</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ErrorInfo
 
 
   
       pydantic-model
-   (sift_client.sift_types.test_report.TestStep)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.TestStep">TestStep</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">error_info</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="            ErrorInfo
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.test_report.ErrorInfo)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.ErrorInfo">ErrorInfo</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+   (sift_client.sift_types.test_report.ErrorInfo)" href="../../sift_types/test_report/#sift_client.sift_types.test_report.ErrorInfo">ErrorInfo</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
