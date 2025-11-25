@@ -59,7 +59,7 @@ all = [
     'pyOpenSSL<24.0.0',
     'pyarrow>=17.0.0',
     'rosbags~=0.0',
-    'sift-stream-bindings>=0.2.0-rc',
+    'sift-stream-bindings>=0.2.0-rc2',
     'types-pyOpenSSL<24.0.0',
 ]
 build = [
@@ -100,7 +100,7 @@ dev-all = [
     'pytest==8.2.2',
     'rosbags~=0.0',
     'ruff~=0.12.10',
-    'sift-stream-bindings>=0.2.0-rc',
+    'sift-stream-bindings>=0.2.0-rc2',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -153,7 +153,7 @@ docs-build = [
     'pytest==8.2.2',
     'rosbags~=0.0',
     'ruff~=0.12.10',
-    'sift-stream-bindings>=0.2.0-rc',
+    'sift-stream-bindings>=0.2.0-rc2',
     'tomlkit~=0.13.3',
     'types-pyOpenSSL<24.0.0',
 ]
@@ -176,10 +176,10 @@ rosbags = [
     'rosbags~=0.0',
 ]
 sift-stream = [
-    'sift-stream-bindings>=0.2.0-rc',
+    'sift-stream-bindings>=0.2.0-rc2',
 ]
 sift-stream-bindings = [
-    'sift-stream-bindings>=0.2.0-rc',
+    'sift-stream-bindings>=0.2.0-rc2',
 ]
 tdms = [
     'npTDMS~=1.9',
