@@ -3,6 +3,56 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.6] - November 24, 2025
+### What's New
+#### SiftStream APIs to Utilize `FlowDescriptor` and `FlowBuilder`
+Two new APIs have been added to allow use of the `FlowDescriptor` and `FlowBuilder` structs added
+previously.
+
+### Full Changelog
+- [Get FlowDescriptor, send_requests_nonblocking]()
+
+
+## [v0.7.0-rc.5] - November 24, 2025
+### What's New
+#### SiftStream FlowDescriptors and FlowBuilders
+The `FlowDescriptor` and `FlowBuilder` structs have been added as a new way to send data with `SiftStream`.
+The `FlowDescriptor` while similar to the `FlowConfig`, represents the minimum required information to
+create the protobuf object required by the ingestion APIs in Sift. It allows flexibility in how "channels"
+can be uniquely identified within that flow, with the most performant option to utilize the channel's index
+to directly set the value, bypassing potential bottlenecks such as string allocations or hash operations.
+
+#### SiftStream Flow-Config Cache Updates
+When initializing `SiftStream`, if no initial flow configs are provided, `SiftStream` will populate it's cache
+with all known flows configs from Sift. This can help improve workflows that require restarting `SiftStream`, such
+as when deploying new containers or processes.
+
+### Full Changelog
+- [Add FlowDescriptor and FlowBuilder to improve performance](https://github.com/sift-stack/sift/commit/833f0927d15a1fc0c6aef50e521f0a84c621b3e9)
+- [Improve how sift-stream handles the flow config cache](https://github.com/sift-stack/sift/commit/79ed6f9dd6a65ffabd66bf0d9e17d2c957719eb0)
+
+
+## [v0.7.0-rc.4] - November 19, 2025
+### What's New
+#### SiftStream Improved Checkpoint Message Tracking
+The checkpoint system with `SiftStream` has been updated and improved to remove edge cases resulting from
+slow backup file writing. Overall, the implementation is now more explicit in identifying which messages
+are contained in which checkpoints.
+
+#### SiftStream Metrics Streaming
+The metrics within `SiftStream` will now be streamed to Sift to aid in visibility into `SiftStream` itself as
+well as improve debuggability. This functionality can be adjusted, as well as disabled, through the
+`SiftStreamBuilder`.
+
+#### SiftStream Performance Improvements
+Multiple performance improvements have been made that should reduce both CPU and memory usage of `SiftStream`.
+
+### Full Changelog
+- [Add get_flows to SiftStream](https://github.com/sift-stack/sift/commit/efb5db261c4c5a19e863fbef814ddc2573706048)
+- [Improve checkpoint message tracking](https://github.com/sift-stack/sift/commit/24c4a8a99bbd6138adce11fd25633a86d52716a1)
+- [Add streaming metrics to Sift](https://github.com/sift-stack/sift/commit/704a6f676caff3c291f7257cc51cdf94b990af91)
+- [SiftStream related performance improvements](https://github.com/sift-stack/sift/commit/359012d2956bf938539761a5c3d070c5b45f9384)
+
 ## [v0.7.0-rc.3] - November 12, 2025
 ### What's New
 #### SiftStream Independent gRPC Connections for Streaming

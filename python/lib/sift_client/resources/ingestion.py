@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 
 from sift_client._internal.low_level_wrappers.ingestion import (
     IngestionConfigStreamingLowLevelClient,
     IngestionLowLevelClient,
 )
+from sift_client.errors import _sift_stream_bindings_import_error
 from sift_client.resources._base import ResourceBase
 from sift_client.sift_types.ingestion import Flow, IngestionConfig, IngestionConfigCreate
 from sift_client.sift_types.run import Run, RunCreate, Tag
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from sift_stream_bindings import (
         DiskBackupPolicyPy,
         DurationPy,
@@ -145,7 +148,10 @@ class RecoveryStrategyConfig:
             instead of calling this constructor directly.
         """
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
-        from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
+        try:
+            from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
+        except ImportError as e:
+            _sift_stream_bindings_import_error(e)
 
         # Default to retry_with_backups()
         # This is intentionally different from SiftStream, which defaults to retry_only
@@ -174,7 +180,10 @@ class RecoveryStrategyConfig:
             A RecoveryStrategyConfig configured for retry-only strategy.
         """
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
-        from sift_stream_bindings import RecoveryStrategyPy, RetryPolicyPy
+        try:
+            from sift_stream_bindings import RecoveryStrategyPy, RetryPolicyPy
+        except ImportError as e:
+            _sift_stream_bindings_import_error(e)
 
         retry_policy_py = retry_policy or RetryPolicyPy.default()
 
@@ -200,7 +209,10 @@ class RecoveryStrategyConfig:
             A RecoveryStrategyConfig configured for retry with disk backups.
         """
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
-        from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
+        try:
+            from sift_stream_bindings import DiskBackupPolicyPy, RecoveryStrategyPy, RetryPolicyPy
+        except ImportError as e:
+            _sift_stream_bindings_import_error(e)
 
         retry_policy_py = retry_policy or RetryPolicyPy.default()
         disk_backup_policy_py = disk_backup_policy or DiskBackupPolicyPy.default()
@@ -325,14 +337,17 @@ class IngestionConfigStreamingClient(ResourceBase):
             An initialized IngestionConfigStreamingClient.
         """
         # Importing here to allow sift_stream_bindings to be an optional dependancy for non-ingestion users
-        from sift_stream_bindings import (
-            DurationPy,
-            IngestionConfigFormPy,
-            MetadataPy,
-            MetadataValuePy,
-            RecoveryStrategyPy,
-            RunFormPy,
-        )
+        try:
+            from sift_stream_bindings import (
+                DurationPy,
+                IngestionConfigFormPy,
+                MetadataPy,
+                MetadataValuePy,
+                RecoveryStrategyPy,
+                RunFormPy,
+            )
+        except ImportError as e:
+            _sift_stream_bindings_import_error(e)
 
         instance = cls.__new__(cls)
         instance._sift_client = sift_client
@@ -439,6 +454,27 @@ class IngestionConfigStreamingClient(ResourceBase):
         else:
             flow_py = flow
         await self._low_level_client.send(flow_py)
+
+    async def batch_send(self, flows: Iterable[Flow | FlowPy]):
+        """Send multiple flows to Sift in a single batch operation.
+
+        This method allows you to send multiple flows efficiently in a single batch,
+        which can improve performance by reducing overhead compared to calling `send`
+        multiple times.
+
+        Args:
+            flows: An iterable of flows to send. Each flow can be either a `Flow` or `FlowPy` instance.
+        """
+
+        def normalize_flows(flows: Iterable[Flow | FlowPy]) -> Iterator[FlowPy]:
+            for flow in flows:
+                if isinstance(flow, Flow):
+                    yield flow._to_rust_form()
+                else:
+                    yield flow
+
+        flows_py = normalize_flows(flows)
+        await self._low_level_client.batch_send(flows_py)
 
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.

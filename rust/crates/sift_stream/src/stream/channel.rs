@@ -28,6 +28,38 @@ pub enum Value {
     BitField(Vec<u8>),
 }
 
+impl Value {
+    pub(crate) fn pb_data_type(&self) -> ChannelDataType {
+        match self {
+            Value::Bool(_) => ChannelDataType::Bool,
+            Value::String(_) => ChannelDataType::String,
+            Value::Double(_) => ChannelDataType::Double,
+            Value::Float(_) => ChannelDataType::Float,
+            Value::Int32(_) => ChannelDataType::Int32,
+            Value::Int64(_) => ChannelDataType::Int64,
+            Value::Uint32(_) => ChannelDataType::Uint32,
+            Value::Uint64(_) => ChannelDataType::Uint64,
+            Value::Enum(_) => ChannelDataType::Enum,
+            Value::BitField(_) => ChannelDataType::BitField,
+        }
+    }
+
+    pub(crate) fn pb_value(&self) -> Type {
+        match self {
+            Value::Bool(val) => Type::Bool(*val),
+            Value::String(val) => Type::String(val.clone()),
+            Value::Double(val) => Type::Double(*val),
+            Value::Float(val) => Type::Float(*val),
+            Value::Int32(val) => Type::Int32(*val),
+            Value::Int64(val) => Type::Int64(*val),
+            Value::Uint32(val) => Type::Uint32(*val),
+            Value::Uint64(val) => Type::Uint64(*val),
+            Value::Enum(val) => Type::Enum(*val),
+            Value::BitField(val) => Type::BitField(val.clone()),
+        }
+    }
+}
+
 impl ChannelValue {
     /// Creates a [ChannelValue] for a channel of name `name`.
     ///
@@ -43,38 +75,8 @@ impl ChannelValue {
         }
     }
 
-    pub(crate) fn empty_pb() -> Type {
-        Type::Empty(pbjson_types::Empty {})
-    }
-
-    pub(crate) fn pb_data_type(&self) -> i32 {
-        match self.value {
-            Value::Bool(_) => i32::from(ChannelDataType::Bool),
-            Value::String(_) => i32::from(ChannelDataType::String),
-            Value::Double(_) => i32::from(ChannelDataType::Double),
-            Value::Float(_) => i32::from(ChannelDataType::Float),
-            Value::Int32(_) => i32::from(ChannelDataType::Int32),
-            Value::Int64(_) => i32::from(ChannelDataType::Int64),
-            Value::Uint32(_) => i32::from(ChannelDataType::Uint32),
-            Value::Uint64(_) => i32::from(ChannelDataType::Uint64),
-            Value::Enum(_) => i32::from(ChannelDataType::Enum),
-            Value::BitField(_) => i32::from(ChannelDataType::BitField),
-        }
-    }
-
     pub(crate) fn pb_value(&self) -> Type {
-        match self.value {
-            Value::Bool(val) => Type::Bool(val),
-            Value::String(ref val) => Type::String(val.clone()),
-            Value::Double(val) => Type::Double(val),
-            Value::Float(val) => Type::Float(val),
-            Value::Int32(val) => Type::Int32(val),
-            Value::Int64(val) => Type::Int64(val),
-            Value::Uint32(val) => Type::Uint32(val),
-            Value::Uint64(val) => Type::Uint64(val),
-            Value::Enum(val) => Type::Enum(val),
-            Value::BitField(ref val) => Type::BitField(val.clone()),
-        }
+        self.value.pb_value()
     }
 }
 

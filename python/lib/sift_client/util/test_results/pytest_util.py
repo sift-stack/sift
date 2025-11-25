@@ -6,19 +6,27 @@ from typing import TYPE_CHECKING, Any, Generator
 
 import pytest
 
+from sift_client.sift_types.test_report import TestStatus
 from sift_client.util.test_results import ReportContext
 
 if TYPE_CHECKING:
     from sift_client.client import SiftClient
     from sift_client.util.test_results.context_manager import NewStep
 
+REPORT_CONTEXT: ReportContext | None = None
+
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
     """You should import this hook to capture any AssertionErrors that occur during the test. If not included, any assert failures in a test will not automatically fail the step."""
     outcome = yield
-    rep = outcome.get_result()
-    setattr(item, "rep_" + rep.when, call)
+    report = outcome.get_result()
+    if report.outcome == "skipped":
+        # Skipped steps won't invoke the method/fixtures at all, so we need to manually record a step.
+        if REPORT_CONTEXT:
+            with REPORT_CONTEXT.new_step(name=item.name) as new_step:
+                new_step.current_step.update({"status": TestStatus.SKIPPED})
+    setattr(item, "rep_" + report.when, call)
 
 
 def _report_context_impl(
@@ -36,6 +44,9 @@ def _report_context_impl(
         name=f"{base_name} {datetime.now(timezone.utc).isoformat()}",
         test_case=str(test_case),
     ) as context:
+        # Set a global so we can access this in pytest hooks.
+        global REPORT_CONTEXT
+        REPORT_CONTEXT = context
         yield context
 
 
