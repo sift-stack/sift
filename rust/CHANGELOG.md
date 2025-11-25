@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0-rc.6] - November 24, 2025
+### What's New
+#### SiftStream APIs to Utilize `FlowDescriptor` and `FlowBuilder`
+Two new APIs have been added to allow use of the `FlowDescriptor` and `FlowBuilder` structs added
+previously.
+
+### Full Changelog
+- [Get FlowDescriptor, send_requests_nonblocking]()
+
+
 ## [v0.7.0-rc.5] - November 24, 2025
 ### What's New
 #### SiftStream FlowDescriptors and FlowBuilders
