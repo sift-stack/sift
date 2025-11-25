@@ -112,9 +112,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
         from sift_client.sift_types.file_attachment import FileAttachment
 
         if order_by is not None:
-            raise ValueError(
-                "order_by is not supported by the backend, but it is here for API consistency."
-            )
+            raise NotImplementedError
 
         request_kwargs: dict[str, Any] = {}
         if page_size is not None:
