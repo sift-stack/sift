@@ -50,45 +50,61 @@ impl<M> PbfsChunk<M>
 where
     M: Message + Default + 'static,
 {
+    /// Encodes `messages` into the provided `buffer`, reusing its capacity.
+    /// The buffer is cleared before encoding, and the encoded data is written to it.
+    /// Returns a slice of the encoded data.
+    ///
+    /// This method is more efficient than `new()` when encoding many small messages,
+    /// as it avoids allocating a new vector for each chunk.
+    pub fn encode_into<'a>(messages: &[M], buffer: &'a mut Vec<u8>) -> Result<&'a [u8]> {
+        // Calculate total encoded message length
+        let mut encoded_message_len = 0;
+        for message in messages {
+            encoded_message_len += message.encoded_len() + MESSAGE_LENGTH_PREFIX_LEN;
+        }
+
+        // Reserve capacity if needed, then clear to reuse existing capacity
+        let total_len = CHECKSUM_HEADER_LEN + BATCH_SIZE_LEN + encoded_message_len;
+        buffer.reserve(total_len);
+        buffer.clear();
+
+        // Write placeholder checksum (will be computed and written later)
+        buffer.extend_from_slice(&[0; CHECKSUM_HEADER_LEN]);
+
+        // Write batch size
+        buffer.extend_from_slice(
+            &u64::try_from(encoded_message_len)
+                .map(|num| num.to_le_bytes())
+                .map_err(|e| Error::new(ErrorKind::NumberConversionError, e))?,
+        );
+
+        // Encode each message
+        for message in messages {
+            let encoded_len = message.encoded_len();
+            let length = (encoded_len as u32).to_le_bytes();
+            buffer.extend_from_slice(&length);
+
+            message
+                .encode(buffer)
+                .map_err(|e| Error::new(ErrorKind::ProtobufDecodeError, e))?;
+        }
+
+        // Compute and write checksum
+        let checksum = Self::compute_checksum(buffer).to_le_bytes();
+        buffer[0..CHECKSUM_HEADER_LEN].copy_from_slice(&checksum);
+
+        Ok(&buffer[..])
+    }
+
     /// Encodes `messages` and returns a [PbfsChunk] which wraps around the encoded messages.
     pub fn new(messages: &[M]) -> Result<Self> {
-        let serialized_messages_length_delimited = messages
-            .iter()
-            .flat_map(Self::encode_message_length_prefixed)
-            .collect::<Vec<u8>>();
-
-        let messages_len = u64::try_from(serialized_messages_length_delimited.len())
-            .map(|num| num.to_le_bytes())
-            .map_err(|e| Error::new(ErrorKind::NumberConversionError, e))
-            .context("size of messages exceeds u64 max")
-            .help("this is a bug - please contact Sift")?;
-
-        let mut data = Vec::with_capacity(
-            CHECKSUM_HEADER_LEN + messages_len.len() + serialized_messages_length_delimited.len(),
-        );
-        data.extend_from_slice(&[0; CHECKSUM_HEADER_LEN]);
-        data.extend_from_slice(&messages_len);
-        data.extend_from_slice(&serialized_messages_length_delimited);
-
-        let checksum = Self::compute_checksum(&data).to_le_bytes();
-
-        data[0..CHECKSUM_HEADER_LEN].copy_from_slice(&checksum);
+        let mut data = Vec::new();
+        Self::encode_into(messages, &mut data)?;
 
         Ok(Self {
             data,
             message_type: PhantomData,
         })
-    }
-
-    /// Serialize a protobuf message to its length-prefixed wire format. The length is a `u32` encoded
-    /// as little-endian bytes.
-    pub fn encode_message_length_prefixed(message: &M) -> Vec<u8> {
-        let encoded = message.encode_to_vec();
-        let length = (encoded.len() as u32).to_le_bytes(); // 4 bytes to store the length
-        let mut wire_format = Vec::with_capacity(encoded.len() + length.len());
-        wire_format.extend_from_slice(&length);
-        wire_format.extend_from_slice(&encoded);
-        wire_format
     }
 
     /// Computes the checksum from all bytes following the checksum header.

@@ -178,6 +178,7 @@ class ChannelsAPIAsync(ResourceBase):
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        ignore_cache: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get data for one or more channels.
 
@@ -187,6 +188,7 @@ class ChannelsAPIAsync(ResourceBase):
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+            ignore_cache: Whether to ignore cached data and fetch fresh data from the server.
 
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
@@ -199,7 +201,8 @@ class ChannelsAPIAsync(ResourceBase):
             run_id=run_id,
             start_time=start_time,
             end_time=end_time,
-            limit=limit,
+            max_results=limit,
+            ignore_cache=ignore_cache,
         )
 
     async def get_data_as_arrow(
@@ -210,6 +213,7 @@ class ChannelsAPIAsync(ResourceBase):
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        ignore_cache: bool = False,
     ) -> dict[str, pa.Table]:
         """Get data for one or more channels as pyarrow tables."""
         from pyarrow import Table as ArrowTable
@@ -221,5 +225,6 @@ class ChannelsAPIAsync(ResourceBase):
             start_time=start_time,
             end_time=end_time,
             limit=limit,
+            ignore_cache=ignore_cache,
         )
         return {k: ArrowTable.from_pandas(v) for k, v in data.items()}

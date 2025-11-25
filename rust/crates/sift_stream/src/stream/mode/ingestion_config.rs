@@ -1,5 +1,6 @@
 use super::super::{SiftStream, SiftStreamMode, channel::ChannelValue, time::TimeValue};
 use crate::{
+    FlowDescriptor,
     metrics::SiftStreamMetrics,
     stream::{
         run::{RunSelector, load_run_by_form, load_run_by_id},
@@ -14,7 +15,10 @@ use futures_core::Stream;
 use prost::Message;
 use sift_error::prelude::*;
 use sift_rs::{
-    ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest},
+    ingest::v1::{
+        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
+        ingest_with_config_data_channel_value::Type,
+    },
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     runs::v2::Run,
     wrappers::ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
@@ -22,7 +26,10 @@ use sift_rs::{
 use std::{
     collections::{HashMap, HashSet},
     pin::Pin,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
     task::{Context, Poll},
 };
 use tokio::sync::broadcast;
@@ -37,6 +44,7 @@ pub struct IngestionConfigMode {
     flows_by_name: HashMap<String, Vec<FlowConfig>>,
     flows_seen: HashSet<String>,
     sift_stream_id: Uuid,
+    message_id_counter: u64,
 
     // Task-based architecture components for non-blocking operation
     stream_system: StreamSystem,
@@ -59,6 +67,9 @@ pub(crate) struct DataStream {
     data_rx: Pin<Box<async_channel::Receiver<DataMessage>>>,
     control_rx: Pin<Box<BroadcastStream<ControlMessage>>>,
     sift_stream_id: Uuid,
+    saw_first_message: bool,
+    first_message_id: Arc<AtomicU64>,
+    last_message_id: Arc<AtomicU64>,
     metrics: Arc<SiftStreamMetrics>,
 }
 
@@ -126,6 +137,7 @@ impl SiftStream<IngestionConfigMode> {
                 sift_stream_id,
                 run,
                 stream_system,
+                message_id_counter: 0,
             },
             metrics,
         })
@@ -202,18 +214,39 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
+    /// This method offers a way to send data in a manner that's identical to the raw
+    /// [`gRPC service`] for ingestion-config based streaming. Users are expected to handle
+    /// channel value ordering as well as empty values correctly.
+    ///
+    /// ### Important
+    ///
+    /// Note if using this interface, you should use [FlowBuilder::request] to ensure proper
+    /// building of the request.
+    ///
+    /// [`gRPC service`]: https://github.com/sift-stack/sift/blob/main/protos/sift/ingest/v1/ingest.proto#L11
+    pub fn send_requests_nonblocking<I>(&mut self, requests: I) -> Result<()>
+    where
+        I: IntoIterator<Item = IngestWithConfigDataStreamRequest>,
+    {
+        for req in requests {
+            self.metrics.messages_received.increment();
+            self.send_impl(req)?;
+        }
+        Ok(())
+    }
+
     /// Concerned with sending the actual ingest request to [DataStream] which will then write it
     /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
-    fn send_impl(&mut self, req: IngestWithConfigDataStreamRequest) -> Result<()> {
+    fn send_impl(&mut self, request: IngestWithConfigDataStreamRequest) -> Result<()> {
         #[cfg(feature = "tracing")]
         {
-            if !self.mode.flows_seen.contains(&req.flow) {
+            if !self.mode.flows_seen.contains(&request.flow) {
                 self.metrics.unique_flows_received.increment();
-                self.mode.flows_seen.insert(req.flow.clone());
+                self.mode.flows_seen.insert(request.flow.clone());
                 tracing::info!(
                     sift_stream_id = self.mode.sift_stream_id.to_string(),
                     "flow '{}' being ingested for the first time",
-                    &req.flow,
+                    &request.flow,
                 );
             }
         }
@@ -227,14 +260,19 @@ impl SiftStream<IngestionConfigMode> {
             .set(self.mode.stream_system.backup_tx.len() as u64);
 
         let data_msg = DataMessage {
-            request: req.clone(),
+            message_id: self.mode.message_id_counter,
+            request: Arc::new(request),
             dropped_for_ingestion: false,
         };
+
+        self.mode.message_id_counter += 1;
 
         // Send the message for backup first. If this fails, log an error and continue.
         //
         // Failure to backup can lead to data loss though it is preferable to attempt
         // to stream the message to Sift rather than return the error and prevent both.
+        //
+        // TODO(tsift): Make this behavior optional via a builder arg.
         if let Err(e) = self.mode.stream_system.backup_tx.try_send(data_msg.clone()) {
             #[cfg(feature = "tracing")]
             tracing::warn!(
@@ -282,17 +320,42 @@ impl SiftStream<IngestionConfigMode> {
     /// Modify the existing ingestion config by adding new flows that weren't accounted for during
     /// initialization.
     pub async fn add_new_flows(&mut self, flow_configs: &[FlowConfig]) -> Result<()> {
+        // Filter out flows that already exist.
+        let filtered = flow_configs
+            .iter()
+            .filter(|f| !self.mode.flows_by_name.contains_key(&f.name))
+            .collect::<Vec<_>>();
+
+        // If no new flows are provided, return early.
+        if filtered.is_empty() {
+            return Ok(());
+        }
+
+        #[cfg(feature = "tracing")]
+        tracing::info!(
+            ingestion_config_id = self.mode.ingestion_config.ingestion_config_id,
+            new_flows = filtered
+                .iter()
+                .map(|f| f.name.as_str())
+                .collect::<Vec<&str>>()
+                .join(","),
+            "adding new flows to ingestion config"
+        );
+
         new_ingestion_config_service(self.grpc_channel.clone())
             .try_create_flows(
                 &self.mode.ingestion_config.ingestion_config_id,
-                flow_configs,
+                filtered
+                    .iter()
+                    .map(|f| (*f).clone())
+                    .collect::<Vec<FlowConfig>>(),
             )
             .await
             .context("SiftStream::add_new_flows")?;
 
-        self.metrics.loaded_flows.add(flow_configs.len() as u64);
+        self.metrics.loaded_flows.add(filtered.len() as u64);
 
-        for flow_config in flow_configs {
+        for flow_config in filtered {
             self.mode
                 .flows_by_name
                 .entry(flow_config.name.clone())
@@ -325,6 +388,28 @@ impl SiftStream<IngestionConfigMode> {
                 }
             })
             .collect()
+    }
+
+    /// Get the flow descriptor for a given flow name.
+    pub fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>> {
+        let Some(flow) = self.mode.flows_by_name.get(flow_name) else {
+            return Err(Error::new_msg(
+                ErrorKind::NotFoundError,
+                format!("flow '{}' not found", flow_name),
+            ));
+        };
+
+        if flow.is_empty() {
+            return Err(Error::new_msg(
+                ErrorKind::NotFoundError,
+                format!("flow '{}' not found", flow_name),
+            ));
+        }
+
+        FlowDescriptor::try_from((
+            self.mode.ingestion_config.ingestion_config_id.clone(),
+            &flow[0],
+        ))
     }
 
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
@@ -371,6 +456,11 @@ impl SiftStream<IngestionConfigMode> {
             self.mode.stream_system.reingestion,
         );
 
+        // Finally, wait for the metrics streaming task to complete.
+        if let Some(metrics_streaming) = self.mode.stream_system.metrics_streaming {
+            let _ = metrics_streaming.await;
+        }
+
         #[cfg(feature = "tracing")]
         tracing::info!(
             sift_stream_id = self.mode.sift_stream_id.to_string(),
@@ -400,7 +490,7 @@ impl SiftStream<IngestionConfigMode> {
             .channels
             .iter()
             .map(|_| IngestWithConfigDataChannelValue {
-                r#type: Some(ChannelValue::empty_pb()),
+                r#type: Some(Type::Empty(pbjson_types::Empty {})),
             })
             .collect::<Vec<IngestWithConfigDataChannelValue>>();
 
@@ -414,7 +504,7 @@ impl SiftStream<IngestionConfigMode> {
             .collect();
 
         for v in &message.values {
-            let i = channel_map.get(&(v.name.as_str(), v.pb_data_type()))?;
+            let i = channel_map.get(&(v.name.as_str(), i32::from(v.value.pb_data_type())))?;
             channel_values[*i].r#type = Some(v.pb_value());
         }
 
@@ -460,6 +550,8 @@ impl DataStream {
         data_rx: async_channel::Receiver<DataMessage>,
         control_tx: broadcast::Sender<ControlMessage>,
         sift_stream_id: Uuid,
+        first_message_id: Arc<AtomicU64>,
+        last_message_id: Arc<AtomicU64>,
         metrics: Arc<SiftStreamMetrics>,
     ) -> Self {
         let control_rx = BroadcastStream::new(control_tx.subscribe());
@@ -467,6 +559,9 @@ impl DataStream {
             data_rx: Box::pin(data_rx),
             control_rx: Box::pin(control_rx),
             sift_stream_id,
+            saw_first_message: false,
+            first_message_id,
+            last_message_id,
             metrics,
         }
     }
@@ -486,13 +581,25 @@ impl Stream for DataStream {
 
         // Continue with data streaming.
         match self.data_rx.as_mut().poll_next(ctx) {
-            Poll::Ready(Some(DataMessage { request, .. })) => {
+            Poll::Ready(Some(DataMessage {
+                message_id,
+                request,
+                ..
+            })) => {
+                if !self.saw_first_message {
+                    self.saw_first_message = true;
+                    self.first_message_id.store(message_id, Ordering::Relaxed);
+                }
+                self.last_message_id.store(message_id, Ordering::Relaxed);
+
                 let message_size = request.encoded_len() as u64;
                 self.metrics.messages_sent.increment();
                 self.metrics.checkpoint.cur_messages_sent.increment();
                 self.metrics.bytes_sent.add(message_size);
                 self.metrics.checkpoint.cur_bytes_sent.add(message_size);
-                Poll::Ready(Some(request))
+
+                // NOTE: This will copy the request which can be expensive.
+                Poll::Ready(Some((*request).clone()))
             }
             Poll::Ready(None) => {
                 // All senders dropped.. conclude stream
