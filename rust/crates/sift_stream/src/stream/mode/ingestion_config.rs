@@ -1,5 +1,6 @@
 use super::super::{SiftStream, SiftStreamMode, channel::ChannelValue, time::TimeValue};
 use crate::{
+    FlowDescriptor,
     metrics::SiftStreamMetrics,
     stream::{
         run::{RunSelector, load_run_by_form, load_run_by_id},
@@ -213,6 +214,27 @@ impl SiftStream<IngestionConfigMode> {
         Ok(())
     }
 
+    /// This method offers a way to send data in a manner that's identical to the raw
+    /// [`gRPC service`] for ingestion-config based streaming. Users are expected to handle
+    /// channel value ordering as well as empty values correctly.
+    ///
+    /// ### Important
+    ///
+    /// Note if using this interface, you should use [FlowBuilder::request] to ensure proper
+    /// building of the request.
+    ///
+    /// [`gRPC service`]: https://github.com/sift-stack/sift/blob/main/protos/sift/ingest/v1/ingest.proto#L11
+    pub fn send_requests_nonblocking<I>(&mut self, requests: I) -> Result<()>
+    where
+        I: IntoIterator<Item = IngestWithConfigDataStreamRequest>,
+    {
+        for req in requests {
+            self.metrics.messages_received.increment();
+            self.send_impl(req)?;
+        }
+        Ok(())
+    }
+
     /// Concerned with sending the actual ingest request to [DataStream] which will then write it
     /// to the gRPC stream. If backups are enabled, the request will be backed up as well.
     fn send_impl(&mut self, request: IngestWithConfigDataStreamRequest) -> Result<()> {
@@ -366,6 +388,28 @@ impl SiftStream<IngestionConfigMode> {
                 }
             })
             .collect()
+    }
+
+    /// Get the flow descriptor for a given flow name.
+    pub fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>> {
+        let Some(flow) = self.mode.flows_by_name.get(flow_name) else {
+            return Err(Error::new_msg(
+                ErrorKind::NotFoundError,
+                format!("flow '{}' not found", flow_name),
+            ));
+        };
+
+        if flow.is_empty() {
+            return Err(Error::new_msg(
+                ErrorKind::NotFoundError,
+                format!("flow '{}' not found", flow_name),
+            ));
+        }
+
+        FlowDescriptor::try_from((
+            self.mode.ingestion_config.ingestion_config_id.clone(),
+            &flow[0],
+        ))
     }
 
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
