@@ -75,7 +75,7 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
 
             max_results: The maximum number of results to return.
             page_size: The number of results to return per page.
-            order_by: The field to order by. Not supported by the backend so it is ignored.
+            order_by: The field to order by. Not supported by the backend, but it is here for API consistency. TODO: Add to backend
             sift_client: The SiftClient to attach to the returned RemoteFiles.
 
         Returns:
@@ -103,13 +103,16 @@ class RemoteFilesLowLevelClient(LowLevelClientBase, WithGrpcClient):
             page_size: The number of results to return per page.
             page_token: The page token for pagination.
             query_filter: The CEL query filter.
-            order_by: The field to order by. Not supported by the backend so it is ignored.
+            order_by: The field to order by. Not supported by the backend, but it is here for API consistency. TODO: Add to backend
             sift_client: The SiftClient to attach to the returned RemoteFiles.
 
         Returns:
             A tuple of (list of RemoteFiles, next_page_token).
         """
         from sift_client.sift_types.file_attachment import FileAttachment
+
+        if order_by is not None:
+            raise ValueError("order_by is not supported by the backend, but it is here for API consistency.")
 
         request_kwargs: dict[str, Any] = {}
         if page_size is not None:

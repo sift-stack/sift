@@ -83,15 +83,15 @@ class FileAttachmentsAPIAsync(ResourceBase):
         name_regex: str | re.Pattern | None = None,
         # self ids
         remote_file_ids: list[str] | None = None,
-        # created/modified ranges TODO: please make a ticket since the backend needs to add
+        # created/modified ranges TODO: Add to backend
         # created_after: datetime | None = None,
         # created_before: datetime | None = None,
         # modified_after: datetime | None = None,
         # modified_before: datetime | None = None,
-        # created/modified users TODO: please make a ticket since the backend needs to add
+        # created/modified users TODO: Add to backend
         # created_by: Any | str | None = None,
         # modified_by: Any | str | None = None,
-        # metadata TODO: please make a ticket
+        # metadata TODO: Add to backend
         # metadata: list[Any] | None = None,
         # file specific
         entities: list[Run | Asset | TestReport] | None = None,
@@ -105,9 +105,22 @@ class FileAttachmentsAPIAsync(ResourceBase):
     ) -> list[FileAttachment]:
         """List file attachments with optional filtering.
 
-        Note:
-            order_by is accepted for API consistency but not currently supported by the backend.
-        ...
+        Args:
+            name: Exact name of the file attachment.
+            names: List of file attachment names to filter by.
+            name_contains: Partial name of the file attachment.
+            name_regex: Regular expression to filter file attachments by name.
+            remote_file_ids: Filter to file attachments with any of these IDs.
+            entities: Filter to file attachments associated with these entities.
+            entity_type: Filter to file attachments associated with this entity type.
+            entity_ids: Filter to file attachments associated with these entity IDs.
+            description_contains: Partial description of the file attachment.
+            filter_query: Explicit CEL query to filter file attachments.
+            order_by: Field and direction to order results by. Note: Not supported by the backend, but it is here for API consistency.
+            limit: Maximum number of file attachments to return. If None, returns all matches.
+
+        Returns:
+            A list of FileAttachment objects that match the filter criteria.
         """
         filter_parts = [
             *self._build_name_cel_filters(

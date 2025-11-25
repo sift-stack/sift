@@ -588,9 +588,22 @@ class FileAttachmentsAPI:
     ) -> list[FileAttachment]:
         """List file attachments with optional filtering.
 
-        Note:
-            order_by is accepted for API consistency but not currently supported by the backend.
-        ...
+        Args:
+            name: Exact name of the file attachment.
+            names: List of file attachment names to filter by.
+            name_contains: Partial name of the file attachment.
+            name_regex: Regular expression to filter file attachments by name.
+            remote_file_ids: Filter to file attachments with any of these IDs.
+            entities: Filter to file attachments associated with these entities.
+            entity_type: Filter to file attachments associated with this entity type.
+            entity_ids: Filter to file attachments associated with these entity IDs.
+            description_contains: Partial description of the file attachment.
+            filter_query: Explicit CEL query to filter file attachments.
+            order_by: Field and direction to order results by. Note: Not supported by the backend, but it is here for API consistency.
+            limit: Maximum number of file attachments to return. If None, returns all matches.
+
+        Returns:
+            A list of FileAttachment objects that match the filter criteria.
         """
         ...
 
