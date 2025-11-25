@@ -432,6 +432,7 @@ class ChannelsAPI:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        ignore_cache: bool = False,
     ) -> dict[str, pd.DataFrame]:
         """Get data for one or more channels.
 
@@ -441,6 +442,7 @@ class ChannelsAPI:
             start_time: The start time to get data for.
             end_time: The end time to get data for.
             limit: The maximum number of data points to return. Will be in increments of page_size or default page size defined by the call if no page_size is provided.
+            ignore_cache: Whether to ignore cached data and fetch fresh data from the server.
 
         Returns:
             A dictionary mapping channel names to pandas DataFrames containing the channel data.
@@ -455,6 +457,7 @@ class ChannelsAPI:
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         limit: int | None = None,
+        ignore_cache: bool = False,
     ) -> dict[str, pa.Table]:
         """Get data for one or more channels as pyarrow tables."""
         ...
