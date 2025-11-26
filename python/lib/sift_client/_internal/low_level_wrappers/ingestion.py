@@ -38,9 +38,11 @@ if TYPE_CHECKING:
     from sift_stream_bindings import (
         DurationPy,
         FlowConfigPy,
+        FlowDescriptorPy,
         FlowPy,
         IngestionConfigFormPy,
         IngestWithConfigDataStreamRequestPy,
+        IngestWithConfigDataStreamRequestWrapperPy,
         MetadataPy,
         RecoveryStrategyPy,
         RunFormPy,
@@ -129,12 +131,10 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     DEFAULT_MAX_LOG_FILES = 7  # Equal to 1 week of logs
     DEFAULT_LOGFILE_PREFIX = "sift_stream_bindings.log"
     _sift_stream_instance: SiftStreamPy
-    _known_flows: dict[str, FlowConfig]
 
-    def __init__(self, sift_stream_instance: SiftStreamPy, known_flows: dict[str, FlowConfig]):
+    def __init__(self, sift_stream_instance: SiftStreamPy):
         super().__init__()
         self._sift_stream_instance = sift_stream_instance
-        self._known_flows = known_flows
 
     @classmethod
     async def create_sift_stream_instance(
@@ -194,12 +194,7 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
 
         sift_stream_instance = await builder.build()
 
-        known_flows = {
-            flow_name: FlowConfig._from_rust_config(flow)
-            for flow_name, flow in sift_stream_instance.get_flows().items()
-        }
-
-        return cls(sift_stream_instance, known_flows)
+        return cls(sift_stream_instance)
 
     async def send(self, flow: FlowPy):
         await self._sift_stream_instance.send(flow)
@@ -210,12 +205,16 @@ class IngestionConfigStreamingLowLevelClient(LowLevelClientBase):
     async def send_requests(self, requests: list[IngestWithConfigDataStreamRequestPy]):
         await self._sift_stream_instance.send_requests(requests)
 
+    def send_requests_nonblocking(
+        self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]
+    ):
+        self._sift_stream_instance.send_requests_nonblocking(requests)
+
+    def get_flow_descriptor(self, flow_name: str) -> FlowDescriptorPy:
+        return self._sift_stream_instance.get_flow_descriptor(flow_name)
+
     async def add_new_flows(self, flow_configs: list[FlowConfigPy]):
         await self._sift_stream_instance.add_new_flows(flow_configs)
-        self._known_flows = {
-            flow_name: FlowConfig._from_rust_config(flow)
-            for flow_name, flow in self._sift_stream_instance.get_flows().items()
-        }
 
     async def attach_run(self, run_selector: RunSelectorPy):
         await self._sift_stream_instance.attach_run(run_selector)

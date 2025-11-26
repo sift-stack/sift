@@ -163,3 +163,24 @@ class TestAsset:
             mock_update.assert_called_once_with(updated_asset)
             # Verify it returns self
             assert result is mock_asset
+
+    def test_attachments_property_fetches_files(self, mock_asset, mock_client):
+        """Test that attachments property fetches files from client.file_attachments API."""
+        # Create mock remote files
+        mock_remote_file = MagicMock()
+        mock_remote_file.entity_id = mock_asset.id_
+        mock_remote_files = [mock_remote_file]
+
+        # Mock the file_attachments API
+        mock_client.file_attachments.list_.return_value = mock_remote_files
+
+        # Access the attachments property (it's a property, not a method)
+        result = mock_asset.attachments
+
+        # Verify file_attachments.list_ was called with correct parameters
+        mock_client.file_attachments.list_.assert_called_once_with(
+            entities=[mock_asset],
+        )
+
+        # Verify result
+        assert result == mock_remote_files
