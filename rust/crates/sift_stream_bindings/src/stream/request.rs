@@ -25,6 +25,14 @@ pub struct IngestWithConfigDataStreamRequestPy {
     pub organization_id: String,
 }
 
+// Type Definitions
+#[gen_stub_pyclass]
+#[pyclass]
+#[derive(Clone)]
+pub struct IngestWithConfigDataStreamRequestWrapperPy {
+    inner: IngestWithConfigDataStreamRequest,
+}
+
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
@@ -54,6 +62,17 @@ impl From<IngestWithConfigDataStreamRequestPy> for IngestWithConfigDataStreamReq
     }
 }
 
+impl From<IngestWithConfigDataStreamRequest> for IngestWithConfigDataStreamRequestWrapperPy {
+    fn from(request: IngestWithConfigDataStreamRequest) -> Self {
+        Self { inner: request }
+    }
+}
+
+impl From<IngestWithConfigDataStreamRequestWrapperPy> for IngestWithConfigDataStreamRequest {
+    fn from(request: IngestWithConfigDataStreamRequestWrapperPy) -> Self {
+        request.inner
+    }
+}
 // PyO3 Method Implementations
 #[gen_stub_pymethods]
 #[pymethods]
