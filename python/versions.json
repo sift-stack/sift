@@ -56,6 +56,16 @@
     }
   },
   {
+    "version": "v1.0a6",
+    "title": "v1.0a6",
+    "aliases": [
+      "pre-release"
+    ],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "v1.0.0a5",
     "title": "v1.0.0a5",
     "aliases": [],
@@ -66,9 +76,7 @@
   {
     "version": "v1.0a5",
     "title": "v1.0a5",
-    "aliases": [
-      "pre-release"
-    ],
+    "aliases": [],
     "properties": {
       "hidden": true
     }
