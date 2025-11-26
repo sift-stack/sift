@@ -4,7 +4,8 @@ use std::time::Duration;
 use crate::TimeValue;
 use crate::backup::DiskBackupPolicy;
 use crate::{
-    ChannelValue, Flow, IngestionConfigForm, RecoveryStrategy, RunForm, SiftStreamBuilder,
+    ChannelValue, Flow, FlowBuilder, IngestionConfigForm, RecoveryStrategy, RunForm,
+    SiftStreamBuilder,
 };
 use sift_rs::common::r#type::v1::ChannelDataType;
 use sift_rs::ingestion_configs::v2::{ChannelConfig, FlowConfig};
@@ -398,4 +399,79 @@ async fn test_sift_stream_builder_load_ingestion_config_with_new_flows() {
     assert!(sift_stream.add_new_flows(&[new_flow2]).await.is_ok());
     let flows = sift_stream.get_flows();
     assert_eq!(flows.len(), 2);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn test_sift_stream_ingestion_and_backup_channels_fill_up() {
+    let backups_dir = uuid::Uuid::new_v4().to_string();
+
+    let tmp_dir = TempDir::new(&backups_dir).expect("failed to creat tempdir");
+    let tmp_dir_path = tmp_dir.path();
+
+    let existing_flow = FlowConfig {
+        name: "already_exists_flow".to_string(),
+        channels: vec![ChannelConfig {
+            name: "channel1".to_string(),
+            data_type: ChannelDataType::Double.into(),
+            ..Default::default()
+        }],
+    };
+
+    let ingestion_config = IngestionConfigForm {
+        asset_name: "test_asset".to_string(),
+        client_key: "test_client_key".to_string(),
+        flows: vec![existing_flow],
+    };
+    let disk_backup_policy = DiskBackupPolicy {
+        backups_dir: Some(tmp_dir_path.to_path_buf()),
+        retain_backups: true,
+        ..Default::default()
+    };
+    let retry_policy = crate::RetryPolicy::default();
+    let (grpc_channel, _mock_service) = crate::test::create_mock_grpc_channel_with_service().await;
+
+    let mut sift_stream = SiftStreamBuilder::from_channel(grpc_channel)
+        .ingestion_config(ingestion_config)
+        .recovery_strategy(RecoveryStrategy::RetryWithBackups {
+            retry_policy,
+            disk_backup_policy,
+        })
+        .metrics_streaming_interval(None)
+        .ingestion_data_channel_capacity(1)
+        .backup_data_channel_capacity(1)
+        .build()
+        .await
+        .expect("failed to build sift stream");
+
+    let descriptor = sift_stream
+        .get_flow_descriptor("already_exists_flow")
+        .expect("failed to get flow descriptor");
+
+    // Send a burst of messages that will cause the ingestion and backup channels to fill up.
+    //
+    // Since this test is running in single-threded mode, and `send_requests_nonblocking` is not async,
+    // sending all the messages should occur before the background tasks have a chance to run
+    // and create space.
+    for data in 0..100 {
+        let mut builder = FlowBuilder::new(&descriptor);
+        assert!(builder.set_with_key("channel1", data as f64).is_ok());
+
+        assert!(
+            sift_stream
+                .send_requests(vec![builder.request(TimeValue::now())])
+                .await
+                .is_ok(),
+            "failed to send request"
+        );
+    }
+
+    // Finish the stream to ensure that the backup manager is shutdown and the backup files are processed.
+    tokio::time::timeout(Duration::from_secs(10), async {
+        assert!(
+            sift_stream.finish().await.is_ok(),
+            "failed to finish sift stream"
+        );
+    })
+    .await
+    .expect("timeout waiting for sift stream to finish");
 }

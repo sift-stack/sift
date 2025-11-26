@@ -118,6 +118,8 @@ pub struct SiftStreamMetricsSnapshot {
     pub messages_sent_to_backup: u64,
     /// Total messages dropped for ingestion
     pub old_messages_dropped_for_ingestion: u64,
+    /// Total messages dropped for ingestion that failed to be added to backup
+    pub old_messages_failed_adding_to_backup: u64,
     /// Current retry attempt count
     pub cur_retry_count: u64,
     /// Depth of the ingestion channel
@@ -382,6 +384,7 @@ pub struct SiftStreamMetrics {
     pub(crate) bytes_sent: U64Counter,
     pub(crate) messages_sent_to_backup: U64Counter,
     pub(crate) old_messages_dropped_for_ingestion: U64Counter,
+    pub(crate) old_messages_failed_adding_to_backup: U64Counter,
     pub(crate) cur_retry_count: U64Signal,
     pub(crate) ingestion_channel_depth: U64Signal,
     pub(crate) backup_channel_depth: U64Signal,
@@ -407,6 +410,7 @@ impl SiftStreamMetrics {
         let bytes_sent = self.bytes_sent.get();
         let messages_sent_to_backup = self.messages_sent_to_backup.get();
         let old_messages_dropped_for_ingestion = self.old_messages_dropped_for_ingestion.get();
+        let old_messages_failed_adding_to_backup = self.old_messages_failed_adding_to_backup.get();
         let cur_retry_count = self.cur_retry_count.get();
         let ingestion_channel_depth = self.ingestion_channel_depth.get();
         let backup_channel_depth = self.backup_channel_depth.get();
@@ -424,6 +428,7 @@ impl SiftStreamMetrics {
             byte_rate: stats.byte_rate,
             messages_sent_to_backup,
             old_messages_dropped_for_ingestion,
+            old_messages_failed_adding_to_backup,
             cur_retry_count,
             ingestion_channel_depth,
             backup_channel_depth,
@@ -494,6 +499,12 @@ impl SiftStreamMetricsSnapshot {
             ChannelConfig {
                 name: format!("{channel_prefix}.old_messages_dropped_for_ingestion"),
                 description: "Old messages dropped for ingestion".into(),
+                data_type: ChannelDataType::Uint64.into(),
+                ..Default::default()
+            },
+            ChannelConfig {
+                name: format!("{channel_prefix}.old_messages_failed_adding_to_backup"),
+                description: "Old messages failed to add to backup".into(),
                 data_type: ChannelDataType::Uint64.into(),
                 ..Default::default()
             },
@@ -660,6 +671,10 @@ impl SiftStreamMetricsSnapshot {
                 self.old_messages_dropped_for_ingestion,
             ),
             ChannelValue::new(
+                &format!("{channel_prefix}.old_messages_failed_adding_to_backup"),
+                self.old_messages_failed_adding_to_backup,
+            ),
+            ChannelValue::new(
                 &format!("{channel_prefix}.cur_retry_count"),
                 self.cur_retry_count,
             ),
@@ -762,6 +777,7 @@ impl Default for SiftStreamMetrics {
             bytes_sent: U64Counter::default(),
             messages_sent_to_backup: U64Counter::default(),
             old_messages_dropped_for_ingestion: U64Counter::default(),
+            old_messages_failed_adding_to_backup: U64Counter::default(),
             cur_retry_count: U64Signal::default(),
             ingestion_channel_depth: U64Signal::default(),
             backup_channel_depth: U64Signal::default(),
