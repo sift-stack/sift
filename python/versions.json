@@ -48,6 +48,14 @@
     }
   },
   {
+    "version": "v1.0.0a6",
+    "title": "v1.0.0a6",
+    "aliases": [],
+    "properties": {
+      "hidden": true
+    }
+  },
+  {
     "version": "v1.0.0a5",
     "title": "v1.0.0a5",
     "aliases": [],
