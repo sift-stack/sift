@@ -15,9 +15,7 @@ use futures_core::Stream;
 use prost::Message;
 use sift_error::prelude::*;
 use sift_rs::{
-    ingest::v1::{
-        IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest,
-    },
+    ingest::v1::{IngestWithConfigDataChannelValue, IngestWithConfigDataStreamRequest},
     ingestion_configs::v2::{FlowConfig, IngestionConfig},
     runs::v2::Run,
     wrappers::ingestion_configs::{IngestionConfigServiceWrapper, new_ingestion_config_service},
@@ -393,10 +391,14 @@ impl SiftStream<IngestionConfigMode> {
 
     /// Get the flow descriptor for a given flow name.
     pub fn get_flow_descriptor(&self, flow_name: &str) -> Result<FlowDescriptor<String>> {
-        self.mode.flows_by_name.get(flow_name).cloned().ok_or(Error::new_msg(
-            ErrorKind::NotFoundError,
-            format!("flow '{}' not found", flow_name),
-        ))
+        self.mode
+            .flows_by_name
+            .get(flow_name)
+            .cloned()
+            .ok_or(Error::new_msg(
+                ErrorKind::NotFoundError,
+                format!("flow '{}' not found", flow_name),
+            ))
     }
 
     /// Attach a run to the stream. Any data provided through [SiftStream::send] after return
