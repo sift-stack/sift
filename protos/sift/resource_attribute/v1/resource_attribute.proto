@@ -33,7 +33,7 @@ service ResourceAttributeService {
 
   rpc UpdateResourceAttributeKey(UpdateResourceAttributeKeyRequest) returns (UpdateResourceAttributeKeyResponse) {
     option (google.api.http) = {
-      patch: "/api/v1/resource-attribute-keys/{resource_attribute_key.resource_attribute_key_id}"
+      patch: "/api/v1/resource-attribute-keys/{resource_attribute_key_id}"
       body: "*"
     };
   }
@@ -81,7 +81,7 @@ service ResourceAttributeService {
 
   rpc UpdateResourceAttributeEnumValue(UpdateResourceAttributeEnumValueRequest) returns (UpdateResourceAttributeEnumValueResponse) {
     option (google.api.http) = {
-      patch: "/api/v1/resource-attribute-enum-values/{resource_attribute_enum_value.resource_attribute_enum_value_id}"
+      patch: "/api/v1/resource-attribute-enum-values/{resource_attribute_enum_value_id}"
       body: "*"
     };
   }
@@ -175,6 +175,7 @@ enum ResourceAttributeKeyType {
   RESOURCE_ATTRIBUTE_KEY_TYPE_ENUM = 1;
   RESOURCE_ATTRIBUTE_KEY_TYPE_BOOLEAN = 2;
   RESOURCE_ATTRIBUTE_KEY_TYPE_NUMBER = 3;
+  RESOURCE_ATTRIBUTE_KEY_TYPE_SET_OF_ENUM = 4;
 }
 
 // A ResourceAttribute Key defines an attribute that can be assigned to Entities for the purpose of attribute based access control (ABAC).
@@ -243,10 +244,14 @@ message CreateResourceAttributeKeyRequest {
   string display_name = 1 [(google.api.field_behavior) = REQUIRED];
   string description = 2 [(google.api.field_behavior) = OPTIONAL];
   ResourceAttributeKeyType type = 3 [(google.api.field_behavior) = REQUIRED];
-  string organization_id = 4 [(google.api.field_behavior) = OPTIONAL];
   // Optional initial enum values to create alongside the key. Only applicable for ENUM type keys.
-  // The resource_attribute_key_id field on each enum value will be ignored and set to the created key's ID.
-  repeated ResourceAttributeEnumValue initial_enum_values = 5 [(google.api.field_behavior) = OPTIONAL];
+  repeated InitialEnumValue initial_enum_values = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // Nested message for initial enum values in create requests.
+  message InitialEnumValue {
+    string display_name = 1 [(google.api.field_behavior) = REQUIRED];
+    string description = 2 [(google.api.field_behavior) = OPTIONAL];
+  }
 }
 
 message CreateResourceAttributeKeyResponse {
@@ -288,11 +293,8 @@ message ListResourceAttributeKeysRequest {
   // Example: "created_date desc,name"
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
 
-  // This field is only required if your user belongs to multiple organizations.
-  string organization_id = 5 [(google.api.field_behavior) = OPTIONAL];
-
   // Whether to include archived resource_attribute keys. Defaults to false.
-  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+  bool include_archived = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListResourceAttributeKeysResponse {
@@ -301,9 +303,11 @@ message ListResourceAttributeKeysResponse {
 }
 
 message UpdateResourceAttributeKeyRequest {
-  ResourceAttributeKey resource_attribute_key = 1 [(google.api.field_behavior) = REQUIRED];
-  // The list of fields to be updated. The fields available to be updated are `name`, `description`, and `archived_date`.
-  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
+  // The list of fields to be updated. The fields available to be updated are `display_name`, `description`, and `archived_date`.
+  google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UpdateResourceAttributeKeyResponse {
@@ -336,7 +340,9 @@ message BatchUnarchiveResourceAttributeKeysResponse {}
 
 // ResourceAttribute Enum Value RPC messages
 message CreateResourceAttributeEnumValueRequest {
-  ResourceAttributeEnumValue resource_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
+  string resource_attribute_key_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 2 [(google.api.field_behavior) = REQUIRED];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message CreateResourceAttributeEnumValueResponse {
@@ -388,9 +394,11 @@ message ListResourceAttributeEnumValuesResponse {
 }
 
 message UpdateResourceAttributeEnumValueRequest {
-  ResourceAttributeEnumValue resource_attribute_enum_value = 1 [(google.api.field_behavior) = REQUIRED];
-  // The list of fields to be updated. The fields available to be updated are `name`, `description`, and `archived_date`.
-  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = REQUIRED];
+  string resource_attribute_enum_value_id = 1 [(google.api.field_behavior) = REQUIRED];
+  string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
+  string description = 3 [(google.api.field_behavior) = OPTIONAL];
+  // The list of fields to be updated. The fields available to be updated are `display_name`, `description`, and `archived_date`.
+  google.protobuf.FieldMask update_mask = 4 [(google.api.field_behavior) = REQUIRED];
 }
 
 message UpdateResourceAttributeEnumValueResponse {
@@ -438,7 +446,13 @@ message BatchUnarchiveResourceAttributeEnumValuesResponse {}
 
 // ResourceAttribute RPC messages
 message CreateResourceAttributeRequest {
-  ResourceAttribute resource_attribute = 1 [(google.api.field_behavior) = REQUIRED];
+  ResourceAttributeEntityIdentifier entity = 1 [(google.api.field_behavior) = REQUIRED];
+  string resource_attribute_key_id = 2 [(google.api.field_behavior) = REQUIRED];
+  oneof value {
+    string resource_attribute_enum_value_id = 3;
+    bool boolean_value = 4;
+    double number_value = 5;
+  }
 }
 
 message CreateResourceAttributeResponse {
@@ -480,7 +494,7 @@ message ListResourceAttributesRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // A [Common Expression Language (CEL)](https://github.com/google/cel-spec) filter string.
-  // Available fields to filter by are `resource_attribute_id`, `entity.entity_id`, `entity.entity_type`, `resource_attribute_key_id`,
+  // Available fields to filter by are `resource_attribute_id`, `entity_id`, `entity_type`, `resource_attribute_key_id`,  `created_by_user_id`,
   // `resource_attribute_enum_value_id`, `boolean_value`, `number_value`, `created_by_user_id`, `created_date`, and `archived_date`.
   // For further information about how to use CELs, please refer to [this guide](https://github.com/google/cel-spec/blob/master/doc/langdef.md#standard-definitions).
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
@@ -492,11 +506,8 @@ message ListResourceAttributesRequest {
   // Example: "entity.entity_id,created_date desc"
   string order_by = 4 [(google.api.field_behavior) = OPTIONAL];
 
-  // This field is only required if your user belongs to multiple organizations.
-  string organization_id = 5 [(google.api.field_behavior) = OPTIONAL];
-
   // Whether to include archived resource-attributes. Defaults to false.
-  bool include_archived = 6 [(google.api.field_behavior) = OPTIONAL];
+  bool include_archived = 5 [(google.api.field_behavior) = OPTIONAL];
 }
 
 message ListResourceAttributesResponse {
