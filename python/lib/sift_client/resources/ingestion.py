@@ -18,9 +18,11 @@ if TYPE_CHECKING:
     from sift_stream_bindings import (
         DiskBackupPolicyPy,
         DurationPy,
+        FlowDescriptorPy,
         FlowPy,
         IngestionConfigFormPy,
         IngestWithConfigDataStreamRequestPy,
+        IngestWithConfigDataStreamRequestWrapperPy,
         MetadataPy,
         RecoveryStrategyPy,
         RetryPolicyPy,
@@ -491,6 +493,31 @@ class IngestionConfigStreamingClient(ResourceBase):
         """
         await self._low_level_client.send_requests(requests)
 
+    def send_requests_nonblocking(
+        self, requests: Iterable[IngestWithConfigDataStreamRequestWrapperPy]
+    ):
+        """Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.
+
+        This method offers a way to send data that matches the raw gRPC service interface. You are
+        expected to handle channel value ordering as well as empty values correctly.
+
+        Important:
+            If using this interface, you should use `FlowBuilderPy::request` to ensure proper
+            building of the request.
+
+        Args:
+            requests: List of ingestion requests to send to Sift.
+        """
+        self._low_level_client.send_requests_nonblocking(requests)
+
+    def get_flow_descriptor(self, flow_name: str) -> FlowDescriptorPy:
+        """Retrieve a flow descriptor by name.
+
+        Args:
+            flow_name: The name of the flow descriptor to retrieve.
+        """
+        return self._low_level_client.get_flow_descriptor(flow_name)
+
     async def add_new_flows(self, flow_configs: list[FlowConfig]):
         """Modify the existing ingestion config by adding new flows that weren't accounted for during initialization.
 
@@ -574,23 +601,6 @@ class IngestionConfigStreamingClient(ResourceBase):
             A snapshot of the current stream metrics.
         """
         return self._low_level_client.get_metrics_snapshot()
-
-    def get_flow_config(self, flow_name: str) -> FlowConfig:
-        """Retrieve a flow configuration by name.
-
-        Args:
-            flow_name: The name of the flow configuration to retrieve.
-
-        Returns:
-            The FlowConfig associated with the given flow name.
-
-        Raises:
-            KeyError: If the flow name is not found in the known flows.
-        """
-        flow_config = self._low_level_client._known_flows.get(flow_name)
-        if flow_config is None:
-            raise KeyError(f"FlowConfig {flow_name} is unknown to the ingestion client")
-        return flow_config
 
     async def __aenter__(self):
         return self
