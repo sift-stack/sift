@@ -1140,10 +1140,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config" class="md-nav__link">
+  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_descriptor" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_flow_config
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_flow_descriptor
       
     </span>
   </a>
@@ -1188,6 +1188,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;send_requests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests_nonblocking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;send_requests_nonblocking
       
     </span>
   </a>
@@ -2009,10 +2020,10 @@ You're not viewing the latest version.
 </li>
         
           <li class="md-nav__item">
-  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config" class="md-nav__link">
+  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_descriptor" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_flow_config
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_flow_descriptor
       
     </span>
   </a>
@@ -2057,6 +2068,17 @@ You're not viewing the latest version.
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;send_requests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests_nonblocking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;send_requests_nonblocking
       
     </span>
   </a>
@@ -3028,10 +3050,10 @@ a high-performance, low-latency, and reliable streaming interface to Sift.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="            get_flow_config (sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config">get_flow_config</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="            get_flow_descriptor (sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_descriptor)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_descriptor">get_flow_descriptor</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
-                  <p>Retrieve a flow configuration by name.</p>
+                  <p>Retrieve a flow descriptor by name.</p>
                 </div>
               </td>
             </tr>
@@ -3071,6 +3093,14 @@ a high-performance, low-latency, and reliable streaming interface to Sift.</p>
   
       async
    (sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests">send_requests</a></code></td>
+              <td class="doc-function-details">
+                <div class="doc-md-description">
+                  <p>Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="            send_requests_nonblocking (sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests_nonblocking)" href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests_nonblocking">send_requests_nonblocking</a></code></td>
               <td class="doc-function-details">
                 <div class="doc-md-description">
                   <p>Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.</p>
@@ -3533,22 +3563,17 @@ sent to Sift.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_flow_config</span>
+<h3 id="sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_descriptor" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_flow_descriptor</span>
 
 
-<a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_config" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_flow_config</span><span class="p">(</span><span class="n">flow_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            FlowConfig
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.ingestion.FlowConfig)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a></span>
+<a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.get_flow_descriptor" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_flow_descriptor</span><span class="p">(</span><span class="n">flow_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="sift_stream_bindings.FlowDescriptorPy">FlowDescriptorPy</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Retrieve a flow configuration by name.</p>
+        <p>Retrieve a flow descriptor by name.</p>
 
 
 <table>
@@ -3565,7 +3590,7 @@ sent to Sift.</p>
             </td>
             <td class="doc-param-details">
               <div class="doc-md-description">
-                <p>The name of the flow configuration to retrieve.</p>
+                <p>The name of the flow descriptor to retrieve.</p>
               </div>
               <p>
                   <span class="doc-param-annotation">
@@ -3573,59 +3598,6 @@ sent to Sift.</p>
                       <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
                   </span>
               </p>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RETURNS</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <span class="doc-returns-annotation">
-                    <code><a class="autorefs autorefs-internal" title="            FlowConfig
-
-
-  
-      pydantic-model
-   (sift_client.sift_types.ingestion.FlowConfig)" href="../../sift_types/ingestion/#sift_client.sift_types.ingestion.FlowConfig">FlowConfig</a></code>
-                </span>
-            </td>
-            <td class="doc-returns-details">
-              <div class="doc-md-description">
-                <p>The FlowConfig associated with the given flow name.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<table>
-      <thead>
-        <tr>
-          <th><span class="doc-section-title">RAISES</span></th>
-          <th><span>DESCRIPTION</span></th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-              <span class="doc-raises-annotation">
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#KeyError">KeyError</a></code>
-              </span>
-            </td>
-            <td class="doc-raises-details">
-              <div class="doc-md-description">
-                <p>If the flow name is not found in the known flows.</p>
-              </div>
             </td>
           </tr>
       </tbody>
@@ -3853,6 +3825,66 @@ for existing integrations to utilize sift-stream.</p>
                   <span class="doc-param-annotation">
                     <b>TYPE:</b>
                       <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<span title="sift_stream_bindings.IngestWithConfigDataStreamRequestPy">IngestWithConfigDataStreamRequestPy</span>]</code>
+                  </span>
+              </p>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests_nonblocking" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">send_requests_nonblocking</span>
+
+
+<a href="#sift_client.resources.ingestion.IngestionConfigStreamingClient.send_requests_nonblocking" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">send_requests_nonblocking</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">requests</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a></span><span class="p">[</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n"><span title="sift_stream_bindings.IngestWithConfigDataStreamRequestWrapperPy">IngestWithConfigDataStreamRequestWrapperPy</span></span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">],</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Send data in a manner identical to the raw gRPC service for ingestion-config based streaming.</p>
+<p>This method offers a way to send data that matches the raw gRPC service interface. You are
+expected to handle channel value ordering as well as empty values correctly.</p>
+
+
+<details class="important" open>
+  <summary>Important</summary>
+  <p>If using this interface, you should use <code>FlowBuilderPy::request</code> to ensure proper
+building of the request.</p>
+</details>
+
+<table>
+      <thead>
+        <tr>
+          <th><span class="doc-section-title">PARAMETER</span></th>
+          <th><span>DESCRIPTION</span></th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>requests</code>
+            </td>
+            <td class="doc-param-details">
+              <div class="doc-md-description">
+                <p>List of ingestion requests to send to Sift.</p>
+              </div>
+              <p>
+                  <span class="doc-param-annotation">
+                    <b>TYPE:</b>
+                      <code><a class="autorefs autorefs-external" title="collections.abc.Iterable" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable">Iterable</a>[<span title="sift_stream_bindings.IngestWithConfigDataStreamRequestWrapperPy">IngestWithConfigDataStreamRequestWrapperPy</span>]</code>
                   </span>
               </p>
             </td>
